@@ -46,7 +46,7 @@ jobs:
       run: cargo clippy --all-targets --all-features
 
   build-test:
-    name: Test (${{ matrix.rust.name }}, ${{ matrix.kind.name }})
+    name: Test (${{ matrix.rust.name }}, ${{ matrix.os }})
     strategy:
       matrix:
         rust:
