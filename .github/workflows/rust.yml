@@ -3,20 +3,8 @@ name: Rust - Continuous integration
 on:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - "**.md"
-      - LICENSE-Apache
-      - LICENSE-MIT
   pull_request:
     branches: [ "main" ]
-    paths-ignore:
-      - "**.md"
-      - "**/LICENSE-Apache"
-      - "**/LICENSE-MIT"
-      - .github/FUNDING.yml
-      - .editorconfig
-      - .gitignore
-      - .logo.svg
 
 concurrency:
   # Allow one run at a time for PRs, but multiple for other invocations
