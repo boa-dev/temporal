@@ -1,0 +1,85 @@
+name: Rust - Continuous integration
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - "**.md"
+      - LICENSE-Apache
+      - LICENSE-MIT
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore:
+      - "**.md"
+      - "**/LICENSE-Apache"
+      - "**/LICENSE-MIT"
+      - .github/FUNDING.yml
+      - .editorconfig
+      - .gitignore
+      - .logo.svg
+
+concurrency:
+  # Allow one run at a time for PRs, but multiple for other invocations
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+
+env:
+  RUSTFLAGS: -Dwarnings
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: dtolnay/rust-toolchain@stable
+      with:
+        components: clippy, rustfmt
+    - uses: Swatinem/rust-cache@v2
+      with:
+        key: lint
+    - name: Check rustfmt
+      run: cargo fmt --all -- --check
+    - name: Check clippy
+      run: cargo clippy --all-targets --all-features
+
+  build-test:
+    name: Test (${{ matrix.rust.name }}, ${{ matrix.kind.name }})
+    strategy:
+      matrix:
+        rust:
+          # possibly add the MSRV here
+          - { version: stable, name: stable }
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust.version }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: build-test
+      - name: Cargo build
+        run: cargo build --quiet
+      - name: Install latest nextest
+        uses: taiki-e/install-action@nextest
+      - name: Test
+        run: cargo test
+
+  docs:
+    name: Documentation
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: docs
+      - name: Generate documentation
+        run: cargo doc -v --document-private-items --all-features
+
