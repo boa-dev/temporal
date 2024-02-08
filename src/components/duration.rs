@@ -15,6 +15,7 @@ mod time;
 
 #[doc(inline)]
 pub use date::DateDuration;
+use num_traits::Zero;
 #[doc(inline)]
 pub use time::TimeDuration;
 
@@ -866,7 +867,7 @@ impl Duration {
 
     /// Returns whether the current `Duration` is blank.
     pub fn blank(&self) -> bool {
-        duration_sign(&self.iter().collect()) == 0
+        duration_sign(&self.iter().collect()).is_zero()
     }
 
     /// Returns a negated `Duration`
