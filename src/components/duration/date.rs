@@ -87,6 +87,18 @@ impl DateDuration {
         }
     }
 
+    /// Returns a negated `DateDuration`.
+    #[inline]
+    #[must_use]
+    pub fn negated(&self) -> Self {
+        Self {
+            years: self.years * -1.0,
+            months: self.months * -1.0,
+            weeks: self.weeks * -1.0,
+            days: self.days * -1.0,
+        }
+    }
+
     /// Returns a new `DateDuration` representing the absolute value of the current.
     #[inline]
     #[must_use]

@@ -143,7 +143,7 @@ impl Time {
     #[inline]
     #[must_use]
     pub fn subtract_time_duration(&self, duration: &TimeDuration) -> Self {
-        self.add_to_time(&duration.neg())
+        self.add_to_time(&duration.negated())
     }
 
     // TODO (nekevss): optimize and test rounding_increment type (f64 vs. u64).

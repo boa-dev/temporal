@@ -332,7 +332,7 @@ impl TimeDuration {
     /// Returns a negated `TimeDuration`.
     #[inline]
     #[must_use]
-    pub fn neg(&self) -> Self {
+    pub fn negated(&self) -> Self {
         Self {
             hours: self.hours * -1f64,
             minutes: self.minutes * -1f64,
