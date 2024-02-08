@@ -41,20 +41,20 @@ So in an engine, like Boa, this may look like.
 
 ```rust
 // Theoretically, fetching a the year value with context.
-let year_value = Date<JsObject>::year(context);
+let year_value = Date<JsObject>.year(context);
 ```
 
 But this API, makes the non-engine API just that much more cumbersome.
 
 ```rust
 // A user fetching a year value.
-let year_value = Date<()>::year(&mut ());
+let year_value = Date<()>.year(&mut ());
 ```
 
 There is also the chance that some user WANTS to implement a custom calendar, but does NOT need any `Context`.
 
 ```rust
-let year_value = Date<CustomCalendar>::year(&mut ());
+let year_value = Date<CustomCalendar>.year(&mut ());
 ```
 
 The API in this instance is not necessarily bad, per se. It's just it could be better for non-engine consumers.
@@ -63,6 +63,6 @@ In order to address this issue, this design concept would require that any funct
 clearly labels itself as such.
 
 ```rust
-let year_1 = Date<()>::year();
-let year_2 = Date<()>::year_with_context(&mut ());
+let year_1 = Date<()>.year();
+let year_2 = Date<()>.year_with_context(&mut ());
 ```
