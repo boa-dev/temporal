@@ -387,7 +387,7 @@ impl Duration {
 
         // 4. Let sign be ! DurationSign(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
         // 5. Assert: sign ≠ 0.
-        let sign = f64::from(self.duration_sign());
+        let sign = f64::from(self.sign());
 
         // 6. Let oneYear be ! CreateTemporalDuration(sign, 0, 0, 0, 0, 0, 0, 0, 0, 0).
         let one_year = Self::one_year(sign);
@@ -604,7 +604,7 @@ impl Duration {
 
         // 5. Let sign be ! DurationSign(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
         // 6. Assert: sign ≠ 0.
-        let sign = f64::from(self.duration_sign());
+        let sign = f64::from(self.sign());
 
         // 7. Let oneYear be ! CreateTemporalDuration(sign, 0, 0, 0, 0, 0, 0, 0, 0, 0).
         let one_year = Self::one_year(sign);
@@ -857,6 +857,28 @@ impl Duration {
 // ==== Public Duration methods ====
 
 impl Duration {
+    /// Determines the sign for the current self.
+    #[inline]
+    #[must_use]
+    pub fn sign(&self) -> i32 {
+        duration_sign(&self.iter().collect())
+    }
+
+    /// Returns whether the current `Duration` is blank.
+    pub fn blank(&self) -> bool {
+        duration_sign(&self.iter().collect()) == 0
+    }
+
+    /// Returns a negated `Duration`
+    #[inline]
+    #[must_use]
+    pub fn negated(&self) -> Self {
+        Self {
+            date: self.date().negated(),
+            time: self.time().negated(),
+        }
+    }
+
     /// Returns the absolute value of `Duration`.
     #[inline]
     #[must_use]
@@ -865,15 +887,6 @@ impl Duration {
             date: self.date().abs(),
             time: self.time().abs(),
         }
-    }
-
-    /// 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
-    ///
-    /// Determines the sign for the current self.
-    #[inline]
-    #[must_use]
-    pub fn duration_sign(&self) -> i32 {
-        duration_sign(&self.into_iter().collect())
     }
 
     /// 7.5.12 `DefaultTemporalLargestUnit ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds )`
@@ -943,6 +956,8 @@ pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
 }
 
 /// Utility function for determining the sign for the current set of `Duration` fields.
+///
+/// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
 fn duration_sign(set: &Vec<f64>) -> i32 {

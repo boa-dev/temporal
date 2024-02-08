@@ -177,7 +177,7 @@ impl Instant {
     /// Subtracts a `TimeDuration` to `Instant`.
     #[inline]
     pub fn subtract_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
-        self.add_to_instant(&duration.neg())
+        self.add_to_instant(&duration.negated())
     }
 
     /// Returns a `TimeDuration` representing the duration since provided `Instant`
