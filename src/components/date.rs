@@ -366,7 +366,7 @@ impl<C: CalendarProtocol> Date<C> {
             duration.microseconds(),
             duration.nanoseconds(),
         )
-        .balance(duration.days(), TemporalUnit::Day)?;
+        .balance(TemporalUnit::Day)?;
 
         // 5. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
         let result = self

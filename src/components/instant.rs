@@ -78,7 +78,7 @@ impl Instant {
 
         if smallest_unit == TemporalUnit::Nanosecond {
             let (_, result) = TimeDuration::new_unchecked(0f64, 0f64, secs, millis, micros, nanos)
-                .balance(0f64, largest_unit)?;
+                .balance(largest_unit)?;
             return Ok(result);
         }
 
@@ -87,7 +87,7 @@ impl Instant {
             smallest_unit,
             rounding_mode,
         )?;
-        let (_, result) = round_result.balance(0f64, largest_unit)?;
+        let (_, result) = round_result.balance(largest_unit)?;
         Ok(result)
     }
 

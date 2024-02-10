@@ -12,6 +12,7 @@ use super::{calendar::CalendarProtocol, tz::TzProtocol};
 
 mod date;
 mod time;
+mod normalized;
 
 #[doc(inline)]
 pub use date::DateDuration;
@@ -801,7 +802,8 @@ impl Duration {
         Ok(result)
     }
 
-    // TODO: Refactor relative_to's into a RelativeTo struct?
+    // TODO (nekevss): Refactor relative_to's into a RelativeTo struct?
+    // TODO (nekevss): Update to `Duration` normalization.
     /// Abstract Operation 7.5.26 `RoundDuration ( years, months, weeks, days, hours, minutes,
     ///   seconds, milliseconds, microseconds, nanoseconds, increment, unit,
     ///   roundingMode [ , plainRelativeTo [, zonedRelativeTo [, precalculatedDateTime]]] )`
@@ -922,15 +924,7 @@ impl Duration {
     /// Calls `TimeDuration`'s balance method on the current `Duration`.
     #[inline]
     pub fn balance_time_duration(&self, unit: TemporalUnit) -> TemporalResult<(f64, TimeDuration)> {
-        TimeDuration::new_unchecked(
-            self.hours(),
-            self.minutes(),
-            self.seconds(),
-            self.milliseconds(),
-            self.microseconds(),
-            self.nanoseconds(),
-        )
-        .balance(self.days(), unit)
+        self.time().balance(unit)
     }
 }
 
