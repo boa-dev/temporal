@@ -11,8 +11,8 @@ use std::str::FromStr;
 use super::{calendar::CalendarProtocol, tz::TzProtocol};
 
 mod date;
+pub(crate) mod normalized;
 mod time;
-mod normalized;
 
 #[doc(inline)]
 pub use date::DateDuration;
@@ -924,7 +924,7 @@ impl Duration {
     /// Calls `TimeDuration`'s balance method on the current `Duration`.
     #[inline]
     pub fn balance_time_duration(&self, unit: TemporalUnit) -> TemporalResult<(f64, TimeDuration)> {
-        self.time().balance(unit)
+        TimeDuration::from_normalized(self.time().as_norm(), unit)
     }
 }
 

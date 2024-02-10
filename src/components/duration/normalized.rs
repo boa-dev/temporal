@@ -9,7 +9,6 @@ const MAX_TIME_DURATION: f64 = 2e53 * 10e9 - 1.0;
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
 pub(crate) struct NormalizedTimeDuration(pub(crate) f64);
 
-
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
@@ -28,7 +27,8 @@ impl NormalizedTimeDuration {
     pub(crate) fn add(&self, other: &Self) -> TemporalResult<Self> {
         let result = self.0 + other.0;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range().with_message("normalizedTimeDuration exceeds maxTimeDuration."))
+            return Err(TemporalError::range()
+                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
         }
         Ok(Self(result))
     }
@@ -38,7 +38,8 @@ impl NormalizedTimeDuration {
     pub(crate) fn add_days(&self, days: f64) -> TemporalResult<Self> {
         let result = self.0 + days * NS_PER_DAY as f64;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range().with_message("normalizedTimeDuration exceeds maxTimeDuration."))
+            return Err(TemporalError::range()
+                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
         }
         Ok(Self(result))
     }
@@ -49,11 +50,10 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     pub(crate) fn sign(&self) -> f64 {
         if self.0 < 0.0 {
-            return -1.0
+            return -1.0;
         } else if self.0 > 0.0 {
-            return 1.0
+            return 1.0;
         }
         0.0
     }
 }
-

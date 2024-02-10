@@ -135,42 +135,17 @@ impl TimeDuration {
         }
     }
 
-    /// Returns a new `TimeDuration` representing the absolute value of the current.
-    #[inline]
-    #[must_use]
-    pub fn abs(&self) -> Self {
-        Self {
-            hours: self.hours.abs(),
-            minutes: self.minutes.abs(),
-            seconds: self.seconds.abs(),
-            milliseconds: self.milliseconds.abs(),
-            microseconds: self.microseconds.abs(),
-            nanoseconds: self.nanoseconds.abs(),
-        }
-    }
-
-    /// Returns a negated `TimeDuration`.
-    #[inline]
-    #[must_use]
-    pub fn negated(&self) -> Self {
-        Self {
-            hours: self.hours * -1f64,
-            minutes: self.minutes * -1f64,
-            seconds: self.seconds * -1f64,
-            milliseconds: self.milliseconds * -1f64,
-            microseconds: self.microseconds * -1f64,
-            nanoseconds: self.nanoseconds * -1f64,
-        }
-    }
-
-    /// Balances a `TimeDuration` given a day value and the largest unit. `balance` will return
-    /// the balanced `day` and `TimeDuration`.
+    /// Balances and creates `TimeDuration` from a `NormalizedTimeDuration`. This method will return
+    /// a tuple (f64, TimeDuration) where f64 is the overflow day value from balancing.
+    ///
+    /// Equivalent: `BalanceTimeDuration`
     ///
     /// # Errors:
     ///   - Will error if provided duration is invalid
-    pub fn balance(&self, largest_unit: TemporalUnit) -> TemporalResult<(f64, Self)> {
-        let norm = NormalizedTimeDuration::from_time_duration(&self);
-
+    pub(crate) fn from_normalized(
+        norm: NormalizedTimeDuration,
+        largest_unit: TemporalUnit,
+    ) -> TemporalResult<(f64, Self)> {
         // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
         let mut days = 0f64;
         let mut hours = 0f64;
@@ -186,10 +161,7 @@ impl TimeDuration {
 
         match largest_unit {
             // 4. If largestUnit is "year", "month", "week", or "day", then
-            TemporalUnit::Year
-            | TemporalUnit::Month
-            | TemporalUnit::Week
-            | TemporalUnit::Day => {
+            TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 microseconds = (nanoseconds / 1000f64).floor();
                 // b. Set nanoseconds to nanoseconds modulo 1000.
@@ -309,19 +281,67 @@ impl TimeDuration {
             // a. Assert: largestUnit is "nanosecond".
             _ => debug_assert!(largest_unit == TemporalUnit::Nanosecond),
         }
-        // 11. NOTE: When largestUnit is "millisecond", "microsecond", or "nanosecond", milliseconds, microseconds, or nanoseconds may be an unsafe integer. In this case,
-        // care must be taken when implementing the calculation using floating point arithmetic. It can be implemented in C++ using std::fma(). String manipulation will also
+
+        // NOTE(nekevss): `mul_add` is essentially the Rust's implementation of `std::fma()`, so that's handy, but
+        // this should be tested much further.
+        // 11. NOTE: When largestUnit is "millisecond", "microsecond", or "nanosecond", milliseconds, microseconds, or
+        // nanoseconds may be an unsafe integer. In this case, care must be taken when implementing the calculation
+        // using floating point arithmetic. It can be implemented in C++ using std::fma(). String manipulation will also
         // give an exact result, since the multiplication is by a power of 10.
+
         // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
         let days = days.mul_add(sign, 0.0);
-        let result = Self::new_unchecked(hours.mul_add(sign, 0.0), minutes.mul_add(sign, 0.0), seconds.mul_add(sign, 0.0), milliseconds.mul_add(sign, 0.0), microseconds.mul_add(sign, 0.0), nanoseconds.mul_add(sign, 0.0));
+        let result = Self::new_unchecked(
+            hours.mul_add(sign, 0.0),
+            minutes.mul_add(sign, 0.0),
+            seconds.mul_add(sign, 0.0),
+            milliseconds.mul_add(sign, 0.0),
+            microseconds.mul_add(sign, 0.0),
+            nanoseconds.mul_add(sign, 0.0),
+        );
 
-        let td = Vec::from(&[days, result.hours, result.minutes, result.seconds, result.milliseconds, result.microseconds, result.nanoseconds]);
+        let td = Vec::from(&[
+            days,
+            result.hours,
+            result.minutes,
+            result.seconds,
+            result.milliseconds,
+            result.microseconds,
+            result.nanoseconds,
+        ]);
         if !is_valid_duration(&td) {
             return Err(TemporalError::range().with_message("Invalid balance TimeDuration."));
         }
 
         Ok((days, result))
+    }
+
+    /// Returns a new `TimeDuration` representing the absolute value of the current.
+    #[inline]
+    #[must_use]
+    pub fn abs(&self) -> Self {
+        Self {
+            hours: self.hours.abs(),
+            minutes: self.minutes.abs(),
+            seconds: self.seconds.abs(),
+            milliseconds: self.milliseconds.abs(),
+            microseconds: self.microseconds.abs(),
+            nanoseconds: self.nanoseconds.abs(),
+        }
+    }
+
+    /// Returns a negated `TimeDuration`.
+    #[inline]
+    #[must_use]
+    pub fn negated(&self) -> Self {
+        Self {
+            hours: self.hours * -1f64,
+            minutes: self.minutes * -1f64,
+            seconds: self.seconds * -1f64,
+            milliseconds: self.milliseconds * -1f64,
+            microseconds: self.microseconds * -1f64,
+            nanoseconds: self.nanoseconds * -1f64,
+        }
     }
 
     /// Utility function for returning if values in a valid range.
@@ -376,6 +396,11 @@ impl TimeDuration {
     #[must_use]
     pub fn iter(&self) -> TimeIter<'_> {
         <&Self as IntoIterator>::into_iter(self)
+    }
+
+    /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.
+    pub(crate) fn as_norm(&self) -> NormalizedTimeDuration {
+        NormalizedTimeDuration::from_time_duration(self)
     }
 }
 

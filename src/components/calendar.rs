@@ -11,7 +11,10 @@
 use std::str::FromStr;
 
 use crate::{
-    components::{Date, DateTime, Duration, MonthDay, YearMonth},
+    components::{
+        duration::{DateDuration, TimeDuration},
+        Date, DateTime, Duration, MonthDay, YearMonth,
+    },
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalFields, TemporalResult,
@@ -489,6 +492,30 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
         context: &mut C::Context,
     ) -> TemporalResult<Date<C>> {
         match self {
+            CalendarSlot::Builtin(AnyCalendar::Iso(_)) => {
+                // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+                // 9. Let balanceResult be BalanceTimeDuration(norm, "day").
+                let (balance_days, _) =
+                    TimeDuration::from_normalized(duration.time().as_norm(), TemporalUnit::Day)?;
+                // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
+                let result = date.iso().add_iso_date(
+                    &DateDuration::new_unchecked(
+                        duration.days(),
+                        duration.months(),
+                        duration.weeks(),
+                        duration.days() + balance_days,
+                    ),
+                    overflow,
+                )?;
+                // 11. Return ? CreateTemporalDate(result.[[Year]], result.[[Month]], result.[[Day]], "iso8601").
+                Date::new(
+                    result.year,
+                    result.month.into(),
+                    result.day.into(),
+                    date.calendar().clone(),
+                    ArithmeticOverflow::Reject,
+                )
+            }
             CalendarSlot::Builtin(_) => {
                 Err(TemporalError::range().with_message("Not yet implemented."))
             }
