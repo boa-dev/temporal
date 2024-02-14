@@ -399,8 +399,8 @@ impl TimeDuration {
     }
 
     /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.
-    pub(crate) fn as_norm(&self) -> NormalizedTimeDuration {
-        NormalizedTimeDuration::from_time_duration(self)
+    pub(crate) fn to_normalized(self) -> NormalizedTimeDuration {
+        NormalizedTimeDuration::from_time_duration(&self)
     }
 }
 

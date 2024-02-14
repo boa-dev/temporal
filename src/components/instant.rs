@@ -78,7 +78,8 @@ impl Instant {
 
         if smallest_unit == TemporalUnit::Nanosecond {
             let (_, result) = TimeDuration::from_normalized(
-                TimeDuration::new_unchecked(0f64, 0f64, secs, millis, micros, nanos).as_norm(),
+                TimeDuration::new_unchecked(0f64, 0f64, secs, millis, micros, nanos)
+                    .to_normalized(),
                 largest_unit,
             )?;
             return Ok(result);
@@ -89,7 +90,8 @@ impl Instant {
             smallest_unit,
             rounding_mode,
         )?;
-        let (_, result) = TimeDuration::from_normalized(round_result.as_norm(), largest_unit)?;
+        let (_, result) =
+            TimeDuration::from_normalized(round_result.to_normalized(), largest_unit)?;
         Ok(result)
     }
 

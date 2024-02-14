@@ -924,7 +924,7 @@ impl Duration {
     /// Calls `TimeDuration`'s balance method on the current `Duration`.
     #[inline]
     pub fn balance_time_duration(&self, unit: TemporalUnit) -> TemporalResult<(f64, TimeDuration)> {
-        TimeDuration::from_normalized(self.time().as_norm(), unit)
+        TimeDuration::from_normalized(self.time().to_normalized(), unit)
     }
 }
 
