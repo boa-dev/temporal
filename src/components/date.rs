@@ -358,15 +358,8 @@ impl<C: CalendarProtocol> Date<C> {
 
         // 3. Let overflow be ? ToTemporalOverflow(options).
         // 4. Let days be ? BalanceTimeDuration(duration.[[Days]], duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]], "day").[[Days]].
-        let (days, _) = TimeDuration::new_unchecked(
-            duration.hours(),
-            duration.minutes(),
-            duration.seconds(),
-            duration.milliseconds(),
-            duration.microseconds(),
-            duration.nanoseconds(),
-        )
-        .balance(duration.days(), TemporalUnit::Day)?;
+        let (days, _) =
+            TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?;
 
         // 5. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
         let result = self

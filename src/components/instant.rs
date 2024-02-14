@@ -77,8 +77,11 @@ impl Instant {
         // Steps 11-13 of 13.47 GetDifferenceSettings
 
         if smallest_unit == TemporalUnit::Nanosecond {
-            let (_, result) = TimeDuration::new_unchecked(0f64, 0f64, secs, millis, micros, nanos)
-                .balance(0f64, largest_unit)?;
+            let (_, result) = TimeDuration::from_normalized(
+                TimeDuration::new_unchecked(0f64, 0f64, secs, millis, micros, nanos)
+                    .to_normalized(),
+                largest_unit,
+            )?;
             return Ok(result);
         }
 
@@ -87,7 +90,8 @@ impl Instant {
             smallest_unit,
             rounding_mode,
         )?;
-        let (_, result) = round_result.balance(0f64, largest_unit)?;
+        let (_, result) =
+            TimeDuration::from_normalized(round_result.to_normalized(), largest_unit)?;
         Ok(result)
     }
 
