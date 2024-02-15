@@ -9,6 +9,8 @@ use crate::{
     utils, TemporalError, TemporalResult, NS_PER_DAY,
 };
 
+use super::normalized::NormalizedTimeDuration;
+
 /// `DateDuration` represents the [date duration record][spec] of the `Duration.`
 ///
 /// These fields are laid out in the [Temporal Proposal][field spec] as 64-bit floating point numbers.
@@ -155,7 +157,7 @@ impl DateDuration {
     #[allow(clippy::type_complexity, clippy::let_and_return)]
     pub fn round<C: CalendarProtocol, Z: TzProtocol>(
         &self,
-        additional_time: Option<TimeDuration>,
+        normalized_time: Option<NormalizedTimeDuration>,
         increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
@@ -184,23 +186,19 @@ impl DateDuration {
             }
             // 5. If unit is one of "year", "month", "week", or "day", then
             TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
-                // a. Let nanoseconds be TotalDurationNanoseconds(hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
-                let nanoseconds = additional_time.unwrap_or_default().as_nanos();
-
-                // b. If zonedRelativeTo is not undefined, then
-                // i. Let intermediate be ? MoveRelativeZonedDateTime(zonedRelativeTo, years, months, weeks, days, precalculatedPlainDateTime).
-                // ii. Let result be ? NanosecondsToDays(nanoseconds, intermediate).
-                // iii. Let fractionalDays be days + result.[[Days]] + result.[[Nanoseconds]] / result.[[DayLength]].
-                // c. Else,
-                // i. Let fractionalDays be days + nanoseconds / nsPerDay.
-                // d. Set days, hours, minutes, seconds, milliseconds, microseconds, and nanoseconds to 0.
-                // e. Assert: fractionalSeconds is not used below.
-                if zoned_relative_to.is_none() {
-                    self.days + nanoseconds / NS_PER_DAY as f64
+                // a. If zonedRelativeTo is not undefined, then
+                if let Some(_zoned_relative) = zoned_relative_to {
+                    // TODO:
+                    // i. Let intermediate be ? MoveRelativeZonedDateTime(zonedRelativeTo, calendarRec, timeZoneRec, years, months, weeks, days, precalculatedPlainDateTime).
+                    // ii. Let result be ? NormalizedTimeDurationToDays(norm, intermediate, timeZoneRec).
+                    // iii. Let fractionalDays be days + result.[[Days]] + DivideNormalizedTimeDuration(result.[[Remainder]], result.[[DayLength]]).
+                    return Err(TemporalError::general("Not yet implemented."));
+                // b. Else,
                 } else {
-                    // implementation of b: i-iii needed.
-                    return Err(TemporalError::range().with_message("Not yet implemented."));
+                    // i. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
+                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY) as f64
                 }
+                // c. Set days to 0.
             }
             _ => {
                 return Err(TemporalError::range()

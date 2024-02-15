@@ -826,7 +826,7 @@ impl Duration {
         match unit {
             TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
                 let round_result = self.date().round(
-                    Some(self.time), // TODO: Adjust to NormalizedTimeDuration.
+                    Some(self.time.to_normalized()),
                     increment,
                     unit,
                     rounding_mode,

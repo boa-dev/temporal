@@ -48,17 +48,6 @@ impl TimeDuration {
             nanoseconds,
         }
     }
-
-    /// Returns the current `TimeDuration` as nanoseconds.
-    #[inline]
-    pub(crate) fn as_nanos(&self) -> f64 {
-        self.hours
-            .mul_add(60_f64, self.minutes)
-            .mul_add(60_f64, self.seconds)
-            .mul_add(1_000_f64, self.milliseconds)
-            .mul_add(1_000_f64, self.microseconds)
-            .mul_add(1_000_f64, self.nanoseconds)
-    }
 }
 
 // ==== TimeDuration's public API ====
