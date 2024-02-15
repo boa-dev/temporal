@@ -409,7 +409,7 @@ impl IsoTime {
     /// Rounds the current `IsoTime` according to the provided settings.
     pub(crate) fn round(
         &self,
-        increment: f64,
+        increment: u64,
         unit: TemporalUnit,
         mode: TemporalRoundingMode,
         day_length_ns: Option<i64>,
@@ -470,16 +470,18 @@ impl IsoTime {
         };
 
         let ns_per_unit = if unit == TemporalUnit::Day {
-            day_length_ns.unwrap_or(NS_PER_DAY) as f64
+            day_length_ns.unwrap_or(NS_PER_DAY)
         } else {
-            unit.as_nanoseconds().expect("Only valid time values are ")
+            unit.as_nanoseconds().expect("Only valid time values are ") as i64
         };
 
         // TODO: Verify validity of cast or handle better.
         // 9. Let result be RoundNumberToIncrement(quantity, increment, roundingMode).
-        let result =
-            utils::round_number_to_increment(quantity as f64, ns_per_unit * increment, mode)
-                / ns_per_unit;
+        let result = (utils::round_number_to_increment(
+            quantity as i64,
+            (ns_per_unit as u64) * increment,
+            mode,
+        ) / ns_per_unit) as f64;
 
         let result = match unit {
             // 10. If unit is "day", then

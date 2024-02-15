@@ -1,17 +1,20 @@
 //! This module implements the normalized `Duration` records.
 
-use crate::{TemporalError, TemporalResult, NS_PER_DAY};
+use std::ops::Add;
 
-use super::TimeDuration;
+use crate::{options::TemporalRoundingMode, utils, TemporalError, TemporalResult, NS_PER_DAY};
+
+use super::{DateDuration, TimeDuration};
 
 const MAX_TIME_DURATION: f64 = 2e53 * 10e9 - 1.0;
 
+/// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
-pub(crate) struct NormalizedTimeDuration(pub(crate) f64);
+pub struct NormalizedTimeDuration(pub(super) f64);
 
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
-    pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
+    pub(super) fn from_time_duration(time: &TimeDuration) -> Self {
         let minutes = time.minutes + time.hours * 60.0;
         let seconds = time.seconds + minutes * 60.0;
         let milliseconds = time.milliseconds + seconds * 1000.0;
@@ -22,20 +25,9 @@ impl NormalizedTimeDuration {
         Self(nanoseconds)
     }
 
-    /// Equivalent: 7.5.22 AddNormalizedTimeDuration ( one, two )
-    #[allow(unused)]
-    pub(crate) fn add(&self, other: &Self) -> TemporalResult<Self> {
-        let result = self.0 + other.0;
-        if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range()
-                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
-        }
-        Ok(Self(result))
-    }
-
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     #[allow(unused)]
-    pub(crate) fn add_days(&self, days: f64) -> TemporalResult<Self> {
+    pub(super) fn add_days(&self, days: f64) -> TemporalResult<Self> {
         let result = self.0 + days * NS_PER_DAY as f64;
         if result.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
@@ -44,16 +36,74 @@ impl NormalizedTimeDuration {
         Ok(Self(result))
     }
 
-    // NOTE: DivideNormalizedTimeDuration probably requires `__float128` support as `NormalizedTimeDuration` is not `safe integer`.
-    // Tracking issue: https://github.com/rust-lang/rfcs/pull/3453
+    // TODO: Implement as `ops::Div`
+    /// `Divide the NormalizedTimeDuraiton` by a divisor.
+    pub(super) fn divide(&self, divisor: i64) -> i64 {
+        // TODO: Validate.
+        self.0 as i64 / divisor
+    }
 
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
-    pub(crate) fn sign(&self) -> f64 {
+    #[inline]
+    #[must_use]
+    pub(super) fn sign(&self) -> i32 {
         if self.0 < 0.0 {
-            return -1.0;
+            return -1;
         } else if self.0 > 0.0 {
-            return 1.0;
+            return 1;
         }
-        0.0
+        0
+    }
+
+    /// Return the seconds value of the `NormalizedTimeDuration`.
+    pub(super) fn seconds(&self) -> i64 {
+        (self.0 / 10e9).trunc() as i64
+    }
+
+    /// Returns the subsecond components of the `NormalizedTimeDuration`.
+    pub(super) fn subseconds(&self) -> i32 {
+        // SAFETY: Remainder is 10e9 which is in range of i32
+        (self.0 % 10e9f64) as i32
+    }
+
+    /// Round the current `NormalizedTimeDuration`.
+    pub(super) fn round(&self, increment: u64, mode: TemporalRoundingMode) -> TemporalResult<Self> {
+        let rounded = utils::round_number_to_increment(self.0 as i64, increment, mode);
+        if rounded.abs() > MAX_TIME_DURATION as i64 {
+            return Err(TemporalError::range()
+                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+        }
+        Ok(Self(rounded as f64))
+    }
+}
+
+// NOTE(nekevss): As this `Add` impl is fallible. Maybe it would be best implemented as a method.
+/// Equivalent: 7.5.22 AddNormalizedTimeDuration ( one, two )
+impl Add<Self> for NormalizedTimeDuration {
+    type Output = TemporalResult<Self>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let result = self.0 + rhs.0;
+        if result.abs() > MAX_TIME_DURATION {
+            return Err(TemporalError::range()
+                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+        }
+        Ok(Self(result))
+    }
+}
+
+/// A normalized `DurationRecord` that contains a `DateDuration` and `NormalizedTimeDuration`.
+pub struct NormalizedDurationRecord(pub(super) (DateDuration, NormalizedTimeDuration));
+
+impl NormalizedDurationRecord {
+    /// Creates a new `NormalizedDurationRecord`.
+    ///
+    /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
+    pub(super) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
+        if date.sign() != 0 && norm.sign() != 0 && date.sign() != norm.sign() {
+            return Err(TemporalError::range()
+                .with_message("DateDuration and NormalizedTimeDuration must agree."));
+        }
+        Ok(Self((date, norm)))
     }
 }

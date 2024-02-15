@@ -109,6 +109,13 @@ impl DateDuration {
         }
     }
 
+    /// Returns the sign for the current `DateDuration`.
+    #[inline]
+    #[must_use]
+    pub fn sign(&self) -> i32 {
+        super::duration_sign(&self.iter().collect())
+    }
+
     /// Returns the `[[years]]` value.
     #[must_use]
     pub const fn years(&self) -> f64 {
@@ -149,7 +156,7 @@ impl DateDuration {
     pub fn round<C: CalendarProtocol, Z: TzProtocol>(
         &self,
         additional_time: Option<TimeDuration>,
-        increment: f64,
+        increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
         relative_targets: (
@@ -300,11 +307,11 @@ impl DateDuration {
 
                 // ab. Set years to RoundNumberToIncrement(fractionalYears, increment, roundingMode).
                 let rounded_years =
-                    utils::round_number_to_increment(frac_years, increment, rounding_mode);
+                    utils::round_number_to_increment(frac_years as i64, increment, rounding_mode);
 
                 // ac. Set total to fractionalYears.
                 // ad. Set months and weeks to 0.
-                let result = Self::new(rounded_years, 0f64, 0f64, 0f64)?;
+                let result = Self::new(rounded_years as f64, 0f64, 0f64, 0f64)?;
                 Ok((result, frac_years))
             }
             // 9. Else if unit is "month", then
@@ -391,11 +398,11 @@ impl DateDuration {
 
                 // r. Set months to RoundNumberToIncrement(fractionalMonths, increment, roundingMode).
                 let rounded_months =
-                    utils::round_number_to_increment(frac_months, increment, rounding_mode);
+                    utils::round_number_to_increment(frac_months as i64, increment, rounding_mode);
 
                 // s. Set total to fractionalMonths.
                 // t. Set weeks to 0.
-                let result = Self::new(self.years, rounded_months, 0f64, 0f64)?;
+                let result = Self::new(self.years, rounded_months as f64, 0f64, 0f64)?;
                 Ok((result, frac_months))
             }
             // 10. Else if unit is "week", then
@@ -443,18 +450,23 @@ impl DateDuration {
 
                 // k. Set weeks to RoundNumberToIncrement(fractionalWeeks, increment, roundingMode).
                 let rounded_weeks =
-                    utils::round_number_to_increment(frac_weeks, increment, rounding_mode);
+                    utils::round_number_to_increment(frac_weeks as i64, increment, rounding_mode);
                 // l. Set total to fractionalWeeks.
-                let result = Self::new(self.years, self.months, rounded_weeks, 0f64)?;
+                let result = Self::new(self.years, self.months, rounded_weeks as f64, 0f64)?;
                 Ok((result, frac_weeks))
             }
             // 11. Else if unit is "day", then
             TemporalUnit::Day => {
                 // a. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
-                let rounded_days =
-                    utils::round_number_to_increment(fractional_days, increment, rounding_mode);
+                let rounded_days = utils::round_number_to_increment(
+                    fractional_days as i64,
+                    increment,
+                    rounding_mode,
+                );
+
                 // b. Set total to fractionalDays.
-                let result = Self::new(self.years, self.months, self.weeks, rounded_days)?;
+                // c. Set norm to ZeroTimeDuration().
+                let result = Self::new(self.years, self.months, self.weeks, rounded_days as f64)?;
                 Ok((result, fractional_days))
             }
             _ => unreachable!("All other TemporalUnits were returned early as invalid."),
