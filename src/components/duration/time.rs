@@ -2,10 +2,14 @@
 
 use crate::{
     options::{TemporalRoundingMode, TemporalUnit},
-    utils, TemporalError, TemporalResult,
+    TemporalError, TemporalResult,
 };
 
 use super::{is_valid_duration, normalized::NormalizedTimeDuration};
+
+const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
+const NANOSECONDS_PER_MINUTE: u64 = NANOSECONDS_PER_SECOND * 60;
+const NANOSECONDS_PER_HOUR: u64 = NANOSECONDS_PER_MINUTE * 60;
 
 /// `TimeDuration` represents the [Time Duration record][spec] of the `Duration.`
 ///
@@ -43,17 +47,6 @@ impl TimeDuration {
             microseconds,
             nanoseconds,
         }
-    }
-
-    /// Returns the current `TimeDuration` as nanoseconds.
-    #[inline]
-    pub(crate) fn as_nanos(&self) -> f64 {
-        self.hours
-            .mul_add(60_f64, self.minutes)
-            .mul_add(60_f64, self.seconds)
-            .mul_add(1_000_f64, self.milliseconds)
-            .mul_add(1_000_f64, self.microseconds)
-            .mul_add(1_000_f64, self.nanoseconds)
     }
 }
 
@@ -155,7 +148,7 @@ impl TimeDuration {
         let mut microseconds = 0f64;
 
         // 2. Let sign be NormalizedTimeDurationSign(norm).
-        let sign = norm.sign();
+        let sign = f64::from(norm.sign());
         // 3. Let nanoseconds be NormalizedTimeDurationAbs(norm).[[TotalNanoseconds]].
         let mut nanoseconds = norm.0.abs();
 
@@ -413,11 +406,11 @@ impl TimeDuration {
     #[inline]
     pub fn round(
         &self,
-        increment: f64,
+        increment: u64,
         unit: TemporalUnit,
-        rounding_mode: TemporalRoundingMode,
-    ) -> TemporalResult<(Self, f64)> {
-        let fraction_seconds = match unit {
+        mode: TemporalRoundingMode,
+    ) -> TemporalResult<(NormalizedTimeDuration, i64)> {
+        let norm = match unit {
             TemporalUnit::Year
             | TemporalUnit::Month
             | TemporalUnit::Week
@@ -426,117 +419,64 @@ impl TimeDuration {
                 return Err(TemporalError::r#type()
                     .with_message("Invalid unit provided to for TimeDuration to round."))
             }
-            _ => self.nanoseconds().mul_add(
-                1_000_000_000f64,
-                self.microseconds().mul_add(
-                    1_000_000f64,
-                    self.milliseconds().mul_add(1000f64, self.seconds()),
-                ),
-            ),
+            _ => self.to_normalized(),
         };
 
         match unit {
             // 12. Else if unit is "hour", then
             TemporalUnit::Hour => {
-                // a. Let fractionalHours be (fractionalSeconds / 60 + minutes) / 60 + hours.
-                let frac_hours = (fraction_seconds / 60f64 + self.minutes) / 60f64 + self.hours;
-                // b. Set hours to RoundNumberToIncrement(fractionalHours, increment, roundingMode).
-                let rounded_hours =
-                    utils::round_number_to_increment(frac_hours, increment, rounding_mode);
-                // c. Set total to fractionalHours.
-                // d. Set minutes, seconds, milliseconds, microseconds, and nanoseconds to 0.
-                let result = Self::new(rounded_hours, 0f64, 0f64, 0f64, 0f64, 0f64)?;
-                Ok((result, frac_hours))
+                // a. Let divisor be 3.6 × 10**12.
+                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
+                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                Ok((norm, total))
             }
             // 13. Else if unit is "minute", then
             TemporalUnit::Minute => {
-                // a. Let fractionalMinutes be fractionalSeconds / 60 + minutes.
-                let frac_minutes = fraction_seconds / 60f64 + self.minutes;
-                // b. Set minutes to RoundNumberToIncrement(fractionalMinutes, increment, roundingMode).
-                let rounded_minutes =
-                    utils::round_number_to_increment(frac_minutes, increment, rounding_mode);
-                // c. Set total to fractionalMinutes.
-                // d. Set seconds, milliseconds, microseconds, and nanoseconds to 0.
-                let result = Self::new(self.hours, rounded_minutes, 0f64, 0f64, 0f64, 0f64)?;
-
-                Ok((result, frac_minutes))
+                // a. Let divisor be 6 × 10**10.
+                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
+                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                Ok((norm, total))
             }
             // 14. Else if unit is "second", then
             TemporalUnit::Second => {
-                // a. Set seconds to RoundNumberToIncrement(fractionalSeconds, increment, roundingMode).
-                let rounded_seconds =
-                    utils::round_number_to_increment(fraction_seconds, increment, rounding_mode);
-                // b. Set total to fractionalSeconds.
-                // c. Set milliseconds, microseconds, and nanoseconds to 0.
-                let result =
-                    Self::new(self.hours, self.minutes, rounded_seconds, 0f64, 0f64, 0f64)?;
-
-                Ok((result, fraction_seconds))
+                // a. Let divisor be 10**9.
+                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
+                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                Ok((norm, total))
             }
             // 15. Else if unit is "millisecond", then
             TemporalUnit::Millisecond => {
-                // a. Let fractionalMilliseconds be nanoseconds × 10-6 + microseconds × 10-3 + milliseconds.
-                let fraction_millis = self.nanoseconds.mul_add(
-                    1_000_000f64,
-                    self.microseconds.mul_add(1_000f64, self.milliseconds),
-                );
-
-                // b. Set milliseconds to RoundNumberToIncrement(fractionalMilliseconds, increment, roundingMode).
-                let rounded_millis =
-                    utils::round_number_to_increment(fraction_millis, increment, rounding_mode);
-
-                // c. Set total to fractionalMilliseconds.
-                // d. Set microseconds and nanoseconds to 0.
-                let result = Self::new(
-                    self.hours,
-                    self.minutes,
-                    self.seconds,
-                    rounded_millis,
-                    0f64,
-                    0f64,
-                )?;
-                Ok((result, fraction_millis))
+                // a. Let divisor be 10**6.
+                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
+                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                Ok((norm, total))
             }
             // 16. Else if unit is "microsecond", then
             TemporalUnit::Microsecond => {
-                // a. Let fractionalMicroseconds be nanoseconds × 10-3 + microseconds.
-                let frac_micros = self.nanoseconds.mul_add(1_000f64, self.microseconds);
-
-                // b. Set microseconds to RoundNumberToIncrement(fractionalMicroseconds, increment, roundingMode).
-                let rounded_micros =
-                    utils::round_number_to_increment(frac_micros, increment, rounding_mode);
-
-                // c. Set total to fractionalMicroseconds.
-                // d. Set nanoseconds to 0.
-                let result = Self::new(
-                    self.hours,
-                    self.minutes,
-                    self.seconds,
-                    self.milliseconds,
-                    rounded_micros,
-                    0f64,
-                )?;
-                Ok((result, frac_micros))
+                // a. Let divisor be 10**3.
+                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
+                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                Ok((norm, total))
             }
             // 17. Else,
             TemporalUnit::Nanosecond => {
                 // a. Assert: unit is "nanosecond".
-                // b. Set total to nanoseconds.
-                let total = self.nanoseconds;
-                // c. Set nanoseconds to RoundNumberToIncrement(nanoseconds, increment, roundingMode).
-                let rounded_nanos =
-                    utils::round_number_to_increment(self.nanoseconds, increment, rounding_mode);
-
-                let result = Self::new(
-                    self.hours,
-                    self.minutes,
-                    self.seconds,
-                    self.milliseconds,
-                    self.microseconds,
-                    rounded_nanos,
-                )?;
-
-                Ok((result, total))
+                // b. Set total to NormalizedTimeDurationSeconds(norm) × 10**9 + NormalizedTimeDurationSubseconds(norm).
+                let total =
+                    norm.seconds() * (NANOSECONDS_PER_SECOND as i64) + i64::from(norm.subseconds());
+                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, increment, roundingMode).
+                let norm = norm.round(increment, mode)?;
+                Ok((norm, total))
             }
             _ => unreachable!("All other units early return error."),
         }

@@ -1,5 +1,7 @@
 //! Utility date and time equations for Temporal
 
+use std::{cmp::Ordering, ops::Neg};
+
 use crate::{
     options::{TemporalRoundingMode, TemporalUnsignedRoundingMode},
     TemporalError, TemporalResult, MS_PER_DAY,
@@ -8,7 +10,7 @@ use crate::{
 // NOTE: Review the below for optimizations and add ALOT of tests.
 
 /// Converts and validates an `Option<f64>` rounding increment value into a valid increment result.
-pub(crate) fn to_rounding_increment(increment: Option<f64>) -> TemporalResult<f64> {
+pub(crate) fn to_rounding_increment(increment: Option<f64>) -> TemporalResult<u64> {
     let inc = increment.unwrap_or(1.0);
 
     if !inc.is_finite() {
@@ -23,81 +25,80 @@ pub(crate) fn to_rounding_increment(increment: Option<f64>) -> TemporalResult<f6
         );
     }
 
-    Ok(integer)
+    Ok(integer as u64)
 }
 
+/// Applies the unsigned rounding mode.
 fn apply_unsigned_rounding_mode(
-    x: f64,
-    r1: f64,
-    r2: f64,
+    x: u64,
+    increment: u64,
+    floor: u64,
+    ceil: u64,
     unsigned_rounding_mode: TemporalUnsignedRoundingMode,
-) -> f64 {
+) -> u64 {
     // 1. If x is equal to r1, return r1.
-    if (x - r1).abs() == 0.0 {
-        return r1;
+    if x % increment == 0 {
+        return ceil;
     };
+
     // 2. Assert: r1 < x < r2.
-    assert!(r1 < x && x < r2);
     // 3. Assert: unsignedRoundingMode is not undefined.
 
     // 4. If unsignedRoundingMode is zero, return r1.
     if unsigned_rounding_mode == TemporalUnsignedRoundingMode::Zero {
-        return r1;
+        return floor;
     };
     // 5. If unsignedRoundingMode is infinity, return r2.
     if unsigned_rounding_mode == TemporalUnsignedRoundingMode::Infinity {
-        return r2;
+        return ceil;
     };
 
     // 6. Let d1 be x – r1.
-    let d1 = x - r1;
     // 7. Let d2 be r2 – x.
-    let d2 = r2 - x;
     // 8. If d1 < d2, return r1.
-    if d1 < d2 {
-        return r1;
-    }
     // 9. If d2 < d1, return r2.
-    if d2 < d1 {
-        return r2;
+    let remainder = x % increment;
+    let half = increment / 2;
+    match remainder.cmp(&half) {
+        Ordering::Less => floor,
+        Ordering::Greater => ceil,
+        Ordering::Equal => {
+            // 10. Assert: d1 is equal to d2.
+            // 11. If unsignedRoundingMode is half-zero, return r1.
+            if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfZero {
+                return floor;
+            };
+            // 12. If unsignedRoundingMode is half-infinity, return r2.
+            if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfInfinity {
+                return ceil;
+            };
+            // 13. Assert: unsignedRoundingMode is half-even.
+            assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
+            // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
+            let cardinality = (floor / (ceil - floor)) % 2;
+            // 15. If cardinality is 0, return r1.
+            if cardinality == 0 {
+                return floor;
+            }
+            // 16. Return r2.
+            ceil
+        }
     }
-    // 10. Assert: d1 is equal to d2.
-    assert!((d1 - d2).abs() == 0.0);
-
-    // 11. If unsignedRoundingMode is half-zero, return r1.
-    if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfZero {
-        return r1;
-    };
-    // 12. If unsignedRoundingMode is half-infinity, return r2.
-    if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfInfinity {
-        return r2;
-    };
-    // 13. Assert: unsignedRoundingMode is half-even.
-    assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
-    // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
-    let cardinality = (r1 / (r2 - r1)) % 2.0;
-    // 15. If cardinality is 0, return r1.
-    if cardinality == 0.0 {
-        return r1;
-    }
-    // 16. Return r2.
-    r2
 }
 
+// TODO: Use `div_ceil` and `div_floor` once stable.
+// Tracking issue: https://github.com/rust-lang/rust/issues/88581
 /// 13.28 `RoundNumberToIncrement ( x, increment, roundingMode )`
 pub(crate) fn round_number_to_increment(
-    x: f64,
-    increment: f64,
+    x: i64,
+    increment: u64,
     rounding_mode: TemporalRoundingMode,
-) -> f64 {
+) -> i64 {
     // 1. Let quotient be x / increment.
-    let mut quotient = x / increment;
-
     // 2. If quotient < 0, then
-    let is_negative = if quotient < 0_f64 {
+    let is_negative = if x / (increment as i64) < 0 {
         // a. Let isNegative be true.
         // b. Set quotient to -quotient.
-        quotient = -quotient;
         true
     // 3. Else,
     } else {
@@ -107,38 +108,44 @@ pub(crate) fn round_number_to_increment(
 
     // 4. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, isNegative).
     let unsigned_rounding_mode = rounding_mode.get_unsigned_round_mode(is_negative);
+
+    let x = x.unsigned_abs();
     // 5. Let r1 be the largest integer such that r1 ≤ quotient.
-    let r1 = quotient.floor();
+    let floor = x / increment;
     // 6. Let r2 be the smallest integer such that r2 > quotient.
-    let r2 = quotient.ceil();
+    let ceil = x.div_ceil(increment);
+
     // 7. Let rounded be ApplyUnsignedRoundingMode(quotient, r1, r2, unsignedRoundingMode).
-    let mut rounded = apply_unsigned_rounding_mode(quotient, r1, r2, unsigned_rounding_mode);
+    let rounded = apply_unsigned_rounding_mode(x, increment, floor, ceil, unsigned_rounding_mode);
+
     // 8. If isNegative is true, set rounded to -rounded.
-    if is_negative {
-        rounded = -rounded;
+    let rounded = if is_negative {
+        (rounded as i64).neg()
+    } else {
+        rounded as i64
     };
+
     // 9. Return rounded × increment.
-    rounded * increment
+    rounded * (increment as i64)
 }
 
 /// Rounds provided number assuming that the increment is greater than 0.
 pub(crate) fn round_number_to_increment_as_if_positive(
-    nanos: f64,
-    increment_nanos: f64,
+    nanos: u64,
+    increment: u64,
     rounding_mode: TemporalRoundingMode,
-) -> f64 {
+) -> u64 {
     // 1. Let quotient be x / increment.
-    let quotient = nanos / increment_nanos;
     // 2. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, false).
     let unsigned_rounding_mode = rounding_mode.get_unsigned_round_mode(false);
     // 3. Let r1 be the largest integer such that r1 ≤ quotient.
-    let r1 = quotient.floor();
+    let r1 = nanos / increment;
     // 4. Let r2 be the smallest integer such that r2 > quotient.
-    let r2 = quotient.ceil();
+    let r2 = nanos / increment + 1;
     // 5. Let rounded be ApplyUnsignedRoundingMode(quotient, r1, r2, unsignedRoundingMode).
-    let rounded = apply_unsigned_rounding_mode(quotient, r1, r2, unsigned_rounding_mode);
+    let rounded = apply_unsigned_rounding_mode(nanos, increment, r1, r2, unsigned_rounding_mode);
     // 6. Return rounded × increment.
-    rounded * increment_nanos
+    rounded * increment
 }
 
 pub(crate) fn validate_temporal_rounding_increment(

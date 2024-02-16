@@ -61,7 +61,7 @@ impl Instant {
         let secs = (diff / NANOSECONDS_PER_SECOND).trunc();
 
         // Handle the settings provided to `diff_instant`
-        let rounding_increment = rounding_increment.unwrap_or(1.0);
+        let increment = utils::to_rounding_increment(rounding_increment)?;
         let rounding_mode = if op {
             rounding_mode
                 .unwrap_or(TemporalRoundingMode::Trunc)
@@ -86,28 +86,27 @@ impl Instant {
         }
 
         let (round_result, _) = TimeDuration::new(0f64, 0f64, secs, millis, micros, nanos)?.round(
-            rounding_increment,
+            increment,
             smallest_unit,
             rounding_mode,
         )?;
-        let (_, result) =
-            TimeDuration::from_normalized(round_result.to_normalized(), largest_unit)?;
+        let (_, result) = TimeDuration::from_normalized(round_result, largest_unit)?;
         Ok(result)
     }
 
     /// Rounds a current `Instant` given the resolved options, returning a `BigInt` result.
     pub(crate) fn round_instant(
         &self,
-        increment: f64,
+        increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
     ) -> TemporalResult<BigInt> {
-        let increment_nanos = match unit {
-            TemporalUnit::Hour => increment * NANOSECONDS_PER_HOUR,
-            TemporalUnit::Minute => increment * NANOSECONDS_PER_MINUTE,
-            TemporalUnit::Second => increment * NANOSECONDS_PER_SECOND,
-            TemporalUnit::Millisecond => increment * 1_000_000f64,
-            TemporalUnit::Microsecond => increment * 1_000f64,
+        let increment = match unit {
+            TemporalUnit::Hour => increment * (NANOSECONDS_PER_HOUR as u64),
+            TemporalUnit::Minute => increment * (NANOSECONDS_PER_MINUTE as u64),
+            TemporalUnit::Second => increment * (NANOSECONDS_PER_SECOND as u64),
+            TemporalUnit::Millisecond => increment * 1_000_000,
+            TemporalUnit::Microsecond => increment * 1_000,
             TemporalUnit::Nanosecond => increment,
             _ => {
                 return Err(TemporalError::range()
@@ -116,12 +115,12 @@ impl Instant {
         };
 
         let rounded = utils::round_number_to_increment_as_if_positive(
-            self.to_f64(),
-            increment_nanos,
+            self.to_f64() as u64, // TODO: Update in numeric refactor.
+            increment,
             rounding_mode,
         );
 
-        BigInt::from_f64(rounded)
+        BigInt::from_u64(rounded)
             .ok_or_else(|| TemporalError::range().with_message("Invalid rounded Instant value."))
     }
 

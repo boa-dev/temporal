@@ -8,6 +8,8 @@ use crate::{
 };
 use std::str::FromStr;
 
+use self::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
+
 use super::{calendar::CalendarProtocol, tz::TzProtocol};
 
 mod date;
@@ -803,14 +805,15 @@ impl Duration {
     }
 
     // TODO (nekevss): Refactor relative_to's into a RelativeTo struct?
-    // TODO (nekevss): Update to `Duration` normalization.
+    // TODO (nekevss): Impl `Duration::round` -> Potentially rename to `round_internal`
     /// Abstract Operation 7.5.26 `RoundDuration ( years, months, weeks, days, hours, minutes,
     ///   seconds, milliseconds, microseconds, nanoseconds, increment, unit,
     ///   roundingMode [ , plainRelativeTo [, zonedRelativeTo [, precalculatedDateTime]]] )`
     #[allow(clippy::type_complexity)]
-    pub fn round_duration<C: CalendarProtocol, Z: TzProtocol>(
+    #[allow(dead_code)]
+    pub(crate) fn round_duration<C: CalendarProtocol, Z: TzProtocol>(
         &self,
-        increment: f64,
+        increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
         relative_targets: (
@@ -819,19 +822,22 @@ impl Duration {
             Option<&DateTime<C>>,
         ),
         context: &mut C::Context,
-    ) -> TemporalResult<(Self, f64)> {
+    ) -> TemporalResult<(NormalizedDurationRecord, f64)> {
         match unit {
             TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
                 let round_result = self.date().round(
-                    Some(self.time),
+                    Some(self.time.to_normalized()),
                     increment,
                     unit,
                     rounding_mode,
                     relative_targets,
                     context,
                 )?;
-                let result = Self::from_date_duration(round_result.0);
-                Ok((result, round_result.1))
+                let norm_record = NormalizedDurationRecord::new(
+                    round_result.0,
+                    NormalizedTimeDuration::default(),
+                )?;
+                Ok((norm_record, round_result.1))
             }
             TemporalUnit::Hour
             | TemporalUnit::Minute
@@ -840,11 +846,8 @@ impl Duration {
             | TemporalUnit::Microsecond
             | TemporalUnit::Nanosecond => {
                 let round_result = self.time().round(increment, unit, rounding_mode)?;
-                let result = Self {
-                    date: self.date,
-                    time: round_result.0,
-                };
-                Ok((result, round_result.1))
+                let norm = NormalizedDurationRecord::new(DateDuration::default(), round_result.0)?;
+                Ok((norm, round_result.1 as f64))
             }
             TemporalUnit::Auto => {
                 Err(TemporalError::range().with_message("Invalid TemporalUnit for Duration.round"))
