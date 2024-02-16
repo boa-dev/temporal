@@ -243,7 +243,7 @@ impl Instant {
             _ => return Err(TemporalError::range().with_message("Invalid roundTo unit provided.")),
         };
         // NOTE: to_rounding_increment returns an f64 within a u32 range.
-        utils::validate_temporal_rounding_increment(increment as u32, maximum, true)?;
+        utils::validate_temporal_rounding_increment(increment, maximum, true)?;
 
         let round_result = self.round_instant(increment, unit, mode)?;
         Self::new(round_result)

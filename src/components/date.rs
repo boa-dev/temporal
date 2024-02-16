@@ -382,7 +382,7 @@ impl<C: CalendarProtocol> Date<C> {
 
         if largest_unit == TemporalUnit::Day {
             let days = self.days_until(other);
-            return Ok(Duration::from_date_duration(DateDuration::new(
+            return Ok(Duration::from_date_duration(&DateDuration::new(
                 0f64,
                 0f64,
                 0f64,

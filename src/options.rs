@@ -83,6 +83,24 @@ impl TemporalUnit {
     }
 }
 
+impl From<usize> for TemporalUnit {
+    fn from(value: usize) -> Self {
+        match value {
+            10 => Self::Year,
+            9 => Self::Month,
+            8 => Self::Week,
+            7 => Self::Day,
+            6 => Self::Hour,
+            5 => Self::Minute,
+            4 => Self::Second,
+            3 => Self::Millisecond,
+            2 => Self::Microsecond,
+            1 => Self::Nanosecond,
+            _ => Self::Auto,
+        }
+    }
+}
+
 /// A parsing error for `TemporalUnit`
 #[derive(Debug, Clone, Copy)]
 pub struct ParseTemporalUnitError;

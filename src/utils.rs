@@ -149,7 +149,7 @@ pub(crate) fn round_number_to_increment_as_if_positive(
 }
 
 pub(crate) fn validate_temporal_rounding_increment(
-    increment: u32,
+    increment: u64,
     dividend: u64,
     inclusive: bool,
 ) -> TemporalResult<()> {

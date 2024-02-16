@@ -165,7 +165,7 @@ impl Time {
             })?;
 
         // Safety (nekevss): to_rounding_increment returns a value in the range of a u32.
-        utils::validate_temporal_rounding_increment(increment as u32, u64::from(max), false)?;
+        utils::validate_temporal_rounding_increment(increment, u64::from(max), false)?;
 
         let (_, result) = self.iso.round(increment, smallest_unit, mode, None)?;
 

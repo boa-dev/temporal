@@ -197,7 +197,7 @@ impl IsoDate {
     ///
     /// Equivalent to `IsoDateToEpochDays`
     pub(crate) fn to_epoch_days(self) -> i32 {
-        iso_date_to_epoch_days(self.year, self.month.into(), self.day.into())
+        iso_date_to_epoch_days(self.year, (self.month - 1).into(), self.day.into())
     }
 
     /// Returns if the current `IsoDate` is valid.
