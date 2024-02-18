@@ -1,8 +1,8 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{Date, DateTime, ZonedDateTime},
-    options::{TemporalRoundingMode, TemporalUnit},
+    components::DateTime,
+    options::{RelativeTo, TemporalRoundingMode, TemporalUnit},
     parser::{duration::parse_duration, Cursor},
     utils::{self, validate_temporal_rounding_increment},
     TemporalError, TemporalResult,
@@ -381,11 +381,8 @@ impl Duration {
         increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
-        relative_targets: (
-            Option<&Date<C>>,
-            Option<&ZonedDateTime<C, Z>>,
-            Option<&DateTime<C>>,
-        ),
+        relative_to: &RelativeTo<C, Z>,
+        precalculated_dt: Option<DateTime<C>>,
         context: &mut C::Context,
     ) -> TemporalResult<(NormalizedDurationRecord, f64)> {
         match unit {
@@ -395,7 +392,8 @@ impl Duration {
                     increment,
                     unit,
                     rounding_mode,
-                    relative_targets,
+                    relative_to,
+                    precalculated_dt,
                     context,
                 )?;
                 let norm_record = NormalizedDurationRecord::new(
@@ -411,14 +409,15 @@ impl Duration {
             | TemporalUnit::Microsecond
             | TemporalUnit::Nanosecond => {
                 let round_result = self.time().round(increment, unit, rounding_mode)?;
-                let norm = NormalizedDurationRecord::new(DateDuration::default(), round_result.0)?;
+                let norm = NormalizedDurationRecord::new(*self.date(), round_result.0)?;
                 Ok((norm, round_result.1 as f64))
             }
             TemporalUnit::Auto => {
                 Err(TemporalError::range().with_message("Invalid TemporalUnit for Duration.round"))
             }
         }
-        // 18. Let duration be ? CreateDurationRecord(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
+        // 18. Let duration be ? CreateDurationRecord(years, months, weeks, days, hours,
+        // minutes, seconds, milliseconds, microseconds, nanoseconds).
         // 19. Return the Record { [[DurationRecord]]: duration, [[Total]]: total }.
     }
 }
@@ -471,11 +470,7 @@ impl Duration {
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
         rounding_mode: Option<TemporalRoundingMode>,
-        relative_targets: (
-            Option<&Date<C>>,
-            Option<&ZonedDateTime<C, Z>>,
-            Option<&DateTime<C>>,
-        ),
+        relative_to: &RelativeTo<C, Z>,
         context: &mut C::Context,
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
@@ -498,7 +493,10 @@ impl Duration {
         // b. Set smallestUnit to "nanosecond".
         let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Nanosecond);
 
-        // 18. Let existingLargestUnit be ! DefaultTemporalLargestUnit(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]]).
+        // 18. Let existingLargestUnit be ! DefaultTemporalLargestUnit(duration.[[Years]],
+        // duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]],
+        // duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
+        // duration.[[Microseconds]]).
         let existing_largest_unit = self
             .iter()
             .enumerate()
@@ -535,7 +533,7 @@ impl Duration {
 
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
-        let hours_to_days_may_occur = if self.days() != 0.0 && relative_targets.1.is_some() {
+        let hours_to_days_may_occur = if self.days() != 0.0 && relative_to.zdt.is_some() {
             true
         // 28. Else if abs(duration.[[Hours]]) ≥ 24, set hoursToDaysConversionMayOccur to true.
         } else if self.hours().abs() >= 24.0 {
@@ -567,7 +565,10 @@ impl Duration {
             // smallest unit and rounding increment will leave the total duration unchanged,
             // and it can be determined without calling a calendar or time zone method that
             // no balancing will take place.
-            // b. Return ! CreateTemporalDuration(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+            // b. Return ! CreateTemporalDuration(duration.[[Years]], duration.[[Months]],
+            // duration.[[Weeks]], duration.[[Days]], duration.[[Hours]], duration.[[Minutes]],
+            // duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]],
+            // duration.[[Nanoseconds]]).
             return Ok(*self);
         }
 
@@ -575,29 +576,102 @@ impl Duration {
         // 33. If roundingGranularityIsNoop is false, or IsCalendarUnit(largestUnit) is true, or largestUnit is "day",
         // or calendarUnitsPresent is true, or duration.[[Days]] ≠ 0, let plainDateTimeOrRelativeToWillBeUsed be true;
         // else let plainDateTimeOrRelativeToWillBeUsed be false.
+        let pdtr_will_be_used = !is_noop
+            || largest_unit.is_calendar_unit()
+            || largest_unit == TemporalUnit::Day
+            || calendar_units_present
+            || self.days() == 0.0;
 
         // 34. If zonedRelativeTo is not undefined and plainDateTimeOrRelativeToWillBeUsed is true, then
-        // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
-        // b. Let instant be ! CreateTemporalInstant(zonedRelativeTo.[[Nanoseconds]]).
-        // c. Set precalculatedPlainDateTime to ? GetPlainDateTimeFor(timeZoneRec, instant, zonedRelativeTo.[[Calendar]]).
-        // d. Set plainRelativeTo to ! CreateTemporalDate(precalculatedPlainDateTime.[[ISOYear]], precalculatedPlainDateTime.[[ISOMonth]], precalculatedPlainDateTime.[[ISODay]], zonedRelativeTo.[[Calendar]]).
+        let precalculated = if relative_to.zdt.is_some() && pdtr_will_be_used {
+            return Err(TemporalError::general("Not yet implemented."));
+            // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
+            // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
+            // b. Let instant be ! CreateTemporalInstant(zonedRelativeTo.[[Nanoseconds]]).
+            // c. Set precalculatedPlainDateTime to ? GetPlainDateTimeFor(timeZoneRec, instant, zonedRelativeTo.[[Calendar]]).
+            // d. Set plainRelativeTo to ! CreateTemporalDate(precalculatedPlainDateTime.[[ISOYear]],
+            // precalculatedPlainDateTime.[[ISOMonth]], precalculatedPlainDateTime.[[ISODay]], zonedRelativeTo.[[Calendar]]).
+        } else {
+            None
+        };
         // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
+
+        // TODO: Validate below expect -> Potentially return error.
+        let relative_to_date = relative_to.date.expect("Date must exist at this point.");
+
         // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
-        // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-        // 38. Let roundRecord be ? RoundDuration(unbalanceResult.[[Years]], unbalanceResult.[[Months]], unbalanceResult.[[Weeks]], unbalanceResult.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode, plainRelativeTo, calendarRec, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
+        let unbalanced =
+            self.date()
+                .unbalance_relative(largest_unit, Some(relative_to_date), context)?;
+
+        // NOTE: Step 37 handled in round duration
+        // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
+        // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+        // 38. Let roundRecord be ? RoundDuration(unbalanceResult.[[Years]], unbalanceResult.[[Months]],
+        // unbalanceResult.[[Weeks]], unbalanceResult.[[Days]], norm, roundingIncrement, smallestUnit,
+        // roundingMode, plainRelativeTo, calendarRec, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
+        let (round_result, _) = Self::new_unchecked(unbalanced, *self.time()).round_duration(
+            increment,
+            smallest_unit,
+            mode,
+            relative_to,
+            precalculated,
+            context,
+        )?;
+
         // 39. Let roundResult be roundRecord.[[NormalizedDuration]].
         // 40. If zonedRelativeTo is not undefined, then
-        // a. Set roundResult to ? AdjustRoundedDurationDays(roundResult.[[Years]], roundResult.[[Months]], roundResult.[[Weeks]], roundResult.[[Days]], roundResult.[[NormalizedTime]], roundingIncrement, smallestUnit, roundingMode, zonedRelativeTo, calendarRec, timeZoneRec, precalculatedPlainDateTime).
-        // b. Let balanceResult be ? BalanceTimeDurationRelative(roundResult.[[Days]], roundResult.[[NormalizedTime]], largestUnit, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
-        // 41. Else,
-        // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
-        // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
-        // 42. Let result be ? BalanceDateDurationRelative(roundResult.[[Years]], roundResult.[[Months]], roundResult.[[Weeks]], balanceResult.[[Days]], largestUnit, smallestUnit, plainRelativeTo, calendarRec).
-        // 43. Return ! CreateTemporalDuration(result.[[Years]], result.[[Months]], result.[[Weeks]], result.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]], balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]).
-        todo!()
+        let balance_result = if relative_to.zdt.is_some() {
+            return Err(TemporalError::general("Not yet implemented."));
+            // a. Set roundResult to ? AdjustRoundedDurationDays(roundResult.[[Years]], roundResult.[[Months]],
+            // roundResult.[[Weeks]], roundResult.[[Days]], roundResult.[[NormalizedTime]], roundingIncrement,
+            // smallestUnit, roundingMode, zonedRelativeTo, calendarRec, timeZoneRec, precalculatedPlainDateTime).
+            // b. Let balanceResult be ? BalanceTimeDurationRelative(roundResult.[[Days]],
+            // roundResult.[[NormalizedTime]], largestUnit, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
+            // 41. Else,
+        } else {
+            // NOTE: DateDuration::round will always return a NormalizedTime::default as per spec.
+            // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
+            let norm_with_days = round_result.0.1.add_days(round_result.0.0.days())?;
+            // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
+            TimeDuration::from_normalized(norm_with_days, largest_unit)?
+        };
+        
+        // 42. Let result be ? BalanceDateDurationRelative(roundResult.[[Years]],
+        // roundResult.[[Months]], roundResult.[[Weeks]], balanceResult.[[Days]],
+        // largestUnit, smallestUnit, plainRelativeTo, calendarRec).
+        let intermediate = DateDuration::new_unchecked(
+            round_result.0.0.years(),
+            round_result.0.0.months(),
+            round_result.0.0.weeks(),
+            balance_result.0,
+        );
+        let result = intermediate.balance_relative(
+            largest_unit,
+            smallest_unit,
+            Some(relative_to_date),
+            context,
+        )?;
+        
+        // 43. Return ! CreateTemporalDuration(result.[[Years]], result.[[Months]],
+        // result.[[Weeks]], result.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]],
+        // balanceResult.[[Seconds]], balanceResult.[[Milliseconds]], balanceResult.[[Microseconds]],
+        // balanceResult.[[Nanoseconds]]).
+        Self::new(
+            result.years,
+            result.months,
+            result.weeks,
+            result.days,
+            balance_result.1.hours,
+            balance_result.1.minutes,
+            balance_result.1.seconds,
+            balance_result.1.milliseconds,
+            balance_result.1.microseconds,
+            balance_result.1.nanoseconds,
+        )
     }
 
-    // TODO: Potentially remove / delete.
+    // TODO: Depracate and remove.
     /// 7.5.12 `DefaultTemporalLargestUnit ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds )`
     #[inline]
     #[must_use]
@@ -734,5 +808,123 @@ impl FromStr for Duration {
                 nano.floor() * sign,
             )?,
         })
+    }
+}
+
+// ==== Tests ====
+
+#[cfg(test)]
+mod tests {
+    use crate::{components::{calendar::CalendarSlot, Date}, options::ArithmeticOverflow};
+
+    use super::*;
+
+    // roundingmode-floor.js
+    #[test]
+    fn basic_rounding() {
+        const UNITS: [&str; 10] = [
+            "years",
+            "months",
+            "weeks",
+            "days",
+            "hours",
+            "minutes",
+            "seconds",
+            "milliseconds",
+            "microseconds",
+            "nanoseconds",
+        ];
+        const EXPECTED_POSITIVE: [[i32; 10]; 10] = [
+            [5, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [5, 7, 0, 0, 0, 0, 0, 0, 0, 0],
+            [5, 6, 8, 0, 0, 0, 0, 0, 0, 0],
+            [5, 7, 0, 27, 0, 0, 0, 0, 0, 0],
+            [5, 7, 0, 27, 16, 0, 0, 0, 0, 0],
+            [5, 7, 0, 27, 16, 30, 0, 0, 0, 0],
+            [5, 7, 0, 27, 16, 30, 20, 0, 0, 0],
+            [5, 7, 0, 27, 16, 30, 20, 123, 0, 0],
+            [5, 7, 0, 27, 16, 30, 20, 123, 987, 0],
+            [5, 7, 0, 27, 16, 30, 20, 123, 987, 500],
+        ];
+        const EXPECTED_NEG: [[i32; 10]; 10] = [
+            [-6, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [-5, -8, 0, 0, 0, 0, 0, 0, 0, 0],
+            [-5, -6, -9, 0, 0, 0, 0, 0, 0, 0],
+            [-5, -7, 0, -28, 0, 0, 0, 0, 0, 0],
+            [-5, -7, 0, -27, -17, 0, 0, 0, 0, 0],
+            [-5, -7, 0, -27, -16, -31, 0, 0, 0, 0],
+            [-5, -7, 0, -27, -16, -30, -21, 0, 0, 0],
+            [-5, -7, 0, -27, -16, -30, -20, -124, 0, 0],
+            [-5, -7, 0, -27, -16, -30, -20, -123, -988, 0],
+            [-5, -7, 0, -27, -16, -30, -20, -123, -987, -500],
+        ];
+
+        let test_duration =
+            Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+        let mode = TemporalRoundingMode::Floor;
+        let forward_date = Date::<()>::new(
+            2020,
+            4,
+            1,
+            CalendarSlot::from_str("iso8601").unwrap(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+        let backward_date = Date::<()>::new(
+            2020,
+            12,
+            1,
+            CalendarSlot::from_str("iso8601").unwrap(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+
+        let relative_forward: RelativeTo<'_, (), ()> = RelativeTo {
+            date: Some(&forward_date),
+            zdt: None,
+        };
+        let relative_backward: RelativeTo<'_, (), ()> = RelativeTo {
+            date: Some(&backward_date),
+            zdt: None,
+        };
+
+        for i in 0..10usize {
+            let unit = TemporalUnit::from_str(UNITS[i]).unwrap();
+            let result = test_duration
+                .round(
+                    None,
+                    Some(unit),
+                    None,
+                    Some(mode),
+                    &relative_forward,
+                    &mut (),
+                )
+                .unwrap();
+            assert!(result
+                .iter()
+                .zip(&EXPECTED_POSITIVE[i])
+                .all(|r|{
+                    println!("{} == {}", r.0, r.1);
+                    r.0 as i32 == *r.1
+                }));
+            let neg_result = test_duration
+                .negated()
+                .round(
+                    None,
+                    Some(unit),
+                    None,
+                    Some(mode),
+                    &relative_backward,
+                    &mut (),
+                )
+                .unwrap();
+            assert!(neg_result
+                .iter()
+                .zip(&EXPECTED_NEG[i])
+                .all(|r| {
+                    println!("{} == {}", r.0, r.1);
+                    r.0 as i32 == *r.1
+                }));
+        }
     }
 }

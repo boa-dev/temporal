@@ -68,7 +68,7 @@ impl NormalizedTimeDuration {
 
     /// Round the current `NormalizedTimeDuration`.
     pub(super) fn round(&self, increment: u64, mode: TemporalRoundingMode) -> TemporalResult<Self> {
-        let rounded = utils::round_number_to_increment(self.0 as i64, increment, mode);
+        let rounded = utils::round_number_to_increment(self.0, increment as f64, mode);
         if rounded.abs() > MAX_TIME_DURATION as i64 {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
@@ -93,6 +93,7 @@ impl Add<Self> for NormalizedTimeDuration {
 }
 
 /// A normalized `DurationRecord` that contains a `DateDuration` and `NormalizedTimeDuration`.
+#[derive(Debug, Clone, Copy)]
 pub struct NormalizedDurationRecord(pub(super) (DateDuration, NormalizedTimeDuration));
 
 impl NormalizedDurationRecord {

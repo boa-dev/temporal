@@ -116,8 +116,8 @@ impl Instant {
         };
 
         let rounded = utils::round_number_to_increment_as_if_positive(
-            self.to_f64() as u64, // TODO: Update in numeric refactor.
-            increment,
+            self.to_f64(), // TODO: Update in numeric refactor.
+            increment as f64,
             rounding_mode,
         );
 

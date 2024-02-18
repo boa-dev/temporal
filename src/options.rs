@@ -5,7 +5,17 @@
 
 use core::{fmt, str::FromStr};
 
-use crate::TemporalError;
+use crate::{
+    components::{calendar::CalendarProtocol, tz::TzProtocol, Date, ZonedDateTime},
+    TemporalError,
+};
+
+// ==== RelativeTo Object ====
+
+pub struct RelativeTo<'a, C: CalendarProtocol, Z: TzProtocol> {
+    pub date: Option<&'a Date<C>>,
+    pub zdt: Option<&'a ZonedDateTime<C, Z>>,
+}
 
 // ==== Options enums and methods ====
 
@@ -81,6 +91,15 @@ impl TemporalUnit {
             Nanosecond => Some(1f64),
         }
     }
+
+    #[must_use]
+    pub fn is_calendar_unit(&self) -> bool {
+        use TemporalUnit::{Month, Week, Year};
+        match self {
+            Year | Month | Week => true,
+            _ => false,
+        }
+    }
 }
 
 impl From<usize> for TemporalUnit {
@@ -136,7 +155,7 @@ impl fmt::Display for TemporalUnit {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Auto => "auto",
-            Self::Year => "constrain",
+            Self::Year => "year",
             Self::Month => "month",
             Self::Week => "week",
             Self::Day => "day",
