@@ -35,10 +35,9 @@ fn apply_unsigned_rounding_mode(
     ceil: f64,
     unsigned_rounding_mode: TemporalUnsignedRoundingMode,
 ) -> u64 {
-    println!("x: {quotient}, floor: {floor}, ceil: {ceil}");
     // 1. If x is equal to r1, return r1.
     if quotient == floor {
-        return floor as u64
+        return floor as u64;
     }
     // 2. Assert: r1 < x < r2.
     // 3. Assert: unsignedRoundingMode is not undefined.
@@ -82,7 +81,7 @@ fn apply_unsigned_rounding_mode(
             // 16. Return r2.
             ceil as u64
         }
-        None=> unreachable!(),
+        None => unreachable!(),
     }
 }
 
@@ -95,9 +94,9 @@ pub(crate) fn round_number_to_increment(
     rounding_mode: TemporalRoundingMode,
 ) -> i64 {
     // 1. Let quotient be x / increment.
-    let quotient = x / increment as f64;
+    let quotient = x / increment;
     // 2. If quotient < 0, then
-    let (is_negative, quotient)= if quotient < 0.0 {
+    let (is_negative, quotient) = if quotient < 0.0 {
         // a. Let isNegative be true.
         // b. Set quotient to -quotient.
         (true, quotient.abs())
@@ -109,7 +108,6 @@ pub(crate) fn round_number_to_increment(
 
     // 4. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, isNegative).
     let unsigned_rounding_mode = rounding_mode.get_unsigned_round_mode(is_negative);
-    println!("{unsigned_rounding_mode:?}");
 
     // 5. Let r1 be the largest integer such that r1 ≤ quotient.
     let floor = quotient.floor();
@@ -157,11 +155,11 @@ pub(crate) fn validate_temporal_rounding_increment(
 ) -> TemporalResult<()> {
     let max = if inclusive { dividend } else { dividend - 1 };
 
-    if u64::from(increment) > max {
+    if increment > max {
         return Err(TemporalError::range().with_message("roundingIncrement exceeds maximum."));
     }
 
-    if dividend.rem_euclid(u64::from(increment)) != 0 {
+    if dividend.rem_euclid(increment) != 0 {
         return Err(
             TemporalError::range().with_message("dividend is not divisble by roundingIncrement.")
         );

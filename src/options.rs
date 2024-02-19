@@ -95,10 +95,7 @@ impl TemporalUnit {
     #[must_use]
     pub fn is_calendar_unit(&self) -> bool {
         use TemporalUnit::{Month, Week, Year};
-        match self {
-            Year | Month | Week => true,
-            _ => false,
-        }
+        matches!(self, Year | Month | Week)
     }
 }
 

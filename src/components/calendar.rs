@@ -493,13 +493,16 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
     ) -> TemporalResult<Date<C>> {
         match self {
             CalendarSlot::Builtin(AnyCalendar::Iso(_)) => {
-                // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+                // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
+                // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
                 // 9. Let balanceResult be BalanceTimeDuration(norm, "day").
                 let (balance_days, _) = TimeDuration::from_normalized(
                     duration.time().to_normalized(),
                     TemporalUnit::Day,
                 )?;
-                // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
+
+                // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
+                // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
                 let result = date.iso.add_iso_date(
                     &DateDuration::new_unchecked(
                         duration.years(),

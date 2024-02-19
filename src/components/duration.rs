@@ -463,7 +463,6 @@ impl Duration {
 
     /// Rounds the current `Duration`.
     #[inline]
-    #[must_use]
     pub fn round<C: CalendarProtocol, Z: TzProtocol>(
         &self,
         increment: Option<f64>,
@@ -533,18 +532,15 @@ impl Duration {
 
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
-        let hours_to_days_may_occur = if self.days() != 0.0 && relative_to.zdt.is_some() {
-            true
         // 28. Else if abs(duration.[[Hours]]) ≥ 24, set hoursToDaysConversionMayOccur to true.
-        } else if self.hours().abs() >= 24.0 {
-            true
-        } else {
-            false
-        };
+        let hours_to_days_may_occur =
+            (self.days() != 0.0 && relative_to.zdt.is_some()) || self.hours().abs() >= 24.0;
 
-        // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
+        // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop
+        // be true; else let roundingGranularityIsNoop be false.
         let is_noop = smallest_unit == TemporalUnit::Nanosecond && increment == 1;
-        // 30. If duration.[[Years]] = 0 and duration.[[Months]] = 0 and duration.[[Weeks]] = 0, let calendarUnitsPresent be false; else let calendarUnitsPresent be true.
+        // 30. If duration.[[Years]] = 0 and duration.[[Months]] = 0 and duration.[[Weeks]] = 0,
+        // let calendarUnitsPresent be false; else let calendarUnitsPresent be true.
         let calendar_units_present =
             !(self.years() == 0.0 && self.months() == 0.0 && self.weeks() == 0.0);
 
@@ -632,18 +628,18 @@ impl Duration {
         } else {
             // NOTE: DateDuration::round will always return a NormalizedTime::default as per spec.
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
-            let norm_with_days = round_result.0.1.add_days(round_result.0.0.days())?;
+            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days())?;
             // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
             TimeDuration::from_normalized(norm_with_days, largest_unit)?
         };
-        
+
         // 42. Let result be ? BalanceDateDurationRelative(roundResult.[[Years]],
         // roundResult.[[Months]], roundResult.[[Weeks]], balanceResult.[[Days]],
         // largestUnit, smallestUnit, plainRelativeTo, calendarRec).
         let intermediate = DateDuration::new_unchecked(
-            round_result.0.0.years(),
-            round_result.0.0.months(),
-            round_result.0.0.weeks(),
+            round_result.0 .0.years(),
+            round_result.0 .0.months(),
+            round_result.0 .0.weeks(),
             balance_result.0,
         );
         let result = intermediate.balance_relative(
@@ -652,7 +648,7 @@ impl Duration {
             Some(relative_to_date),
             context,
         )?;
-        
+
         // 43. Return ! CreateTemporalDuration(result.[[Years]], result.[[Months]],
         // result.[[Weeks]], result.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]],
         // balanceResult.[[Seconds]], balanceResult.[[Milliseconds]], balanceResult.[[Microseconds]],
@@ -815,7 +811,10 @@ impl FromStr for Duration {
 
 #[cfg(test)]
 mod tests {
-    use crate::{components::{calendar::CalendarSlot, Date}, options::ArithmeticOverflow};
+    use crate::{
+        components::{calendar::CalendarSlot, Date},
+        options::ArithmeticOverflow,
+    };
 
     use super::*;
 
@@ -851,12 +850,12 @@ mod tests {
             [-5, -8, 0, 0, 0, 0, 0, 0, 0, 0],
             [-5, -6, -9, 0, 0, 0, 0, 0, 0, 0],
             [-5, -7, 0, -28, 0, 0, 0, 0, 0, 0],
-            [-5, -7, 0, -27, -17, 0, 0, 0, 0, 0],
-            [-5, -7, 0, -27, -16, -31, 0, 0, 0, 0],
-            [-5, -7, 0, -27, -16, -30, -21, 0, 0, 0],
-            [-5, -7, 0, -27, -16, -30, -20, -124, 0, 0],
-            [-5, -7, 0, -27, -16, -30, -20, -123, -988, 0],
-            [-5, -7, 0, -27, -16, -30, -20, -123, -987, -500],
+            [-5, -7, 0, -27, -17, 0, 0, 0, 0, 0], // Note: this passes with a day value of -28
+            [-5, -7, 0, -27, -16, -31, 0, 0, 0, 0], // Note: this passes with a day value of -28
+            [-5, -7, 0, -27, -16, -30, -21, 0, 0, 0], // Note: this passes with a day value of -28
+            [-5, -7, 0, -27, -16, -30, -20, -124, 0, 0], // Note: this passes with a day value of -28
+            [-5, -7, 0, -27, -16, -30, -20, -123, -988, 0], // Note: this passes with a day value of -28
+            [-5, -7, 0, -27, -16, -30, -20, -123, -987, -500], // Note: this passes with a day value of -28
         ];
 
         let test_duration =
@@ -903,10 +902,7 @@ mod tests {
             assert!(result
                 .iter()
                 .zip(&EXPECTED_POSITIVE[i])
-                .all(|r|{
-                    println!("{} == {}", r.0, r.1);
-                    r.0 as i32 == *r.1
-                }));
+                .all(|r| r.0 as i32 == *r.1));
             let neg_result = test_duration
                 .negated()
                 .round(
@@ -921,10 +917,7 @@ mod tests {
             assert!(neg_result
                 .iter()
                 .zip(&EXPECTED_NEG[i])
-                .all(|r| {
-                    println!("{} == {}", r.0, r.1);
-                    r.0 as i32 == *r.1
-                }));
+                .all(|r| r.0 as i32 == *r.1));
         }
     }
 }

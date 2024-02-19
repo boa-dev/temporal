@@ -159,32 +159,32 @@ impl TimeDuration {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 microseconds = (nanoseconds / 1000f64).floor();
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                nanoseconds %= 1000f64;
+                nanoseconds = nanoseconds.rem_euclid(1000.0);
 
                 // c. Set milliseconds to floor(microseconds / 1000).
                 milliseconds = (microseconds / 1000f64).floor();
                 // d. Set microseconds to microseconds modulo 1000.
-                microseconds %= 1000f64;
+                microseconds = microseconds.rem_euclid(1000.0);
 
                 // e. Set seconds to floor(milliseconds / 1000).
                 seconds = (milliseconds / 1000f64).floor();
                 // f. Set milliseconds to milliseconds modulo 1000.
-                milliseconds %= 1000f64;
+                milliseconds = milliseconds.rem_euclid(1000.0);
 
                 // g. Set minutes to floor(seconds / 60).
                 minutes = (seconds / 60f64).floor();
                 // h. Set seconds to seconds modulo 60.
-                seconds %= 60f64;
+                seconds = seconds.rem_euclid(60.0);
 
                 // i. Set hours to floor(minutes / 60).
                 hours = (minutes / 60f64).floor();
                 // j. Set minutes to minutes modulo 60.
-                minutes %= 60f64;
+                minutes = minutes.rem_euclid(60.0);
 
                 // k. Set days to floor(hours / 24).
                 days = (hours / 24f64).floor();
                 // l. Set hours to hours modulo 24.
-                hours %= 24f64;
+                hours = hours.rem_euclid(24.0);
             }
             // 5. Else if largestUnit is "hour", then
             TemporalUnit::Hour => {
@@ -437,36 +437,36 @@ impl TimeDuration {
             TemporalUnit::Minute => {
                 // a. Let divisor be 6 × 10**10.
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                let total = norm.divide(NANOSECONDS_PER_MINUTE as i64);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                let norm = norm.round(NANOSECONDS_PER_MINUTE * increment, mode)?;
                 Ok((norm, total))
             }
             // 14. Else if unit is "second", then
             TemporalUnit::Second => {
                 // a. Let divisor be 10**9.
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                let total = norm.divide(NANOSECONDS_PER_SECOND as i64);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                let norm = norm.round(NANOSECONDS_PER_SECOND * increment, mode)?;
                 Ok((norm, total))
             }
             // 15. Else if unit is "millisecond", then
             TemporalUnit::Millisecond => {
                 // a. Let divisor be 10**6.
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                let total = norm.divide(1_000_000);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                let norm = norm.round(1_000_000 * increment, mode)?;
                 Ok((norm, total))
             }
             // 16. Else if unit is "microsecond", then
             TemporalUnit::Microsecond => {
                 // a. Let divisor be 10**3.
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
+                let total = norm.divide(1_000);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                let norm = norm.round(1_000 * increment, mode)?;
                 Ok((norm, total))
             }
             // 17. Else,

@@ -13,7 +13,10 @@
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
 use crate::{
-    components::duration::DateDuration, error::TemporalError, options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit}, utils, TemporalResult, NS_PER_DAY
+    components::duration::DateDuration,
+    error::TemporalError,
+    options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
+    utils, TemporalResult, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_bigint::BigInt;
@@ -211,7 +214,10 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
-        let intermediate = balance_iso_year_month(self.year + duration.years() as i32, i32::from(self.month) + duration.months() as i32);
+        let intermediate = balance_iso_year_month(
+            self.year + duration.years() as i32,
+            i32::from(self.month) + duration.months() as i32,
+        );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
         let intermediate = Self::new(
@@ -257,7 +263,7 @@ impl IsoDate {
             // b. Repeat, while ISODateSurpasses(sign, y1 + candidateYears, m1, d1, y2, m2, d2) is false,
             while !iso_date_surpasses(
                 &IsoDate::new_unchecked(self.year + candidate_years, self.month, self.day),
-                &other,
+                other,
                 sign,
             ) {
                 // i. Set years to candidateYears.
@@ -288,7 +294,8 @@ impl IsoDate {
                 // ii. Set candidateMonths to candidateMonths + sign.
                 candidate_months += i32::from(sign);
                 // iii. Set intermediate to BalanceISOYearMonth(intermediate.[[Year]], intermediate.[[Month]] + sign).
-                (intermediate_year, intermediate_month) = balance_iso_year_month(intermediate_year, intermediate_month + i32::from(sign));
+                (intermediate_year, intermediate_month) =
+                    balance_iso_year_month(intermediate_year, intermediate_month + i32::from(sign));
             }
         }
 
@@ -317,7 +324,7 @@ impl IsoDate {
             );
 
             // c. Repeat, while ISODateSurpasses(sign, intermediate.[[Year]], intermediate.[[Month]], intermediate.[[Day]], y2, m2, d2) is false,
-            while !iso_date_surpasses(&intermediate, &other, sign) {
+            while !iso_date_surpasses(&intermediate, other, sign) {
                 // i. Set weeks to candidateWeeks.
                 weeks = candidate_weeks;
                 // ii. Set candidateWeeks to candidateWeeks + sign.
@@ -342,7 +349,7 @@ impl IsoDate {
             i32::from(constrained.day) + 7 * weeks + candidate_days,
         );
         // 16. Repeat, while ISODateSurpasses(sign, intermediate.[[Year]], intermediate.[[Month]], intermediate.[[Day]], y2, m2, d2) is false,
-        while !iso_date_surpasses(&intermediate, &other, sign) {
+        while !iso_date_surpasses(&intermediate, other, sign) {
             // a. Set days to candidateDays.
             days = candidate_days;
             // b. Set candidateDays to candidateDays + sign.
@@ -729,9 +736,9 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime, offset: f64) -> Option<BigInt>
 #[inline]
 fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     // 1. Let resolvedYear be year + floor(month / 12).
-    let resolved_year = year + (f64::from(month) / 12_f64).floor() as i32;
+    let resolved_year = year + (month / 12);
     // 2. Let resolvedMonth be month modulo 12.
-    let resolved_month = month % 12;
+    let resolved_month = month.rem_euclid(12);
 
     // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
     // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
@@ -756,7 +763,7 @@ fn is_valid_date(year: i32, month: i32, day: i32) -> bool {
 #[inline]
 /// Returns with the `this` surpasses `other`.
 fn iso_date_surpasses(this: &IsoDate, other: &IsoDate, sign: i8) -> bool {
-    this.cmp(&other) as i8 * sign == 1
+    this.cmp(other) as i8 * sign == 1
 }
 
 #[inline]

@@ -60,13 +60,10 @@ impl DateDuration {
         let effective_largest = largest_unit.max(TemporalUnit::Day);
 
         // 4. If effectiveLargestUnit is LargerOfTwoTemporalUnits(defaultLargestUnit, effectiveLargestUnit), then
-        println!("{effective_largest:?} >= {default_largest:?}");
         if default_largest <= effective_largest {
-            println!("Returned early");
             // a. Return ! CreateDateDurationRecord(years, months, weeks, days).
             return Ok(*self);
         }
-        println!("Did not return early");
 
         // NOTE: Should the assertion in 5 be an early error.
         // 5. Assert: effectiveLargestUnit is not "year".
@@ -162,11 +159,9 @@ impl DateDuration {
                     self.days + f64::from(years_months_weeks_in_days),
                 )
             }
-            _ => {
-                return Err(TemporalError::general(
-                    "Invalid TemporalUnit provided to UnbalanceDateDurationRelative",
-                ))
-            }
+            _ => Err(TemporalError::general(
+                "Invalid TemporalUnit provided to UnbalanceDateDurationRelative",
+            )),
         }
     }
 
@@ -221,7 +216,7 @@ impl DateDuration {
 
                     // iii. Let later be ? AddDate(calendarRec, plainRelativeTo, yearsMonthsDuration).
                     let later = plain_relative.calendar().date_add(
-                        &plain_relative,
+                        plain_relative,
                         &years_months,
                         ArithmeticOverflow::Constrain,
                         context,
@@ -240,16 +235,15 @@ impl DateDuration {
                 }
 
                 // b. Let yearsMonthsWeeksDaysDuration be ! CreateTemporalDuration(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
-                let years_months_weeks = Duration::from_date_duration(&*self);
+                let years_months_weeks = Duration::from_date_duration(self);
 
                 // c. Let later be ? AddDate(calendarRec, plainRelativeTo, yearsMonthsWeeksDaysDuration).
                 let later = plain_relative.calendar().date_add(
-                    &plain_relative,
+                    plain_relative,
                     &years_months_weeks,
                     ArithmeticOverflow::Constrain,
                     context,
                 )?;
-
                 // d. Let untilResult be ? CalendarDateUntil(calendarRec, plainRelativeTo, later, untilOptions).
                 let until = plain_relative.calendar().date_until(
                     plain_relative,
@@ -280,7 +274,7 @@ impl DateDuration {
 
                 // d. Let later be ? AddDate(calendarRec, plainRelativeTo, monthsWeeksDaysDuration).
                 let later = plain_relative.calendar().date_add(
-                    &plain_relative,
+                    plain_relative,
                     &months_weeks_days,
                     ArithmeticOverflow::Constrain,
                     context,
@@ -308,7 +302,7 @@ impl DateDuration {
 
                 // 16. Let later be ? AddDate(calendarRec, plainRelativeTo, weeksDaysDuration).
                 let later = plain_relative.calendar().date_add(
-                    &plain_relative,
+                    plain_relative,
                     &weeks_days,
                     ArithmeticOverflow::Constrain,
                     context,
@@ -447,7 +441,11 @@ impl DateDuration {
 impl DateDuration {
     /// Rounds the current `DateDuration` returning a tuple of the rounded `DateDuration` and
     /// the `total` value of the smallest unit prior to rounding.
-    #[allow(clippy::type_complexity, clippy::let_and_return)]
+    #[allow(
+        clippy::type_complexity,
+        clippy::let_and_return,
+        clippy::too_many_arguments
+    )]
     pub fn round<C: CalendarProtocol, Z: TzProtocol>(
         &self,
         normalized_time: Option<NormalizedTimeDuration>,
@@ -589,7 +587,7 @@ impl DateDuration {
                     plain_relative_to.move_relative_date(&one_year, context)?;
 
                 if one_year_days == 0.0 {
-                    return Err(TemporalError::range().with_message("oneYearDays exceeds ranges."))
+                    return Err(TemporalError::range().with_message("oneYearDays exceeds ranges."));
                 }
                 // aa. Let fractionalYears be years + fractionalDays / abs(oneYearDays).
                 let frac_years = years + (fractional_days / one_year_days.abs());
