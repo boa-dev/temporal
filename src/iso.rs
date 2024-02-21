@@ -310,57 +310,20 @@ impl IsoDate {
             ArithmeticOverflow::Constrain,
         )?;
 
+        // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
         // 11. Let weeks be 0.
-        let mut weeks = 0;
-        // 12. If largestUnit is "week", then
-        if largest_unit == TemporalUnit::Week {
-            // a. Let candidateWeeks be sign.
-            let mut candidate_weeks: i32 = sign.into();
-            // b. Set intermediate to BalanceISODate(constrained.[[Year]], constrained.[[Month]], constrained.[[Day]] + 7 × candidateWeeks).
-            let mut intermediate = Self::balance(
+        let days = iso_date_to_epoch_days(other.year, i32::from(other.month) - 1, other.day.into())
+            - iso_date_to_epoch_days(
                 constrained.year,
-                constrained.month.into(),
-                i32::from(constrained.day) + 7 * candidate_weeks,
+                i32::from(constrained.month) - 1,
+                constrained.day.into(),
             );
 
-            // c. Repeat, while ISODateSurpasses(sign, intermediate.[[Year]], intermediate.[[Month]], intermediate.[[Day]], y2, m2, d2) is false,
-            while !iso_date_surpasses(&intermediate, other, sign) {
-                // i. Set weeks to candidateWeeks.
-                weeks = candidate_weeks;
-                // ii. Set candidateWeeks to candidateWeeks + sign.
-                candidate_weeks += i32::from(sign);
-                // iii. Set intermediate to BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], intermediate.[[Day]] + 7 × sign).
-                intermediate = Self::balance(
-                    constrained.year,
-                    constrained.month.into(),
-                    i32::from(constrained.day) + 7 * i32::from(sign),
-                );
-            }
-        }
-
-        // 13. Let days be 0.
-        let mut days = 0;
-        // 14. Let candidateDays be sign.
-        let mut candidate_days: i32 = sign.into();
-        // 15. Set intermediate to BalanceISODate(constrained.[[Year]], constrained.[[Month]], constrained.[[Day]] + 7 × weeks + candidateDays).
-        let mut intermediate = Self::balance(
-            constrained.year,
-            constrained.month.into(),
-            i32::from(constrained.day) + 7 * weeks + candidate_days,
-        );
-        // 16. Repeat, while ISODateSurpasses(sign, intermediate.[[Year]], intermediate.[[Month]], intermediate.[[Day]], y2, m2, d2) is false,
-        while !iso_date_surpasses(&intermediate, other, sign) {
-            // a. Set days to candidateDays.
-            days = candidate_days;
-            // b. Set candidateDays to candidateDays + sign.
-            candidate_days += i32::from(sign);
-            // c. Set intermediate to BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], intermediate.[[Day]] + sign).
-            intermediate = Self::balance(
-                intermediate.year,
-                intermediate.month.into(),
-                i32::from(intermediate.day) + i32::from(sign),
-            );
-        }
+        let (weeks, days) = if largest_unit == TemporalUnit::Week {
+            (days / 7, days.rem_euclid(7))
+        } else {
+            (0, days)
+        };
         // 17. Return ! CreateDateDurationRecord(years, months, weeks, days).
         DateDuration::new(years as f64, months as f64, weeks as f64, days as f64)
     }
@@ -703,7 +666,9 @@ impl IsoTime {
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if iso_date_to_epoch_days(date.year, (date.month).into(), date.day.into()).abs() > 100_000_001 {
+    if iso_date_to_epoch_days(date.year, (date.month - 1).into(), date.day.into()).abs()
+        > 100_000_001
+    {
         return false;
     }
     let Some(ns) = utc_epoch_nanos(date, time, 0.0) else {

@@ -233,8 +233,8 @@ pub(crate) fn mathematical_in_leap_year(t: f64) -> i32 {
 }
 
 pub(crate) fn epoch_time_to_month_in_year(t: f64) -> u8 {
-    const DAYS: [i32; 11] = [30, 58, 89, 120, 150, 181, 212, 242, 272, 303, 333];
-    const LEAP_DAYS: [i32; 11] = [30, 59, 90, 121, 151, 182, 213, 242, 272, 303, 334];
+    const DAYS: [i32; 11] = [30, 58, 89, 119, 150, 180, 211, 242, 272, 303, 333];
+    const LEAP_DAYS: [i32; 11] = [30, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
 
     let in_leap_year = mathematical_in_leap_year(t) == 1;
     let day = epoch_time_to_day_in_year(t);
@@ -250,18 +250,20 @@ pub(crate) fn epoch_time_to_month_in_year(t: f64) -> u8 {
     }
 }
 
+// Returns the time for a month in a given year plus date(t) = 1.
 pub(crate) fn epoch_time_for_month_given_year(m: i32, y: i32) -> f64 {
     let leap_day = mathematical_days_in_year(y) - 365;
 
+    // Includes day. i.e. end of month + 1
     let days = match m {
-        0 => 1,
+        0 => 0,
         1 => 31,
         2 => 59 + leap_day,
         3 => 90 + leap_day,
-        4 => 121 + leap_day,
+        4 => 120 + leap_day,
         5 => 151 + leap_day,
-        6 => 182 + leap_day,
-        7 => 213 + leap_day,
+        6 => 181 + leap_day,
+        7 => 212 + leap_day,
         8 => 243 + leap_day,
         9 => 273 + leap_day,
         10 => 304 + leap_day,
@@ -344,5 +346,136 @@ mod tests {
         assert_eq!(mathematical_in_leap_year(feb_29_2020), 1);
         assert_eq!(epoch_time_to_month_in_year(mar_1_2021), 2);
         assert_eq!(mathematical_in_leap_year(mar_1_2021), 0);
+    }
+
+    #[test]
+    fn time_for_month_and_year() {
+        // NOTE: Month is 0-11
+
+        // Test standard year.
+        let standard_year_t = epoch_time_for_year(2015);
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(0, 2015)),
+            1,
+            "January is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(1, 2015)),
+            1,
+            "February is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(2, 2015)),
+            1,
+            "March is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(3, 2015)),
+            1,
+            "April is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(4, 2015)),
+            1,
+            "May is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(5, 2015)),
+            1,
+            "June is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(6, 2015)),
+            1,
+            "July is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(7, 2015)),
+            1,
+            "August is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(8, 2015)),
+            1,
+            "September is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(9, 2015)),
+            1,
+            "October is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(10, 2015)),
+            1,
+            "November is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(11, 2015)),
+            1,
+            "December is unaligned."
+        );
+
+        // Test leap Year
+        let leap_year_t = epoch_time_for_year(2020);
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(0, 2020)),
+            1,
+            "January is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(1, 2020)),
+            1,
+            "February is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(2, 2020)),
+            1,
+            "March is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(3, 2020)),
+            1,
+            "April is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(4, 2020)),
+            1,
+            "May is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(5, 2020)),
+            1,
+            "June is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(6, 2020)),
+            1,
+            "July is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(7, 2020)),
+            1,
+            "August is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(8, 2020)),
+            1,
+            "September is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(9, 2020)),
+            1,
+            "October is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(10, 2020)),
+            1,
+            "November is unaligned."
+        );
+        assert_eq!(
+            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(11, 2020)),
+            1,
+            "December is unaligned."
+        );
     }
 }

@@ -38,9 +38,9 @@ impl NormalizedTimeDuration {
 
     // TODO: Implement as `ops::Div`
     /// `Divide the NormalizedTimeDuraiton` by a divisor.
-    pub(super) fn divide(&self, divisor: i64) -> i64 {
+    pub(super) fn divide(&self, divisor: i64) -> f64 {
         // TODO: Validate.
-        self.0 as i64 / divisor
+        self.0 / (divisor as f64)
     }
 
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )

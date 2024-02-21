@@ -483,7 +483,7 @@ impl DateDuration {
                 // b. Else,
                 } else {
                     // i. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
-                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY) as f64
+                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY)
                 }
                 // c. Set days to 0.
             }
