@@ -12,6 +12,7 @@ use crate::{
 use super::calendar::{CalendarProtocol, GetCalendarSlot};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
+#[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct YearMonth<C: CalendarProtocol> {
     iso: IsoDate,

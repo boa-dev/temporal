@@ -15,6 +15,7 @@ use crate::{
 use super::tz::TzProtocol;
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct ZonedDateTime<C: CalendarProtocol, Z: TzProtocol> {
     instant: Instant,

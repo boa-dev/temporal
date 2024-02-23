@@ -21,9 +21,10 @@ use super::{
 };
 
 /// The native Rust implementation of `Temporal.PlainDate`.
+#[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct Date<C: CalendarProtocol> {
-    iso: IsoDate,
+    pub(crate) iso: IsoDate,
     calendar: CalendarSlot<C>,
 }
 
@@ -94,13 +95,6 @@ impl<C: CalendarProtocol> Date<C> {
     /// Returns this `Date`'s ISO day value.
     pub const fn iso_day(&self) -> u8 {
         self.iso.day
-    }
-
-    #[inline]
-    #[must_use]
-    /// Returns the `Date`'s inner `IsoDate` record.
-    pub const fn iso(&self) -> IsoDate {
-        self.iso
     }
 
     #[inline]

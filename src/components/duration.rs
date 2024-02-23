@@ -25,6 +25,7 @@ pub use time::TimeDuration;
 ///
 /// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
 /// defined by Abtract Operation 7.5.1-5.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Duration {
     date: DateDuration,

@@ -17,6 +17,7 @@ use tinystr::TinyAsciiStr;
 use super::calendar::{CalendarDateLike, GetCalendarSlot};
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
+#[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct DateTime<C: CalendarProtocol> {
     iso: IsoDateTime,

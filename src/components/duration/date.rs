@@ -17,6 +17,7 @@ use super::normalized::NormalizedTimeDuration;
 ///
 /// [spec]: https://tc39.es/proposal-temporal/#sec-temporal-date-duration-records
 /// [field spec]: https://tc39.es/proposal-temporal/#sec-properties-of-temporal-duration-instances
+#[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DateDuration {
     pub(crate) years: f64,
@@ -254,7 +255,7 @@ impl DateDuration {
                 fractional_days += f64::from(months_weeks_in_days);
 
                 // k. Let isoResult be ! AddISODate(plainRelativeTo.[[ISOYear]]. plainRelativeTo.[[ISOMonth]], plainRelativeTo.[[ISODay]], 0, 0, 0, truncate(fractionalDays), "constrain").
-                let iso_result = plain_relative_to.iso().add_iso_date(
+                let iso_result = plain_relative_to.iso.add_iso_date(
                     &DateDuration::new_unchecked(0.0, 0.0, 0.0, fractional_days.trunc()),
                     ArithmeticOverflow::Constrain,
                 )?;
