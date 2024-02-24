@@ -8,6 +8,7 @@ use crate::{
 };
 
 /// The native Rust implementation of `Temporal.PlainTime`.
+#[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
     iso: IsoTime,

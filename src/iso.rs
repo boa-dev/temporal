@@ -23,6 +23,7 @@ use num_bigint::BigInt;
 use num_traits::{cast::FromPrimitive, ToPrimitive};
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
+#[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct IsoDateTime {
     date: IsoDate,
@@ -141,6 +142,7 @@ pub trait IsoDateSlots {
 ///
 /// These fields are used for the `Temporal.PlainDate` object, the
 /// `Temporal.YearMonth` object, and the `Temporal.MonthDay` object.
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct IsoDate {
     pub(crate) year: i32,
@@ -252,6 +254,7 @@ impl IsoDate {
 
 /// An `IsoTime` record that contains `Temporal`'s
 /// time slots.
+#[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoTime {
     pub(crate) hour: u8,         // 0..=23

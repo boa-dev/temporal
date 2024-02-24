@@ -12,6 +12,7 @@ use crate::{
 use super::calendar::{CalendarProtocol, GetCalendarSlot};
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
+#[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct MonthDay<C: CalendarProtocol> {
     iso: IsoDate,
