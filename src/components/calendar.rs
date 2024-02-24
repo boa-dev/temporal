@@ -541,7 +541,7 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
         match self {
             CalendarSlot::Builtin(AnyCalendar::Iso(_)) => {
                 let date_duration = one.iso.diff_iso_date(&two.iso, largest_unit)?;
-                return Ok(Duration::from_date_duration(&date_duration));
+                Ok(Duration::from_date_duration(&date_duration))
             }
             CalendarSlot::Builtin(_) => {
                 Err(TemporalError::range().with_message("Not yet implemented."))
