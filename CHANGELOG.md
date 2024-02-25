@@ -19,7 +19,7 @@
 * Add CI and rename license by @jedel1043 in https://github.com/boa-dev/temporal/pull/3
 * Create LICENSE-Apache by @jedel1043 in https://github.com/boa-dev/temporal/pull/6
 * Setup publish CI by @jedel1043 in https://github.com/boa-dev/temporal/pull/26
-* Remove keyword from Cargo.toml by @jedel1043 in https://github.com/boa-dev/temporal/pull/28
+* Remove keywords from Cargo.toml by @jedel1043 in https://github.com/boa-dev/temporal/pull/28
 
 ## New Contributors
 * @nekevss made their first contribution in https://github.com/boa-dev/temporal/pull/1

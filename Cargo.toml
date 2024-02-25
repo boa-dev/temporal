@@ -1,6 +1,6 @@
 [package]
 name = "temporal_rs"
-keywords = ["javascript", "temporal", "calendar", "date", "time", "timezone"]
+keywords = ["javascript", "temporal", "calendar", "datetime", "timezone"]
 categories = ["date", "time", "calendars"]
 readme = "./README.md"
 description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
