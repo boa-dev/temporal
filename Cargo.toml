@@ -1,15 +1,21 @@
 [package]
-name = "temporal_rs" # Working name - TODO: Update name to decided.
+name = "temporal_rs"
 keywords = ["javascript", "js", "temporal", "calendar", "date", "time", "timezone"]
 categories = ["date", "time", "calendars"]
 readme = "./README.md"
-description = "Temporal in Rust is an implementation of TC39 Temporal Builtin Proposal in Rust."
+description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
 version = "0.0.1"
 edition = "2021"
 authors = ["boa-dev"]
 license = "MIT"
 repository = "https://github.com/boa-dev/temporal"
 rust-version = "1.74"
+exclude = [
+    "docs/*",
+    ".github/*",
+    ".gitignore",
+    "LICENSE*",
+]
 
 [dependencies]
 tinystr = "0.7.4"
