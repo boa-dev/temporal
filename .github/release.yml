@@ -1,0 +1,22 @@
+# .github/release.yml
+
+changelog:
+  exclude:
+    authors:
+      - dependabot
+  categories:
+    - title: Enhancements
+      labels:
+        - C-enhancement
+    - title: Bug Fixes
+      labels:
+        - C-bug
+    - title: Documentation
+      labels:
+        - C-documentation
+    - title: Tests
+      labels:
+        - C-testing
+    - title: Other Changes
+      labels:
+        - '*'
