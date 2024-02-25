@@ -116,8 +116,8 @@ impl Instant {
         };
 
         let rounded = utils::round_number_to_increment_as_if_positive(
-            self.to_f64() as u64, // TODO: Update in numeric refactor.
-            increment,
+            self.to_f64(), // TODO: Update in numeric refactor.
+            increment as f64,
             rounding_mode,
         );
 
@@ -243,7 +243,7 @@ impl Instant {
             _ => return Err(TemporalError::range().with_message("Invalid roundTo unit provided.")),
         };
         // NOTE: to_rounding_increment returns an f64 within a u32 range.
-        utils::validate_temporal_rounding_increment(increment as u32, maximum, true)?;
+        utils::validate_temporal_rounding_increment(increment, maximum, true)?;
 
         let round_result = self.round_instant(increment, unit, mode)?;
         Self::new(round_result)

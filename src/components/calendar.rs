@@ -493,16 +493,19 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
     ) -> TemporalResult<Date<C>> {
         match self {
             CalendarSlot::Builtin(AnyCalendar::Iso(_)) => {
-                // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+                // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
+                // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
                 // 9. Let balanceResult be BalanceTimeDuration(norm, "day").
                 let (balance_days, _) = TimeDuration::from_normalized(
                     duration.time().to_normalized(),
                     TemporalUnit::Day,
                 )?;
-                // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
+
+                // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
+                // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
                 let result = date.iso.add_iso_date(
                     &DateDuration::new_unchecked(
-                        duration.days(),
+                        duration.years(),
                         duration.months(),
                         duration.weeks(),
                         duration.days() + balance_days,
@@ -536,6 +539,10 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
         context: &mut C::Context,
     ) -> TemporalResult<Duration> {
         match self {
+            CalendarSlot::Builtin(AnyCalendar::Iso(_)) => {
+                let date_duration = one.iso.diff_iso_date(&two.iso, largest_unit)?;
+                Ok(Duration::from_date_duration(&date_duration))
+            }
             CalendarSlot::Builtin(_) => {
                 Err(TemporalError::range().with_message("Not yet implemented."))
             }

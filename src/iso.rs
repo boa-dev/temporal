@@ -143,7 +143,7 @@ pub trait IsoDateSlots {
 /// These fields are used for the `Temporal.PlainDate` object, the
 /// `Temporal.YearMonth` object, and the `Temporal.MonthDay` object.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoDate {
     pub(crate) year: i32,
     pub(crate) month: u8,
@@ -197,7 +197,7 @@ impl IsoDate {
     ///
     /// Equivalent to `IsoDateToEpochDays`
     pub(crate) fn to_epoch_days(self) -> i32 {
-        iso_date_to_epoch_days(self.year, self.month.into(), self.day.into())
+        iso_date_to_epoch_days(self.year, (self.month - 1).into(), self.day.into())
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -214,23 +214,22 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
-        let mut intermediate_year = self.year + duration.years() as i32;
-        let mut intermediate_month = i32::from(self.month) + duration.months() as i32;
-
-        intermediate_year += (intermediate_month - 1) / 12;
-        intermediate_month = (intermediate_month - 1) % 12 + 1;
+        let intermediate = balance_iso_year_month(
+            self.year + duration.years as i32,
+            i32::from(self.month) + duration.months as i32,
+        );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
         let intermediate = Self::new(
-            intermediate_year,
-            intermediate_month,
+            intermediate.0,
+            intermediate.1,
             i32::from(self.day),
             overflow,
         )?;
 
         // 5. Set days to days + 7 × weeks.
+        let additional_days = duration.days as i32 + (duration.weeks as i32 * 7);
         // 6. Let d be intermediate.[[Day]] + days.
-        let additional_days = duration.days() as i32 + (duration.weeks() as i32 * 7);
         let d = i32::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
@@ -239,6 +238,94 @@ impl IsoDate {
             intermediate.month.into(),
             d,
         ))
+    }
+
+    pub(crate) fn diff_iso_date(
+        &self,
+        other: &Self,
+        largest_unit: TemporalUnit,
+    ) -> TemporalResult<DateDuration> {
+        // 1. Assert: IsValidISODate(y1, m1, d1) is true.
+        // 2. Assert: IsValidISODate(y2, m2, d2) is true.
+        // 3. Let sign be -CompareISODate(y1, m1, d1, y2, m2, d2).
+        let sign = -(self.cmp(other) as i8);
+        // 4. If sign = 0, return ! CreateDateDurationRecord(0, 0, 0, 0).
+        if sign == 0 {
+            return Ok(DateDuration::default());
+        };
+
+        // 5. Let years be 0.
+        let mut years = 0;
+        // 6. If largestUnit is "year", then
+        if largest_unit == TemporalUnit::Year || largest_unit == TemporalUnit::Month {
+            // a. Let candidateYears be sign.
+            let mut candidate_years: i32 = sign.into();
+            // b. Repeat, while ISODateSurpasses(sign, y1 + candidateYears, m1, d1, y2, m2, d2) is false,
+            while !iso_date_surpasses(
+                &IsoDate::new_unchecked(self.year + candidate_years, self.month, self.day),
+                other,
+                sign,
+            ) {
+                // i. Set years to candidateYears.
+                years = candidate_years;
+                // ii. Set candidateYears to candidateYears + sign.
+                candidate_years += i32::from(sign);
+            }
+        }
+
+        // 7. Let months be 0.
+        let mut months = 0;
+        // 8. If largestUnit is "year" or largestUnit is "month", then
+        if largest_unit == TemporalUnit::Year || largest_unit == TemporalUnit::Month {
+            // a. Let candidateMonths be sign.
+            let mut candidate_months: i32 = sign.into();
+            // b. Let intermediate be BalanceISOYearMonth(y1 + years, m1 + candidateMonths).
+            let (mut intermediate_year, mut intermediate_month) =
+                balance_iso_year_month(self.year + years, i32::from(self.month) + candidate_months);
+            // c. Repeat, while ISODateSurpasses(sign, intermediate.[[Year]], intermediate.[[Month]], d1, y2, m2, d2) is false,
+            // Safety: balance_iso_year_month should always return a month value from 1..=12
+            while !iso_date_surpasses(
+                &IsoDate::new_unchecked(intermediate_year, intermediate_month as u8, self.day),
+                other,
+                sign,
+            ) {
+                // i. Set months to candidateMonths.
+                months = candidate_months;
+                // ii. Set candidateMonths to candidateMonths + sign.
+                candidate_months += i32::from(sign);
+                // iii. Set intermediate to BalanceISOYearMonth(intermediate.[[Year]], intermediate.[[Month]] + sign).
+                (intermediate_year, intermediate_month) =
+                    balance_iso_year_month(intermediate_year, intermediate_month + i32::from(sign));
+            }
+        }
+
+        // 9. Set intermediate to BalanceISOYearMonth(y1 + years, m1 + months).
+        let intermediate =
+            balance_iso_year_month(self.year + years, i32::from(self.month) + months);
+        // 10. Let constrained be ! RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], d1, "constrain").
+        let constrained = Self::new(
+            intermediate.0,
+            intermediate.1,
+            self.day.into(),
+            ArithmeticOverflow::Constrain,
+        )?;
+
+        // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
+        // 11. Let weeks be 0.
+        let days = iso_date_to_epoch_days(other.year, i32::from(other.month) - 1, other.day.into())
+            - iso_date_to_epoch_days(
+                constrained.year,
+                i32::from(constrained.month) - 1,
+                constrained.day.into(),
+            );
+
+        let (weeks, days) = if largest_unit == TemporalUnit::Week {
+            (days / 7, days.rem_euclid(7))
+        } else {
+            (0, days)
+        };
+        // 17. Return ! CreateDateDurationRecord(years, months, weeks, days).
+        DateDuration::new(years as f64, months as f64, weeks as f64, days as f64)
     }
 }
 
@@ -481,8 +568,8 @@ impl IsoTime {
         // TODO: Verify validity of cast or handle better.
         // 9. Let result be RoundNumberToIncrement(quantity, increment, roundingMode).
         let result = (utils::round_number_to_increment(
-            quantity as i64,
-            (ns_per_unit as u64) * increment,
+            quantity as f64,
+            ((ns_per_unit as u64) * increment) as f64,
             mode,
         ) / ns_per_unit) as f64;
 
@@ -579,7 +666,9 @@ impl IsoTime {
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if iso_date_to_epoch_days(date.year, (date.month).into(), date.day.into()).abs() > 100_000_001 {
+    if iso_date_to_epoch_days(date.year, (date.month - 1).into(), date.day.into()).abs()
+        > 100_000_001
+    {
         return false;
     }
     let Some(ns) = utc_epoch_nanos(date, time, 0.0) else {
@@ -612,11 +701,12 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime, offset: f64) -> Option<BigInt>
 #[inline]
 fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     // 1. Let resolvedYear be year + floor(month / 12).
-    let resolved_year = year + (f64::from(month) / 12_f64).floor() as i32;
+    let resolved_year = year + (month / 12);
     // 2. Let resolvedMonth be month modulo 12.
-    let resolved_month = month % 12;
+    let resolved_month = month.rem_euclid(12);
 
-    // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear, EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
+    // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
+    // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
     let year_t = utils::epoch_time_for_year(resolved_year);
     let month_t = utils::epoch_time_for_month_given_year(resolved_month, resolved_year);
 
@@ -633,6 +723,19 @@ fn is_valid_date(year: i32, month: i32, day: i32) -> bool {
 
     let days_in_month = utils::iso_days_in_month(year, month);
     (1..=days_in_month).contains(&day)
+}
+
+#[inline]
+/// Returns with the `this` surpasses `other`.
+fn iso_date_surpasses(this: &IsoDate, other: &IsoDate, sign: i8) -> bool {
+    this.cmp(other) as i8 * sign == 1
+}
+
+#[inline]
+fn balance_iso_year_month(year: i32, month: i32) -> (i32, i32) {
+    let y = year + (month - 1) / 12;
+    let m = (month - 1).rem_euclid(12) + 1;
+    (y, m)
 }
 
 // ==== `IsoTime` specific utilities ====

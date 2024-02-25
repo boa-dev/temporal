@@ -339,9 +339,9 @@ impl<C: CalendarProtocol> Date<C> {
     ) -> TemporalResult<Self> {
         // 1. If options is not present, set options to undefined.
         // 2. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
-        if duration.date().years() != 0.0
-            || duration.date().months() != 0.0
-            || duration.date().weeks() != 0.0
+        if duration.date().years != 0.0
+            || duration.date().months != 0.0
+            || duration.date().weeks != 0.0
         {
             // a. If dateAdd is not present, then
             // i. Set dateAdd to unused.
@@ -382,7 +382,7 @@ impl<C: CalendarProtocol> Date<C> {
 
         if largest_unit == TemporalUnit::Day {
             let days = self.days_until(other);
-            return Ok(Duration::from_date_duration(DateDuration::new(
+            return Ok(Duration::from_date_duration(&DateDuration::new(
                 0f64,
                 0f64,
                 0f64,

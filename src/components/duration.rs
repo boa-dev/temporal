@@ -1,9 +1,10 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{Date, DateTime, ZonedDateTime},
-    options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
+    components::DateTime,
+    options::{RelativeTo, TemporalRoundingMode, TemporalUnit},
     parser::{duration::parse_duration, Cursor},
+    utils::{self, validate_temporal_rounding_increment},
     TemporalError, TemporalResult,
 };
 use std::str::FromStr;
@@ -15,6 +16,9 @@ use super::{calendar::CalendarProtocol, tz::TzProtocol};
 mod date;
 pub(crate) mod normalized;
 mod time;
+
+#[cfg(test)]
+mod tests;
 
 #[doc(inline)]
 pub use date::DateDuration;
@@ -47,23 +51,64 @@ pub struct Duration {
 
 impl Duration {
     /// Creates a new `Duration` from a `DateDuration` and `TimeDuration`.
+    #[inline]
     pub(crate) const fn new_unchecked(date: DateDuration, time: TimeDuration) -> Self {
         Self { date, time }
     }
 
     /// Utility function to create a year duration.
+    #[inline]
     pub(crate) fn one_year(year_value: f64) -> Self {
-        Self::from_date_duration(DateDuration::new_unchecked(year_value, 0f64, 0f64, 0f64))
+        Self::from_date_duration(&DateDuration::new_unchecked(year_value, 1f64, 0f64, 0f64))
     }
 
     /// Utility function to create a month duration.
+    #[inline]
     pub(crate) fn one_month(month_value: f64) -> Self {
-        Self::from_date_duration(DateDuration::new_unchecked(0f64, month_value, 0f64, 0f64))
+        Self::from_date_duration(&DateDuration::new_unchecked(0f64, month_value, 0f64, 0f64))
     }
 
     /// Utility function to create a week duration.
+    #[inline]
     pub(crate) fn one_week(week_value: f64) -> Self {
-        Self::from_date_duration(DateDuration::new_unchecked(0f64, 0f64, week_value, 0f64))
+        Self::from_date_duration(&DateDuration::new_unchecked(0f64, 0f64, week_value, 0f64))
+    }
+
+    /// Returns the a `Vec` of the fields values.
+    #[inline]
+    #[must_use]
+    pub(crate) fn fields(&self) -> Vec<f64> {
+        Vec::from(&[
+            self.years(),
+            self.months(),
+            self.weeks(),
+            self.days(),
+            self.hours(),
+            self.minutes(),
+            self.seconds(),
+            self.milliseconds(),
+            self.microseconds(),
+            self.nanoseconds(),
+        ])
+    }
+
+    /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn is_time_duration(&self) -> bool {
+        self.time().fields().iter().any(|x| x != &0.0)
+            && self.date().fields().iter().all(|x| x == &0.0)
+    }
+
+    /// Returns the `TemporalUnit` corresponding to the largest non-zero field.
+    #[inline]
+    pub(crate) fn default_largest_unit(&self) -> TemporalUnit {
+        self.fields()
+            .iter()
+            .enumerate()
+            .find(|x| x.1 != &0.0)
+            .map(|x| TemporalUnit::from(10 - x.0))
+            .unwrap_or(TemporalUnit::Nanosecond)
     }
 }
 
@@ -95,7 +140,7 @@ impl Duration {
                 nanoseconds,
             ),
         );
-        if !is_valid_duration(&duration.into_iter().collect()) {
+        if !is_valid_duration(&duration.fields()) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(duration)
@@ -112,9 +157,9 @@ impl Duration {
 
     /// Creates a `Duration` from only a `DateDuration`.
     #[must_use]
-    pub fn from_date_duration(date: DateDuration) -> Self {
+    pub fn from_date_duration(date: &DateDuration) -> Self {
         Self {
-            date,
+            date: *date,
             time: TimeDuration::default(),
         }
     }
@@ -123,10 +168,10 @@ impl Duration {
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
     #[must_use]
-    pub fn from_day_and_time(day: f64, time: TimeDuration) -> Self {
+    pub fn from_day_and_time(day: f64, time: &TimeDuration) -> Self {
         Self {
             date: DateDuration::new_unchecked(0.0, 0.0, 0.0, day),
-            time,
+            time: *time,
         }
     }
 
@@ -136,7 +181,7 @@ impl Duration {
             date: DateDuration::from_partial(partial.date()),
             time: TimeDuration::from_partial(partial.time()),
         };
-        if !is_valid_duration(&duration.into_iter().collect()) {
+        if !is_valid_duration(&duration.fields()) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(duration)
@@ -147,20 +192,6 @@ impl Duration {
     #[must_use]
     pub fn is_time_within_range(&self) -> bool {
         self.time.is_within_range()
-    }
-
-    /// Returns whether `Duration`'s `DateDuration` isn't empty and is therefore a `DateDuration` or `Duration`.
-    #[inline]
-    #[must_use]
-    pub fn is_date_duration(&self) -> bool {
-        self.date().iter().any(|x| x != 0.0) && self.time().iter().all(|x| x == 0.0)
-    }
-
-    /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
-    #[inline]
-    #[must_use]
-    pub fn is_time_duration(&self) -> bool {
-        self.time().iter().any(|x| x != 0.0) && self.date().iter().all(|x| x == 0.0)
     }
 }
 
@@ -316,512 +347,23 @@ impl Duration {
     pub const fn nanoseconds(&self) -> f64 {
         self.time.nanoseconds
     }
-
-    /// Returns `Duration`'s iterator
-    #[must_use]
-    pub fn iter(&self) -> DurationIter<'_> {
-        <&Self as IntoIterator>::into_iter(self)
-    }
-}
-
-impl<'a> IntoIterator for &'a Duration {
-    type Item = f64;
-    type IntoIter = DurationIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        DurationIter {
-            duration: self,
-            index: 0,
-        }
-    }
-}
-
-/// A Duration iterator that iterates through all duration fields.
-#[derive(Debug)]
-pub struct DurationIter<'a> {
-    duration: &'a Duration,
-    index: usize,
-}
-
-impl Iterator for DurationIter<'_> {
-    type Item = f64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.index {
-            0 => Some(self.duration.date.years()),
-            1 => Some(self.duration.date.months()),
-            2 => Some(self.duration.date.weeks()),
-            3 => Some(self.duration.date.days()),
-            4 => Some(self.duration.time.hours()),
-            5 => Some(self.duration.time.minutes()),
-            6 => Some(self.duration.time.seconds()),
-            7 => Some(self.duration.time.milliseconds()),
-            8 => Some(self.duration.time.microseconds()),
-            9 => Some(self.duration.time.nanoseconds()),
-            _ => None,
-        };
-        self.index += 1;
-        result
-    }
 }
 
 // ==== Private Duration methods ====
 
 impl Duration {
-    /// 7.5.21 `UnbalanceDateDurationRelative ( years, months, weeks, days, largestUnit, plainRelativeTo )`
-    #[allow(dead_code)]
-    pub(crate) fn unbalance_duration_relative<C: CalendarProtocol>(
-        &self,
-        largest_unit: TemporalUnit,
-        plain_relative_to: Option<&Date<C>>,
-        context: &mut C::Context,
-    ) -> TemporalResult<DateDuration> {
-        // 1. Let allZero be false.
-        // 2. If years = 0, and months = 0, and weeks = 0, and days = 0, set allZero to true.
-        let all_zero = self.date.years == 0_f64
-            && self.date.months == 0_f64
-            && self.date.weeks == 0_f64
-            && self.date.days == 0_f64;
-
-        // 3. If largestUnit is "year" or allZero is true, then
-        if largest_unit == TemporalUnit::Year || all_zero {
-            // a. Return ! CreateDateDurationRecord(years, months, weeks, days).
-            return Ok(self.date);
-        };
-
-        // 4. Let sign be ! DurationSign(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
-        // 5. Assert: sign ≠ 0.
-        let sign = f64::from(self.sign());
-
-        // 6. Let oneYear be ! CreateTemporalDuration(sign, 0, 0, 0, 0, 0, 0, 0, 0, 0).
-        let one_year = Self::one_year(sign);
-        // 7. Let oneMonth be ! CreateTemporalDuration(0, sign, 0, 0, 0, 0, 0, 0, 0, 0).
-        let one_month = Self::one_month(sign);
-
-        // 9. If plainRelativeTo is not undefined, then
-        // a. Let calendar be plainRelativeTo.[[Calendar]].
-        // 10. Else,
-        // a. Let calendar be undefined.
-
-        // 11. If largestUnit is "month", then
-        if largest_unit == TemporalUnit::Month {
-            // a. If years = 0, return ! CreateDateDurationRecord(0, months, weeks, days).
-            if self.date.years == 0f64 {
-                return DateDuration::new(0f64, self.date.months, self.date.weeks, self.date.days);
-            }
-
-            // b. If calendar is undefined, then
-            let Some(mut plain_relative_to) = plain_relative_to.map(Clone::clone) else {
-                // i. Throw a RangeError exception.
-                return Err(TemporalError::range().with_message("Calendar cannot be undefined."));
-            };
-
-            // c. If calendar is an Object, then
-            // i. Let dateAdd be ? GetMethod(calendar, "dateAdd").
-            // ii. Let dateUntil be ? GetMethod(calendar, "dateUntil").
-            // d. Else,
-            // i. Let dateAdd be unused.
-            // ii. Let dateUntil be unused.
-
-            let mut years = self.date.years;
-            let mut months = self.date.months;
-            // e. Repeat, while years ≠ 0,
-            while years != 0f64 {
-                // i. Let newRelativeTo be ? CalendarDateAdd(calendar, plainRelativeTo, oneYear, undefined, dateAdd).
-                let new_relative_to = plain_relative_to.calendar().date_add(
-                    &plain_relative_to,
-                    &one_year,
-                    ArithmeticOverflow::Constrain,
-                    context,
-                )?;
-
-                // ii. Let untilOptions be OrdinaryObjectCreate(null).
-                // iii. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", "month").
-                // iv. Let untilResult be ? CalendarDateUntil(calendar, plainRelativeTo, newRelativeTo, untilOptions, dateUntil).
-                let until_result = plain_relative_to.calendar().date_until(
-                    &plain_relative_to,
-                    &new_relative_to,
-                    TemporalUnit::Month,
-                    context,
-                )?;
-
-                // v. Let oneYearMonths be untilResult.[[Months]].
-                let one_year_months = until_result.date.months;
-
-                // vi. Set plainRelativeTo to newRelativeTo.
-                plain_relative_to = new_relative_to;
-
-                // vii. Set years to years - sign.
-                years -= sign;
-                // viii. Set months to months + oneYearMonths.
-                months += one_year_months;
-            }
-            // f. Return ? CreateDateDurationRecord(0, months, weeks, days).
-            return DateDuration::new(years, months, self.date.weeks, self.date.days);
-
-        // 12. If largestUnit is "week", then
-        } else if largest_unit == TemporalUnit::Week {
-            // a. If years = 0 and months = 0, return ! CreateDateDurationRecord(0, 0, weeks, days).
-            if self.date.years == 0f64 && self.date.months == 0f64 {
-                return DateDuration::new(0f64, 0f64, self.date.weeks, self.date.days);
-            }
-
-            // b. If calendar is undefined, then
-            let Some(mut plain_relative_to) = plain_relative_to.map(Clone::clone) else {
-                // i. Throw a RangeError exception.
-                return Err(TemporalError::range().with_message("Calendar cannot be undefined."));
-            };
-
-            // c. If calendar is an Object, then
-            // i. Let dateAdd be ? GetMethod(calendar, "dateAdd").
-            // d. Else,
-            // i. Let dateAdd be unused.
-
-            let mut years = self.date.years;
-            let mut days = self.date.days;
-            // e. Repeat, while years ≠ 0,
-            while years != 0f64 {
-                // i. Let moveResult be ? MoveRelativeDate(calendar, plainRelativeTo, oneYear, dateAdd).
-                let move_result = plain_relative_to.move_relative_date(&one_year, context)?;
-
-                // ii. Set plainRelativeTo to moveResult.[[RelativeTo]].
-                plain_relative_to = move_result.0;
-                // iii. Set days to days + moveResult.[[Days]].
-                days += move_result.1;
-                // iv. Set years to years - sign.
-                years -= sign;
-            }
-
-            let mut months = self.date.months;
-            // f. Repeat, while months ≠ 0,
-            while months != 0f64 {
-                // i. Let moveResult be ? MoveRelativeDate(calendar, plainRelativeTo, oneMonth, dateAdd).
-                let move_result = plain_relative_to.move_relative_date(&one_month, context)?;
-                // ii. Set plainRelativeTo to moveResult.[[RelativeTo]].
-                plain_relative_to = move_result.0;
-                // iii. Set days to days + moveResult.[[Days]].
-                days += move_result.1;
-                // iv. Set months to months - sign.
-                months -= sign;
-            }
-            // g. Return ? CreateDateDurationRecord(0, 0, weeks, days).
-            return DateDuration::new(0f64, 0f64, self.date.weeks(), days);
-        }
-
-        // 13. If years = 0, and months = 0, and weeks = 0, return ! CreateDateDurationRecord(0, 0, 0, days).
-        if self.date.years == 0f64 && self.date.months == 0f64 && self.date.weeks == 0f64 {
-            return DateDuration::new(0f64, 0f64, 0f64, self.date.days);
-        }
-
-        // NOTE: Move 8 down to past 13 as we only use one_week after making it past 13.
-        // 8. Let oneWeek be ! CreateTemporalDuration(0, 0, sign, 0, 0, 0, 0, 0, 0, 0).
-        let one_week = Self::one_week(sign);
-
-        // 14. If calendar is undefined, then
-        let Some(mut plain_relative_to) = plain_relative_to.map(Clone::clone) else {
-            // a. Throw a RangeError exception.
-            return Err(TemporalError::range().with_message("Calendar cannot be undefined."));
-        };
-
-        // 15. If calendar is an Object, then
-        // a. Let dateAdd be ? GetMethod(calendar, "dateAdd").
-        // 16. Else,
-        // a. Let dateAdd be unused.
-
-        let mut years = self.date.years;
-        let mut days = self.date.days;
-        // a. Let moveResult be ? MoveRelativeDate(calendar, plainRelativeTo, oneYear, dateAdd).
-        while years != 0f64 {
-            // a. Let moveResult be ? MoveRelativeDate(calendar, plainRelativeTo, oneYear, dateAdd).
-            let move_result = plain_relative_to.move_relative_date(&one_year, context)?;
-
-            // b. Set plainRelativeTo to moveResult.[[RelativeTo]].
-            plain_relative_to = move_result.0;
-            // c. Set days to days + moveResult.[[Days]].
-            days += move_result.1;
-            // d. Set years to years - sign.
-            years -= sign;
-        }
-
-        let mut months = self.date.months;
-        // 18. Repeat, while months ≠ 0,
-        while months != 0f64 {
-            // a. Let moveResult be ? MoveRelativeDate(calendar, plainRelativeTo, oneMonth, dateAdd).
-            let move_result = plain_relative_to.move_relative_date(&one_month, context)?;
-            // b. Set plainRelativeTo to moveResult.[[RelativeTo]].
-            plain_relative_to = move_result.0;
-            // c. Set days to days +moveResult.[[Days]].
-            days += move_result.1;
-            // d. Set months to months - sign.
-            months -= sign;
-        }
-
-        let mut weeks = self.date.weeks;
-        // 19. Repeat, while weeks ≠ 0,
-        while weeks != 0f64 {
-            // a. Let moveResult be ? MoveRelativeDate(calendar, plainRelativeTo, oneWeek, dateAdd).
-            let move_result = plain_relative_to.move_relative_date(&one_week, context)?;
-            // b. Set plainRelativeTo to moveResult.[[RelativeTo]].
-            plain_relative_to = move_result.0;
-            // c. Set days to days + moveResult.[[Days]].
-            days += move_result.1;
-            // d. Set weeks to weeks - sign.
-            weeks -= sign;
-        }
-
-        // 20. Return ? CreateDateDurationRecord(0, 0, 0, days).
-        DateDuration::new(0f64, 0f64, 0f64, days)
-    }
-
-    // TODO: Move to DateDuration
-    /// `BalanceDateDurationRelative`
-    #[allow(unused)]
-    pub fn balance_date_duration_relative<C: CalendarProtocol>(
-        &self,
-        largest_unit: TemporalUnit,
-        plain_relative_to: Option<&Date<C>>,
-        context: &mut C::Context,
-    ) -> TemporalResult<DateDuration> {
-        let mut result = self.date;
-
-        // 1. Let allZero be false.
-        // 2. If years = 0, and months = 0, and weeks = 0, and days = 0, set allZero to true.
-        let all_zero = self.date.years == 0.0
-            && self.date.months == 0.0
-            && self.date.weeks == 0.0
-            && self.date.days == 0.0;
-
-        // 3. If largestUnit is not one of "year", "month", or "week", or allZero is true, then
-        match largest_unit {
-            TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week if !all_zero => {}
-            _ => {
-                // a. Return ! CreateDateDurationRecord(years, months, weeks, days).
-                return Ok(result);
-            }
-        }
-
-        // 4. If plainRelativeTo is undefined, then
-        let Some(mut plain_relative_to) = plain_relative_to.map(Clone::clone) else {
-            // a. Throw a RangeError exception.
-            return Err(TemporalError::range().with_message("relativeTo cannot be undefined."));
-        };
-
-        // 5. Let sign be ! DurationSign(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
-        // 6. Assert: sign ≠ 0.
-        let sign = f64::from(self.sign());
-
-        // 7. Let oneYear be ! CreateTemporalDuration(sign, 0, 0, 0, 0, 0, 0, 0, 0, 0).
-        let one_year = Self::one_year(sign);
-        // 8. Let oneMonth be ! CreateTemporalDuration(0, sign, 0, 0, 0, 0, 0, 0, 0, 0).
-        let one_month = Self::one_month(sign);
-        // 9. Let oneWeek be ! CreateTemporalDuration(0, 0, sign, 0, 0, 0, 0, 0, 0, 0).
-        let one_week = Self::one_week(sign);
-
-        // 10. Let calendar be relativeTo.[[Calendar]].
-
-        match largest_unit {
-            // 12. If largestUnit is "year", then
-            TemporalUnit::Year => {
-                // a. If calendar is an Object, then
-                // i. Let dateAdd be ? GetMethod(calendar, "dateAdd").
-                // b. Else,
-                // i. Let dateAdd be unused.
-
-                // c. Let moveResult be ? MoveRelativeDate(calendar, relativeTo, oneYear, dateAdd).
-                // d. Let newRelativeTo be moveResult.[[RelativeTo]].
-                // e. Let oneYearDays be moveResult.[[Days]].
-                let (mut new_relative_to, mut one_year_days) =
-                    plain_relative_to.move_relative_date(&one_year, context)?;
-
-                // f. Repeat, while abs(days) ≥ abs(oneYearDays),
-                while result.days().abs() >= one_year_days.abs() {
-                    // i. Set days to days - oneYearDays.
-                    result.days -= one_year_days;
-
-                    // ii. Set years to years + sign.
-                    result.years += sign;
-
-                    // iii. Set relativeTo to newRelativeTo.
-                    plain_relative_to = new_relative_to;
-                    // iv. Set moveResult to ? MoveRelativeDate(calendar, relativeTo, oneYear, dateAdd).
-                    let move_result = plain_relative_to.move_relative_date(&one_year, context)?;
-
-                    // v. Set newRelativeTo to moveResult.[[RelativeTo]].
-                    new_relative_to = move_result.0;
-                    // vi. Set oneYearDays to moveResult.[[Days]].
-                    one_year_days = move_result.1;
-                }
-
-                // g. Set moveResult to ? MoveRelativeDate(calendar, relativeTo, oneMonth, dateAdd).
-                // h. Set newRelativeTo to moveResult.[[RelativeTo]].
-                // i. Let oneMonthDays be moveResult.[[Days]].
-                let (mut new_relative_to, mut one_month_days) =
-                    plain_relative_to.move_relative_date(&one_month, context)?;
-
-                // j. Repeat, while abs(days) ≥ abs(oneMonthDays),
-                while result.days().abs() >= one_month_days.abs() {
-                    // i. Set days to days - oneMonthDays.
-                    result.days -= one_month_days;
-                    // ii. Set months to months + sign.
-                    result.months += sign;
-
-                    // iii. Set relativeTo to newRelativeTo.
-                    plain_relative_to = new_relative_to;
-                    // iv. Set moveResult to ? MoveRelativeDate(calendar, relativeTo, oneMonth, dateAdd).
-                    let move_result = plain_relative_to.move_relative_date(&one_month, context)?;
-
-                    // v. Set newRelativeTo to moveResult.[[RelativeTo]].
-                    new_relative_to = move_result.0;
-                    // vi. Set oneMonthDays to moveResult.[[Days]].
-                    one_month_days = move_result.1;
-                }
-
-                // k. Set newRelativeTo to ? CalendarDateAdd(calendar, relativeTo, oneYear, undefined, dateAdd).
-                new_relative_to = plain_relative_to.calendar().date_add(
-                    &plain_relative_to,
-                    &one_year,
-                    ArithmeticOverflow::Constrain,
-                    context,
-                )?;
-
-                // l. If calendar is an Object, then
-                // i. Let dateUntil be ? GetMethod(calendar, "dateUntil").
-                // m. Else,
-                // i. Let dateUntil be unused.
-                // n. Let untilOptions be OrdinaryObjectCreate(null).
-                // o. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", "month").
-
-                // p. Let untilResult be ? CalendarDateUntil(calendar, relativeTo, newRelativeTo, untilOptions, dateUntil).
-                let mut until_result = plain_relative_to.calendar().date_until(
-                    &plain_relative_to,
-                    &new_relative_to,
-                    TemporalUnit::Month,
-                    context,
-                )?;
-
-                // q. Let oneYearMonths be untilResult.[[Months]].
-                let mut one_year_months = until_result.date.months();
-
-                // r. Repeat, while abs(months) ≥ abs(oneYearMonths),
-                while result.months().abs() >= one_year_months.abs() {
-                    // i. Set months to months - oneYearMonths.
-                    result.months -= one_year_months;
-                    // ii. Set years to years + sign.
-                    result.years += sign;
-
-                    // iii. Set relativeTo to newRelativeTo.
-                    plain_relative_to = new_relative_to;
-
-                    // iv. Set newRelativeTo to ? CalendarDateAdd(calendar, relativeTo, oneYear, undefined, dateAdd).
-                    new_relative_to = plain_relative_to.calendar().date_add(
-                        &plain_relative_to,
-                        &one_year,
-                        ArithmeticOverflow::Constrain,
-                        context,
-                    )?;
-
-                    // v. Set untilOptions to OrdinaryObjectCreate(null).
-                    // vi. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", "month").
-                    // vii. Set untilResult to ? CalendarDateUntil(calendar, relativeTo, newRelativeTo, untilOptions, dateUntil).
-                    until_result = plain_relative_to.calendar().date_until(
-                        &plain_relative_to,
-                        &new_relative_to,
-                        TemporalUnit::Month,
-                        context,
-                    )?;
-
-                    // viii. Set oneYearMonths to untilResult.[[Months]].
-                    one_year_months = until_result.date.months();
-                }
-            }
-            // 13. Else if largestUnit is "month", then
-            TemporalUnit::Month => {
-                // a. If calendar is an Object, then
-                // i. Let dateAdd be ? GetMethod(calendar, "dateAdd").
-                // b. Else,
-                // i. Let dateAdd be unused.
-
-                // c. Let moveResult be ? MoveRelativeDate(calendar, relativeTo, oneMonth, dateAdd).
-                // d. Let newRelativeTo be moveResult.[[RelativeTo]].
-                // e. Let oneMonthDays be moveResult.[[Days]].
-                let (mut new_relative_to, mut one_month_days) =
-                    plain_relative_to.move_relative_date(&one_month, context)?;
-
-                // f. Repeat, while abs(days) ≥ abs(oneMonthDays),
-                while result.days().abs() >= one_month_days.abs() {
-                    // i. Set days to days - oneMonthDays.
-                    result.days -= one_month_days;
-
-                    // ii. Set months to months + sign.
-                    result.months += sign;
-
-                    // iii. Set relativeTo to newRelativeTo.
-                    plain_relative_to = new_relative_to;
-
-                    // iv. Set moveResult to ? MoveRelativeDate(calendar, relativeTo, oneMonth, dateAdd).
-                    let move_result = plain_relative_to.move_relative_date(&one_month, context)?;
-
-                    // v. Set newRelativeTo to moveResult.[[RelativeTo]].
-                    new_relative_to = move_result.0;
-                    // vi. Set oneMonthDays to moveResult.[[Days]].
-                    one_month_days = move_result.1;
-                }
-            }
-            // 14. Else,
-            TemporalUnit::Week => {
-                // a. Assert: largestUnit is "week".
-                // b. If calendar is an Object, then
-                // i. Let dateAdd be ? GetMethod(calendar, "dateAdd").
-                // c. Else,
-                // i. Let dateAdd be unused.
-
-                // d. Let moveResult be ? MoveRelativeDate(calendar, relativeTo, oneWeek, dateAdd).
-                // e. Let newRelativeTo be moveResult.[[RelativeTo]].
-                // f. Let oneWeekDays be moveResult.[[Days]].
-                let (mut new_relative_to, mut one_week_days) =
-                    plain_relative_to.move_relative_date(&one_week, context)?;
-
-                // g. Repeat, while abs(days) ≥ abs(oneWeekDays),
-                while result.days().abs() >= one_week_days.abs() {
-                    // i. Set days to days - oneWeekDays.
-                    result.days -= one_week_days;
-                    // ii. Set weeks to weeks + sign.
-                    result.weeks += sign;
-                    // iii. Set relativeTo to newRelativeTo.
-                    plain_relative_to = new_relative_to;
-                    // iv. Set moveResult to ? MoveRelativeDate(calendar, relativeTo, oneWeek, dateAdd).
-                    let move_result = plain_relative_to.move_relative_date(&one_week, context)?;
-
-                    // v. Set newRelativeTo to moveResult.[[RelativeTo]].
-                    new_relative_to = move_result.0;
-                    // vi. Set oneWeekDays to moveResult.[[Days]].
-                    one_week_days = move_result.1;
-                }
-            }
-            _ => unreachable!(),
-        }
-
-        // 15. Return ! CreateDateDurationRecord(years, months, weeks, days).
-        Ok(result)
-    }
-
-    // TODO (nekevss): Refactor relative_to's into a RelativeTo struct?
-    // TODO (nekevss): Impl `Duration::round` -> Potentially rename to `round_internal`
+    // TODO (nekevss): Build out `RelativeTo` handling
     /// Abstract Operation 7.5.26 `RoundDuration ( years, months, weeks, days, hours, minutes,
     ///   seconds, milliseconds, microseconds, nanoseconds, increment, unit,
     ///   roundingMode [ , plainRelativeTo [, zonedRelativeTo [, precalculatedDateTime]]] )`
     #[allow(clippy::type_complexity)]
-    #[allow(dead_code)]
-    pub(crate) fn round_duration<C: CalendarProtocol, Z: TzProtocol>(
+    pub(crate) fn round_internal<C: CalendarProtocol, Z: TzProtocol>(
         &self,
         increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
-        relative_targets: (
-            Option<&Date<C>>,
-            Option<&ZonedDateTime<C, Z>>,
-            Option<&DateTime<C>>,
-        ),
+        relative_to: &RelativeTo<C, Z>,
+        precalculated_dt: Option<DateTime<C>>,
         context: &mut C::Context,
     ) -> TemporalResult<(NormalizedDurationRecord, f64)> {
         match unit {
@@ -831,7 +373,8 @@ impl Duration {
                     increment,
                     unit,
                     rounding_mode,
-                    relative_targets,
+                    relative_to,
+                    precalculated_dt,
                     context,
                 )?;
                 let norm_record = NormalizedDurationRecord::new(
@@ -847,15 +390,15 @@ impl Duration {
             | TemporalUnit::Microsecond
             | TemporalUnit::Nanosecond => {
                 let round_result = self.time().round(increment, unit, rounding_mode)?;
-                let norm = NormalizedDurationRecord::new(DateDuration::default(), round_result.0)?;
+                let norm = NormalizedDurationRecord::new(*self.date(), round_result.0)?;
                 Ok((norm, round_result.1 as f64))
             }
             TemporalUnit::Auto => {
                 Err(TemporalError::range().with_message("Invalid TemporalUnit for Duration.round"))
             }
         }
-
-        // 18. Let duration be ? CreateDurationRecord(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
+        // 18. Let duration be ? CreateDurationRecord(years, months, weeks, days, hours,
+        // minutes, seconds, milliseconds, microseconds, nanoseconds).
         // 19. Return the Record { [[DurationRecord]]: duration, [[Total]]: total }.
     }
 }
@@ -867,7 +410,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> i32 {
-        duration_sign(&self.iter().collect())
+        duration_sign(&self.fields())
     }
 
     /// Returns whether the current `Duration` is zero.
@@ -876,7 +419,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn is_zero(&self) -> bool {
-        duration_sign(&self.iter().collect()) == 0
+        self.sign() == 0
     }
 
     /// Returns a negated `Duration`
@@ -899,36 +442,205 @@ impl Duration {
         }
     }
 
-    /// 7.5.12 `DefaultTemporalLargestUnit ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds )`
+    /// Rounds the current `Duration`.
     #[inline]
-    #[must_use]
-    pub fn default_temporal_largest_unit(&self) -> TemporalUnit {
-        for (index, value) in self.into_iter().enumerate() {
-            if value == 0f64 {
-                continue;
-            }
+    pub fn round<C: CalendarProtocol, Z: TzProtocol>(
+        &self,
+        increment: Option<f64>,
+        smallest_unit: Option<TemporalUnit>,
+        largest_unit: Option<TemporalUnit>,
+        rounding_mode: Option<TemporalRoundingMode>,
+        relative_to: &RelativeTo<C, Z>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        // NOTE: Steps 1-14 seem to be implementation specific steps.
 
-            match index {
-                0 => return TemporalUnit::Year,
-                1 => return TemporalUnit::Month,
-                2 => return TemporalUnit::Week,
-                3 => return TemporalUnit::Day,
-                4 => return TemporalUnit::Hour,
-                5 => return TemporalUnit::Minute,
-                6 => return TemporalUnit::Second,
-                7 => return TemporalUnit::Millisecond,
-                8 => return TemporalUnit::Microsecond,
-                _ => {}
-            }
+        // 22. If smallestUnitPresent is false and largestUnitPresent is false, then
+        if largest_unit.is_none() && smallest_unit.is_none() {
+            // a. Throw a RangeError exception.
+            return Err(TemporalError::range()
+                .with_message("smallestUnit and largestUnit cannot both be None."));
         }
 
-        TemporalUnit::Nanosecond
-    }
+        // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).
+        let increment = utils::to_rounding_increment(increment)?;
+        // 15. Let roundingMode be ? ToTemporalRoundingMode(roundTo, "halfExpand").
+        let mode = rounding_mode.unwrap_or_default();
 
-    /// Calls `TimeDuration`'s balance method on the current `Duration`.
-    #[inline]
-    pub fn balance_time_duration(&self, unit: TemporalUnit) -> TemporalResult<(f64, TimeDuration)> {
-        TimeDuration::from_normalized(self.time().to_normalized(), unit)
+        // 16. Let smallestUnit be ? GetTemporalUnit(roundTo, "smallestUnit", DATETIME, undefined).
+        // 17. If smallestUnit is undefined, then
+        // a. Set smallestUnitPresent to false.
+        // b. Set smallestUnit to "nanosecond".
+        let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Nanosecond);
+
+        // 18. Let existingLargestUnit be ! DefaultTemporalLargestUnit(duration.[[Years]],
+        // duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]],
+        // duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
+        // duration.[[Microseconds]]).
+        let existing_largest_unit = self.default_largest_unit();
+
+        // 19. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
+        let default_largest = existing_largest_unit.max(smallest_unit);
+
+        // 20. If largestUnit is undefined, then
+        // a. Set largestUnitPresent to false.
+        // b. Set largestUnit to defaultLargestUnit.
+        // 21. Else if largestUnit is "auto", then
+        // a. Set largestUnit to defaultLargestUnit.
+        let largest_unit = match largest_unit {
+            Some(TemporalUnit::Auto) | None => default_largest,
+            Some(unit) => unit,
+        };
+
+        // 23. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
+        if largest_unit.max(smallest_unit) != largest_unit {
+            return Err(TemporalError::range().with_message(
+                "largestUnit when rounding Duration was not the largest provided unit",
+            ));
+        }
+
+        // 24. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+        let maximum = smallest_unit.to_maximum_rounding_increment();
+        // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        if let Some(max) = maximum {
+            validate_temporal_rounding_increment(increment, max.into(), false)?;
+        }
+
+        // 26. Let hoursToDaysConversionMayOccur be false.
+        // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
+        // 28. Else if abs(duration.[[Hours]]) ≥ 24, set hoursToDaysConversionMayOccur to true.
+        let hours_to_days_may_occur =
+            (self.days() != 0.0 && relative_to.zdt.is_some()) || self.hours().abs() >= 24.0;
+
+        // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop
+        // be true; else let roundingGranularityIsNoop be false.
+        let is_noop = smallest_unit == TemporalUnit::Nanosecond && increment == 1;
+        // 30. If duration.[[Years]] = 0 and duration.[[Months]] = 0 and duration.[[Weeks]] = 0,
+        // let calendarUnitsPresent be false; else let calendarUnitsPresent be true.
+        let calendar_units_present =
+            !(self.years() == 0.0 && self.months() == 0.0 && self.weeks() == 0.0);
+
+        // 31. If roundingGranularityIsNoop is true, and largestUnit is existingLargestUnit, and calendarUnitsPresent is false,
+        // and hoursToDaysConversionMayOccur is false, and abs(duration.[[Minutes]]) < 60, and abs(duration.[[Seconds]]) < 60,
+        // and abs(duration.[[Milliseconds]]) < 1000, and abs(duration.[[Microseconds]]) < 1000, and abs(duration.[[Nanoseconds]]) < 1000, then
+        if is_noop
+            && largest_unit == existing_largest_unit
+            && !calendar_units_present
+            && !hours_to_days_may_occur
+            && self.minutes().abs() < 60.0
+            && self.seconds().abs() < 60.0
+            && self.milliseconds() < 1000.0
+            && self.microseconds() < 1000.0
+            && self.nanoseconds() < 1000.0
+        {
+            // a. NOTE: The above conditions mean that the operation will have no effect: the
+            // smallest unit and rounding increment will leave the total duration unchanged,
+            // and it can be determined without calling a calendar or time zone method that
+            // no balancing will take place.
+            // b. Return ! CreateTemporalDuration(duration.[[Years]], duration.[[Months]],
+            // duration.[[Weeks]], duration.[[Days]], duration.[[Hours]], duration.[[Minutes]],
+            // duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]],
+            // duration.[[Nanoseconds]]).
+            return Ok(*self);
+        }
+
+        // 32. Let precalculatedPlainDateTime be undefined.
+        // 33. If roundingGranularityIsNoop is false, or IsCalendarUnit(largestUnit) is true, or largestUnit is "day",
+        // or calendarUnitsPresent is true, or duration.[[Days]] ≠ 0, let plainDateTimeOrRelativeToWillBeUsed be true;
+        // else let plainDateTimeOrRelativeToWillBeUsed be false.
+        let pdtr_will_be_used = !is_noop
+            || largest_unit.is_calendar_unit()
+            || largest_unit == TemporalUnit::Day
+            || calendar_units_present
+            || self.days() == 0.0;
+
+        // 34. If zonedRelativeTo is not undefined and plainDateTimeOrRelativeToWillBeUsed is true, then
+        let precalculated = if relative_to.zdt.is_some() && pdtr_will_be_used {
+            return Err(TemporalError::general("Not yet implemented."));
+            // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
+            // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
+            // b. Let instant be ! CreateTemporalInstant(zonedRelativeTo.[[Nanoseconds]]).
+            // c. Set precalculatedPlainDateTime to ? GetPlainDateTimeFor(timeZoneRec, instant, zonedRelativeTo.[[Calendar]]).
+            // d. Set plainRelativeTo to ! CreateTemporalDate(precalculatedPlainDateTime.[[ISOYear]],
+            // precalculatedPlainDateTime.[[ISOMonth]], precalculatedPlainDateTime.[[ISODay]], zonedRelativeTo.[[Calendar]]).
+        } else {
+            None
+        };
+        // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
+
+        // TODO: Validate below expect -> Potentially return error.
+        let relative_to_date = relative_to.date.expect("Date must exist at this point.");
+
+        // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
+        let unbalanced =
+            self.date()
+                .unbalance_relative(largest_unit, Some(relative_to_date), context)?;
+
+        // NOTE: Step 37 handled in round duration
+        // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
+        // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+        // 38. Let roundRecord be ? RoundDuration(unbalanceResult.[[Years]], unbalanceResult.[[Months]],
+        // unbalanceResult.[[Weeks]], unbalanceResult.[[Days]], norm, roundingIncrement, smallestUnit,
+        // roundingMode, plainRelativeTo, calendarRec, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
+        let (round_result, _) = Self::new_unchecked(unbalanced, *self.time()).round_internal(
+            increment,
+            smallest_unit,
+            mode,
+            relative_to,
+            precalculated,
+            context,
+        )?;
+
+        // 39. Let roundResult be roundRecord.[[NormalizedDuration]].
+        // 40. If zonedRelativeTo is not undefined, then
+        let balance_result = if relative_to.zdt.is_some() {
+            return Err(TemporalError::general("Not yet implemented."));
+            // a. Set roundResult to ? AdjustRoundedDurationDays(roundResult.[[Years]], roundResult.[[Months]],
+            // roundResult.[[Weeks]], roundResult.[[Days]], roundResult.[[NormalizedTime]], roundingIncrement,
+            // smallestUnit, roundingMode, zonedRelativeTo, calendarRec, timeZoneRec, precalculatedPlainDateTime).
+            // b. Let balanceResult be ? BalanceTimeDurationRelative(roundResult.[[Days]],
+            // roundResult.[[NormalizedTime]], largestUnit, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
+            // 41. Else,
+        } else {
+            // NOTE: DateDuration::round will always return a NormalizedTime::default as per spec.
+            // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
+            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days)?;
+            // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
+            TimeDuration::from_normalized(norm_with_days, largest_unit)?
+        };
+
+        // 42. Let result be ? BalanceDateDurationRelative(roundResult.[[Years]],
+        // roundResult.[[Months]], roundResult.[[Weeks]], balanceResult.[[Days]],
+        // largestUnit, smallestUnit, plainRelativeTo, calendarRec).
+        let intermediate = DateDuration::new_unchecked(
+            round_result.0 .0.years,
+            round_result.0 .0.months,
+            round_result.0 .0.weeks,
+            balance_result.0,
+        );
+        let result = intermediate.balance_relative(
+            largest_unit,
+            smallest_unit,
+            Some(relative_to_date),
+            context,
+        )?;
+
+        // 43. Return ! CreateTemporalDuration(result.[[Years]], result.[[Months]],
+        // result.[[Weeks]], result.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]],
+        // balanceResult.[[Seconds]], balanceResult.[[Milliseconds]], balanceResult.[[Microseconds]],
+        // balanceResult.[[Nanoseconds]]).
+        Self::new(
+            result.years,
+            result.months,
+            result.weeks,
+            result.days,
+            balance_result.1.hours,
+            balance_result.1.minutes,
+            balance_result.1.seconds,
+            balance_result.1.milliseconds,
+            balance_result.1.microseconds,
+            balance_result.1.nanoseconds,
+        )
     }
 }
 

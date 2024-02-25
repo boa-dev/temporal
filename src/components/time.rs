@@ -34,12 +34,12 @@ impl Time {
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime` AND `AddTime`.
     pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> Self {
         let (_, result) = IsoTime::balance(
-            f64::from(self.hour()) + duration.hours(),
-            f64::from(self.minute()) + duration.minutes(),
-            f64::from(self.second()) + duration.seconds(),
-            f64::from(self.millisecond()) + duration.milliseconds(),
-            f64::from(self.microsecond()) + duration.microseconds(),
-            f64::from(self.nanosecond()) + duration.nanoseconds(),
+            f64::from(self.hour()) + duration.hours,
+            f64::from(self.minute()) + duration.minutes,
+            f64::from(self.second()) + duration.seconds,
+            f64::from(self.millisecond()) + duration.milliseconds,
+            f64::from(self.microsecond()) + duration.microseconds,
+            f64::from(self.nanosecond()) + duration.nanoseconds,
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`
@@ -165,7 +165,7 @@ impl Time {
             })?;
 
         // Safety (nekevss): to_rounding_increment returns a value in the range of a u32.
-        utils::validate_temporal_rounding_increment(increment as u32, u64::from(max), false)?;
+        utils::validate_temporal_rounding_increment(increment, u64::from(max), false)?;
 
         let (_, result) = self.iso.round(increment, smallest_unit, mode, None)?;
 

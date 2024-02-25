@@ -3,9 +3,9 @@
 use crate::{
     components::{
         calendar::CalendarProtocol, duration::TimeDuration, tz::TzProtocol, Date, DateTime,
-        Duration, ZonedDateTime,
+        Duration,
     },
-    options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
+    options::{ArithmeticOverflow, RelativeTo, TemporalRoundingMode, TemporalUnit},
     utils, TemporalError, TemporalResult, NS_PER_DAY,
 };
 
@@ -20,10 +20,14 @@ use super::normalized::NormalizedTimeDuration;
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DateDuration {
-    pub(crate) years: f64,
-    pub(crate) months: f64,
-    pub(crate) weeks: f64,
-    pub(crate) days: f64,
+    /// `DateDuration`'s internal year value.
+    pub years: f64,
+    /// `DateDuration`'s internal month value.
+    pub months: f64,
+    /// `DateDuration`'s internal week value.
+    pub weeks: f64,
+    /// `DateDuration`'s internal day value.
+    pub days: f64,
 }
 
 impl DateDuration {
@@ -38,13 +42,314 @@ impl DateDuration {
             days,
         }
     }
+
+    /// Returns the `TemporalUnit` corresponding to the largest non-zero field.
+    #[inline]
+    pub(crate) fn default_largest_unit(&self) -> TemporalUnit {
+        self.fields()
+            .iter()
+            .enumerate()
+            .find(|x| x.1 != &0.0)
+            .map(|x| TemporalUnit::from(10 - x.0))
+            .unwrap_or(TemporalUnit::Nanosecond)
+    }
+
+    /// 7.5.38 `UnbalanceDateDurationRelative ( years, months, weeks, days, largestUnit, plainRelativeTo )`
+    #[inline]
+    pub(crate) fn unbalance_relative<C: CalendarProtocol>(
+        &self,
+        largest_unit: TemporalUnit,
+        plain_relative_to: Option<&Date<C>>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        // 1. Assert: If plainRelativeTo is not undefined, calendarRec is not undefined.
+        let plain_relative = plain_relative_to.expect("plainRelativeTo must not be undefined.");
+
+        // 2. Let defaultLargestUnit be DefaultTemporalLargestUnit(years, months, weeks, days, 0, 0, 0, 0, 0).
+        let default_largest = self.default_largest_unit();
+
+        // 3. Let effectiveLargestUnit be LargerOfTwoTemporalUnits(largestUnit, "day").
+        let effective_largest = largest_unit.max(TemporalUnit::Day);
+
+        // 4. If effectiveLargestUnit is LargerOfTwoTemporalUnits(defaultLargestUnit, effectiveLargestUnit), then
+        if default_largest <= effective_largest {
+            // a. Return ! CreateDateDurationRecord(years, months, weeks, days).
+            return Ok(*self);
+        }
+
+        // NOTE: Should the assertion in 5 be an early error.
+        // 5. Assert: effectiveLargestUnit is not "year".
+        // 6. If calendarRec is undefined, then
+        // a. Throw a RangeError exception.
+        // 7. Assert: CalendarMethodsRecordHasLookedUp(calendarRec, DATE-ADD) is true.
+
+        match effective_largest {
+            // 8. If effectiveLargestUnit is "month", then
+            TemporalUnit::Month => {
+                // a. Assert: CalendarMethodsRecordHasLookedUp(calendarRec, DATE-UNTIL) is true.
+                // b. Let yearsDuration be ! CreateTemporalDuration(years, 0, 0, 0, 0, 0, 0, 0, 0, 0).
+                let years =
+                    Duration::from_date_duration(&Self::new_unchecked(self.years, 0.0, 0.0, 0.0));
+
+                // c. Let later be ? CalendarDateAdd(calendarRec, plainRelativeTo, yearsDuration).
+                let later = plain_relative.calendar().date_add(
+                    plain_relative,
+                    &years,
+                    ArithmeticOverflow::Constrain,
+                    context,
+                )?;
+
+                // d. Let untilOptions be OrdinaryObjectCreate(null).
+                // e. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", "month").
+                // f. Let untilResult be ? CalendarDateUntil(calendarRec, plainRelativeTo, later, untilOptions).
+                let until = plain_relative.calendar().date_until(
+                    plain_relative,
+                    &later,
+                    largest_unit,
+                    context,
+                )?;
+
+                // g. Let yearsInMonths be untilResult.[[Months]].
+                // h. Return ? CreateDateDurationRecord(0, months + yearsInMonths, weeks, days).
+                Self::new(0.0, self.months + until.months(), self.weeks, self.days)
+            }
+            // 9. If effectiveLargestUnit is "week", then
+            TemporalUnit::Week => {
+                // a. Let yearsMonthsDuration be ! CreateTemporalDuration(years, months, 0, 0, 0, 0, 0, 0, 0, 0).
+                let years_months = Duration::from_date_duration(&Self::new_unchecked(
+                    self.years,
+                    self.months,
+                    0.0,
+                    0.0,
+                ));
+
+                // b. Let later be ? CalendarDateAdd(calendarRec, plainRelativeTo, yearsMonthsDuration).
+                let later = plain_relative.calendar().date_add(
+                    plain_relative,
+                    &years_months,
+                    ArithmeticOverflow::Constrain,
+                    context,
+                )?;
+
+                // c. Let yearsMonthsInDays be DaysUntil(plainRelativeTo, later).
+                let years_months_in_days =
+                    plain_relative.iso.to_epoch_days() - later.iso.to_epoch_days();
+                // d. Return ? CreateDateDurationRecord(0, 0, weeks, days + yearsMonthsInDays).
+                Self::new(
+                    0.0,
+                    0.0,
+                    self.weeks,
+                    self.days + f64::from(years_months_in_days),
+                )
+            }
+            TemporalUnit::Day => {
+                // 10. NOTE: largestUnit can be any time unit as well as "day".
+                // 11. Let yearsMonthsWeeksDuration be ! CreateTemporalDuration(years, months, weeks, 0, 0, 0, 0, 0, 0, 0).
+                let years_months_weeks = Duration::from_date_duration(&Self::new_unchecked(
+                    self.years,
+                    self.months,
+                    self.weeks,
+                    0.0,
+                ));
+
+                // 12. Let later be ? CalendarDateAdd(calendarRec, plainRelativeTo, yearsMonthsWeeksDuration).
+                let later = plain_relative.calendar().date_add(
+                    plain_relative,
+                    &years_months_weeks,
+                    ArithmeticOverflow::Constrain,
+                    context,
+                )?;
+
+                // 13. Let yearsMonthsWeeksInDays be DaysUntil(plainRelativeTo, later).
+                let years_months_weeks_in_days =
+                    plain_relative.iso.to_epoch_days() - later.iso.to_epoch_days();
+                // 14. Return ? CreateDateDurationRecord(0, 0, 0, days + yearsMonthsWeeksInDays).
+                Self::new(
+                    0.0,
+                    0.0,
+                    self.weeks,
+                    self.days + f64::from(years_months_weeks_in_days),
+                )
+            }
+            _ => Err(TemporalError::general(
+                "Invalid TemporalUnit provided to UnbalanceDateDurationRelative",
+            )),
+        }
+    }
+
+    /// 7.5.38 BalanceDateDurationRelative ( years, months, weeks, days, largestUnit, smallestUnit, plainRelativeTo, calendarRec )
+    pub fn balance_relative<C: CalendarProtocol>(
+        &self,
+        largest_unit: TemporalUnit,
+        smallest_unit: TemporalUnit,
+        plain_relative_to: Option<&Date<C>>,
+        context: &mut C::Context,
+    ) -> TemporalResult<DateDuration> {
+        // TODO: Confirm 1 or 5 based off response to issue.
+        // 1. Assert: If plainRelativeTo is not undefined, calendarRec is not undefined.
+        let plain_relative = plain_relative_to.expect("plainRelativeTo must not be undefined.");
+
+        // 2. Let allZero be false.
+        // 3. If years = 0, and months = 0, and weeks = 0, and days = 0, set allZero to true.
+        let all_zero =
+            self.years == 0.0 && self.months == 0.0 && self.weeks == 0.0 && self.days == 0.0;
+
+        // 4. If largestUnit is not one of "year", "month", or "week", or allZero is true, then
+        match largest_unit {
+            TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week if !all_zero => {}
+            _ => {
+                // a. Return ! CreateDateDurationRecord(years, months, weeks, days).
+                return Ok(*self);
+            }
+        }
+
+        // NOTE: See Step 1.
+        // 5. If plainRelativeTo is undefined, then
+        // a. Throw a RangeError exception.
+        // 6. Assert: CalendarMethodsRecordHasLookedUp(calendarRec, DATE-ADD) is true.
+        // 7. Assert: CalendarMethodsRecordHasLookedUp(calendarRec, DATE-UNTIL) is true.
+        // 8. Let untilOptions be OrdinaryObjectCreate(null).
+        // 9. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", largestUnit).
+
+        match largest_unit {
+            // 10. If largestUnit is "year", then
+            TemporalUnit::Year => {
+                // a. If smallestUnit is "week", then
+                if smallest_unit == TemporalUnit::Week {
+                    // i. Assert: days = 0.
+                    // ii. Let yearsMonthsDuration be ! CreateTemporalDuration(years, months, 0, 0, 0, 0, 0, 0, 0, 0).
+                    let years_months = Duration::from_date_duration(&Self::new_unchecked(
+                        self.years,
+                        self.months,
+                        0.0,
+                        0.0,
+                    ));
+
+                    // iii. Let later be ? AddDate(calendarRec, plainRelativeTo, yearsMonthsDuration).
+                    let later = plain_relative.calendar().date_add(
+                        plain_relative,
+                        &years_months,
+                        ArithmeticOverflow::Constrain,
+                        context,
+                    )?;
+
+                    // iv. Let untilResult be ? CalendarDateUntil(calendarRec, plainRelativeTo, later, untilOptions).
+                    let until = plain_relative.calendar().date_until(
+                        plain_relative,
+                        &later,
+                        largest_unit,
+                        context,
+                    )?;
+
+                    // v. Return ? CreateDateDurationRecord(untilResult.[[Years]], untilResult.[[Months]], weeks, 0).
+                    return Self::new(until.years(), until.months(), self.weeks, 0.0);
+                }
+
+                // b. Let yearsMonthsWeeksDaysDuration be ! CreateTemporalDuration(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
+                let years_months_weeks = Duration::from_date_duration(self);
+
+                // c. Let later be ? AddDate(calendarRec, plainRelativeTo, yearsMonthsWeeksDaysDuration).
+                let later = plain_relative.calendar().date_add(
+                    plain_relative,
+                    &years_months_weeks,
+                    ArithmeticOverflow::Constrain,
+                    context,
+                )?;
+                // d. Let untilResult be ? CalendarDateUntil(calendarRec, plainRelativeTo, later, untilOptions).
+                let until = plain_relative.calendar().date_until(
+                    plain_relative,
+                    &later,
+                    largest_unit,
+                    context,
+                )?;
+                // e. Return ! CreateDateDurationRecord(untilResult.[[Years]], untilResult.[[Months]], untilResult.[[Weeks]], untilResult.[[Days]]).
+                Self::new(until.years(), until.months(), until.weeks(), until.days())
+            }
+            // 11. If largestUnit is "month", then
+            TemporalUnit::Month => {
+                // a. Assert: years = 0.
+                // b. If smallestUnit is "week", then
+                if smallest_unit == TemporalUnit::Week {
+                    // i. Assert: days = 0.
+                    // ii. Return ! CreateDateDurationRecord(0, months, weeks, 0).
+                    return Self::new(0.0, self.months, self.weeks, 0.0);
+                }
+
+                // c. Let monthsWeeksDaysDuration be ! CreateTemporalDuration(0, months, weeks, days, 0, 0, 0, 0, 0, 0).
+                let months_weeks_days = Duration::from_date_duration(&Self::new_unchecked(
+                    0.0,
+                    self.months,
+                    self.weeks,
+                    self.days,
+                ));
+
+                // d. Let later be ? AddDate(calendarRec, plainRelativeTo, monthsWeeksDaysDuration).
+                let later = plain_relative.calendar().date_add(
+                    plain_relative,
+                    &months_weeks_days,
+                    ArithmeticOverflow::Constrain,
+                    context,
+                )?;
+
+                // e. Let untilResult be ? CalendarDateUntil(calendarRec, plainRelativeTo, later, untilOptions).
+                let until = plain_relative.calendar().date_until(
+                    plain_relative,
+                    &later,
+                    largest_unit,
+                    context,
+                )?;
+
+                // f. Return ! CreateDateDurationRecord(0, untilResult.[[Months]], untilResult.[[Weeks]], untilResult.[[Days]]).
+                Self::new(0.0, until.months(), until.weeks(), until.days())
+            }
+            // 12. Assert: largestUnit is "week".
+            TemporalUnit::Week => {
+                // 13. Assert: years = 0.
+                // 14. Assert: months = 0.
+                // 15. Let weeksDaysDuration be ! CreateTemporalDuration(0, 0, weeks, days, 0, 0, 0, 0, 0, 0).
+                let weeks_days = Duration::from_date_duration(&Self::new_unchecked(
+                    0.0, 0.0, self.weeks, self.days,
+                ));
+
+                // 16. Let later be ? AddDate(calendarRec, plainRelativeTo, weeksDaysDuration).
+                let later = plain_relative.calendar().date_add(
+                    plain_relative,
+                    &weeks_days,
+                    ArithmeticOverflow::Constrain,
+                    context,
+                )?;
+
+                // 17. Let untilResult be ? CalendarDateUntil(calendarRec, plainRelativeTo, later, untilOptions).
+                let until = plain_relative.calendar().date_until(
+                    plain_relative,
+                    &later,
+                    largest_unit,
+                    context,
+                )?;
+
+                // 18. Return ! CreateDateDurationRecord(0, 0, untilResult.[[Weeks]], untilResult.[[Days]]).
+                Self::new(0.0, 0.0, until.weeks(), until.days())
+            }
+            _ => Err(TemporalError::general(
+                "largestUnit in BalanceDateDurationRelative exceeded possible values.",
+            )),
+        }
+    }
+
+    /// Returns the iterator for `DateDuration`
+    #[inline]
+    #[must_use]
+    pub(crate) fn fields(&self) -> Vec<f64> {
+        Vec::from(&[self.years, self.months, self.weeks, self.days])
+    }
 }
 
 impl DateDuration {
     /// Creates a new `DateDuration` with provided values.
+    #[inline]
     pub fn new(years: f64, months: f64, weeks: f64, days: f64) -> TemporalResult<Self> {
         let result = Self::new_unchecked(years, months, weeks, days);
-        if !super::is_valid_duration(&result.into_iter().collect()) {
+        if !super::is_valid_duration(&result.fields()) {
             return Err(TemporalError::range().with_message("Invalid DateDuration."));
         }
         Ok(result)
@@ -116,37 +421,7 @@ impl DateDuration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> i32 {
-        super::duration_sign(&self.iter().collect())
-    }
-
-    /// Returns the `[[years]]` value.
-    #[must_use]
-    pub const fn years(&self) -> f64 {
-        self.years
-    }
-
-    /// Returns the `[[months]]` value.
-    #[must_use]
-    pub const fn months(&self) -> f64 {
-        self.months
-    }
-
-    /// Returns the `[[weeks]]` value.
-    #[must_use]
-    pub const fn weeks(&self) -> f64 {
-        self.weeks
-    }
-
-    /// Returns the `[[days]]` value.
-    #[must_use]
-    pub const fn days(&self) -> f64 {
-        self.days
-    }
-
-    /// Returns the iterator for `DateDuration`
-    #[must_use]
-    pub fn iter(&self) -> DateIter<'_> {
-        <&Self as IntoIterator>::into_iter(self)
+        super::duration_sign(&self.fields())
     }
 }
 
@@ -155,26 +430,26 @@ impl DateDuration {
 impl DateDuration {
     /// Rounds the current `DateDuration` returning a tuple of the rounded `DateDuration` and
     /// the `total` value of the smallest unit prior to rounding.
-    #[allow(clippy::type_complexity, clippy::let_and_return)]
+    #[allow(
+        clippy::type_complexity,
+        clippy::let_and_return,
+        clippy::too_many_arguments
+    )]
     pub fn round<C: CalendarProtocol, Z: TzProtocol>(
         &self,
         normalized_time: Option<NormalizedTimeDuration>,
         increment: u64,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
-        relative_targets: (
-            Option<&Date<C>>,
-            Option<&ZonedDateTime<C, Z>>,
-            Option<&DateTime<C>>,
-        ),
+        relative_to: &RelativeTo<C, Z>,
+        _precalculated_dt: Option<DateTime<C>>,
         context: &mut C::Context,
     ) -> TemporalResult<(Self, f64)> {
         // 1. If plainRelativeTo is not present, set plainRelativeTo to undefined.
-        let plain_relative_to = relative_targets.0;
+        let plain_relative_to = relative_to.date;
         // 2. If zonedRelativeTo is not present, set zonedRelativeTo to undefined.
-        let zoned_relative_to = relative_targets.1;
+        let zoned_relative_to = relative_to.zdt;
         // 3. If precalculatedPlainDateTime is not present, set precalculatedPlainDateTime to undefined.
-        let _ = relative_targets.2;
 
         let mut fractional_days = match unit {
             // 4. If unit is "year", "month", or "week", and plainRelativeTo is undefined, then
@@ -197,7 +472,7 @@ impl DateDuration {
                 // b. Else,
                 } else {
                     // i. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
-                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY) as f64
+                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY)
                 }
                 // c. Set days to 0.
             }
@@ -206,7 +481,6 @@ impl DateDuration {
                     .with_message("Invalid TemporalUnit provided to DateDuration.round"))
             }
         };
-
         // 7. let total be unset.
         // We begin matching against unit and return the remainder value.
         match unit {
@@ -273,10 +547,10 @@ impl DateDuration {
                 )?;
 
                 // p. Let yearsPassed be timePassed.[[Years]].
-                let years_passed = time_passed.date.years();
+                let years_passed = time_passed.date.years;
 
                 // q. Set years to years + yearsPassed.
-                let years = self.years() + years_passed;
+                let years = self.years + years_passed;
 
                 // r. Let yearsDuration be ! CreateTemporalDuration(yearsPassed, 0, 0, 0, 0, 0, 0, 0, 0, 0).
                 let years_duration = Duration::one_year(years_passed);
@@ -301,12 +575,15 @@ impl DateDuration {
                 let (_, one_year_days) =
                     plain_relative_to.move_relative_date(&one_year, context)?;
 
+                if one_year_days == 0.0 {
+                    return Err(TemporalError::range().with_message("oneYearDays exceeds ranges."));
+                }
                 // aa. Let fractionalYears be years + fractionalDays / abs(oneYearDays).
                 let frac_years = years + (fractional_days / one_year_days.abs());
 
                 // ab. Set years to RoundNumberToIncrement(fractionalYears, increment, roundingMode).
                 let rounded_years =
-                    utils::round_number_to_increment(frac_years as i64, increment, rounding_mode);
+                    utils::round_number_to_increment(frac_years, increment as f64, rounding_mode);
 
                 // ac. Set total to fractionalYears.
                 // ad. Set months and weeks to 0.
@@ -319,9 +596,9 @@ impl DateDuration {
                 let plain_relative_to = plain_relative_to.expect("this must exist.");
 
                 // b. Let yearsMonths be ! CreateTemporalDuration(years, months, 0, 0, 0, 0, 0, 0, 0, 0).
-                let years_months = Duration::from_date_duration(DateDuration::new_unchecked(
-                    self.years(),
-                    self.months(),
+                let years_months = Duration::from_date_duration(&DateDuration::new_unchecked(
+                    self.years,
+                    self.months,
                     0.0,
                     0.0,
                 ));
@@ -339,12 +616,9 @@ impl DateDuration {
                 )?;
 
                 // f. Let yearsMonthsWeeks be ! CreateTemporalDuration(years, months, weeks, 0, 0, 0, 0, 0, 0, 0).
-                let years_months_weeks = Duration::from_date_duration(DateDuration::new_unchecked(
-                    self.years(),
-                    self.months(),
-                    self.weeks(),
-                    0.0,
-                ));
+                let years_months_weeks = Duration::from_date_duration(
+                    &DateDuration::new_unchecked(self.years, self.months, self.weeks, 0.0),
+                );
 
                 // g. Let yearsMonthsWeeksLater be ? AddDate(calendar, plainRelativeTo, yearsMonthsWeeks, undefined, dateAdd).
                 let years_months_weeks_later = plain_relative_to.contextual_add_date(
@@ -397,7 +671,7 @@ impl DateDuration {
 
                 // r. Set months to RoundNumberToIncrement(fractionalMonths, increment, roundingMode).
                 let rounded_months =
-                    utils::round_number_to_increment(frac_months as i64, increment, rounding_mode);
+                    utils::round_number_to_increment(frac_months, increment as f64, rounding_mode);
 
                 // s. Set total to fractionalMonths.
                 // t. Set weeks to 0.
@@ -449,7 +723,7 @@ impl DateDuration {
 
                 // k. Set weeks to RoundNumberToIncrement(fractionalWeeks, increment, roundingMode).
                 let rounded_weeks =
-                    utils::round_number_to_increment(frac_weeks as i64, increment, rounding_mode);
+                    utils::round_number_to_increment(frac_weeks, increment as f64, rounding_mode);
                 // l. Set total to fractionalWeeks.
                 let result = Self::new(self.years, self.months, rounded_weeks as f64, 0f64)?;
                 Ok((result, frac_weeks))
@@ -458,8 +732,8 @@ impl DateDuration {
             TemporalUnit::Day => {
                 // a. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
                 let rounded_days = utils::round_number_to_increment(
-                    fractional_days as i64,
-                    increment,
+                    fractional_days,
+                    increment as f64,
                     rounding_mode,
                 );
 
@@ -470,40 +744,5 @@ impl DateDuration {
             }
             _ => unreachable!("All other TemporalUnits were returned early as invalid."),
         }
-    }
-}
-
-impl<'a> IntoIterator for &'a DateDuration {
-    type Item = f64;
-    type IntoIter = DateIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        DateIter {
-            date: self,
-            index: 0,
-        }
-    }
-}
-
-/// An iterator over the `DateDuration`
-#[derive(Debug)]
-pub struct DateIter<'a> {
-    date: &'a DateDuration,
-    index: usize,
-}
-
-impl Iterator for DateIter<'_> {
-    type Item = f64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.index {
-            0 => Some(self.date.years),
-            1 => Some(self.date.months),
-            2 => Some(self.date.weeks),
-            3 => Some(self.date.days),
-            _ => None,
-        };
-        self.index += 1;
-        result
     }
 }
