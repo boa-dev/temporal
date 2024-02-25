@@ -1,13 +1,13 @@
 [package]
 name = "temporal_rs"
-keywords = ["javascript", "js", "temporal", "calendar", "date", "time", "timezone"]
-categories = ["date", "time", "calendars"]
+keywords = ["date", "time", "calendar", "timezone", "duration"]
+categories = ["date-and-time", "internationalization"]
 readme = "./README.md"
 description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
 version = "0.0.1"
 edition = "2021"
 authors = ["boa-dev"]
-license = "MIT"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/boa-dev/temporal"
 rust-version = "1.74"
 exclude = [
