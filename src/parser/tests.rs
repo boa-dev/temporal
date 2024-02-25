@@ -162,15 +162,15 @@ fn temporal_duration_parsing() {
 
     let sub_second = durations[2].parse::<Duration>().unwrap();
 
-    assert_eq!(sub_second.time().milliseconds(), -123.0);
-    assert_eq!(sub_second.time().microseconds(), -456.0);
-    assert_eq!(sub_second.time().nanoseconds(), -789.0);
+    assert_eq!(sub_second.milliseconds(), -123.0);
+    assert_eq!(sub_second.microseconds(), -456.0);
+    assert_eq!(sub_second.nanoseconds(), -789.0);
 
     let test_result = durations[3].parse::<Duration>().unwrap();
 
-    assert_eq!(test_result.date().years(), -1f64);
-    assert_eq!(test_result.date().weeks(), -3f64);
-    assert_eq!(test_result.time().minutes(), -30.0);
+    assert_eq!(test_result.years(), -1f64);
+    assert_eq!(test_result.weeks(), -3f64);
+    assert_eq!(test_result.minutes(), -30.0);
 }
 
 #[test]

@@ -215,8 +215,8 @@ impl IsoDate {
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
         let intermediate = balance_iso_year_month(
-            self.year + duration.years() as i32,
-            i32::from(self.month) + duration.months() as i32,
+            self.year + duration.years as i32,
+            i32::from(self.month) + duration.months as i32,
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
@@ -228,7 +228,7 @@ impl IsoDate {
         )?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days = duration.days() as i32 + (duration.weeks() as i32 * 7);
+        let additional_days = duration.days as i32 + (duration.weeks as i32 * 7);
         // 6. Let d be intermediate.[[Day]] + days.
         let d = i32::from(intermediate.day) + additional_days;
 

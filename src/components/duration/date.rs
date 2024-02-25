@@ -20,10 +20,14 @@ use super::normalized::NormalizedTimeDuration;
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DateDuration {
-    pub(crate) years: f64,
-    pub(crate) months: f64,
-    pub(crate) weeks: f64,
-    pub(crate) days: f64,
+    /// `DateDuration`'s internal year value.
+    pub years: f64,
+    /// `DateDuration`'s internal month value.
+    pub months: f64,
+    /// `DateDuration`'s internal week value.
+    pub weeks: f64,
+    /// `DateDuration`'s internal day value.
+    pub days: f64,
 }
 
 impl DateDuration {
@@ -39,7 +43,19 @@ impl DateDuration {
         }
     }
 
+    /// Returns the `TemporalUnit` corresponding to the largest non-zero field.
+    #[inline]
+    pub(crate) fn default_largest_unit(&self) -> TemporalUnit {
+        self.fields()
+            .iter()
+            .enumerate()
+            .find(|x| x.1 != &0.0)
+            .map(|x| TemporalUnit::from(10 - x.0))
+            .unwrap_or(TemporalUnit::Nanosecond)
+    }
+
     /// 7.5.38 `UnbalanceDateDurationRelative ( years, months, weeks, days, largestUnit, plainRelativeTo )`
+    #[inline]
     pub(crate) fn unbalance_relative<C: CalendarProtocol>(
         &self,
         largest_unit: TemporalUnit,
@@ -50,12 +66,8 @@ impl DateDuration {
         let plain_relative = plain_relative_to.expect("plainRelativeTo must not be undefined.");
 
         // 2. Let defaultLargestUnit be DefaultTemporalLargestUnit(years, months, weeks, days, 0, 0, 0, 0, 0).
-        let default_largest = self
-            .iter()
-            .enumerate()
-            .find(|x| x.1 != 0.0)
-            .map(|x| TemporalUnit::from(10 - x.0))
-            .unwrap_or(TemporalUnit::Nanosecond);
+        let default_largest = self.default_largest_unit();
+
         // 3. Let effectiveLargestUnit be LargerOfTwoTemporalUnits(largestUnit, "day").
         let effective_largest = largest_unit.max(TemporalUnit::Day);
 
@@ -166,7 +178,6 @@ impl DateDuration {
     }
 
     /// 7.5.38 BalanceDateDurationRelative ( years, months, weeks, days, largestUnit, smallestUnit, plainRelativeTo, calendarRec )
-    #[allow(unused)]
     pub fn balance_relative<C: CalendarProtocol>(
         &self,
         largest_unit: TemporalUnit,
@@ -324,13 +335,21 @@ impl DateDuration {
             )),
         }
     }
+
+    /// Returns the iterator for `DateDuration`
+    #[inline]
+    #[must_use]
+    pub(crate) fn fields(&self) -> Vec<f64> {
+        Vec::from(&[self.years, self.months, self.weeks, self.days])
+    }
 }
 
 impl DateDuration {
     /// Creates a new `DateDuration` with provided values.
+    #[inline]
     pub fn new(years: f64, months: f64, weeks: f64, days: f64) -> TemporalResult<Self> {
         let result = Self::new_unchecked(years, months, weeks, days);
-        if !super::is_valid_duration(&result.into_iter().collect()) {
+        if !super::is_valid_duration(&result.fields()) {
             return Err(TemporalError::range().with_message("Invalid DateDuration."));
         }
         Ok(result)
@@ -402,37 +421,7 @@ impl DateDuration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> i32 {
-        super::duration_sign(&self.iter().collect())
-    }
-
-    /// Returns the `[[years]]` value.
-    #[must_use]
-    pub const fn years(&self) -> f64 {
-        self.years
-    }
-
-    /// Returns the `[[months]]` value.
-    #[must_use]
-    pub const fn months(&self) -> f64 {
-        self.months
-    }
-
-    /// Returns the `[[weeks]]` value.
-    #[must_use]
-    pub const fn weeks(&self) -> f64 {
-        self.weeks
-    }
-
-    /// Returns the `[[days]]` value.
-    #[must_use]
-    pub const fn days(&self) -> f64 {
-        self.days
-    }
-
-    /// Returns the iterator for `DateDuration`
-    #[must_use]
-    pub fn iter(&self) -> DateIter<'_> {
-        <&Self as IntoIterator>::into_iter(self)
+        super::duration_sign(&self.fields())
     }
 }
 
@@ -558,10 +547,10 @@ impl DateDuration {
                 )?;
 
                 // p. Let yearsPassed be timePassed.[[Years]].
-                let years_passed = time_passed.date.years();
+                let years_passed = time_passed.date.years;
 
                 // q. Set years to years + yearsPassed.
-                let years = self.years() + years_passed;
+                let years = self.years + years_passed;
 
                 // r. Let yearsDuration be ! CreateTemporalDuration(yearsPassed, 0, 0, 0, 0, 0, 0, 0, 0, 0).
                 let years_duration = Duration::one_year(years_passed);
@@ -608,8 +597,8 @@ impl DateDuration {
 
                 // b. Let yearsMonths be ! CreateTemporalDuration(years, months, 0, 0, 0, 0, 0, 0, 0, 0).
                 let years_months = Duration::from_date_duration(&DateDuration::new_unchecked(
-                    self.years(),
-                    self.months(),
+                    self.years,
+                    self.months,
                     0.0,
                     0.0,
                 ));
@@ -628,7 +617,7 @@ impl DateDuration {
 
                 // f. Let yearsMonthsWeeks be ! CreateTemporalDuration(years, months, weeks, 0, 0, 0, 0, 0, 0, 0).
                 let years_months_weeks = Duration::from_date_duration(
-                    &DateDuration::new_unchecked(self.years(), self.months(), self.weeks(), 0.0),
+                    &DateDuration::new_unchecked(self.years, self.months, self.weeks, 0.0),
                 );
 
                 // g. Let yearsMonthsWeeksLater be ? AddDate(calendar, plainRelativeTo, yearsMonthsWeeks, undefined, dateAdd).
@@ -755,40 +744,5 @@ impl DateDuration {
             }
             _ => unreachable!("All other TemporalUnits were returned early as invalid."),
         }
-    }
-}
-
-impl<'a> IntoIterator for &'a DateDuration {
-    type Item = f64;
-    type IntoIter = DateIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        DateIter {
-            date: self,
-            index: 0,
-        }
-    }
-}
-
-/// An iterator over the `DateDuration`
-#[derive(Debug)]
-pub struct DateIter<'a> {
-    date: &'a DateDuration,
-    index: usize,
-}
-
-impl Iterator for DateIter<'_> {
-    type Item = f64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.index {
-            0 => Some(self.date.years),
-            1 => Some(self.date.months),
-            2 => Some(self.date.weeks),
-            3 => Some(self.date.days),
-            _ => None,
-        };
-        self.index += 1;
-        result
     }
 }

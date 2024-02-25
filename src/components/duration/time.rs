@@ -20,12 +20,18 @@ const NANOSECONDS_PER_HOUR: u64 = NANOSECONDS_PER_MINUTE * 60;
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct TimeDuration {
-    pub(crate) hours: f64,
-    pub(crate) minutes: f64,
-    pub(crate) seconds: f64,
-    pub(crate) milliseconds: f64,
-    pub(crate) microseconds: f64,
-    pub(crate) nanoseconds: f64,
+    /// `TimeDuration`'s internal hour value.
+    pub hours: f64,
+    /// `TimeDuration`'s internal minute value.
+    pub minutes: f64,
+    /// `TimeDuration`'s internal second value.
+    pub seconds: f64,
+    /// `TimeDuration`'s internal millisecond value.
+    pub milliseconds: f64,
+    /// `TimeDuration`'s internal microsecond value.
+    pub microseconds: f64,
+    /// `TimeDuration`'s internal nanosecond value.
+    pub nanoseconds: f64,
 }
 // ==== TimeDuration Private API ====
 
@@ -47,85 +53,6 @@ impl TimeDuration {
             milliseconds,
             microseconds,
             nanoseconds,
-        }
-    }
-}
-
-// ==== TimeDuration's public API ====
-
-impl TimeDuration {
-    /// Creates a new validated `TimeDuration`.
-    pub fn new(
-        hours: f64,
-        minutes: f64,
-        seconds: f64,
-        milliseconds: f64,
-        microseconds: f64,
-        nanoseconds: f64,
-    ) -> TemporalResult<Self> {
-        let result = Self::new_unchecked(
-            hours,
-            minutes,
-            seconds,
-            milliseconds,
-            microseconds,
-            nanoseconds,
-        );
-        if !is_valid_duration(&result.into_iter().collect()) {
-            return Err(
-                TemporalError::range().with_message("Attempted to create an invalid TimeDuration.")
-            );
-        }
-        Ok(result)
-    }
-
-    /// Creates a partial `TimeDuration` with all values set to `NaN`.
-    #[must_use]
-    pub const fn partial() -> Self {
-        Self {
-            hours: f64::NAN,
-            minutes: f64::NAN,
-            seconds: f64::NAN,
-            milliseconds: f64::NAN,
-            microseconds: f64::NAN,
-            nanoseconds: f64::NAN,
-        }
-    }
-
-    /// Creates a `TimeDuration` from a provided partial `TimeDuration`.
-    #[must_use]
-    pub fn from_partial(partial: &TimeDuration) -> Self {
-        Self {
-            hours: if partial.hours.is_nan() {
-                0.0
-            } else {
-                partial.hours
-            },
-            minutes: if partial.minutes.is_nan() {
-                0.0
-            } else {
-                partial.minutes
-            },
-            seconds: if partial.seconds.is_nan() {
-                0.0
-            } else {
-                partial.seconds
-            },
-            milliseconds: if partial.milliseconds.is_nan() {
-                0.0
-            } else {
-                partial.milliseconds
-            },
-            microseconds: if partial.microseconds.is_nan() {
-                0.0
-            } else {
-                partial.microseconds
-            },
-            nanoseconds: if partial.nanoseconds.is_nan() {
-                0.0
-            } else {
-                partial.nanoseconds
-            },
         }
     }
 
@@ -310,6 +237,104 @@ impl TimeDuration {
         Ok((days, result))
     }
 
+    /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.
+    #[inline]
+    pub(crate) fn to_normalized(self) -> NormalizedTimeDuration {
+        NormalizedTimeDuration::from_time_duration(&self)
+    }
+
+    /// Returns the value of `TimeDuration`'s fields.
+    #[inline]
+    #[must_use]
+    pub(crate) fn fields(&self) -> Vec<f64> {
+        Vec::from(&[
+            self.hours,
+            self.minutes,
+            self.seconds,
+            self.milliseconds,
+            self.microseconds,
+            self.nanoseconds,
+        ])
+    }
+}
+
+// ==== TimeDuration's public API ====
+
+impl TimeDuration {
+    /// Creates a new validated `TimeDuration`.
+    pub fn new(
+        hours: f64,
+        minutes: f64,
+        seconds: f64,
+        milliseconds: f64,
+        microseconds: f64,
+        nanoseconds: f64,
+    ) -> TemporalResult<Self> {
+        let result = Self::new_unchecked(
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
+            microseconds,
+            nanoseconds,
+        );
+        if !is_valid_duration(&result.fields()) {
+            return Err(
+                TemporalError::range().with_message("Attempted to create an invalid TimeDuration.")
+            );
+        }
+        Ok(result)
+    }
+
+    /// Creates a partial `TimeDuration` with all values set to `NaN`.
+    #[must_use]
+    pub const fn partial() -> Self {
+        Self {
+            hours: f64::NAN,
+            minutes: f64::NAN,
+            seconds: f64::NAN,
+            milliseconds: f64::NAN,
+            microseconds: f64::NAN,
+            nanoseconds: f64::NAN,
+        }
+    }
+
+    /// Creates a `TimeDuration` from a provided partial `TimeDuration`.
+    #[must_use]
+    pub fn from_partial(partial: &TimeDuration) -> Self {
+        Self {
+            hours: if partial.hours.is_nan() {
+                0.0
+            } else {
+                partial.hours
+            },
+            minutes: if partial.minutes.is_nan() {
+                0.0
+            } else {
+                partial.minutes
+            },
+            seconds: if partial.seconds.is_nan() {
+                0.0
+            } else {
+                partial.seconds
+            },
+            milliseconds: if partial.milliseconds.is_nan() {
+                0.0
+            } else {
+                partial.milliseconds
+            },
+            microseconds: if partial.microseconds.is_nan() {
+                0.0
+            } else {
+                partial.microseconds
+            },
+            nanoseconds: if partial.nanoseconds.is_nan() {
+                0.0
+            } else {
+                partial.nanoseconds
+            },
+        }
+    }
     /// Returns a new `TimeDuration` representing the absolute value of the current.
     #[inline]
     #[must_use]
@@ -348,53 +373,6 @@ impl TimeDuration {
             && self.milliseconds.abs() < 1000f64
             && self.milliseconds.abs() < 1000f64
             && self.milliseconds.abs() < 1000f64
-    }
-
-    /// Returns the `[[hours]]` value.
-    #[must_use]
-    pub const fn hours(&self) -> f64 {
-        self.hours
-    }
-
-    /// Returns the `[[minutes]]` value.
-    #[must_use]
-    pub const fn minutes(&self) -> f64 {
-        self.minutes
-    }
-
-    /// Returns the `[[seconds]]` value.
-    #[must_use]
-    pub const fn seconds(&self) -> f64 {
-        self.seconds
-    }
-
-    /// Returns the `[[milliseconds]]` value.
-    #[must_use]
-    pub const fn milliseconds(&self) -> f64 {
-        self.milliseconds
-    }
-
-    /// Returns the `[[microseconds]]` value.
-    #[must_use]
-    pub const fn microseconds(&self) -> f64 {
-        self.microseconds
-    }
-
-    /// Returns the `[[nanoseconds]]` value.
-    #[must_use]
-    pub const fn nanoseconds(&self) -> f64 {
-        self.nanoseconds
-    }
-
-    /// Returns the `TimeDuration`'s iterator.
-    #[must_use]
-    pub fn iter(&self) -> TimeIter<'_> {
-        <&Self as IntoIterator>::into_iter(self)
-    }
-
-    /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.
-    pub(crate) fn to_normalized(self) -> NormalizedTimeDuration {
-        NormalizedTimeDuration::from_time_duration(&self)
     }
 }
 
@@ -481,42 +459,5 @@ impl TimeDuration {
             }
             _ => unreachable!("All other units early return error."),
         }
-    }
-}
-
-impl<'a> IntoIterator for &'a TimeDuration {
-    type Item = f64;
-    type IntoIter = TimeIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        TimeIter {
-            time: self,
-            index: 0,
-        }
-    }
-}
-
-/// An iterator over a `TimeDuration`.
-#[derive(Debug, Clone)]
-pub struct TimeIter<'a> {
-    time: &'a TimeDuration,
-    index: usize,
-}
-
-impl Iterator for TimeIter<'_> {
-    type Item = f64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.index {
-            0 => Some(self.time.hours),
-            1 => Some(self.time.minutes),
-            2 => Some(self.time.seconds),
-            3 => Some(self.time.milliseconds),
-            4 => Some(self.time.microseconds),
-            5 => Some(self.time.nanoseconds),
-            _ => None,
-        };
-        self.index += 1;
-        result
     }
 }

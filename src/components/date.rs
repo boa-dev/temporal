@@ -339,9 +339,9 @@ impl<C: CalendarProtocol> Date<C> {
     ) -> TemporalResult<Self> {
         // 1. If options is not present, set options to undefined.
         // 2. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
-        if duration.date().years() != 0.0
-            || duration.date().months() != 0.0
-            || duration.date().weeks() != 0.0
+        if duration.date().years != 0.0
+            || duration.date().months != 0.0
+            || duration.date().weeks != 0.0
         {
             // a. If dateAdd is not present, then
             // i. Set dateAdd to unused.

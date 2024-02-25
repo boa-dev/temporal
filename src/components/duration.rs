@@ -51,23 +51,64 @@ pub struct Duration {
 
 impl Duration {
     /// Creates a new `Duration` from a `DateDuration` and `TimeDuration`.
+    #[inline]
     pub(crate) const fn new_unchecked(date: DateDuration, time: TimeDuration) -> Self {
         Self { date, time }
     }
 
     /// Utility function to create a year duration.
+    #[inline]
     pub(crate) fn one_year(year_value: f64) -> Self {
         Self::from_date_duration(&DateDuration::new_unchecked(year_value, 1f64, 0f64, 0f64))
     }
 
     /// Utility function to create a month duration.
+    #[inline]
     pub(crate) fn one_month(month_value: f64) -> Self {
         Self::from_date_duration(&DateDuration::new_unchecked(0f64, month_value, 0f64, 0f64))
     }
 
     /// Utility function to create a week duration.
+    #[inline]
     pub(crate) fn one_week(week_value: f64) -> Self {
         Self::from_date_duration(&DateDuration::new_unchecked(0f64, 0f64, week_value, 0f64))
+    }
+
+    /// Returns the a `Vec` of the fields values.
+    #[inline]
+    #[must_use]
+    pub(crate) fn fields(&self) -> Vec<f64> {
+        Vec::from(&[
+            self.years(),
+            self.months(),
+            self.weeks(),
+            self.days(),
+            self.hours(),
+            self.minutes(),
+            self.seconds(),
+            self.milliseconds(),
+            self.microseconds(),
+            self.nanoseconds(),
+        ])
+    }
+
+    /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn is_time_duration(&self) -> bool {
+        self.time().fields().iter().any(|x| x != &0.0)
+            && self.date().fields().iter().all(|x| x == &0.0)
+    }
+
+    /// Returns the `TemporalUnit` corresponding to the largest non-zero field.
+    #[inline]
+    pub(crate) fn default_largest_unit(&self) -> TemporalUnit {
+        self.fields()
+            .iter()
+            .enumerate()
+            .find(|x| x.1 != &0.0)
+            .map(|x| TemporalUnit::from(10 - x.0))
+            .unwrap_or(TemporalUnit::Nanosecond)
     }
 }
 
@@ -99,7 +140,7 @@ impl Duration {
                 nanoseconds,
             ),
         );
-        if !is_valid_duration(&duration.into_iter().collect()) {
+        if !is_valid_duration(&duration.fields()) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(duration)
@@ -140,7 +181,7 @@ impl Duration {
             date: DateDuration::from_partial(partial.date()),
             time: TimeDuration::from_partial(partial.time()),
         };
-        if !is_valid_duration(&duration.into_iter().collect()) {
+        if !is_valid_duration(&duration.fields()) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(duration)
@@ -151,20 +192,6 @@ impl Duration {
     #[must_use]
     pub fn is_time_within_range(&self) -> bool {
         self.time.is_within_range()
-    }
-
-    /// Returns whether `Duration`'s `DateDuration` isn't empty and is therefore a `DateDuration` or `Duration`.
-    #[inline]
-    #[must_use]
-    pub fn is_date_duration(&self) -> bool {
-        self.date().iter().any(|x| x != 0.0) && self.time().iter().all(|x| x == 0.0)
-    }
-
-    /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
-    #[inline]
-    #[must_use]
-    pub fn is_time_duration(&self) -> bool {
-        self.time().iter().any(|x| x != 0.0) && self.date().iter().all(|x| x == 0.0)
     }
 }
 
@@ -320,66 +347,17 @@ impl Duration {
     pub const fn nanoseconds(&self) -> f64 {
         self.time.nanoseconds
     }
-
-    /// Returns `Duration`'s iterator
-    #[must_use]
-    pub fn iter(&self) -> DurationIter<'_> {
-        <&Self as IntoIterator>::into_iter(self)
-    }
-}
-
-impl<'a> IntoIterator for &'a Duration {
-    type Item = f64;
-    type IntoIter = DurationIter<'a>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        DurationIter {
-            duration: self,
-            index: 0,
-        }
-    }
-}
-
-/// A Duration iterator that iterates through all duration fields.
-#[derive(Debug)]
-pub struct DurationIter<'a> {
-    duration: &'a Duration,
-    index: usize,
-}
-
-impl Iterator for DurationIter<'_> {
-    type Item = f64;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let result = match self.index {
-            0 => Some(self.duration.date.years()),
-            1 => Some(self.duration.date.months()),
-            2 => Some(self.duration.date.weeks()),
-            3 => Some(self.duration.date.days()),
-            4 => Some(self.duration.time.hours()),
-            5 => Some(self.duration.time.minutes()),
-            6 => Some(self.duration.time.seconds()),
-            7 => Some(self.duration.time.milliseconds()),
-            8 => Some(self.duration.time.microseconds()),
-            9 => Some(self.duration.time.nanoseconds()),
-            _ => None,
-        };
-        self.index += 1;
-        result
-    }
 }
 
 // ==== Private Duration methods ====
 
 impl Duration {
-    // TODO (nekevss): Refactor relative_to's into a RelativeTo struct?
-    // TODO (nekevss): Impl `Duration::round` -> Potentially rename to `round_internal`
+    // TODO (nekevss): Build out `RelativeTo` handling
     /// Abstract Operation 7.5.26 `RoundDuration ( years, months, weeks, days, hours, minutes,
     ///   seconds, milliseconds, microseconds, nanoseconds, increment, unit,
     ///   roundingMode [ , plainRelativeTo [, zonedRelativeTo [, precalculatedDateTime]]] )`
     #[allow(clippy::type_complexity)]
-    #[allow(dead_code)]
-    pub(crate) fn round_duration<C: CalendarProtocol, Z: TzProtocol>(
+    pub(crate) fn round_internal<C: CalendarProtocol, Z: TzProtocol>(
         &self,
         increment: u64,
         unit: TemporalUnit,
@@ -432,7 +410,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> i32 {
-        duration_sign(&self.iter().collect())
+        duration_sign(&self.fields())
     }
 
     /// Returns whether the current `Duration` is zero.
@@ -441,7 +419,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn is_zero(&self) -> bool {
-        duration_sign(&self.iter().collect()) == 0
+        self.sign() == 0
     }
 
     /// Returns a negated `Duration`
@@ -499,12 +477,7 @@ impl Duration {
         // duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]],
         // duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
         // duration.[[Microseconds]]).
-        let existing_largest_unit = self
-            .iter()
-            .enumerate()
-            .find(|x| x.1 != 0.0)
-            .map(|x| TemporalUnit::from(10 - x.0))
-            .unwrap_or(TemporalUnit::Nanosecond);
+        let existing_largest_unit = self.default_largest_unit();
 
         // 19. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
         let default_largest = existing_largest_unit.max(smallest_unit);
@@ -609,7 +582,7 @@ impl Duration {
         // 38. Let roundRecord be ? RoundDuration(unbalanceResult.[[Years]], unbalanceResult.[[Months]],
         // unbalanceResult.[[Weeks]], unbalanceResult.[[Days]], norm, roundingIncrement, smallestUnit,
         // roundingMode, plainRelativeTo, calendarRec, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
-        let (round_result, _) = Self::new_unchecked(unbalanced, *self.time()).round_duration(
+        let (round_result, _) = Self::new_unchecked(unbalanced, *self.time()).round_internal(
             increment,
             smallest_unit,
             mode,
@@ -631,7 +604,7 @@ impl Duration {
         } else {
             // NOTE: DateDuration::round will always return a NormalizedTime::default as per spec.
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
-            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days())?;
+            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days)?;
             // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
             TimeDuration::from_normalized(norm_with_days, largest_unit)?
         };
@@ -640,9 +613,9 @@ impl Duration {
         // roundResult.[[Months]], roundResult.[[Weeks]], balanceResult.[[Days]],
         // largestUnit, smallestUnit, plainRelativeTo, calendarRec).
         let intermediate = DateDuration::new_unchecked(
-            round_result.0 .0.years(),
-            round_result.0 .0.months(),
-            round_result.0 .0.weeks(),
+            round_result.0 .0.years,
+            round_result.0 .0.months,
+            round_result.0 .0.weeks,
             balance_result.0,
         );
         let result = intermediate.balance_relative(
@@ -668,39 +641,6 @@ impl Duration {
             balance_result.1.microseconds,
             balance_result.1.nanoseconds,
         )
-    }
-
-    // TODO: Depracate and remove.
-    /// 7.5.12 `DefaultTemporalLargestUnit ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds )`
-    #[inline]
-    #[must_use]
-    pub fn default_temporal_largest_unit(&self) -> TemporalUnit {
-        for (index, value) in self.into_iter().enumerate() {
-            if value == 0f64 {
-                continue;
-            }
-
-            match index {
-                0 => return TemporalUnit::Year,
-                1 => return TemporalUnit::Month,
-                2 => return TemporalUnit::Week,
-                3 => return TemporalUnit::Day,
-                4 => return TemporalUnit::Hour,
-                5 => return TemporalUnit::Minute,
-                6 => return TemporalUnit::Second,
-                7 => return TemporalUnit::Millisecond,
-                8 => return TemporalUnit::Microsecond,
-                _ => {}
-            }
-        }
-
-        TemporalUnit::Nanosecond
-    }
-
-    /// Calls `TimeDuration`'s balance method on the current `Duration`.
-    #[inline]
-    pub fn balance_time_duration(&self, unit: TemporalUnit) -> TemporalResult<(f64, TimeDuration)> {
-        TimeDuration::from_normalized(self.time().to_normalized(), unit)
     }
 }
 

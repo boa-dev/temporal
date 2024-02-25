@@ -87,9 +87,10 @@ fn basic_floor_rounding() {
             )
             .unwrap();
         assert!(result
+            .fields()
             .iter()
             .zip(&EXPECTED_POSITIVE[i])
-            .all(|r| r.0 as i32 == *r.1));
+            .all(|r| *r.0 as i32 == *r.1));
         let neg_result = test_duration
             .negated()
             .round(
@@ -102,9 +103,10 @@ fn basic_floor_rounding() {
             )
             .unwrap();
         assert!(neg_result
+            .fields()
             .iter()
             .zip(&EXPECTED_NEG[i])
-            .all(|r| r.0 as i32 == *r.1));
+            .all(|r| *r.0 as i32 == *r.1));
     }
 }
 
@@ -190,9 +192,10 @@ fn basic_ceil_rounding() {
             )
             .unwrap();
         assert!(result
+            .fields()
             .iter()
             .zip(&EXPECTED_POSITIVE[i])
-            .all(|r| r.0 as i32 == *r.1));
+            .all(|r| *r.0 as i32 == *r.1));
         let neg_result = test_duration
             .negated()
             .round(
@@ -205,9 +208,10 @@ fn basic_ceil_rounding() {
             )
             .unwrap();
         assert!(neg_result
+            .fields()
             .iter()
             .zip(&EXPECTED_NEG[i])
-            .all(|r| r.0 as i32 == *r.1));
+            .all(|r| *r.0 as i32 == *r.1));
     }
 }
 
@@ -293,9 +297,10 @@ fn basic_expand_rounding() {
             )
             .unwrap();
         assert!(result
+            .fields()
             .iter()
             .zip(&EXPECTED_POSITIVE[i])
-            .all(|r| r.0 as i32 == *r.1));
+            .all(|r| *r.0 as i32 == *r.1));
         let neg_result = test_duration
             .negated()
             .round(
@@ -308,8 +313,9 @@ fn basic_expand_rounding() {
             )
             .unwrap();
         assert!(neg_result
+            .fields()
             .iter()
             .zip(&EXPECTED_NEG[i])
-            .all(|r| r.0 as i32 == *r.1));
+            .all(|r| *r.0 as i32 == *r.1));
     }
 }
