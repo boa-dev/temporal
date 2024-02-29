@@ -225,23 +225,18 @@ pub(crate) fn parse_month_day(cursor: &mut Cursor) -> TemporalResult<(i32, i32)>
 
 // ==== Unit Parsers ====
 
+#[inline]
 fn parse_date_year(cursor: &mut Cursor) -> TemporalResult<i32> {
     if cursor.check_or(false, is_sign) {
         let sign = if cursor.expect_next() == '+' { 1 } else { -1 };
-        let year_start = cursor.pos();
 
-        for _ in 0..6 {
-            let year_digit = cursor.abrupt_next()?;
-            assert_syntax!(
-                year_digit.is_ascii_digit(),
-                "Year must be made up of digits."
-            );
-        }
+        let first = cursor.next_digit()? as i32 * 100_000;
+        let second = cursor.next_digit()? as i32 * 10_000;
+        let third = cursor.next_digit()? as i32 * 1000;
+        let fourth = cursor.next_digit()? as i32 * 100;
+        let fifth = cursor.next_digit()? as i32 * 10;
 
-        let year_value = cursor
-            .slice(year_start, cursor.pos())
-            .parse::<i32>()
-            .map_err(|e| TemporalError::syntax().with_message(e.to_string()))?;
+        let year_value = first + second + third + fourth + fifth + cursor.next_digit()? as i32;
 
         // 13.30.1 Static Semantics: Early Errors
         //
@@ -260,50 +255,28 @@ fn parse_date_year(cursor: &mut Cursor) -> TemporalResult<i32> {
         return Ok(year);
     }
 
-    let year_start = cursor.pos();
-
-    for _ in 0..4 {
-        let year_digit = cursor.abrupt_next()?;
-        assert_syntax!(
-            year_digit.is_ascii_digit(),
-            "Year must be made up of digits."
-        );
-    }
-
-    let year_value = cursor
-        .slice(year_start, cursor.pos())
-        .parse::<i32>()
-        .map_err(|e| TemporalError::syntax().with_message(e.to_string()))?;
+    let first = cursor.next_digit()? as i32 * 1000;
+    let second = cursor.next_digit()? as i32 * 100;
+    let third = cursor.next_digit()? as i32 * 10;
+    let year_value = first + second + third + cursor.next_digit()? as i32;
 
     Ok(year_value)
 }
 
+#[inline]
 fn parse_date_month(cursor: &mut Cursor) -> TemporalResult<i32> {
-    let start = cursor.pos();
-    for _ in 0..2 {
-        let digit = cursor.abrupt_next()?;
-        assert_syntax!(digit.is_ascii_digit(), "Month must be a digit");
-    }
-    let month_value = cursor
-        .slice(start, cursor.pos())
-        .parse::<i32>()
-        .map_err(|e| TemporalError::syntax().with_message(e.to_string()))?;
+    let first = cursor.next_digit()? as i32;
+    let month_value = first * 10 + cursor.next_digit()? as i32;
     if !(1..=12).contains(&month_value) {
         return Err(TemporalError::syntax().with_message("DateMonth must be in a range of 1-12"));
     }
     Ok(month_value)
 }
 
+#[inline]
 fn parse_date_day(cursor: &mut Cursor) -> TemporalResult<i32> {
-    let start = cursor.pos();
-    for _ in 0..2 {
-        let digit = cursor.abrupt_next()?;
-        assert_syntax!(digit.is_ascii_digit(), "Date must be a digit");
-    }
-    let day_value = cursor
-        .slice(start, cursor.pos())
-        .parse::<i32>()
-        .map_err(|e| TemporalError::syntax().with_message(e.to_string()))?;
+    let first = cursor.next_digit()? as i32;
+    let day_value = first * 10 + cursor.next_digit()? as i32;
     if !(1..=31).contains(&day_value) {
         return Err(TemporalError::syntax().with_message("DateDay must be in a range of 1-31"));
     }
