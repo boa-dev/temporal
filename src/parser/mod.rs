@@ -248,6 +248,20 @@ impl Cursor {
         result
     }
 
+    /// Returns the next value as a digit.
+    ///
+    /// # Errors
+    ///   - Returns a SyntaxError if value is not an ascii digit
+    ///   - Returns an AbruptEnd error if cursor ends.
+    fn next_digit(&mut self) -> TemporalResult<u8> {
+        let p_digit = self.abrupt_next()?.to_digit(10);
+        let Some(digit) = p_digit else {
+            return Err(TemporalError::syntax()
+                .with_message("Expected decimal digit, found non-digit character."));
+        };
+        Ok(digit as u8)
+    }
+
     /// Utility method that returns next charactor unwrapped char
     ///
     /// # Panics

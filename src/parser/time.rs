@@ -66,16 +66,11 @@ pub(crate) fn parse_time_spec(cursor: &mut Cursor) -> TemporalResult<TimeSpec> {
     })
 }
 
+/// Parse an hour value.
+#[inline]
 pub(crate) fn parse_hour(cursor: &mut Cursor) -> TemporalResult<u8> {
-    let start = cursor.pos();
-    for _ in 0..2 {
-        let digit = cursor.abrupt_next()?;
-        assert_syntax!(digit.is_ascii_digit(), "Hour must be a digit.");
-    }
-    let hour_value = cursor
-        .slice(start, cursor.pos())
-        .parse::<u8>()
-        .map_err(|e| TemporalError::syntax().with_message(e.to_string()))?;
+    let first = cursor.next_digit()?;
+    let hour_value = first * 10 + cursor.next_digit()?;
     if !(0..=23).contains(&hour_value) {
         return Err(TemporalError::syntax().with_message("Hour must be in a range of 0-23"));
     }
@@ -83,18 +78,11 @@ pub(crate) fn parse_hour(cursor: &mut Cursor) -> TemporalResult<u8> {
 }
 
 // NOTE: `TimeSecond` is a 60 inclusive `MinuteSecond`.
-/// Parse `MinuteSecond`
+/// Parse `MinuteSecond` value.
+#[inline]
 pub(crate) fn parse_minute_second(cursor: &mut Cursor, inclusive: bool) -> TemporalResult<u8> {
-    let start = cursor.pos();
-    for _ in 0..2 {
-        let digit = cursor.abrupt_next()?;
-        assert_syntax!(digit.is_ascii_digit(), "MinuteSecond must be a digit.");
-    }
-    let min_sec_value = cursor
-        .slice(start, cursor.pos())
-        .parse::<u8>()
-        .map_err(|e| TemporalError::syntax().with_message(e.to_string()))?;
-
+    let first = cursor.next_digit()?;
+    let min_sec_value = first * 10 + cursor.next_digit()?;
     let valid_range = if inclusive { 0..=60 } else { 0..=59 };
     if !valid_range.contains(&min_sec_value) {
         return Err(TemporalError::syntax().with_message("MinuteSecond must be in a range of 0-59"));
