@@ -129,8 +129,6 @@ impl IsoDateTime {
 
 // ==== `IsoDate` section ====
 
-// TODO: Figure out `ICU4X` interop / replacement?
-
 /// A trait for accessing the `IsoDate` across the various Temporal objects
 pub trait IsoDateSlots {
     /// Returns the target's internal `IsoDate`.
@@ -257,7 +255,7 @@ impl IsoDate {
         // 5. Let years be 0.
         let mut years = 0;
         // 6. If largestUnit is "year", then
-        if largest_unit == TemporalUnit::Year || largest_unit == TemporalUnit::Month {
+        if largest_unit == TemporalUnit::Year {
             // a. Let candidateYears be sign.
             let mut candidate_years: i32 = sign.into();
             // b. Repeat, while ISODateSurpasses(sign, y1 + candidateYears, m1, d1, y2, m2, d2) is false,
@@ -734,7 +732,8 @@ fn iso_date_surpasses(this: &IsoDate, other: &IsoDate, sign: i8) -> bool {
 #[inline]
 fn balance_iso_year_month(year: i32, month: i32) -> (i32, i32) {
     let y = year + (month - 1) / 12;
-    let m = (month - 1).rem_euclid(12) + 1;
+    // NOTE(nekevss): MUST be `Rem``, not `rem_euclid`.
+    let m = (month - 1) % 12 + 1;
     (y, m)
 }
 
