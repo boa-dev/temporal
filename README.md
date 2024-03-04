@@ -12,9 +12,7 @@ as we intended to make an engine agnostic and general usage implementation of `T
 
 Relevent links regarding Temporal can be found below.
 
--[Temporal Documentation](https://tc39.es/proposal-temporal/docs/)
--[Temporal Specification](https://tc39.es/proposal-temporal/)
--[Temporal Repository](https://github.com/tc39/proposal-temporal)
+[Temporal Documentation](https://tc39.es/proposal-temporal/docs/) | [Temporal Specification](https://tc39.es/proposal-temporal/) | [Temporal Repository](https://github.com/tc39/proposal-temporal)
 
 ## Contributing
 
