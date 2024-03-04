@@ -256,8 +256,12 @@ impl IsoDate {
         let mut years = 0;
         // 6. If largestUnit is "year", then
         if largest_unit == TemporalUnit::Year {
+            // others.year - self.year is adopted from temporal-proposal/polyfill as it saves iterations.
             // a. Let candidateYears be sign.
-            let mut candidate_years: i32 = sign.into();
+            let mut candidate_years: i32 = other.year - self.year;
+            if candidate_years != 0 {
+                candidate_years -= i32::from(sign);
+            }
             // b. Repeat, while ISODateSurpasses(sign, y1 + candidateYears, m1, d1, y2, m2, d2) is false,
             while !iso_date_surpasses(
                 &IsoDate::new_unchecked(self.year + candidate_years, self.month, self.day),
@@ -278,12 +282,12 @@ impl IsoDate {
             // a. Let candidateMonths be sign.
             let mut candidate_months: i32 = sign.into();
             // b. Let intermediate be BalanceISOYearMonth(y1 + years, m1 + candidateMonths).
-            let (mut intermediate_year, mut intermediate_month) =
+            let mut intermediate =
                 balance_iso_year_month(self.year + years, i32::from(self.month) + candidate_months);
             // c. Repeat, while ISODateSurpasses(sign, intermediate.[[Year]], intermediate.[[Month]], d1, y2, m2, d2) is false,
             // Safety: balance_iso_year_month should always return a month value from 1..=12
             while !iso_date_surpasses(
-                &IsoDate::new_unchecked(intermediate_year, intermediate_month as u8, self.day),
+                &IsoDate::new_unchecked(intermediate.0, intermediate.1 as u8, self.day),
                 other,
                 sign,
             ) {
@@ -292,8 +296,8 @@ impl IsoDate {
                 // ii. Set candidateMonths to candidateMonths + sign.
                 candidate_months += i32::from(sign);
                 // iii. Set intermediate to BalanceISOYearMonth(intermediate.[[Year]], intermediate.[[Month]] + sign).
-                (intermediate_year, intermediate_month) =
-                    balance_iso_year_month(intermediate_year, intermediate_month + i32::from(sign));
+                intermediate =
+                    balance_iso_year_month(intermediate.0, intermediate.1 + i32::from(sign));
             }
         }
 
@@ -709,7 +713,7 @@ fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     let month_t = utils::epoch_time_for_month_given_year(resolved_month, resolved_year);
 
     // 4. Return EpochTimeToDayNumber(t) + date - 1.
-    utils::epoch_time_to_day_number((year_t.abs() + month_t).copysign(year_t)) + day - 1
+    utils::epoch_time_to_day_number((year_t + month_t).copysign(year_t)) + day - 1
 }
 
 #[inline]
@@ -731,9 +735,12 @@ fn iso_date_surpasses(this: &IsoDate, other: &IsoDate, sign: i8) -> bool {
 
 #[inline]
 fn balance_iso_year_month(year: i32, month: i32) -> (i32, i32) {
-    let y = year + (month - 1) / 12;
-    // NOTE(nekevss): MUST be `Rem``, not `rem_euclid`.
-    let m = (month - 1) % 12 + 1;
+    // 1. Assert: year and month are integers.
+    // 2. Set year to year + floor((month - 1) / 12).
+    let y = year + (month - 1).div_euclid(12);
+    // 3. Set month to ((month - 1) modulo 12) + 1.
+    let m = (month - 1).rem_euclid(12) + 1;
+    // 4. Return the Record { [[Year]]: year, [[Month]]: month  }.
     (y, m)
 }
 
