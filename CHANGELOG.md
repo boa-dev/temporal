@@ -2,22 +2,16 @@
 
 ## What's Changed
 
-#[0.0.2 (2024-03-04)](https://github.com/boa-dev/temporal/compare/v0.0.1...v0.0.2)
+# [0.0.2 (2024-03-04)](https://github.com/boa-dev/temporal/compare/v0.0.1...v0.0.2)
 
 ### Enhancements
-
-### Documentation
-
-### Other Changes
 
 * Fix loop in `diff_iso_date` by @nekevss in https://github.com/boa-dev/temporal/pull/31
 * Remove unnecessary iterations by @nekevss in https://github.com/boa-dev/temporal/pull/30
 
-## New Contributors
-
 **Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.1...v0.0.2
 
-#[0.0.1 (2024-02-25)](https://github.com/boa-dev/temporal/commits/v0.0.1)
+# [0.0.1 (2024-02-25)](https://github.com/boa-dev/temporal/commits/v0.0.1)
 
 ### Enhancements
 * Add blank and negated + small adjustments by @nekevss in https://github.com/boa-dev/temporal/pull/17
