@@ -568,21 +568,25 @@ impl Duration {
         };
         // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
 
-        // TODO: Validate below expect -> Potentially return error.
-        let relative_to_date = relative_to.date.expect("Date must exist at this point.");
+        // let relative_to_date = relative_to.date;
 
-        // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
-        let unbalanced =
-            self.date()
-                .unbalance_relative(largest_unit, Some(relative_to_date), context)?;
+        let (round_result, _) = if let Some(relative_to_date) = relative_to.date {
+            // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
+            let unbalanced =
+                self.date()
+                    .unbalance_relative(largest_unit, Some(relative_to_date), context)?;
 
-        // NOTE: Step 37 handled in round duration
-        // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
-        // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-        // 38. Let roundRecord be ? RoundDuration(unbalanceResult.[[Years]], unbalanceResult.[[Months]],
-        // unbalanceResult.[[Weeks]], unbalanceResult.[[Days]], norm, roundingIncrement, smallestUnit,
-        // roundingMode, plainRelativeTo, calendarRec, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
-        let (round_result, _) = Self::new_unchecked(unbalanced, *self.time()).round_internal(
+            // NOTE: Step 37 handled in round duration
+            // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
+            // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+            // 38. Let roundRecord be ? RoundDuration(unbalanceResult.[[Years]], unbalanceResult.[[Months]],
+            // unbalanceResult.[[Weeks]], unbalanceResult.[[Days]], norm, roundingIncrement, smallestUnit,
+            // roundingMode, plainRelativeTo, calendarRec, zonedRelativeTo, timeZoneRec, precalculatedPlainDateTime).
+            Self::new_unchecked(unbalanced, *self.time())
+        } else {
+            *self
+        }
+        .round_internal(
             increment,
             smallest_unit,
             mode,
@@ -618,12 +622,16 @@ impl Duration {
             round_result.0 .0.weeks,
             balance_result.0,
         );
-        let result = intermediate.balance_relative(
-            largest_unit,
-            smallest_unit,
-            Some(relative_to_date),
-            context,
-        )?;
+        let result = if let Some(relative_to_date) = relative_to.date {
+            intermediate.balance_relative(
+                largest_unit,
+                smallest_unit,
+                Some(relative_to_date),
+                context,
+            )?
+        } else {
+            intermediate
+        };
 
         // 43. Return ! CreateTemporalDuration(result.[[Years]], result.[[Months]],
         // result.[[Weeks]], result.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]],
