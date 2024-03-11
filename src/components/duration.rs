@@ -568,8 +568,6 @@ impl Duration {
         };
         // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
 
-        // let relative_to_date = relative_to.date;
-
         let (round_result, _) = if let Some(relative_to_date) = relative_to.date {
             // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
             let unbalanced =
