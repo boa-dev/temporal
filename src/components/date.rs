@@ -9,9 +9,9 @@ use crate::{
         DateTime, Duration,
     },
     iso::{IsoDate, IsoDateSlots},
-    options::{ArithmeticOverflow, TemporalUnit},
+    options::{ArithmeticOverflow, RelativeTo, TemporalRoundingMode, TemporalUnit},
     parser::parse_date_time,
-    TemporalError, TemporalResult,
+    utils, TemporalError, TemporalResult,
 };
 use std::str::FromStr;
 
@@ -45,10 +45,184 @@ impl<C: CalendarProtocol> Date<C> {
         duration: &Duration,
         context: &mut C::Context,
     ) -> TemporalResult<(Self, f64)> {
-        let new_date =
-            self.contextual_add_date(duration, ArithmeticOverflow::Constrain, context)?;
+        let new_date = self.add_date(duration, ArithmeticOverflow::Constrain, context)?;
         let days = f64::from(self.days_until(&new_date));
         Ok((new_date, days))
+    }
+    /// Returns the date after adding the given duration to date with a provided context.
+    ///
+    /// Temporal Equivalent: 3.5.13 `AddDate ( calendar, plainDate, duration [ , options [ , dateAdd ] ] )`
+    #[inline]
+    pub(crate) fn add_date(
+        &self,
+        duration: &Duration,
+        overflow: ArithmeticOverflow,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        // 2. If options is not present, set options to undefined.
+        // 3. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
+        if duration.date().years != 0.0
+            || duration.date().months != 0.0
+            || duration.date().weeks != 0.0
+        {
+            // a. If dateAdd is not present, then
+            // i. Set dateAdd to unused.
+            // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
+            // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
+            return self.calendar().date_add(self, duration, overflow, context);
+        }
+
+        // 4. Let overflow be ? ToTemporalOverflow(options).
+        // 5. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
+        // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm, "day").[[Days]].
+        let days = duration.days()
+            + TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?.0;
+
+        // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
+        let result = self
+            .iso
+            .add_iso_date(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
+
+        Ok(Self::new_unchecked(result, self.calendar().clone()))
+    }
+
+    /// Returns a duration representing the difference between the dates one and two with a provided context.
+    ///
+    /// Temporal Equivalent: 3.5.6 `DifferenceDate ( calendar, one, two, options )`
+    #[inline]
+    pub(crate) fn internal_diff_date(
+        &self,
+        other: &Self,
+        largest_unit: TemporalUnit,
+        context: &mut C::Context,
+    ) -> TemporalResult<Duration> {
+        if self.iso.year == other.iso.year
+            && self.iso.month == other.iso.month
+            && self.iso.day == other.iso.day
+        {
+            return Ok(Duration::default());
+        }
+
+        if largest_unit == TemporalUnit::Day {
+            let days = self.days_until(other);
+            return Ok(Duration::from_date_duration(&DateDuration::new(
+                0f64,
+                0f64,
+                0f64,
+                f64::from(days),
+            )?));
+        }
+
+        self.calendar()
+            .date_until(self, other, largest_unit, context)
+    }
+
+    /// Equivalent: DifferenceTemporalPlainDate
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn diff_date(
+        &self,
+        op: bool,
+        other: &Self,
+        rounding_mode: Option<TemporalRoundingMode>,
+        rounding_increment: Option<f64>,
+        largest_unit: Option<TemporalUnit>,
+        smallest_unit: Option<TemporalUnit>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Duration> {
+        // 1. If operation is SINCE, let sign be -1. Otherwise, let sign be 1.
+        // 2. Set other to ? ToTemporalDate(other).
+
+        // TODO(improvement): Implement `PartialEq` for `CalendarSlot<C>`
+        // 3. If ? CalendarEquals(temporalDate.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
+        if self.calendar().identifier(context)? != other.calendar().identifier(context)? {
+            return Err(TemporalError::range()
+                .with_message("Calendars are for difference operation are not the same."));
+        }
+
+        // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
+        let increment = utils::to_rounding_increment(rounding_increment)?;
+        let (sign, rounding_mode) = if op {
+            (
+                -1.0,
+                rounding_mode
+                    .unwrap_or(TemporalRoundingMode::Trunc)
+                    .negate(),
+            )
+        } else {
+            (1.0, rounding_mode.unwrap_or(TemporalRoundingMode::Trunc))
+        };
+        let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Day);
+        // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
+        let largest_unit = largest_unit.unwrap_or(smallest_unit.max(TemporalUnit::Day));
+
+        // 6. If temporalDate.[[ISOYear]] = other.[[ISOYear]], and temporalDate.[[ISOMonth]] = other.[[ISOMonth]],
+        // and temporalDate.[[ISODay]] = other.[[ISODay]], then
+        if self.iso == other.iso {
+            // a. Return ! CreateTemporalDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
+            return Ok(Duration::default());
+        }
+
+        // 7. Let calendarRec be ? CreateCalendarMethodsRecord(temporalDate.[[Calendar]], « DATE-ADD, DATE-UNTIL »).
+        // 8. Perform ! CreateDataPropertyOrThrow(resolvedOptions, "largestUnit", settings.[[LargestUnit]]).
+        // 9. Let result be ? DifferenceDate(calendarRec, temporalDate, other, resolvedOptions).
+        let result = self.internal_diff_date(other, largest_unit, context)?;
+
+        // 10. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1,
+        // let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
+        let is_noop = smallest_unit == TemporalUnit::Day && rounding_increment == Some(1.0);
+
+        // 12. Return ! CreateTemporalDuration(sign × result.[[Years]], sign × result.[[Months]], sign × result.[[Weeks]], sign × result.[[Days]], 0, 0, 0, 0, 0, 0).
+        if is_noop {
+            return Duration::new(
+                result.years() * sign,
+                result.months() * sign,
+                result.weeks() * sign,
+                result.days() * sign,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            );
+        }
+
+        // 11. If roundingGranularityIsNoop is false, then
+        // a. Let roundRecord be ? RoundDuration(result.[[Years]], result.[[Months]], result.[[Weeks]],
+        // result.[[Days]], ZeroTimeDuration(), settings.[[RoundingIncrement]], settings.[[SmallestUnit]],
+        // settings.[[RoundingMode]], temporalDate, calendarRec).
+        // TODO: Look into simplifying round_internal's parameters.
+        let round_record = result.round_internal(
+            increment,
+            smallest_unit,
+            rounding_mode,
+            &RelativeTo::<C, ()> {
+                zdt: None,
+                date: Some(self),
+            },
+            None,
+            context,
+        )?;
+        // b. Let roundResult be roundRecord.[[NormalizedDuration]].
+        let round_result = round_record.0 .0 .0;
+        // c. Set result to ? BalanceDateDurationRelative(roundResult.[[Years]], roundResult.[[Months]], roundResult.[[Weeks]],
+        // roundResult.[[Days]], settings.[[LargestUnit]], settings.[[SmallestUnit]], temporalDate, calendarRec).
+        let result =
+            round_result.balance_relative(largest_unit, smallest_unit, Some(self), context)?;
+
+        Duration::new(
+            result.years * sign,
+            result.months * sign,
+            result.weeks * sign,
+            result.days * sign,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )
     }
 }
 
@@ -119,6 +293,72 @@ impl<C: CalendarProtocol> Date<C> {
     #[must_use]
     pub fn days_until(&self, other: &Self) -> i32 {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
+    }
+
+    pub fn contextual_add(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        self.add_date(
+            duration,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            context,
+        )
+    }
+
+    pub fn contextual_subtract(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        self.add_date(
+            &duration.negated(),
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            context,
+        )
+    }
+
+    pub fn contextual_until(
+        &self,
+        other: &Self,
+        rounding_mode: Option<TemporalRoundingMode>,
+        rounding_increment: Option<f64>,
+        smallest_unit: Option<TemporalUnit>,
+        largest_unit: Option<TemporalUnit>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Duration> {
+        self.diff_date(
+            false,
+            other,
+            rounding_mode,
+            rounding_increment,
+            smallest_unit,
+            largest_unit,
+            context,
+        )
+    }
+
+    pub fn contextual_since(
+        &self,
+        other: &Self,
+        rounding_mode: Option<TemporalRoundingMode>,
+        rounding_increment: Option<f64>,
+        smallest_unit: Option<TemporalUnit>,
+        largest_unit: Option<TemporalUnit>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Duration> {
+        self.diff_date(
+            true,
+            other,
+            rounding_mode,
+            rounding_increment,
+            smallest_unit,
+            largest_unit,
+            context,
+        )
     }
 }
 
@@ -201,6 +441,62 @@ impl Date<()> {
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
         self.calendar
             .in_leap_year(&CalendarDateLike::Date(self.clone()), &mut ())
+    }
+
+    /// Returns the result of adding a `Duration` to the current `Date`.
+    pub fn add(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        self.contextual_add(duration, overflow, &mut ())
+    }
+
+    /// Returns the result of subtracting a `Duration` from the current `Date`.
+    pub fn subtract(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        self.contextual_subtract(duration, overflow, &mut ())
+    }
+
+    /// Returns a `Duration` representing the time until a provided `Date`.
+    pub fn until(
+        &self,
+        other: &Self,
+        rounding_mode: Option<TemporalRoundingMode>,
+        rounding_increment: Option<f64>,
+        smallest_unit: Option<TemporalUnit>,
+        largest_unit: Option<TemporalUnit>,
+    ) -> TemporalResult<Duration> {
+        self.contextual_until(
+            other,
+            rounding_mode,
+            rounding_increment,
+            smallest_unit,
+            largest_unit,
+            &mut (),
+        )
+    }
+
+    /// Returns a `Duration` representing the time since a provided `Date`.
+    pub fn since(
+        &self,
+        other: &Self,
+        rounding_mode: Option<TemporalRoundingMode>,
+        rounding_increment: Option<f64>,
+        smallest_unit: Option<TemporalUnit>,
+        largest_unit: Option<TemporalUnit>,
+    ) -> TemporalResult<Duration> {
+        self.contextual_since(
+            other,
+            rounding_mode,
+            rounding_increment,
+            smallest_unit,
+            largest_unit,
+            &mut (),
+        )
     }
 }
 
@@ -326,74 +622,7 @@ impl<C: CalendarProtocol> IsoDateSlots for Date<C> {
 
 // ==== Context based API ====
 
-impl<C: CalendarProtocol> Date<C> {
-    /// Returns the date after adding the given duration to date with a provided context.
-    ///
-    /// Temporal Equivalent: 3.5.13 `AddDate ( calendar, plainDate, duration [ , options [ , dateAdd ] ] )`
-    #[inline]
-    pub fn contextual_add_date(
-        &self,
-        duration: &Duration,
-        overflow: ArithmeticOverflow,
-        context: &mut C::Context,
-    ) -> TemporalResult<Self> {
-        // 1. If options is not present, set options to undefined.
-        // 2. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
-        if duration.date().years != 0.0
-            || duration.date().months != 0.0
-            || duration.date().weeks != 0.0
-        {
-            // a. If dateAdd is not present, then
-            // i. Set dateAdd to unused.
-            // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
-            // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
-            return self.calendar().date_add(self, duration, overflow, context);
-        }
-
-        // 3. Let overflow be ? ToTemporalOverflow(options).
-        // 4. Let days be ? BalanceTimeDuration(duration.[[Days]], duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]], "day").[[Days]].
-        let (days, _) =
-            TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?;
-
-        // 5. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
-        let result = self
-            .iso
-            .add_iso_date(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
-
-        Ok(Self::new_unchecked(result, self.calendar().clone()))
-    }
-
-    /// Returns a duration representing the difference between the dates one and two with a provided context.
-    ///
-    /// Temporal Equivalent: 3.5.6 `DifferenceDate ( calendar, one, two, options )`
-    #[inline]
-    pub fn contextual_difference_date(
-        &self,
-        other: &Self,
-        largest_unit: TemporalUnit,
-        context: &mut C::Context,
-    ) -> TemporalResult<Duration> {
-        if self.iso.year == other.iso.year
-            && self.iso.month == other.iso.month
-            && self.iso.day == other.iso.day
-        {
-            return Ok(Duration::default());
-        }
-
-        if largest_unit == TemporalUnit::Day {
-            let days = self.days_until(other);
-            return Ok(Duration::from_date_duration(&DateDuration::new(
-                0f64,
-                0f64,
-                0f64,
-                f64::from(days),
-            )?));
-        }
-
-        self.calendar()
-            .date_until(self, other, largest_unit, context)
-    }
-}
+impl<C: CalendarProtocol> Date<C> {}
 
 // ==== Trait impls ====
 
@@ -416,5 +645,120 @@ impl<C: CalendarProtocol> FromStr for Date<C> {
             date,
             CalendarSlot::from_str(&calendar)?,
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn simple_date_add() {
+        let base = Date::<()>::from_str("1976-11-18").unwrap();
+
+        // Test 1
+        let result = base
+            .add(&Duration::from_str("P43Y").unwrap(), None)
+            .unwrap();
+        assert_eq!(
+            result.iso,
+            IsoDate {
+                year: 2019,
+                month: 11,
+                day: 18,
+            }
+        );
+
+        // Test 2
+        let result = base.add(&Duration::from_str("P3M").unwrap(), None).unwrap();
+        assert_eq!(
+            result.iso,
+            IsoDate {
+                year: 1977,
+                month: 2,
+                day: 18,
+            }
+        );
+
+        // Test 3
+        let result = base
+            .add(&Duration::from_str("P20D").unwrap(), None)
+            .unwrap();
+        assert_eq!(
+            result.iso,
+            IsoDate {
+                year: 1976,
+                month: 12,
+                day: 8,
+            }
+        )
+    }
+
+    #[test]
+    fn simple_date_subtract() {
+        let base = Date::<()>::from_str("2019-11-18").unwrap();
+
+        // Test 1
+        let result = base
+            .subtract(&Duration::from_str("P43Y").unwrap(), None)
+            .unwrap();
+        assert_eq!(
+            result.iso,
+            IsoDate {
+                year: 1976,
+                month: 11,
+                day: 18,
+            }
+        );
+
+        // Test 2
+        let result = base
+            .subtract(&Duration::from_str("P11M").unwrap(), None)
+            .unwrap();
+        assert_eq!(
+            result.iso,
+            IsoDate {
+                year: 2018,
+                month: 12,
+                day: 18,
+            }
+        );
+
+        // Test 3
+        let result = base
+            .subtract(&Duration::from_str("P20D").unwrap(), None)
+            .unwrap();
+        assert_eq!(
+            result.iso,
+            IsoDate {
+                year: 2019,
+                month: 10,
+                day: 29,
+            }
+        )
+    }
+
+    #[test]
+    fn simple_date_until() {
+        let earlier = Date::<()>::from_str("1969-07-24").unwrap();
+        let later = Date::<()>::from_str("1969-10-05").unwrap();
+        let result = earlier.until(&later, None, None, None, None).unwrap();
+        assert_eq!(result.days(), 73.0,);
+
+        let later = Date::<()>::from_str("1996-03-03").unwrap();
+        let result = earlier.until(&later, None, None, None, None).unwrap();
+        assert_eq!(result.days(), 9719.0,);
+    }
+
+    #[test]
+    fn simple_date_since() {
+        let earlier = Date::<()>::from_str("1969-07-24").unwrap();
+        let later = Date::<()>::from_str("1969-10-05").unwrap();
+        let result = later.since(&earlier, None, None, None, None).unwrap();
+        assert_eq!(result.days(), 73.0,);
+
+        let later = Date::<()>::from_str("1996-03-03").unwrap();
+        let result = later.since(&earlier, None, None, None, None).unwrap();
+        assert_eq!(result.days(), 9719.0,);
     }
 }
