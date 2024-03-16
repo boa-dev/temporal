@@ -500,7 +500,7 @@ impl DateDuration {
                 // i. Let dateAdd be unused.
 
                 // e. Let yearsLater be ? AddDate(calendar, plainRelativeTo, yearsDuration, undefined, dateAdd).
-                let years_later = plain_relative_to.contextual_add_date(
+                let years_later = plain_relative_to.add_date(
                     &years_duration,
                     ArithmeticOverflow::Constrain,
                     context,
@@ -513,7 +513,7 @@ impl DateDuration {
                 );
 
                 // g. Let yearsMonthsWeeksLater be ? AddDate(calendar, plainRelativeTo, yearsMonthsWeeks, undefined, dateAdd).
-                let years_months_weeks_later = plain_relative_to.contextual_add_date(
+                let years_months_weeks_later = plain_relative_to.add_date(
                     &years_months_weeks,
                     ArithmeticOverflow::Constrain,
                     context,
@@ -540,7 +540,7 @@ impl DateDuration {
                 // m. Let untilOptions be OrdinaryObjectCreate(null).
                 // n. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", "year").
                 // o. Let timePassed be ? DifferenceDate(calendar, plainRelativeTo, wholeDaysLater, untilOptions).
-                let time_passed = plain_relative_to.contextual_difference_date(
+                let time_passed = plain_relative_to.internal_diff_date(
                     &whole_days_later,
                     TemporalUnit::Year,
                     context,
@@ -609,7 +609,7 @@ impl DateDuration {
                 // i. Let dateAdd be unused.
 
                 // e. Let yearsMonthsLater be ? AddDate(calendar, plainRelativeTo, yearsMonths, undefined, dateAdd).
-                let years_months_later = plain_relative_to.contextual_add_date(
+                let years_months_later = plain_relative_to.add_date(
                     &years_months,
                     ArithmeticOverflow::Constrain,
                     context,
@@ -621,7 +621,7 @@ impl DateDuration {
                 );
 
                 // g. Let yearsMonthsWeeksLater be ? AddDate(calendar, plainRelativeTo, yearsMonthsWeeks, undefined, dateAdd).
-                let years_months_weeks_later = plain_relative_to.contextual_add_date(
+                let years_months_weeks_later = plain_relative_to.add_date(
                     &years_months_weeks,
                     ArithmeticOverflow::Constrain,
                     context,
