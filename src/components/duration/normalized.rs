@@ -10,7 +10,7 @@ const MAX_TIME_DURATION: f64 = 2e53 * 10e9 - 1.0;
 
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
-pub struct NormalizedTimeDuration(pub(super) f64);
+pub struct NormalizedTimeDuration(pub(crate) f64);
 
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
