@@ -523,9 +523,7 @@ impl Iterator for Keys {
     type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some(field) = self.iter.next() else {
-            return None;
-        };
+        let field = self.iter.next()?;
 
         match field {
             FieldMap::YEAR => Some("year".to_owned()),
@@ -563,9 +561,8 @@ impl Iterator for Values<'_> {
     type Item = FieldValue;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let Some(field) = self.iter.next() else {
-            return None;
-        };
+        let field = self.iter.next()?;
+
         match field {
             FieldMap::YEAR => Some(
                 self.fields
