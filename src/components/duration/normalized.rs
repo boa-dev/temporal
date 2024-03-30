@@ -94,7 +94,7 @@ impl Add<Self> for NormalizedTimeDuration {
 
 /// A normalized `DurationRecord` that contains a `DateDuration` and `NormalizedTimeDuration`.
 #[derive(Debug, Clone, Copy)]
-pub struct NormalizedDurationRecord(pub(super) (DateDuration, NormalizedTimeDuration));
+pub struct NormalizedDurationRecord(pub(crate) (DateDuration, NormalizedTimeDuration));
 
 impl NormalizedDurationRecord {
     /// Creates a new `NormalizedDurationRecord`.
