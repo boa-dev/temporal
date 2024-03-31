@@ -13,7 +13,7 @@
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
 use crate::{
-    components::duration::DateDuration,
+    components::duration::{DateDuration, TimeDuration},
     error::TemporalError,
     options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
     utils, TemporalResult, NS_PER_DAY,
@@ -493,6 +493,18 @@ impl IsoTime {
         );
 
         (days as i32, time)
+    }
+
+    /// Difference this `IsoTime` against another and returning a `TimeDuration`.
+    pub(crate) fn diff(&self, other: &Self) -> TimeDuration {
+        let h = f64::from(other.hour) - f64::from(self.hour);
+        let m = f64::from(other.minute) - f64::from(self.minute);
+        let s = f64::from(other.second) - f64::from(self.second);
+        let ms = f64::from(other.millisecond) - f64::from(self.millisecond);
+        let mis = f64::from(other.microsecond) - f64::from(self.microsecond);
+        let ns = f64::from(other.nanosecond) - f64::from(self.nanosecond);
+
+        TimeDuration::new_unchecked(h, m, s, ms, mis, ns)
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the
