@@ -568,13 +568,13 @@ impl Duration {
         };
         // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
 
-        // TODO: Validate below expect -> Potentially return error.
-        let relative_to_date = relative_to.date.expect("Date must exist at this point.");
+        // TODO: relativeTo will need to be removed soon.
+        let relative_to_date = relative_to.date;
 
         // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
-        let unbalanced =
-            self.date()
-                .unbalance_relative(largest_unit, Some(relative_to_date), context)?;
+        let unbalanced = self
+            .date()
+            .unbalance_relative(largest_unit, relative_to_date, context)?;
 
         // NOTE: Step 37 handled in round duration
         // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
@@ -621,7 +621,7 @@ impl Duration {
         let result = intermediate.balance_relative(
             largest_unit,
             smallest_unit,
-            Some(relative_to_date),
+            relative_to_date,
             context,
         )?;
 
