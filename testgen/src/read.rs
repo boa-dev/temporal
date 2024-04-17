@@ -57,18 +57,6 @@ pub(super) enum ErrorType {
     TypeError,
 }
 
-impl ErrorType {
-    pub(super) const fn as_str(self) -> &'static str {
-        match self {
-            Self::Test262Error => "Test262Error",
-            Self::SyntaxError => "SyntaxError",
-            Self::ReferenceError => "ReferenceError",
-            Self::RangeError => "RangeError",
-            Self::TypeError => "TypeError",
-        }
-    }
-}
-
 /// Individual test flag.
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -118,12 +106,10 @@ pub(super) fn read_harness(test262_path: &Path) -> Result<Harness> {
     }
     let assert = read_harness_file(test262_path.join("harness/assert.js"))?;
     let sta = read_harness_file(test262_path.join("harness/sta.js"))?;
-    let doneprint_handle = read_harness_file(test262_path.join("harness/doneprintHandle.js"))?;
 
     Ok(Harness {
         assert,
         sta,
-        doneprint_handle,
         includes,
     })
 }

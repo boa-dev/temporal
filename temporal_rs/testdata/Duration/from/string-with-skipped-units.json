@@ -1,0 +1,80 @@
+{
+  "assertions": [
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P3Y4W"
+          }
+        },
+        "years": 3,
+        "months": 0,
+        "weeks": 4,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P3Y4D"
+          }
+        },
+        "years": 3,
+        "months": 0,
+        "weeks": 0,
+        "days": 4,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P3M4D"
+          }
+        },
+        "years": 0,
+        "months": 3,
+        "weeks": 0,
+        "days": 4,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "PT3H4.123456789S"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": 3,
+        "minutes": 0,
+        "seconds": 4,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 456
+      }
+    }
+  ]
+}

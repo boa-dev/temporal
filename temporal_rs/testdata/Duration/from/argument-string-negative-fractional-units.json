@@ -1,0 +1,42 @@
+{
+  "assertions": [
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "-PT24.567890123H"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": -24,
+        "minutes": -34,
+        "seconds": -4,
+        "milliseconds": -404,
+        "microseconds": -404,
+        "nanoseconds": -442
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "-PT1440.567890123M"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": -1440,
+        "seconds": -34,
+        "milliseconds": -73,
+        "microseconds": -73,
+        "nanoseconds": -407
+      }
+    }
+  ]
+}

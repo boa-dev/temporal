@@ -1,0 +1,80 @@
+{
+  "assertions": [
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "PT1.03125H"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 52,
+        "milliseconds": 500,
+        "microseconds": 500,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "-PT1.03125H"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": -1,
+        "minutes": -1,
+        "seconds": -52,
+        "milliseconds": -500,
+        "microseconds": -500,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "PT46H66M71.50040904S"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": 46,
+        "minutes": 66,
+        "seconds": 71,
+        "milliseconds": 500,
+        "microseconds": 500,
+        "nanoseconds": 409
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "-PT46H66M71.50040904S"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": -46,
+        "minutes": -66,
+        "seconds": -71,
+        "milliseconds": -500,
+        "microseconds": -500,
+        "nanoseconds": -409
+      }
+    }
+  ]
+}

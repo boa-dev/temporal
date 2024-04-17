@@ -246,16 +246,7 @@ static FEATURE_EDITION: phf::Map<&'static str, SpecEdition> = phf::phf_map! {
 
 /// List of ECMAScript editions that can be tested in the `test262` repository.
 #[derive(
-    Debug,
-    Clone,
-    Copy,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Default,
-    Serialize_repr,
-    Deserialize_repr,
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize_repr, Deserialize_repr,
 )]
 #[repr(u8)]
 pub(crate) enum SpecEdition {

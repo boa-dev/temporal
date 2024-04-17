@@ -16,7 +16,7 @@ mod read;
 use self::read::{read_harness, read_suite, MetaData, Negative, TestFlag};
 use bitflags::bitflags;
 use color_eyre::{
-    eyre::{bail, eyre, WrapErr},
+    eyre::{bail, eyre, Report, WrapErr},
     Result,
 };
 use edition::SpecEdition;
@@ -31,19 +31,20 @@ use std::{path::Path, process::Command};
 
 const DEFAULT_TEST262_DIRECTORY: &str = "test262";
 
+const TESTDATA_DIRECTORY: &str = "temporal_rs/testdata";
+
 /// Program entry point.
 fn main() -> Result<()> {
     const TEST262_COMMIT: &str = "6f7ae1f311a7b01ef2358de7f4f6fd42c3ae3839";
     color_eyre::install()?;
-    simple_logger::init_with_level(log::Level::Info)?;
+    env_logger::init();
 
     let threading = true;
-    let output: Option<&Path> = None;
 
     clone_test262(Some(TEST262_COMMIT))?;
     let test262_path = Path::new(DEFAULT_TEST262_DIRECTORY);
 
-    run_temporal_suite(threading, test262_path, output.as_deref())
+    run_temporal_suite(threading, test262_path)
 }
 
 /// Returns the commit hash and commit message of the provided branch name.
@@ -174,17 +175,7 @@ fn clone_test262(commit: Option<&str>) -> Result<()> {
 }
 
 /// Runs the full test suite.
-fn run_temporal_suite(parallel: bool, test262_path: &Path, output: Option<&Path>) -> Result<()> {
-    if let Some(path) = output {
-        if path.exists() {
-            if !path.is_dir() {
-                bail!("the output path must be a directory.");
-            }
-        } else {
-            std::fs::create_dir_all(path).wrap_err("could not create the output directory")?;
-        }
-    }
-
+fn run_temporal_suite(parallel: bool, test262_path: &Path) -> Result<()> {
     info!("Loading the test suite...");
     let harness = read_harness(test262_path).wrap_err("could not read the harness file")?;
 
@@ -196,7 +187,17 @@ fn run_temporal_suite(parallel: bool, test262_path: &Path, output: Option<&Path>
             suite_path.display()
         )
     })?;
-    info!("Test suite loaded, starting tests...");
+    info!("Test suite loaded, purging old tests...");
+    if let Err(e) = std::fs::remove_dir_all(TESTDATA_DIRECTORY) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            return Err(Report::new(e)
+                .wrap_err(format!("failed to delete directory `{TESTDATA_DIRECTORY}`")));
+        }
+        info!("Creating new directory `{TESTDATA_DIRECTORY}`");
+    }
+    std::fs::create_dir_all(TESTDATA_DIRECTORY)
+        .wrap_err_with(|| format!("failed to create directory `{TESTDATA_DIRECTORY}`"))?;
+
     suite.run(&harness, parallel, SpecEdition::ESNext)?;
 
     Ok(())
@@ -207,7 +208,6 @@ fn run_temporal_suite(parallel: bool, test262_path: &Path, output: Option<&Path>
 struct Harness {
     assert: HarnessFile,
     sta: HarnessFile,
-    doneprint_handle: HarnessFile,
     includes: FxHashMap<Box<str>, HarnessFile>,
 }
 
