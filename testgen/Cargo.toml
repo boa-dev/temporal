@@ -1,0 +1,21 @@
+[package]
+name = "testgen"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+boa_engine = "0.18.0"
+boa_gc = "0.18.0"
+color-eyre = "0.6.2"
+rustc-hash = "1.1.0"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_repr = "0.1.18"
+serde_yaml = "0.9.32"
+serde_json = "1.0.116"
+bitflags = "2.4.2"
+regex = "1.10.3"
+phf = "0.11.2"
+rayon = "1.9.0"
+log = "0.4.21"
+env_logger = "0.11.3"

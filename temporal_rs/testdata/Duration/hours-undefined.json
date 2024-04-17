@@ -1,0 +1,64 @@
+{
+  "assertions": [
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "Full": {
+              "years": 1,
+              "months": 1,
+              "weeks": 1,
+              "days": 1,
+              "hours": 0,
+              "minutes": 0,
+              "seconds": 0,
+              "milliseconds": 0,
+              "microseconds": 0,
+              "nanoseconds": 0
+            }
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "Full": {
+              "years": 1,
+              "months": 1,
+              "weeks": 1,
+              "days": 1,
+              "hours": 0,
+              "minutes": 0,
+              "seconds": 0,
+              "milliseconds": 0,
+              "microseconds": 0,
+              "nanoseconds": 0
+            }
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    }
+  ]
+}

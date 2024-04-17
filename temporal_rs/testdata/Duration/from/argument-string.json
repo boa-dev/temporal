@@ -1,0 +1,365 @@
+{
+  "assertions": [
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1D"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "p1y1m1dt1h1m1s"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 0,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.1S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 100,
+        "microseconds": 100,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.12S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 120,
+        "microseconds": 120,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.123S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.1234S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 400
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.12345S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 450
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.123456S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 456
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.1234567S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 456
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.12345678S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 456
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1.123456789S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 123,
+        "microseconds": 123,
+        "nanoseconds": 456
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1Y1M1W1DT1H1M1,12S"
+          }
+        },
+        "years": 1,
+        "months": 1,
+        "weeks": 1,
+        "days": 1,
+        "hours": 1,
+        "minutes": 1,
+        "seconds": 1,
+        "milliseconds": 120,
+        "microseconds": 120,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1DT0.5M"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 30,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "P1DT0,5H"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 1,
+        "hours": 0,
+        "minutes": 30,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "+P1D"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "-P1D"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": -1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "−P1D"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": -1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "-P1Y1M1W1DT1H1M1.123456789S"
+          }
+        },
+        "years": -1,
+        "months": -1,
+        "weeks": -1,
+        "days": -1,
+        "hours": -1,
+        "minutes": -1,
+        "seconds": -1,
+        "milliseconds": -123,
+        "microseconds": -123,
+        "nanoseconds": -456
+      }
+    },
+    {
+      "DurationFullValue": {
+        "target": {
+          "Plain": {
+            "String": "PT100M"
+          }
+        },
+        "years": 0,
+        "months": 0,
+        "weeks": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 100,
+        "seconds": 0,
+        "milliseconds": 0,
+        "microseconds": 0,
+        "nanoseconds": 0
+      }
+    }
+  ]
+}

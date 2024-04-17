@@ -1,0 +1,26 @@
+[package]
+name = "temporal_rs"
+keywords = ["date", "time", "calendar", "timezone", "duration"]
+categories = ["date-and-time", "internationalization"]
+readme = "./README.md"
+description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
+version = "0.0.2"
+edition = "2021"
+authors = ["boa-dev"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/boa-dev/temporal"
+rust-version = "1.74"
+exclude = [
+    "docs/*",
+    ".github/*",
+    ".gitignore",
+    "LICENSE*",
+]
+
+[dependencies]
+tinystr = "0.7.4"
+icu_calendar = { version = "~1.4.0", default-features = true }
+rustc-hash = { version = "1.1.0", features = ["std"] }
+bitflags = "2.5.0"
+num-bigint = { version = "0.4.4", features = ["serde"] }
+num-traits = "0.2.18"
