@@ -1,4 +1,4 @@
-use boa_engine::prelude::*;
+use boa_engine::prelude::{JsValue, *};
 use boa_engine::{
     class::{Class, ClassBuilder},
     js_string, Context, JsArgs, JsResult,
@@ -59,50 +59,20 @@ impl Class for Duration {
     }
 
     fn data_constructor(
-        _new_target: &boa_engine::prelude::JsValue,
-        args: &[boa_engine::prelude::JsValue],
-        context: &mut Context,
+        _new_target: &JsValue,
+        args: &[JsValue],
+        _context: &mut Context,
     ) -> boa_engine::JsResult<Self> {
-        let years: i32 = args
-            .get_or_undefined(0)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let months = args
-            .get_or_undefined(1)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let weeks = args
-            .get_or_undefined(2)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let days = args
-            .get_or_undefined(3)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let hours = args
-            .get_or_undefined(4)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let minutes = args
-            .get_or_undefined(5)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let seconds = args
-            .get_or_undefined(6)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let milliseconds = args
-            .get_or_undefined(7)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let microseconds = args
-            .get_or_undefined(8)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
-        let nanoseconds = args
-            .get_or_undefined(9)
-            .try_js_into(context)
-            .map_err(|_| TemporalUnsupported)?;
+        let years = to_integer_if_integral(args.get_or_undefined(0))?;
+        let months = to_integer_if_integral(args.get_or_undefined(1))?;
+        let weeks = to_integer_if_integral(args.get_or_undefined(2))?;
+        let days = to_integer_if_integral(args.get_or_undefined(3))?;
+        let hours = to_integer_if_integral(args.get_or_undefined(4))?;
+        let minutes = to_integer_if_integral(args.get_or_undefined(5))?;
+        let seconds = to_integer_if_integral(args.get_or_undefined(6))?;
+        let milliseconds = to_integer_if_integral(args.get_or_undefined(7))?;
+        let microseconds = to_integer_if_integral(args.get_or_undefined(8))?;
+        let nanoseconds = to_integer_if_integral(args.get_or_undefined(9))?;
 
         Ok(Self::Plain(DurationInitializer::Full {
             years,
@@ -174,5 +144,18 @@ impl Duration {
             },
         )
         .into())
+    }
+}
+
+
+fn to_integer_if_integral(value: &JsValue) -> JsResult<i32> {
+    if value.is_undefined() {
+        Ok(0)
+    } else if let JsValue::Integer(i) = value {
+        Ok(*i)
+    } else {
+        Err(JsNativeError::error()
+            .with_message("TemporalTester:unsupported")
+            .into())
     }
 }
