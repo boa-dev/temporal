@@ -102,6 +102,8 @@ pub enum CalendarDateLike<C: CalendarProtocol> {
     DateTime(DateTime<C>),
     /// Represents a `Date<C>`.
     Date(Date<C>),
+    /// Represents a `PlainYearMonth<C>`.
+    YearMonth(C::YearMonth),
 }
 
 impl<C: CalendarProtocol> CalendarDateLike<C> {
@@ -116,6 +118,7 @@ impl<C: CalendarProtocol> CalendarDateLike<C> {
             CalendarDateLike::CustomDateTime(dt) => dt.iso_date(),
             CalendarDateLike::DateTime(dt) => dt.iso_date(),
             CalendarDateLike::Date(d) => d.iso_date(),
+            CalendarDateLike::YearMonth(ym) => ym.iso_date(),
         }
     }
 }

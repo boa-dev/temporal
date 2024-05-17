@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+use tinystr::TinyAsciiStr;
+
 use crate::{
     components::calendar::CalendarSlot,
     iso::{IsoDate, IsoDateSlots},
@@ -9,7 +11,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::{CalendarProtocol, GetCalendarSlot};
+use super::calendar::{CalendarDateLike, CalendarProtocol, GetCalendarSlot};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -53,6 +55,15 @@ impl<C: CalendarProtocol> YearMonth<C> {
     #[must_use]
     pub fn month(&self) -> u8 {
         self.iso.month
+    }
+
+    /// Returns the calendar month code value with provided context.
+    pub fn contextual_month_code(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<TinyAsciiStr<4>> {
+        this.get_calendar()
+            .month_code(&CalendarDateLike::YearMonth(this.clone()), context)
     }
 
     /// Returns the Calendar value.
