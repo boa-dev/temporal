@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+use tinystr::TinyAsciiStr;
+
 use crate::{
     components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
@@ -53,6 +55,15 @@ impl YearMonth {
     #[must_use]
     pub fn month(&self) -> u8 {
         self.iso.month
+    }
+
+    /// Returns the calendar month code value with provided context.
+    pub fn contextual_month_code(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<TinyAsciiStr<4>> {
+        this.get_calendar()
+            .month_code(&CalendarDateLike::YearMonth(this.clone()), context)
     }
 
     /// Returns the Calendar value.
