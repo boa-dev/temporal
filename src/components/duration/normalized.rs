@@ -56,12 +56,12 @@ impl NormalizedTimeDuration {
     }
 
     /// Return the seconds value of the `NormalizedTimeDuration`.
-    pub(super) fn seconds(&self) -> i64 {
+    pub(crate) fn seconds(&self) -> i64 {
         (self.0 / 10e9).trunc() as i64
     }
 
     /// Returns the subsecond components of the `NormalizedTimeDuration`.
-    pub(super) fn subseconds(&self) -> i32 {
+    pub(crate) fn subseconds(&self) -> i32 {
         // SAFETY: Remainder is 10e9 which is in range of i32
         (self.0 % 10e9f64) as i32
     }

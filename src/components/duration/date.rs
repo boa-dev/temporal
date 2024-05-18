@@ -529,7 +529,7 @@ impl DateDuration {
                 fractional_days += f64::from(months_weeks_in_days);
 
                 // k. Let isoResult be ! AddISODate(plainRelativeTo.[[ISOYear]]. plainRelativeTo.[[ISOMonth]], plainRelativeTo.[[ISODay]], 0, 0, 0, truncate(fractionalDays), "constrain").
-                let iso_result = plain_relative_to.iso.add_iso_date(
+                let iso_result = plain_relative_to.iso.add_date_duration(
                     &DateDuration::new_unchecked(0.0, 0.0, 0.0, fractional_days.trunc()),
                     ArithmeticOverflow::Constrain,
                 )?;

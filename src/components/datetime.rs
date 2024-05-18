@@ -97,63 +97,63 @@ impl<C: CalendarProtocol> DateTime<C> {
     #[inline]
     #[must_use]
     pub const fn iso_year(&self) -> i32 {
-        self.iso.date().year
+        self.iso.date.year
     }
 
     /// Returns this `Date`'s ISO month value.
     #[inline]
     #[must_use]
     pub const fn iso_month(&self) -> u8 {
-        self.iso.date().month
+        self.iso.date.month
     }
 
     /// Returns this `Date`'s ISO day value.
     #[inline]
     #[must_use]
     pub const fn iso_day(&self) -> u8 {
-        self.iso.date().day
+        self.iso.date.day
     }
 
     /// Returns the hour value
     #[inline]
     #[must_use]
     pub fn hour(&self) -> u8 {
-        self.iso.time().hour
+        self.iso.time.hour
     }
 
     /// Returns the minute value
     #[inline]
     #[must_use]
     pub fn minute(&self) -> u8 {
-        self.iso.time().minute
+        self.iso.time.minute
     }
 
     /// Returns the second value
     #[inline]
     #[must_use]
     pub fn second(&self) -> u8 {
-        self.iso.time().second
+        self.iso.time.second
     }
 
     /// Returns the `millisecond` value
     #[inline]
     #[must_use]
     pub fn millisecond(&self) -> u16 {
-        self.iso.time().millisecond
+        self.iso.time.millisecond
     }
 
     /// Returns the `microsecond` value
     #[inline]
     #[must_use]
     pub fn microsecond(&self) -> u16 {
-        self.iso.time().microsecond
+        self.iso.time.microsecond
     }
 
     /// Returns the `nanosecond` value
     #[inline]
     #[must_use]
     pub fn nanosecond(&self) -> u16 {
-        self.iso.time().nanosecond
+        self.iso.time.nanosecond
     }
 
     /// Returns the Calendar value.
@@ -367,7 +367,7 @@ impl<C: CalendarProtocol> GetCalendarSlot<C> for DateTime<C> {
 
 impl<C: CalendarProtocol> IsoDateSlots for DateTime<C> {
     fn iso_date(&self) -> IsoDate {
-        *self.iso.date()
+        self.iso.date
     }
 }
 

@@ -81,7 +81,7 @@ impl<C: CalendarProtocol> Date<C> {
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
         let result = self
             .iso
-            .add_iso_date(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
+            .add_date_duration(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
 
         Ok(Self::new_unchecked(result, self.calendar().clone()))
     }
