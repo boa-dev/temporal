@@ -8,13 +8,14 @@ use super::{DateDuration, TimeDuration};
 
 const MAX_TIME_DURATION: f64 = 2e53 * 10e9 - 1.0;
 
+// TODO: This should be moved to i128
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
 pub struct NormalizedTimeDuration(pub(crate) f64);
 
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
-    pub(super) fn from_time_duration(time: &TimeDuration) -> Self {
+    pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
         let minutes = time.minutes + time.hours * 60.0;
         let seconds = time.seconds + minutes * 60.0;
         let milliseconds = time.milliseconds + seconds * 1000.0;
@@ -57,7 +58,7 @@ impl NormalizedTimeDuration {
 
     /// Return the seconds value of the `NormalizedTimeDuration`.
     pub(crate) fn seconds(&self) -> i64 {
-        (self.0 / 10e9).trunc() as i64
+        (self.0.div_euclid(1e9)).trunc() as i64
     }
 
     /// Returns the subsecond components of the `NormalizedTimeDuration`.

@@ -5,7 +5,7 @@ use core::fmt;
 use icu_calendar::CalendarError;
 
 /// `TemporalError`'s error type.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub enum ErrorKind {
     /// Error.
     #[default]
@@ -31,7 +31,7 @@ impl fmt::Display for ErrorKind {
 }
 
 /// The error type for `boa_temporal`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TemporalError {
     kind: ErrorKind,
     msg: Box<str>,

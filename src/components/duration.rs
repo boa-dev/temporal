@@ -47,6 +47,16 @@ pub struct Duration {
 //   - Methods (private/public/feature)
 //
 
+#[cfg(test)]
+impl Duration {
+    pub(crate) fn hour(value: f64) -> Self {
+        Self::new_unchecked(
+            DateDuration::default(),
+            TimeDuration::new_unchecked(value, 0.0, 0.0, 0.0, 0.0, 0.0),
+        )
+    }
+}
+
 // ==== Private Creation methods ====
 
 impl Duration {
