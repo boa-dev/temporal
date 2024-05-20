@@ -500,11 +500,7 @@ impl DateDuration {
                 // i. Let dateAdd be unused.
 
                 // e. Let yearsLater be ? AddDate(calendar, plainRelativeTo, yearsDuration, undefined, dateAdd).
-                let years_later = plain_relative_to.add_date(
-                    &years_duration,
-                    ArithmeticOverflow::Constrain,
-                    context,
-                )?;
+                let years_later = plain_relative_to.add_date(&years_duration, None, context)?;
 
                 // f. Let yearsMonthsWeeks be ! CreateTemporalDuration(years, months, weeks, 0, 0, 0, 0, 0, 0, 0).
                 let years_months_weeks = Duration::new_unchecked(
@@ -513,11 +509,8 @@ impl DateDuration {
                 );
 
                 // g. Let yearsMonthsWeeksLater be ? AddDate(calendar, plainRelativeTo, yearsMonthsWeeks, undefined, dateAdd).
-                let years_months_weeks_later = plain_relative_to.add_date(
-                    &years_months_weeks,
-                    ArithmeticOverflow::Constrain,
-                    context,
-                )?;
+                let years_months_weeks_later =
+                    plain_relative_to.add_date(&years_months_weeks, None, context)?;
 
                 // h. Let monthsWeeksInDays be DaysUntil(yearsLater, yearsMonthsWeeksLater).
                 let months_weeks_in_days = years_later.days_until(&years_months_weeks_later);
@@ -529,7 +522,7 @@ impl DateDuration {
                 fractional_days += f64::from(months_weeks_in_days);
 
                 // k. Let isoResult be ! AddISODate(plainRelativeTo.[[ISOYear]]. plainRelativeTo.[[ISOMonth]], plainRelativeTo.[[ISODay]], 0, 0, 0, truncate(fractionalDays), "constrain").
-                let iso_result = plain_relative_to.iso.add_iso_date(
+                let iso_result = plain_relative_to.iso.add_date_duration(
                     &DateDuration::new_unchecked(0.0, 0.0, 0.0, fractional_days.trunc()),
                     ArithmeticOverflow::Constrain,
                 )?;
@@ -609,11 +602,8 @@ impl DateDuration {
                 // i. Let dateAdd be unused.
 
                 // e. Let yearsMonthsLater be ? AddDate(calendar, plainRelativeTo, yearsMonths, undefined, dateAdd).
-                let years_months_later = plain_relative_to.add_date(
-                    &years_months,
-                    ArithmeticOverflow::Constrain,
-                    context,
-                )?;
+                let years_months_later =
+                    plain_relative_to.add_date(&years_months, None, context)?;
 
                 // f. Let yearsMonthsWeeks be ! CreateTemporalDuration(years, months, weeks, 0, 0, 0, 0, 0, 0, 0).
                 let years_months_weeks = Duration::from_date_duration(
@@ -621,11 +611,8 @@ impl DateDuration {
                 );
 
                 // g. Let yearsMonthsWeeksLater be ? AddDate(calendar, plainRelativeTo, yearsMonthsWeeks, undefined, dateAdd).
-                let years_months_weeks_later = plain_relative_to.add_date(
-                    &years_months_weeks,
-                    ArithmeticOverflow::Constrain,
-                    context,
-                )?;
+                let years_months_weeks_later =
+                    plain_relative_to.add_date(&years_months_weeks, None, context)?;
 
                 // h. Let weeksInDays be DaysUntil(yearsMonthsLater, yearsMonthsWeeksLater).
                 let weeks_in_days = years_months_later.days_until(&years_months_weeks_later);

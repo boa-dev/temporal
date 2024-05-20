@@ -503,7 +503,7 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
 
                 // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
                 // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
-                let result = date.iso.add_iso_date(
+                let result = date.iso.add_date_duration(
                     &DateDuration::new_unchecked(
                         duration.years(),
                         duration.months(),

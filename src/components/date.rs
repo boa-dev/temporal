@@ -45,7 +45,7 @@ impl<C: CalendarProtocol> Date<C> {
         duration: &Duration,
         context: &mut C::Context,
     ) -> TemporalResult<(Self, f64)> {
-        let new_date = self.add_date(duration, ArithmeticOverflow::Constrain, context)?;
+        let new_date = self.add_date(duration, None, context)?;
         let days = f64::from(self.days_until(&new_date));
         Ok((new_date, days))
     }
@@ -56,10 +56,11 @@ impl<C: CalendarProtocol> Date<C> {
     pub(crate) fn add_date(
         &self,
         duration: &Duration,
-        overflow: ArithmeticOverflow,
+        overflow: Option<ArithmeticOverflow>,
         context: &mut C::Context,
     ) -> TemporalResult<Self> {
         // 2. If options is not present, set options to undefined.
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         // 3. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
         if duration.date().years != 0.0
             || duration.date().months != 0.0
@@ -81,7 +82,7 @@ impl<C: CalendarProtocol> Date<C> {
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
         let result = self
             .iso
-            .add_iso_date(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
+            .add_date_duration(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
 
         Ok(Self::new_unchecked(result, self.calendar().clone()))
     }
@@ -301,11 +302,7 @@ impl<C: CalendarProtocol> Date<C> {
         overflow: Option<ArithmeticOverflow>,
         context: &mut C::Context,
     ) -> TemporalResult<Self> {
-        self.add_date(
-            duration,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-            context,
-        )
+        self.add_date(duration, overflow, context)
     }
 
     pub fn contextual_subtract(
@@ -314,11 +311,7 @@ impl<C: CalendarProtocol> Date<C> {
         overflow: Option<ArithmeticOverflow>,
         context: &mut C::Context,
     ) -> TemporalResult<Self> {
-        self.add_date(
-            &duration.negated(),
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-            context,
-        )
+        self.add_date(&duration.negated(), overflow, context)
     }
 
     pub fn contextual_until(

@@ -14,7 +14,11 @@ use crate::{
 use std::str::FromStr;
 use tinystr::TinyAsciiStr;
 
-use super::calendar::{CalendarDateLike, GetCalendarSlot};
+use super::{
+    calendar::{CalendarDateLike, GetCalendarSlot},
+    duration::normalized::NormalizedTimeDuration,
+    Duration,
+};
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
@@ -50,6 +54,40 @@ impl<C: CalendarProtocol> DateTime<C> {
     ) -> TemporalResult<Self> {
         let iso = IsoDateTime::from_epoch_nanos(&instant.nanos, offset)?;
         Ok(Self { iso, calendar })
+    }
+
+    // 5.5.14 AddDurationToOrSubtractDurationFromPlainDateTime ( operation, dateTime, temporalDurationLike, options )
+    fn add_or_subtract_duration(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        // SKIP: 1, 2, 3, 4
+        // 1. If operation is subtract, let sign be -1. Otherwise, let sign be 1.
+        // 2. Let duration be ? ToTemporalDurationRecord(temporalDurationLike).
+        // 3. Set options to ? GetOptionsObject(options).
+        // 4. Let calendarRec be ? CreateCalendarMethodsRecord(dateTime.[[Calendar]], « date-add »).
+
+        // 5. Let norm be NormalizeTimeDuration(sign × duration.[[Hours]], sign × duration.[[Minutes]], sign × duration.[[Seconds]], sign × duration.[[Milliseconds]], sign × duration.[[Microseconds]], sign × duration.[[Nanoseconds]]).
+        let norm = NormalizedTimeDuration::from_time_duration(duration.time());
+
+        // TODO: validate Constrain is default with all the recent changes.
+        // 6. Let result be ? AddDateTime(dateTime.[[ISOYear]], dateTime.[[ISOMonth]], dateTime.[[ISODay]], dateTime.[[ISOHour]], dateTime.[[ISOMinute]], dateTime.[[ISOSecond]], dateTime.[[ISOMillisecond]], dateTime.[[ISOMicrosecond]], dateTime.[[ISONanosecond]], calendarRec, sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], norm, options).
+        let result = self.iso.add_date_duration(
+            self.calendar(),
+            duration.date(),
+            norm,
+            overflow,
+            context,
+        )?;
+
+        // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
+        // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]], result.[[Nanosecond]]) is true.
+        assert!(result.is_within_limits());
+
+        // 9. Return ? CreateTemporalDateTime(result.[[Year]], result.[[Month]], result.[[Day]], result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]], result.[[Nanosecond]], dateTime.[[Calendar]]).
+        Ok(Self::new_unchecked(result, self.calendar.clone()))
     }
 }
 
@@ -97,63 +135,63 @@ impl<C: CalendarProtocol> DateTime<C> {
     #[inline]
     #[must_use]
     pub const fn iso_year(&self) -> i32 {
-        self.iso.date().year
+        self.iso.date.year
     }
 
     /// Returns this `Date`'s ISO month value.
     #[inline]
     #[must_use]
     pub const fn iso_month(&self) -> u8 {
-        self.iso.date().month
+        self.iso.date.month
     }
 
     /// Returns this `Date`'s ISO day value.
     #[inline]
     #[must_use]
     pub const fn iso_day(&self) -> u8 {
-        self.iso.date().day
+        self.iso.date.day
     }
 
     /// Returns the hour value
     #[inline]
     #[must_use]
     pub fn hour(&self) -> u8 {
-        self.iso.time().hour
+        self.iso.time.hour
     }
 
     /// Returns the minute value
     #[inline]
     #[must_use]
     pub fn minute(&self) -> u8 {
-        self.iso.time().minute
+        self.iso.time.minute
     }
 
     /// Returns the second value
     #[inline]
     #[must_use]
     pub fn second(&self) -> u8 {
-        self.iso.time().second
+        self.iso.time.second
     }
 
     /// Returns the `millisecond` value
     #[inline]
     #[must_use]
     pub fn millisecond(&self) -> u16 {
-        self.iso.time().millisecond
+        self.iso.time.millisecond
     }
 
     /// Returns the `microsecond` value
     #[inline]
     #[must_use]
     pub fn microsecond(&self) -> u16 {
-        self.iso.time().microsecond
+        self.iso.time.microsecond
     }
 
     /// Returns the `nanosecond` value
     #[inline]
     #[must_use]
     pub fn nanosecond(&self) -> u16 {
-        self.iso.time().nanosecond
+        self.iso.time.nanosecond
     }
 
     /// Returns the Calendar value.
@@ -166,7 +204,6 @@ impl<C: CalendarProtocol> DateTime<C> {
 
 // ==== Calendar-derived public API ====
 
-// TODO: Revert to `DateTime<C>`.
 impl DateTime<()> {
     /// Returns the calendar year value.
     pub fn year(&self) -> TemporalResult<i32> {
@@ -244,6 +281,24 @@ impl DateTime<()> {
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
         self.calendar
             .in_leap_year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+    }
+
+    #[inline]
+    pub fn add(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        self.contextual_add(duration, overflow, &mut ())
+    }
+
+    #[inline]
+    pub fn subtract(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        self.contextual_subtract(duration, overflow, &mut ())
     }
 }
 
@@ -355,6 +410,26 @@ impl<C: CalendarProtocol> DateTime<C> {
         this.get_calendar()
             .in_leap_year(&CalendarDateLike::CustomDateTime(this.clone()), context)
     }
+
+    #[inline]
+    pub fn contextual_add(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        self.add_or_subtract_duration(duration, overflow, context)
+    }
+
+    #[inline]
+    pub fn contextual_subtract(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        self.add_or_subtract_duration(&duration.negated(), overflow, context)
+    }
 }
 
 // ==== Trait impls ====
@@ -367,7 +442,7 @@ impl<C: CalendarProtocol> GetCalendarSlot<C> for DateTime<C> {
 
 impl<C: CalendarProtocol> IsoDateSlots for DateTime<C> {
     fn iso_date(&self) -> IsoDate {
-        *self.iso.date()
+        self.iso.date
     }
 }
 
@@ -408,7 +483,10 @@ impl<C: CalendarProtocol> FromStr for DateTime<C> {
 mod tests {
     use std::str::FromStr;
 
-    use crate::components::calendar::CalendarSlot;
+    use crate::{
+        components::{calendar::CalendarSlot, Duration},
+        iso::{IsoDate, IsoTime},
+    };
 
     use super::DateTime;
 
@@ -429,20 +507,118 @@ mod tests {
             0,
             CalendarSlot::from_str("iso8601").unwrap(),
         );
-        let positive_limit = DateTime::<()>::new(
-            275_760,
-            9,
-            14,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            CalendarSlot::from_str("iso8601").unwrap(),
-        );
+        let positive_limit =
+            DateTime::<()>::new(275_760, 9, 14, 0, 0, 0, 0, 0, 0, CalendarSlot::default());
 
         assert!(negative_limit.is_err());
         assert!(positive_limit.is_err());
+    }
+
+    // options-undefined.js
+    #[test]
+    fn datetime_add_test() {
+        let pdt = DateTime::<()>::new(
+            2020,
+            1,
+            31,
+            12,
+            34,
+            56,
+            987,
+            654,
+            321,
+            CalendarSlot::default(),
+        )
+        .unwrap();
+
+        let result = pdt.add(&Duration::one_month(1.0), None).unwrap();
+
+        assert_eq!(result.month(), Ok(2));
+        assert_eq!(result.day(), Ok(29));
+    }
+
+    // options-undefined.js
+    #[test]
+    fn datetime_subtract_test() {
+        let pdt = DateTime::<()>::new(
+            2000,
+            3,
+            31,
+            12,
+            34,
+            56,
+            987,
+            654,
+            321,
+            CalendarSlot::default(),
+        )
+        .unwrap();
+
+        let result = pdt.subtract(&Duration::one_month(1.0), None).unwrap();
+
+        assert_eq!(result.month(), Ok(2));
+        assert_eq!(result.day(), Ok(29));
+    }
+
+    // subtract/hour-overflow.js
+    #[test]
+    fn datetime_subtract_hour_overflows() {
+        let dt = DateTime::<()>::new(
+            2019,
+            10,
+            29,
+            10,
+            46,
+            38,
+            271,
+            986,
+            102,
+            CalendarSlot::default(),
+        )
+        .unwrap();
+
+        let result = dt.subtract(&Duration::hour(12.0), None).unwrap();
+
+        assert_eq!(
+            result.iso.date,
+            IsoDate {
+                year: 2019,
+                month: 10,
+                day: 28
+            }
+        );
+        assert_eq!(
+            result.iso.time,
+            IsoTime {
+                hour: 22,
+                minute: 46,
+                second: 38,
+                millisecond: 271,
+                microsecond: 986,
+                nanosecond: 102
+            }
+        );
+
+        let result = dt.add(&Duration::hour(-12.0), None).unwrap();
+
+        assert_eq!(
+            result.iso.date,
+            IsoDate {
+                year: 2019,
+                month: 10,
+                day: 28
+            }
+        );
+        assert_eq!(
+            result.iso.time,
+            IsoTime {
+                hour: 22,
+                minute: 46,
+                second: 38,
+                millisecond: 271,
+                microsecond: 986,
+                nanosecond: 102
+            }
+        );
     }
 }

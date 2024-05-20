@@ -13,7 +13,11 @@
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
 use crate::{
-    components::duration::{DateDuration, TimeDuration},
+    components::{
+        calendar::{CalendarProtocol, CalendarSlot},
+        duration::{normalized::NormalizedTimeDuration, DateDuration, TimeDuration},
+        Date, Duration,
+    },
     error::TemporalError,
     options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
     utils, TemporalResult, NS_PER_DAY,
@@ -26,8 +30,8 @@ use num_traits::{cast::FromPrimitive, ToPrimitive};
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct IsoDateTime {
-    date: IsoDate,
-    time: IsoTime,
+    pub(crate) date: IsoDate,
+    pub(crate) time: IsoTime,
 }
 
 impl IsoDateTime {
@@ -118,12 +122,45 @@ impl IsoDateTime {
         iso_dt_within_valid_limits(self.date, &self.time)
     }
 
-    pub(crate) const fn date(&self) -> &IsoDate {
-        &self.date
-    }
+    /// Specification equivalent to 5.5.9 `AddDateTime`.
+    pub(crate) fn add_date_duration<C: CalendarProtocol>(
+        &self,
+        calendar: &CalendarSlot<C>,
+        date_duration: &DateDuration,
+        norm: NormalizedTimeDuration,
+        overflow: Option<ArithmeticOverflow>,
+        context: &mut C::Context,
+    ) -> TemporalResult<Self> {
+        // 1. Assert: IsValidISODate(year, month, day) is true.
+        // 2. Assert: ISODateTimeWithinLimits(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond) is true.
+        // 3. Let timeResult be AddTime(hour, minute, second, millisecond, microsecond, nanosecond, norm).
+        let t_result = self.time.add(norm);
 
-    pub(crate) const fn time(&self) -> &IsoTime {
-        &self.time
+        // 4. Let datePart be ! CreateTemporalDate(year, month, day, calendarRec.[[Receiver]]).
+        let date = Date::new_unchecked(self.date, calendar.clone());
+
+        // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
+        let duration = Duration::new(
+            date_duration.years,
+            date_duration.months,
+            date_duration.weeks,
+            date_duration.days + f64::from(t_result.0),
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+        )?;
+
+        // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
+        let added_date = date.add_date(&duration, overflow, context)?;
+
+        // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
+        // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],
+        // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
+        // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
+        Ok(Self::new_unchecked(added_date.iso, t_result.1))
     }
 }
 
@@ -204,7 +241,7 @@ impl IsoDate {
     }
 
     /// Returns the resulting `IsoDate` from adding a provided `Duration` to this `IsoDate`
-    pub(crate) fn add_iso_date(
+    pub(crate) fn add_date_duration(
         self,
         duration: &DateDuration,
         overflow: ArithmeticOverflow,
@@ -660,6 +697,22 @@ impl IsoTime {
         sub_second.contains(&self.millisecond)
             && sub_second.contains(&self.microsecond)
             && sub_second.contains(&self.nanosecond)
+    }
+
+    pub(crate) fn add(&self, norm: NormalizedTimeDuration) -> (i32, Self) {
+        // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
+        let seconds = f64::from(self.second) + norm.seconds() as f64;
+        // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
+        let nanos = i32::from(self.nanosecond) + norm.subseconds();
+        // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
+        Self::balance(
+            f64::from(self.hour),
+            f64::from(self.minute),
+            seconds,
+            f64::from(self.millisecond),
+            f64::from(self.microsecond),
+            f64::from(nanos),
+        )
     }
 
     /// `IsoTimeToEpochMs`
