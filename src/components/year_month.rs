@@ -72,6 +72,16 @@ impl YearMonth {
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
+
+    pub fn get_days_in_year(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn get_days_in_month(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_month(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
 }
 
 impl GetTemporalCalendar for YearMonth {
