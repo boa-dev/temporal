@@ -761,7 +761,7 @@ impl<C: CalendarProtocol> CalendarSlot<C> {
         match self {
             CalendarSlot::Builtin(AnyCalendar::Iso(_)) => {
                 // NOTE: Cast shouldn't fail in this instance.
-                Ok(date_like.as_iso_date().as_icu4x()?.day_of_month().0 as u16)
+                Ok(date_like.as_iso_date().as_icu4x()?.days_in_month() as u16)
             }
             CalendarSlot::Builtin(_) => {
                 Err(TemporalError::range().with_message("Not yet implemented."))
