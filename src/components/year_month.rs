@@ -57,6 +57,13 @@ impl<C: CalendarProtocol> YearMonth<C> {
         self.iso.month
     }
 
+    /// Returns the Calendar value.
+    #[inline]
+    #[must_use]
+    pub fn calendar(&self) -> &CalendarSlot<C> {
+        &self.calendar
+    }
+
     /// Returns the calendar month code value with provided context.
     pub fn contextual_month_code(
         this: &C::YearMonth,
@@ -66,11 +73,14 @@ impl<C: CalendarProtocol> YearMonth<C> {
             .month_code(&CalendarDateLike::YearMonth(this.clone()), context)
     }
 
-    /// Returns the Calendar value.
-    #[inline]
-    #[must_use]
-    pub fn calendar(&self) -> &CalendarSlot<C> {
-        &self.calendar
+    pub fn get_days_in_year(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn get_days_in_month(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_month(&CalendarDateLike::YearMonth(this.clone()), context)
     }
 }
 
