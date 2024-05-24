@@ -8,7 +8,7 @@ use crate::{
     components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    TemporalError, TemporalResult, TemporalUnwrap,
+    utils, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::calendar::GetTemporalCalendar;
@@ -57,6 +57,13 @@ impl YearMonth {
         self.iso.month
     }
 
+    /// Returns the Calendar value.
+    #[inline]
+    #[must_use]
+    pub fn in_leap_year(&self) -> bool {
+        utils::mathematical_in_leap_year(utils::epoch_time_for_year(self.iso.year)) == 1
+    }
+
     /// Returns the calendar month code value with provided context.
     pub fn contextual_month_code(
         this: &C::YearMonth,
@@ -73,6 +80,23 @@ impl YearMonth {
         &self.calendar
     }
 
+    pub fn contextual_get_months_in_year(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<u16> {
+        this.get_calendar()
+            .months_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    #[inline]
+    pub fn contextual_add(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        self.add_or_subtract_duration(duration, overflow)
+    }
+
     pub fn get_days_in_year(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
         this.get_calendar()
             .days_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
@@ -81,6 +105,19 @@ impl YearMonth {
     pub fn get_days_in_month(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
         this.get_calendar()
             .days_in_month(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    fn add_or_subtract_duration(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        let new_date = self.iso.add_date_duration(
+            duration.date(),
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+
+        Ok(Self::new_unchecked(new_date, self.calendar.clone()))
     }
 }
 
