@@ -5,7 +5,7 @@ use std::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    components::{calendar::CalendarSlot, duration::normalized::NormalizedTimeDuration},
+    components::calendar::CalendarSlot,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
     utils, TemporalError, TemporalResult, TemporalUnwrap,
