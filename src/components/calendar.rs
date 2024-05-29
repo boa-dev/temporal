@@ -310,11 +310,11 @@ impl<C: CalendarProtocol> Clone for CalendarSlot<C> {
                     AnyCalendar::Gregorian(c) => AnyCalendar::Gregorian(*c),
                     AnyCalendar::Hebrew(c) => AnyCalendar::Hebrew(c.clone()),
                     AnyCalendar::Indian(c) => AnyCalendar::Indian(*c),
-                    AnyCalendar::IslamicCivil(c) => AnyCalendar::IslamicCivil(c.clone()),
+                    AnyCalendar::IslamicCivil(c) => AnyCalendar::IslamicCivil(*c),
                     AnyCalendar::IslamicObservational(c) => {
                         AnyCalendar::IslamicObservational(c.clone())
                     }
-                    AnyCalendar::IslamicTabular(c) => AnyCalendar::IslamicTabular(c.clone()),
+                    AnyCalendar::IslamicTabular(c) => AnyCalendar::IslamicTabular(*c),
                     AnyCalendar::IslamicUmmAlQura(c) => AnyCalendar::IslamicUmmAlQura(c.clone()),
                     AnyCalendar::Iso(c) => AnyCalendar::Iso(*c),
                     AnyCalendar::Japanese(c) => AnyCalendar::Japanese(c.clone()),
