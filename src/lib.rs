@@ -64,7 +64,7 @@ pub type TemporalResult<T> = Result<T, TemporalError>;
 pub(crate) trait TemporalUnwrap {
     type Output;
 
-    /// `temporal_rs` based assertion for unwrapping. This will panic in debug 
+    /// `temporal_rs` based assertion for unwrapping. This will panic in debug
     /// builds, but throws error during runtime.
     fn temporal_unwrap(self) -> TemporalResult<Self::Output>;
 }
