@@ -8,7 +8,7 @@ use crate::{
     components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    utils, TemporalError, TemporalResult, TemporalUnwrap,
+    utils, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 
 use super::calendar::GetTemporalCalendar;
@@ -63,8 +63,26 @@ impl YearMonth {
     pub fn in_leap_year(&self) -> bool {
         utils::mathematical_in_leap_year(utils::epoch_time_for_year(self.iso.year)) == 1
     }
+}
 
-    /// Returns the calendar month code value with provided context.
+// Contextual Methods
+impl<C: CalendarProtocol> YearMonth<C> {
+    pub fn contextual_get_days_in_year(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn contextual_get_days_in_month(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_month(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
     pub fn contextual_month_code(
         this: &C::YearMonth,
         context: &mut C::Context,
@@ -88,36 +106,36 @@ impl YearMonth {
             .months_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
     }
 
-    #[inline]
-    pub fn contextual_add(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
-        self.add_or_subtract_duration(duration, overflow)
-    }
+    pub fn contextual_add_or_subtract_duration(
+        operation: DurationOperation,
+        this: &C::YearMonth,
+        mut duration: Duration,
+        context: &mut C::Context,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<YearMonth<C>> {
+        match operation {
+            DurationOperation::Subtract => duration = duration.negated(),
+            DurationOperation::Add => {}
+        }
 
-    pub fn get_days_in_year(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
-    }
+        let mut fields = TemporalFields::default();
+        fields.set_field_value("year", &FieldValue::Integer(this.iso_date().year))?;
+        fields.set_field_value("month", &FieldValue::Integer(this.iso_date().month as i32))?;
 
-    pub fn get_days_in_month(this: &C::YearMonth, context: &mut C::Context) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_month(&CalendarDateLike::YearMonth(this.clone()), context)
-    }
+        let intermediate_date =
+            this.get_calendar()
+                .date_from_fields(&mut fields, overflow, context)?;
 
-    fn add_or_subtract_duration(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
-        let new_date = self.iso.add_date_duration(
-            duration.date(),
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        intermediate_date.add_date(&duration, Some(overflow), context)?;
+        let mut result_fields = TemporalFields::default();
+        result_fields
+            .set_field_value("year", &FieldValue::Integer(intermediate_date.iso_year()))?;
+        result_fields.set_field_value(
+            "month",
+            &FieldValue::Integer(intermediate_date.iso_month() as i32),
         )?;
-
-        Ok(Self::new_unchecked(new_date, self.calendar.clone()))
+        this.get_calendar()
+            .year_month_from_fields(&mut result_fields, overflow, context)
     }
 }
 
