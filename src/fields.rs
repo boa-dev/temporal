@@ -296,7 +296,7 @@ impl TemporalFields {
         let FieldValue::Integer(mo) = value else {
             return Err(TemporalError::r#type().with_message("Month must be an integer."));
         };
-        self.year = Some(*mo);
+        self.month = Some(*mo);
         self.bit_map.set(FieldMap::MONTH, true);
         Ok(())
     }

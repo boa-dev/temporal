@@ -24,6 +24,11 @@ pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
 
+#[derive(Debug, Clone, Copy)]
+pub enum DurationOperation {
+    Add,
+    Subtract,
+}
 /// The native Rust implementation of `Temporal.Duration`.
 ///
 /// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
