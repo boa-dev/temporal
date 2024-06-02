@@ -70,10 +70,7 @@ impl<T> TemporalUnwrap for Option<T> {
     type Output = T;
 
     fn temporal_unwrap(self) -> TemporalResult<Self::Output> {
-        match self {
-            Some(t) => Ok(t),
-            None => Err(TemporalError::assert()),
-        }
+        self.ok_or(TemporalError::assert())
     }
 }
 
