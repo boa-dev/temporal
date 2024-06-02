@@ -1,7 +1,7 @@
 //! An implementation of `TimeDuration` and it's methods.
 
 use crate::{
-    options::{TemporalRoundingMode, TemporalUnit},
+    options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     TemporalError, TemporalResult,
 };
 
@@ -385,10 +385,11 @@ impl TimeDuration {
     #[inline]
     pub fn round(
         &self,
-        increment: u64,
+        increment: RoundingIncrement,
         unit: TemporalUnit,
         mode: TemporalRoundingMode,
     ) -> TemporalResult<(NormalizedTimeDuration, i64)> {
+        let increment = u64::from(increment.0.get());
         let norm = match unit {
             TemporalUnit::Year
             | TemporalUnit::Month

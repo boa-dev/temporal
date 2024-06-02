@@ -2,7 +2,7 @@
 
 use crate::{
     components::{duration::TimeDuration, Duration},
-    options::{TemporalRoundingMode, TemporalUnit},
+    options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     utils, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY,
 };
 
@@ -50,7 +50,7 @@ impl Instant {
         op: bool,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<TimeDuration> {
@@ -62,7 +62,7 @@ impl Instant {
         let secs = (diff / NANOSECONDS_PER_SECOND).trunc();
 
         // Handle the settings provided to `diff_instant`
-        let increment = utils::to_rounding_increment(rounding_increment)?;
+        let increment = rounding_increment.unwrap_or_default();
         let rounding_mode = if op {
             rounding_mode
                 .unwrap_or(TemporalRoundingMode::Trunc)
@@ -190,7 +190,7 @@ impl Instant {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<TimeDuration> {
@@ -210,7 +210,7 @@ impl Instant {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<TimeDuration> {

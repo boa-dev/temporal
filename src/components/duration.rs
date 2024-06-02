@@ -2,8 +2,7 @@
 
 use crate::{
     components::DateTime,
-    options::{RelativeTo, TemporalRoundingMode, TemporalUnit},
-    utils::{self, validate_temporal_rounding_increment},
+    options::{RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
@@ -369,7 +368,7 @@ impl Duration {
     #[allow(clippy::type_complexity)]
     pub(crate) fn round_internal<C: CalendarProtocol, Z: TzProtocol>(
         &self,
-        increment: u64,
+        increment: RoundingIncrement,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
         relative_to: &RelativeTo<C, Z>,
@@ -456,7 +455,7 @@ impl Duration {
     #[inline]
     pub fn round<C: CalendarProtocol, Z: TzProtocol>(
         &self,
-        increment: Option<f64>,
+        increment: Option<RoundingIncrement>,
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
         rounding_mode: Option<TemporalRoundingMode>,
@@ -473,7 +472,7 @@ impl Duration {
         }
 
         // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).
-        let increment = utils::to_rounding_increment(increment)?;
+        let increment = increment.unwrap_or_default();
         // 15. Let roundingMode be ? ToTemporalRoundingMode(roundTo, "halfExpand").
         let mode = rounding_mode.unwrap_or_default();
 
@@ -513,7 +512,7 @@ impl Duration {
         let maximum = smallest_unit.to_maximum_rounding_increment();
         // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         if let Some(max) = maximum {
-            validate_temporal_rounding_increment(increment, max.into(), false)?;
+            increment.validate(max.into(), false)?;
         }
 
         // 26. Let hoursToDaysConversionMayOccur be false.
@@ -524,7 +523,8 @@ impl Duration {
 
         // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop
         // be true; else let roundingGranularityIsNoop be false.
-        let is_noop = smallest_unit == TemporalUnit::Nanosecond && increment == 1;
+        let is_noop =
+            smallest_unit == TemporalUnit::Nanosecond && increment == RoundingIncrement::ONE;
         // 30. If duration.[[Years]] = 0 and duration.[[Months]] = 0 and duration.[[Weeks]] = 0,
         // let calendarUnitsPresent be false; else let calendarUnitsPresent be true.
         let calendar_units_present =
