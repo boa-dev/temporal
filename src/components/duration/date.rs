@@ -8,7 +8,7 @@ use crate::{
     options::{
         ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
-    utils, TemporalError, TemporalResult, NS_PER_DAY,
+    utils, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
 use super::normalized::NormalizedTimeDuration;
@@ -65,7 +65,7 @@ impl DateDuration {
         context: &mut C::Context,
     ) -> TemporalResult<Self> {
         // 1. Assert: If plainRelativeTo is not undefined, calendarRec is not undefined.
-        let plain_relative = plain_relative_to.expect("plainRelativeTo must not be undefined.");
+        let plain_relative = plain_relative_to.temporal_unwrap()?;
 
         // 2. Let defaultLargestUnit be DefaultTemporalLargestUnit(years, months, weeks, days, 0, 0, 0, 0, 0).
         let default_largest = self.default_largest_unit();
@@ -189,7 +189,7 @@ impl DateDuration {
     ) -> TemporalResult<DateDuration> {
         // TODO: Confirm 1 or 5 based off response to issue.
         // 1. Assert: If plainRelativeTo is not undefined, calendarRec is not undefined.
-        let plain_relative = plain_relative_to.expect("plainRelativeTo must not be undefined.");
+        let plain_relative = plain_relative_to.temporal_unwrap()?;
 
         // 2. Let allZero be false.
         // 3. If years = 0, and months = 0, and weeks = 0, and days = 0, set allZero to true.
