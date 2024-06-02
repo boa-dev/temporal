@@ -10,8 +10,8 @@ use crate::{
     },
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, RelativeTo, TemporalRoundingMode, TemporalUnit},
-    parser::parse_date_time,
-    utils, TemporalError, TemporalResult,
+    parsers::parse_date_time,
+    temporal_assertion, utils, TemporalError, TemporalResult,
 };
 use std::str::FromStr;
 
@@ -625,19 +625,19 @@ impl<C: CalendarProtocol> FromStr for Date<C> {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parse_record = parse_date_time(s)?;
 
-        let calendar = parse_record.calendar.unwrap_or("iso8601".to_owned());
+        let calendar = parse_record.calendar.unwrap_or("iso8601");
+
+        // Assertion: Date must exist on a DateTime parse.
+        let date = temporal_assertion!(parse_record.date);
 
         let date = IsoDate::new(
-            parse_record.date.year,
-            parse_record.date.month,
-            parse_record.date.day,
+            date.year,
+            date.month.into(),
+            date.day.into(),
             ArithmeticOverflow::Reject,
         )?;
 
-        Ok(Self::new_unchecked(
-            date,
-            CalendarSlot::from_str(&calendar)?,
-        ))
+        Ok(Self::new_unchecked(date, CalendarSlot::from_str(calendar)?))
     }
 }
 

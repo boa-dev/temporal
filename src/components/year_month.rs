@@ -6,7 +6,7 @@ use crate::{
     components::calendar::CalendarSlot,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    TemporalError, TemporalResult,
+    temporal_assertion, TemporalError, TemporalResult,
 };
 
 use super::calendar::{CalendarProtocol, GetCalendarSlot};
@@ -82,15 +82,17 @@ impl<C: CalendarProtocol> FromStr for YearMonth<C> {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let record = crate::parser::parse_year_month(s)?;
+        let record = crate::parsers::parse_year_month(s)?;
 
-        let calendar = record.calendar.unwrap_or("iso8601".into());
+        let calendar = record.calendar.unwrap_or("iso8601");
+
+        let date = temporal_assertion!(record.date);
 
         Self::new(
-            record.date.year,
-            record.date.month,
+            date.year,
+            date.month.into(),
             None,
-            CalendarSlot::from_str(&calendar)?,
+            CalendarSlot::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
     }

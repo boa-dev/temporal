@@ -43,7 +43,7 @@ pub mod error;
 pub mod fields;
 pub mod iso;
 pub mod options;
-pub mod parser;
+pub mod parsers;
 
 #[doc(hidden)]
 pub(crate) mod utils;
@@ -59,6 +59,16 @@ pub use fields::TemporalFields;
 
 /// The `Temporal` result type
 pub type TemporalResult<T> = Result<T, TemporalError>;
+
+#[macro_export]
+macro_rules! temporal_assertion {
+    ($assertion:expr) => {{
+        let Some(value) = $assertion else {
+            return Err(TemporalError::assert());
+        };
+        value
+    }};
+}
 
 // Relevant numeric constants
 /// Nanoseconds per day constant: 8.64e+13
