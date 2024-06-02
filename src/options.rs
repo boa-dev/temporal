@@ -90,20 +90,20 @@ impl RoundingIncrement {
         // 2. Else,
         //     a. Assert: dividend > 1.
         //     b. Let maximum be dividend - 1.
-        let max = if inclusive { dividend } else { dividend - 1 };
+        let max = dividend - u32::from(!inclusive);
 
         let increment = self.0.get();
 
         // 3. If increment > maximum, throw a RangeError exception.
         if increment > max {
-            return Err(TemporalError::range().with_message("roundingIncrement exceeds maximum."));
+            return Err(TemporalError::range().with_message("roundingIncrement exceeds maximum"));
         }
 
         // 4. If dividend modulo increment ≠ 0, then
         if dividend.rem_euclid(increment) != 0 {
             //     a. Throw a RangeError exception.
             return Err(TemporalError::range()
-                .with_message("dividend is not divisble by roundingIncrement."));
+                .with_message("dividend is not divisible by roundingIncrement"));
         }
 
         // 5. Return unused.
