@@ -11,7 +11,7 @@ use crate::{
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, RelativeTo, TemporalRoundingMode, TemporalUnit},
     parsers::parse_date_time,
-    temporal_assertion, utils, TemporalError, TemporalResult,
+    utils, TemporalError, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
@@ -628,7 +628,7 @@ impl<C: CalendarProtocol> FromStr for Date<C> {
         let calendar = parse_record.calendar.unwrap_or("iso8601");
 
         // Assertion: Date must exist on a DateTime parse.
-        let date = temporal_assertion!(parse_record.date);
+        let date = parse_record.date.temporal_unwrap()?;
 
         let date = IsoDate::new(
             date.year,

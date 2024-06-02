@@ -8,7 +8,7 @@ use crate::{
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::ArithmeticOverflow,
     parsers::parse_date_time,
-    temporal_assertion, TemporalError, TemporalResult,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::str::FromStr;
@@ -465,7 +465,7 @@ impl<C: CalendarProtocol> FromStr for DateTime<C> {
             IsoTime::default()
         };
 
-        let parsed_date = temporal_assertion!(parse_record.date);
+        let parsed_date = parse_record.date.temporal_unwrap()?;
 
         let date = IsoDate::new(
             parsed_date.year,

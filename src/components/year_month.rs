@@ -6,7 +6,7 @@ use crate::{
     components::calendar::CalendarSlot,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    temporal_assertion, TemporalError, TemporalResult,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::calendar::{CalendarProtocol, GetCalendarSlot};
@@ -86,7 +86,7 @@ impl<C: CalendarProtocol> FromStr for YearMonth<C> {
 
         let calendar = record.calendar.unwrap_or("iso8601");
 
-        let date = temporal_assertion!(record.date);
+        let date = record.date.temporal_unwrap()?;
 
         Self::new(
             date.year,

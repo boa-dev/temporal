@@ -60,14 +60,21 @@ pub use fields::TemporalFields;
 /// The `Temporal` result type
 pub type TemporalResult<T> = Result<T, TemporalError>;
 
-#[macro_export]
-macro_rules! temporal_assertion {
-    ($assertion:expr) => {{
-        let Some(value) = $assertion else {
-            return Err(TemporalError::assert());
-        };
-        value
-    }};
+/// A library specific trait for unwrapping assertions.
+pub(crate) trait TemporalUnwrap {
+    type Output;
+    fn temporal_unwrap(self) -> TemporalResult<Self::Output>;
+}
+
+impl<T> TemporalUnwrap for Option<T> {
+    type Output = T;
+
+    fn temporal_unwrap(self) -> TemporalResult<Self::Output> {
+        match self {
+            Some(t) => Ok(t),
+            None => Err(TemporalError::assert()),
+        }
+    }
 }
 
 // Relevant numeric constants

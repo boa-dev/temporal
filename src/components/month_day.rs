@@ -6,7 +6,7 @@ use crate::{
     components::calendar::CalendarSlot,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    temporal_assertion, TemporalError, TemporalResult,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::calendar::{CalendarProtocol, GetCalendarSlot};
@@ -85,7 +85,7 @@ impl<C: CalendarProtocol> FromStr for MonthDay<C> {
 
         let date = record.date;
 
-        let date = temporal_assertion!(date);
+        let date = date.temporal_unwrap()?;
 
         Self::new(
             date.month.into(),
