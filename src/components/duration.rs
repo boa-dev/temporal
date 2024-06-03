@@ -3,10 +3,10 @@
 use crate::{
     components::DateTime,
     options::{RelativeTo, TemporalRoundingMode, TemporalUnit},
-    parser::{duration::parse_duration, Cursor},
     utils::{self, validate_temporal_rounding_increment},
     TemporalError, TemporalResult,
 };
+use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use std::str::FromStr;
 
 use self::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
@@ -714,47 +714,104 @@ impl FromStr for Duration {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = parse_duration(&mut Cursor::new(s))?;
+        let parse_record = IsoDurationParser::new(s)
+            .parse()
+            .map_err(|e| TemporalError::general(format!("{e}")))?;
 
-        let minutes = if parse_record.time.fhours > 0.0 {
-            parse_record.time.fhours * 60.0
-        } else {
-            f64::from(parse_record.time.minutes)
+        let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
+            Some(TimeDurationRecord::Hours { hours, fraction }) => {
+                let minutes = fraction.div_euclid(60 * 1_000_000_000);
+                let rem = fraction.rem_euclid(60 * 1_000_000_000);
+
+                let seconds = rem.div_euclid(1_000_000_000);
+                let rem = rem.rem_euclid(1_000_000_000);
+
+                let milliseconds = rem.div_euclid(1_000_000);
+                let rem = rem.rem_euclid(1_000_000);
+
+                let microseconds = rem.div_euclid(1_000);
+                let nanoseconds = rem.rem_euclid(1_000);
+
+                (
+                    f64::from(hours),
+                    minutes as f64,
+                    seconds as f64,
+                    milliseconds as f64,
+                    microseconds as f64,
+                    nanoseconds as f64,
+                )
+            }
+            // Minutes variant is defined as { hours: u32, minutes: u32, fraction: u64 }
+            Some(TimeDurationRecord::Minutes {
+                hours,
+                minutes,
+                fraction,
+            }) => {
+                let seconds = fraction.div_euclid(1_000_000_000);
+                let rem = fraction.rem_euclid(1_000_000_000);
+
+                let milliseconds = rem.div_euclid(1_000_000);
+                let rem = rem.rem_euclid(1_000_000);
+
+                let microseconds = rem.div_euclid(1_000);
+                let nanoseconds = rem.rem_euclid(1_000);
+
+                (
+                    f64::from(hours),
+                    f64::from(minutes),
+                    seconds as f64,
+                    milliseconds as f64,
+                    microseconds as f64,
+                    nanoseconds as f64,
+                )
+            }
+            // Seconds variant is defined as { hours: u32, minutes: u32, seconds: u32, fraction: u32 }
+            Some(TimeDurationRecord::Seconds {
+                hours,
+                minutes,
+                seconds,
+                fraction,
+            }) => {
+                let milliseconds = fraction.div_euclid(1_000_000);
+                let rem = fraction.rem_euclid(1_000_000);
+
+                let microseconds = rem.div_euclid(1_000);
+                let nanoseconds = rem.rem_euclid(1_000);
+
+                (
+                    f64::from(hours),
+                    f64::from(minutes),
+                    f64::from(seconds),
+                    milliseconds as f64,
+                    microseconds as f64,
+                    nanoseconds as f64,
+                )
+            }
+            None => (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
         };
 
-        let seconds = if parse_record.time.fminutes > 0.0 {
-            parse_record.time.fminutes * 60.0
-        } else if parse_record.time.seconds > 0 {
-            f64::from(parse_record.time.seconds)
+        let (years, months, weeks, days) = if let Some(date) = parse_record.date {
+            (date.years, date.months, date.weeks, date.days)
         } else {
-            minutes.rem_euclid(1.0) * 60.0
+            (0, 0, 0, 0)
         };
 
-        let milliseconds = if parse_record.time.fseconds > 0.0 {
-            parse_record.time.fseconds * 1000.0
-        } else {
-            seconds.rem_euclid(1.0) * 1000.0
-        };
-
-        let micro = milliseconds.rem_euclid(1.0) * 1000.0;
-        let nano = micro.rem_euclid(1.0) * 1000.0;
-
-        let sign = if parse_record.sign { 1f64 } else { -1f64 };
+        let sign = f64::from(parse_record.sign as i8);
 
         Ok(Self {
             date: DateDuration::new(
-                f64::from(parse_record.date.years) * sign,
-                f64::from(parse_record.date.months) * sign,
-                f64::from(parse_record.date.weeks) * sign,
-                f64::from(parse_record.date.days) * sign,
+                f64::from(years) * sign,
+                f64::from(months) * sign,
+                f64::from(weeks) * sign,
+                f64::from(days) * sign,
             )?,
             time: TimeDuration::new(
-                f64::from(parse_record.time.hours) * sign,
-                minutes.floor() * sign,
-                seconds.floor() * sign,
-                milliseconds.floor() * sign,
-                micro.floor() * sign,
-                nano.floor() * sign,
+                hours * sign,
+                minutes * sign,
+                seconds * sign,
+                millis * sign,
+                micros * sign,
+                nanos * sign,
             )?,
         })
     }

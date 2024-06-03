@@ -16,6 +16,8 @@ pub enum ErrorKind {
     Range,
     /// SyntaxError
     Syntax,
+    /// Assert
+    Assert,
 }
 
 impl fmt::Display for ErrorKind {
@@ -25,6 +27,7 @@ impl fmt::Display for ErrorKind {
             Self::Type => "TypeError",
             Self::Range => "RangeError",
             Self::Syntax => "SyntaxError",
+            Self::Assert => "ImplementationError",
         }
         .fmt(f)
     }
@@ -70,6 +73,11 @@ impl TemporalError {
     #[must_use]
     pub fn syntax() -> Self {
         Self::new(ErrorKind::Syntax)
+    }
+
+    /// Creates an assertion error
+    pub(crate) fn assert() -> Self {
+        Self::new(ErrorKind::Assert)
     }
 
     /// Create an abrupt end error.

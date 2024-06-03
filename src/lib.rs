@@ -43,7 +43,7 @@ pub mod error;
 pub mod fields;
 pub mod iso;
 pub mod options;
-pub mod parser;
+pub mod parsers;
 
 #[doc(hidden)]
 pub(crate) mod utils;
@@ -59,6 +59,24 @@ pub use fields::TemporalFields;
 
 /// The `Temporal` result type
 pub type TemporalResult<T> = Result<T, TemporalError>;
+
+/// A library specific trait for unwrapping assertions.
+pub(crate) trait TemporalUnwrap {
+    type Output;
+
+    /// `temporal_rs` based assertion for unwrapping. This will panic in debug
+    /// builds, but throws error during runtime.
+    fn temporal_unwrap(self) -> TemporalResult<Self::Output>;
+}
+
+impl<T> TemporalUnwrap for Option<T> {
+    type Output = T;
+
+    fn temporal_unwrap(self) -> TemporalResult<Self::Output> {
+        debug_assert!(self.is_some());
+        self.ok_or(TemporalError::assert())
+    }
+}
 
 // Relevant numeric constants
 /// Nanoseconds per day constant: 8.64e+13

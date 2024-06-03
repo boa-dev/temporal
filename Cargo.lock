@@ -129,6 +129,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ixdtf"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2123305f927452a9502fc05c33800280d90127c95c50eb45ec6b3c50346afbf3"
+dependencies = [
+ "displaydoc",
+]
+
+[[package]]
 name = "libm"
 version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -247,6 +256,7 @@ version = "0.0.2"
 dependencies = [
  "bitflags",
  "icu_calendar",
+ "ixdtf",
  "num-bigint",
  "num-traits",
  "rustc-hash",

@@ -7,8 +7,8 @@ use crate::{
     },
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::ArithmeticOverflow,
-    parser::parse_date_time,
-    TemporalError, TemporalResult,
+    parsers::parse_date_time,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::str::FromStr;
@@ -452,29 +452,31 @@ impl<C: CalendarProtocol> FromStr for DateTime<C> {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parse_record = parse_date_time(s)?;
 
-        let calendar = parse_record.calendar.unwrap_or("iso8601".to_owned());
+        let calendar = parse_record.calendar.unwrap_or("iso8601");
 
         let time = if let Some(time) = parse_record.time {
             IsoTime::from_components(
                 i32::from(time.hour),
                 i32::from(time.minute),
                 i32::from(time.second),
-                time.fraction,
+                f64::from(time.nanosecond),
             )?
         } else {
             IsoTime::default()
         };
 
+        let parsed_date = parse_record.date.temporal_unwrap()?;
+
         let date = IsoDate::new(
-            parse_record.date.year,
-            parse_record.date.month,
-            parse_record.date.day,
+            parsed_date.year,
+            parsed_date.month.into(),
+            parsed_date.day.into(),
             ArithmeticOverflow::Reject,
         )?;
 
         Ok(Self::new_unchecked(
             IsoDateTime::new(date, time)?,
-            CalendarSlot::from_str(&calendar)?,
+            CalendarSlot::from_str(calendar)?,
         ))
     }
 }
