@@ -106,27 +106,44 @@ impl<C: CalendarProtocol> YearMonth<C> {
             .months_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
     }
 
-    pub fn contextual_add_or_subtract_duration(
-        operation: DurationOperation,
+    pub fn add_duration(
+        this: &C::YearMonth,
+        duration: Duration,
+        overflow: ArithmeticOverflow,
+        context: &mut C::Context,
+    ) -> TemporalResult<YearMonth<C>> {
+        Self::contextual_add_or_subtract_duration(true, this, duration, context, overflow)
+    }
+
+    pub fn subtract_duration(
+        this: &C::YearMonth,
+        duration: Duration,
+        overflow: ArithmeticOverflow,
+        context: &mut C::Context,
+    ) -> TemporalResult<YearMonth<C>> {
+        Self::contextual_add_or_subtract_duration(false, this, duration, context, overflow)
+    }
+
+    pub(crate) fn contextual_add_or_subtract_duration(
+        addition: bool,
         this: &C::YearMonth,
         mut duration: Duration,
         context: &mut C::Context,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth<C>> {
-        match operation {
-            DurationOperation::Subtract => duration = duration.negated(),
-            DurationOperation::Add => {}
+        if !addition {
+            duration = duration.negated()
         }
 
         let mut fields = TemporalFields::default();
         fields.set_field_value("year", &FieldValue::Integer(this.iso_date().year))?;
         fields.set_field_value("month", &FieldValue::Integer(this.iso_date().month as i32))?;
 
-        let intermediate_date =
+        let mut intermediate_date =
             this.get_calendar()
                 .date_from_fields(&mut fields, overflow, context)?;
 
-        intermediate_date.add_date(&duration, Some(overflow), context)?;
+        intermediate_date = intermediate_date.add_date(&duration, Some(overflow), context)?;
         let mut result_fields = TemporalFields::default();
         result_fields
             .set_field_value("year", &FieldValue::Integer(intermediate_date.iso_year()))?;
