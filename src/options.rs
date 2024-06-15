@@ -420,19 +420,19 @@ impl TemporalRoundingMode {
     #[inline]
     #[must_use]
     /// Returns the `UnsignedRoundingMode`
-    pub const fn get_unsigned_round_mode(self, is_negative: bool) -> TemporalUnsignedRoundingMode {
+    pub const fn get_unsigned_round_mode(self, is_positive: bool) -> TemporalUnsignedRoundingMode {
         use TemporalRoundingMode::{
             Ceil, Expand, Floor, HalfCeil, HalfEven, HalfExpand, HalfFloor, HalfTrunc, Trunc,
         };
 
         match self {
-            Ceil if !is_negative => TemporalUnsignedRoundingMode::Infinity,
+            Ceil if is_positive => TemporalUnsignedRoundingMode::Infinity,
             Ceil => TemporalUnsignedRoundingMode::Zero,
-            Floor if !is_negative => TemporalUnsignedRoundingMode::Zero,
+            Floor if is_positive => TemporalUnsignedRoundingMode::Zero,
             Floor | Trunc | Expand => TemporalUnsignedRoundingMode::Infinity,
-            HalfCeil if !is_negative => TemporalUnsignedRoundingMode::HalfInfinity,
+            HalfCeil if is_positive => TemporalUnsignedRoundingMode::HalfInfinity,
             HalfCeil | HalfTrunc => TemporalUnsignedRoundingMode::HalfZero,
-            HalfFloor if !is_negative => TemporalUnsignedRoundingMode::HalfZero,
+            HalfFloor if is_positive => TemporalUnsignedRoundingMode::HalfZero,
             HalfFloor | HalfExpand => TemporalUnsignedRoundingMode::HalfInfinity,
             HalfEven => TemporalUnsignedRoundingMode::HalfEven,
         }

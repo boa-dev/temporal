@@ -7,6 +7,8 @@ use crate::{
 
 use super::{is_valid_duration, normalized::NormalizedTimeDuration};
 
+use num_traits::{Euclid, MulAdd};
+
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
 const NANOSECONDS_PER_MINUTE: u64 = NANOSECONDS_PER_SECOND * 60;
 const NANOSECONDS_PER_HOUR: u64 = NANOSECONDS_PER_MINUTE * 60;
@@ -68,15 +70,15 @@ impl TimeDuration {
         largest_unit: TemporalUnit,
     ) -> TemporalResult<(f64, Self)> {
         // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
-        let mut days = 0f64;
-        let mut hours = 0f64;
-        let mut minutes = 0f64;
-        let mut seconds = 0f64;
-        let mut milliseconds = 0f64;
-        let mut microseconds = 0f64;
+        let mut days = 0;
+        let mut hours = 0;
+        let mut minutes = 0;
+        let mut seconds = 0;
+        let mut milliseconds = 0;
+        let mut microseconds = 0;
 
         // 2. Let sign be NormalizedTimeDurationSign(norm).
-        let sign = f64::from(norm.sign());
+        let sign = norm.sign();
         // 3. Let nanoseconds be NormalizedTimeDurationAbs(norm).[[TotalNanoseconds]].
         let mut nanoseconds = norm.0.abs();
 
@@ -84,119 +86,98 @@ impl TimeDuration {
             // 4. If largestUnit is "year", "month", "week", or "day", then
             TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
-                microseconds = (nanoseconds / 1000f64).floor();
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                nanoseconds = nanoseconds.rem_euclid(1000.0);
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
 
                 // c. Set milliseconds to floor(microseconds / 1000).
-                milliseconds = (microseconds / 1000f64).floor();
                 // d. Set microseconds to microseconds modulo 1000.
-                microseconds = microseconds.rem_euclid(1000.0);
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
 
                 // e. Set seconds to floor(milliseconds / 1000).
-                seconds = (milliseconds / 1000f64).floor();
                 // f. Set milliseconds to milliseconds modulo 1000.
-                milliseconds = milliseconds.rem_euclid(1000.0);
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
 
                 // g. Set minutes to floor(seconds / 60).
-                minutes = (seconds / 60f64).floor();
                 // h. Set seconds to seconds modulo 60.
-                seconds = seconds.rem_euclid(60.0);
+                (minutes, seconds) = seconds.div_rem_euclid(&60);
 
                 // i. Set hours to floor(minutes / 60).
-                hours = (minutes / 60f64).floor();
                 // j. Set minutes to minutes modulo 60.
-                minutes = minutes.rem_euclid(60.0);
+                (hours, minutes) = minutes.div_rem_euclid(&60);
 
                 // k. Set days to floor(hours / 24).
-                days = (hours / 24f64).floor();
                 // l. Set hours to hours modulo 24.
-                hours = hours.rem_euclid(24.0);
+                (days, hours) = hours.div_rem_euclid(&24);
             }
             // 5. Else if largestUnit is "hour", then
             TemporalUnit::Hour => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
-                microseconds = (nanoseconds / 1000f64).floor();
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                nanoseconds %= 1000f64;
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
 
                 // c. Set milliseconds to floor(microseconds / 1000).
-                milliseconds = (microseconds / 1000f64).floor();
                 // d. Set microseconds to microseconds modulo 1000.
-                microseconds %= 1000f64;
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
 
                 // e. Set seconds to floor(milliseconds / 1000).
-                seconds = (milliseconds / 1000f64).floor();
                 // f. Set milliseconds to milliseconds modulo 1000.
-                milliseconds %= 1000f64;
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
 
                 // g. Set minutes to floor(seconds / 60).
-                minutes = (seconds / 60f64).floor();
                 // h. Set seconds to seconds modulo 60.
-                seconds %= 60f64;
+                (minutes, seconds) = seconds.div_rem_euclid(&60);
 
                 // i. Set hours to floor(minutes / 60).
-                hours = (minutes / 60f64).floor();
                 // j. Set minutes to minutes modulo 60.
-                minutes %= 60f64;
+                (hours, minutes) = minutes.div_rem_euclid(&60);
             }
             // 6. Else if largestUnit is "minute", then
             TemporalUnit::Minute => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                microseconds = (nanoseconds / 1000f64).floor();
-                nanoseconds %= 1000f64;
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
 
                 // c. Set milliseconds to floor(microseconds / 1000).
                 // d. Set microseconds to microseconds modulo 1000.
-                milliseconds = (microseconds / 1000f64).floor();
-                microseconds %= 1000f64;
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
 
                 // e. Set seconds to floor(milliseconds / 1000).
                 // f. Set milliseconds to milliseconds modulo 1000.
-                seconds = (milliseconds / 1000f64).floor();
-                milliseconds %= 1000f64;
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
 
                 // g. Set minutes to floor(seconds / 60).
                 // h. Set seconds to seconds modulo 60.
-                minutes = (seconds / 60f64).floor();
-                seconds %= 60f64;
+                (minutes, seconds) = seconds.div_rem_euclid(&60);
             }
             // 7. Else if largestUnit is "second", then
             TemporalUnit::Second => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                microseconds = (nanoseconds / 1000f64).floor();
-                nanoseconds %= 1000f64;
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
 
                 // c. Set milliseconds to floor(microseconds / 1000).
                 // d. Set microseconds to microseconds modulo 1000.
-                milliseconds = (microseconds / 1000f64).floor();
-                microseconds %= 1000f64;
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
 
                 // e. Set seconds to floor(milliseconds / 1000).
                 // f. Set milliseconds to milliseconds modulo 1000.
-                seconds = (milliseconds / 1000f64).floor();
-                milliseconds %= 1000f64;
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
             }
             // 8. Else if largestUnit is "millisecond", then
             TemporalUnit::Millisecond => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                microseconds = (nanoseconds / 1000f64).floor();
-                nanoseconds %= 1000f64;
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
 
                 // c. Set milliseconds to floor(microseconds / 1000).
                 // d. Set microseconds to microseconds modulo 1000.
-                milliseconds = (microseconds / 1000f64).floor();
-                microseconds %= 1000f64;
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
             }
             // 9. Else if largestUnit is "microsecond", then
             TemporalUnit::Microsecond => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
-                microseconds = (nanoseconds / 1000f64).floor();
-                nanoseconds %= 1000f64;
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
             }
             // 10. Else,
             // a. Assert: largestUnit is "nanosecond".
@@ -210,19 +191,21 @@ impl TimeDuration {
         // using floating point arithmetic. It can be implemented in C++ using std::fma(). String manipulation will also
         // give an exact result, since the multiplication is by a power of 10.
 
+        // NOTE: days may have the potentially to exceed i64
         // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
-        let days = days.mul_add(sign, 0.0);
+        let days = (days as i64).mul_add(sign.into(), 0);
         let result = Self::new_unchecked(
-            hours.mul_add(sign, 0.0),
-            minutes.mul_add(sign, 0.0),
-            seconds.mul_add(sign, 0.0),
-            milliseconds.mul_add(sign, 0.0),
-            microseconds.mul_add(sign, 0.0),
-            nanoseconds.mul_add(sign, 0.0),
+            (hours as i32).mul_add(sign, 0).into(),
+            (minutes as i32).mul_add(sign, 0).into(),
+            (seconds as i32).mul_add(sign, 0).into(),
+            (milliseconds as i32).mul_add(sign, 0).into(),
+            (microseconds as i32).mul_add(sign, 0).into(),
+            (nanoseconds as i32).mul_add(sign, 0).into(),
         );
 
+        // TODO: Stabilize casting and the value size.
         let td = Vec::from(&[
-            days,
+            days as f64,
             result.hours,
             result.minutes,
             result.seconds,
@@ -234,7 +217,8 @@ impl TimeDuration {
             return Err(TemporalError::range().with_message("Invalid balance TimeDuration."));
         }
 
-        Ok((days, result))
+        // TODO: Remove cast below.
+        Ok((days as f64, result))
     }
 
     /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.

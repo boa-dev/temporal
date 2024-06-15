@@ -1,131 +1,8 @@
 //! Utility date and time equations for Temporal
 
-use std::{cmp::Ordering, ops::Neg};
+use crate::MS_PER_DAY;
 
-use crate::{
-    options::{TemporalRoundingMode, TemporalUnsignedRoundingMode},
-    MS_PER_DAY,
-};
-
-/// Applies the unsigned rounding mode.
-fn apply_unsigned_rounding_mode(
-    quotient: f64,
-    floor: f64,
-    ceil: f64,
-    unsigned_rounding_mode: TemporalUnsignedRoundingMode,
-) -> u64 {
-    // 1. If x is equal to r1, return r1.
-    if quotient == floor {
-        return floor as u64;
-    }
-    // 2. Assert: r1 < x < r2.
-    // 3. Assert: unsignedRoundingMode is not undefined.
-
-    // 4. If unsignedRoundingMode is zero, return r1.
-    if unsigned_rounding_mode == TemporalUnsignedRoundingMode::Zero {
-        return floor as u64;
-    };
-    // 5. If unsignedRoundingMode is infinity, return r2.
-    if unsigned_rounding_mode == TemporalUnsignedRoundingMode::Infinity {
-        return ceil as u64;
-    };
-
-    // 6. Let d1 be x – r1.
-    // 7. Let d2 be r2 – x.
-    let d1 = quotient - floor;
-    let d2 = ceil - quotient;
-    // 8. If d1 < d2, return r1.
-    // 9. If d2 < d1, return r2.
-    match d1.partial_cmp(&d2) {
-        Some(Ordering::Less) => floor as u64,
-        Some(Ordering::Greater) => ceil as u64,
-        Some(Ordering::Equal) => {
-            // 10. Assert: d1 is equal to d2.
-            // 11. If unsignedRoundingMode is half-zero, return r1.
-            if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfZero {
-                return floor as u64;
-            };
-            // 12. If unsignedRoundingMode is half-infinity, return r2.
-            if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfInfinity {
-                return ceil as u64;
-            };
-            // 13. Assert: unsignedRoundingMode is half-even.
-            assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
-            // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
-            let cardinality = (floor / (ceil - floor)) % 2.0;
-            // 15. If cardinality is 0, return r1.
-            if cardinality == 0.0 {
-                return floor as u64;
-            }
-            // 16. Return r2.
-            ceil as u64
-        }
-        None => unreachable!(),
-    }
-}
-
-// TODO: Use `div_ceil` and `div_floor` once stable.
-// Tracking issue: https://github.com/rust-lang/rust/issues/88581
-/// 13.28 `RoundNumberToIncrement ( x, increment, roundingMode )`
-pub(crate) fn round_number_to_increment(
-    x: f64,
-    increment: f64,
-    rounding_mode: TemporalRoundingMode,
-) -> i64 {
-    // 1. Let quotient be x / increment.
-    let quotient = x / increment;
-    // 2. If quotient < 0, then
-    let (is_negative, quotient) = if quotient < 0.0 {
-        // a. Let isNegative be true.
-        // b. Set quotient to -quotient.
-        (true, quotient.abs())
-    // 3. Else,
-    } else {
-        // a. Let isNegative be false.
-        (false, quotient)
-    };
-
-    // 4. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, isNegative).
-    let unsigned_rounding_mode = rounding_mode.get_unsigned_round_mode(is_negative);
-
-    // 5. Let r1 be the largest integer such that r1 ≤ quotient.
-    let floor = quotient.floor();
-    // 6. Let r2 be the smallest integer such that r2 > quotient.
-    let ceil = quotient.ceil();
-
-    // 7. Let rounded be ApplyUnsignedRoundingMode(quotient, r1, r2, unsignedRoundingMode).
-    let rounded = apply_unsigned_rounding_mode(quotient, floor, ceil, unsigned_rounding_mode);
-
-    // 8. If isNegative is true, set rounded to -rounded.
-    let rounded = if is_negative {
-        (rounded as i64).neg()
-    } else {
-        rounded as i64
-    };
-
-    // 9. Return rounded × increment.
-    rounded * (increment as i64)
-}
-
-/// Rounds provided number assuming that the increment is greater than 0.
-pub(crate) fn round_number_to_increment_as_if_positive(
-    x: f64,
-    increment: f64,
-    rounding_mode: TemporalRoundingMode,
-) -> u64 {
-    // 1. Let quotient be x / increment.
-    let quotient = x / increment;
-    // 2. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, false).
-    let unsigned_rounding_mode = rounding_mode.get_unsigned_round_mode(false);
-    // 3. Let r1 be the largest integer such that r1 ≤ quotient.
-    let r1 = quotient.floor();
-    // 4. Let r2 be the smallest integer such that r2 > quotient.
-    let r2 = quotient.ceil();
-    // 5. Let rounded be ApplyUnsignedRoundingMode(quotient, r1, r2, unsignedRoundingMode).
-    let rounded = apply_unsigned_rounding_mode(quotient, r1, r2, unsigned_rounding_mode);
-    // 6. Return rounded × increment.
-    rounded * (increment as u64)
-}
+// NOTE: Review the below for optimizations and add ALOT of tests.
 
 // ==== Begin Date Equations ====
 
@@ -256,6 +133,8 @@ pub(crate) fn epoch_time_to_day_in_year(t: f64) -> i32 {
     epoch_time_to_day_number(t)
         - (epoch_day_number_for_year(f64::from(epoch_time_to_epoch_year(t))) as i32)
 }
+
+// Trait implementations
 
 // EpochTimeTOWeekDay -> REMOVED
 

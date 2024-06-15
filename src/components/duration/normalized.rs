@@ -2,34 +2,36 @@
 
 use std::ops::Add;
 
-use crate::{options::TemporalRoundingMode, utils, TemporalError, TemporalResult, NS_PER_DAY};
+use crate::{options::TemporalRoundingMode, rounding::{IncrementRounder, Round}, TemporalError, TemporalResult, NS_PER_DAY};
 
 use super::{DateDuration, TimeDuration};
 
-const MAX_TIME_DURATION: f64 = 2e53 * 10e9 - 1.0;
+const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 
 // TODO: This should be moved to i128
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
-pub struct NormalizedTimeDuration(pub(crate) f64);
+pub struct NormalizedTimeDuration(pub(crate) i128);
 
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
-        let minutes = time.minutes + time.hours * 60.0;
-        let seconds = time.seconds + minutes * 60.0;
-        let milliseconds = time.milliseconds + seconds * 1000.0;
-        let microseconds = time.microseconds + milliseconds * 1000.0;
-        let nanoseconds = time.nanoseconds + microseconds * 1000.0;
+        // TODO: Determine if there is a loss in precision from casting. If so, times by 1,000 (calculate in picoseconds) than truncate?
+        let minutes: i128 = time.minutes as i128 + time.hours as i128 * 60;
+        let seconds: i128 = time.seconds as i128 + minutes * 60;
+        let milliseconds: i128 = time.milliseconds as i128 + seconds * 1000;
+        let microseconds: i128 = time.microseconds as i128 + milliseconds * 1000;
+        let nanoseconds: i128 = time.nanoseconds as i128 + microseconds * 1000;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
         Self(nanoseconds)
     }
 
+    // NOTE: `days: f64` should be an integer.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     #[allow(unused)]
     pub(super) fn add_days(&self, days: f64) -> TemporalResult<Self> {
-        let result = self.0 + days * NS_PER_DAY as f64;
+        let result = self.0 + i128::from(days as i64 * NS_PER_DAY);
         if result.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
@@ -39,18 +41,28 @@ impl NormalizedTimeDuration {
 
     // TODO: Implement as `ops::Div`
     /// `Divide the NormalizedTimeDuraiton` by a divisor.
-    pub(super) fn divide(&self, divisor: i64) -> f64 {
+    pub(super) fn divide(&self, divisor: i64) -> i128 {
         // TODO: Validate.
-        self.0 / (divisor as f64)
+        self.0 / i128::from(divisor)
     }
 
+    // TODO: Use in algorithm update or remove.
+    #[allow(unused)]
+    pub(super) fn as_fractional_days(&self) -> f64 {
+        // TODO: Verify Max norm is within a castable f64 range.
+        let days: f64 = self.0.div_euclid(i128::from(NS_PER_DAY)) as f64;
+        let remainder:f64 = self.0.rem_euclid(i128::from(NS_PER_DAY)) as f64; 
+        days + (remainder / NS_PER_DAY as f64)
+    }
+
+    // TODO: Potentially abstract sign into `Sign` 
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     #[inline]
     #[must_use]
     pub(super) fn sign(&self) -> i32 {
-        if self.0 < 0.0 {
+        if self.0 < 0 {
             return -1;
-        } else if self.0 > 0.0 {
+        } else if self.0 > 0 {
             return 1;
         }
         0
@@ -58,23 +70,24 @@ impl NormalizedTimeDuration {
 
     /// Return the seconds value of the `NormalizedTimeDuration`.
     pub(crate) fn seconds(&self) -> i64 {
-        (self.0.div_euclid(1e9)).trunc() as i64
+        // SAFETY: See validate_second_cast test.
+        (self.0.div_euclid(1_000_000_000)) as i64
     }
 
     /// Returns the subsecond components of the `NormalizedTimeDuration`.
     pub(crate) fn subseconds(&self) -> i32 {
         // SAFETY: Remainder is 10e9 which is in range of i32
-        (self.0 % 10e9f64) as i32
+        (self.0.rem_euclid(1_000_000_000)) as i32
     }
 
     /// Round the current `NormalizedTimeDuration`.
     pub(super) fn round(&self, increment: u64, mode: TemporalRoundingMode) -> TemporalResult<Self> {
-        let rounded = utils::round_number_to_increment(self.0, increment as f64, mode);
-        if rounded.abs() > MAX_TIME_DURATION as i64 {
+        let rounded = IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment.into()).round(mode);
+        if rounded.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
         }
-        Ok(Self(rounded as f64))
+        Ok(Self(rounded))
     }
 }
 
@@ -108,4 +121,14 @@ impl NormalizedDurationRecord {
         }
         Ok(Self((date, norm)))
     }
+}
+
+mod tests {
+    #[test]
+    fn validate_seconds_cast() {
+        let max_seconds = super::MAX_TIME_DURATION.div_euclid(1_000_000_000);
+        assert!(max_seconds <= i64::MAX.into())
+    }
+
+    // TODO: test f64 cast.
 }

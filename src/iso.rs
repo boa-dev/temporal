@@ -21,6 +21,7 @@ use crate::{
     error::TemporalError,
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     utils, TemporalResult, NS_PER_DAY,
+    rounding::{IncrementRounder, Round},
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_bigint::BigInt;
@@ -616,13 +617,9 @@ impl IsoTime {
             unit.as_nanoseconds().expect("Only valid time values are ") as i64
         };
 
-        // TODO: Verify validity of cast or handle better.
+        // TODO: Verify validity of cast or handle better for result.
         // 9. Let result be RoundNumberToIncrement(quantity, increment, roundingMode).
-        let result = (utils::round_number_to_increment(
-            quantity as f64,
-            ((ns_per_unit as u64) * u64::from(increment.get())) as f64,
-            mode,
-        ) / ns_per_unit) as f64;
+        let result = IncrementRounder::<i128>::from_potentially_negative_parts(quantity.into(), ns_per_unit as i128 * u64::from(increment.get()) as i128).round(mode) / ns_per_unit as i128;
 
         let result = match unit {
             // 10. If unit is "day", then
@@ -630,18 +627,18 @@ impl IsoTime {
             TemporalUnit::Day => (result as i32, IsoTime::default()),
             // 11. If unit is "hour", then
             // a. Return BalanceTime(result, 0, 0, 0, 0, 0).
-            TemporalUnit::Hour => IsoTime::balance(result, 0.0, 0.0, 0.0, 0.0, 0.0),
+            TemporalUnit::Hour => IsoTime::balance(result as f64, 0.0, 0.0, 0.0, 0.0, 0.0),
             // 12. If unit is "minute", then
             // a. Return BalanceTime(hour, result, 0, 0, 0, 0).
             TemporalUnit::Minute => {
-                IsoTime::balance(f64::from(self.hour), result, 0.0, 0.0, 0.0, 0.0)
+                IsoTime::balance(f64::from(self.hour), result as f64, 0.0, 0.0, 0.0, 0.0)
             }
             // 13. If unit is "second", then
             // a. Return BalanceTime(hour, minute, result, 0, 0, 0).
             TemporalUnit::Second => IsoTime::balance(
                 f64::from(self.hour),
                 f64::from(self.minute),
-                result,
+                result as f64,
                 0.0,
                 0.0,
                 0.0,
@@ -652,7 +649,7 @@ impl IsoTime {
                 f64::from(self.hour),
                 f64::from(self.minute),
                 f64::from(self.second),
-                result,
+                result as f64,
                 0.0,
                 0.0,
             ),
@@ -663,7 +660,7 @@ impl IsoTime {
                 f64::from(self.minute),
                 f64::from(self.second),
                 f64::from(self.millisecond),
-                result,
+                result as f64,
                 0.0,
             ),
             // 16. Assert: unit is "nanosecond".
@@ -674,7 +671,7 @@ impl IsoTime {
                 f64::from(self.second),
                 f64::from(self.millisecond),
                 f64::from(self.microsecond),
-                result,
+                result as f64,
             ),
             _ => unreachable!("Error is thrown in previous match."),
         };

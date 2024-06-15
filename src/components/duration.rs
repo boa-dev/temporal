@@ -654,6 +654,8 @@ impl Duration {
     }
 }
 
+// TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.
+
 /// Utility function to check whether the `Duration` fields are valid.
 #[inline]
 #[must_use]

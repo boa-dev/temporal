@@ -1,9 +1,7 @@
 //! An implementation of the Temporal Instant.
 
 use crate::{
-    components::{duration::TimeDuration, Duration},
-    options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-    utils, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY,
+    components::{duration::TimeDuration, Duration}, options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit}, rounding::{IncrementRounder, Round}, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY
 };
 
 use num_bigint::BigInt;
@@ -116,11 +114,7 @@ impl Instant {
             }
         };
 
-        let rounded = utils::round_number_to_increment_as_if_positive(
-            self.to_f64(), // TODO: Update in numeric refactor.
-            increment as f64,
-            rounding_mode,
-        );
+        let rounded = IncrementRounder::<f64>::from_positive_parts(self.to_f64(), increment as f64).round_as_positive(rounding_mode);
 
         BigInt::from_u64(rounded)
             .ok_or_else(|| TemporalError::range().with_message("Invalid rounded Instant value."))

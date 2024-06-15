@@ -1,10 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    components::{duration::TimeDuration, Duration},
-    iso::IsoTime,
-    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-    TemporalError, TemporalResult,
+    components::{duration::TimeDuration, Duration}, iso::IsoTime, options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit}, TemporalError, TemporalResult
 };
 
 /// The native Rust implementation of `Temporal.PlainTime`.
