@@ -12,6 +12,11 @@ use super::{DateDuration, TimeDuration};
 
 const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 
+// Nanoseconds constants
+
+const NANOSECONDS_PER_MINUTE: f64 = 60.0 * 1e9;
+const NANOSECONDS_PER_HOUR: f64 = 60.0 * 60.0 * 1e9;
+
 // TODO: This should be moved to i128
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
@@ -21,11 +26,12 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
         // TODO: Determine if there is a loss in precision from casting. If so, times by 1,000 (calculate in picoseconds) than truncate?
-        let minutes: i128 = time.minutes as i128 + time.hours as i128 * 60;
-        let seconds: i128 = time.seconds as i128 + minutes * 60;
-        let milliseconds: i128 = time.milliseconds as i128 + seconds * 1000;
-        let microseconds: i128 = time.microseconds as i128 + milliseconds * 1000;
-        let nanoseconds: i128 = time.nanoseconds as i128 + microseconds * 1000;
+        let mut nanoseconds: i128 = (time.hours * NANOSECONDS_PER_HOUR) as i128;
+        nanoseconds += (time.minutes * NANOSECONDS_PER_MINUTE) as i128;
+        nanoseconds += (time.seconds * 1e9) as i128;
+        nanoseconds += (time.milliseconds * 1e6) as i128;
+        nanoseconds += (time.microseconds * 1_000.0) as i128;
+        nanoseconds += time.nanoseconds as i128;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
         Self(nanoseconds)

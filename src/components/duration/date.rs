@@ -9,7 +9,7 @@ use crate::{
         ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
     rounding::{IncrementRounder, Round},
-    TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::normalized::NormalizedTimeDuration;
@@ -478,7 +478,7 @@ impl DateDuration {
                 } else {
                     // TODO: fix the below cast
                     // i. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
-                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY) as f64
+                    self.days + normalized_time.unwrap_or_default().as_fractional_days()
                 }
                 // c. Set days to 0.
             }
