@@ -11,8 +11,8 @@ use num_traits::{ConstZero, Euclid, FromPrimitive, Signed};
 
 trait Roundable: PartialOrd {
     fn is_exact(&self) -> bool;
-    fn cmp_rem(&self) -> Option<Ordering>;
-    fn is_cardinal(&self) -> bool;
+    fn compare_remainder(&self) -> Option<Ordering>;
+    fn is_even_cardinal(&self) -> bool;
     fn result_floor(&self) -> u64;
     fn result_ceil(&self) -> u64;
 }
@@ -82,12 +82,16 @@ impl Roundable for IncrementRounder<i128> {
         self.dividend.rem_euclid(self.divisor) == 0
     }
 
-    fn cmp_rem(&self) -> Option<Ordering> {
+    fn compare_remainder(&self) -> Option<Ordering> {
         Some(
             self.dividend
                 .rem_euclid(self.divisor)
                 .cmp(&self.divisor.div_euclid(2)),
         )
+    }
+
+    fn is_even_cardinal(&self) -> bool {
+        self.result_floor().rem_euclid(2) == 0
     }
 
     fn result_floor(&self) -> u64 {
@@ -100,10 +104,6 @@ impl Roundable for IncrementRounder<i128> {
         // NOTE: Sanity debugs until proper unit tests to vet the below
         debug_assert!(self.quotient_abs() < u64::MAX as i128);
         self.quotient_abs() as u64 + 1
-    }
-
-    fn is_cardinal(&self) -> bool {
-        self.result_floor().rem_euclid(2) == 0
     }
 }
 
@@ -129,13 +129,13 @@ impl Roundable for IncrementRounder<f64> {
         self.quotient_abs() == self.quotient_abs().floor()
     }
 
-    fn cmp_rem(&self) -> Option<Ordering> {
+    fn compare_remainder(&self) -> Option<Ordering> {
         let d1 = self.quotient_abs() - self.quotient_abs().floor();
         let d2 = self.quotient_abs().ceil() - self.quotient_abs();
         d1.partial_cmp(&d2)
     }
 
-    fn is_cardinal(&self) -> bool {
+    fn is_even_cardinal(&self) -> bool {
         (self.quotient_abs().floor() / (self.quotient_abs().ceil() - self.quotient_abs().floor())
             % 2.0)
             == 0.0
@@ -176,7 +176,7 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
     // 7. Let d2 be r2 – x.
     // 8. If d1 < d2, return r1.
     // 9. If d2 < d1, return r2.
-    match roundable.cmp_rem() {
+    match roundable.compare_remainder() {
         Some(Ordering::Less) => roundable.result_floor(),
         Some(Ordering::Greater) => roundable.result_ceil(),
         Some(Ordering::Equal) => {
@@ -193,7 +193,7 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
             assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
             // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
             // 15. If cardinality is 0, return r1.
-            if roundable.is_cardinal() {
+            if roundable.is_even_cardinal() {
                 return roundable.result_floor();
             }
             // 16. Return r2.

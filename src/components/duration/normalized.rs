@@ -2,6 +2,8 @@
 
 use std::ops::Add;
 
+use num_traits::Euclid;
+
 use crate::{
     options::TemporalRoundingMode,
     rounding::{IncrementRounder, Round},
@@ -14,6 +16,7 @@ const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 
 // Nanoseconds constants
 
+const NS_PER_DAY_128BIT: i128 = NS_PER_DAY as i128;
 const NANOSECONDS_PER_MINUTE: f64 = 60.0 * 1e9;
 const NANOSECONDS_PER_HOUR: f64 = 60.0 * 60.0 * 1e9;
 
@@ -60,9 +63,8 @@ impl NormalizedTimeDuration {
     #[allow(unused)]
     pub(super) fn as_fractional_days(&self) -> f64 {
         // TODO: Verify Max norm is within a castable f64 range.
-        let days: f64 = self.0.div_euclid(i128::from(NS_PER_DAY)) as f64;
-        let remainder: f64 = self.0.rem_euclid(i128::from(NS_PER_DAY)) as f64;
-        days + (remainder / NS_PER_DAY as f64)
+        let (days, remainder) = self.0.div_rem_euclid(&NS_PER_DAY_128BIT);
+        days as f64 + (remainder as f64 / NS_PER_DAY as f64)
     }
 
     // TODO: Potentially abstract sign into `Sign`
