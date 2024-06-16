@@ -67,7 +67,7 @@ impl Round for IncrementRounder<i128> {
         if !self.sign {
             rounded = rounded.neg();
         }
-        rounded * self.divisor as i128
+        rounded * self.divisor
     }
 
     fn round_as_positive(&self, mode: TemporalRoundingMode) -> u64 {
@@ -158,7 +158,6 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
     // is_floor
     // 1. If x is equal to r1, return r1.
     if roundable.is_exact() {
-        println!("Is Exact");
         return roundable.result_floor();
     }
     // 2. Assert: r1 < x < r2.

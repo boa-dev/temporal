@@ -64,12 +64,7 @@ impl NormalizedTimeDuration {
     #[inline]
     #[must_use]
     pub(super) fn sign(&self) -> i32 {
-        if self.0 < 0 {
-            return -1;
-        } else if self.0 > 0 {
-            return 1;
-        }
-        0
+        self.0.cmp(&0) as i32
     }
 
     /// Return the seconds value of the `NormalizedTimeDuration`.
