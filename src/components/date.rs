@@ -9,9 +9,11 @@ use crate::{
         DateTime, Duration,
     },
     iso::{IsoDate, IsoDateSlots},
-    options::{ArithmeticOverflow, RelativeTo, TemporalRoundingMode, TemporalUnit},
+    options::{
+        ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+    },
     parsers::parse_date_time,
-    utils, TemporalError, TemporalResult, TemporalUnwrap,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
@@ -125,7 +127,7 @@ impl<C: CalendarProtocol> Date<C> {
         op: bool,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
         context: &mut C::Context,
@@ -142,7 +144,7 @@ impl<C: CalendarProtocol> Date<C> {
 
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
-        let increment = utils::to_rounding_increment(rounding_increment)?;
+        let rounding_increment = rounding_increment.unwrap_or_default();
         let (sign, rounding_mode) = if op {
             (
                 -1.0,
@@ -171,7 +173,8 @@ impl<C: CalendarProtocol> Date<C> {
 
         // 10. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1,
         // let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
-        let is_noop = smallest_unit == TemporalUnit::Day && rounding_increment == Some(1.0);
+        let is_noop =
+            smallest_unit == TemporalUnit::Day && rounding_increment == RoundingIncrement::ONE;
 
         // 12. Return ! CreateTemporalDuration(sign × result.[[Years]], sign × result.[[Months]], sign × result.[[Weeks]], sign × result.[[Days]], 0, 0, 0, 0, 0, 0).
         if is_noop {
@@ -195,7 +198,7 @@ impl<C: CalendarProtocol> Date<C> {
         // settings.[[RoundingMode]], temporalDate, calendarRec).
         // TODO: Look into simplifying round_internal's parameters.
         let round_record = result.round_internal(
-            increment,
+            rounding_increment,
             smallest_unit,
             rounding_mode,
             &RelativeTo::<C, ()> {
@@ -318,7 +321,7 @@ impl<C: CalendarProtocol> Date<C> {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
         context: &mut C::Context,
@@ -338,7 +341,7 @@ impl<C: CalendarProtocol> Date<C> {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
         context: &mut C::Context,
@@ -459,7 +462,7 @@ impl Date<()> {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {
@@ -478,7 +481,7 @@ impl Date<()> {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {

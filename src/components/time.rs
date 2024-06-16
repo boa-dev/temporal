@@ -3,7 +3,7 @@
 use crate::{
     components::{duration::TimeDuration, Duration},
     iso::IsoTime,
-    options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
+    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     utils, TemporalError, TemporalResult,
 };
 
@@ -54,7 +54,7 @@ impl Time {
         op: bool,
         other: &Time,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {
@@ -62,7 +62,7 @@ impl Time {
         // 2. Set other to ? ToTemporalTime(other).
         // 3. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 4. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, TIME, « », "nanosecond", "hour").
-        let increment = utils::to_rounding_increment(rounding_increment)?;
+        let rounding_increment = rounding_increment.unwrap_or_default();
         let (sign, rounding_mode) = if op {
             (
                 -1.0,
@@ -85,9 +85,11 @@ impl Time {
         let time = self.iso.diff(&other.iso);
 
         // 6. If settings.[[SmallestUnit]] is not "nanosecond" or settings.[[RoundingIncrement]] ≠ 1, then
-        let norm = if smallest_unit != TemporalUnit::Nanosecond || rounding_increment != Some(1.0) {
+        let norm = if smallest_unit != TemporalUnit::Nanosecond
+            || rounding_increment != RoundingIncrement::ONE
+        {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            let round_record = time.round(increment, smallest_unit, rounding_mode)?;
+            let round_record = time.round(rounding_increment, smallest_unit, rounding_mode)?;
             // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
             round_record.0
         } else {
@@ -219,7 +221,7 @@ impl Time {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {
@@ -241,7 +243,7 @@ impl Time {
         &self,
         other: &Self,
         rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<f64>,
+        rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {
