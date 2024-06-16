@@ -98,10 +98,11 @@ impl Instant {
     /// Rounds a current `Instant` given the resolved options, returning a `BigInt` result.
     pub(crate) fn round_instant(
         &self,
-        increment: u64,
+        increment: RoundingIncrement,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
     ) -> TemporalResult<BigInt> {
+        let increment = u64::from(increment.0.get());
         let increment = match unit {
             TemporalUnit::Hour => increment * (NANOSECONDS_PER_HOUR as u64),
             TemporalUnit::Minute => increment * (NANOSECONDS_PER_MINUTE as u64),
@@ -231,7 +232,7 @@ impl Instant {
         unit: TemporalUnit, // smallestUnit is required on Instant::round
         rounding_mode: Option<TemporalRoundingMode>,
     ) -> TemporalResult<Self> {
-        let increment = utils::to_rounding_increment(increment)?;
+        let increment = RoundingIncrement::try_from(increment.unwrap_or(1.0))?;
         let mode = rounding_mode.unwrap_or(TemporalRoundingMode::HalfExpand);
         let maximum = match unit {
             TemporalUnit::Hour => 24u64,
@@ -243,7 +244,7 @@ impl Instant {
             _ => return Err(TemporalError::range().with_message("Invalid roundTo unit provided.")),
         };
         // NOTE: to_rounding_increment returns an f64 within a u32 range.
-        utils::validate_temporal_rounding_increment(increment, maximum, true)?;
+        increment.validate(maximum, true)?;
 
         let round_result = self.round_instant(increment, unit, mode)?;
         Self::new(round_result)

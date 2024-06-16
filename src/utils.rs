@@ -4,29 +4,8 @@ use std::{cmp::Ordering, ops::Neg};
 
 use crate::{
     options::{TemporalRoundingMode, TemporalUnsignedRoundingMode},
-    TemporalError, TemporalResult, MS_PER_DAY,
+    MS_PER_DAY,
 };
-
-// NOTE: Review the below for optimizations and add ALOT of tests.
-
-/// Converts and validates an `Option<f64>` rounding increment value into a valid increment result.
-pub(crate) fn to_rounding_increment(increment: Option<f64>) -> TemporalResult<u64> {
-    let inc = increment.unwrap_or(1.0);
-
-    if !inc.is_finite() {
-        return Err(TemporalError::range().with_message("roundingIncrement must be finite."));
-    }
-
-    let integer = inc.trunc();
-
-    if !(1.0..=1_000_000_000f64).contains(&integer) {
-        return Err(
-            TemporalError::range().with_message("roundingIncrement is not within a valid range.")
-        );
-    }
-
-    Ok(integer as u64)
-}
 
 /// Applies the unsigned rounding mode.
 fn apply_unsigned_rounding_mode(
@@ -146,26 +125,6 @@ pub(crate) fn round_number_to_increment_as_if_positive(
     let rounded = apply_unsigned_rounding_mode(quotient, r1, r2, unsigned_rounding_mode);
     // 6. Return rounded × increment.
     rounded * (increment as u64)
-}
-
-pub(crate) fn validate_temporal_rounding_increment(
-    increment: u64,
-    dividend: u64,
-    inclusive: bool,
-) -> TemporalResult<()> {
-    let max = if inclusive { dividend } else { dividend - 1 };
-
-    if increment > max {
-        return Err(TemporalError::range().with_message("roundingIncrement exceeds maximum."));
-    }
-
-    if dividend.rem_euclid(increment) != 0 {
-        return Err(
-            TemporalError::range().with_message("dividend is not divisble by roundingIncrement.")
-        );
-    }
-
-    Ok(())
 }
 
 // ==== Begin Date Equations ====

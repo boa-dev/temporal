@@ -4,7 +4,7 @@ use crate::{
     components::{duration::TimeDuration, Duration},
     iso::IsoTime,
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-    utils, TemporalError, TemporalResult,
+    TemporalError, TemporalResult,
 };
 
 /// The native Rust implementation of `Temporal.PlainTime`.
@@ -265,7 +265,7 @@ impl Time {
         rounding_increment: Option<f64>,
         rounding_mode: Option<TemporalRoundingMode>,
     ) -> TemporalResult<Self> {
-        let increment = utils::to_rounding_increment(rounding_increment)?;
+        let increment = RoundingIncrement::try_from(rounding_increment.unwrap_or(1.0))?;
         let mode = rounding_mode.unwrap_or(TemporalRoundingMode::HalfExpand);
 
         let max = smallest_unit
@@ -275,7 +275,7 @@ impl Time {
             })?;
 
         // Safety (nekevss): to_rounding_increment returns a value in the range of a u32.
-        utils::validate_temporal_rounding_increment(increment, u64::from(max), false)?;
+        increment.validate(u64::from(max), false)?;
 
         let (_, result) = self.iso.round(increment, smallest_unit, mode, None)?;
 

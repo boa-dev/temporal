@@ -82,17 +82,22 @@ impl RoundingIncrement {
         unsafe { Self(NonZeroU32::new_unchecked(increment)) }
     }
 
+    /// Gets the numeric value of this `RoundingIncrement`.
+    pub const fn get(self) -> u32 {
+        self.0.get()
+    }
+
     // ValidateTemporalRoundingIncrement ( increment, dividend, inclusive )
     // https://tc39.es/proposal-temporal/#sec-validatetemporalroundingincrement
-    pub(crate) fn validate(self, dividend: u32, inclusive: bool) -> TemporalResult<()> {
+    pub(crate) fn validate(self, dividend: u64, inclusive: bool) -> TemporalResult<()> {
         // 1. If inclusive is true, then
         //     a. Let maximum be dividend.
         // 2. Else,
         //     a. Assert: dividend > 1.
         //     b. Let maximum be dividend - 1.
-        let max = dividend - u32::from(!inclusive);
+        let max = dividend - u64::from(!inclusive);
 
-        let increment = self.0.get();
+        let increment = u64::from(self.get());
 
         // 3. If increment > maximum, throw a RangeError exception.
         if increment > max {
@@ -152,7 +157,7 @@ impl TemporalUnit {
     #[inline]
     #[must_use]
     /// Returns the `MaximumRoundingIncrement` for the current `TemporalUnit`.
-    pub fn to_maximum_rounding_increment(self) -> Option<u16> {
+    pub fn to_maximum_rounding_increment(self) -> Option<u32> {
         use TemporalUnit::{
             Auto, Day, Hour, Microsecond, Millisecond, Minute, Month, Nanosecond, Second, Week,
             Year,
@@ -165,13 +170,15 @@ impl TemporalUnit {
         // a. Return 60.
         // 4. Assert: unit is one of "millisecond", "microsecond", or "nanosecond".
         // 5. Return 1000.
-        match self {
-            Year | Month | Week | Day => None,
-            Hour => Some(24),
-            Minute | Second => Some(60),
-            Millisecond | Microsecond | Nanosecond => Some(1000),
+        let max = match self {
+            Year | Month | Week | Day => return None,
+            Hour => 24,
+            Minute | Second => 60,
+            Millisecond | Microsecond | Nanosecond => 1000,
             Auto => unreachable!(),
-        }
+        };
+
+        Some(max)
     }
 
     // TODO: potentiall use a u64
