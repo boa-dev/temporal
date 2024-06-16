@@ -2,7 +2,11 @@
 
 use std::ops::Add;
 
-use crate::{options::TemporalRoundingMode, rounding::{IncrementRounder, Round}, TemporalError, TemporalResult, NS_PER_DAY};
+use crate::{
+    options::TemporalRoundingMode,
+    rounding::{IncrementRounder, Round},
+    TemporalError, TemporalResult, NS_PER_DAY,
+};
 
 use super::{DateDuration, TimeDuration};
 
@@ -51,11 +55,11 @@ impl NormalizedTimeDuration {
     pub(super) fn as_fractional_days(&self) -> f64 {
         // TODO: Verify Max norm is within a castable f64 range.
         let days: f64 = self.0.div_euclid(i128::from(NS_PER_DAY)) as f64;
-        let remainder:f64 = self.0.rem_euclid(i128::from(NS_PER_DAY)) as f64; 
+        let remainder: f64 = self.0.rem_euclid(i128::from(NS_PER_DAY)) as f64;
         days + (remainder / NS_PER_DAY as f64)
     }
 
-    // TODO: Potentially abstract sign into `Sign` 
+    // TODO: Potentially abstract sign into `Sign`
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     #[inline]
     #[must_use]
@@ -82,7 +86,9 @@ impl NormalizedTimeDuration {
 
     /// Round the current `NormalizedTimeDuration`.
     pub(super) fn round(&self, increment: u64, mode: TemporalRoundingMode) -> TemporalResult<Self> {
-        let rounded = IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment.into()).round(mode);
+        let rounded =
+            IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment.into())
+                .round(mode);
         if rounded.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));

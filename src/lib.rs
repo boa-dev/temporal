@@ -46,9 +46,9 @@ pub mod options;
 pub mod parsers;
 
 #[doc(hidden)]
-pub(crate) mod utils;
-#[doc(hidden)]
 pub(crate) mod rounding;
+#[doc(hidden)]
+pub(crate) mod utils;
 
 // TODO: evaluate positives and negatives of using tinystr.
 // Re-exporting tinystr as a convenience, as it is currently tied into the API.

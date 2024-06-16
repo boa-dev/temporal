@@ -20,8 +20,8 @@ use crate::{
     },
     error::TemporalError,
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-    utils, TemporalResult, NS_PER_DAY,
     rounding::{IncrementRounder, Round},
+    utils, TemporalResult, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_bigint::BigInt;
@@ -619,7 +619,12 @@ impl IsoTime {
 
         // TODO: Verify validity of cast or handle better for result.
         // 9. Let result be RoundNumberToIncrement(quantity, increment, roundingMode).
-        let result = IncrementRounder::<i128>::from_potentially_negative_parts(quantity.into(), ns_per_unit as i128 * u64::from(increment.get()) as i128).round(mode) / ns_per_unit as i128;
+        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
+            quantity.into(),
+            ns_per_unit as i128 * u64::from(increment.get()) as i128,
+        )
+        .round(mode)
+            / ns_per_unit as i128;
 
         let result = match unit {
             // 10. If unit is "day", then
