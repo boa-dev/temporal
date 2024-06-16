@@ -18,6 +18,10 @@ pub(crate) trait Roundable:
     fn result_floor(dividend: &Self, divisor: &Self) -> u64;
     fn result_ceil(dividend: &Self, divisor: &Self) -> u64;
     fn quotient_abs(dividend: &Self, divisor: &Self) -> Self {
+        // NOTE: Sanity debugs until proper unit tests to vet the below
+        debug_assert!(
+            <i128 as NumCast>::from((*dividend / *divisor).abs()) < Some(u64::MAX as i128)
+        );
         (*dividend / *divisor).abs()
     }
 }
@@ -92,14 +96,10 @@ impl Roundable for i128 {
     }
 
     fn result_floor(dividend: &Self, divisor: &Self) -> u64 {
-        // NOTE: Sanity debugs until proper unit tests to vet the below
-        debug_assert!((dividend / divisor).abs() < u64::MAX as i128);
         Roundable::quotient_abs(dividend, divisor) as u64
     }
 
     fn result_ceil(dividend: &Self, divisor: &Self) -> u64 {
-        // NOTE: Sanity debugs until proper unit tests to vet the below
-        debug_assert!((dividend / divisor).abs() < u64::MAX as i128);
         Roundable::quotient_abs(dividend, divisor) as u64 + 1
     }
 }
