@@ -12,7 +12,7 @@ fn get_round_result(
     mode: TemporalRoundingMode,
 ) -> Vec<i32> {
     test_duration
-        .round(None, Some(unit), None, Some(mode), &relative_to, &mut ())
+        .round(None, Some(unit), None, Some(mode), relative_to, &mut ())
         .unwrap()
         .fields()
         .iter()
