@@ -7,14 +7,19 @@ use std::{
     ops::{Div, Neg},
 };
 
-use num_traits::{ConstZero, Euclid, FromPrimitive, Signed};
+use num_traits::{ConstZero, Euclid, FromPrimitive, NumCast, Signed, ToPrimitive};
 
-trait Roundable: PartialOrd {
-    fn is_exact(&self) -> bool;
-    fn compare_remainder(&self) -> Option<Ordering>;
-    fn is_even_cardinal(&self) -> bool;
-    fn result_floor(&self) -> u64;
-    fn result_ceil(&self) -> u64;
+pub(crate) trait Roundable:
+    Euclid + Div + PartialOrd + Signed + FromPrimitive + ToPrimitive + NumCast + ConstZero + Copy
+{
+    fn is_exact(dividend: &Self, divisor: &Self) -> bool;
+    fn compare_remainder(dividend: &Self, divisor: &Self) -> Option<Ordering>;
+    fn is_even_cardinal(dividend: &Self, divisor: &Self) -> bool;
+    fn result_floor(dividend: &Self, divisor: &Self) -> u64;
+    fn result_ceil(dividend: &Self, divisor: &Self) -> u64;
+    fn quotient_abs(dividend: &Self, divisor: &Self) -> Self {
+        (*dividend / *divisor).abs()
+    }
 }
 
 pub(crate) trait Round {
@@ -23,17 +28,14 @@ pub(crate) trait Round {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub(crate) struct IncrementRounder<
-    T: Euclid + Div + PartialOrd + Signed + FromPrimitive + ConstZero + Copy,
-> {
+pub(crate) struct IncrementRounder<T: Roundable> {
     sign: bool,
     dividend: T,
     divisor: T,
 }
 
-impl<T: Euclid + PartialOrd + Signed + FromPrimitive + ConstZero + Copy> IncrementRounder<T> {
+impl<T: Roundable> IncrementRounder<T> {
     // ==== PUBLIC ====
-
     pub(crate) fn from_potentially_negative_parts(number: T, increment: T) -> Self {
         Self {
             sign: number / increment > T::ZERO,
@@ -51,153 +53,133 @@ impl<T: Euclid + PartialOrd + Signed + FromPrimitive + ConstZero + Copy> Increme
             divisor: increment,
         }
     }
-
-    // ==== PRIVATE ====
-
-    #[inline]
-    fn quotient_abs(&self) -> T {
-        (self.dividend / self.divisor).abs()
-    }
 }
 
-impl Round for IncrementRounder<i128> {
+impl<T: Roundable> Round for IncrementRounder<T> {
     fn round(&self, mode: TemporalRoundingMode) -> i128 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
-        let mut rounded = apply_unsigned_rounding_mode(self, unsigned_rounding_mode) as i128;
+        let mut rounded =
+            apply_unsigned_rounding_mode(&self.dividend, &self.divisor, unsigned_rounding_mode)
+                as i128;
         if !self.sign {
             rounded = rounded.neg();
         }
-        rounded * self.divisor
+        // TODO: Add unit tests for the below
+        rounded
+            * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
     }
 
     fn round_as_positive(&self, mode: TemporalRoundingMode) -> u64 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
-        let rounded = apply_unsigned_rounding_mode(self, unsigned_rounding_mode);
-        rounded * self.divisor as u64
+        let rounded =
+            apply_unsigned_rounding_mode(&self.dividend, &self.divisor, unsigned_rounding_mode);
+        // TODO: Add unit tests for the below
+        rounded * <u64 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
     }
 }
 
-impl Roundable for IncrementRounder<i128> {
-    fn is_exact(&self) -> bool {
-        self.dividend.rem_euclid(self.divisor) == 0
+impl Roundable for i128 {
+    fn is_exact(dividend: &Self, divisor: &Self) -> bool {
+        dividend.rem_euclid(divisor) == 0
     }
 
-    fn compare_remainder(&self) -> Option<Ordering> {
-        Some(
-            self.dividend
-                .rem_euclid(self.divisor)
-                .cmp(&self.divisor.div_euclid(2)),
-        )
+    fn compare_remainder(dividend: &Self, divisor: &Self) -> Option<Ordering> {
+        Some(dividend.rem_euclid(divisor).cmp(&divisor.div_euclid(&2)))
     }
 
-    fn is_even_cardinal(&self) -> bool {
-        self.result_floor().rem_euclid(2) == 0
+    fn is_even_cardinal(dividend: &Self, divisor: &Self) -> bool {
+        Roundable::result_floor(dividend, divisor).rem_euclid(2) == 0
     }
 
-    fn result_floor(&self) -> u64 {
+    fn result_floor(dividend: &Self, divisor: &Self) -> u64 {
         // NOTE: Sanity debugs until proper unit tests to vet the below
-        debug_assert!(self.quotient_abs() < u64::MAX as i128);
-        self.quotient_abs() as u64
+        debug_assert!((dividend / divisor).abs() < u64::MAX as i128);
+        Roundable::quotient_abs(dividend, divisor) as u64
     }
 
-    fn result_ceil(&self) -> u64 {
+    fn result_ceil(dividend: &Self, divisor: &Self) -> u64 {
         // NOTE: Sanity debugs until proper unit tests to vet the below
-        debug_assert!(self.quotient_abs() < u64::MAX as i128);
-        self.quotient_abs() as u64 + 1
+        debug_assert!((dividend / divisor).abs() < u64::MAX as i128);
+        Roundable::quotient_abs(dividend, divisor) as u64 + 1
     }
 }
 
-impl Round for IncrementRounder<f64> {
-    fn round(&self, mode: TemporalRoundingMode) -> i128 {
-        let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
-        let mut rounded = apply_unsigned_rounding_mode(self, unsigned_rounding_mode) as i128;
-        if !self.sign {
-            rounded = rounded.neg();
-        }
-        rounded * self.divisor as i128
+impl Roundable for f64 {
+    fn is_exact(dividend: &Self, divisor: &Self) -> bool {
+        Roundable::quotient_abs(dividend, divisor)
+            == Roundable::quotient_abs(dividend, divisor).floor()
     }
 
-    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u64 {
-        let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
-        let rounded = apply_unsigned_rounding_mode(self, unsigned_rounding_mode);
-        rounded * self.divisor as u64
-    }
-}
-
-impl Roundable for IncrementRounder<f64> {
-    fn is_exact(&self) -> bool {
-        self.quotient_abs() == self.quotient_abs().floor()
-    }
-
-    fn compare_remainder(&self) -> Option<Ordering> {
-        let d1 = self.quotient_abs() - self.quotient_abs().floor();
-        let d2 = self.quotient_abs().ceil() - self.quotient_abs();
+    fn compare_remainder(dividend: &Self, divisor: &Self) -> Option<Ordering> {
+        let quotient = Roundable::quotient_abs(dividend, divisor);
+        let d1 = quotient - quotient.floor();
+        let d2 = quotient.ceil() - quotient;
         d1.partial_cmp(&d2)
     }
 
-    fn is_even_cardinal(&self) -> bool {
-        (self.quotient_abs().floor() / (self.quotient_abs().ceil() - self.quotient_abs().floor())
-            % 2.0)
-            == 0.0
+    fn is_even_cardinal(dividend: &Self, divisor: &Self) -> bool {
+        let quotient = Roundable::quotient_abs(dividend, divisor);
+        (quotient.floor() / (quotient.ceil() - quotient.floor()) % 2.0) == 0.0
     }
 
-    fn result_floor(&self) -> u64 {
-        self.quotient_abs().floor() as u64
+    fn result_floor(dividend: &Self, divisor: &Self) -> u64 {
+        Roundable::quotient_abs(dividend, divisor).floor() as u64
     }
 
-    fn result_ceil(&self) -> u64 {
-        self.quotient_abs().ceil() as u64
+    fn result_ceil(dividend: &Self, divisor: &Self) -> u64 {
+        Roundable::quotient_abs(dividend, divisor).ceil() as u64
     }
 }
 
 /// Applies the unsigned rounding mode.
 fn apply_unsigned_rounding_mode<T: Roundable>(
-    roundable: &T,
+    dividend: &T,
+    divisor: &T,
     unsigned_rounding_mode: TemporalUnsignedRoundingMode,
 ) -> u64 {
     // is_floor
     // 1. If x is equal to r1, return r1.
-    if roundable.is_exact() {
-        return roundable.result_floor();
+    if Roundable::is_exact(dividend, divisor) {
+        return Roundable::result_floor(dividend, divisor);
     }
     // 2. Assert: r1 < x < r2.
     // 3. Assert: unsignedRoundingMode is not undefined.
 
     // 4. If unsignedRoundingMode is zero, return r1.
     if unsigned_rounding_mode == TemporalUnsignedRoundingMode::Zero {
-        return roundable.result_floor();
+        return Roundable::result_floor(dividend, divisor);
     };
     // 5. If unsignedRoundingMode is infinity, return r2.
     if unsigned_rounding_mode == TemporalUnsignedRoundingMode::Infinity {
-        return roundable.result_ceil();
+        return Roundable::result_ceil(dividend, divisor);
     };
 
     // 6. Let d1 be x – r1.
     // 7. Let d2 be r2 – x.
     // 8. If d1 < d2, return r1.
     // 9. If d2 < d1, return r2.
-    match roundable.compare_remainder() {
-        Some(Ordering::Less) => roundable.result_floor(),
-        Some(Ordering::Greater) => roundable.result_ceil(),
+    match Roundable::compare_remainder(dividend, divisor) {
+        Some(Ordering::Less) => Roundable::result_floor(dividend, divisor),
+        Some(Ordering::Greater) => Roundable::result_ceil(dividend, divisor),
         Some(Ordering::Equal) => {
             // 10. Assert: d1 is equal to d2.
             // 11. If unsignedRoundingMode is half-zero, return r1.
             if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfZero {
-                return roundable.result_floor();
+                return Roundable::result_floor(dividend, divisor);
             };
             // 12. If unsignedRoundingMode is half-infinity, return r2.
             if unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfInfinity {
-                return roundable.result_ceil();
+                return Roundable::result_ceil(dividend, divisor);
             };
             // 13. Assert: unsignedRoundingMode is half-even.
             assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
             // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
             // 15. If cardinality is 0, return r1.
-            if roundable.is_even_cardinal() {
-                return roundable.result_floor();
+            if Roundable::is_even_cardinal(dividend, divisor) {
+                return Roundable::result_floor(dividend, divisor);
             }
             // 16. Return r2.
-            roundable.result_ceil()
+            Roundable::result_ceil(dividend, divisor)
         }
         None => unreachable!(),
     }
