@@ -1,4 +1,4 @@
-//! Implementation of increment rounding functionality 
+//! Implementation of increment rounding functionality
 
 use crate::options::{TemporalRoundingMode, TemporalUnsignedRoundingMode};
 
