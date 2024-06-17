@@ -81,19 +81,19 @@ impl TemporalUnit {
     // TODO: potentiall use a u64
     /// Returns the `Nanosecond amount for any given value.`
     #[must_use]
-    pub fn as_nanoseconds(&self) -> Option<f64> {
+    pub fn as_nanoseconds(&self) -> Option<u64> {
         use TemporalUnit::{
             Auto, Day, Hour, Microsecond, Millisecond, Minute, Month, Nanosecond, Second, Week,
             Year,
         };
         match self {
             Year | Month | Week | Day | Auto => None,
-            Hour => Some(3600e9),
-            Minute => Some(60e9),
-            Second => Some(1e9),
-            Millisecond => Some(1e6),
-            Microsecond => Some(1e3),
-            Nanosecond => Some(1f64),
+            Hour => Some(3_600_000_000_000),
+            Minute => Some(60_000_000_000),
+            Second => Some(1_000_000_000),
+            Millisecond => Some(1_000_000),
+            Microsecond => Some(1_000),
+            Nanosecond => Some(1),
         }
     }
 

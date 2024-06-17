@@ -1,8 +1,10 @@
 //! An implementation of `TimeDuration` and it's methods.
 
+use std::num::NonZeroU64;
+
 use crate::{
     options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-    TemporalError, TemporalResult,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{is_valid_duration, normalized::NormalizedTimeDuration};
@@ -373,7 +375,6 @@ impl TimeDuration {
         unit: TemporalUnit,
         mode: TemporalRoundingMode,
     ) -> TemporalResult<(NormalizedTimeDuration, i64)> {
-        let increment = u64::from(increment.0.get());
         let norm = match unit {
             TemporalUnit::Year
             | TemporalUnit::Month
@@ -393,7 +394,11 @@ impl TimeDuration {
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
                 let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_HOUR * increment, mode)?;
+                let increment_mul_divisor = increment
+                    .as_extended_increment()
+                    .checked_mul(unsafe { NonZeroU64::new_unchecked(NANOSECONDS_PER_HOUR) })
+                    .temporal_unwrap()?;
+                let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
             }
             // 13. Else if unit is "minute", then
@@ -402,7 +407,11 @@ impl TimeDuration {
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
                 let total = norm.divide(NANOSECONDS_PER_MINUTE as i64);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_MINUTE * increment, mode)?;
+                let increment_mul_divisor = increment
+                    .as_extended_increment()
+                    .checked_mul(unsafe { NonZeroU64::new_unchecked(NANOSECONDS_PER_MINUTE) })
+                    .temporal_unwrap()?;
+                let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
             }
             // 14. Else if unit is "second", then
@@ -411,7 +420,11 @@ impl TimeDuration {
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
                 let total = norm.divide(NANOSECONDS_PER_SECOND as i64);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(NANOSECONDS_PER_SECOND * increment, mode)?;
+                let increment_mul_divisor = increment
+                    .as_extended_increment()
+                    .checked_mul(unsafe { NonZeroU64::new_unchecked(NANOSECONDS_PER_SECOND) })
+                    .temporal_unwrap()?;
+                let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
             }
             // 15. Else if unit is "millisecond", then
@@ -420,7 +433,11 @@ impl TimeDuration {
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
                 let total = norm.divide(1_000_000);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(1_000_000 * increment, mode)?;
+                let increment_mul_divisor = increment
+                    .as_extended_increment()
+                    .checked_mul(unsafe { NonZeroU64::new_unchecked(1_000_000) })
+                    .temporal_unwrap()?;
+                let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
             }
             // 16. Else if unit is "microsecond", then
@@ -429,7 +446,11 @@ impl TimeDuration {
                 // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
                 let total = norm.divide(1_000);
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(1_000 * increment, mode)?;
+                let increment_mul_divisor = increment
+                    .as_extended_increment()
+                    .checked_mul(unsafe { NonZeroU64::new_unchecked(1_000) })
+                    .temporal_unwrap()?;
+                let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
             }
             // 17. Else,
@@ -439,7 +460,7 @@ impl TimeDuration {
                 let total =
                     norm.seconds() * (NANOSECONDS_PER_SECOND as i64) + i64::from(norm.subseconds());
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, increment, roundingMode).
-                let norm = norm.round(increment, mode)?;
+                let norm = norm.round(increment.as_extended_increment(), mode)?;
                 Ok((norm, total))
             }
             _ => unreachable!("All other units early return error."),

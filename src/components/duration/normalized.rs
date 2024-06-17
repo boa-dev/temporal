@@ -1,6 +1,6 @@
 //! This module implements the normalized `Duration` records.
 
-use std::ops::Add;
+use std::{num::NonZeroU64, ops::Add};
 
 use num_traits::Euclid;
 
@@ -40,11 +40,11 @@ impl NormalizedTimeDuration {
         Self(nanoseconds)
     }
 
-    // NOTE: `days: f64` should be an integer.
+    // NOTE: `days: f64` should be an integer -> `i64`.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     #[allow(unused)]
-    pub(super) fn add_days(&self, days: f64) -> TemporalResult<Self> {
-        let result = self.0 + i128::from(days as i64 * NS_PER_DAY);
+    pub(super) fn add_days(&self, days: i64) -> TemporalResult<Self> {
+        let result = self.0 + i128::from(days * NS_PER_DAY as i64);
         if result.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
@@ -88,10 +88,13 @@ impl NormalizedTimeDuration {
     }
 
     /// Round the current `NormalizedTimeDuration`.
-    pub(super) fn round(&self, increment: u64, mode: TemporalRoundingMode) -> TemporalResult<Self> {
-        let rounded =
-            IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment.into())
-                .round(mode);
+    pub(super) fn round(
+        &self,
+        increment: NonZeroU64,
+        mode: TemporalRoundingMode,
+    ) -> TemporalResult<Self> {
+        let rounded = IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment)?
+            .round(mode);
         if rounded.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));

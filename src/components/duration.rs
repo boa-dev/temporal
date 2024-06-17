@@ -614,7 +614,7 @@ impl Duration {
         } else {
             // NOTE: DateDuration::round will always return a NormalizedTime::default as per spec.
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
-            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days)?;
+            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days as i64)?;
             // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
             TimeDuration::from_normalized(norm_with_days, largest_unit)?
         };
