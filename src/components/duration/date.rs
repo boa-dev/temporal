@@ -581,11 +581,9 @@ impl DateDuration {
                 let frac_years = years + (fractional_days / one_year_days.abs());
 
                 // ab. Set years to RoundNumberToIncrement(fractionalYears, increment, roundingMode).
-                let rounded_years = IncrementRounder::<f64>::from_potentially_negative_parts(
-                    frac_years,
-                    increment,
-                )
-                .round(rounding_mode);
+                let rounded_years =
+                    IncrementRounder::<f64>::from_potentially_negative_parts(frac_years, increment)
+                        .round(rounding_mode);
 
                 // ac. Set total to fractionalYears.
                 // ad. Set months and weeks to 0.
@@ -721,11 +719,9 @@ impl DateDuration {
                 let frac_weeks = weeks + fractional_days / one_week_days.abs();
 
                 // k. Set weeks to RoundNumberToIncrement(fractionalWeeks, increment, roundingMode).
-                let rounded_weeks = IncrementRounder::<f64>::from_potentially_negative_parts(
-                    frac_weeks,
-                    increment,
-                )
-                .round(rounding_mode);
+                let rounded_weeks =
+                    IncrementRounder::<f64>::from_potentially_negative_parts(frac_weeks, increment)
+                        .round(rounding_mode);
                 // l. Set total to fractionalWeeks.
                 let result = Self::new(self.years, self.months, rounded_weeks as f64, 0f64)?;
                 Ok((result, frac_weeks))
@@ -735,7 +731,7 @@ impl DateDuration {
                 // a. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
                 let rounded_days = IncrementRounder::<f64>::from_potentially_negative_parts(
                     fractional_days,
-                    increment as f64,
+                    increment,
                 )
                 .round(rounding_mode);
 
