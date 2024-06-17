@@ -19,7 +19,7 @@ use crate::{
         Date, Duration,
     },
     error::TemporalError,
-    options::{ArithmeticOverflow, TemporalRoundingMode, TemporalUnit},
+    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     utils, TemporalResult, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
@@ -550,7 +550,7 @@ impl IsoTime {
     /// Rounds the current `IsoTime` according to the provided settings.
     pub(crate) fn round(
         &self,
-        increment: u64,
+        increment: RoundingIncrement,
         unit: TemporalUnit,
         mode: TemporalRoundingMode,
         day_length_ns: Option<i64>,
@@ -620,7 +620,7 @@ impl IsoTime {
         // 9. Let result be RoundNumberToIncrement(quantity, increment, roundingMode).
         let result = (utils::round_number_to_increment(
             quantity as f64,
-            ((ns_per_unit as u64) * increment) as f64,
+            ((ns_per_unit as u64) * u64::from(increment.get())) as f64,
             mode,
         ) / ns_per_unit) as f64;
 
