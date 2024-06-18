@@ -614,26 +614,32 @@ impl<C: CalendarProtocol> Date<C> {
     ///
     /// If no time is provided, then the time will default to midnight.
     #[inline]
-    pub fn to_date_time(&self, time: Option<Time>) -> TemporalResult<DateTime<C>> {
+    pub fn to_date_time(this: &C::Date, time: Option<Time>) -> TemporalResult<DateTime<C>> {
         let time = time.unwrap_or_default();
-        let iso = IsoDateTime::new(self.iso, time.iso)?;
-        Ok(DateTime::<C>::new_unchecked(iso, self.calendar().clone()))
+        let iso = IsoDateTime::new(this.iso_date(), time.iso)?;
+        Ok(DateTime::<C>::new_unchecked(iso, this.get_calendar()))
     }
 
     /// Converts the current `Date<C>` into a `YearMonth<C>`
     #[inline]
-    pub fn to_year_month(&self, context: &mut C::Context) -> TemporalResult<YearMonth<C>> {
-        let mut fields: TemporalFields = self.iso.into();
-        self.calendar()
-            .year_month_from_fields(&mut fields, ArithmeticOverflow::Constrain, context)
+    pub fn to_year_month(this: &C::Date, context: &mut C::Context) -> TemporalResult<YearMonth<C>> {
+        let mut fields: TemporalFields = this.iso_date().into();
+        this.get_calendar().year_month_from_fields(
+            &mut fields,
+            ArithmeticOverflow::Constrain,
+            context,
+        )
     }
 
     /// Converts the current `Date<C>` into a `MonthDay<C>`
     #[inline]
-    pub fn to_month_day(&self, context: &mut C::Context) -> TemporalResult<MonthDay<C>> {
-        let mut fields: TemporalFields = self.iso.into();
-        self.calendar()
-            .month_day_from_fields(&mut fields, ArithmeticOverflow::Constrain, context)
+    pub fn to_month_day(this: &C::Date, context: &mut C::Context) -> TemporalResult<MonthDay<C>> {
+        let mut fields: TemporalFields = this.iso_date().into();
+        this.get_calendar().month_day_from_fields(
+            &mut fields,
+            ArithmeticOverflow::Constrain,
+            context,
+        )
     }
 }
 
