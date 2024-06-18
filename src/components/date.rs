@@ -8,18 +8,19 @@ use crate::{
         duration::DateDuration,
         DateTime, Duration,
     },
-    iso::{IsoDate, IsoDateSlots},
+    iso::{IsoDate, IsoDateSlots, IsoDateTime},
     options::{
         ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
     parsers::parse_date_time,
-    TemporalError, TemporalResult, TemporalUnwrap,
+    TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
 use super::{
     calendar::{CalendarDateLike, GetCalendarSlot},
     duration::TimeDuration,
+    MonthDay, Time, YearMonth,
 };
 
 /// The native Rust implementation of `Temporal.PlainDate`.
@@ -51,6 +52,7 @@ impl<C: CalendarProtocol> Date<C> {
         let days = f64::from(self.days_until(&new_date));
         Ok((new_date, days))
     }
+
     /// Returns the date after adding the given duration to date with a provided context.
     ///
     /// Temporal Equivalent: 3.5.13 `AddDate ( calendar, plainDate, duration [ , options [ , dateAdd ] ] )`
@@ -600,6 +602,38 @@ impl<C: CalendarProtocol> Date<C> {
     ) -> TemporalResult<bool> {
         this.get_calendar()
             .in_leap_year(&CalendarDateLike::CustomDate(this.clone()), context)
+    }
+}
+
+// ==== ToX Methods ====
+
+impl<C: CalendarProtocol> Date<C> {
+    /// Converts the current `Date<C>` into a `DateTime<C>`
+    ///
+    /// # Notes
+    ///
+    /// If no time is provided, then the time will default to midnight.
+    #[inline]
+    pub fn to_date_time(&self, time: Option<Time>) -> TemporalResult<DateTime<C>> {
+        let time = time.unwrap_or_default();
+        let iso = IsoDateTime::new(self.iso, time.iso)?;
+        Ok(DateTime::<C>::new_unchecked(iso, self.calendar().clone()))
+    }
+
+    /// Converts the current `Date<C>` into a `YearMonth<C>`
+    #[inline]
+    pub fn to_year_month(&self, context: &mut C::Context) -> TemporalResult<YearMonth<C>> {
+        let mut fields: TemporalFields = self.iso.into();
+        self.calendar()
+            .year_month_from_fields(&mut fields, ArithmeticOverflow::Constrain, context)
+    }
+
+    /// Converts the current `Date<C>` into a `MonthDay<C>`
+    #[inline]
+    pub fn to_month_day(&self, context: &mut C::Context) -> TemporalResult<MonthDay<C>> {
+        let mut fields: TemporalFields = self.iso.into();
+        self.calendar()
+            .month_day_from_fields(&mut fields, ArithmeticOverflow::Constrain, context)
     }
 }
 
