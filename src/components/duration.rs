@@ -614,7 +614,7 @@ impl Duration {
         } else {
             // NOTE: DateDuration::round will always return a NormalizedTime::default as per spec.
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundResult.[[NormalizedTime]], roundResult.[[Days]]).
-            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days)?;
+            let norm_with_days = round_result.0 .1.add_days(round_result.0 .0.days as i64)?;
             // b. Let balanceResult be BalanceTimeDuration(normWithDays, largestUnit).
             TimeDuration::from_normalized(norm_with_days, largest_unit)?
         };
@@ -653,6 +653,8 @@ impl Duration {
         )
     }
 }
+
+// TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.
 
 /// Utility function to check whether the `Duration` fields are valid.
 #[inline]

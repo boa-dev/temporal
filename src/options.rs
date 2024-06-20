@@ -81,19 +81,19 @@ impl TemporalUnit {
     // TODO: potentiall use a u64
     /// Returns the `Nanosecond amount for any given value.`
     #[must_use]
-    pub fn as_nanoseconds(&self) -> Option<f64> {
+    pub fn as_nanoseconds(&self) -> Option<u64> {
         use TemporalUnit::{
             Auto, Day, Hour, Microsecond, Millisecond, Minute, Month, Nanosecond, Second, Week,
             Year,
         };
         match self {
             Year | Month | Week | Day | Auto => None,
-            Hour => Some(3600e9),
-            Minute => Some(60e9),
-            Second => Some(1e9),
-            Millisecond => Some(1e6),
-            Microsecond => Some(1e3),
-            Nanosecond => Some(1f64),
+            Hour => Some(3_600_000_000_000),
+            Minute => Some(60_000_000_000),
+            Second => Some(1_000_000_000),
+            Millisecond => Some(1_000_000),
+            Microsecond => Some(1_000),
+            Nanosecond => Some(1),
         }
     }
 
@@ -420,19 +420,19 @@ impl TemporalRoundingMode {
     #[inline]
     #[must_use]
     /// Returns the `UnsignedRoundingMode`
-    pub const fn get_unsigned_round_mode(self, is_negative: bool) -> TemporalUnsignedRoundingMode {
+    pub const fn get_unsigned_round_mode(self, is_positive: bool) -> TemporalUnsignedRoundingMode {
         use TemporalRoundingMode::{
             Ceil, Expand, Floor, HalfCeil, HalfEven, HalfExpand, HalfFloor, HalfTrunc, Trunc,
         };
 
         match self {
-            Ceil if !is_negative => TemporalUnsignedRoundingMode::Infinity,
+            Ceil if is_positive => TemporalUnsignedRoundingMode::Infinity,
             Ceil => TemporalUnsignedRoundingMode::Zero,
-            Floor if !is_negative => TemporalUnsignedRoundingMode::Zero,
+            Floor if is_positive => TemporalUnsignedRoundingMode::Zero,
             Floor | Trunc | Expand => TemporalUnsignedRoundingMode::Infinity,
-            HalfCeil if !is_negative => TemporalUnsignedRoundingMode::HalfInfinity,
+            HalfCeil if is_positive => TemporalUnsignedRoundingMode::HalfInfinity,
             HalfCeil | HalfTrunc => TemporalUnsignedRoundingMode::HalfZero,
-            HalfFloor if !is_negative => TemporalUnsignedRoundingMode::HalfZero,
+            HalfFloor if is_positive => TemporalUnsignedRoundingMode::HalfZero,
             HalfFloor | HalfExpand => TemporalUnsignedRoundingMode::HalfInfinity,
             HalfEven => TemporalUnsignedRoundingMode::HalfEven,
         }

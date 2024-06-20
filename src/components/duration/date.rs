@@ -8,7 +8,8 @@ use crate::{
     options::{
         ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
-    utils, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    rounding::{IncrementRounder, Round},
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::normalized::NormalizedTimeDuration;
@@ -447,8 +448,6 @@ impl DateDuration {
         _precalculated_dt: Option<DateTime<C>>,
         context: &mut C::Context,
     ) -> TemporalResult<(Self, f64)> {
-        let increment = f64::from(increment.0.get());
-
         // 1. If plainRelativeTo is not present, set plainRelativeTo to undefined.
         let plain_relative_to = relative_to.date;
         // 2. If zonedRelativeTo is not present, set zonedRelativeTo to undefined.
@@ -475,8 +474,9 @@ impl DateDuration {
                     return Err(TemporalError::general("Not yet implemented."));
                 // b. Else,
                 } else {
+                    // TODO: fix the below cast
                     // i. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
-                    self.days + normalized_time.unwrap_or_default().divide(NS_PER_DAY)
+                    self.days + normalized_time.unwrap_or_default().as_fractional_days()
                 }
                 // c. Set days to 0.
             }
@@ -579,8 +579,11 @@ impl DateDuration {
                 let frac_years = years + (fractional_days / one_year_days.abs());
 
                 // ab. Set years to RoundNumberToIncrement(fractionalYears, increment, roundingMode).
-                let rounded_years =
-                    utils::round_number_to_increment(frac_years, increment, rounding_mode);
+                let rounded_years = IncrementRounder::<f64>::from_potentially_negative_parts(
+                    frac_years,
+                    increment.as_extended_increment(),
+                )?
+                .round(rounding_mode);
 
                 // ac. Set total to fractionalYears.
                 // ad. Set months and weeks to 0.
@@ -661,8 +664,11 @@ impl DateDuration {
                 let frac_months = months + fractional_days / one_month_days.abs();
 
                 // r. Set months to RoundNumberToIncrement(fractionalMonths, increment, roundingMode).
-                let rounded_months =
-                    utils::round_number_to_increment(frac_months, increment, rounding_mode);
+                let rounded_months = IncrementRounder::<f64>::from_potentially_negative_parts(
+                    frac_months,
+                    increment.as_extended_increment(),
+                )?
+                .round(rounding_mode);
 
                 // s. Set total to fractionalMonths.
                 // t. Set weeks to 0.
@@ -713,8 +719,11 @@ impl DateDuration {
                 let frac_weeks = weeks + fractional_days / one_week_days.abs();
 
                 // k. Set weeks to RoundNumberToIncrement(fractionalWeeks, increment, roundingMode).
-                let rounded_weeks =
-                    utils::round_number_to_increment(frac_weeks, increment, rounding_mode);
+                let rounded_weeks = IncrementRounder::<f64>::from_potentially_negative_parts(
+                    frac_weeks,
+                    increment.as_extended_increment(),
+                )?
+                .round(rounding_mode);
                 // l. Set total to fractionalWeeks.
                 let result = Self::new(self.years, self.months, rounded_weeks as f64, 0f64)?;
                 Ok((result, frac_weeks))
@@ -722,8 +731,11 @@ impl DateDuration {
             // 11. Else if unit is "day", then
             TemporalUnit::Day => {
                 // a. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
-                let rounded_days =
-                    utils::round_number_to_increment(fractional_days, increment, rounding_mode);
+                let rounded_days = IncrementRounder::<f64>::from_potentially_negative_parts(
+                    fractional_days,
+                    increment.as_extended_increment(),
+                )?
+                .round(rounding_mode);
 
                 // b. Set total to fractionalDays.
                 // c. Set norm to ZeroTimeDuration().

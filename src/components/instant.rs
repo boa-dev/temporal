@@ -1,9 +1,12 @@
 //! An implementation of the Temporal Instant.
 
+use std::num::NonZeroU64;
+
 use crate::{
     components::{duration::TimeDuration, Duration},
     options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-    utils, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY,
+    rounding::{IncrementRounder, Round},
+    TemporalError, TemporalResult, TemporalUnwrap, MS_PER_DAY, NS_PER_DAY,
 };
 
 use num_bigint::BigInt;
@@ -102,25 +105,34 @@ impl Instant {
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
     ) -> TemporalResult<BigInt> {
-        let increment = u64::from(increment.0.get());
+        let increment = increment.as_extended_increment();
         let increment = match unit {
-            TemporalUnit::Hour => increment * (NANOSECONDS_PER_HOUR as u64),
-            TemporalUnit::Minute => increment * (NANOSECONDS_PER_MINUTE as u64),
-            TemporalUnit::Second => increment * (NANOSECONDS_PER_SECOND as u64),
-            TemporalUnit::Millisecond => increment * 1_000_000,
-            TemporalUnit::Microsecond => increment * 1_000,
-            TemporalUnit::Nanosecond => increment,
+            TemporalUnit::Hour => increment
+                .checked_mul(NonZeroU64::new(NANOSECONDS_PER_HOUR as u64).temporal_unwrap()?),
+            TemporalUnit::Minute => increment
+                .checked_mul(NonZeroU64::new(NANOSECONDS_PER_MINUTE as u64).temporal_unwrap()?),
+            TemporalUnit::Second => increment
+                .checked_mul(NonZeroU64::new(NANOSECONDS_PER_SECOND as u64).temporal_unwrap()?),
+            TemporalUnit::Millisecond => {
+                increment.checked_mul(NonZeroU64::new(1_000_000).temporal_unwrap()?)
+            }
+            TemporalUnit::Microsecond => {
+                increment.checked_mul(NonZeroU64::new(1_000).temporal_unwrap()?)
+            }
+            TemporalUnit::Nanosecond => Some(increment),
             _ => {
                 return Err(TemporalError::range()
                     .with_message("Invalid unit provided for Instant::round."))
             }
         };
 
-        let rounded = utils::round_number_to_increment_as_if_positive(
-            self.to_f64(), // TODO: Update in numeric refactor.
-            increment as f64,
-            rounding_mode,
-        );
+        // NOTE: Potentially remove the below and just `temporal_unwrap`
+        let Some(increment) = increment else {
+            return Err(TemporalError::range().with_message("Increment exceeded a valid range."));
+        };
+
+        let rounded = IncrementRounder::<f64>::from_positive_parts(self.to_f64(), increment)?
+            .round_as_positive(rounding_mode);
 
         BigInt::from_u64(rounded)
             .ok_or_else(|| TemporalError::range().with_message("Invalid rounded Instant value."))
@@ -240,7 +252,7 @@ impl Instant {
             TemporalUnit::Second => 24 * 3600,
             TemporalUnit::Millisecond => MS_PER_DAY as u64,
             TemporalUnit::Microsecond => MS_PER_DAY as u64 * 1000,
-            TemporalUnit::Nanosecond => NS_PER_DAY as u64,
+            TemporalUnit::Nanosecond => NS_PER_DAY,
             _ => return Err(TemporalError::range().with_message("Invalid roundTo unit provided.")),
         };
         // NOTE: to_rounding_increment returns an f64 within a u32 range.
