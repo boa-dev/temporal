@@ -435,4 +435,86 @@ mod tests {
         assert_eq!(result.hours(), -1.0);
         assert_eq!(result.minutes(), -37.0);
     }
+
+    #[test]
+    // test262/test/built-ins/Temporal/PlainTime/prototype/round/roundingincrement-nanoseconds.js
+    fn rounding_increment_nanos() {
+        let time = Time::new(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain).unwrap();
+
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(1.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(2.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 322, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(4.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(5.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(8.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(10.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(20.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(25.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 325, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(40.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(50.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(100.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(125.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 375, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(200.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 400, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(250.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 250, ArithmeticOverflow::Constrain).unwrap()
+        );
+        assert_eq!(
+            time.round(TemporalUnit::Nanosecond, Some(500.0), None)
+                .unwrap(),
+            Time::new(3, 34, 56, 987, 654, 500, ArithmeticOverflow::Constrain).unwrap()
+        );
+    }
 }

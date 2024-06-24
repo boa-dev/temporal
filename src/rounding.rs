@@ -48,7 +48,7 @@ impl<T: Roundable> IncrementRounder<T> {
     ) -> TemporalResult<Self> {
         let increment = <T as NumCast>::from(increment.get()).temporal_unwrap()?;
         Ok(Self {
-            sign: number / increment > T::ZERO,
+            sign: number >= T::ZERO,
             dividend: number,
             divisor: increment,
         })
