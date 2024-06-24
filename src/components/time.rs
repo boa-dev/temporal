@@ -11,7 +11,7 @@ use crate::{
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Time {
-    iso: IsoTime,
+    pub(crate) iso: IsoTime,
 }
 
 // ==== Private API ====

@@ -5,6 +5,7 @@ use std::{fmt, str::FromStr};
 use crate::{
     components::calendar::{CalendarProtocol, CalendarSlot},
     error::TemporalError,
+    iso::IsoDate,
     TemporalResult,
 };
 
@@ -505,6 +506,18 @@ impl TemporalFields {
         }
 
         Ok(result)
+    }
+}
+
+impl From<IsoDate> for TemporalFields {
+    fn from(value: IsoDate) -> Self {
+        TemporalFields {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH | FieldMap::DAY,
+            year: Some(value.year),
+            month: Some(value.month.into()),
+            day: Some(value.day.into()),
+            ..Default::default()
+        }
     }
 }
 
