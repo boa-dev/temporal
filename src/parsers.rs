@@ -38,13 +38,14 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
                 }
                 None => first_calendar = Some(annotation),
             }
+            return None;
         }
 
-        // Ignore all invalid annotations
-        None
+        // Make the parser handle any unknown annotation.
+        Some(annotation)
     });
 
-    let mut result = match variant {
+    let mut record = match variant {
         ParseVariant::YearMonth => parser.parse_year_month_with_annotation_handler(handler),
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
@@ -59,15 +60,15 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
     }
 
     // Validate that the DateRecord exists.
-    if result.date.is_none() {
+    if record.date.is_none() {
         return Err(
             TemporalError::syntax().with_message("DateTime strings must contain a Date value.")
         );
     }
 
-    result.calendar = first_calendar.map(|v| v.value);
+    record.calendar = first_calendar.map(|v| v.value);
 
-    Ok(result)
+    Ok(record)
 }
 
 /// A utility function for parsing a `DateTime` string
