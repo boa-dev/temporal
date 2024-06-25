@@ -200,22 +200,30 @@ impl IsoDate {
         day: i32,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        match overflow {
+        let id = match overflow {
             ArithmeticOverflow::Constrain => {
                 let month = month.clamp(1, 12);
                 let days_in_month = utils::iso_days_in_month(year, month);
                 let d = day.clamp(1, days_in_month);
                 // NOTE: Values are clamped in a u8 range.
-                Ok(Self::new_unchecked(year, month as u8, d as u8))
+                Self::new_unchecked(year, month as u8, d as u8)
             }
             ArithmeticOverflow::Reject => {
                 if !is_valid_date(year, month, day) {
                     return Err(TemporalError::range().with_message("not a valid ISO date."));
                 }
                 // NOTE: Values have been verified to be in a u8 range.
-                Ok(Self::new_unchecked(year, month as u8, day as u8))
+                Self::new_unchecked(year, month as u8, day as u8)
             }
+        };
+
+        if !iso_dt_within_valid_limits(id, &IsoTime::noon()) {
+            return Err(
+                TemporalError::range().with_message("Date is not within ISO date time limits.")
+            );
         }
+
+        Ok(id)
     }
 
     /// Create a balanced `IsoDate`

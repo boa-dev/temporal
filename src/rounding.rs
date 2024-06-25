@@ -57,7 +57,7 @@ impl<T: Roundable> IncrementRounder<T> {
     pub(crate) fn from_positive_parts(number: T, increment: NonZeroU64) -> TemporalResult<Self> {
         let increment = <T as NumCast>::from(increment.get()).temporal_unwrap()?;
 
-        debug_assert!(number > T::ZERO);
+        debug_assert!(number >= T::ZERO);
 
         Ok(Self {
             sign: true,
