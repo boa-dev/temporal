@@ -9,29 +9,47 @@ use ixdtf::parsers::{
 
 // TODO: Determine if these should be separate structs, i.e. TemporalDateTimeParser/TemporalInstantParser, or
 // maybe on global `TemporalParser` around `IxdtfParser` that handles the Temporal idiosyncracies.
+enum ParseVariant {
+    YearMonth,
+    MonthDay,
+    DateTime,
+}
 
 #[inline]
-fn parse_temporal_ixdtf_variation(source: &str) -> TemporalResult<IxdtfParseRecord> {
+fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParseRecord> {
+    fn cast_handler<'a>(
+        _: &mut IxdtfParser<'a>,
+        handler: impl FnMut(Annotation<'a>) -> Option<Annotation<'a>>,
+    ) -> impl FnMut(Annotation<'a>) -> Option<Annotation<'a>> {
+        handler
+    }
+
     let mut first_calendar: Option<Annotation> = None;
     let mut critical_duplicate_calendar = false;
-    let result = IxdtfParser::new(source)
-        .parse_with_annotation_handler(|annotation| {
-            if annotation.key == "u-ca" {
-                match first_calendar {
-                    Some(ref cal) => {
-                        if cal.critical && annotation.critical {
-                            critical_duplicate_calendar = true
-                        }
-                    }
-                    None => {
-                        first_calendar.get_or_insert(annotation.clone());
+    let mut parser = IxdtfParser::new(source);
+
+    let handler = cast_handler(&mut parser, |annotation: Annotation<'_>| {
+        if annotation.key == "u-ca" {
+            match first_calendar {
+                Some(ref cal) => {
+                    if cal.critical || annotation.critical {
+                        critical_duplicate_calendar = true
                     }
                 }
+                None => first_calendar = Some(annotation),
             }
+        }
 
-            Some(annotation)
-        })
-        .map_err(|e| TemporalError::general(format!("{e}")))?;
+        // Ignore all invalid annotations
+        None
+    });
+
+    let mut result = match variant {
+        ParseVariant::YearMonth => parser.parse_year_month_with_annotation_handler(handler),
+        ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
+        ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
+    }
+    .map_err(|e| TemporalError::general(format!("{e}")))?;
 
     if critical_duplicate_calendar {
         // TODO: Add tests for the below.
@@ -47,18 +65,20 @@ fn parse_temporal_ixdtf_variation(source: &str) -> TemporalResult<IxdtfParseReco
         );
     }
 
+    result.calendar = first_calendar.map(|v| v.value);
+
     Ok(result)
 }
 
 /// A utility function for parsing a `DateTime` string
 pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
-    parse_temporal_ixdtf_variation(source)
+    parse_ixdtf(source, ParseVariant::DateTime)
 }
 
 /// A utility function for parsing an `Instant` string
 #[allow(unused)]
 pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseRecord> {
-    let record = parse_temporal_ixdtf_variation(source)?;
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     // Validate required fields on an Instant value
     if record.time.is_none() || record.date.is_none() || record.offset.is_none() {
@@ -72,31 +92,13 @@ pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseRecord> {
 
 /// A utility function for parsing a `YearMonth` string
 pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord> {
-    let mut first_calendar: Option<Annotation> = None;
-    let mut critical_duplicate_calendar = false;
-    let ym_record =
-        IxdtfParser::new(source).parse_year_month_with_annotation_handler(|annotation| {
-            if annotation.key == "u-ca" {
-                match first_calendar {
-                    Some(ref cal) => {
-                        if cal.critical && annotation.critical {
-                            critical_duplicate_calendar = true
-                        }
-                    }
-                    None => {
-                        first_calendar.get_or_insert(annotation.clone());
-                    }
-                }
-            }
-
-            Some(annotation)
-        });
+    let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
     if let Ok(ym) = ym_record {
         return Ok(ym);
     }
 
-    let dt_parse = parse_temporal_ixdtf_variation(source);
+    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
 
     match dt_parse {
         Ok(dt) => Ok(dt),
@@ -107,31 +109,13 @@ pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord>
 
 /// A utilty function for parsing a `MonthDay` String.
 pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> {
-    let mut first_calendar: Option<Annotation> = None;
-    let mut critical_duplicate_calendar = false;
-    let md_record =
-        IxdtfParser::new(source).parse_month_day_with_annotation_handler(|annotation| {
-            if annotation.key == "u-ca" {
-                match first_calendar {
-                    Some(ref cal) => {
-                        if cal.critical && annotation.critical {
-                            critical_duplicate_calendar = true
-                        }
-                    }
-                    None => {
-                        first_calendar.get_or_insert(annotation.clone());
-                    }
-                }
-            }
-
-            Some(annotation)
-        });
+    let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
 
     if let Ok(md) = md_record {
         return Ok(md);
     }
 
-    let dt_parse = parse_temporal_ixdtf_variation(source);
+    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
 
     match dt_parse {
         Ok(dt) => Ok(dt),
