@@ -2,14 +2,23 @@
 
 use std::str::FromStr;
 
+use tinystr::TinyAsciiStr;
+
 use crate::{
     components::calendar::CalendarSlot,
+    fields::FieldMap,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    TemporalError, TemporalResult, TemporalUnwrap,
+    utils, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::{CalendarProtocol, GetCalendarSlot};
+use super::{
+    calendar::{CalendarDateLike, CalendarProtocol, GetCalendarSlot},
+    Duration,
+};
+
+// Subset of `TemporalFields` representing just the  `YearMonthFields`
+pub struct YearMonthFields(i32, u8);
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -61,6 +70,92 @@ impl<C: CalendarProtocol> YearMonth<C> {
     pub fn calendar(&self) -> &CalendarSlot<C> {
         &self.calendar
     }
+
+    /// Returns the Calendar value.
+    #[inline]
+    #[must_use]
+    pub fn in_leap_year(&self) -> bool {
+        utils::mathematical_in_leap_year(utils::epoch_time_for_year(self.iso.year)) == 1
+    }
+}
+
+// Contextual Methods
+impl<C: CalendarProtocol> YearMonth<C> {
+    pub fn contextual_get_days_in_year(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn contextual_get_days_in_month(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<u16> {
+        this.get_calendar()
+            .days_in_month(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn contextual_month_code(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<TinyAsciiStr<4>> {
+        this.get_calendar()
+            .month_code(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn contextual_get_months_in_year(
+        this: &C::YearMonth,
+        context: &mut C::Context,
+    ) -> TemporalResult<u16> {
+        this.get_calendar()
+            .months_in_year(&CalendarDateLike::YearMonth(this.clone()), context)
+    }
+
+    pub fn add_duration(
+        this: &C::YearMonth,
+        duration: Duration,
+        overflow: ArithmeticOverflow,
+        context: &mut C::Context,
+    ) -> TemporalResult<YearMonth<C>> {
+        Self::contextual_add_or_subtract_duration(true, this, duration, context, overflow)
+    }
+
+    pub fn subtract_duration(
+        this: &C::YearMonth,
+        duration: Duration,
+        overflow: ArithmeticOverflow,
+        context: &mut C::Context,
+    ) -> TemporalResult<YearMonth<C>> {
+        Self::contextual_add_or_subtract_duration(false, this, duration, context, overflow)
+    }
+
+    pub(crate) fn contextual_add_or_subtract_duration(
+        addition: bool,
+        this: &C::YearMonth,
+        mut duration: Duration,
+        context: &mut C::Context,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<YearMonth<C>> {
+        if !addition {
+            duration = duration.negated()
+        }
+
+        let mut fields = YearMonthFields(this.iso_date().year, this.iso_date().month).into();
+
+        let mut intermediate_date =
+            this.get_calendar()
+                .date_from_fields(&mut fields, overflow, context)?;
+
+        intermediate_date = intermediate_date.add_date(&duration, Some(overflow), context)?;
+
+        let mut result_fields =
+            YearMonthFields(intermediate_date.iso_year(), intermediate_date.iso_month()).into();
+
+        this.get_calendar()
+            .year_month_from_fields(&mut result_fields, overflow, context)
+    }
 }
 
 impl<C: CalendarProtocol> GetCalendarSlot<C> for YearMonth<C> {
@@ -95,5 +190,17 @@ impl<C: CalendarProtocol> FromStr for YearMonth<C> {
             CalendarSlot::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
+    }
+}
+
+// Conversion to `TemporalFields`
+impl From<YearMonthFields> for TemporalFields {
+    fn from(value: YearMonthFields) -> Self {
+        TemporalFields {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH,
+            year: Some(value.0),
+            month: Some(value.1.into()),
+            ..Default::default()
+        }
     }
 }
