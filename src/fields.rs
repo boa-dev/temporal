@@ -120,21 +120,21 @@ impl FromStr for FieldConversion {
 /// | "timeZone"   |              `None`               | undefined  |
 #[derive(Debug)]
 pub struct TemporalFields {
-    bit_map: FieldMap,
-    year: Option<i32>,
-    month: Option<i32>,
-    month_code: Option<TinyStr4>, // TODO: Switch to icu compatible value.
-    day: Option<i32>,
-    hour: i32,
-    minute: i32,
-    second: i32,
-    millisecond: i32,
-    microsecond: i32,
-    nanosecond: i32,
-    offset: Option<String>,    // TODO: Switch to tinystr?
-    era: Option<TinyStr16>,    // TODO: switch to icu compatible value.
-    era_year: Option<i32>,     // TODO: switch to icu compatible value.
-    time_zone: Option<String>, // TODO: figure out the identifier for TimeZone.
+    pub(crate) bit_map: FieldMap,
+    pub(crate) year: Option<i32>,
+    pub(crate) month: Option<i32>,
+    pub(crate) month_code: Option<TinyStr4>, // TODO: Switch to icu compatible value.
+    pub(crate) day: Option<i32>,
+    pub(crate) hour: i32,
+    pub(crate) minute: i32,
+    pub(crate) second: i32,
+    pub(crate) millisecond: i32,
+    pub(crate) microsecond: i32,
+    pub(crate) nanosecond: i32,
+    pub(crate) offset: Option<String>, // TODO: Switch to tinystr?
+    pub(crate) era: Option<TinyStr16>, // TODO: switch to icu compatible value.
+    pub(crate) era_year: Option<i32>,  // TODO: switch to icu compatible value.
+    pub(crate) time_zone: Option<String>, // TODO: figure out the identifier for TimeZone.
 }
 
 impl Default for TemporalFields {
