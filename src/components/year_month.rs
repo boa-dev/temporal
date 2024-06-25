@@ -13,6 +13,9 @@ use crate::{
 
 use super::calendar::GetTemporalCalendar;
 
+// Subset of `TemporalFields` representing just the  `YearMonthFields`
+pub struct YearMonthFields(i32, u8);
+
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
@@ -135,22 +138,17 @@ impl<C: CalendarProtocol> YearMonth<C> {
             duration = duration.negated()
         }
 
-        let mut fields = TemporalFields::default();
-        fields.set_field_value("year", &FieldValue::Integer(this.iso_date().year))?;
-        fields.set_field_value("month", &FieldValue::Integer(this.iso_date().month as i32))?;
+        let mut fields = YearMonthFields(this.iso_date().year, this.iso_date().month).into();
 
         let mut intermediate_date =
             this.get_calendar()
                 .date_from_fields(&mut fields, overflow, context)?;
 
         intermediate_date = intermediate_date.add_date(&duration, Some(overflow), context)?;
-        let mut result_fields = TemporalFields::default();
-        result_fields
-            .set_field_value("year", &FieldValue::Integer(intermediate_date.iso_year()))?;
-        result_fields.set_field_value(
-            "month",
-            &FieldValue::Integer(intermediate_date.iso_month() as i32),
-        )?;
+
+        let mut result_fields =
+            YearMonthFields(intermediate_date.iso_year(), intermediate_date.iso_month()).into();
+
         this.get_calendar()
             .year_month_from_fields(&mut result_fields, overflow, context)
     }
@@ -188,5 +186,17 @@ impl FromStr for YearMonth {
             Calendar::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
+    }
+}
+
+// Conversion to `TemporalFields`
+impl From<YearMonthFields> for TemporalFields {
+    fn from(value: YearMonthFields) -> Self {
+        TemporalFields {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH,
+            year: Some(value.0),
+            month: Some(value.1.into()),
+            ..Default::default()
+        }
     }
 }
