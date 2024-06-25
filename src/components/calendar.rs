@@ -264,6 +264,7 @@ impl CalendarDateLike {
             CalendarDateLike::DateTime(dt) => dt.iso_date(),
             CalendarDateLike::Date(d) => d.iso_date(),
             CalendarDateLike::YearMonth(ym) => ym.iso_date(),
+            CalendarDateLike::MonthDay(md) => md.iso_date(),
         }
     }
 }

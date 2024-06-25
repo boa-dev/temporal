@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+use tinystr::TinyAsciiStr;
+
 use crate::{
     components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
@@ -35,6 +37,7 @@ impl MonthDay {
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
+        // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
         let iso = IsoDate::new(1972, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
@@ -65,6 +68,19 @@ impl GetTemporalCalendar for MonthDay {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
+
+// Contextual Methods
+impl<C: CalendarProtocol> MonthDay<C> {
+    pub fn contextual_month_code(
+        this: &C::MonthDay,
+        context: &mut C::Context,
+    ) -> TemporalResult<TinyAsciiStr<4>> {
+        this.get_calendar()
+            .month_code(&CalendarDateLike::MonthDay(this.clone()), context)
+    }
+}
+
+
 }
 
 impl IsoDateSlots for MonthDay {
