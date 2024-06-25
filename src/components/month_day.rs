@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+use tinystr::TinyAsciiStr;
+
 use crate::{
     components::calendar::CalendarSlot,
     iso::{IsoDate, IsoDateSlots},
@@ -9,7 +11,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::{CalendarProtocol, GetCalendarSlot};
+use super::calendar::{CalendarDateLike, CalendarProtocol, GetCalendarSlot};
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
@@ -35,6 +37,7 @@ impl<C: CalendarProtocol> MonthDay<C> {
         calendar: CalendarSlot<C>,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
+        // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
         let iso = IsoDate::new(1972, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
@@ -58,6 +61,17 @@ impl<C: CalendarProtocol> MonthDay<C> {
     #[must_use]
     pub fn calendar(&self) -> &CalendarSlot<C> {
         &self.calendar
+    }
+}
+
+// Contextual Methods
+impl<C: CalendarProtocol> MonthDay<C> {
+    pub fn contextual_month_code(
+        this: &C::MonthDay,
+        context: &mut C::Context,
+    ) -> TemporalResult<TinyAsciiStr<4>> {
+        this.get_calendar()
+            .month_code(&CalendarDateLike::MonthDay(this.clone()), context)
     }
 }
 
