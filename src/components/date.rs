@@ -680,6 +680,12 @@ impl<C: CalendarProtocol> FromStr for Date<C> {
             ArithmeticOverflow::Reject,
         )?;
 
+        if !date.is_within_limits() {
+            return Err(
+                TemporalError::range().with_message("Date is not within ISO date time limits.")
+            );
+        }
+
         Ok(Self::new_unchecked(date, CalendarSlot::from_str(calendar)?))
     }
 }
@@ -796,5 +802,55 @@ mod tests {
         let later = Date::<()>::from_str("1996-03-03").unwrap();
         let result = later.since(&earlier, None, None, None, None).unwrap();
         assert_eq!(result.days(), 9719.0,);
+    }
+
+    // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js
+    #[test]
+    fn invalid_strings() {
+        const INVALID_STRINGS: [&str; 35] = [
+            // invalid ISO strings:
+            "",
+            "invalid iso8601",
+            "2020-01-00",
+            "2020-01-32",
+            "2020-02-30",
+            "2021-02-29",
+            "2020-00-01",
+            "2020-13-01",
+            "2020-01-01T",
+            "2020-01-01T25:00:00",
+            "2020-01-01T01:60:00",
+            "2020-01-01T01:60:61",
+            "2020-01-01junk",
+            "2020-01-01T00:00:00junk",
+            "2020-01-01T00:00:00+00:00junk",
+            "2020-01-01T00:00:00+00:00[UTC]junk",
+            "2020-01-01T00:00:00+00:00[UTC][u-ca=iso8601]junk",
+            "02020-01-01",
+            "2020-001-01",
+            "2020-01-001",
+            "2020-01-01T001",
+            "2020-01-01T01:001",
+            "2020-01-01T01:01:001",
+            // valid, but forms not supported in Temporal:
+            "2020-W01-1",
+            "2020-001",
+            "+0002020-01-01",
+            // valid, but this calendar must not exist:
+            "2020-01-01[u-ca=notexist]",
+            // may be valid in other contexts, but insufficient information for PlainDate:
+            "2020-01",
+            "+002020-01",
+            "01-01",
+            "2020-W01",
+            "P1Y",
+            "-P12Y",
+            // valid, but outside the supported range:
+            "-999999-01-01",
+            "+999999-01-01",
+        ];
+        for s in INVALID_STRINGS {
+            assert!(Date::<()>::from_str(s).is_err())
+        }
     }
 }

@@ -369,6 +369,10 @@ impl IsoDate {
         // 17. Return ! CreateDateDurationRecord(years, months, weeks, days).
         DateDuration::new(years as f64, months as f64, weeks as f64, days as f64)
     }
+
+    pub(crate) fn is_within_limits(self) -> bool {
+        IsoDateTime::new_unchecked(self, IsoTime::noon()).is_within_limits()
+    }
 }
 
 impl IsoDate {
