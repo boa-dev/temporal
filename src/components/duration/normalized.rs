@@ -44,7 +44,7 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     #[allow(unused)]
     pub(super) fn add_days(&self, days: i64) -> TemporalResult<Self> {
-        let result = self.0 + i128::from(days * NS_PER_DAY as i64);
+        let result = self.0 + i128::from(days) * i128::from(NS_PER_DAY);
         if result.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));

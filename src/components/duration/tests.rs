@@ -617,3 +617,52 @@ fn basic_negative_expand_rounding() {
     );
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -987, -500],);
 }
+
+// test262/test/built-ins/Temporal/Duration/prototype/round/roundingincrement-non-integer.js
+#[test]
+fn rounding_increment_non_integer() {
+    let test_duration =
+        Duration::from_date_duration(&DateDuration::new(0.0, 0.0, 0.0, 1.0).unwrap());
+    let binding = Date::<()>::new(
+        2000,
+        1,
+        1,
+        CalendarSlot::from_str("iso8601").unwrap(),
+        ArithmeticOverflow::Reject,
+    )
+    .unwrap();
+    let relative_to = RelativeTo::<'_, (), ()> {
+        date: Some(&binding),
+        zdt: None,
+    };
+
+    assert_eq!(
+        test_duration
+            .round(
+                Some(RoundingIncrement::try_from(2.5).unwrap()),
+                Some(TemporalUnit::Day),
+                None,
+                Some(TemporalRoundingMode::Expand),
+                &relative_to,
+                &mut ()
+            )
+            .unwrap()
+            .fields(),
+        &[0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    );
+
+    assert_eq!(
+        test_duration
+            .round(
+                Some(RoundingIncrement::try_from(1e9 + 0.5).unwrap()),
+                Some(TemporalUnit::Day),
+                None,
+                Some(TemporalRoundingMode::Expand),
+                &relative_to,
+                &mut ()
+            )
+            .unwrap()
+            .fields(),
+        &[0.0, 0.0, 0.0, 1e9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    );
+}
