@@ -680,12 +680,6 @@ impl<C: CalendarProtocol> FromStr for Date<C> {
             ArithmeticOverflow::Reject,
         )?;
 
-        if !date.is_within_limits() {
-            return Err(
-                TemporalError::range().with_message("Date is not within ISO date time limits.")
-            );
-        }
-
         Ok(Self::new_unchecked(date, CalendarSlot::from_str(calendar)?))
     }
 }
