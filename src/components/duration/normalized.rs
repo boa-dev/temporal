@@ -43,7 +43,7 @@ impl NormalizedTimeDuration {
     // NOTE: `days: f64` should be an integer -> `i64`.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     #[allow(unused)]
-    pub(super) fn add_days(&self, days: i64) -> TemporalResult<Self> {
+    pub(crate) fn add_days(&self, days: i64) -> TemporalResult<Self> {
         let result = self.0 + i128::from(days) * i128::from(NS_PER_DAY);
         if result.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
@@ -52,11 +52,15 @@ impl NormalizedTimeDuration {
         Ok(Self(result))
     }
 
-    // TODO: Implement as `ops::Div`
+    // TODO: Potentially, update divisor to u64?
     /// `Divide the NormalizedTimeDuraiton` by a divisor.
     pub(super) fn divide(&self, divisor: i64) -> i128 {
         // TODO: Validate.
         self.0 / i128::from(divisor)
+    }
+
+    pub(super) fn div_rem(&self, divisor: u64) -> (i128, i128) {
+        self.0.div_rem_euclid(&i128::from(divisor))
     }
 
     // TODO: Use in algorithm update or remove.
@@ -71,7 +75,7 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     #[inline]
     #[must_use]
-    pub(super) fn sign(&self) -> i32 {
+    pub(crate) fn sign(&self) -> i32 {
         self.0.cmp(&0) as i32
     }
 
@@ -85,6 +89,16 @@ impl NormalizedTimeDuration {
     pub(crate) fn subseconds(&self) -> i32 {
         // SAFETY: Remainder is 10e9 which is in range of i32
         (self.0.rem_euclid(1_000_000_000)) as i32
+    }
+
+    pub(crate) fn checked_sub(&self, other: &Self) -> TemporalResult<Self> {
+        let result = self.0 - other.0;
+        if result.abs() > MAX_TIME_DURATION {
+            return Err(TemporalError::range().with_message(
+                "SubtractNormalizedTimeDuration exceeded a valid TimeDuration range.",
+            ));
+        }
+        Ok(Self(result))
     }
 
     /// Round the current `NormalizedTimeDuration`.
@@ -126,12 +140,31 @@ impl NormalizedDurationRecord {
     /// Creates a new `NormalizedDurationRecord`.
     ///
     /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
-    pub(super) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
+    pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
         if date.sign() != 0 && norm.sign() != 0 && date.sign() != norm.sign() {
             return Err(TemporalError::range()
                 .with_message("DateDuration and NormalizedTimeDuration must agree."));
         }
         Ok(Self((date, norm)))
+    }
+
+    pub(crate) fn from_date_duration(date: DateDuration) -> TemporalResult<Self> {
+        Self::new(date, NormalizedTimeDuration::default())
+    }
+
+    pub(crate) fn date(&self) -> DateDuration {
+        self.0 .0
+    }
+
+    pub(crate) fn norm(&self) -> NormalizedTimeDuration {
+        self.0 .1
+    }
+
+    pub(crate) fn sign(&self) -> TemporalResult<i32> {
+        if self.0 .0.sign() != self.0 .1.sign() {
+            return Err(TemporalError::range().with_message("Invalid NormalizedDuration signs."));
+        }
+        Ok(self.0 .0.sign())
     }
 }
 

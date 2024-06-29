@@ -4,6 +4,7 @@
 //! operation may be completed.
 
 use core::{fmt, str::FromStr};
+use std::ops::Sub;
 
 use crate::{
     components::{Date, ZonedDateTime},
@@ -119,6 +120,14 @@ impl From<usize> for TemporalUnit {
             1 => Self::Nanosecond,
             _ => Self::Auto,
         }
+    }
+}
+
+impl Sub<usize> for TemporalUnit {
+    type Output = TemporalUnit;
+
+    fn sub(self, rhs: usize) -> Self::Output {
+        TemporalUnit::from(self as usize - rhs)
     }
 }
 

@@ -17,7 +17,10 @@ use std::num::NonZeroU64;
 use crate::{
     components::{
         calendar::Calendar,
-        duration::{normalized::NormalizedTimeDuration, DateDuration, TimeDuration},
+        duration::{
+            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+            DateDuration, TimeDuration,
+        },
         Date, Duration,
     },
     error::TemporalError,
@@ -31,7 +34,7 @@ use num_traits::{cast::FromPrimitive, ToPrimitive};
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoDateTime {
     pub(crate) date: IsoDate,
     pub(crate) time: IsoTime,
@@ -125,6 +128,12 @@ impl IsoDateTime {
         iso_dt_within_valid_limits(self.date, &self.time)
     }
 
+    // TODO: Move offset away from f64?
+    /// Returns this `IsoDateTime` in nanoseconds
+    pub(crate) fn as_nanoseconds(&self, offset: f64) -> Option<i128> {
+        utc_epoch_nanos(self.date, &self.time, offset).and_then(|z| z.to_i128())
+    }
+
     /// Specification equivalent to 5.5.9 `AddDateTime`.
     pub(crate) fn add_date_duration(
         &self,
@@ -163,6 +172,85 @@ impl IsoDateTime {
         // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
         // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
         Ok(Self::new_unchecked(added_date.iso, t_result.1))
+    }
+
+    // TODO: Determine whether to provide an options object...seems duplicative.
+    /// 5.5.11 DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, options )
+    pub(crate) fn diff(
+        &self,
+        other: &Self,
+        calendar: &Calendar,
+        largest_unit: TemporalUnit,
+    ) -> TemporalResult<NormalizedDurationRecord> {
+        // 1. Assert: ISODateTimeWithinLimits(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1) is true.
+        // 2. Assert: ISODateTimeWithinLimits(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) is true.
+        // 3. Assert: If y1 ≠ y2, and mon1 ≠ mon2, and d1 ≠ d2, and LargerOfTwoTemporalUnits(largestUnit, "day")
+        // is not "day", CalendarMethodsRecordHasLookedUp(calendarRec, date-until) is true.
+
+        // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
+        let mut time_duration =
+            NormalizedTimeDuration::from_time_duration(&self.time.diff(&other.time));
+
+        // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
+        let time_sign = time_duration.sign();
+
+        // 6. Let dateSign be CompareISODate(y2, mon2, d2, y1, mon1, d1).
+        let date_sign = self.date.cmp(&other.date) as i32;
+        // 7. Let adjustedDate be CreateISODateRecord(y2, mon2, d2).
+        let mut adjusted_date = other.date;
+
+        // 8. If timeSign = -dateSign, then
+        if time_sign == -date_sign {
+            // a. Set adjustedDate to BalanceISODate(adjustedDate.[[Year]], adjustedDate.[[Month]], adjustedDate.[[Day]] + timeSign).
+            adjusted_date = IsoDate::balance(
+                adjusted_date.year,
+                i32::from(adjusted_date.month),
+                i32::from(adjusted_date.day) + time_sign,
+            );
+            // b. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, -timeSign).
+            time_duration = time_duration.add_days(time_sign.into())?;
+        }
+
+        // 9. Let date1 be ! CreateTemporalDate(y1, mon1, d1, calendarRec.[[Receiver]]).
+        let date_one = Date::new_unchecked(self.date, calendar.clone());
+        // 10. Let date2 be ! CreateTemporalDate(adjustedDate.[[Year]], adjustedDate.[[Month]], adjustedDate.[[Day]], calendarRec.[[Receiver]]).
+        let date_two = Date::new(
+            adjusted_date.year,
+            adjusted_date.month.into(),
+            adjusted_date.day.into(),
+            calendar.clone(),
+            ArithmeticOverflow::Reject,
+        )?;
+
+        // 11. Let dateLargestUnit be LargerOfTwoTemporalUnits("day", largestUnit).
+        // 12. Let untilOptions be ! SnapshotOwnProperties(options, null).
+        let date_largest_unit = largest_unit.max(TemporalUnit::Day);
+
+        // 13. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", dateLargestUnit).
+        // 14. Let dateDifference be ? DifferenceDate(calendarRec, date1, date2, untilOptions).
+        let date_diff = date_one.internal_diff_date(&date_two, date_largest_unit)?;
+
+        // 16. If largestUnit is not dateLargestUnit, then
+        let days = if largest_unit == date_largest_unit {
+            // 15. Let days be dateDifference.[[Days]].
+            date_diff.days()
+        } else {
+            // a. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, dateDifference.[[Days]]).
+            time_duration = time_duration.add_days(date_diff.days() as i64)?;
+            // b. Set days to 0.
+            0.0
+        };
+
+        // 17. Return ? CreateNormalizedDurationRecord(dateDifference.[[Years]], dateDifference.[[Months]], dateDifference.[[Weeks]], days, timeDuration).
+        NormalizedDurationRecord::new(
+            DateDuration::new_unchecked(
+                date_diff.years(),
+                date_diff.months(),
+                date_diff.weeks(),
+                days,
+            ),
+            time_duration,
+        )
     }
 }
 
@@ -228,7 +316,7 @@ impl IsoDate {
     /// Create a balanced `IsoDate`
     ///
     /// Equivalent to `BalanceISODate`.
-    fn balance(year: i32, month: i32, day: i32) -> Self {
+    pub(crate) fn balance(year: i32, month: i32, day: i32) -> Self {
         let epoch_days = iso_date_to_epoch_days(year, month - 1, day);
         let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0f64);
         Self::new_unchecked(
@@ -236,6 +324,11 @@ impl IsoDate {
             utils::epoch_time_to_month_in_year(ms) + 1,
             utils::epoch_time_to_date(ms),
         )
+    }
+
+    /// Returns this `IsoDate` in nanoseconds.
+    pub(crate) fn as_nanoseconds(&self) -> Option<i128> {
+        utc_epoch_nanos(*self, &IsoTime::default(), 0.0).and_then(|z| z.to_i128())
     }
 
     /// Functionally the same as Date's abstract operation `MakeDay`
