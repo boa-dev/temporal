@@ -9,7 +9,7 @@ edition = "2021"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/boa-dev/temporal"
-rust-version = "1.74"
+rust-version = "1.79"
 exclude = [
     "docs/*",
     ".github/*",
@@ -20,8 +20,13 @@ exclude = [
 [dependencies]
 tinystr = "0.7.6"
 icu_calendar = { version = "1.5.2", default-features = true }
+icu_provider = { version = "1.5.0"}
 rustc-hash = { version = "2.0.0", features = ["std"] }
 bitflags = "2.6.0"
 num-bigint = { version = "0.4.6", features = ["serde"] }
 num-traits = "0.2.19"
 ixdtf = { version = "0.2.0", features = ["duration"]}
+
+[features]
+default = ["compiled_data"]
+compiled_data = ["icu_calendar/compiled_data"]

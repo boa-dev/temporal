@@ -21,9 +21,22 @@ use crate::{
 };
 
 use icu_calendar::{
-    types::{Era, MonthCode},
+    any_calendar::AnyDateInner,
+    buddhist::Buddhist,
+    chinese::Chinese,
+    coptic::Coptic,
+    dangi::Dangi,
+    ethiopian::{Ethiopian, EthiopianEraStyle},
+    hebrew::Hebrew,
+    indian::Indian,
+    islamic::{IslamicCivil, IslamicObservational, IslamicTabular, IslamicUmmAlQura},
+    japanese::{Japanese, JapaneseExtended},
+    persian::Persian,
+    roc::Roc,
+    types::{DayOfMonth, DayOfYearInfo, Era, FormattableMonth, FormattableYear, MonthCode},
     week::{RelativeUnit, WeekCalculator},
-    AnyCalendar, AnyCalendarKind, Calendar, Iso,
+    AnyCalendar, AnyCalendarKind, Calendar, DateDuration as IcuDateDuration,
+    DateDurationUnit as IcuDateDurationUnit, Gregorian, Iso, Ref,
 };
 use tinystr::TinyAsciiStr;
 
@@ -51,6 +64,136 @@ pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
     "yearMonthFromFields",
     "yearOfWeek",
 ];
+
+#[derive(Debug, Clone, Copy)]
+pub struct TemporalCalendar(Ref<'static, AnyCalendar>);
+
+impl Calendar for TemporalCalendar {
+    type DateInner = AnyDateInner;
+
+    fn date_from_codes(
+        &self,
+        era: icu_calendar::types::Era,
+        year: i32,
+        month_code: icu_calendar::types::MonthCode,
+        day: u8,
+    ) -> Result<Self::DateInner, icu_calendar::Error> {
+        self.0.date_from_codes(era, year, month_code, day)
+    }
+
+    fn date_from_iso(&self, iso: icu_calendar::Date<Iso>) -> Self::DateInner {
+        self.0.date_from_iso(iso)
+    }
+
+    fn date_to_iso(&self, date: &Self::DateInner) -> icu_calendar::Date<Iso> {
+        self.0.date_to_iso(date)
+    }
+
+    fn months_in_year(&self, date: &Self::DateInner) -> u8 {
+        self.0.months_in_year(date)
+    }
+
+    fn days_in_year(&self, date: &Self::DateInner) -> u16 {
+        self.0.days_in_year(date)
+    }
+
+    fn days_in_month(&self, date: &Self::DateInner) -> u8 {
+        self.0.days_in_month(date)
+    }
+
+    fn offset_date(&self, date: &mut Self::DateInner, offset: IcuDateDuration<Self>) {
+        self.0.offset_date(date, offset.cast_unit())
+    }
+
+    fn until(
+        &self,
+        date1: &Self::DateInner,
+        date2: &Self::DateInner,
+        calendar2: &Self,
+        largest_unit: IcuDateDurationUnit,
+        smallest_unit: IcuDateDurationUnit,
+    ) -> IcuDateDuration<Self> {
+        self.0
+            .until(date1, date2, &calendar2.0, largest_unit, smallest_unit)
+            .cast_unit()
+    }
+
+    fn debug_name(&self) -> &'static str {
+        self.0.debug_name()
+    }
+
+    fn year(&self, date: &Self::DateInner) -> FormattableYear {
+        self.0.year(date)
+    }
+
+    fn is_in_leap_year(&self, date: &Self::DateInner) -> bool {
+        self.0.is_in_leap_year(date)
+    }
+
+    fn month(&self, date: &Self::DateInner) -> FormattableMonth {
+        self.0.month(date)
+    }
+
+    fn day_of_month(&self, date: &Self::DateInner) -> DayOfMonth {
+        self.0.day_of_month(date)
+    }
+
+    fn day_of_year_info(&self, date: &Self::DateInner) -> DayOfYearInfo {
+        self.0.day_of_year_info(date)
+    }
+}
+
+impl TemporalCalendar {
+    #[cfg(feature = "compiled_data")]
+    #[warn(clippy::wildcard_enum_match_arm)] // Warns if the calendar kind gets out of sync.
+    pub fn new(kind: AnyCalendarKind) -> Self {
+        let cal = match kind {
+            AnyCalendarKind::Buddhist => &AnyCalendar::Buddhist(Buddhist),
+            AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(Chinese::new()) },
+            AnyCalendarKind::Coptic => &AnyCalendar::Coptic(Coptic),
+            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(Dangi::new()) },
+            AnyCalendarKind::Ethiopian => {
+                const {
+                    &AnyCalendar::Ethiopian(Ethiopian::new_with_era_style(
+                        EthiopianEraStyle::AmeteMihret,
+                    ))
+                }
+            }
+            AnyCalendarKind::EthiopianAmeteAlem => {
+                const {
+                    &AnyCalendar::Ethiopian(Ethiopian::new_with_era_style(
+                        EthiopianEraStyle::AmeteAlem,
+                    ))
+                }
+            }
+            AnyCalendarKind::Gregorian => &AnyCalendar::Gregorian(Gregorian),
+            AnyCalendarKind::Hebrew => &AnyCalendar::Hebrew(Hebrew),
+            AnyCalendarKind::Indian => &AnyCalendar::Indian(Indian),
+            AnyCalendarKind::IslamicCivil => &AnyCalendar::IslamicCivil(IslamicCivil),
+            AnyCalendarKind::IslamicObservational => {
+                const { &AnyCalendar::IslamicObservational(IslamicObservational::new()) }
+            }
+            AnyCalendarKind::IslamicTabular => &AnyCalendar::IslamicTabular(IslamicTabular),
+            AnyCalendarKind::IslamicUmmAlQura => {
+                const { &AnyCalendar::IslamicUmmAlQura(IslamicUmmAlQura::new()) }
+            }
+            AnyCalendarKind::Iso => &AnyCalendar::Iso(Iso),
+            AnyCalendarKind::Japanese => const { &AnyCalendar::Japanese(Japanese::new()) },
+            AnyCalendarKind::JapaneseExtended => {
+                const { &AnyCalendar::JapaneseExtended(JapaneseExtended::new()) }
+            }
+            AnyCalendarKind::Persian => &AnyCalendar::Persian(Persian),
+            AnyCalendarKind::Roc => &AnyCalendar::Roc(Roc),
+            _ => unreachable!("match must handle all variants of `AnyCalendarKind`"),
+        };
+
+        Self(Ref(cal))
+    }
+
+    pub fn from_any_calendar(calendar: &'static AnyCalendar) -> Self {
+        Self(Ref(calendar))
+    }
+}
 
 /// Designate the type of `CalendarFields` needed
 #[derive(Debug, Clone, Copy)]
