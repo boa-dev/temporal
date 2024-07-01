@@ -3,7 +3,7 @@
 use std::str::FromStr;
 
 use crate::{
-    components::calendar::TemporalCalendar,
+    components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
     TemporalError, TemporalResult, TemporalUnwrap,
@@ -16,14 +16,14 @@ use super::calendar::GetTemporalCalendar;
 #[derive(Debug, Default, Clone)]
 pub struct MonthDay {
     iso: IsoDate,
-    calendar: TemporalCalendar,
+    calendar: Calendar,
 }
 
 impl MonthDay {
     /// Creates a new unchecked `MonthDay`
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDate, calendar: TemporalCalendar) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
         Self { iso, calendar }
     }
 
@@ -32,7 +32,7 @@ impl MonthDay {
     pub fn new(
         month: i32,
         day: i32,
-        calendar: TemporalCalendar,
+        calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let iso = IsoDate::new(1972, month, day, overflow)?;
@@ -56,13 +56,13 @@ impl MonthDay {
     /// Returns a reference to `MonthDay`'s `CalendarSlot`
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &TemporalCalendar {
+    pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 }
 
 impl GetTemporalCalendar for MonthDay {
-    fn get_calendar(&self) -> TemporalCalendar {
+    fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
@@ -90,7 +90,7 @@ impl FromStr for MonthDay {
         Self::new(
             date.month.into(),
             date.day.into(),
-            TemporalCalendar::from_str(calendar)?,
+            Calendar::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
     }

@@ -12,7 +12,7 @@ use std::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use super::{
-    calendar::{CalendarDateLike, GetTemporalCalendar, TemporalCalendar},
+    calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
     duration::normalized::NormalizedTimeDuration,
     Duration,
 };
@@ -22,7 +22,7 @@ use super::{
 #[derive(Debug, Default, Clone)]
 pub struct DateTime {
     iso: IsoDateTime,
-    calendar: TemporalCalendar,
+    calendar: Calendar,
 }
 
 // ==== Private DateTime API ====
@@ -31,7 +31,7 @@ impl DateTime {
     /// Creates a new unchecked `DateTime`.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDateTime, calendar: TemporalCalendar) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDateTime, calendar: Calendar) -> Self {
         Self { iso, calendar }
     }
 
@@ -47,7 +47,7 @@ impl DateTime {
     pub(crate) fn from_instant(
         instant: &Instant,
         offset: f64,
-        calendar: TemporalCalendar,
+        calendar: Calendar,
     ) -> TemporalResult<Self> {
         let iso = IsoDateTime::from_epoch_nanos(&instant.nanos, offset)?;
         Ok(Self { iso, calendar })
@@ -99,7 +99,7 @@ impl DateTime {
         millisecond: i32,
         microsecond: i32,
         nanosecond: i32,
-        calendar: TemporalCalendar,
+        calendar: Calendar,
     ) -> TemporalResult<Self> {
         let iso_date = IsoDate::new(year, month, day, ArithmeticOverflow::Reject)?;
         let iso_time = IsoTime::new(
@@ -189,7 +189,7 @@ impl DateTime {
     /// Returns the Calendar value.
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &TemporalCalendar {
+    pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 }
@@ -296,7 +296,7 @@ impl DateTime {
 // ==== Trait impls ====
 
 impl GetTemporalCalendar for DateTime {
-    fn get_calendar(&self) -> TemporalCalendar {
+    fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
@@ -337,7 +337,7 @@ impl FromStr for DateTime {
 
         Ok(Self::new_unchecked(
             IsoDateTime::new(date, time)?,
-            TemporalCalendar::from_str(calendar)?,
+            Calendar::from_str(calendar)?,
         ))
     }
 }
@@ -347,7 +347,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::{
-        components::{calendar::TemporalCalendar, Duration},
+        components::{calendar::Calendar, Duration},
         iso::{IsoDate, IsoTime},
     };
 
@@ -368,20 +368,9 @@ mod tests {
             0,
             0,
             0,
-            TemporalCalendar::from_str("iso8601").unwrap(),
+            Calendar::from_str("iso8601").unwrap(),
         );
-        let positive_limit = DateTime::new(
-            275_760,
-            9,
-            14,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            TemporalCalendar::default(),
-        );
+        let positive_limit = DateTime::new(275_760, 9, 14, 0, 0, 0, 0, 0, 0, Calendar::default());
 
         assert!(negative_limit.is_err());
         assert!(positive_limit.is_err());
@@ -390,19 +379,8 @@ mod tests {
     // options-undefined.js
     #[test]
     fn datetime_add_test() {
-        let pdt = DateTime::new(
-            2020,
-            1,
-            31,
-            12,
-            34,
-            56,
-            987,
-            654,
-            321,
-            TemporalCalendar::default(),
-        )
-        .unwrap();
+        let pdt =
+            DateTime::new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
         let result = pdt.add(&Duration::one_month(1.0), None).unwrap();
 
@@ -413,19 +391,8 @@ mod tests {
     // options-undefined.js
     #[test]
     fn datetime_subtract_test() {
-        let pdt = DateTime::new(
-            2000,
-            3,
-            31,
-            12,
-            34,
-            56,
-            987,
-            654,
-            321,
-            TemporalCalendar::default(),
-        )
-        .unwrap();
+        let pdt =
+            DateTime::new(2000, 3, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
         let result = pdt.subtract(&Duration::one_month(1.0), None).unwrap();
 
@@ -436,19 +403,8 @@ mod tests {
     // subtract/hour-overflow.js
     #[test]
     fn datetime_subtract_hour_overflows() {
-        let dt = DateTime::new(
-            2019,
-            10,
-            29,
-            10,
-            46,
-            38,
-            271,
-            986,
-            102,
-            TemporalCalendar::default(),
-        )
-        .unwrap();
+        let dt =
+            DateTime::new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default()).unwrap();
 
         let result = dt.subtract(&Duration::hour(12.0), None).unwrap();
 
