@@ -267,26 +267,6 @@ pub trait GetTemporalCalendar {
     fn get_calendar(&self) -> TemporalCalendar;
 }
 
-// `FromStr` essentially serves as a stand in for `IsBuiltinCalendar`.
-// impl FromStr for TemporalCalendar {
-//     type Err = TemporalError;
-
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         // NOTE(nekesss): Catch the iso identifier here, as `iso8601` is not a valid ID below.
-//         if s == "iso8601" {
-//             return Ok(CalendarSlot::Builtin(AnyCalendar::Iso(Iso)));
-//         }
-
-//         let Some(cal) = AnyCalendarKind::get_for_bcp47_bytes(s.as_bytes()) else {
-//             return Err(TemporalError::range().with_message("Not a builtin calendar."));
-//         };
-
-//         let any_calendar = AnyCalendar::new(cal);
-
-//         Ok(CalendarSlot::Builtin(any_calendar))
-//     }
-// }
-
 // ==== Public `CalendarSlot` methods ====
 
 impl TemporalCalendar {
