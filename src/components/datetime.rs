@@ -114,6 +114,7 @@ impl<C: CalendarProtocol> DateTime<C> {
             // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
             return Ok((Duration::default(), Some(0)));
         }
+
         // 4. Let diff be ? DifferenceISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, resolvedOptions).
         let diff = self
             .iso
@@ -151,11 +152,14 @@ impl<C: CalendarProtocol> DateTime<C> {
             return Ok((duration, Some(i128::from(total))));
         }
 
-        // 6. Let dateTime be ISO Date-TimeRecord { [[Year]]: y1, [[Month]]: mon1, [[Day]]: d1, [[Hour]]: h1, [[Minute]]: min1, [[Second]]: s1, [[Millisecond]]: ms1, [[Microsecond]]: mus1, [[Nanosecond]]: ns1 }.
+        // 6. Let dateTime be ISO Date-TimeRecord { [[Year]]: y1, [[Month]]: mon1,
+        // [[Day]]: d1, [[Hour]]: h1, [[Minute]]: min1, [[Second]]: s1, [[Millisecond]]:
+        // ms1, [[Microsecond]]: mus1, [[Nanosecond]]: ns1 }.
         // 7. Let destEpochNs be GetUTCEpochNanoseconds(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2).
-        let dest_epoch_ns = self.iso.as_nanoseconds(0.0).temporal_unwrap()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds(0.0).temporal_unwrap()?;
 
-        // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit, roundingIncrement, smallestUnit, roundingMode).
+        // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
+        // roundingIncrement, smallestUnit, roundingMode).
         round_relative_duration::<C, ()>(
             &diff,
             dest_epoch_ns,

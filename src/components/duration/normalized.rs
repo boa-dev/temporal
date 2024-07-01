@@ -31,8 +31,8 @@ impl NormalizedTimeDuration {
         // TODO: Determine if there is a loss in precision from casting. If so, times by 1,000 (calculate in picoseconds) than truncate?
         let mut nanoseconds: i128 = (time.hours * NANOSECONDS_PER_HOUR) as i128;
         nanoseconds += (time.minutes * NANOSECONDS_PER_MINUTE) as i128;
-        nanoseconds += (time.seconds * 1e9) as i128;
-        nanoseconds += (time.milliseconds * 1e6) as i128;
+        nanoseconds += (time.seconds * 1_000_000_000.0) as i128;
+        nanoseconds += (time.milliseconds * 1_000_000.0) as i128;
         nanoseconds += (time.microseconds * 1_000.0) as i128;
         nanoseconds += time.nanoseconds as i128;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
@@ -60,7 +60,8 @@ impl NormalizedTimeDuration {
     }
 
     pub(super) fn div_rem(&self, divisor: u64) -> (i128, i128) {
-        self.0.div_rem_euclid(&i128::from(divisor))
+        (self.0 / i128::from(divisor), self.0 % i128::from(divisor))
+        // self.0.div_rem_euclid(&i128::from(divisor))
     }
 
     // TODO: Use in algorithm update or remove.
@@ -82,13 +83,13 @@ impl NormalizedTimeDuration {
     /// Return the seconds value of the `NormalizedTimeDuration`.
     pub(crate) fn seconds(&self) -> i64 {
         // SAFETY: See validate_second_cast test.
-        (self.0.div_euclid(1_000_000_000)) as i64
+        (self.0 / 1_000_000_000) as i64
     }
 
     /// Returns the subsecond components of the `NormalizedTimeDuration`.
     pub(crate) fn subseconds(&self) -> i32 {
         // SAFETY: Remainder is 10e9 which is in range of i32
-        (self.0.rem_euclid(1_000_000_000)) as i32
+        (self.0 % 1_000_000_000) as i32
     }
 
     pub(crate) fn checked_sub(&self, other: &Self) -> TemporalResult<Self> {

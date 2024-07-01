@@ -76,7 +76,7 @@ fn basic_positive_floor_rounding_v2() {
         TemporalUnit::Week,
         TemporalRoundingMode::Floor,
     );
-    assert_eq!(&result, &[5, 6, 8, 0, 0, 0, 0, 0, 0, 0],);
+    assert_eq!(&result, &[5, 7, 3, 0, 0, 0, 0, 0, 0, 0],);
 
     let result = get_round_result_v2(
         &test_duration,
@@ -176,7 +176,7 @@ fn basic_negative_floor_rounding_v2() {
         TemporalUnit::Week,
         TemporalRoundingMode::Floor,
     );
-    assert_eq!(&result, &[-5, -6, -9, 0, 0, 0, 0, 0, 0, 0],);
+    assert_eq!(&result, &[-5, -7, -4, 0, 0, 0, 0, 0, 0, 0],);
 
     let result = get_round_result_v2(
         &test_duration.negated(),
