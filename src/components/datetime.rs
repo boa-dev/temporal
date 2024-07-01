@@ -3,7 +3,7 @@
 use crate::{
     components::{
         calendar::{CalendarProtocol, CalendarSlot},
-        duration::{round_relative_duration, TimeDuration},
+        duration::TimeDuration,
         Instant,
     },
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
@@ -17,7 +17,7 @@ use tinystr::TinyAsciiStr;
 
 use super::{
     calendar::{CalendarDateLike, GetCalendarSlot},
-    duration::{normalized::NormalizedTimeDuration, RelativeRoundResult},
+    duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
     Duration,
 };
 
@@ -160,8 +160,7 @@ impl<C: CalendarProtocol> DateTime<C> {
 
         // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
         // roundingIncrement, smallestUnit, roundingMode).
-        round_relative_duration::<C, ()>(
-            &diff,
+        diff.round_relative_duration::<C, ()>(
             dest_epoch_ns,
             self,
             None,

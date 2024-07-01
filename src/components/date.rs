@@ -17,7 +17,7 @@ use std::str::FromStr;
 
 use super::{
     calendar::{CalendarDateLike, GetCalendarSlot},
-    duration::{normalized::NormalizedDurationRecord, round_relative_duration, TimeDuration},
+    duration::{normalized::NormalizedDurationRecord, TimeDuration},
     MonthDay, Time, YearMonth,
 };
 
@@ -185,19 +185,19 @@ impl<C: CalendarProtocol> Date<C> {
                 self.calendar.clone(),
             );
             // c. Set duration to ? RoundRelativeDuration(duration, destEpochNs, dateTime, calendarRec, unset, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            *round_relative_duration::<C, ()>(
-                &duration,
-                dest_epoch_ns,
-                &dt,
-                None,
-                largest_unit,
-                rounding_increment,
-                smallest_unit,
-                rounding_mode,
-                context,
-            )?
-            .0
-            .date()
+            *duration
+                .round_relative_duration::<C, ()>(
+                    dest_epoch_ns,
+                    &dt,
+                    None,
+                    largest_unit,
+                    rounding_increment,
+                    smallest_unit,
+                    rounding_mode,
+                    context,
+                )?
+                .0
+                .date()
         } else {
             duration.date()
         };
