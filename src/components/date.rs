@@ -15,7 +15,7 @@ use crate::{
 };
 use std::str::FromStr;
 
-use super::{duration::{normalized::NormalizedDurationRecord, round_relative_duration, TimeDuration}, MonthDay, Time, YearMonth};
+use super::{duration::{normalized::NormalizedDurationRecord, TimeDuration}, MonthDay, Time, YearMonth};
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
@@ -174,18 +174,18 @@ impl Date {
                 self.calendar.clone(),
             );
             // c. Set duration to ? RoundRelativeDuration(duration, destEpochNs, dateTime, calendarRec, unset, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            *round_relative_duration(
-                &duration,
-                dest_epoch_ns,
-                &dt,
-                None,
-                largest_unit,
-                rounding_increment,
-                smallest_unit,
-                rounding_mode,
-            )?
-            .0
-            .date()
+            *duration
+                .round_relative_duration(
+                    dest_epoch_ns,
+                    &dt,
+                    None,
+                    largest_unit,
+                    rounding_increment,
+                    smallest_unit,
+                    rounding_mode,
+                    )?
+                .0
+                .date()
         } else {
             duration.date()
         };
