@@ -4,7 +4,7 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     components::{
-        calendar::{CalendarProtocol, CalendarSlot},
+        calendar::{CalendarDateLike, GetTemporalCalendar, TemporalCalendar},
         duration::DateDuration,
         DateTime, Duration,
     },
@@ -17,38 +17,30 @@ use crate::{
 };
 use std::str::FromStr;
 
-use super::{
-    calendar::{CalendarDateLike, GetCalendarSlot},
-    duration::TimeDuration,
-    MonthDay, Time, YearMonth,
-};
+use super::{duration::TimeDuration, MonthDay, Time, YearMonth};
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
-pub struct Date<C: CalendarProtocol> {
+pub struct Date {
     pub(crate) iso: IsoDate,
-    calendar: CalendarSlot<C>,
+    calendar: TemporalCalendar,
 }
 
 // ==== Private API ====
 
-impl<C: CalendarProtocol> Date<C> {
+impl Date {
     /// Create a new `Date` with the date values and calendar slot.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDate, calendar: CalendarSlot<C>) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDate, calendar: TemporalCalendar) -> Self {
         Self { iso, calendar }
     }
 
     #[inline]
     /// Returns a new moved date and the days associated with that adjustment
-    pub(crate) fn move_relative_date(
-        &self,
-        duration: &Duration,
-        context: &mut C::Context,
-    ) -> TemporalResult<(Self, f64)> {
-        let new_date = self.add_date(duration, None, context)?;
+    pub(crate) fn move_relative_date(&self, duration: &Duration) -> TemporalResult<(Self, f64)> {
+        let new_date = self.add_date(duration, None)?;
         let days = f64::from(self.days_until(&new_date));
         Ok((new_date, days))
     }
@@ -61,7 +53,6 @@ impl<C: CalendarProtocol> Date<C> {
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
     ) -> TemporalResult<Self> {
         // 2. If options is not present, set options to undefined.
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
@@ -74,7 +65,7 @@ impl<C: CalendarProtocol> Date<C> {
             // i. Set dateAdd to unused.
             // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
             // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
-            return self.calendar().date_add(self, duration, overflow, context);
+            return self.calendar().date_add(self, duration, overflow);
         }
 
         // 4. Let overflow be ? ToTemporalOverflow(options).
@@ -99,7 +90,6 @@ impl<C: CalendarProtocol> Date<C> {
         &self,
         other: &Self,
         largest_unit: TemporalUnit,
-        context: &mut C::Context,
     ) -> TemporalResult<Duration> {
         if self.iso.year == other.iso.year
             && self.iso.month == other.iso.month
@@ -118,8 +108,7 @@ impl<C: CalendarProtocol> Date<C> {
             )?));
         }
 
-        self.calendar()
-            .date_until(self, other, largest_unit, context)
+        self.calendar().date_until(self, other, largest_unit)
     }
 
     /// Equivalent: DifferenceTemporalPlainDate
@@ -132,14 +121,13 @@ impl<C: CalendarProtocol> Date<C> {
         rounding_increment: Option<RoundingIncrement>,
         largest_unit: Option<TemporalUnit>,
         smallest_unit: Option<TemporalUnit>,
-        context: &mut C::Context,
     ) -> TemporalResult<Duration> {
         // 1. If operation is SINCE, let sign be -1. Otherwise, let sign be 1.
         // 2. Set other to ? ToTemporalDate(other).
 
-        // TODO(improvement): Implement `PartialEq` for `CalendarSlot<C>`
+        // TODO(improvement): Implement `PartialEq` for `TemporalCalendar`
         // 3. If ? CalendarEquals(temporalDate.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
-        if self.calendar().identifier(context)? != other.calendar().identifier(context)? {
+        if self.calendar().identifier()? != other.calendar().identifier()? {
             return Err(TemporalError::range()
                 .with_message("Calendars are for difference operation are not the same."));
         }
@@ -171,7 +159,7 @@ impl<C: CalendarProtocol> Date<C> {
         // 7. Let calendarRec be ? CreateCalendarMethodsRecord(temporalDate.[[Calendar]], « DATE-ADD, DATE-UNTIL »).
         // 8. Perform ! CreateDataPropertyOrThrow(resolvedOptions, "largestUnit", settings.[[LargestUnit]]).
         // 9. Let result be ? DifferenceDate(calendarRec, temporalDate, other, resolvedOptions).
-        let result = self.internal_diff_date(other, largest_unit, context)?;
+        let result = self.internal_diff_date(other, largest_unit)?;
 
         // 10. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1,
         // let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
@@ -203,19 +191,17 @@ impl<C: CalendarProtocol> Date<C> {
             rounding_increment,
             smallest_unit,
             rounding_mode,
-            &RelativeTo::<C, ()> {
+            &RelativeTo {
                 zdt: None,
                 date: Some(self),
             },
             None,
-            context,
         )?;
         // b. Let roundResult be roundRecord.[[NormalizedDuration]].
         let round_result = round_record.0 .0 .0;
         // c. Set result to ? BalanceDateDurationRelative(roundResult.[[Years]], roundResult.[[Months]], roundResult.[[Weeks]],
         // roundResult.[[Days]], settings.[[LargestUnit]], settings.[[SmallestUnit]], temporalDate, calendarRec).
-        let result =
-            round_result.balance_relative(largest_unit, smallest_unit, Some(self), context)?;
+        let result = round_result.balance_relative(largest_unit, smallest_unit, Some(self))?;
 
         Duration::new(
             result.years * sign,
@@ -234,13 +220,13 @@ impl<C: CalendarProtocol> Date<C> {
 
 // ==== Public API ====
 
-impl<C: CalendarProtocol> Date<C> {
+impl Date {
     /// Creates a new `Date` while checking for validity.
     pub fn new(
         year: i32,
         month: i32,
         day: i32,
-        calendar: CalendarSlot<C>,
+        calendar: TemporalCalendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let iso = IsoDate::new(year, month, day, overflow)?;
@@ -249,7 +235,7 @@ impl<C: CalendarProtocol> Date<C> {
 
     #[must_use]
     /// Creates a `Date` from a `DateTime`.
-    pub fn from_datetime(dt: &DateTime<C>) -> Self {
+    pub fn from_datetime(dt: &DateTime) -> Self {
         Self {
             iso: dt.iso_date(),
             calendar: dt.calendar().clone(),
@@ -280,7 +266,7 @@ impl<C: CalendarProtocol> Date<C> {
     #[inline]
     #[must_use]
     /// Returns a reference to this `Date`'s calendar slot.
-    pub fn calendar(&self) -> &CalendarSlot<C> {
+    pub fn calendar(&self) -> &TemporalCalendar {
         &self.calendar
     }
 
@@ -301,165 +287,22 @@ impl<C: CalendarProtocol> Date<C> {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
     }
 
-    pub fn contextual_add(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
-    ) -> TemporalResult<Self> {
-        self.add_date(duration, overflow, context)
-    }
-
-    pub fn contextual_subtract(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
-    ) -> TemporalResult<Self> {
-        self.add_date(&duration.negated(), overflow, context)
-    }
-
-    pub fn contextual_until(
-        &self,
-        other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        smallest_unit: Option<TemporalUnit>,
-        largest_unit: Option<TemporalUnit>,
-        context: &mut C::Context,
-    ) -> TemporalResult<Duration> {
-        self.diff_date(
-            false,
-            other,
-            rounding_mode,
-            rounding_increment,
-            smallest_unit,
-            largest_unit,
-            context,
-        )
-    }
-
-    pub fn contextual_since(
-        &self,
-        other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        smallest_unit: Option<TemporalUnit>,
-        largest_unit: Option<TemporalUnit>,
-        context: &mut C::Context,
-    ) -> TemporalResult<Duration> {
-        self.diff_date(
-            true,
-            other,
-            rounding_mode,
-            rounding_increment,
-            smallest_unit,
-            largest_unit,
-            context,
-        )
-    }
-}
-
-// ==== Calendar-derived Public API ====
-
-impl Date<()> {
-    /// Returns the calendar year value.
-    pub fn year(&self) -> TemporalResult<i32> {
-        self.calendar
-            .year(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar month value.
-    pub fn month(&self) -> TemporalResult<u8> {
-        self.calendar
-            .month(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar
-            .month_code(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar day value.
-    pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar
-            .day(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .day_of_week(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar day of year value.
-    pub fn day_of_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .day_of_year(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .week_of_year(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<i32> {
-        self.calendar
-            .year_of_week(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar days in week value.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_week(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar days in month value.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_month(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar days in year value.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_year(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the calendar months in year value.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .months_in_year(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns returns whether the date in a leap year for the given calendar.
-    pub fn in_leap_year(&self) -> TemporalResult<bool> {
-        self.calendar
-            .in_leap_year(&CalendarDateLike::Date(self.clone()), &mut ())
-    }
-
-    /// Returns the result of adding a `Duration` to the current `Date`.
     pub fn add(
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        self.contextual_add(duration, overflow, &mut ())
+        self.add_date(duration, overflow)
     }
 
-    /// Returns the result of subtracting a `Duration` from the current `Date`.
     pub fn subtract(
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        self.contextual_subtract(duration, overflow, &mut ())
+        self.add_date(&duration.negated(), overflow)
     }
 
-    /// Returns a `Duration` representing the time until a provided `Date`.
     pub fn until(
         &self,
         other: &Self,
@@ -468,17 +311,16 @@ impl Date<()> {
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {
-        self.contextual_until(
+        self.diff_date(
+            false,
             other,
             rounding_mode,
             rounding_increment,
             smallest_unit,
             largest_unit,
-            &mut (),
         )
     }
 
-    /// Returns a `Duration` representing the time since a provided `Date`.
     pub fn since(
         &self,
         other: &Self,
@@ -487,182 +329,144 @@ impl Date<()> {
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
     ) -> TemporalResult<Duration> {
-        self.contextual_since(
+        self.diff_date(
+            true,
             other,
             rounding_mode,
             rounding_increment,
             smallest_unit,
             largest_unit,
-            &mut (),
         )
     }
 }
 
-// NOTE(nekevss): The clone below should ideally not change the memory address, but that may
-// not be true across all cases. I.e., it should be fine as long as the clone is simply a
-// reference count increment. Need to test.
-impl<C: CalendarProtocol> Date<C> {
-    /// Returns the calendar year value with provided context.
-    pub fn contextual_year(this: &C::Date, context: &mut C::Context) -> TemporalResult<i32> {
-        this.get_calendar()
-            .year(&CalendarDateLike::CustomDate(this.clone()), context)
+// ==== Calendar-derived Public API ====
+
+impl Date {
+    /// Returns the calendar year value.
+    pub fn year(&self) -> TemporalResult<i32> {
+        self.calendar.year(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar month value with provided context.
-    pub fn contextual_month(this: &C::Date, context: &mut C::Context) -> TemporalResult<u8> {
-        this.get_calendar()
-            .month(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar month value.
+    pub fn month(&self) -> TemporalResult<u8> {
+        self.calendar.month(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar month code value with provided context.
-    pub fn contextual_month_code(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<TinyAsciiStr<4>> {
-        this.get_calendar()
-            .month_code(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar month code value.
+    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        self.calendar
+            .month_code(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar day value with provided context.
-    pub fn contextual_day(this: &C::Date, context: &mut C::Context) -> TemporalResult<u8> {
-        this.get_calendar()
-            .day(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar day value.
+    pub fn day(&self) -> TemporalResult<u8> {
+        self.calendar.day(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar day of week value with provided context.
-    pub fn contextual_day_of_week(this: &C::Date, context: &mut C::Context) -> TemporalResult<u16> {
-        this.get_calendar()
-            .day_of_week(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar day of week value.
+    pub fn day_of_week(&self) -> TemporalResult<u16> {
+        self.calendar
+            .day_of_week(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar day of year value with provided context.
-    pub fn contextual_day_of_year(this: &C::Date, context: &mut C::Context) -> TemporalResult<u16> {
-        this.get_calendar()
-            .day_of_year(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar day of year value.
+    pub fn day_of_year(&self) -> TemporalResult<u16> {
+        self.calendar
+            .day_of_year(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar week of year value with provided context.
-    pub fn contextual_week_of_year(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .week_of_year(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar week of year value.
+    pub fn week_of_year(&self) -> TemporalResult<u16> {
+        self.calendar
+            .week_of_year(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar year of week value with provided context.
-    pub fn contextual_year_of_week(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<i32> {
-        this.get_calendar()
-            .year_of_week(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar year of week value.
+    pub fn year_of_week(&self) -> TemporalResult<i32> {
+        self.calendar
+            .year_of_week(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar days in week value with provided context.
-    pub fn contextual_days_in_week(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_week(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar days in week value.
+    pub fn days_in_week(&self) -> TemporalResult<u16> {
+        self.calendar
+            .days_in_week(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar days in month value with provided context.
-    pub fn contextual_days_in_month(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_month(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar days in month value.
+    pub fn days_in_month(&self) -> TemporalResult<u16> {
+        self.calendar
+            .days_in_month(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar days in year value with provided context.
-    pub fn contextual_days_in_year(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_year(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar days in year value.
+    pub fn days_in_year(&self) -> TemporalResult<u16> {
+        self.calendar
+            .days_in_year(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns the calendar months in year value with provided context.
-    pub fn contextual_months_in_year(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .months_in_year(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns the calendar months in year value.
+    pub fn months_in_year(&self) -> TemporalResult<u16> {
+        self.calendar
+            .months_in_year(&CalendarDateLike::Date(self.clone()))
     }
 
-    /// Returns whether the date is in a leap year for the given calendar with provided context.
-    pub fn contextual_in_leap_year(
-        this: &C::Date,
-        context: &mut C::Context,
-    ) -> TemporalResult<bool> {
-        this.get_calendar()
-            .in_leap_year(&CalendarDateLike::CustomDate(this.clone()), context)
+    /// Returns returns whether the date in a leap year for the given calendar.
+    pub fn in_leap_year(&self) -> TemporalResult<bool> {
+        self.calendar
+            .in_leap_year(&CalendarDateLike::Date(self.clone()))
     }
 }
 
 // ==== ToX Methods ====
 
-impl<C: CalendarProtocol> Date<C> {
+impl Date {
     /// Converts the current `Date<C>` into a `DateTime<C>`
     ///
     /// # Notes
     ///
     /// If no time is provided, then the time will default to midnight.
     #[inline]
-    pub fn to_date_time(this: &C::Date, time: Option<Time>) -> TemporalResult<DateTime<C>> {
+    pub fn to_date_time(&self, time: Option<Time>) -> TemporalResult<DateTime> {
         let time = time.unwrap_or_default();
-        let iso = IsoDateTime::new(this.iso_date(), time.iso)?;
-        Ok(DateTime::<C>::new_unchecked(iso, this.get_calendar()))
+        let iso = IsoDateTime::new(self.iso_date(), time.iso)?;
+        Ok(DateTime::new_unchecked(iso, self.get_calendar()))
     }
 
     /// Converts the current `Date<C>` into a `YearMonth<C>`
     #[inline]
-    pub fn to_year_month(this: &C::Date, context: &mut C::Context) -> TemporalResult<YearMonth<C>> {
-        let mut fields: TemporalFields = this.iso_date().into();
-        this.get_calendar().year_month_from_fields(
-            &mut fields,
-            ArithmeticOverflow::Constrain,
-            context,
-        )
+    pub fn to_year_month(&self) -> TemporalResult<YearMonth> {
+        let mut fields: TemporalFields = self.iso_date().into();
+        self.get_calendar()
+            .year_month_from_fields(&mut fields, ArithmeticOverflow::Constrain)
     }
 
     /// Converts the current `Date<C>` into a `MonthDay<C>`
     #[inline]
-    pub fn to_month_day(this: &C::Date, context: &mut C::Context) -> TemporalResult<MonthDay<C>> {
-        let mut fields: TemporalFields = this.iso_date().into();
-        this.get_calendar().month_day_from_fields(
-            &mut fields,
-            ArithmeticOverflow::Constrain,
-            context,
-        )
+    pub fn to_month_day(&self) -> TemporalResult<MonthDay> {
+        let mut fields: TemporalFields = self.iso_date().into();
+        self.get_calendar()
+            .month_day_from_fields(&mut fields, ArithmeticOverflow::Constrain)
     }
 }
 
-impl<C: CalendarProtocol> GetCalendarSlot<C> for Date<C> {
-    fn get_calendar(&self) -> CalendarSlot<C> {
+impl GetTemporalCalendar for Date {
+    fn get_calendar(&self) -> TemporalCalendar {
         self.calendar.clone()
     }
 }
 
-impl<C: CalendarProtocol> IsoDateSlots for Date<C> {
+impl IsoDateSlots for Date {
     /// Returns the structs `IsoDate`
     fn iso_date(&self) -> IsoDate {
         self.iso
     }
 }
 
-// ==== Context based API ====
-
-impl<C: CalendarProtocol> Date<C> {}
-
 // ==== Trait impls ====
 
-impl<C: CalendarProtocol> FromStr for Date<C> {
+impl FromStr for Date {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -680,7 +484,10 @@ impl<C: CalendarProtocol> FromStr for Date<C> {
             ArithmeticOverflow::Reject,
         )?;
 
-        Ok(Self::new_unchecked(date, CalendarSlot::from_str(calendar)?))
+        Ok(Self::new_unchecked(
+            date,
+            TemporalCalendar::from_str(calendar)?,
+        ))
     }
 }
 
@@ -690,7 +497,7 @@ mod tests {
 
     #[test]
     fn simple_date_add() {
-        let base = Date::<()>::from_str("1976-11-18").unwrap();
+        let base = Date::from_str("1976-11-18").unwrap();
 
         // Test 1
         let result = base
@@ -732,7 +539,7 @@ mod tests {
 
     #[test]
     fn simple_date_subtract() {
-        let base = Date::<()>::from_str("2019-11-18").unwrap();
+        let base = Date::from_str("2019-11-18").unwrap();
 
         // Test 1
         let result = base
@@ -776,24 +583,24 @@ mod tests {
 
     #[test]
     fn simple_date_until() {
-        let earlier = Date::<()>::from_str("1969-07-24").unwrap();
-        let later = Date::<()>::from_str("1969-10-05").unwrap();
+        let earlier = Date::from_str("1969-07-24").unwrap();
+        let later = Date::from_str("1969-10-05").unwrap();
         let result = earlier.until(&later, None, None, None, None).unwrap();
         assert_eq!(result.days(), 73.0,);
 
-        let later = Date::<()>::from_str("1996-03-03").unwrap();
+        let later = Date::from_str("1996-03-03").unwrap();
         let result = earlier.until(&later, None, None, None, None).unwrap();
         assert_eq!(result.days(), 9719.0,);
     }
 
     #[test]
     fn simple_date_since() {
-        let earlier = Date::<()>::from_str("1969-07-24").unwrap();
-        let later = Date::<()>::from_str("1969-10-05").unwrap();
+        let earlier = Date::from_str("1969-07-24").unwrap();
+        let later = Date::from_str("1969-10-05").unwrap();
         let result = later.since(&earlier, None, None, None, None).unwrap();
         assert_eq!(result.days(), 73.0,);
 
-        let later = Date::<()>::from_str("1996-03-03").unwrap();
+        let later = Date::from_str("1996-03-03").unwrap();
         let result = later.since(&earlier, None, None, None, None).unwrap();
         assert_eq!(result.days(), 9719.0,);
     }
@@ -844,7 +651,7 @@ mod tests {
             "+999999-01-01",
         ];
         for s in INVALID_STRINGS {
-            assert!(Date::<()>::from_str(s).is_err())
+            assert!(Date::from_str(s).is_err())
         }
     }
 
@@ -860,7 +667,7 @@ mod tests {
             "1970-01-01T00:00[foo=bar][!_foo-bar0=Dont-Ignore-This-99999999999]",
         ];
         for s in INVALID_STRINGS {
-            assert!(Date::<()>::from_str(s).is_err())
+            assert!(Date::from_str(s).is_err())
         }
     }
 }

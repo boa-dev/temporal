@@ -3,27 +3,27 @@
 use std::str::FromStr;
 
 use crate::{
-    components::calendar::CalendarSlot,
+    components::calendar::TemporalCalendar,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::{CalendarProtocol, GetCalendarSlot};
+use super::calendar::GetTemporalCalendar;
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
-pub struct YearMonth<C: CalendarProtocol> {
+pub struct YearMonth {
     iso: IsoDate,
-    calendar: CalendarSlot<C>,
+    calendar: TemporalCalendar,
 }
 
-impl<C: CalendarProtocol> YearMonth<C> {
+impl YearMonth {
     /// Creates an unvalidated `YearMonth`.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDate, calendar: CalendarSlot<C>) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDate, calendar: TemporalCalendar) -> Self {
         Self { iso, calendar }
     }
 
@@ -33,7 +33,7 @@ impl<C: CalendarProtocol> YearMonth<C> {
         year: i32,
         month: i32,
         reference_day: Option<i32>,
-        calendar: CalendarSlot<C>,
+        calendar: TemporalCalendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let day = reference_day.unwrap_or(1);
@@ -58,19 +58,19 @@ impl<C: CalendarProtocol> YearMonth<C> {
     /// Returns the Calendar value.
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &CalendarSlot<C> {
+    pub fn calendar(&self) -> &TemporalCalendar {
         &self.calendar
     }
 }
 
-impl<C: CalendarProtocol> GetCalendarSlot<C> for YearMonth<C> {
+impl GetTemporalCalendar for YearMonth {
     /// Returns a reference to `YearMonth`'s `CalendarSlot`
-    fn get_calendar(&self) -> CalendarSlot<C> {
+    fn get_calendar(&self) -> TemporalCalendar {
         self.calendar.clone()
     }
 }
 
-impl<C: CalendarProtocol> IsoDateSlots for YearMonth<C> {
+impl IsoDateSlots for YearMonth {
     #[inline]
     /// Returns this `YearMonth`'s `IsoDate`
     fn iso_date(&self) -> IsoDate {
@@ -78,7 +78,7 @@ impl<C: CalendarProtocol> IsoDateSlots for YearMonth<C> {
     }
 }
 
-impl<C: CalendarProtocol> FromStr for YearMonth<C> {
+impl FromStr for YearMonth {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -92,7 +92,7 @@ impl<C: CalendarProtocol> FromStr for YearMonth<C> {
             date.year,
             date.month.into(),
             None,
-            CalendarSlot::from_str(calendar)?,
+            TemporalCalendar::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
     }

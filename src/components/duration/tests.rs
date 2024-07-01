@@ -1,5 +1,5 @@
 use crate::{
-    components::{calendar::CalendarSlot, Date},
+    components::{calendar::TemporalCalendar, Date},
     options::ArithmeticOverflow,
 };
 
@@ -7,12 +7,12 @@ use super::*;
 
 fn get_round_result(
     test_duration: &Duration,
-    relative_to: &RelativeTo<'_, (), ()>,
+    relative_to: &RelativeTo<'_>,
     unit: TemporalUnit,
     mode: TemporalRoundingMode,
 ) -> Vec<i32> {
     test_duration
-        .round(None, Some(unit), None, Some(mode), relative_to, &mut ())
+        .round(None, Some(unit), None, Some(mode), relative_to)
         .unwrap()
         .fields()
         .iter()
@@ -25,16 +25,16 @@ fn get_round_result(
 fn basic_positive_floor_rounding() {
     let test_duration =
         Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
-    let forward_date = Date::<()>::new(
+    let forward_date = Date::new(
         2020,
         4,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
 
-    let relative_forward: RelativeTo<'_, (), ()> = RelativeTo {
+    let relative_forward = RelativeTo {
         date: Some(&forward_date),
         zdt: None,
     };
@@ -125,16 +125,16 @@ fn basic_negative_floor_rounding() {
     // Test setup
     let test_duration =
         Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
-    let backward_date = Date::<()>::new(
+    let backward_date = Date::new(
         2020,
         12,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
 
-    let relative_backward: RelativeTo<'_, (), ()> = RelativeTo {
+    let relative_backward = RelativeTo {
         date: Some(&backward_date),
         zdt: None,
     };
@@ -225,16 +225,16 @@ fn basic_negative_floor_rounding() {
 fn basic_positive_ceil_rounding() {
     let test_duration =
         Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
-    let forward_date = Date::<()>::new(
+    let forward_date = Date::new(
         2020,
         4,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
 
-    let relative_forward: RelativeTo<'_, (), ()> = RelativeTo {
+    let relative_forward = RelativeTo {
         date: Some(&forward_date),
         zdt: None,
     };
@@ -324,15 +324,15 @@ fn basic_positive_ceil_rounding() {
 fn basic_negative_ceil_rounding() {
     let test_duration =
         Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
-    let backward_date = Date::<()>::new(
+    let backward_date = Date::new(
         2020,
         12,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
-    let relative_backward: RelativeTo<'_, (), ()> = RelativeTo {
+    let relative_backward = RelativeTo {
         date: Some(&backward_date),
         zdt: None,
     };
@@ -423,16 +423,16 @@ fn basic_negative_ceil_rounding() {
 fn basic_positive_expand_rounding() {
     let test_duration =
         Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
-    let forward_date = Date::<()>::new(
+    let forward_date = Date::new(
         2020,
         4,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
 
-    let relative_forward: RelativeTo<'_, (), ()> = RelativeTo {
+    let relative_forward = RelativeTo {
         date: Some(&forward_date),
         zdt: None,
     };
@@ -523,16 +523,16 @@ fn basic_negative_expand_rounding() {
     let test_duration =
         Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
 
-    let backward_date = Date::<()>::new(
+    let backward_date = Date::new(
         2020,
         12,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
 
-    let relative_backward: RelativeTo<'_, (), ()> = RelativeTo {
+    let relative_backward = RelativeTo {
         date: Some(&backward_date),
         zdt: None,
     };
@@ -623,15 +623,15 @@ fn basic_negative_expand_rounding() {
 fn rounding_increment_non_integer() {
     let test_duration =
         Duration::from_date_duration(&DateDuration::new(0.0, 0.0, 0.0, 1.0).unwrap());
-    let binding = Date::<()>::new(
+    let binding = Date::new(
         2000,
         1,
         1,
-        CalendarSlot::from_str("iso8601").unwrap(),
+        TemporalCalendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
-    let relative_to = RelativeTo::<'_, (), ()> {
+    let relative_to = RelativeTo {
         date: Some(&binding),
         zdt: None,
     };
@@ -644,7 +644,6 @@ fn rounding_increment_non_integer() {
                 None,
                 Some(TemporalRoundingMode::Expand),
                 &relative_to,
-                &mut ()
             )
             .unwrap()
             .fields(),
@@ -659,7 +658,6 @@ fn rounding_increment_non_integer() {
                 None,
                 Some(TemporalRoundingMode::Expand),
                 &relative_to,
-                &mut ()
             )
             .unwrap()
             .fields(),

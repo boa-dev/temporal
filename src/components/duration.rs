@@ -10,8 +10,6 @@ use std::str::FromStr;
 
 use self::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
 
-use super::{calendar::CalendarProtocol, tz::TzProtocol};
-
 mod date;
 pub(crate) mod normalized;
 mod time;
@@ -366,14 +364,13 @@ impl Duration {
     ///   seconds, milliseconds, microseconds, nanoseconds, increment, unit,
     ///   roundingMode [ , plainRelativeTo [, zonedRelativeTo [, precalculatedDateTime]]] )`
     #[allow(clippy::type_complexity)]
-    pub(crate) fn round_internal<C: CalendarProtocol, Z: TzProtocol>(
+    pub(crate) fn round_internal(
         &self,
         increment: RoundingIncrement,
         unit: TemporalUnit,
         rounding_mode: TemporalRoundingMode,
-        relative_to: &RelativeTo<C, Z>,
-        precalculated_dt: Option<DateTime<C>>,
-        context: &mut C::Context,
+        relative_to: &RelativeTo,
+        precalculated_dt: Option<DateTime>,
     ) -> TemporalResult<(NormalizedDurationRecord, f64)> {
         match unit {
             TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
@@ -384,7 +381,6 @@ impl Duration {
                     rounding_mode,
                     relative_to,
                     precalculated_dt,
-                    context,
                 )?;
                 let norm_record = NormalizedDurationRecord::new(
                     round_result.0,
@@ -453,14 +449,13 @@ impl Duration {
 
     /// Rounds the current `Duration`.
     #[inline]
-    pub fn round<C: CalendarProtocol, Z: TzProtocol>(
+    pub fn round(
         &self,
         increment: Option<RoundingIncrement>,
         smallest_unit: Option<TemporalUnit>,
         largest_unit: Option<TemporalUnit>,
         rounding_mode: Option<TemporalRoundingMode>,
-        relative_to: &RelativeTo<C, Z>,
-        context: &mut C::Context,
+        relative_to: &RelativeTo,
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
 
@@ -584,7 +579,7 @@ impl Duration {
         // 36. Let unbalanceResult be ? UnbalanceDateDurationRelative(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], largestUnit, plainRelativeTo, calendarRec).
         let unbalanced = self
             .date()
-            .unbalance_relative(largest_unit, relative_to_date, context)?;
+            .unbalance_relative(largest_unit, relative_to_date)?;
 
         // NOTE: Step 37 handled in round duration
         // 37. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
@@ -598,7 +593,6 @@ impl Duration {
             mode,
             relative_to,
             precalculated,
-            context,
         )?;
 
         // 39. Let roundResult be roundRecord.[[NormalizedDuration]].
@@ -628,12 +622,8 @@ impl Duration {
             round_result.0 .0.weeks,
             balance_result.0,
         );
-        let result = intermediate.balance_relative(
-            largest_unit,
-            smallest_unit,
-            relative_to_date,
-            context,
-        )?;
+        let result =
+            intermediate.balance_relative(largest_unit, smallest_unit, relative_to_date)?;
 
         // 43. Return ! CreateTemporalDuration(result.[[Years]], result.[[Months]],
         // result.[[Weeks]], result.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]],

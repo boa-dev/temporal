@@ -1,10 +1,7 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use crate::{
-    components::{
-        calendar::{CalendarProtocol, CalendarSlot},
-        Instant,
-    },
+    components::Instant,
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::ArithmeticOverflow,
     parsers::parse_date_time,
@@ -15,7 +12,7 @@ use std::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use super::{
-    calendar::{CalendarDateLike, GetCalendarSlot},
+    calendar::{CalendarDateLike, GetTemporalCalendar, TemporalCalendar},
     duration::normalized::NormalizedTimeDuration,
     Duration,
 };
@@ -23,18 +20,18 @@ use super::{
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
-pub struct DateTime<C: CalendarProtocol> {
+pub struct DateTime {
     iso: IsoDateTime,
-    calendar: CalendarSlot<C>,
+    calendar: TemporalCalendar,
 }
 
 // ==== Private DateTime API ====
 
-impl<C: CalendarProtocol> DateTime<C> {
+impl DateTime {
     /// Creates a new unchecked `DateTime`.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDateTime, calendar: CalendarSlot<C>) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDateTime, calendar: TemporalCalendar) -> Self {
         Self { iso, calendar }
     }
 
@@ -50,7 +47,7 @@ impl<C: CalendarProtocol> DateTime<C> {
     pub(crate) fn from_instant(
         instant: &Instant,
         offset: f64,
-        calendar: CalendarSlot<C>,
+        calendar: TemporalCalendar,
     ) -> TemporalResult<Self> {
         let iso = IsoDateTime::from_epoch_nanos(&instant.nanos, offset)?;
         Ok(Self { iso, calendar })
@@ -61,7 +58,6 @@ impl<C: CalendarProtocol> DateTime<C> {
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
     ) -> TemporalResult<Self> {
         // SKIP: 1, 2, 3, 4
         // 1. If operation is subtract, let sign be -1. Otherwise, let sign be 1.
@@ -74,13 +70,9 @@ impl<C: CalendarProtocol> DateTime<C> {
 
         // TODO: validate Constrain is default with all the recent changes.
         // 6. Let result be ? AddDateTime(dateTime.[[ISOYear]], dateTime.[[ISOMonth]], dateTime.[[ISODay]], dateTime.[[ISOHour]], dateTime.[[ISOMinute]], dateTime.[[ISOSecond]], dateTime.[[ISOMillisecond]], dateTime.[[ISOMicrosecond]], dateTime.[[ISONanosecond]], calendarRec, sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], norm, options).
-        let result = self.iso.add_date_duration(
-            self.calendar(),
-            duration.date(),
-            norm,
-            overflow,
-            context,
-        )?;
+        let result =
+            self.iso
+                .add_date_duration(self.calendar(), duration.date(), norm, overflow)?;
 
         // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
         // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]], result.[[Nanosecond]]) is true.
@@ -93,7 +85,7 @@ impl<C: CalendarProtocol> DateTime<C> {
 
 // ==== Public DateTime API ====
 
-impl<C: CalendarProtocol> DateTime<C> {
+impl DateTime {
     /// Creates a new validated `DateTime`.
     #[inline]
     #[allow(clippy::too_many_arguments)]
@@ -107,7 +99,7 @@ impl<C: CalendarProtocol> DateTime<C> {
         millisecond: i32,
         microsecond: i32,
         nanosecond: i32,
-        calendar: CalendarSlot<C>,
+        calendar: TemporalCalendar,
     ) -> TemporalResult<Self> {
         let iso_date = IsoDate::new(year, month, day, ArithmeticOverflow::Reject)?;
         let iso_time = IsoTime::new(
@@ -197,90 +189,89 @@ impl<C: CalendarProtocol> DateTime<C> {
     /// Returns the Calendar value.
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &CalendarSlot<C> {
+    pub fn calendar(&self) -> &TemporalCalendar {
         &self.calendar
     }
 }
 
 // ==== Calendar-derived public API ====
 
-impl DateTime<()> {
+impl DateTime {
     /// Returns the calendar year value.
     pub fn year(&self) -> TemporalResult<i32> {
         self.calendar
-            .year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .year(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar month value.
     pub fn month(&self) -> TemporalResult<u8> {
         self.calendar
-            .month(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .month(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar month code value.
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.calendar
-            .month_code(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .month_code(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar day value.
     pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar
-            .day(&CalendarDateLike::DateTime(self.clone()), &mut ())
+        self.calendar.day(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar day of week value.
     pub fn day_of_week(&self) -> TemporalResult<u16> {
         self.calendar
-            .day_of_week(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .day_of_week(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar day of year value.
     pub fn day_of_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .day_of_year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .day_of_year(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar week of year value.
     pub fn week_of_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .week_of_year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .week_of_year(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar year of week value.
     pub fn year_of_week(&self) -> TemporalResult<i32> {
         self.calendar
-            .year_of_week(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .year_of_week(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar days in week value.
     pub fn days_in_week(&self) -> TemporalResult<u16> {
         self.calendar
-            .days_in_week(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .days_in_week(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar days in month value.
     pub fn days_in_month(&self) -> TemporalResult<u16> {
         self.calendar
-            .days_in_month(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .days_in_month(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar days in year value.
     pub fn days_in_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .days_in_year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .days_in_year(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns the calendar months in year value.
     pub fn months_in_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .months_in_year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .months_in_year(&CalendarDateLike::DateTime(self.clone()))
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
         self.calendar
-            .in_leap_year(&CalendarDateLike::DateTime(self.clone()), &mut ())
+            .in_leap_year(&CalendarDateLike::DateTime(self.clone()))
     }
 
     #[inline]
@@ -289,7 +280,7 @@ impl DateTime<()> {
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        self.contextual_add(duration, overflow, &mut ())
+        self.add_or_subtract_duration(duration, overflow)
     }
 
     #[inline]
@@ -298,155 +289,25 @@ impl DateTime<()> {
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        self.contextual_subtract(duration, overflow, &mut ())
-    }
-}
-
-impl<C: CalendarProtocol> DateTime<C> {
-    /// Returns the calendar year value with provided context.
-    pub fn contextual_year(this: &C::DateTime, context: &mut C::Context) -> TemporalResult<i32> {
-        this.get_calendar()
-            .year(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar month value with provided context.
-    pub fn contextual_month(this: &C::DateTime, context: &mut C::Context) -> TemporalResult<u8> {
-        this.get_calendar()
-            .month(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar month code value with provided context.
-    pub fn contextual_month_code(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<TinyAsciiStr<4>> {
-        this.get_calendar()
-            .month_code(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar day value with provided context.
-    pub fn contextual_day(this: &C::DateTime, context: &mut C::Context) -> TemporalResult<u8> {
-        this.get_calendar()
-            .day(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar day of week value with provided context.
-    pub fn contextual_day_of_week(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .day_of_week(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar day of year value with provided context.
-    pub fn contextual_day_of_year(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .day_of_year(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar week of year value with provided context.
-    pub fn contextual_week_of_year(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .week_of_year(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar year of week value with provided context.
-    pub fn contextual_year_of_week(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<i32> {
-        this.get_calendar()
-            .year_of_week(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar days in week value with provided context.
-    pub fn contextual_days_in_week(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_week(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar days in month value with provided context.
-    pub fn contextual_days_in_month(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_month(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar days in year value with provided context.
-    pub fn contextual_days_in_year(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .days_in_year(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns the calendar months in year value with provided context.
-    pub fn contextual_months_in_year(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<u16> {
-        this.get_calendar()
-            .months_in_year(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    /// Returns whether the date is in a leap year for the given calendar with provided context.
-    pub fn contextual_in_leap_year(
-        this: &C::DateTime,
-        context: &mut C::Context,
-    ) -> TemporalResult<bool> {
-        this.get_calendar()
-            .in_leap_year(&CalendarDateLike::CustomDateTime(this.clone()), context)
-    }
-
-    #[inline]
-    pub fn contextual_add(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
-    ) -> TemporalResult<Self> {
-        self.add_or_subtract_duration(duration, overflow, context)
-    }
-
-    #[inline]
-    pub fn contextual_subtract(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
-    ) -> TemporalResult<Self> {
-        self.add_or_subtract_duration(&duration.negated(), overflow, context)
+        self.add_or_subtract_duration(&duration.negated(), overflow)
     }
 }
 
 // ==== Trait impls ====
 
-impl<C: CalendarProtocol> GetCalendarSlot<C> for DateTime<C> {
-    fn get_calendar(&self) -> CalendarSlot<C> {
+impl GetTemporalCalendar for DateTime {
+    fn get_calendar(&self) -> TemporalCalendar {
         self.calendar.clone()
     }
 }
 
-impl<C: CalendarProtocol> IsoDateSlots for DateTime<C> {
+impl IsoDateSlots for DateTime {
     fn iso_date(&self) -> IsoDate {
         self.iso.date
     }
 }
 
-impl<C: CalendarProtocol> FromStr for DateTime<C> {
+impl FromStr for DateTime {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -476,7 +337,7 @@ impl<C: CalendarProtocol> FromStr for DateTime<C> {
 
         Ok(Self::new_unchecked(
             IsoDateTime::new(date, time)?,
-            CalendarSlot::from_str(calendar)?,
+            TemporalCalendar::from_str(calendar)?,
         ))
     }
 }
@@ -486,7 +347,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::{
-        components::{calendar::CalendarSlot, Duration},
+        components::{calendar::TemporalCalendar, Duration},
         iso::{IsoDate, IsoTime},
     };
 
@@ -497,7 +358,7 @@ mod tests {
     fn plain_date_time_limits() {
         // This test is primarily to assert that the `expect` in the epoch methods is
         // valid, i.e., a valid instant is within the range of an f64.
-        let negative_limit = DateTime::<()>::new(
+        let negative_limit = DateTime::new(
             -271_821,
             4,
             19,
@@ -507,10 +368,20 @@ mod tests {
             0,
             0,
             0,
-            CalendarSlot::from_str("iso8601").unwrap(),
+            TemporalCalendar::from_str("iso8601").unwrap(),
         );
-        let positive_limit =
-            DateTime::<()>::new(275_760, 9, 14, 0, 0, 0, 0, 0, 0, CalendarSlot::default());
+        let positive_limit = DateTime::new(
+            275_760,
+            9,
+            14,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            TemporalCalendar::default(),
+        );
 
         assert!(negative_limit.is_err());
         assert!(positive_limit.is_err());
@@ -519,7 +390,7 @@ mod tests {
     // options-undefined.js
     #[test]
     fn datetime_add_test() {
-        let pdt = DateTime::<()>::new(
+        let pdt = DateTime::new(
             2020,
             1,
             31,
@@ -529,7 +400,7 @@ mod tests {
             987,
             654,
             321,
-            CalendarSlot::default(),
+            TemporalCalendar::default(),
         )
         .unwrap();
 
@@ -542,7 +413,7 @@ mod tests {
     // options-undefined.js
     #[test]
     fn datetime_subtract_test() {
-        let pdt = DateTime::<()>::new(
+        let pdt = DateTime::new(
             2000,
             3,
             31,
@@ -552,7 +423,7 @@ mod tests {
             987,
             654,
             321,
-            CalendarSlot::default(),
+            TemporalCalendar::default(),
         )
         .unwrap();
 
@@ -565,7 +436,7 @@ mod tests {
     // subtract/hour-overflow.js
     #[test]
     fn datetime_subtract_hour_overflows() {
-        let dt = DateTime::<()>::new(
+        let dt = DateTime::new(
             2019,
             10,
             29,
@@ -575,7 +446,7 @@ mod tests {
             271,
             986,
             102,
-            CalendarSlot::default(),
+            TemporalCalendar::default(),
         )
         .unwrap();
 
