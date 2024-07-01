@@ -6,7 +6,7 @@
 use core::{fmt, str::FromStr};
 
 use crate::{
-    components::{calendar::CalendarProtocol, tz::TzProtocol, Date, ZonedDateTime},
+    components::{Date, ZonedDateTime},
     TemporalError,
 };
 
@@ -15,9 +15,9 @@ pub use increment::RoundingIncrement;
 
 // ==== RelativeTo Object ====
 
-pub struct RelativeTo<'a, C: CalendarProtocol, Z: TzProtocol> {
-    pub date: Option<&'a Date<C>>,
-    pub zdt: Option<&'a ZonedDateTime<C, Z>>,
+pub struct RelativeTo<'a> {
+    pub date: Option<&'a Date>,
+    pub zdt: Option<&'a ZonedDateTime>,
 }
 
 // ==== Options enums and methods ====
