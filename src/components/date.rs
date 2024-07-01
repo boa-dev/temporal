@@ -45,7 +45,7 @@ impl Date {
         Ok((new_date, days))
     }
 
-    /// Returns the date after adding the given duration to date with a provided context.
+    /// Returns the date after adding the given duration to date.
     ///
     /// Temporal Equivalent: 3.5.13 `AddDate ( calendar, plainDate, duration [ , options [ , dateAdd ] ] )`
     #[inline]
@@ -82,7 +82,7 @@ impl Date {
         Ok(Self::new_unchecked(result, self.calendar().clone()))
     }
 
-    /// Returns a duration representing the difference between the dates one and two with a provided context.
+    /// Returns a duration representing the difference between the dates one and two.
     ///
     /// Temporal Equivalent: 3.5.6 `DifferenceDate ( calendar, one, two, options )`
     #[inline]

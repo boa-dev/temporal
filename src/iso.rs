@@ -128,7 +128,7 @@ impl IsoDateTime {
     /// Specification equivalent to 5.5.9 `AddDateTime`.
     pub(crate) fn add_date_duration(
         &self,
-        calendar: &TemporalCalendar,
+        calendar: TemporalCalendar,
         date_duration: &DateDuration,
         norm: NormalizedTimeDuration,
         overflow: Option<ArithmeticOverflow>,
@@ -139,7 +139,7 @@ impl IsoDateTime {
         let t_result = self.time.add(norm);
 
         // 4. Let datePart be ! CreateTemporalDate(year, month, day, calendarRec.[[Receiver]]).
-        let date = Date::new_unchecked(self.date, calendar.clone());
+        let date = Date::new_unchecked(self.date, calendar);
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
         let duration = Duration::new(
