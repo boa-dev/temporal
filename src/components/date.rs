@@ -4,7 +4,7 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     components::{
-        calendar::{CalendarDateLike, GetTemporalCalendar, TemporalCalendar},
+        calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
         duration::DateDuration,
         DateTime, Duration,
     },
@@ -24,7 +24,7 @@ use super::{duration::TimeDuration, MonthDay, Time, YearMonth};
 #[derive(Debug, Default, Clone)]
 pub struct Date {
     pub(crate) iso: IsoDate,
-    calendar: TemporalCalendar,
+    calendar: Calendar,
 }
 
 // ==== Private API ====
@@ -33,7 +33,7 @@ impl Date {
     /// Create a new `Date` with the date values and calendar slot.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDate, calendar: TemporalCalendar) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
         Self { iso, calendar }
     }
 
@@ -226,7 +226,7 @@ impl Date {
         year: i32,
         month: i32,
         day: i32,
-        calendar: TemporalCalendar,
+        calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let iso = IsoDate::new(year, month, day, overflow)?;
@@ -266,7 +266,7 @@ impl Date {
     #[inline]
     #[must_use]
     /// Returns a reference to this `Date`'s calendar slot.
-    pub fn calendar(&self) -> &TemporalCalendar {
+    pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 
@@ -452,7 +452,7 @@ impl Date {
 }
 
 impl GetTemporalCalendar for Date {
-    fn get_calendar(&self) -> TemporalCalendar {
+    fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
@@ -484,10 +484,7 @@ impl FromStr for Date {
             ArithmeticOverflow::Reject,
         )?;
 
-        Ok(Self::new_unchecked(
-            date,
-            TemporalCalendar::from_str(calendar)?,
-        ))
+        Ok(Self::new_unchecked(date, Calendar::from_str(calendar)?))
     }
 }
 

@@ -16,7 +16,7 @@ use std::num::NonZeroU64;
 
 use crate::{
     components::{
-        calendar::TemporalCalendar,
+        calendar::Calendar,
         duration::{normalized::NormalizedTimeDuration, DateDuration, TimeDuration},
         Date, Duration,
     },
@@ -128,7 +128,7 @@ impl IsoDateTime {
     /// Specification equivalent to 5.5.9 `AddDateTime`.
     pub(crate) fn add_date_duration(
         &self,
-        calendar: TemporalCalendar,
+        calendar: Calendar,
         date_duration: &DateDuration,
         norm: NormalizedTimeDuration,
         overflow: Option<ArithmeticOverflow>,

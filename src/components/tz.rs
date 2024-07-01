@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
 use crate::{
-    components::{calendar::TemporalCalendar, DateTime, Instant},
+    components::{calendar::Calendar, DateTime, Instant},
     TemporalError, TemporalResult,
 };
 
@@ -24,7 +24,7 @@ impl TimeZone {
     pub(crate) fn get_datetime_for(
         &self,
         instant: &Instant,
-        calendar: &TemporalCalendar,
+        calendar: &Calendar,
     ) -> TemporalResult<DateTime> {
         let nanos = self.get_offset_nanos_for()?;
         DateTime::from_instant(instant, nanos.to_f64().unwrap_or(0.0), calendar.clone())

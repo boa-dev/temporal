@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use tinystr::TinyStr4;
 
 use crate::{
-    components::{calendar::TemporalCalendar, tz::TimeZone, Instant},
+    components::{calendar::Calendar, tz::TimeZone, Instant},
     TemporalResult,
 };
 
@@ -15,7 +15,7 @@ use super::calendar::CalendarDateLike;
 #[derive(Debug, Clone)]
 pub struct ZonedDateTime {
     instant: Instant,
-    calendar: TemporalCalendar,
+    calendar: Calendar,
     tz: TimeZone,
 }
 
@@ -25,11 +25,7 @@ impl ZonedDateTime {
     /// Creates a `ZonedDateTime` without validating the input.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(
-        instant: Instant,
-        calendar: TemporalCalendar,
-        tz: TimeZone,
-    ) -> Self {
+    pub(crate) fn new_unchecked(instant: Instant, calendar: Calendar, tz: TimeZone) -> Self {
         Self {
             instant,
             calendar,
@@ -43,7 +39,7 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn new(nanos: BigInt, calendar: TemporalCalendar, tz: TimeZone) -> TemporalResult<Self> {
+    pub fn new(nanos: BigInt, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
         let instant = Instant::new(nanos)?;
         Ok(Self::new_unchecked(instant, calendar, tz))
     }
@@ -51,7 +47,7 @@ impl ZonedDateTime {
     /// Returns `ZonedDateTime`'s Calendar.
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &TemporalCalendar {
+    pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 
@@ -153,7 +149,7 @@ mod tests {
 
     use std::str::FromStr;
 
-    use crate::components::{calendar::TemporalCalendar, tz::TimeZone};
+    use crate::components::{calendar::Calendar, tz::TimeZone};
     use num_bigint::BigInt;
 
     use super::ZonedDateTime;
@@ -164,7 +160,7 @@ mod tests {
 
         let zdt = ZonedDateTime::new(
             nov_30_2023_utc.clone(),
-            TemporalCalendar::from_str("iso8601").unwrap(),
+            Calendar::from_str("iso8601").unwrap(),
             TimeZone {
                 iana: None,
                 offset: Some(0),
@@ -181,7 +177,7 @@ mod tests {
 
         let zdt_minus_five = ZonedDateTime::new(
             nov_30_2023_utc,
-            TemporalCalendar::from_str("iso8601").unwrap(),
+            Calendar::from_str("iso8601").unwrap(),
             TimeZone {
                 iana: None,
                 offset: Some(-300),

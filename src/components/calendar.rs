@@ -2,11 +2,6 @@
 //!
 //! The goal of the calendar module of `boa_temporal` is to provide
 //! Temporal compatible calendar implementations.
-//!
-//! The implementation will only be of calendar's prexisting calendars. This library
-//! does not come with a pre-existing `CustomCalendar` (i.e., an object that implements
-//! the calendar protocol), but it does aim to provide the necessary tools and API for
-//! implementing one.
 
 use std::str::FromStr;
 
@@ -35,7 +30,7 @@ use icu_calendar::{
     roc::Roc,
     types::{DayOfMonth, DayOfYearInfo, Era, FormattableMonth, FormattableYear, MonthCode},
     week::{RelativeUnit, WeekCalculator},
-    AnyCalendar, AnyCalendarKind, Calendar, DateDuration as IcuDateDuration,
+    AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, DateDuration as IcuDateDuration,
     DateDurationUnit as IcuDateDurationUnit, Gregorian, Iso, Ref,
 };
 use tinystr::TinyAsciiStr;
@@ -66,15 +61,15 @@ pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
 ];
 
 #[derive(Debug, Clone)]
-pub struct TemporalCalendar(Ref<'static, AnyCalendar>);
+pub struct Calendar(Ref<'static, AnyCalendar>);
 
-impl Default for TemporalCalendar {
+impl Default for Calendar {
     fn default() -> Self {
-        TemporalCalendar::new(AnyCalendarKind::Iso)
+        Calendar::new(AnyCalendarKind::Iso)
     }
 }
 
-impl Calendar for TemporalCalendar {
+impl IcuCalendar for Calendar {
     type DateInner = AnyDateInner;
 
     fn date_from_codes(
@@ -149,7 +144,7 @@ impl Calendar for TemporalCalendar {
     }
 }
 
-impl TemporalCalendar {
+impl Calendar {
     #[warn(clippy::wildcard_enum_match_arm)] // Warns if the calendar kind gets out of sync.
     pub fn new(kind: AnyCalendarKind) -> Self {
         let cal = match kind {
@@ -196,7 +191,7 @@ impl TemporalCalendar {
     }
 }
 
-impl FromStr for TemporalCalendar {
+impl FromStr for Calendar {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -209,7 +204,7 @@ impl FromStr for TemporalCalendar {
             return Err(TemporalError::range().with_message("Not a builtin calendar."));
         };
 
-        Ok(TemporalCalendar::new(cal))
+        Ok(Calendar::new(cal))
     }
 }
 
@@ -264,12 +259,12 @@ impl CalendarDateLike {
 /// A trait for retrieving an internal calendar slice.
 pub trait GetTemporalCalendar {
     /// Returns the `TemporalCalendar` value of the implementor.
-    fn get_calendar(&self) -> TemporalCalendar;
+    fn get_calendar(&self) -> Calendar;
 }
 
 // ==== Public `CalendarSlot` methods ====
 
-impl TemporalCalendar {
+impl Calendar {
     /// Returns whether the current calendar is `ISO`
     pub fn is_iso(&self) -> bool {
         matches!(self.0 .0, AnyCalendar::Iso(_))
@@ -581,11 +576,14 @@ impl TemporalCalendar {
 
     /// Returns the identifier of this calendar slot.
     pub fn identifier(&self) -> TemporalResult<String> {
+        if self.is_iso() {
+            return Ok(String::from("iso8601"));
+        }
         Ok(String::from(self.0 .0.kind().as_bcp47_string()))
     }
 }
 
-impl TemporalCalendar {
+impl Calendar {
     /// Returns the designated field descriptors for builtin calendars.
     pub fn field_descriptors(
         &self,
@@ -861,7 +859,7 @@ mod tests {
             ),
         ];
 
-        let calendar = TemporalCalendar::from_str("iso8601").unwrap();
+        let calendar = Calendar::from_str("iso8601").unwrap();
 
         for test in tests {
             let first = Date::new_unchecked(

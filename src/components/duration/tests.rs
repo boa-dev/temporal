@@ -1,5 +1,5 @@
 use crate::{
-    components::{calendar::TemporalCalendar, Date},
+    components::{calendar::Calendar, Date},
     options::ArithmeticOverflow,
 };
 
@@ -29,7 +29,7 @@ fn basic_positive_floor_rounding() {
         2020,
         4,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
@@ -129,7 +129,7 @@ fn basic_negative_floor_rounding() {
         2020,
         12,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
@@ -229,7 +229,7 @@ fn basic_positive_ceil_rounding() {
         2020,
         4,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
@@ -328,7 +328,7 @@ fn basic_negative_ceil_rounding() {
         2020,
         12,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
@@ -427,7 +427,7 @@ fn basic_positive_expand_rounding() {
         2020,
         4,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
@@ -527,7 +527,7 @@ fn basic_negative_expand_rounding() {
         2020,
         12,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
@@ -627,7 +627,7 @@ fn rounding_increment_non_integer() {
         2000,
         1,
         1,
-        TemporalCalendar::from_str("iso8601").unwrap(),
+        Calendar::from_str("iso8601").unwrap(),
         ArithmeticOverflow::Reject,
     )
     .unwrap();
