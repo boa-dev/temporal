@@ -256,7 +256,6 @@ version = "0.0.2"
 dependencies = [
  "bitflags",
  "icu_calendar",
- "icu_provider",
  "ixdtf",
  "num-bigint",
  "num-traits",
