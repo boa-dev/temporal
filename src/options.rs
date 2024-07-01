@@ -4,11 +4,11 @@
 //! operation may be completed.
 
 use core::{fmt, str::FromStr};
-use std::ops::Sub;
+use std::ops::Add;
 
 use crate::{
     components::{Date, ZonedDateTime},
-    TemporalError,
+    TemporalError, NS_PER_DAY,
 };
 
 mod increment;
@@ -88,7 +88,8 @@ impl TemporalUnit {
             Year,
         };
         match self {
-            Year | Month | Week | Day | Auto => None,
+            Year | Month | Week | Auto => None,
+            Day => Some(NS_PER_DAY),
             Hour => Some(3_600_000_000_000),
             Minute => Some(60_000_000_000),
             Second => Some(1_000_000_000),
@@ -123,11 +124,11 @@ impl From<usize> for TemporalUnit {
     }
 }
 
-impl Sub<usize> for TemporalUnit {
+impl Add<usize> for TemporalUnit {
     type Output = TemporalUnit;
 
-    fn sub(self, rhs: usize) -> Self::Output {
-        TemporalUnit::from(self as usize - rhs)
+    fn add(self, rhs: usize) -> Self::Output {
+        TemporalUnit::from(self as usize + rhs)
     }
 }
 

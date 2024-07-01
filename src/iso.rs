@@ -195,7 +195,7 @@ impl IsoDateTime {
         let time_sign = time_duration.sign();
 
         // 6. Let dateSign be CompareISODate(y2, mon2, d2, y1, mon1, d1).
-        let date_sign = self.date.cmp(&other.date) as i32;
+        let date_sign = other.date.cmp(&self.date) as i32;
         // 7. Let adjustedDate be CreateISODateRecord(y2, mon2, d2).
         let mut adjusted_date = other.date;
 
@@ -208,12 +208,13 @@ impl IsoDateTime {
                 i32::from(adjusted_date.day) + time_sign,
             );
             // b. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, -timeSign).
-            time_duration = time_duration.add_days(time_sign.into())?;
+            time_duration = time_duration.add_days(-time_sign as i64)?;
         }
 
         // 9. Let date1 be ! CreateTemporalDate(y1, mon1, d1, calendarRec.[[Receiver]]).
         let date_one = Date::new_unchecked(self.date, calendar.clone());
-        // 10. Let date2 be ! CreateTemporalDate(adjustedDate.[[Year]], adjustedDate.[[Month]], adjustedDate.[[Day]], calendarRec.[[Receiver]]).
+        // 10. Let date2 be ! CreateTemporalDate(adjustedDate.[[Year]], adjustedDate.[[Month]],
+        // adjustedDate.[[Day]], calendarRec.[[Receiver]]).
         let date_two = Date::new(
             adjusted_date.year,
             adjusted_date.month.into(),
@@ -394,8 +395,9 @@ impl IsoDate {
 
         // 5. Let years be 0.
         let mut years = 0;
+        let mut months = 0;
         // 6. If largestUnit is "year", then
-        if largest_unit == TemporalUnit::Year {
+        if largest_unit == TemporalUnit::Year || largest_unit == TemporalUnit::Month {
             // others.year - self.year is adopted from temporal-proposal/polyfill as it saves iterations.
             // a. Let candidateYears be sign.
             let mut candidate_years: i32 = other.year - self.year;
@@ -413,12 +415,9 @@ impl IsoDate {
                 // ii. Set candidateYears to candidateYears + sign.
                 candidate_years += i32::from(sign);
             }
-        }
 
-        // 7. Let months be 0.
-        let mut months = 0;
-        // 8. If largestUnit is "year" or largestUnit is "month", then
-        if largest_unit == TemporalUnit::Year || largest_unit == TemporalUnit::Month {
+            // 7. Let months be 0.
+            // 8. If largestUnit is "year" or largestUnit is "month", then
             // a. Let candidateMonths be sign.
             let mut candidate_months: i32 = sign.into();
             // b. Let intermediate be BalanceISOYearMonth(y1 + years, m1 + candidateMonths).
@@ -462,10 +461,11 @@ impl IsoDate {
             );
 
         let (weeks, days) = if largest_unit == TemporalUnit::Week {
-            (days / 7, days.rem_euclid(7))
+            (days.div_euclid(7), days % 7)
         } else {
             (0, days)
         };
+
         // 17. Return ! CreateDateDurationRecord(years, months, weeks, days).
         DateDuration::new(years as f64, months as f64, weeks as f64, days as f64)
     }
@@ -872,10 +872,12 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime, offset: f64) -> Option<BigInt>
 // ==== `IsoDate` specific utiltiy functions ====
 
 /// Returns the Epoch days based off the given year, month, and day.
+///
+/// NOTE: Month should be in a range of 0-11
 #[inline]
 fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     // 1. Let resolvedYear be year + floor(month / 12).
-    let resolved_year = year + (month / 12);
+    let resolved_year = year + month.div_euclid(12);
     // 2. Let resolvedMonth be month modulo 12.
     let resolved_month = month.rem_euclid(12);
 

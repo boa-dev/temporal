@@ -7,6 +7,7 @@ use crate::{
         ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
     rounding::{IncrementRounder, Round},
+    utils::NonZeroOrdering,
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
@@ -598,7 +599,7 @@ impl Duration {
             let (balanced_days, time) = Time::default().add_norm(norm);
             // b. Let dateDuration be ? CreateTemporalDuration(duration.[[Years]], duration.[[Months]], duration.[[Weeks]],
             // duration.[[Days]] + targetTime.[[Days]], 0, 0, 0, 0, 0, 0).
-            let date_duraiton = DateDuration::new(
+            let date_duration = DateDuration::new(
                 self.years(),
                 self.months(),
                 self.weeks(),
@@ -607,7 +608,7 @@ impl Duration {
 
             // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
             let target_date = plain_date.add_date(
-                &Duration::from_date_duration(&date_duraiton),
+                &Duration::from_date_duration(&date_duration),
                 None,
             )?;
 
@@ -615,6 +616,7 @@ impl Duration {
                 IsoDateTime::new(plain_date.iso, IsoTime::default())?,
                 plain_date.calendar().clone(),
             );
+
             let target_dt = DateTime::new_unchecked(
                 IsoDateTime::new(target_date.iso, time.iso)?,
                 target_date.calendar().clone(),
@@ -1034,6 +1036,7 @@ impl FromStr for Duration {
 
 // TODO: Reorganize as needed.
 
+#[derive(Debug)]
 pub(crate) struct NudgeRecord {
     normalized: NormalizedDurationRecord,
     total: Option<i128>, // TODO: adjust
@@ -1045,7 +1048,7 @@ pub(crate) struct NudgeRecord {
 // TODO: Add unit tests specifically for nudge_calendar_unit if possible.
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn nudge_calendar_unit(
-    sign: i32,
+    sign: NonZeroOrdering,
     duration: &NormalizedDurationRecord,
     dest_epoch_ns: i128,
     dt: &DateTime,
@@ -1067,7 +1070,7 @@ pub(crate) fn nudge_calendar_unit(
             // b. Let r1 be years.
             let r1 = years;
             // c. Let r2 be years + increment × sign.
-            let r2 = years + i128::from(increment.get()) * i128::from(sign);
+            let r2 = years + i128::from(increment.get()) * i128::from(sign.get());
             // d. Let startDuration be ? CreateNormalizedDurationRecord(r1, 0, 0, 0, ZeroTimeDuration()).
             // e. Let endDuration be ? CreateNormalizedDurationRecord(r2, 0, 0, 0, ZeroTimeDuration()).
             (
@@ -1088,7 +1091,7 @@ pub(crate) fn nudge_calendar_unit(
             // b. Let r1 be months.
             let r1 = months;
             // c. Let r2 be months + increment × sign.
-            let r2 = months + i128::from(increment.get()) * i128::from(sign);
+            let r2 = months + i128::from(increment.get()) * i128::from(sign.get());
             // d. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], r1, 0, 0, ZeroTimeDuration()).
             // e. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], r2, 0, 0, ZeroTimeDuration()).
             (
@@ -1101,37 +1104,40 @@ pub(crate) fn nudge_calendar_unit(
         // 3. Else if unit is "week", then
         TemporalUnit::Week => {
             // TODO: Reconcile potential overflow on years as i32. `ValidateDuration` requires years, months, weeks to be abs(x) <= 2^32
-
-            // a. Let isoResult1 be BalanceISODate(dateTime.[[Year]] + duration.[[Years]], dateTime.[[Month]] + duration.[[Months]], dateTime.[[Day]]).
+            // a. Let isoResult1 be BalanceISODate(dateTime.[[Year]] + duration.[[Years]],
+            // dateTime.[[Month]] + duration.[[Months]], dateTime.[[Day]]).
             let iso_one = IsoDate::balance(
                 dt.iso_year() + duration.date().years as i32,
                 i32::from(dt.iso_month()) + duration.date().months as i32,
                 i32::from(dt.iso_day()),
             );
 
-            // b. Let isoResult2 be BalanceISODate(dateTime.[[Year]] + duration.[[Years]], dateTime.[[Month]] + duration.[[Months]], dateTime.[[Day]] + duration.[[Days]]).
+            // b. Let isoResult2 be BalanceISODate(dateTime.[[Year]] + duration.[[Years]], dateTime.[[Month]] +
+            // duration.[[Months]], dateTime.[[Day]] + duration.[[Days]]).
             let iso_two = IsoDate::balance(
                 dt.iso_year() + duration.date().years as i32,
                 i32::from(dt.iso_month()) + duration.date().months as i32,
                 i32::from(dt.iso_day()) + duration.date().days as i32,
             );
 
-            // c. Let weeksStart be ! CreateTemporalDate(isoResult1.[[Year]], isoResult1.[[Month]], isoResult1.[[Day]], calendarRec.[[Receiver]]).
+            // c. Let weeksStart be ! CreateTemporalDate(isoResult1.[[Year]], isoResult1.[[Month]], isoResult1.[[Day]],
+            // calendarRec.[[Receiver]]).
             let weeks_start = Date::new(
                 iso_one.year,
                 iso_one.month.into(),
                 iso_one.day.into(),
                 dt.calendar().clone(),
-                ArithmeticOverflow::Constrain,
+                ArithmeticOverflow::Reject,
             )?;
 
-            // d. Let weeksEnd be ! CreateTemporalDate(isoResult2.[[Year]], isoResult2.[[Month]], isoResult2.[[Day]], calendarRec.[[Receiver]]).
+            // d. Let weeksEnd be ! CreateTemporalDate(isoResult2.[[Year]], isoResult2.[[Month]], isoResult2.[[Day]],
+            // calendarRec.[[Receiver]]).
             let weeks_end = Date::new(
                 iso_two.year,
                 iso_two.month.into(),
                 iso_two.day.into(),
                 dt.calendar().clone(),
-                ArithmeticOverflow::Constrain,
+                ArithmeticOverflow::Reject,
             )?;
 
             // e. Let untilOptions be OrdinaryObjectCreate(null).
@@ -1150,7 +1156,7 @@ pub(crate) fn nudge_calendar_unit(
             // i. Let r1 be weeks.
             let r1 = weeks;
             // j. Let r2 be weeks + increment × sign.
-            let r2 = weeks + i128::from(increment.get()) * i128::from(sign);
+            let r2 = weeks + i128::from(increment.get()) * i128::from(sign.get());
             // k. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], r1, 0, ZeroTimeDuration()).
             // l. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], r2, 0, ZeroTimeDuration()).
             (
@@ -1182,7 +1188,7 @@ pub(crate) fn nudge_calendar_unit(
             // c. Let r1 be days.
             let r1 = days;
             // d. Let r2 be days + increment × sign.
-            let r2 = days + i128::from(increment.get()) * i128::from(sign);
+            let r2 = days + i128::from(increment.get()) * i128::from(sign.get());
             // e. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], r1, ZeroTimeDuration()).
             // f. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], r2, ZeroTimeDuration()).
             (
@@ -1276,7 +1282,7 @@ pub(crate) fn nudge_calendar_unit(
     // let total = r1 + progress * i128::from(sign);
 
     let progress = (dest_epoch_ns - start_epoch_ns) as f64 / (end_epoch_ns - start_epoch_ns) as f64;
-    let total = r1 as f64 + progress * increment.get() as f64 + f64::from(sign);
+    let total = r1 as f64 + progress * increment.get() as f64 * f64::from(sign.get());
 
     // TODO: Test and verify that `IncrementRounder` handles the below case.
     // NOTE(nekevss): Below will not return the calculated r1 or r2, so it is imporant to not use
@@ -1294,7 +1300,7 @@ pub(crate) fn nudge_calendar_unit(
     // 16. If roundedUnit - total < 0, let roundedSign be -1; else let roundedSign be 1.
     // 19. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[Total]]: total, [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandCalendarUnit }.
     // 17. If roundedSign = sign, then
-    if rounded_unit == r2.abs() {
+    if rounded_unit == r2 {
         // a. Let didExpandCalendarUnit be true.
         // b. Let resultDuration be endDuration.
         // c. Let nudgedEpochNs be endEpochNs.
@@ -1348,7 +1354,6 @@ fn nudge_to_day_or_time(
     // 4. Let total be DivideNormalizedTimeDuration(norm, unitLength).
     let total = norm.divide(unit_length as i64);
 
-    // TODO: Adjust TemporalUnit::as_nanoseconds
     // 5. Let roundedNorm be ? RoundNormalizedTimeDurationToIncrement(norm, unitLength × increment, roundingMode).
     let rounded_norm = norm.round(
         unsafe {
@@ -1413,7 +1418,7 @@ fn nudge_to_day_or_time(
 #[inline]
 #[allow(clippy::too_many_arguments)]
 fn bubble_relative_duration(
-    sign: i32,
+    sign: NonZeroOrdering,
     duration: &NormalizedDurationRecord,
     nudge_epoch_ns: i128,
     date_time: &DateTime,
@@ -1428,100 +1433,104 @@ fn bubble_relative_duration(
     if smallest_unit == TemporalUnit::Year {
         return Ok(duration);
     }
+
+    // NOTE: Invert ops as Temporal Proposal table is inverted (i.e. Year = 0 ... Nanosecond = 9)
     // 4. Let largestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains largestUnit.
     // 5. Let smallestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains smallestUnit.
     // 6. Let unitIndex be smallestUnitIndex - 1.
-    let mut unit = smallest_unit - 1;
+    let mut unit = smallest_unit + 1;
     // 7. Let done be false.
-    let mut done = false;
     // 8. Repeat, while unitIndex ≤ largestUnitIndex and done is false,
-    while unit <= largest_unit && !done {
+    while unit != TemporalUnit::Auto && unit <= largest_unit {
         // a. Let unit be the value in the "Singular" column of Table 22 in the row whose ordinal index is unitIndex.
         // b. If unit is not "week", or largestUnit is "week", then
-        if unit != TemporalUnit::Week || largest_unit == TemporalUnit::Week {
-            let end_duration = match unit {
-                // i. If unit is "year", then
-                TemporalUnit::Year => {
-                    // 1. Let years be duration.[[Years]] + sign.
-                    // 2. Let endDuration be ? CreateNormalizedDurationRecord(years, 0, 0, 0, ZeroTimeDuration()).
-                    DateDuration::new(duration.date().years + f64::from(sign), 0.0, 0.0, 0.0)?
-                }
-                // ii. Else if unit is "month", then
-                TemporalUnit::Month => {
-                    // 1. Let months be duration.[[Months]] + sign.
-                    // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], months, 0, 0, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration.date().years,
-                        duration.date().months + f64::from(sign),
-                        0.0,
-                        0.0,
-                    )?
-                }
-                // iii. Else if unit is "week", then
-                TemporalUnit::Week => {
-                    // 1. Let weeks be duration.[[Weeks]] + sign.
-                    // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], weeks, 0, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration.date().years,
-                        duration.date().months,
-                        duration.date().weeks + f64::from(sign),
-                        0.0,
-                    )?
-                }
-                // iv. Else,
-                TemporalUnit::Day => {
-                    // 1. Assert: unit is "day".
-                    // 2. Let days be duration.[[Days]] + sign.
-                    // 3. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], days, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration.date().years,
-                        duration.date().months,
-                        duration.date().weeks,
-                        duration.date().days + f64::from(sign),
-                    )?
-                }
-                _ => unreachable!(),
-            };
+        if unit == TemporalUnit::Week || largest_unit != TemporalUnit::Week {
+            unit = unit + 1;
+            continue;
+        }
 
-            // v. Let end be ? AddDateTime(dateTime.[[Year]], dateTime.[[Month]], dateTime.[[Day]], dateTime.[[Hour]], dateTime.[[Minute]],
-            // dateTime.[[Second]], dateTime.[[Millisecond]], dateTime.[[Microsecond]], dateTime.[[Nanosecond]], calendarRec,
-            // endDuration.[[Years]], endDuration.[[Months]], endDuration.[[Weeks]], endDuration.[[Days]], endDuration.[[NormalizedTime]], undefined).
-            let end = date_time.iso.add_date_duration(
-                date_time.calendar().clone(),
-                &end_duration,
-                NormalizedTimeDuration::default(),
-                None,
-            )?;
-
-            // vi. If timeZoneRec is unset, then
-            let end_epoch_ns = if let Some(ref _tz) = tz {
-                // 1. Let endDateTime be ! CreateTemporalDateTime(end.[[Year]], end.[[Month]], end.[[Day]],
-                // end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]],
-                // end.[[Nanosecond]], calendarRec.[[Receiver]]).
-                // 2. Let endInstant be ? GetInstantFor(timeZoneRec, endDateTime, "compatible").
-                // 3. Let endEpochNs be endInstant.[[Nanoseconds]].
-                todo!()
-            // vii. Else,
-            } else {
-                // 1. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]],
-                // end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-                end.as_nanoseconds(0.0).temporal_unwrap()?
-            };
-            // viii. Let beyondEnd be nudgedEpochNs - endEpochNs.
-            let beyond_end = nudge_epoch_ns - end_epoch_ns;
-            // ix. If beyondEnd < 0, let beyondEndSign be -1; else if beyondEnd > 0, let beyondEndSign be 1; else let beyondEndSign be 0.
-            // x. If beyondEndSign ≠ -sign, then
-            if beyond_end.signum() != -i128::from(sign) {
-                // 1. Set duration to endDuration.
-                duration = NormalizedDurationRecord::from_date_duration(end_duration)?;
-            // xi. Else,
-            } else {
-                // 1. Set done to true.
-                done = true
+        let end_duration = match unit {
+            // i. If unit is "year", then
+            TemporalUnit::Year => {
+                // 1. Let years be duration.[[Years]] + sign.
+                // 2. Let endDuration be ? CreateNormalizedDurationRecord(years, 0, 0, 0, ZeroTimeDuration()).
+                DateDuration::new(duration.date().years + f64::from(sign.get()), 0.0, 0.0, 0.0)?
             }
+            // ii. Else if unit is "month", then
+            TemporalUnit::Month => {
+                // 1. Let months be duration.[[Months]] + sign.
+                // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], months, 0, 0, ZeroTimeDuration()).
+                DateDuration::new(
+                    duration.date().years,
+                    duration.date().months + f64::from(sign.get()),
+                    0.0,
+                    0.0,
+                )?
+            }
+            // iii. Else if unit is "week", then
+            TemporalUnit::Week => {
+                // 1. Let weeks be duration.[[Weeks]] + sign.
+                // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], weeks, 0, ZeroTimeDuration()).
+                DateDuration::new(
+                    duration.date().years,
+                    duration.date().months,
+                    duration.date().weeks + f64::from(sign.get()),
+                    0.0,
+                )?
+            }
+            // iv. Else,
+            TemporalUnit::Day => {
+                // 1. Assert: unit is "day".
+                // 2. Let days be duration.[[Days]] + sign.
+                // 3. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], days, ZeroTimeDuration()).
+                DateDuration::new(
+                    duration.date().years,
+                    duration.date().months,
+                    duration.date().weeks,
+                    duration.date().days + f64::from(sign.get()),
+                )?
+            }
+            _ => unreachable!(),
+        };
+
+        // v. Let end be ? AddDateTime(dateTime.[[Year]], dateTime.[[Month]], dateTime.[[Day]], dateTime.[[Hour]], dateTime.[[Minute]],
+        // dateTime.[[Second]], dateTime.[[Millisecond]], dateTime.[[Microsecond]], dateTime.[[Nanosecond]], calendarRec,
+        // endDuration.[[Years]], endDuration.[[Months]], endDuration.[[Weeks]], endDuration.[[Days]], endDuration.[[NormalizedTime]], undefined).
+        let end = date_time.iso.add_date_duration(
+            date_time.calendar().clone(),
+            &end_duration,
+            NormalizedTimeDuration::default(),
+            None,
+        )?;
+
+        // vi. If timeZoneRec is unset, then
+        let end_epoch_ns = if let Some(ref _tz) = tz {
+            // 1. Let endDateTime be ! CreateTemporalDateTime(end.[[Year]], end.[[Month]], end.[[Day]],
+            // end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]],
+            // end.[[Nanosecond]], calendarRec.[[Receiver]]).
+            // 2. Let endInstant be ? GetInstantFor(timeZoneRec, endDateTime, "compatible").
+            // 3. Let endEpochNs be endInstant.[[Nanoseconds]].
+            return Err(TemporalError::general("Not yet implemented."));
+        // vii. Else,
+        } else {
+            // 1. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]],
+            // end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
+            end.as_nanoseconds(0.0).temporal_unwrap()?
+        };
+        // viii. Let beyondEnd be nudgedEpochNs - endEpochNs.
+        let beyond_end = nudge_epoch_ns - end_epoch_ns;
+        // ix. If beyondEnd < 0, let beyondEndSign be -1; else if beyondEnd > 0, let beyondEndSign be 1; else let beyondEndSign be 0.
+        // x. If beyondEndSign ≠ -sign, then
+        if beyond_end.signum() != -i128::from(sign.get()) {
+            // 1. Set duration to endDuration.
+            duration = NormalizedDurationRecord::from_date_duration(end_duration)?;
+        // xi. Else,
+        } else {
+            // 1. Set done to true.
+            break;
         }
         // c. Set unitIndex to unitIndex - 1.
-        unit = unit - 1;
+        unit = unit + 1;
     }
 
     Ok(duration)
@@ -1547,9 +1556,9 @@ pub(crate) fn round_relative_duration(
     // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
     let irregular_unit =
         smallest_unit.is_calendar_unit() || (tz.is_some() && smallest_unit == TemporalUnit::Day);
-    
+
     // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
-    let sign = if duration.sign()? < 0 { -1 } else { 1 };
+    let sign = NonZeroOrdering::new(duration.sign()?.cmp(&0));
 
     // 5. If irregularLengthUnit is true, then
     let nudge_result = if irregular_unit {
