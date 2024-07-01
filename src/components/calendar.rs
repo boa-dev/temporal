@@ -65,12 +65,12 @@ pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
     "yearOfWeek",
 ];
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct TemporalCalendar(Ref<'static, AnyCalendar>);
 
 impl Default for TemporalCalendar {
     fn default() -> Self {
-        Self(Ref(&AnyCalendar::Iso(Iso)))
+        TemporalCalendar::new(AnyCalendarKind::Iso)
     }
 }
 
