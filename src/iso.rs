@@ -16,7 +16,7 @@ use std::num::NonZeroU64;
 
 use crate::{
     components::{
-        calendar::{CalendarProtocol, CalendarSlot},
+        calendar::Calendar,
         duration::{normalized::NormalizedTimeDuration, DateDuration, TimeDuration},
         Date, Duration,
     },
@@ -126,13 +126,12 @@ impl IsoDateTime {
     }
 
     /// Specification equivalent to 5.5.9 `AddDateTime`.
-    pub(crate) fn add_date_duration<C: CalendarProtocol>(
+    pub(crate) fn add_date_duration(
         &self,
-        calendar: &CalendarSlot<C>,
+        calendar: Calendar,
         date_duration: &DateDuration,
         norm: NormalizedTimeDuration,
         overflow: Option<ArithmeticOverflow>,
-        context: &mut C::Context,
     ) -> TemporalResult<Self> {
         // 1. Assert: IsValidISODate(year, month, day) is true.
         // 2. Assert: ISODateTimeWithinLimits(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond) is true.
@@ -140,7 +139,7 @@ impl IsoDateTime {
         let t_result = self.time.add(norm);
 
         // 4. Let datePart be ! CreateTemporalDate(year, month, day, calendarRec.[[Receiver]]).
-        let date = Date::new_unchecked(self.date, calendar.clone());
+        let date = Date::new_unchecked(self.date, calendar);
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
         let duration = Duration::new(
@@ -157,7 +156,7 @@ impl IsoDateTime {
         )?;
 
         // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
-        let added_date = date.add_date(&duration, overflow, context)?;
+        let added_date = date.add_date(&duration, overflow)?;
 
         // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
         // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],

@@ -4,36 +4,28 @@ use num_bigint::BigInt;
 use tinystr::TinyStr4;
 
 use crate::{
-    components::{
-        calendar::{CalendarDateLike, CalendarProtocol, CalendarSlot},
-        tz::TimeZoneSlot,
-        Instant,
-    },
+    components::{calendar::Calendar, tz::TimeZone, Instant},
     TemporalResult,
 };
 
-use super::tz::TzProtocol;
+use super::calendar::CalendarDateLike;
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
 #[derive(Debug, Clone)]
-pub struct ZonedDateTime<C: CalendarProtocol, Z: TzProtocol> {
+pub struct ZonedDateTime {
     instant: Instant,
-    calendar: CalendarSlot<C>,
-    tz: TimeZoneSlot<Z>,
+    calendar: Calendar,
+    tz: TimeZone,
 }
 
 // ==== Private API ====
 
-impl<C: CalendarProtocol, Z: TzProtocol> ZonedDateTime<C, Z> {
+impl ZonedDateTime {
     /// Creates a `ZonedDateTime` without validating the input.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(
-        instant: Instant,
-        calendar: CalendarSlot<C>,
-        tz: TimeZoneSlot<Z>,
-    ) -> Self {
+    pub(crate) fn new_unchecked(instant: Instant, calendar: Calendar, tz: TimeZone) -> Self {
         Self {
             instant,
             calendar,
@@ -44,14 +36,10 @@ impl<C: CalendarProtocol, Z: TzProtocol> ZonedDateTime<C, Z> {
 
 // ==== Public API ====
 
-impl<C: CalendarProtocol, Z: TzProtocol> ZonedDateTime<C, Z> {
+impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn new(
-        nanos: BigInt,
-        calendar: CalendarSlot<C>,
-        tz: TimeZoneSlot<Z>,
-    ) -> TemporalResult<Self> {
+    pub fn new(nanos: BigInt, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
         let instant = Instant::new(nanos)?;
         Ok(Self::new_unchecked(instant, calendar, tz))
     }
@@ -59,14 +47,14 @@ impl<C: CalendarProtocol, Z: TzProtocol> ZonedDateTime<C, Z> {
     /// Returns `ZonedDateTime`'s Calendar.
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &CalendarSlot<C> {
+    pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 
     /// Returns `ZonedDateTime`'s `TimeZone` slot.
     #[inline]
     #[must_use]
-    pub fn tz(&self) -> &TimeZoneSlot<Z> {
+    pub fn tz(&self) -> &TimeZone {
         &self.tz
     }
 
@@ -93,143 +81,115 @@ impl<C: CalendarProtocol, Z: TzProtocol> ZonedDateTime<C, Z> {
     pub fn epoch_nanoseconds(&self) -> f64 {
         self.instant.epoch_nanoseconds()
     }
-}
 
-// ==== Context based API ====
-
-impl<C, Z: TzProtocol> ZonedDateTime<C, Z>
-where
-    C: CalendarProtocol<Context = Z::Context>,
-{
     /// Returns the `year` value for this `ZonedDateTime`.
     #[inline]
-    pub fn contextual_year(&self, context: &mut C::Context) -> TemporalResult<i32> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
-        self.calendar.year(&CalendarDateLike::DateTime(dt), context)
+    pub fn year(&self) -> TemporalResult<i32> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
+        self.calendar.year(&CalendarDateLike::DateTime(dt))
     }
 
     /// Returns the `month` value for this `ZonedDateTime`.
-    pub fn contextual_month(&self, context: &mut C::Context) -> TemporalResult<u8> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
-        self.calendar
-            .month(&CalendarDateLike::DateTime(dt), context)
+    pub fn month(&self) -> TemporalResult<u8> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
+        self.calendar.month(&CalendarDateLike::DateTime(dt))
     }
 
     /// Returns the `monthCode` value for this `ZonedDateTime`.
-    pub fn contextual_month_code(&self, context: &mut C::Context) -> TemporalResult<TinyStr4> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
-        self.calendar
-            .month_code(&CalendarDateLike::DateTime(dt), context)
+    pub fn month_code(&self) -> TemporalResult<TinyStr4> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
+        self.calendar.month_code(&CalendarDateLike::DateTime(dt))
     }
 
     /// Returns the `day` value for this `ZonedDateTime`.
-    pub fn contextual_day(&self, context: &mut C::Context) -> TemporalResult<u8> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
-        self.calendar.day(&CalendarDateLike::DateTime(dt), context)
+    pub fn day(&self) -> TemporalResult<u8> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
+        self.calendar.day(&CalendarDateLike::DateTime(dt))
     }
 
     /// Returns the `hour` value for this `ZonedDateTime`.
-    pub fn contextual_hour(&self, context: &mut C::Context) -> TemporalResult<u8> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
+    pub fn hour(&self) -> TemporalResult<u8> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
         Ok(dt.hour())
     }
 
     /// Returns the `minute` value for this `ZonedDateTime`.
-    pub fn contextual_minute(&self, context: &mut C::Context) -> TemporalResult<u8> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
+    pub fn minute(&self) -> TemporalResult<u8> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
         Ok(dt.minute())
     }
 
     /// Returns the `second` value for this `ZonedDateTime`.
-    pub fn contextual_second(&self, context: &mut C::Context) -> TemporalResult<u8> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
+    pub fn second(&self) -> TemporalResult<u8> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
         Ok(dt.second())
     }
 
     /// Returns the `millisecond` value for this `ZonedDateTime`.
-    pub fn contextual_millisecond(&self, context: &mut C::Context) -> TemporalResult<u16> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
+    pub fn millisecond(&self) -> TemporalResult<u16> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
         Ok(dt.millisecond())
     }
 
     /// Returns the `microsecond` value for this `ZonedDateTime`.
-    pub fn contextual_microsecond(&self, context: &mut C::Context) -> TemporalResult<u16> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
+    pub fn microsecond(&self) -> TemporalResult<u16> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
         Ok(dt.millisecond())
     }
 
     /// Returns the `nanosecond` value for this `ZonedDateTime`.
-    pub fn contextual_nanosecond(&self, context: &mut C::Context) -> TemporalResult<u16> {
-        let dt = self
-            .tz
-            .get_datetime_for(&self.instant, &self.calendar, context)?;
+    pub fn nanosecond(&self) -> TemporalResult<u16> {
+        let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
         Ok(dt.nanosecond())
     }
 }
 
 #[cfg(test)]
 mod tests {
+
     use std::str::FromStr;
 
-    use crate::components::tz::TimeZone;
+    use crate::components::{calendar::Calendar, tz::TimeZone};
     use num_bigint::BigInt;
 
-    use super::{CalendarSlot, TimeZoneSlot, ZonedDateTime};
+    use super::ZonedDateTime;
 
     #[test]
     fn basic_zdt_test() {
         let nov_30_2023_utc = BigInt::from(1_701_308_952_000_000_000i64);
 
-        let zdt = ZonedDateTime::<(), ()>::new(
+        let zdt = ZonedDateTime::new(
             nov_30_2023_utc.clone(),
-            CalendarSlot::from_str("iso8601").unwrap(),
-            TimeZoneSlot::Tz(TimeZone {
+            Calendar::from_str("iso8601").unwrap(),
+            TimeZone {
                 iana: None,
                 offset: Some(0),
-            }),
+            },
         )
         .unwrap();
 
-        assert_eq!(zdt.contextual_year(&mut ()).unwrap(), 2023);
-        assert_eq!(zdt.contextual_month(&mut ()).unwrap(), 11);
-        assert_eq!(zdt.contextual_day(&mut ()).unwrap(), 30);
-        assert_eq!(zdt.contextual_hour(&mut ()).unwrap(), 1);
-        assert_eq!(zdt.contextual_minute(&mut ()).unwrap(), 49);
-        assert_eq!(zdt.contextual_second(&mut ()).unwrap(), 12);
+        assert_eq!(zdt.year().unwrap(), 2023);
+        assert_eq!(zdt.month().unwrap(), 11);
+        assert_eq!(zdt.day().unwrap(), 30);
+        assert_eq!(zdt.hour().unwrap(), 1);
+        assert_eq!(zdt.minute().unwrap(), 49);
+        assert_eq!(zdt.second().unwrap(), 12);
 
-        let zdt_minus_five = ZonedDateTime::<(), ()>::new(
+        let zdt_minus_five = ZonedDateTime::new(
             nov_30_2023_utc,
-            CalendarSlot::from_str("iso8601").unwrap(),
-            TimeZoneSlot::Tz(TimeZone {
+            Calendar::from_str("iso8601").unwrap(),
+            TimeZone {
                 iana: None,
                 offset: Some(-300),
-            }),
+            },
         )
         .unwrap();
 
-        assert_eq!(zdt_minus_five.contextual_year(&mut ()).unwrap(), 2023);
-        assert_eq!(zdt_minus_five.contextual_month(&mut ()).unwrap(), 11);
-        assert_eq!(zdt_minus_five.contextual_day(&mut ()).unwrap(), 29);
-        assert_eq!(zdt_minus_five.contextual_hour(&mut ()).unwrap(), 20);
-        assert_eq!(zdt_minus_five.contextual_minute(&mut ()).unwrap(), 49);
-        assert_eq!(zdt_minus_five.contextual_second(&mut ()).unwrap(), 12);
+        assert_eq!(zdt_minus_five.year().unwrap(), 2023);
+        assert_eq!(zdt_minus_five.month().unwrap(), 11);
+        assert_eq!(zdt_minus_five.day().unwrap(), 29);
+        assert_eq!(zdt_minus_five.hour().unwrap(), 20);
+        assert_eq!(zdt_minus_five.minute().unwrap(), 49);
+        assert_eq!(zdt_minus_five.second().unwrap(), 12);
     }
 }

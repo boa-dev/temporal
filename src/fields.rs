@@ -2,12 +2,7 @@
 
 use std::{fmt, str::FromStr};
 
-use crate::{
-    components::calendar::{CalendarProtocol, CalendarSlot},
-    error::TemporalError,
-    iso::IsoDate,
-    TemporalResult,
-};
+use crate::{components::calendar::Calendar, error::TemporalError, iso::IsoDate, TemporalResult};
 
 use bitflags::bitflags;
 // use rustc_hash::FxHashSet;
@@ -483,11 +478,7 @@ impl TemporalFields {
     }
 
     /// Merges two `TemporalFields` values given a specific `CalendarSlot`.
-    pub fn merge_fields<C: CalendarProtocol>(
-        &self,
-        other: &Self,
-        calendar: &CalendarSlot<C>,
-    ) -> TemporalResult<Self> {
+    pub fn merge_fields(&self, other: &Self, calendar: Calendar) -> TemporalResult<Self> {
         let add_keys = other.keys().collect::<Vec<_>>();
         let overridden_keys = calendar.field_keys_to_ignore(&add_keys)?;
 

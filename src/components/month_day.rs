@@ -3,27 +3,27 @@
 use std::str::FromStr;
 
 use crate::{
-    components::calendar::CalendarSlot,
+    components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::{CalendarProtocol, GetCalendarSlot};
+use super::calendar::GetTemporalCalendar;
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
-pub struct MonthDay<C: CalendarProtocol> {
+pub struct MonthDay {
     iso: IsoDate,
-    calendar: CalendarSlot<C>,
+    calendar: Calendar,
 }
 
-impl<C: CalendarProtocol> MonthDay<C> {
+impl MonthDay {
     /// Creates a new unchecked `MonthDay`
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(iso: IsoDate, calendar: CalendarSlot<C>) -> Self {
+    pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
         Self { iso, calendar }
     }
 
@@ -32,7 +32,7 @@ impl<C: CalendarProtocol> MonthDay<C> {
     pub fn new(
         month: i32,
         day: i32,
-        calendar: CalendarSlot<C>,
+        calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let iso = IsoDate::new(1972, month, day, overflow)?;
@@ -56,18 +56,18 @@ impl<C: CalendarProtocol> MonthDay<C> {
     /// Returns a reference to `MonthDay`'s `CalendarSlot`
     #[inline]
     #[must_use]
-    pub fn calendar(&self) -> &CalendarSlot<C> {
+    pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 }
 
-impl<C: CalendarProtocol> GetCalendarSlot<C> for MonthDay<C> {
-    fn get_calendar(&self) -> CalendarSlot<C> {
+impl GetTemporalCalendar for MonthDay {
+    fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
 
-impl<C: CalendarProtocol> IsoDateSlots for MonthDay<C> {
+impl IsoDateSlots for MonthDay {
     #[inline]
     /// Returns this structs `IsoDate`.
     fn iso_date(&self) -> IsoDate {
@@ -75,7 +75,7 @@ impl<C: CalendarProtocol> IsoDateSlots for MonthDay<C> {
     }
 }
 
-impl<C: CalendarProtocol> FromStr for MonthDay<C> {
+impl FromStr for MonthDay {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -90,7 +90,7 @@ impl<C: CalendarProtocol> FromStr for MonthDay<C> {
         Self::new(
             date.month.into(),
             date.day.into(),
-            CalendarSlot::from_str(calendar)?,
+            Calendar::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
     }
