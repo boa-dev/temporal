@@ -1,10 +1,24 @@
 version: 2
 updates:
-  - package-ecosystem: cargo
-    directory: /
-    schedule:
-      interval: weekly
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      ci-dependencies:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types:
+        - "minor"
+        - "patch"
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      rust-dependencies:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types:
+        - "minor"
+        - "patch"
