@@ -4,12 +4,17 @@ use std::num::NonZeroU64;
 
 use crate::{
     options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    rounding::{IncrementRounder, Round},
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{is_valid_duration, normalized::NormalizedTimeDuration};
+use super::{
+    is_valid_duration,
+    normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    DateDuration,
+};
 
-use num_traits::{Euclid, MulAdd};
+use num_traits::{Euclid, FromPrimitive, MulAdd};
 
 const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
 const NANOSECONDS_PER_MINUTE: u64 = NANOSECONDS_PER_SECOND * 60;
@@ -365,6 +370,68 @@ impl TimeDuration {
 // ==== TimeDuration method impls ====
 
 impl TimeDuration {
+    // TODO: Maybe move to `NormalizedTimeDuration`
+    pub fn round_v2(
+        days: f64,
+        norm: &NormalizedTimeDuration,
+        increment: RoundingIncrement,
+        unit: TemporalUnit,
+        rounding_mode: TemporalRoundingMode,
+    ) -> TemporalResult<(NormalizedDurationRecord, Option<i128>)> {
+        // 1. Assert: IsCalendarUnit(unit) is false.
+        let (days, norm, total) = match unit {
+            // 2. If unit is "day", then
+            TemporalUnit::Day => {
+                // a. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
+                let fractional_days = days + norm.as_fractional_days();
+                // b. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
+                let days = IncrementRounder::from_potentially_negative_parts(
+                    fractional_days,
+                    increment.as_extended_increment(),
+                )?
+                .round(rounding_mode);
+                // c. Let total be fractionalDays.
+                // d. Set norm to ZeroTimeDuration().
+                (
+                    f64::from_i128(days).ok_or(
+                        TemporalError::range().with_message("days exceeded a valid range."),
+                    )?,
+                    NormalizedTimeDuration::default(),
+                    i128::from_f64(fractional_days),
+                )
+            }
+            // 3. Else,
+            TemporalUnit::Hour
+            | TemporalUnit::Minute
+            | TemporalUnit::Second
+            | TemporalUnit::Millisecond
+            | TemporalUnit::Microsecond
+            | TemporalUnit::Nanosecond => {
+                // a. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains unit, is time.
+                // b. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
+                // c. Let total be DivideNormalizedTimeDuration(norm, divisor).
+                let total = norm.divide(unit.as_nanoseconds().temporal_unwrap()? as i64);
+                let non_zero_divisor =
+                    unsafe { NonZeroU64::new_unchecked(unit.as_nanoseconds().temporal_unwrap()?) };
+                // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = norm.round(
+                    non_zero_divisor
+                        .checked_mul(increment.as_extended_increment())
+                        .temporal_unwrap()?,
+                    rounding_mode,
+                )?;
+                (days, norm, Some(total))
+            }
+            _ => return Err(TemporalError::assert()),
+        };
+
+        // 4. Return the Record { [[NormalizedDuration]]: ? CreateNormalizedDurationRecord(0, 0, 0, days, norm), [[Total]]: total  }.
+        Ok((
+            NormalizedDurationRecord::new(DateDuration::new(0.0, 0.0, 0.0, days)?, norm)?,
+            total,
+        ))
+    }
+
     // TODO: Update round to accomodate `Normalization`.
     /// Rounds the current `TimeDuration` given a rounding increment, unit and rounding mode. `round` will return a tuple of the rounded `TimeDuration` and
     /// the `total` value of the smallest unit prior to rounding.

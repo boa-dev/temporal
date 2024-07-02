@@ -7,6 +7,8 @@ use crate::{
     TemporalError, TemporalResult,
 };
 
+use super::duration::normalized::NormalizedTimeDuration;
+
 /// The native Rust implementation of `Temporal.PlainTime`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -30,9 +32,28 @@ impl Time {
         self.iso.is_valid()
     }
 
+    /// Specification equivalent to `AddTime`
+    pub(crate) fn add_norm(&self, norm: NormalizedTimeDuration) -> (i32, Self) {
+        // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
+        let second = i64::from(self.second()) + norm.seconds();
+        // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
+        let nanosecond = i32::from(self.nanosecond()) + norm.subseconds();
+        // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
+        let (day, balance_result) = IsoTime::balance(
+            f64::from(self.hour()),
+            f64::from(self.minute()),
+            second as f64,
+            f64::from(self.millisecond()),
+            f64::from(self.microsecond()),
+            f64::from(nanosecond),
+        );
+
+        (day, Self::new_unchecked(balance_result))
+    }
+
     /// Adds a `TimeDuration` to the current `Time`.
     ///
-    /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime` AND `AddTime`.
+    /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
     pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> Self {
         let (_, result) = IsoTime::balance(
             f64::from(self.hour()) + duration.hours,
