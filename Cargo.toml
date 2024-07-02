@@ -25,3 +25,4 @@ bitflags = "2.6.0"
 num-bigint = { version = "0.4.6", features = ["serde"] }
 num-traits = "0.2.19"
 ixdtf = { version = "0.2.0", features = ["duration"]}
+iana-time-zone = "0.1.60"
