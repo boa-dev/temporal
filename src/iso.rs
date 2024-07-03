@@ -12,7 +12,7 @@
 //!
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
-use std::num::NonZeroU64;
+use std::num::NonZeroU128;
 
 use crate::{
     components::{
@@ -461,7 +461,7 @@ impl IsoDate {
             );
 
         let (weeks, days) = if largest_unit == TemporalUnit::Week {
-            (days.div_euclid(7), days % 7)
+            (days / 7, days % 7)
         } else {
             (0, days)
         };
@@ -714,10 +714,10 @@ impl IsoTime {
         };
 
         let ns_per_unit = if unit == TemporalUnit::Day {
-            unsafe { NonZeroU64::new_unchecked(day_length_ns.unwrap_or(NS_PER_DAY)) }
+            unsafe { NonZeroU128::new_unchecked(day_length_ns.unwrap_or(NS_PER_DAY).into()) }
         } else {
             let nanos = unit.as_nanoseconds().temporal_unwrap()?;
-            unsafe { NonZeroU64::new_unchecked(nanos) }
+            unsafe { NonZeroU128::new_unchecked(nanos.into()) }
         };
 
         let increment = ns_per_unit
@@ -729,7 +729,7 @@ impl IsoTime {
         let result =
             IncrementRounder::<i128>::from_potentially_negative_parts(quantity.into(), increment)?
                 .round(mode)
-                / i128::from(ns_per_unit.get());
+                / i128::from_u128(ns_per_unit.get()).temporal_unwrap()?;
 
         let result = match unit {
             // 10. If unit is "day", then

@@ -1,6 +1,6 @@
 //! This module implements the normalized `Duration` records.
 
-use std::{num::NonZeroU64, ops::Add};
+use std::{num::NonZeroU128, ops::Add};
 
 use num_traits::Euclid;
 
@@ -117,7 +117,7 @@ impl NormalizedTimeDuration {
     /// Round the current `NormalizedTimeDuration`.
     pub(super) fn round(
         &self,
-        increment: NonZeroU64,
+        increment: NonZeroU128,
         mode: TemporalRoundingMode,
     ) -> TemporalResult<Self> {
         let rounded = IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment)?
@@ -153,7 +153,10 @@ impl Add<Self> for NormalizedTimeDuration {
 /// A NormalizedDurationRecord is a duration record that contains
 /// a `DateDuration` and `NormalizedTimeDuration`.
 #[derive(Debug, Clone, Copy)]
-pub struct NormalizedDurationRecord(pub(crate) (DateDuration, NormalizedTimeDuration));
+pub struct NormalizedDurationRecord {
+    date: DateDuration,
+    norm: NormalizedTimeDuration,
+}
 
 impl NormalizedDurationRecord {
     /// Creates a new `NormalizedDurationRecord`.
@@ -164,7 +167,7 @@ impl NormalizedDurationRecord {
             return Err(TemporalError::range()
                 .with_message("DateDuration and NormalizedTimeDuration must agree."));
         }
-        Ok(Self((date, norm)))
+        Ok(Self { date, norm })
     }
 
     pub(crate) fn from_date_duration(date: DateDuration) -> TemporalResult<Self> {
@@ -172,18 +175,15 @@ impl NormalizedDurationRecord {
     }
 
     pub(crate) fn date(&self) -> DateDuration {
-        self.0 .0
+        self.date
     }
 
     pub(crate) fn norm(&self) -> NormalizedTimeDuration {
-        self.0 .1
+        self.norm
     }
 
     pub(crate) fn sign(&self) -> TemporalResult<i32> {
-        if self.0 .0.sign() != self.0 .1.sign() {
-            return Err(TemporalError::range().with_message("Invalid NormalizedDuration signs."));
-        }
-        Ok(self.0 .0.sign())
+        Ok(self.date.sign())
     }
 }
 
@@ -502,7 +502,7 @@ impl NormalizedDurationRecord {
         // 5. Let roundedNorm be ? RoundNormalizedTimeDurationToIncrement(norm, unitLength × increment, roundingMode).
         let rounded_norm = norm.round(
             unsafe {
-                NonZeroU64::new_unchecked(unit_length)
+                NonZeroU128::new_unchecked(unit_length.into())
                     .checked_mul(increment.as_extended_increment())
                     .temporal_unwrap()?
             },
@@ -758,7 +758,7 @@ impl NormalizedDurationRecord {
         };
 
         // 11. Let balanceResult be ? BalanceTimeDuration(duration.[[NormalizedTime]], largestUnit).
-        let balance_result = TimeDuration::from_normalized(duration.0 .1, largest_unit)?;
+        let balance_result = TimeDuration::from_normalized(duration.norm(), largest_unit)?;
 
         // TODO: Need to validate the below.
         // 12. Return the Record { [[Duration]]: CreateDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]], balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]), [[Total]]: nudgeResult.[[Total]]  }.

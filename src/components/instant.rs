@@ -1,6 +1,6 @@
 //! An implementation of the Temporal Instant.
 
-use std::num::NonZeroU64;
+use std::num::NonZeroU128;
 
 use crate::{
     components::{duration::TimeDuration, Duration},
@@ -108,16 +108,16 @@ impl Instant {
         let increment = increment.as_extended_increment();
         let increment = match unit {
             TemporalUnit::Hour => increment
-                .checked_mul(NonZeroU64::new(NANOSECONDS_PER_HOUR as u64).temporal_unwrap()?),
+                .checked_mul(NonZeroU128::new(NANOSECONDS_PER_HOUR as u128).temporal_unwrap()?),
             TemporalUnit::Minute => increment
-                .checked_mul(NonZeroU64::new(NANOSECONDS_PER_MINUTE as u64).temporal_unwrap()?),
+                .checked_mul(NonZeroU128::new(NANOSECONDS_PER_MINUTE as u128).temporal_unwrap()?),
             TemporalUnit::Second => increment
-                .checked_mul(NonZeroU64::new(NANOSECONDS_PER_SECOND as u64).temporal_unwrap()?),
+                .checked_mul(NonZeroU128::new(NANOSECONDS_PER_SECOND as u128).temporal_unwrap()?),
             TemporalUnit::Millisecond => {
-                increment.checked_mul(NonZeroU64::new(1_000_000).temporal_unwrap()?)
+                increment.checked_mul(NonZeroU128::new(1_000_000).temporal_unwrap()?)
             }
             TemporalUnit::Microsecond => {
-                increment.checked_mul(NonZeroU64::new(1_000).temporal_unwrap()?)
+                increment.checked_mul(NonZeroU128::new(1_000).temporal_unwrap()?)
             }
             TemporalUnit::Nanosecond => Some(increment),
             _ => {

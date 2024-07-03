@@ -1,6 +1,6 @@
 //! An implementation of `TimeDuration` and it's methods.
 
-use std::num::NonZeroU64;
+use std::num::NonZeroU128;
 
 use crate::{
     options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
@@ -411,8 +411,9 @@ impl TimeDuration {
                 // b. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
                 // c. Let total be DivideNormalizedTimeDuration(norm, divisor).
                 let total = norm.divide(unit.as_nanoseconds().temporal_unwrap()? as i64);
-                let non_zero_divisor =
-                    unsafe { NonZeroU64::new_unchecked(unit.as_nanoseconds().temporal_unwrap()?) };
+                let non_zero_divisor = unsafe {
+                    NonZeroU128::new_unchecked(unit.as_nanoseconds().temporal_unwrap()?.into())
+                };
                 // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let norm = norm.round(
                     non_zero_divisor
@@ -463,7 +464,7 @@ impl TimeDuration {
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let increment_mul_divisor = increment
                     .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU64::new_unchecked(NANOSECONDS_PER_HOUR) })
+                    .checked_mul(unsafe { NonZeroU128::new_unchecked(NANOSECONDS_PER_HOUR.into()) })
                     .temporal_unwrap()?;
                 let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
@@ -476,7 +477,9 @@ impl TimeDuration {
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let increment_mul_divisor = increment
                     .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU64::new_unchecked(NANOSECONDS_PER_MINUTE) })
+                    .checked_mul(unsafe {
+                        NonZeroU128::new_unchecked(NANOSECONDS_PER_MINUTE.into())
+                    })
                     .temporal_unwrap()?;
                 let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
@@ -489,7 +492,9 @@ impl TimeDuration {
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let increment_mul_divisor = increment
                     .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU64::new_unchecked(NANOSECONDS_PER_SECOND) })
+                    .checked_mul(unsafe {
+                        NonZeroU128::new_unchecked(NANOSECONDS_PER_SECOND.into())
+                    })
                     .temporal_unwrap()?;
                 let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
@@ -502,7 +507,7 @@ impl TimeDuration {
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let increment_mul_divisor = increment
                     .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU64::new_unchecked(1_000_000) })
+                    .checked_mul(unsafe { NonZeroU128::new_unchecked(1_000_000) })
                     .temporal_unwrap()?;
                 let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
@@ -515,7 +520,7 @@ impl TimeDuration {
                 // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let increment_mul_divisor = increment
                     .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU64::new_unchecked(1_000) })
+                    .checked_mul(unsafe { NonZeroU128::new_unchecked(1_000) })
                     .temporal_unwrap()?;
                 let norm = norm.round(increment_mul_divisor, mode)?;
                 Ok((norm, total as i64))
