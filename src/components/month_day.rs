@@ -49,6 +49,13 @@ impl MonthDay {
         self.iso.month
     }
 
+    /// Returns the `year` value of `MonthDay`.
+    #[inline]
+    #[must_use]
+    pub fn year(&self) -> i32 {
+        self.iso.year
+    }
+
     /// Returns the `day` value of `MonthDay`.
     #[inline]
     #[must_use]
