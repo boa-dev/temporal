@@ -560,8 +560,7 @@ impl Duration {
             || self.days() == 0.0;
 
         // 34. If zonedRelativeTo is not undefined and plainDateTimeOrRelativeToWillBeUsed is true, then
-        let _precalculated: Option<DateTime> = if relative_to.zdt.is_some() && pdtr_will_be_used
-        {
+        let _precalculated: Option<DateTime> = if relative_to.zdt.is_some() && pdtr_will_be_used {
             return Err(TemporalError::general("Not yet implemented."));
             // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
             // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
@@ -601,10 +600,8 @@ impl Duration {
             )?;
 
             // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
-            let target_date = plain_date.add_date(
-                &Duration::from_date_duration(&date_duration),
-                None,
-            )?;
+            let target_date =
+                plain_date.add_date(&Duration::from_date_duration(&date_duration), None)?;
 
             let plain_dt = DateTime::new_unchecked(
                 IsoDateTime::new(plain_date.iso, IsoTime::default())?,

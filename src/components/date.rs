@@ -15,7 +15,10 @@ use crate::{
 };
 use std::str::FromStr;
 
-use super::{duration::{normalized::NormalizedDurationRecord, TimeDuration}, MonthDay, Time, YearMonth};
+use super::{
+    duration::{normalized::NormalizedDurationRecord, TimeDuration},
+    MonthDay, Time, YearMonth,
+};
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
@@ -183,7 +186,7 @@ impl Date {
                     rounding_increment,
                     smallest_unit,
                     rounding_mode,
-                    )?
+                )?
                 .0
                 .date()
         } else {

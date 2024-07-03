@@ -1,11 +1,7 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use crate::{
-    components::{
-        calendar::Calendar,
-        duration::TimeDuration,
-        Instant,
-    },
+    components::{calendar::Calendar, duration::TimeDuration, Instant},
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     parsers::parse_date_time,
@@ -110,9 +106,7 @@ impl DateTime {
         }
 
         // 4. Let diff be ? DifferenceISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, resolvedOptions).
-        let diff = self
-            .iso
-            .diff(&other.iso, &self.calendar, largest_unit)?;
+        let diff = self.iso.diff(&other.iso, &self.calendar, largest_unit)?;
 
         // 5. If smallestUnit is "nanosecond" and roundingIncrement = 1, then
         if smallest_unit == TemporalUnit::Nanosecond && increment.get() == 1 {

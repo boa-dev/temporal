@@ -5,7 +5,7 @@
 `Temporal` is a calendar and timezone aware date/time library that is currently being designed and proposed as a new
 builtin to the `ECMAScript` specification.
 
-This crate is an implementation of `Temporal` in Rust. While initially developed for the `Boa`, the crate has been externalized
+This crate is an implementation of `Temporal` in Rust. While initially developed for `Boa`, the crate has been externalized
 as we intended to make an engine agnostic and general usage implementation of `Temporal` and its algorithms.
 
 ## Temporal Proposal
