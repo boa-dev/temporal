@@ -3,7 +3,7 @@
 use crate::{
     components::{DateTime, Time},
     iso::{IsoDateTime, IsoTime},
-    options::{RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
     TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
@@ -399,64 +399,34 @@ impl Duration {
     #[inline]
     pub fn round(
         &self,
-        increment: Option<RoundingIncrement>,
-        smallest_unit: Option<TemporalUnit>,
-        largest_unit: Option<TemporalUnit>,
-        rounding_mode: Option<TemporalRoundingMode>,
+        options: Option<RoundingOptions>,
         relative_to: &RelativeTo,
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
-
-        // 22. If smallestUnitPresent is false and largestUnitPresent is false, then
-        if largest_unit.is_none() && smallest_unit.is_none() {
-            // a. Throw a RangeError exception.
-            return Err(TemporalError::range()
-                .with_message("smallestUnit and largestUnit cannot both be None."));
-        }
-
         // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).
-        let increment = increment.unwrap_or_default();
         // 15. Let roundingMode be ? ToTemporalRoundingMode(roundTo, "halfExpand").
-        let rounding_mode = rounding_mode.unwrap_or_default();
-
         // 16. Let smallestUnit be ? GetTemporalUnit(roundTo, "smallestUnit", DATETIME, undefined).
         // 17. If smallestUnit is undefined, then
         // a. Set smallestUnitPresent to false.
         // b. Set smallestUnit to "nanosecond".
-        let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Nanosecond);
-
         // 18. Let existingLargestUnit be ! DefaultTemporalLargestUnit(duration.[[Years]],
         // duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]],
         // duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
         // duration.[[Microseconds]]).
-        let existing_largest_unit = self.default_largest_unit();
-
         // 19. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
-        let default_largest = existing_largest_unit.max(smallest_unit);
-
         // 20. If largestUnit is undefined, then
         // a. Set largestUnitPresent to false.
         // b. Set largestUnit to defaultLargestUnit.
         // 21. Else if largestUnit is "auto", then
         // a. Set largestUnit to defaultLargestUnit.
-        let largest_unit = match largest_unit {
-            Some(TemporalUnit::Auto) | None => default_largest,
-            Some(unit) => unit,
-        };
-
         // 23. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
-        if largest_unit.max(smallest_unit) != largest_unit {
-            return Err(TemporalError::range().with_message(
-                "largestUnit when rounding Duration was not the largest provided unit",
-            ));
-        }
-
         // 24. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
-        let maximum = smallest_unit.to_maximum_rounding_increment();
         // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
-        if let Some(max) = maximum {
-            increment.validate(max.into(), false)?;
-        }
+        let existing_largest_unit = self.default_largest_unit();
+        let resolved_options = ResolvedRoundingOptions::from_options(
+            options.unwrap_or_default(),
+            existing_largest_unit,
+        )?;
 
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
@@ -466,18 +436,18 @@ impl Duration {
 
         // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop
         // be true; else let roundingGranularityIsNoop be false.
-        let is_noop =
-            smallest_unit == TemporalUnit::Nanosecond && increment == RoundingIncrement::ONE;
         // 30. If duration.[[Years]] = 0 and duration.[[Months]] = 0 and duration.[[Weeks]] = 0,
         // let calendarUnitsPresent be false; else let calendarUnitsPresent be true.
         let calendar_units_present =
             !(self.years() == 0.0 && self.months() == 0.0 && self.weeks() == 0.0);
 
+        let is_noop = resolved_options.is_noop();
+
         // 31. If roundingGranularityIsNoop is true, and largestUnit is existingLargestUnit, and calendarUnitsPresent is false,
         // and hoursToDaysConversionMayOccur is false, and abs(duration.[[Minutes]]) < 60, and abs(duration.[[Seconds]]) < 60,
         // and abs(duration.[[Milliseconds]]) < 1000, and abs(duration.[[Microseconds]]) < 1000, and abs(duration.[[Nanoseconds]]) < 1000, then
         if is_noop
-            && largest_unit == existing_largest_unit
+            && resolved_options.largest_unit == existing_largest_unit
             && !calendar_units_present
             && !hours_to_days_may_occur
             && self.minutes().abs() < 60.0
@@ -502,8 +472,8 @@ impl Duration {
         // or calendarUnitsPresent is true, or duration.[[Days]] ≠ 0, let plainDateTimeOrRelativeToWillBeUsed be true;
         // else let plainDateTimeOrRelativeToWillBeUsed be false.
         let pdtr_will_be_used = !is_noop
-            || largest_unit.is_calendar_unit()
-            || largest_unit == TemporalUnit::Day
+            || resolved_options.largest_unit.is_calendar_unit()
+            || resolved_options.largest_unit == TemporalUnit::Day
             || calendar_units_present
             || self.days() == 0.0;
 
@@ -566,32 +536,26 @@ impl Duration {
             // targetTime.[[Hours]], targetTime.[[Minutes]], targetTime.[[Seconds]], targetTime.[[Milliseconds]],
             // targetTime.[[Microseconds]], targetTime.[[Nanoseconds]], calendarRec, largestUnit, roundingIncrement,
             // smallestUnit, roundingMode, emptyOptions).
-            let round_record = plain_dt.diff_dt_with_rounding(
-                &target_dt,
-                largest_unit,
-                increment,
-                smallest_unit,
-                rounding_mode,
-            )?;
+            let round_record = plain_dt.diff_dt_with_rounding(&target_dt, resolved_options)?;
             // e. Let roundResult be roundRecord.[[DurationRecord]].
             round_record.0
         // 40. Else,
         } else {
             // a. If calendarUnitsPresent is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
-            if calendar_units_present || largest_unit.is_calendar_unit() {
+            if calendar_units_present || resolved_options.largest_unit.is_calendar_unit() {
                 return Err(TemporalError::range()
                     .with_message("Calendar units cannot be present without a relative point."));
             }
             // b. Assert: IsCalendarUnit(smallestUnit) is false.
-            debug_assert!(!smallest_unit.is_calendar_unit());
+            debug_assert!(!resolved_options.smallest_unit.is_calendar_unit());
 
             // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
             let (round_record, _) = TimeDuration::round_v2(
                 self.days(),
                 &norm,
-                increment,
-                smallest_unit,
-                rounding_mode,
+                resolved_options.increment,
+                resolved_options.smallest_unit,
+                resolved_options.rounding_mode,
             )?;
             // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
             // roundRecord.[[NormalizedDuration]].[[Days]]).
@@ -600,7 +564,7 @@ impl Duration {
                 .add_days(round_record.date().days as i64)?;
             // e. Let balanceResult be ? BalanceTimeDuration(normWithDays, largestUnit).
             let (balanced_days, balanced_time) =
-                TimeDuration::from_normalized(norm_with_days, largest_unit)?;
+                TimeDuration::from_normalized(norm_with_days, resolved_options.largest_unit)?;
             // f. Let roundResult be CreateDurationRecord(0, 0, 0, balanceResult.[[Days]], balanceResult.[[Hours]],
             // balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]],
             // balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]).

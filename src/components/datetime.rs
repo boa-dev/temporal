@@ -3,7 +3,7 @@
 use crate::{
     components::{calendar::Calendar, duration::TimeDuration, Instant},
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
-    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
     parsers::parse_date_time,
     TemporalError, TemporalResult, TemporalUnwrap,
 };
@@ -91,10 +91,7 @@ impl DateTime {
     pub(crate) fn diff_dt_with_rounding(
         &self,
         other: &Self,
-        largest_unit: TemporalUnit,
-        increment: RoundingIncrement,
-        smallest_unit: TemporalUnit,
-        rounding_mode: TemporalRoundingMode,
+        options: ResolvedRoundingOptions,
     ) -> TemporalResult<RelativeRoundResult> {
         // 1. Assert: IsValidISODate(y1, mon1, d1) is true.
         // 2. Assert: IsValidISODate(y2, mon2, d2) is true.
@@ -106,15 +103,17 @@ impl DateTime {
         }
 
         // 4. Let diff be ? DifferenceISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, resolvedOptions).
-        let diff = self.iso.diff(&other.iso, &self.calendar, largest_unit)?;
+        let diff = self
+            .iso
+            .diff(&other.iso, &self.calendar, options.largest_unit)?;
 
         // 5. If smallestUnit is "nanosecond" and roundingIncrement = 1, then
-        if smallest_unit == TemporalUnit::Nanosecond && increment.get() == 1 {
+        if options.smallest_unit == TemporalUnit::Nanosecond && options.increment.get() == 1 {
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(diff.[[NormalizedTime]], diff.[[Days]]).
             let norm_with_days = diff.norm().add_days(diff.date().days as i64)?;
             // b. Let timeResult be ! BalanceTimeDuration(normWithDays, largestUnit).
             let (days, time_duration) =
-                TimeDuration::from_normalized(norm_with_days, largest_unit)?;
+                TimeDuration::from_normalized(norm_with_days, options.largest_unit)?;
 
             // c. Let total be NormalizedTimeDurationSeconds(normWithDays) × 10**9 + NormalizedTimeDurationSubseconds(normWithDays).
             let total =
@@ -148,15 +147,7 @@ impl DateTime {
 
         // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
         // roundingIncrement, smallestUnit, roundingMode).
-        diff.round_relative_duration(
-            dest_epoch_ns,
-            self,
-            None,
-            largest_unit,
-            increment,
-            smallest_unit,
-            rounding_mode,
-        )
+        diff.round_relative_duration(dest_epoch_ns, self, None, options)
     }
 }
 

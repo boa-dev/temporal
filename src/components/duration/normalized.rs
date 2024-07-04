@@ -7,7 +7,7 @@ use num_traits::Euclid;
 use crate::{
     components::{tz::TimeZone, Date, DateTime},
     iso::IsoDate,
-    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalRoundingMode, TemporalUnit},
     rounding::{IncrementRounder, Round},
     utils::NonZeroOrdering,
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -214,24 +214,22 @@ impl NormalizedDurationRecord {
         dest_epoch_ns: i128,
         dt: &DateTime,
         tz: Option<TimeZone>, // ???
-        increment: RoundingIncrement,
-        unit: TemporalUnit,
-        rounding_mode: TemporalRoundingMode,
+        options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
         // NOTE: r2 may never be used...need to test.
-        let (r1, r2, start_duration, end_duration) = match unit {
+        let (r1, r2, start_duration, end_duration) = match options.smallest_unit {
             // 1. If unit is "year", then
             TemporalUnit::Year => {
                 // a. Let years be RoundNumberToIncrement(duration.[[Years]], increment, "trunc").
                 let years = IncrementRounder::from_potentially_negative_parts(
                     self.date().years,
-                    increment.as_extended_increment(),
+                    options.increment.as_extended_increment(),
                 )?
                 .round(TemporalRoundingMode::Trunc);
                 // b. Let r1 be years.
                 let r1 = years;
                 // c. Let r2 be years + increment × sign.
-                let r2 = years + i128::from(increment.get()) * i128::from(sign.get());
+                let r2 = years + i128::from(options.increment.get()) * i128::from(sign.get());
                 // d. Let startDuration be ? CreateNormalizedDurationRecord(r1, 0, 0, 0, ZeroTimeDuration()).
                 // e. Let endDuration be ? CreateNormalizedDurationRecord(r2, 0, 0, 0, ZeroTimeDuration()).
                 (
@@ -246,13 +244,13 @@ impl NormalizedDurationRecord {
                 // a. Let months be RoundNumberToIncrement(duration.[[Months]], increment, "trunc").
                 let months = IncrementRounder::from_potentially_negative_parts(
                     self.date().months,
-                    increment.as_extended_increment(),
+                    options.increment.as_extended_increment(),
                 )?
                 .round(TemporalRoundingMode::Trunc);
                 // b. Let r1 be months.
                 let r1 = months;
                 // c. Let r2 be months + increment × sign.
-                let r2 = months + i128::from(increment.get()) * i128::from(sign.get());
+                let r2 = months + i128::from(options.increment.get()) * i128::from(sign.get());
                 // d. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], r1, 0, 0, ZeroTimeDuration()).
                 // e. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], r2, 0, 0, ZeroTimeDuration()).
                 (
@@ -310,14 +308,14 @@ impl NormalizedDurationRecord {
                 // h. Let weeks be RoundNumberToIncrement(duration.[[Weeks]] + untilResult.[[Weeks]], increment, "trunc").
                 let weeks = IncrementRounder::from_potentially_negative_parts(
                     self.date().weeks + until_result.weeks(),
-                    increment.as_extended_increment(),
+                    options.increment.as_extended_increment(),
                 )?
                 .round(TemporalRoundingMode::Trunc);
 
                 // i. Let r1 be weeks.
                 let r1 = weeks;
                 // j. Let r2 be weeks + increment × sign.
-                let r2 = weeks + i128::from(increment.get()) * i128::from(sign.get());
+                let r2 = weeks + i128::from(options.increment.get()) * i128::from(sign.get());
                 // k. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], r1, 0, ZeroTimeDuration()).
                 // l. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], r2, 0, ZeroTimeDuration()).
                 (
@@ -333,13 +331,13 @@ impl NormalizedDurationRecord {
                 // b. Let days be RoundNumberToIncrement(duration.[[Days]], increment, "trunc").
                 let days = IncrementRounder::from_potentially_negative_parts(
                     self.date().days,
-                    increment.as_extended_increment(),
+                    options.increment.as_extended_increment(),
                 )?
                 .round(TemporalRoundingMode::Trunc);
                 // c. Let r1 be days.
                 let r1 = days;
                 // d. Let r2 be days + increment × sign.
-                let r2 = days + i128::from(increment.get()) * i128::from(sign.get());
+                let r2 = days + i128::from(options.increment.get()) * i128::from(sign.get());
                 // e. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], r1, ZeroTimeDuration()).
                 // f. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], r2, ZeroTimeDuration()).
                 (
@@ -427,7 +425,7 @@ impl NormalizedDurationRecord {
         // 13. Let total be r1 + progress × increment × sign.
         let progress =
             (dest_epoch_ns - start_epoch_ns) as f64 / (end_epoch_ns - start_epoch_ns) as f64;
-        let total = r1 as f64 + progress * increment.get() as f64 * f64::from(sign.get());
+        let total = r1 as f64 + progress * options.increment.get() as f64 * f64::from(sign.get());
 
         // TODO: Test and verify that `IncrementRounder` handles the below case.
         // NOTE(nekevss): Below will not return the calculated r1 or r2, so it is imporant to not use
@@ -438,9 +436,9 @@ impl NormalizedDurationRecord {
         // 15. Let roundedUnit be ApplyUnsignedRoundingMode(total, r1, r2, unsignedRoundingMode).
         let rounded_unit = IncrementRounder::from_potentially_negative_parts(
             total,
-            increment.as_extended_increment(),
+            options.increment.as_extended_increment(),
         )?
-        .round(rounding_mode);
+        .round(options.rounding_mode);
 
         // 16. If roundedUnit - total < 0, let roundedSign be -1; else let roundedSign be 1.
         // 19. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[Total]]: total, [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandCalendarUnit }.
@@ -485,17 +483,14 @@ impl NormalizedDurationRecord {
     fn nudge_to_day_or_time(
         &self,
         dest_epoch_ns: i128,
-        largest_unit: TemporalUnit,
-        increment: RoundingIncrement,
-        smallest_unit: TemporalUnit,
-        rounding_mode: TemporalRoundingMode,
+        options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
         // 1. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains smallestUnit, is time.
         // 2. Let norm be ! Add24HourDaysToNormalizedTimeDuration(duration.[[NormalizedTime]], duration.[[Days]]).
         let norm = self.norm().add_days(self.date().days as i64)?;
 
         // 3. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains smallestUnit.
-        let unit_length = smallest_unit.as_nanoseconds().temporal_unwrap()?;
+        let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
         // 4. Let total be DivideNormalizedTimeDuration(norm, unitLength).
         let total = norm.divide(unit_length as i64);
 
@@ -503,10 +498,10 @@ impl NormalizedDurationRecord {
         let rounded_norm = norm.round(
             unsafe {
                 NonZeroU128::new_unchecked(unit_length.into())
-                    .checked_mul(increment.as_extended_increment())
+                    .checked_mul(options.increment.as_extended_increment())
                     .temporal_unwrap()?
             },
-            rounding_mode,
+            options.rounding_mode,
         )?;
 
         // 6. Let diffNorm be ! SubtractNormalizedTimeDuration(roundedNorm, norm).
@@ -533,7 +528,7 @@ impl NormalizedDurationRecord {
         // 15. Let remainder be roundedNorm.
         let mut remainder = rounded_norm;
         // 16. If LargerOfTwoTemporalUnits(largestUnit, "day") is largestUnit, then
-        if largest_unit.max(TemporalUnit::Day) == largest_unit {
+        if options.largest_unit.max(TemporalUnit::Day) == options.largest_unit {
             // a. Set days to roundedWholeDays.
             days = rounded_whole_days;
             // b. Set remainder to remainder(roundedFractionalDays, 1) × nsPerDay.
@@ -689,16 +684,13 @@ impl NormalizedDurationRecord {
         dest_epoch_ns: i128,
         dt: &DateTime,
         tz: Option<TimeZone>,
-        largest_unit: TemporalUnit,
-        increment: RoundingIncrement,
-        smallest_unit: TemporalUnit,
-        rounding_mode: TemporalRoundingMode,
+        options: ResolvedRoundingOptions,
     ) -> TemporalResult<RelativeRoundResult> {
         // 1. Let irregularLengthUnit be false.
         // 2. If IsCalendarUnit(smallestUnit) is true, set irregularLengthUnit to true.
         // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
-        let irregular_unit = smallest_unit.is_calendar_unit()
-            || (tz.is_some() && smallest_unit == TemporalUnit::Day);
+        let irregular_unit = options.smallest_unit.is_calendar_unit()
+            || (tz.is_some() && options.smallest_unit == TemporalUnit::Day);
 
         // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
         let sign = NonZeroOrdering::new(self.sign()?.cmp(&0));
@@ -706,15 +698,7 @@ impl NormalizedDurationRecord {
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_unit {
             // a. Let nudgeResult be ? NudgeToCalendarUnit(sign, duration, destEpochNs, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_calendar_unit(
-                sign,
-                dest_epoch_ns,
-                dt,
-                tz.clone(),
-                increment,
-                smallest_unit,
-                rounding_mode,
-            )?
+            self.nudge_calendar_unit(sign, dest_epoch_ns, dt, tz.clone(), options)?
         // 6. Else if timeZoneRec is not unset, then
         } else if let Some(ref _tz) = tz {
             // a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
@@ -722,39 +706,35 @@ impl NormalizedDurationRecord {
         // 7. Else,
         } else {
             // a. Let nudgeResult be ? NudgeToDayOrTime(duration, destEpochNs, largestUnit, increment, smallestUnit, roundingMode).
-            self.nudge_to_day_or_time(
-                dest_epoch_ns,
-                largest_unit,
-                increment,
-                smallest_unit,
-                rounding_mode,
-            )?
+            self.nudge_to_day_or_time(dest_epoch_ns, options)?
         };
 
         // 8. Set duration to nudgeResult.[[Duration]].
         let mut duration = nudge_result.normalized;
 
         // 9. If nudgeResult.[[DidExpandCalendarUnit]] is true and smallestUnit is not "week", then
-        if nudge_result.expanded && smallest_unit != TemporalUnit::Week {
+        if nudge_result.expanded && options.smallest_unit != TemporalUnit::Week {
             // a. Let startUnit be LargerOfTwoTemporalUnits(smallestUnit, "day").
-            let start_unit = smallest_unit.max(TemporalUnit::Day);
+            let start_unit = options.smallest_unit.max(TemporalUnit::Day);
             // b. Set duration to ? BubbleRelativeDuration(sign, duration, nudgeResult.[[NudgedEpochNs]], dateTime, calendarRec, timeZoneRec, largestUnit, startUnit).
             duration = duration.bubble_relative_duration(
                 sign,
                 nudge_result.nudge_epoch_ns,
                 dt,
                 tz,
-                largest_unit,
+                options.largest_unit,
                 start_unit,
             )?
         };
 
         // 10. If IsCalendarUnit(largestUnit) is true or largestUnit is "day", then
-        let largest_unit = if largest_unit.is_calendar_unit() || largest_unit == TemporalUnit::Day {
+        let largest_unit = if options.largest_unit.is_calendar_unit()
+            || options.largest_unit == TemporalUnit::Day
+        {
             // a. Set largestUnit to "hour".
             TemporalUnit::Hour
         } else {
-            largest_unit
+            options.largest_unit
         };
 
         // 11. Let balanceResult be ? BalanceTimeDuration(duration.[[NormalizedTime]], largestUnit).

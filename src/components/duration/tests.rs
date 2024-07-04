@@ -1,6 +1,6 @@
 use crate::{
     components::{calendar::Calendar, Date},
-    options::ArithmeticOverflow,
+    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode},
 };
 
 use super::*;
@@ -8,11 +8,10 @@ use super::*;
 fn get_round_result(
     test_duration: &Duration,
     relative_to: &RelativeTo,
-    unit: TemporalUnit,
-    mode: TemporalRoundingMode,
+    options: RoundingOptions,
 ) -> Vec<i32> {
     test_duration
-        .round(None, Some(unit), None, Some(mode), relative_to)
+        .round(Some(options), relative_to)
         .unwrap()
         .fields()
         .iter()
@@ -39,84 +38,51 @@ fn basic_positive_floor_rounding_v2() {
         zdt: None,
     };
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Year,
-        TemporalRoundingMode::Floor,
-    );
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: None,
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Floor),
+    };
+
+    let _ = options.smallest_unit.insert(TemporalUnit::Year);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 0, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Month,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Month);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Week,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Week);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 3, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Day,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Day);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Hour,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Hour);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Minute,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Minute);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Second,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Second);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Millisecond,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Millisecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Microsecond,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Microsecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 987, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Nanosecond,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Nanosecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 987, 500],);
 }
 
@@ -139,84 +105,51 @@ fn basic_negative_floor_rounding_v2() {
         zdt: None,
     };
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Year,
-        TemporalRoundingMode::Floor,
-    );
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: None,
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Floor),
+    };
+
+    let _ = options.smallest_unit.insert(TemporalUnit::Year);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-6, 0, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Month,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Month);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -8, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Week,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Week);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, -4, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Day,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Day);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -28, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Hour,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Hour);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -17, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Minute,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Minute);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -31, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Second,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Second);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -21, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Millisecond,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Millisecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -124, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Microsecond,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Microsecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -988, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Nanosecond,
-        TemporalRoundingMode::Floor,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Nanosecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -987, -500],);
 }
 
@@ -239,84 +172,51 @@ fn basic_positive_ceil_rounding() {
         zdt: None,
     };
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Year,
-        TemporalRoundingMode::Ceil,
-    );
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: None,
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Ceil),
+    };
+
+    let _ = options.smallest_unit.insert(TemporalUnit::Year);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[6, 0, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Month,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Month);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 8, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Week,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Week);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 4, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Day,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Day);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 28, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Hour,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Hour);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 17, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Minute,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Minute);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 31, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Second,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Second);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 21, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Millisecond,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Millisecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 124, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Microsecond,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Microsecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 988, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Nanosecond,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Nanosecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 987, 500],);
 }
 
@@ -337,84 +237,51 @@ fn basic_negative_ceil_rounding() {
         zdt: None,
     };
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Year,
-        TemporalRoundingMode::Ceil,
-    );
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: None,
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Ceil),
+    };
+
+    let _ = options.smallest_unit.insert(TemporalUnit::Year);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, 0, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Month,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Month);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Week,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Week);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, -3, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Day,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Day);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Hour,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Hour);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Minute,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Minute);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Second,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Second);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Millisecond,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Millisecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Microsecond,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Microsecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -987, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Nanosecond,
-        TemporalRoundingMode::Ceil,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Nanosecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -987, -500],);
 }
 
@@ -437,84 +304,51 @@ fn basic_positive_expand_rounding() {
         zdt: None,
     };
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Year,
-        TemporalRoundingMode::Ceil,
-    );
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: None,
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Expand),
+    };
+
+    let _ = options.smallest_unit.insert(TemporalUnit::Year);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[6, 0, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Month,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Month);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 8, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Week,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Week);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 4, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Day,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Day);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 28, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Hour,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Hour);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 17, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Minute,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Minute);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 31, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Second,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Second);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 21, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Millisecond,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Millisecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 124, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Microsecond,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Microsecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 988, 0],);
 
-    let result = get_round_result(
-        &test_duration,
-        &relative_forward,
-        TemporalUnit::Nanosecond,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Nanosecond);
+    let result = get_round_result(&test_duration, &relative_forward, options);
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 987, 500],);
 }
 
@@ -537,84 +371,51 @@ fn basic_negative_expand_rounding() {
         zdt: None,
     };
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Year,
-        TemporalRoundingMode::Expand,
-    );
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: None,
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Expand),
+    };
+
+    let _ = options.smallest_unit.insert(TemporalUnit::Year);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-6, 0, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Month,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Month);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -8, 0, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Week,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Week);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, -4, 0, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Day,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Day);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -28, 0, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Hour,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Hour);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -17, 0, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Minute,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Minute);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -31, 0, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Second,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Second);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -21, 0, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Millisecond,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Millisecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -124, 0, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Microsecond,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Microsecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -988, 0],);
 
-    let result = get_round_result(
-        &test_duration.negated(),
-        &relative_backward,
-        TemporalUnit::Nanosecond,
-        TemporalRoundingMode::Expand,
-    );
+    let _ = options.smallest_unit.insert(TemporalUnit::Nanosecond);
+    let result = get_round_result(&test_duration.negated(), &relative_backward, options);
     assert_eq!(&result, &[-5, -7, 0, -27, -16, -30, -20, -123, -987, -500],);
 }
 
@@ -636,33 +437,27 @@ fn rounding_increment_non_integer() {
         zdt: None,
     };
 
-    let result = test_duration
-        .round(
-            Some(RoundingIncrement::try_from(2.5).unwrap()),
-            Some(TemporalUnit::Day),
-            None,
-            Some(TemporalRoundingMode::Expand),
-            &relative_to,
-        )
-        .unwrap();
+    let mut options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: Some(TemporalUnit::Day),
+        increment: None,
+        rounding_mode: Some(TemporalRoundingMode::Expand),
+    };
+
+    let _ = options
+        .increment
+        .insert(RoundingIncrement::try_from(2.5).unwrap());
+    let result = test_duration.round(Some(options), &relative_to).unwrap();
 
     assert_eq!(
         result.fields(),
         &[0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     );
 
-    // NOTE: The below is the test case that requires the rounding increment to be NonZeroU128
-
-    let result = test_duration
-        .round(
-            Some(RoundingIncrement::try_from(1e9 + 0.5).unwrap()),
-            Some(TemporalUnit::Day),
-            None,
-            Some(TemporalRoundingMode::Expand),
-            &relative_to,
-        )
-        .unwrap();
-
+    let _ = options
+        .increment
+        .insert(RoundingIncrement::try_from(1e9 + 0.5).unwrap());
+    let result = test_duration.round(Some(options), &relative_to).unwrap();
     assert_eq!(
         result.fields(),
         &[0.0, 0.0, 0.0, 1e9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
