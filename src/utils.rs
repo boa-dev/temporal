@@ -1,26 +1,8 @@
 //! Utility date and time equations for Temporal
 
-use std::cmp::Ordering;
-
 use crate::MS_PER_DAY;
 
 // NOTE: Review the below for optimizations and add ALOT of tests.
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) struct NonZeroOrdering(Ordering);
-
-impl NonZeroOrdering {
-    pub(crate) fn new(ordering: Ordering) -> Self {
-        if matches!(ordering, Ordering::Less) {
-            return Self(ordering);
-        }
-        Self(Ordering::Greater)
-    }
-
-    pub(crate) fn get(&self) -> i8 {
-        self.0 as i8
-    }
-}
 
 // ==== Begin Date Equations ====
 

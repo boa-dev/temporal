@@ -7,7 +7,7 @@ use crate::{
     TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
-use std::str::FromStr;
+use std::{cmp::Ordering, str::FromStr};
 
 use self::normalized::NormalizedTimeDuration;
 
@@ -22,6 +22,40 @@ mod tests;
 pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
+
+#[repr(i8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DurationSign {
+    Positive = 1,
+    Zero = 0,
+    Negative = -1,
+}
+
+impl From<Ordering> for DurationSign {
+    fn from(value: Ordering) -> Self {
+        match value {
+            Ordering::Greater => Self::Positive,
+            Ordering::Equal => Self::Zero,
+            Ordering::Less => Self::Negative,
+        }
+    }
+}
+
+#[repr(i8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum NonZeroDurationSign {
+    Positive = 1,
+    Negative = -1,
+}
+
+impl From<DurationSign> for NonZeroDurationSign {
+    fn from(value: DurationSign) -> Self {
+        if matches!(value, DurationSign::Negative) {
+            return Self::Negative;
+        }
+        Self::Positive
+    }
+}
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
@@ -363,7 +397,7 @@ impl Duration {
     /// Determines the sign for the current self.
     #[inline]
     #[must_use]
-    pub fn sign(&self) -> i32 {
+    pub fn sign(&self) -> DurationSign {
         duration_sign(&self.fields())
     }
 
@@ -373,7 +407,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn is_zero(&self) -> bool {
-        self.sign() == 0
+        self.sign() == DurationSign::Zero
     }
 
     /// Returns a negated `Duration`
@@ -591,11 +625,11 @@ pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
             return false;
         }
         // b. If v < 0 and sign > 0, return false.
-        if *v < 0f64 && sign > 0 {
+        if *v < 0f64 && sign == DurationSign::Positive {
             return false;
         }
         // c. If v > 0 and sign < 0, return false.
-        if *v > 0f64 && sign < 0 {
+        if *v > 0f64 && sign == DurationSign::Negative {
             return false;
         }
     }
@@ -608,19 +642,19 @@ pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
 /// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
-fn duration_sign(set: &Vec<f64>) -> i32 {
+fn duration_sign(set: &Vec<f64>) -> DurationSign {
     // 1. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If v < 0, return -1.
         if *v < 0f64 {
-            return -1;
+            return DurationSign::Negative;
         // b. If v > 0, return 1.
         } else if *v > 0f64 {
-            return 1;
+            return DurationSign::Positive;
         }
     }
     // 2. Return 0.
-    0
+    DurationSign::Zero
 }
 
 impl From<TimeDuration> for Duration {

@@ -9,11 +9,10 @@ use crate::{
     iso::IsoDate,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalRoundingMode, TemporalUnit},
     rounding::{IncrementRounder, Round},
-    utils::NonZeroOrdering,
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
-use super::{DateDuration, Duration, TimeDuration};
+use super::{DateDuration, Duration, DurationSign, NonZeroDurationSign, TimeDuration};
 
 const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 
@@ -86,8 +85,8 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     #[inline]
     #[must_use]
-    pub(crate) fn sign(&self) -> i32 {
-        self.0.cmp(&0) as i32
+    pub(crate) fn sign(&self) -> DurationSign {
+        DurationSign::from(self.0.cmp(&0))
     }
 
     // NOTE(nekevss): non-euclid is required here for negative rounding.
@@ -163,7 +162,10 @@ impl NormalizedDurationRecord {
     ///
     /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
     pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
-        if date.sign() != 0 && norm.sign() != 0 && date.sign() != norm.sign() {
+        if date.sign() != DurationSign::Zero
+            && norm.sign() != DurationSign::Zero
+            && date.sign() != norm.sign()
+        {
             return Err(TemporalError::range()
                 .with_message("DateDuration and NormalizedTimeDuration must agree."));
         }
@@ -182,7 +184,7 @@ impl NormalizedDurationRecord {
         self.norm
     }
 
-    pub(crate) fn sign(&self) -> TemporalResult<i32> {
+    pub(crate) fn sign(&self) -> TemporalResult<DurationSign> {
         Ok(self.date.sign())
     }
 }
@@ -210,7 +212,7 @@ impl NormalizedDurationRecord {
     #[allow(clippy::too_many_arguments)]
     fn nudge_calendar_unit(
         &self,
-        sign: NonZeroOrdering,
+        sign: NonZeroDurationSign,
         dest_epoch_ns: i128,
         dt: &DateTime,
         tz: Option<TimeZone>, // ???
@@ -229,7 +231,7 @@ impl NormalizedDurationRecord {
                 // b. Let r1 be years.
                 let r1 = years;
                 // c. Let r2 be years + increment × sign.
-                let r2 = years + i128::from(options.increment.get()) * i128::from(sign.get());
+                let r2 = years + i128::from(options.increment.get()) * i128::from(sign as i8);
                 // d. Let startDuration be ? CreateNormalizedDurationRecord(r1, 0, 0, 0, ZeroTimeDuration()).
                 // e. Let endDuration be ? CreateNormalizedDurationRecord(r2, 0, 0, 0, ZeroTimeDuration()).
                 (
@@ -250,7 +252,7 @@ impl NormalizedDurationRecord {
                 // b. Let r1 be months.
                 let r1 = months;
                 // c. Let r2 be months + increment × sign.
-                let r2 = months + i128::from(options.increment.get()) * i128::from(sign.get());
+                let r2 = months + i128::from(options.increment.get()) * i128::from(sign as i8);
                 // d. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], r1, 0, 0, ZeroTimeDuration()).
                 // e. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], r2, 0, 0, ZeroTimeDuration()).
                 (
@@ -315,7 +317,7 @@ impl NormalizedDurationRecord {
                 // i. Let r1 be weeks.
                 let r1 = weeks;
                 // j. Let r2 be weeks + increment × sign.
-                let r2 = weeks + i128::from(options.increment.get()) * i128::from(sign.get());
+                let r2 = weeks + i128::from(options.increment.get()) * i128::from(sign as i8);
                 // k. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], r1, 0, ZeroTimeDuration()).
                 // l. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], r2, 0, ZeroTimeDuration()).
                 (
@@ -337,7 +339,7 @@ impl NormalizedDurationRecord {
                 // c. Let r1 be days.
                 let r1 = days;
                 // d. Let r2 be days + increment × sign.
-                let r2 = days + i128::from(options.increment.get()) * i128::from(sign.get());
+                let r2 = days + i128::from(options.increment.get()) * i128::from(sign as i8);
                 // e. Let startDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], r1, ZeroTimeDuration()).
                 // f. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], r2, ZeroTimeDuration()).
                 (
@@ -425,7 +427,7 @@ impl NormalizedDurationRecord {
         // 13. Let total be r1 + progress × increment × sign.
         let progress =
             (dest_epoch_ns - start_epoch_ns) as f64 / (end_epoch_ns - start_epoch_ns) as f64;
-        let total = r1 as f64 + progress * options.increment.get() as f64 * f64::from(sign.get());
+        let total = r1 as f64 + progress * options.increment.get() as f64 * f64::from(sign as i8);
 
         // TODO: Test and verify that `IncrementRounder` handles the below case.
         // NOTE(nekevss): Below will not return the calculated r1 or r2, so it is imporant to not use
@@ -518,7 +520,7 @@ impl NormalizedDurationRecord {
         let delta = rounded_whole_days - whole_days;
         // 11. If dayDelta < 0, let dayDeltaSign be -1; else if dayDelta > 0, let dayDeltaSign be 1; else let dayDeltaSign be 0.
         // 12. If dayDeltaSign = NormalizedTimeDurationSign(norm), let didExpandDays be true; else let didExpandDays be false.
-        let did_expand_days = delta.signum() == norm.sign().into();
+        let did_expand_days = delta.signum() as i8 == norm.sign() as i8;
 
         // 13. Let nudgedEpochNs be AddNormalizedTimeDurationToEpochNanoseconds(diffNorm, destEpochNs).
         let nudged_ns = diff_norm.0 + dest_epoch_ns;
@@ -559,7 +561,7 @@ impl NormalizedDurationRecord {
     #[allow(clippy::too_many_arguments)]
     fn bubble_relative_duration(
         &self,
-        sign: NonZeroOrdering,
+        sign: NonZeroDurationSign,
         nudge_epoch_ns: i128,
         date_time: &DateTime,
         tz: Option<TimeZone>,
@@ -594,7 +596,7 @@ impl NormalizedDurationRecord {
                 TemporalUnit::Year => {
                     // 1. Let years be duration.[[Years]] + sign.
                     // 2. Let endDuration be ? CreateNormalizedDurationRecord(years, 0, 0, 0, ZeroTimeDuration()).
-                    DateDuration::new(duration.date().years + f64::from(sign.get()), 0.0, 0.0, 0.0)?
+                    DateDuration::new(duration.date().years + f64::from(sign as i8), 0.0, 0.0, 0.0)?
                 }
                 // ii. Else if unit is "month", then
                 TemporalUnit::Month => {
@@ -602,7 +604,7 @@ impl NormalizedDurationRecord {
                     // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], months, 0, 0, ZeroTimeDuration()).
                     DateDuration::new(
                         duration.date().years,
-                        duration.date().months + f64::from(sign.get()),
+                        duration.date().months + f64::from(sign as i8),
                         0.0,
                         0.0,
                     )?
@@ -614,7 +616,7 @@ impl NormalizedDurationRecord {
                     DateDuration::new(
                         duration.date().years,
                         duration.date().months,
-                        duration.date().weeks + f64::from(sign.get()),
+                        duration.date().weeks + f64::from(sign as i8),
                         0.0,
                     )?
                 }
@@ -627,7 +629,7 @@ impl NormalizedDurationRecord {
                         duration.date().years,
                         duration.date().months,
                         duration.date().weeks,
-                        duration.date().days + f64::from(sign.get()),
+                        duration.date().days + f64::from(sign as i8),
                     )?
                 }
                 _ => unreachable!(),
@@ -661,7 +663,7 @@ impl NormalizedDurationRecord {
             let beyond_end = nudge_epoch_ns - end_epoch_ns;
             // ix. If beyondEnd < 0, let beyondEndSign be -1; else if beyondEnd > 0, let beyondEndSign be 1; else let beyondEndSign be 0.
             // x. If beyondEndSign ≠ -sign, then
-            if beyond_end.signum() != -i128::from(sign.get()) {
+            if beyond_end.signum() != -i128::from(sign as i8) {
                 // 1. Set duration to endDuration.
                 duration = NormalizedDurationRecord::from_date_duration(end_duration)?;
             // xi. Else,
@@ -693,7 +695,7 @@ impl NormalizedDurationRecord {
             || (tz.is_some() && options.smallest_unit == TemporalUnit::Day);
 
         // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
-        let sign = NonZeroOrdering::new(self.sign()?.cmp(&0));
+        let sign = NonZeroDurationSign::from(self.sign()?);
 
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_unit {

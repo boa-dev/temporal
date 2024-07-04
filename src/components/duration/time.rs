@@ -85,7 +85,7 @@ impl TimeDuration {
         let mut microseconds = 0;
 
         // 2. Let sign be NormalizedTimeDurationSign(norm).
-        let sign = norm.sign();
+        let sign = i32::from(norm.sign() as i8);
         // 3. Let nanoseconds be NormalizedTimeDurationAbs(norm).[[TotalNanoseconds]].
         let mut nanoseconds = norm.0.abs();
 

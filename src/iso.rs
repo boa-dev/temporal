@@ -192,7 +192,7 @@ impl IsoDateTime {
             NormalizedTimeDuration::from_time_duration(&self.time.diff(&other.time));
 
         // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
-        let time_sign = time_duration.sign();
+        let time_sign = time_duration.sign() as i8;
 
         // 6. Let dateSign be CompareISODate(y2, mon2, d2, y1, mon1, d1).
         let date_sign = other.date.cmp(&self.date) as i32;
@@ -200,15 +200,15 @@ impl IsoDateTime {
         let mut adjusted_date = other.date;
 
         // 8. If timeSign = -dateSign, then
-        if time_sign == -date_sign {
+        if i32::from(time_sign) == -date_sign {
             // a. Set adjustedDate to BalanceISODate(adjustedDate.[[Year]], adjustedDate.[[Month]], adjustedDate.[[Day]] + timeSign).
             adjusted_date = IsoDate::balance(
                 adjusted_date.year,
                 i32::from(adjusted_date.month),
-                i32::from(adjusted_date.day) + time_sign,
+                i32::from(adjusted_date.day) + i32::from(time_sign),
             );
             // b. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, -timeSign).
-            time_duration = time_duration.add_days(-time_sign as i64)?;
+            time_duration = time_duration.add_days(-i64::from(time_sign))?;
         }
 
         // 9. Let date1 be ! CreateTemporalDate(y1, mon1, d1, calendarRec.[[Receiver]]).
