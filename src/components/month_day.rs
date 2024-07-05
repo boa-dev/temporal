@@ -42,20 +42,6 @@ impl MonthDay {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
-    /// Returns the `month` value of `MonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn month(&self) -> u8 {
-        self.iso.month
-    }
-
-    /// Returns the `year` value of `MonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn year(&self) -> i32 {
-        self.iso.year
-    }
-
     /// Returns the `day` value of `MonthDay`.
     #[inline]
     #[must_use]
@@ -72,7 +58,6 @@ impl MonthDay {
 
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
-    #[must_use]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.calendar
             .month_code(&CalendarDateLike::MonthDay(self.clone()))
