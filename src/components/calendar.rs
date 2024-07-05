@@ -253,6 +253,10 @@ pub enum CalendarDateLike {
     DateTime(DateTime),
     /// Represents a `Date`.
     Date(Date),
+    /// Represents a `YearMonth`.
+    YearMonth(YearMonth),
+    /// Represents a `MonthDay`.
+    MonthDay(MonthDay),
 }
 
 impl CalendarDateLike {

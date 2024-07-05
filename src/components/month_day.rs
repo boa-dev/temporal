@@ -11,7 +11,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::GetTemporalCalendar;
+use super::calendar::{CalendarDateLike, GetTemporalCalendar};
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
@@ -69,25 +69,20 @@ impl MonthDay {
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
+
+    /// Returns the `monthCode` value of `MonthDay`.
+    #[inline]
+    #[must_use]
+    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        self.calendar
+            .month_code(&CalendarDateLike::MonthDay(self.clone()))
+    }
 }
 
 impl GetTemporalCalendar for MonthDay {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
-
-// Contextual Methods
-impl<C: CalendarProtocol> MonthDay<C> {
-    pub fn contextual_month_code(
-        this: &C::MonthDay,
-        context: &mut C::Context,
-    ) -> TemporalResult<TinyAsciiStr<4>> {
-        this.get_calendar()
-            .month_code(&CalendarDateLike::MonthDay(this.clone()), context)
-    }
-}
-
-
 }
 
 impl IsoDateSlots for MonthDay {
