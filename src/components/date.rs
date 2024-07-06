@@ -8,16 +8,20 @@ use crate::{
         duration::DateDuration,
         DateTime, Duration,
     },
-    iso::{IsoDate, IsoDateSlots, IsoDateTime},
+    iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, RelativeTo, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
+        TemporalUnit,
     },
     parsers::parse_date_time,
     TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
-use super::{duration::TimeDuration, MonthDay, Time, YearMonth};
+use super::{
+    duration::{normalized::NormalizedDurationRecord, TimeDuration},
+    MonthDay, Time, YearMonth,
+};
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
@@ -35,14 +39,6 @@ impl Date {
     #[must_use]
     pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
         Self { iso, calendar }
-    }
-
-    #[inline]
-    /// Returns a new moved date and the days associated with that adjustment
-    pub(crate) fn move_relative_date(&self, duration: &Duration) -> TemporalResult<(Self, f64)> {
-        let new_date = self.add_date(duration, None)?;
-        let days = f64::from(self.days_until(&new_date));
-        Ok((new_date, days))
     }
 
     /// Returns the date after adding the given duration to date.
@@ -112,20 +108,15 @@ impl Date {
     }
 
     /// Equivalent: DifferenceTemporalPlainDate
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn diff_date(
         &self,
-        op: bool,
+        op: DifferenceOperation,
         other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
+        settings: DifferenceSettings,
     ) -> TemporalResult<Duration> {
         // 1. If operation is SINCE, let sign be -1. Otherwise, let sign be 1.
         // 2. Set other to ? ToTemporalDate(other).
 
-        // TODO(improvement): Implement `PartialEq` for `TemporalCalendar`
         // 3. If ? CalendarEquals(temporalDate.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
         if self.calendar().identifier()? != other.calendar().identifier()? {
             return Err(TemporalError::range()
@@ -134,20 +125,12 @@ impl Date {
 
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
-        let rounding_increment = rounding_increment.unwrap_or_default();
-        let (sign, rounding_mode) = if op {
-            (
-                -1.0,
-                rounding_mode
-                    .unwrap_or(TemporalRoundingMode::Trunc)
-                    .negate(),
-            )
-        } else {
-            (1.0, rounding_mode.unwrap_or(TemporalRoundingMode::Trunc))
-        };
-        let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Day);
-        // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
-        let largest_unit = largest_unit.unwrap_or(smallest_unit.max(TemporalUnit::Day));
+        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+            settings,
+            op,
+            TemporalUnit::Day,
+            TemporalUnit::Day,
+        )?;
 
         // 6. If temporalDate.[[ISOYear]] = other.[[ISOYear]], and temporalDate.[[ISOMonth]] = other.[[ISOMonth]],
         // and temporalDate.[[ISODay]] = other.[[ISODay]], then
@@ -159,62 +142,39 @@ impl Date {
         // 7. Let calendarRec be ? CreateCalendarMethodsRecord(temporalDate.[[Calendar]], « DATE-ADD, DATE-UNTIL »).
         // 8. Perform ! CreateDataPropertyOrThrow(resolvedOptions, "largestUnit", settings.[[LargestUnit]]).
         // 9. Let result be ? DifferenceDate(calendarRec, temporalDate, other, resolvedOptions).
-        let result = self.internal_diff_date(other, largest_unit)?;
+        let result = self.internal_diff_date(other, resolved.largest_unit)?;
 
-        // 10. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1,
-        // let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
-        let is_noop =
-            smallest_unit == TemporalUnit::Day && rounding_increment == RoundingIncrement::ONE;
-
-        // 12. Return ! CreateTemporalDuration(sign × result.[[Years]], sign × result.[[Months]], sign × result.[[Weeks]], sign × result.[[Days]], 0, 0, 0, 0, 0, 0).
-        if is_noop {
-            return Duration::new(
-                result.years() * sign,
-                result.months() * sign,
-                result.weeks() * sign,
-                result.days() * sign,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
+        // 10. Let duration be ! CreateNormalizedDurationRecord(result.[[Years]], result.[[Months]], result.[[Weeks]], result.[[Days]], ZeroTimeDuration()).
+        let duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+        // 11. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
+        let rounding_granularity_is_noop =
+            resolved.smallest_unit == TemporalUnit::Day && resolved.increment.get() == 1;
+        // 12. If roundingGranularityIsNoop is false, then
+        let date_duration = if !rounding_granularity_is_noop {
+            // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
+            let dest_epoch_ns = other.iso.as_nanoseconds().temporal_unwrap()?;
+            // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
+            let dt = DateTime::new_unchecked(
+                IsoDateTime::new_unchecked(self.iso, IsoTime::default()),
+                self.calendar.clone(),
             );
-        }
+            // c. Set duration to ? RoundRelativeDuration(duration, destEpochNs, dateTime, calendarRec, unset, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+            *duration
+                .round_relative_duration(dest_epoch_ns, &dt, None, resolved)?
+                .0
+                .date()
+        } else {
+            duration.date()
+        };
 
-        // 11. If roundingGranularityIsNoop is false, then
-        // a. Let roundRecord be ? RoundDuration(result.[[Years]], result.[[Months]], result.[[Weeks]],
-        // result.[[Days]], ZeroTimeDuration(), settings.[[RoundingIncrement]], settings.[[SmallestUnit]],
-        // settings.[[RoundingMode]], temporalDate, calendarRec).
-        // TODO: Look into simplifying round_internal's parameters.
-        let round_record = result.round_internal(
-            rounding_increment,
-            smallest_unit,
-            rounding_mode,
-            &RelativeTo {
-                zdt: None,
-                date: Some(self),
-            },
-            None,
-        )?;
-        // b. Let roundResult be roundRecord.[[NormalizedDuration]].
-        let round_result = round_record.0 .0 .0;
-        // c. Set result to ? BalanceDateDurationRelative(roundResult.[[Years]], roundResult.[[Months]], roundResult.[[Weeks]],
-        // roundResult.[[Days]], settings.[[LargestUnit]], settings.[[SmallestUnit]], temporalDate, calendarRec).
-        let result = round_result.balance_relative(largest_unit, smallest_unit, Some(self))?;
-
-        Duration::new(
-            result.years * sign,
-            result.months * sign,
-            result.weeks * sign,
-            result.days * sign,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-        )
+        let sign = f64::from(sign as i8);
+        // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
+        Ok(Duration::from_date_duration(&DateDuration::new(
+            date_duration.years * sign,
+            date_duration.months * sign,
+            date_duration.weeks * sign,
+            date_duration.days * sign,
+        )?))
     }
 }
 
@@ -303,40 +263,12 @@ impl Date {
         self.add_date(&duration.negated(), overflow)
     }
 
-    pub fn until(
-        &self,
-        other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        smallest_unit: Option<TemporalUnit>,
-        largest_unit: Option<TemporalUnit>,
-    ) -> TemporalResult<Duration> {
-        self.diff_date(
-            false,
-            other,
-            rounding_mode,
-            rounding_increment,
-            smallest_unit,
-            largest_unit,
-        )
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff_date(DifferenceOperation::Until, other, settings)
     }
 
-    pub fn since(
-        &self,
-        other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        smallest_unit: Option<TemporalUnit>,
-        largest_unit: Option<TemporalUnit>,
-    ) -> TemporalResult<Duration> {
-        self.diff_date(
-            true,
-            other,
-            rounding_mode,
-            rounding_increment,
-            smallest_unit,
-            largest_unit,
-        )
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff_date(DifferenceOperation::Since, other, settings)
     }
 }
 
@@ -582,11 +514,15 @@ mod tests {
     fn simple_date_until() {
         let earlier = Date::from_str("1969-07-24").unwrap();
         let later = Date::from_str("1969-10-05").unwrap();
-        let result = earlier.until(&later, None, None, None, None).unwrap();
+        let result = earlier
+            .until(&later, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 73.0,);
 
         let later = Date::from_str("1996-03-03").unwrap();
-        let result = earlier.until(&later, None, None, None, None).unwrap();
+        let result = earlier
+            .until(&later, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 9719.0,);
     }
 
@@ -594,11 +530,15 @@ mod tests {
     fn simple_date_since() {
         let earlier = Date::from_str("1969-07-24").unwrap();
         let later = Date::from_str("1969-10-05").unwrap();
-        let result = later.since(&earlier, None, None, None, None).unwrap();
+        let result = later
+            .since(&earlier, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 73.0,);
 
         let later = Date::from_str("1996-03-03").unwrap();
-        let result = later.since(&earlier, None, None, None, None).unwrap();
+        let result = later
+            .since(&earlier, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 9719.0,);
     }
 

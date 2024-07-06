@@ -3,9 +3,14 @@
 use crate::{
     components::{duration::TimeDuration, Duration},
     iso::IsoTime,
-    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
+        RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+    },
     TemporalError, TemporalResult,
 };
+
+use super::duration::normalized::NormalizedTimeDuration;
 
 /// The native Rust implementation of `Temporal.PlainTime`.
 #[non_exhaustive]
@@ -30,9 +35,28 @@ impl Time {
         self.iso.is_valid()
     }
 
+    /// Specification equivalent to `AddTime`
+    pub(crate) fn add_normalized_time_duration(&self, norm: NormalizedTimeDuration) -> (i32, Self) {
+        // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
+        let second = i64::from(self.second()) + norm.seconds();
+        // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
+        let nanosecond = i32::from(self.nanosecond()) + norm.subseconds();
+        // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
+        let (day, balance_result) = IsoTime::balance(
+            f64::from(self.hour()),
+            f64::from(self.minute()),
+            second as f64,
+            f64::from(self.millisecond()),
+            f64::from(self.microsecond()),
+            f64::from(nanosecond),
+        );
+
+        (day, Self::new_unchecked(balance_result))
+    }
+
     /// Adds a `TimeDuration` to the current `Time`.
     ///
-    /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime` AND `AddTime`.
+    /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
     pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> Self {
         let (_, result) = IsoTime::balance(
             f64::from(self.hour()) + duration.hours,
@@ -48,56 +72,45 @@ impl Time {
         Self::new_unchecked(result)
     }
 
+    // TODO: Migrate to
     /// Performs a desired difference op between two `Time`'s, returning the resulting `Duration`.
     pub(crate) fn diff_time(
         &self,
-        op: bool,
+        op: DifferenceOperation,
         other: &Time,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
+        settings: DifferenceSettings,
     ) -> TemporalResult<Duration> {
         // 1. If operation is SINCE, let sign be -1. Otherwise, let sign be 1.
         // 2. Set other to ? ToTemporalTime(other).
         // 3. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 4. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, TIME, « », "nanosecond", "hour").
-        let rounding_increment = rounding_increment.unwrap_or_default();
-        let (sign, rounding_mode) = if op {
-            (
-                -1.0,
-                rounding_mode
-                    .unwrap_or(TemporalRoundingMode::Trunc)
-                    .negate(),
-            )
-        } else {
-            (1.0, rounding_mode.unwrap_or(TemporalRoundingMode::Trunc))
-        };
-
-        let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Nanosecond);
-        // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
-        let largest_unit = largest_unit.unwrap_or(smallest_unit.max(TemporalUnit::Hour));
+        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+            settings,
+            op,
+            TemporalUnit::Hour,
+            TemporalUnit::Nanosecond,
+        )?;
 
         // 5. Let norm be ! DifferenceTime(temporalTime.[[ISOHour]], temporalTime.[[ISOMinute]],
         // temporalTime.[[ISOSecond]], temporalTime.[[ISOMillisecond]], temporalTime.[[ISOMicrosecond]],
         // temporalTime.[[ISONanosecond]], other.[[ISOHour]], other.[[ISOMinute]], other.[[ISOSecond]],
         // other.[[ISOMillisecond]], other.[[ISOMicrosecond]], other.[[ISONanosecond]]).
-        let time = self.iso.diff(&other.iso);
+        let mut normalized_time = self.iso.diff(&other.iso).to_normalized();
 
         // 6. If settings.[[SmallestUnit]] is not "nanosecond" or settings.[[RoundingIncrement]] ≠ 1, then
-        let norm = if smallest_unit != TemporalUnit::Nanosecond
-            || rounding_increment != RoundingIncrement::ONE
+        if resolved.smallest_unit != TemporalUnit::Nanosecond
+            || resolved.increment != RoundingIncrement::ONE
         {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            let round_record = time.round(rounding_increment, smallest_unit, rounding_mode)?;
+            let (round_record, _) = TimeDuration::round(0.0, &normalized_time, resolved)?;
             // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
-            round_record.0
-        } else {
-            time.to_normalized()
+            normalized_time = round_record.normalized_time_duration()
         };
 
         // 7. Let result be BalanceTimeDuration(norm, settings.[[LargestUnit]]).
-        let result = TimeDuration::from_normalized(norm, largest_unit)?.1;
+        let result = TimeDuration::from_normalized(normalized_time, resolved.largest_unit)?.1;
+
+        let sign = f64::from(sign as i8);
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
         Duration::new(
             0.0,
@@ -217,44 +230,16 @@ impl Time {
     /// Returns the `Duration` until the provided `Time` from the current `Time`.
     ///
     /// NOTE: `until` assumes the provided other time will occur in the future relative to the current.
-    pub fn until(
-        &self,
-        other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
-    ) -> TemporalResult<Duration> {
-        self.diff_time(
-            false,
-            other,
-            rounding_mode,
-            rounding_increment,
-            largest_unit,
-            smallest_unit,
-        )
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff_time(DifferenceOperation::Until, other, settings)
     }
 
     #[inline]
     /// Returns the `Duration` since the provided `Time` from the current `Time`.
     ///
     /// NOTE: `since` assumes the provided other time is in the past relative to the current.
-    pub fn since(
-        &self,
-        other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
-    ) -> TemporalResult<Duration> {
-        self.diff_time(
-            true,
-            other,
-            rounding_mode,
-            rounding_increment,
-            largest_unit,
-            smallest_unit,
-        )
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff_time(DifferenceOperation::Since, other, settings)
     }
 
     // TODO (nekevss): optimize and test rounding_increment type (f64 vs. u64).
@@ -290,7 +275,7 @@ mod tests {
     use crate::{
         components::Duration,
         iso::IsoTime,
-        options::{ArithmeticOverflow, TemporalUnit},
+        options::{ArithmeticOverflow, DifferenceSettings, TemporalUnit},
     };
 
     use super::Time;
@@ -400,17 +385,17 @@ mod tests {
         let two = Time::new(14, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
         let three = Time::new(13, 30, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
 
-        let result = one.since(&two, None, None, None, None).unwrap();
+        let result = one.since(&two, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1.0);
 
-        let result = two.since(&one, None, None, None, None).unwrap();
+        let result = two.since(&one, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), -1.0);
 
-        let result = one.since(&three, None, None, None, None).unwrap();
+        let result = one.since(&three, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1.0);
         assert_eq!(result.minutes(), 53.0);
 
-        let result = three.since(&one, None, None, None, None).unwrap();
+        let result = three.since(&one, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), -1.0);
         assert_eq!(result.minutes(), -53.0);
     }
@@ -421,17 +406,17 @@ mod tests {
         let two = Time::new(16, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
         let three = Time::new(17, 0, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
 
-        let result = one.until(&two, None, None, None, None).unwrap();
+        let result = one.until(&two, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1.0);
 
-        let result = two.until(&one, None, None, None, None).unwrap();
+        let result = two.until(&one, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), -1.0);
 
-        let result = one.until(&three, None, None, None, None).unwrap();
+        let result = one.until(&three, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1.0);
         assert_eq!(result.minutes(), 37.0);
 
-        let result = three.until(&one, None, None, None, None).unwrap();
+        let result = three.until(&one, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), -1.0);
         assert_eq!(result.minutes(), -37.0);
     }

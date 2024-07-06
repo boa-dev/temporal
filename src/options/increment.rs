@@ -1,4 +1,4 @@
-use std::num::{NonZeroU32, NonZeroU64};
+use std::num::{NonZeroU128, NonZeroU32};
 
 use crate::{TemporalError, TemporalResult};
 
@@ -107,7 +107,7 @@ impl RoundingIncrement {
         Ok(())
     }
 
-    pub(crate) fn as_extended_increment(&self) -> NonZeroU64 {
-        NonZeroU64::from(self.0)
+    pub(crate) fn as_extended_increment(&self) -> NonZeroU128 {
+        NonZeroU128::from(self.0)
     }
 }

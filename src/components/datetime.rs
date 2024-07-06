@@ -1,19 +1,19 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use crate::{
-    components::Instant,
+    components::{calendar::Calendar, duration::TimeDuration, Instant},
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
-    options::ArithmeticOverflow,
+    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
     parsers::parse_date_time,
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use std::str::FromStr;
+use std::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use super::{
-    calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
-    duration::normalized::NormalizedTimeDuration,
+    calendar::{CalendarDateLike, GetTemporalCalendar},
+    duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
     Duration,
 };
 
@@ -21,7 +21,7 @@ use super::{
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct DateTime {
-    iso: IsoDateTime,
+    pub(crate) iso: IsoDateTime,
     calendar: Calendar,
 }
 
@@ -75,11 +75,81 @@ impl DateTime {
                 .add_date_duration(self.calendar().clone(), duration.date(), norm, overflow)?;
 
         // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
-        // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]], result.[[Nanosecond]]) is true.
+        // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]],
+        // result.[[Microsecond]], result.[[Nanosecond]]) is true.
         assert!(result.is_within_limits());
 
-        // 9. Return ? CreateTemporalDateTime(result.[[Year]], result.[[Month]], result.[[Day]], result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]], result.[[Nanosecond]], dateTime.[[Calendar]]).
+        // 9. Return ? CreateTemporalDateTime(result.[[Year]], result.[[Month]], result.[[Day]], result.[[Hour]],
+        // result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]],
+        // result.[[Nanosecond]], dateTime.[[Calendar]]).
         Ok(Self::new_unchecked(result, self.calendar.clone()))
+    }
+
+    // TODO: Figure out whether to handle resolvedOptions
+    // 5.5.12 DifferencePlainDateTimeWithRounding ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2,
+    // mus2, ns2, calendarRec, largestUnit, roundingIncrement, smallestUnit, roundingMode, resolvedOptions )
+    pub(crate) fn diff_dt_with_rounding(
+        &self,
+        other: &Self,
+        options: ResolvedRoundingOptions,
+    ) -> TemporalResult<RelativeRoundResult> {
+        // 1. Assert: IsValidISODate(y1, mon1, d1) is true.
+        // 2. Assert: IsValidISODate(y2, mon2, d2) is true.
+        // 3. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
+        if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
+            // a. Let durationRecord be CreateDurationRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
+            // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
+            return Ok((Duration::default(), Some(0)));
+        }
+
+        // 4. Let diff be ? DifferenceISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, resolvedOptions).
+        let diff = self
+            .iso
+            .diff(&other.iso, &self.calendar, options.largest_unit)?;
+
+        // 5. If smallestUnit is "nanosecond" and roundingIncrement = 1, then
+        if options.smallest_unit == TemporalUnit::Nanosecond && options.increment.get() == 1 {
+            // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(diff.[[NormalizedTime]], diff.[[Days]]).
+            let norm_with_days = diff
+                .normalized_time_duration()
+                .add_days(diff.date().days as i64)?;
+            // b. Let timeResult be ! BalanceTimeDuration(normWithDays, largestUnit).
+            let (days, time_duration) =
+                TimeDuration::from_normalized(norm_with_days, options.largest_unit)?;
+
+            // c. Let total be NormalizedTimeDurationSeconds(normWithDays) × 10**9 + NormalizedTimeDurationSubseconds(normWithDays).
+            let total =
+                norm_with_days.seconds() * 1_000_000_000 + i64::from(norm_with_days.subseconds());
+
+            // d. Let durationRecord be CreateDurationRecord(diff.[[Years]], diff.[[Months]], diff.[[Weeks]], timeResult.[[Days]],
+            // timeResult.[[Hours]], timeResult.[[Minutes]], timeResult.[[Seconds]], timeResult.[[Milliseconds]],
+            // timeResult.[[Microseconds]], timeResult.[[Nanoseconds]]).
+            let duration = Duration::new(
+                diff.date().years,
+                diff.date().months,
+                diff.date().weeks,
+                days,
+                time_duration.hours,
+                time_duration.minutes,
+                time_duration.seconds,
+                time_duration.milliseconds,
+                time_duration.microseconds,
+                time_duration.nanoseconds,
+            )?;
+
+            // e. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: total }.
+            return Ok((duration, Some(i128::from(total))));
+        }
+
+        // 6. Let dateTime be ISO Date-TimeRecord { [[Year]]: y1, [[Month]]: mon1,
+        // [[Day]]: d1, [[Hour]]: h1, [[Minute]]: min1, [[Second]]: s1, [[Millisecond]]:
+        // ms1, [[Microsecond]]: mus1, [[Nanosecond]]: ns1 }.
+        // 7. Let destEpochNs be GetUTCEpochNanoseconds(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2).
+        let dest_epoch_ns = other.iso.as_nanoseconds(0.0).temporal_unwrap()?;
+
+        // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
+        // roundingIncrement, smallestUnit, roundingMode).
+        diff.round_relative_duration(dest_epoch_ns, self, None, options)
     }
 }
 
@@ -347,7 +417,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::{
-        components::{calendar::Calendar, Duration},
+        components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
     };
 
@@ -382,7 +452,12 @@ mod tests {
         let pdt =
             DateTime::new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
-        let result = pdt.add(&Duration::one_month(1.0), None).unwrap();
+        let result = pdt
+            .add(
+                &Duration::from_date_duration(&DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                None,
+            )
+            .unwrap();
 
         assert_eq!(result.month(), Ok(2));
         assert_eq!(result.day(), Ok(29));
@@ -394,7 +469,12 @@ mod tests {
         let pdt =
             DateTime::new(2000, 3, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
-        let result = pdt.subtract(&Duration::one_month(1.0), None).unwrap();
+        let result = pdt
+            .subtract(
+                &Duration::from_date_duration(&DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                None,
+            )
+            .unwrap();
 
         assert_eq!(result.month(), Ok(2));
         assert_eq!(result.day(), Ok(29));

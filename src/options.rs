@@ -4,14 +4,168 @@
 //! operation may be completed.
 
 use core::{fmt, str::FromStr};
+use std::ops::Add;
 
 use crate::{
     components::{Date, ZonedDateTime},
-    TemporalError,
+    Sign, TemporalError, TemporalResult, NS_PER_DAY,
 };
 
 mod increment;
 pub use increment::RoundingIncrement;
+
+// ==== RoundingOptions / DifferenceSettings ====
+
+pub(crate) enum DifferenceOperation {
+    Until,
+    Since,
+}
+
+#[non_exhaustive]
+#[derive(Debug, Default, Clone, Copy)]
+pub struct DifferenceSettings {
+    pub largest_unit: Option<TemporalUnit>,
+    pub smallest_unit: Option<TemporalUnit>,
+    pub rounding_mode: Option<TemporalRoundingMode>,
+    pub increment: Option<RoundingIncrement>,
+}
+
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy)]
+pub struct RoundingOptions {
+    pub largest_unit: Option<TemporalUnit>,
+    pub smallest_unit: Option<TemporalUnit>,
+    pub rounding_mode: Option<TemporalRoundingMode>,
+    pub increment: Option<RoundingIncrement>,
+}
+
+// Note: Specification does not clearly state a default, but
+// having both largest and smallest unit None would auto throw.
+
+impl Default for RoundingOptions {
+    fn default() -> Self {
+        Self {
+            largest_unit: Some(TemporalUnit::Auto),
+            smallest_unit: None,
+            rounding_mode: None,
+            increment: None,
+        }
+    }
+}
+
+/// Internal options object that represents the resolved rounding options.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct ResolvedRoundingOptions {
+    pub(crate) largest_unit: TemporalUnit,
+    pub(crate) smallest_unit: TemporalUnit,
+    pub(crate) increment: RoundingIncrement,
+    pub(crate) rounding_mode: TemporalRoundingMode,
+}
+
+impl ResolvedRoundingOptions {
+    pub(crate) fn from_diff_settings(
+        options: DifferenceSettings,
+        operation: DifferenceOperation,
+        fallback_largest: TemporalUnit,
+        fallback_smallest: TemporalUnit,
+    ) -> TemporalResult<(Sign, Self)> {
+        // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
+        let increment = options.increment.unwrap_or_default();
+        let (sign, rounding_mode) = match operation {
+            DifferenceOperation::Since => {
+                let mode = options
+                    .rounding_mode
+                    .unwrap_or(TemporalRoundingMode::Trunc)
+                    .negate();
+                (Sign::Negative, mode)
+            }
+            DifferenceOperation::Until => (
+                Sign::Positive,
+                options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc),
+            ),
+        };
+        let smallest_unit = options.smallest_unit.unwrap_or(fallback_smallest);
+        // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
+        let largest_unit = options
+            .largest_unit
+            .unwrap_or(smallest_unit.max(fallback_largest));
+
+        let resolved = ResolvedRoundingOptions {
+            largest_unit,
+            smallest_unit,
+            increment,
+            rounding_mode,
+        };
+
+        Ok((sign, resolved))
+    }
+
+    pub(crate) fn from_options(
+        options: RoundingOptions,
+        existing_largest: TemporalUnit,
+    ) -> TemporalResult<Self> {
+        // 22. If smallestUnitPresent is false and largestUnitPresent is false, then
+        if options.largest_unit.is_none() && options.smallest_unit.is_none() {
+            // a. Throw a RangeError exception.
+            return Err(TemporalError::range()
+                .with_message("smallestUnit and largestUnit cannot both be None."));
+        }
+
+        // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).
+        let increment = options.increment.unwrap_or_default();
+        // 15. Let roundingMode be ? ToTemporalRoundingMode(roundTo, "halfExpand").
+        let rounding_mode = options.rounding_mode.unwrap_or_default();
+        // 16. Let smallestUnit be ? GetTemporalUnit(roundTo, "smallestUnit", DATETIME, undefined).
+        // 17. If smallestUnit is undefined, then
+        // a. Set smallestUnitPresent to false.
+        // b. Set smallestUnit to "nanosecond".
+        // 18. Let existingLargestUnit be ! DefaultTemporalLargestUnit(duration.[[Years]],
+        // duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]],
+        // duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
+        // duration.[[Microseconds]]).
+        // 19. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
+        // 20. If largestUnit is undefined, then
+        // a. Set largestUnitPresent to false.
+        // b. Set largestUnit to defaultLargestUnit.
+        // 21. Else if largestUnit is "auto", then
+        // a. Set largestUnit to defaultLargestUnit.
+        // 23. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
+        // 24. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+        // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        let smallest_unit = options.smallest_unit.unwrap_or(TemporalUnit::Nanosecond);
+
+        let default_largest = existing_largest.max(smallest_unit);
+
+        let largest_unit = match options.largest_unit {
+            Some(TemporalUnit::Auto) | None => default_largest,
+            Some(unit) => unit,
+        };
+
+        if largest_unit.max(smallest_unit) != largest_unit {
+            return Err(TemporalError::range().with_message(
+                "largestUnit when rounding Duration was not the largest provided unit",
+            ));
+        }
+
+        let maximum = smallest_unit.to_maximum_rounding_increment();
+        // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        if let Some(max) = maximum {
+            increment.validate(max.into(), false)?;
+        }
+
+        Ok(Self {
+            largest_unit,
+            smallest_unit,
+            increment,
+            rounding_mode,
+        })
+    }
+
+    pub(crate) fn is_noop(&self) -> bool {
+        self.smallest_unit == TemporalUnit::Nanosecond && self.increment == RoundingIncrement::ONE
+    }
+}
 
 // ==== RelativeTo Object ====
 
@@ -87,7 +241,8 @@ impl TemporalUnit {
             Year,
         };
         match self {
-            Year | Month | Week | Day | Auto => None,
+            Year | Month | Week | Auto => None,
+            Day => Some(NS_PER_DAY),
             Hour => Some(3_600_000_000_000),
             Minute => Some(60_000_000_000),
             Second => Some(1_000_000_000),
@@ -119,6 +274,14 @@ impl From<usize> for TemporalUnit {
             1 => Self::Nanosecond,
             _ => Self::Auto,
         }
+    }
+}
+
+impl Add<usize> for TemporalUnit {
+    type Output = TemporalUnit;
+
+    fn add(self, rhs: usize) -> Self::Output {
+        TemporalUnit::from(self as usize + rhs)
     }
 }
 
