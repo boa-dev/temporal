@@ -82,6 +82,21 @@ impl<T> TemporalUnwrap for Option<T> {
     }
 }
 
+#[macro_export]
+macro_rules! temporal_assert {
+    ($condition:expr $(,)*) => {
+        if !$condition {
+            return Err(TemporalError::assert());
+        }
+    };
+    ($condition:expr, $($args:tt)+) => {
+        if !$condition {
+            println!($($args)+);
+            return Err(TemporalError::assert());
+        }
+    };
+}
+
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {

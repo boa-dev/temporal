@@ -4,7 +4,7 @@ use crate::{
     components::{DateTime, Time},
     iso::{IsoDateTime, IsoTime},
     options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
-    Sign, TemporalError, TemporalResult,
+    temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use std::str::FromStr;
@@ -549,7 +549,11 @@ impl Duration {
                     .with_message("Calendar units cannot be present without a relative point."));
             }
             // b. Assert: IsCalendarUnit(smallestUnit) is false.
-            debug_assert!(!resolved_options.smallest_unit.is_calendar_unit());
+            temporal_assert!(
+                !resolved_options.smallest_unit.is_calendar_unit(),
+                "Assertion failed: resolvedOptions contains a calendar unit\n{:?}",
+                resolved_options
+            );
 
             // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
             let (round_record, _) = TimeDuration::round(self.days(), &norm, resolved_options)?;

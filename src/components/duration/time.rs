@@ -5,7 +5,7 @@ use std::num::NonZeroU128;
 use crate::{
     options::{ResolvedRoundingOptions, TemporalUnit},
     rounding::{IncrementRounder, Round},
-    TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{
@@ -184,7 +184,7 @@ impl TimeDuration {
             }
             // 10. Else,
             // a. Assert: largestUnit is "nanosecond".
-            _ => debug_assert!(largest_unit == TemporalUnit::Nanosecond),
+            _ => temporal_assert!(largest_unit == TemporalUnit::Nanosecond),
         }
 
         // NOTE(nekevss): `mul_add` is essentially the Rust's implementation of `std::fma()`, so that's handy, but
