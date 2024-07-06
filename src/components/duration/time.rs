@@ -206,8 +206,10 @@ impl TimeDuration {
             (nanoseconds as i32).mul_add(sign, 0).into(),
         );
 
-        // TODO: Stabilize casting and the value size.
-        let td = Vec::from(&[
+        if !is_valid_duration(
+            0.0,
+            0.0,
+            0.0,
             days as f64,
             result.hours,
             result.minutes,
@@ -215,8 +217,7 @@ impl TimeDuration {
             result.milliseconds,
             result.microseconds,
             result.nanoseconds,
-        ]);
-        if !is_valid_duration(&td) {
+        ) {
             return Err(TemporalError::range().with_message("Invalid balance TimeDuration."));
         }
 
@@ -265,7 +266,18 @@ impl TimeDuration {
             microseconds,
             nanoseconds,
         );
-        if !is_valid_duration(&result.fields()) {
+        if !is_valid_duration(
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
+            microseconds,
+            nanoseconds,
+        ) {
             return Err(
                 TemporalError::range().with_message("Attempted to create an invalid TimeDuration.")
             );

@@ -130,7 +130,18 @@ impl Duration {
                 nanoseconds,
             ),
         );
-        if !is_valid_duration(&duration.fields()) {
+        if !is_valid_duration(
+            years,
+            months,
+            weeks,
+            days,
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
+            microseconds,
+            nanoseconds,
+        ) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(duration)
@@ -171,7 +182,18 @@ impl Duration {
             date: DateDuration::from_partial(partial.date()),
             time: TimeDuration::from_partial(partial.time()),
         };
-        if !is_valid_duration(&duration.fields()) {
+        if !is_valid_duration(
+            duration.years(),
+            duration.months(),
+            duration.weeks(),
+            duration.days(),
+            duration.hours(),
+            duration.minutes(),
+            duration.seconds(),
+            duration.milliseconds(),
+            duration.microseconds(),
+            duration.nanoseconds(),
+        ) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(duration)
@@ -555,9 +577,33 @@ impl Duration {
 /// Utility function to check whether the `Duration` fields are valid.
 #[inline]
 #[must_use]
-pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn is_valid_duration(
+    years: f64,
+    months: f64,
+    weeks: f64,
+    days: f64,
+    hours: f64,
+    minutes: f64,
+    seconds: f64,
+    milliseconds: f64,
+    microseconds: f64,
+    nanoseconds: f64,
+) -> bool {
     // 1. Let sign be ! DurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
-    let sign = duration_sign(set);
+    let set = vec![
+        years,
+        months,
+        weeks,
+        days,
+        hours,
+        minutes,
+        seconds,
+        milliseconds,
+        microseconds,
+        nanoseconds,
+    ];
+    let sign = duration_sign(&set);
     // 2. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If 𝔽(v) is not finite, return false.
@@ -565,15 +611,51 @@ pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
             return false;
         }
         // b. If v < 0 and sign > 0, return false.
-        if *v < 0f64 && sign == Sign::Positive {
+        if v < 0f64 && sign == Sign::Positive {
             return false;
         }
         // c. If v > 0 and sign < 0, return false.
-        if *v > 0f64 && sign == Sign::Negative {
+        if v > 0f64 && sign == Sign::Negative {
             return false;
         }
     }
-    // 3. Return true.
+    // 3. If abs(years) ≥ 2**32, return false.
+    if years.abs() >= f64::from(u32::MAX) {
+        return false;
+    };
+    // 4. If abs(months) ≥ 2**32, return false.
+    if months.abs() >= f64::from(u32::MAX) {
+        return false;
+    };
+    // 5. If abs(weeks) ≥ 2**32, return false.
+    if weeks.abs() >= f64::from(u32::MAX) {
+        return false;
+    };
+
+    // 6. Let normalizedSeconds be days × 86,400 + hours × 3600 + minutes × 60 + seconds
+    // + ℝ(𝔽(milliseconds)) × 10**-3 + ℝ(𝔽(microseconds)) × 10**-6 + ℝ(𝔽(nanoseconds)) × 10**-9.
+    // 7. NOTE: The above step cannot be implemented directly using floating-point arithmetic.
+    // Multiplying by 10**-3, 10**-6, and 10**-9 respectively may be imprecise when milliseconds,
+    // microseconds, or nanoseconds is an unsafe integer. This multiplication can be implemented
+    // in C++ with an implementation of std::remquo() with sufficient bits in the quotient.
+    // String manipulation will also give an exact result, since the multiplication is by a power of 10.
+    // Seconds part
+    let normalized_seconds = days.mul_add(
+        86_400.0,
+        hours.mul_add(3600.0, minutes.mul_add(60.0, seconds)),
+    );
+    // Subseconds part
+    let normalized = milliseconds.mul_add(
+        10e-3,
+        microseconds.mul_add(10e-6, nanoseconds.mul_add(10e-9, normalized_seconds)),
+    );
+
+    // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
+    if normalized.abs() >= 2e53 {
+        return false;
+    }
+
+    // 9. Return true.
     true
 }
 

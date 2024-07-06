@@ -180,7 +180,7 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
                 return Roundable::result_ceil(dividend, divisor);
             };
             // 13. Assert: unsignedRoundingMode is half-even.
-            assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
+            debug_assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
             // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
             // 15. If cardinality is 0, return r1.
             if Roundable::is_even_cardinal(dividend, divisor) {

@@ -198,7 +198,7 @@ impl DateDuration {
     #[inline]
     pub fn new(years: f64, months: f64, weeks: f64, days: f64) -> TemporalResult<Self> {
         let result = Self::new_unchecked(years, months, weeks, days);
-        if !super::is_valid_duration(&result.fields()) {
+        if !super::is_valid_duration(years, months, weeks, days, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0) {
             return Err(TemporalError::range().with_message("Invalid DateDuration."));
         }
         Ok(result)

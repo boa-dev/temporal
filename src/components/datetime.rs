@@ -77,7 +77,7 @@ impl DateTime {
         // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
         // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]],
         // result.[[Microsecond]], result.[[Nanosecond]]) is true.
-        assert!(result.is_within_limits());
+        debug_assert!(result.is_within_limits());
 
         // 9. Return ? CreateTemporalDateTime(result.[[Year]], result.[[Month]], result.[[Day]], result.[[Hour]],
         // result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]],
