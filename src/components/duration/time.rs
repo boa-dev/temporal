@@ -3,7 +3,7 @@
 use std::num::NonZeroU128;
 
 use crate::{
-    options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{ResolvedRoundingOptions, TemporalUnit},
     rounding::{IncrementRounder, Round},
     TemporalError, TemporalResult, TemporalUnwrap,
 };
@@ -15,10 +15,6 @@ use super::{
 };
 
 use num_traits::{Euclid, FromPrimitive, MulAdd};
-
-const NANOSECONDS_PER_SECOND: u64 = 1_000_000_000;
-const NANOSECONDS_PER_MINUTE: u64 = NANOSECONDS_PER_SECOND * 60;
-const NANOSECONDS_PER_HOUR: u64 = NANOSECONDS_PER_MINUTE * 60;
 
 /// `TimeDuration` represents the [Time Duration record][spec] of the `Duration.`
 ///
@@ -371,15 +367,13 @@ impl TimeDuration {
 
 impl TimeDuration {
     // TODO: Maybe move to `NormalizedTimeDuration`
-    pub fn round_v2(
+    pub(crate) fn round(
         days: f64,
         norm: &NormalizedTimeDuration,
-        increment: RoundingIncrement,
-        unit: TemporalUnit,
-        rounding_mode: TemporalRoundingMode,
+        options: ResolvedRoundingOptions,
     ) -> TemporalResult<(NormalizedDurationRecord, Option<i128>)> {
         // 1. Assert: IsCalendarUnit(unit) is false.
-        let (days, norm, total) = match unit {
+        let (days, norm, total) = match options.smallest_unit {
             // 2. If unit is "day", then
             TemporalUnit::Day => {
                 // a. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
@@ -387,9 +381,9 @@ impl TimeDuration {
                 // b. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
                 let days = IncrementRounder::from_potentially_negative_parts(
                     fractional_days,
-                    increment.as_extended_increment(),
+                    options.increment.as_extended_increment(),
                 )?
-                .round(rounding_mode);
+                .round(options.rounding_mode);
                 // c. Let total be fractionalDays.
                 // d. Set norm to ZeroTimeDuration().
                 (
@@ -409,17 +403,16 @@ impl TimeDuration {
             | TemporalUnit::Nanosecond => {
                 // a. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains unit, is time.
                 // b. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
+                let divisor = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
                 // c. Let total be DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(unit.as_nanoseconds().temporal_unwrap()? as i64);
-                let non_zero_divisor = unsafe {
-                    NonZeroU128::new_unchecked(unit.as_nanoseconds().temporal_unwrap()?.into())
-                };
+                let total = norm.divide(divisor as i64);
+                let non_zero_divisor = unsafe { NonZeroU128::new_unchecked(divisor.into()) };
                 // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
                 let norm = norm.round(
                     non_zero_divisor
-                        .checked_mul(increment.as_extended_increment())
+                        .checked_mul(options.increment.as_extended_increment())
                         .temporal_unwrap()?,
-                    rounding_mode,
+                    options.rounding_mode,
                 )?;
                 (days, norm, Some(total))
             }
@@ -431,111 +424,5 @@ impl TimeDuration {
             NormalizedDurationRecord::new(DateDuration::new(0.0, 0.0, 0.0, days)?, norm)?,
             total,
         ))
-    }
-
-    // TODO: Update round to accomodate `Normalization`.
-    /// Rounds the current `TimeDuration` given a rounding increment, unit and rounding mode. `round` will return a tuple of the rounded `TimeDuration` and
-    /// the `total` value of the smallest unit prior to rounding.
-    #[inline]
-    pub fn round(
-        &self,
-        increment: RoundingIncrement,
-        unit: TemporalUnit,
-        mode: TemporalRoundingMode,
-    ) -> TemporalResult<(NormalizedTimeDuration, i64)> {
-        let norm = match unit {
-            TemporalUnit::Year
-            | TemporalUnit::Month
-            | TemporalUnit::Week
-            | TemporalUnit::Day
-            | TemporalUnit::Auto => {
-                return Err(TemporalError::r#type()
-                    .with_message("Invalid unit provided to for TimeDuration to round."))
-            }
-            _ => self.to_normalized(),
-        };
-
-        match unit {
-            // 12. Else if unit is "hour", then
-            TemporalUnit::Hour => {
-                // a. Let divisor be 3.6 × 10**12.
-                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_HOUR as i64);
-                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let increment_mul_divisor = increment
-                    .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU128::new_unchecked(NANOSECONDS_PER_HOUR.into()) })
-                    .temporal_unwrap()?;
-                let norm = norm.round(increment_mul_divisor, mode)?;
-                Ok((norm, total as i64))
-            }
-            // 13. Else if unit is "minute", then
-            TemporalUnit::Minute => {
-                // a. Let divisor be 6 × 10**10.
-                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_MINUTE as i64);
-                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let increment_mul_divisor = increment
-                    .as_extended_increment()
-                    .checked_mul(unsafe {
-                        NonZeroU128::new_unchecked(NANOSECONDS_PER_MINUTE.into())
-                    })
-                    .temporal_unwrap()?;
-                let norm = norm.round(increment_mul_divisor, mode)?;
-                Ok((norm, total as i64))
-            }
-            // 14. Else if unit is "second", then
-            TemporalUnit::Second => {
-                // a. Let divisor be 10**9.
-                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(NANOSECONDS_PER_SECOND as i64);
-                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let increment_mul_divisor = increment
-                    .as_extended_increment()
-                    .checked_mul(unsafe {
-                        NonZeroU128::new_unchecked(NANOSECONDS_PER_SECOND.into())
-                    })
-                    .temporal_unwrap()?;
-                let norm = norm.round(increment_mul_divisor, mode)?;
-                Ok((norm, total as i64))
-            }
-            // 15. Else if unit is "millisecond", then
-            TemporalUnit::Millisecond => {
-                // a. Let divisor be 10**6.
-                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(1_000_000);
-                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let increment_mul_divisor = increment
-                    .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU128::new_unchecked(1_000_000) })
-                    .temporal_unwrap()?;
-                let norm = norm.round(increment_mul_divisor, mode)?;
-                Ok((norm, total as i64))
-            }
-            // 16. Else if unit is "microsecond", then
-            TemporalUnit::Microsecond => {
-                // a. Let divisor be 10**3.
-                // b. Set total to DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(1_000);
-                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let increment_mul_divisor = increment
-                    .as_extended_increment()
-                    .checked_mul(unsafe { NonZeroU128::new_unchecked(1_000) })
-                    .temporal_unwrap()?;
-                let norm = norm.round(increment_mul_divisor, mode)?;
-                Ok((norm, total as i64))
-            }
-            // 17. Else,
-            TemporalUnit::Nanosecond => {
-                // a. Assert: unit is "nanosecond".
-                // b. Set total to NormalizedTimeDurationSeconds(norm) × 10**9 + NormalizedTimeDurationSubseconds(norm).
-                let total =
-                    norm.seconds() * (NANOSECONDS_PER_SECOND as i64) + i64::from(norm.subseconds());
-                // c. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, increment, roundingMode).
-                let norm = norm.round(increment.as_extended_increment(), mode)?;
-                Ok((norm, total))
-            }
-            _ => unreachable!("All other units early return error."),
-        }
     }
 }

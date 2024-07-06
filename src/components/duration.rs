@@ -4,10 +4,10 @@ use crate::{
     components::{DateTime, Time},
     iso::{IsoDateTime, IsoTime},
     options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
-    TemporalError, TemporalResult,
+    Sign, TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
-use std::{cmp::Ordering, str::FromStr};
+use std::str::FromStr;
 
 use self::normalized::NormalizedTimeDuration;
 
@@ -22,40 +22,6 @@ mod tests;
 pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
-
-#[repr(i8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum DurationSign {
-    Positive = 1,
-    Zero = 0,
-    Negative = -1,
-}
-
-impl From<Ordering> for DurationSign {
-    fn from(value: Ordering) -> Self {
-        match value {
-            Ordering::Greater => Self::Positive,
-            Ordering::Equal => Self::Zero,
-            Ordering::Less => Self::Negative,
-        }
-    }
-}
-
-#[repr(i8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub(crate) enum NonZeroDurationSign {
-    Positive = 1,
-    Negative = -1,
-}
-
-impl From<DurationSign> for NonZeroDurationSign {
-    fn from(value: DurationSign) -> Self {
-        if matches!(value, DurationSign::Negative) {
-            return Self::Negative;
-        }
-        Self::Positive
-    }
-}
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
@@ -397,7 +363,7 @@ impl Duration {
     /// Determines the sign for the current self.
     #[inline]
     #[must_use]
-    pub fn sign(&self) -> DurationSign {
+    pub fn sign(&self) -> Sign {
         duration_sign(&self.fields())
     }
 
@@ -407,7 +373,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn is_zero(&self) -> bool {
-        self.sign() == DurationSign::Zero
+        self.sign() == Sign::Zero
     }
 
     /// Returns a negated `Duration`
@@ -433,7 +399,7 @@ impl Duration {
     #[inline]
     pub fn round(
         &self,
-        options: Option<RoundingOptions>,
+        options: RoundingOptions,
         relative_to: &RelativeTo,
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
@@ -457,10 +423,8 @@ impl Duration {
         // 24. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
         // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         let existing_largest_unit = self.default_largest_unit();
-        let resolved_options = ResolvedRoundingOptions::from_options(
-            options.unwrap_or_default(),
-            existing_largest_unit,
-        )?;
+        let resolved_options =
+            ResolvedRoundingOptions::from_options(options, existing_largest_unit)?;
 
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
@@ -541,7 +505,7 @@ impl Duration {
         // 39. Else if plainRelativeTo is not undefined, then
         } else if let Some(plain_date) = relative_to.date {
             // a. Let targetTime be AddTime(0, 0, 0, 0, 0, 0, norm).
-            let (balanced_days, time) = Time::default().add_norm(norm);
+            let (balanced_days, time) = Time::default().add_normalized_time_duration(norm);
             // b. Let dateDuration be ? CreateTemporalDuration(duration.[[Years]], duration.[[Months]], duration.[[Weeks]],
             // duration.[[Days]] + targetTime.[[Days]], 0, 0, 0, 0, 0, 0).
             let date_duration = DateDuration::new(
@@ -584,13 +548,7 @@ impl Duration {
             debug_assert!(!resolved_options.smallest_unit.is_calendar_unit());
 
             // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
-            let (round_record, _) = TimeDuration::round_v2(
-                self.days(),
-                &norm,
-                resolved_options.increment,
-                resolved_options.smallest_unit,
-                resolved_options.rounding_mode,
-            )?;
+            let (round_record, _) = TimeDuration::round(self.days(), &norm, resolved_options)?;
             // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
             // roundRecord.[[NormalizedDuration]].[[Days]]).
             let norm_with_days = round_record
@@ -625,11 +583,11 @@ pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
             return false;
         }
         // b. If v < 0 and sign > 0, return false.
-        if *v < 0f64 && sign == DurationSign::Positive {
+        if *v < 0f64 && sign == Sign::Positive {
             return false;
         }
         // c. If v > 0 and sign < 0, return false.
-        if *v > 0f64 && sign == DurationSign::Negative {
+        if *v > 0f64 && sign == Sign::Negative {
             return false;
         }
     }
@@ -642,19 +600,19 @@ pub(crate) fn is_valid_duration(set: &Vec<f64>) -> bool {
 /// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
-fn duration_sign(set: &Vec<f64>) -> DurationSign {
+fn duration_sign(set: &Vec<f64>) -> Sign {
     // 1. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If v < 0, return -1.
         if *v < 0f64 {
-            return DurationSign::Negative;
+            return Sign::Negative;
         // b. If v > 0, return 1.
         } else if *v > 0f64 {
-            return DurationSign::Positive;
+            return Sign::Positive;
         }
     }
     // 2. Return 0.
-    DurationSign::Zero
+    Sign::Zero
 }
 
 impl From<TimeDuration> for Duration {

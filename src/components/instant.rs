@@ -4,7 +4,10 @@ use std::num::NonZeroU128;
 
 use crate::{
     components::{duration::TimeDuration, Duration},
-    options::{RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{
+        DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions, RoundingIncrement,
+        TemporalRoundingMode, TemporalUnit,
+    },
     rounding::{IncrementRounder, Round},
     TemporalError, TemporalResult, TemporalUnwrap, MS_PER_DAY, NS_PER_DAY,
 };
@@ -50,12 +53,9 @@ impl Instant {
     #[allow(unused)]
     pub(crate) fn diff_instant(
         &self,
-        op: bool,
+        op: DifferenceOperation,
         other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
+        options: DifferenceSettings,
     ) -> TemporalResult<TimeDuration> {
         // diff the instant and determine its component values.
         let diff = self.to_f64() - other.to_f64();
@@ -65,36 +65,31 @@ impl Instant {
         let secs = (diff / NANOSECONDS_PER_SECOND).trunc();
 
         // Handle the settings provided to `diff_instant`
-        let increment = rounding_increment.unwrap_or_default();
-        let rounding_mode = if op {
-            rounding_mode
-                .unwrap_or(TemporalRoundingMode::Trunc)
-                .negate()
-        } else {
-            rounding_mode.unwrap_or(TemporalRoundingMode::Trunc)
-        };
-        let smallest_unit = smallest_unit.unwrap_or(TemporalUnit::Nanosecond);
-        // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
-        let largest_unit = largest_unit.unwrap_or(smallest_unit.max(TemporalUnit::Second));
+        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+            options,
+            op,
+            TemporalUnit::Second,
+            TemporalUnit::Nanosecond,
+        )?;
 
         // TODO: validate roundingincrement
         // Steps 11-13 of 13.47 GetDifferenceSettings
 
-        if smallest_unit == TemporalUnit::Nanosecond {
+        if resolved.smallest_unit == TemporalUnit::Nanosecond {
             let (_, result) = TimeDuration::from_normalized(
                 TimeDuration::new_unchecked(0f64, 0f64, secs, millis, micros, nanos)
                     .to_normalized(),
-                largest_unit,
+                resolved.largest_unit,
             )?;
             return Ok(result);
         }
 
-        let (round_result, _) = TimeDuration::new(0f64, 0f64, secs, millis, micros, nanos)?.round(
-            increment,
-            smallest_unit,
-            rounding_mode,
-        )?;
-        let (_, result) = TimeDuration::from_normalized(round_result, largest_unit)?;
+        let normalized_time_duration =
+            TimeDuration::new(0f64, 0f64, secs, millis, micros, nanos)?.to_normalized();
+
+        let (round_result, _) = TimeDuration::round(0.0, &normalized_time_duration, resolved)?;
+        let (_, result) =
+            TimeDuration::from_normalized(round_result.norm(), resolved.largest_unit)?;
         Ok(result)
     }
 
@@ -202,19 +197,9 @@ impl Instant {
     pub fn since(
         &self,
         other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
+        settings: DifferenceSettings,
     ) -> TemporalResult<TimeDuration> {
-        self.diff_instant(
-            true,
-            other,
-            rounding_mode,
-            rounding_increment,
-            largest_unit,
-            smallest_unit,
-        )
+        self.diff_instant(DifferenceOperation::Since, other, settings)
     }
 
     /// Returns a `TimeDuration` representing the duration until provided `Instant`
@@ -222,19 +207,9 @@ impl Instant {
     pub fn until(
         &self,
         other: &Self,
-        rounding_mode: Option<TemporalRoundingMode>,
-        rounding_increment: Option<RoundingIncrement>,
-        largest_unit: Option<TemporalUnit>,
-        smallest_unit: Option<TemporalUnit>,
+        settings: DifferenceSettings,
     ) -> TemporalResult<TimeDuration> {
-        self.diff_instant(
-            false,
-            other,
-            rounding_mode,
-            rounding_increment,
-            largest_unit,
-            smallest_unit,
-        )
+        self.diff_instant(DifferenceOperation::Until, other, settings)
     }
 
     /// Returns an `Instant` by rounding the current `Instant` according to the provided settings.

@@ -11,7 +11,7 @@ fn get_round_result(
     options: RoundingOptions,
 ) -> Vec<i32> {
     test_duration
-        .round(Some(options), relative_to)
+        .round(options, relative_to)
         .unwrap()
         .fields()
         .iter()
@@ -447,7 +447,7 @@ fn rounding_increment_non_integer() {
     let _ = options
         .increment
         .insert(RoundingIncrement::try_from(2.5).unwrap());
-    let result = test_duration.round(Some(options), &relative_to).unwrap();
+    let result = test_duration.round(options, &relative_to).unwrap();
 
     assert_eq!(
         result.fields(),
@@ -457,7 +457,7 @@ fn rounding_increment_non_integer() {
     let _ = options
         .increment
         .insert(RoundingIncrement::try_from(1e9 + 0.5).unwrap());
-    let result = test_duration.round(Some(options), &relative_to).unwrap();
+    let result = test_duration.round(options, &relative_to).unwrap();
     assert_eq!(
         result.fields(),
         &[0.0, 0.0, 0.0, 1e9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

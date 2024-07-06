@@ -12,7 +12,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
-use super::{DateDuration, Duration, DurationSign, NonZeroDurationSign, TimeDuration};
+use super::{DateDuration, Duration, Sign, TimeDuration};
 
 const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 
@@ -85,8 +85,8 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     #[inline]
     #[must_use]
-    pub(crate) fn sign(&self) -> DurationSign {
-        DurationSign::from(self.0.cmp(&0))
+    pub(crate) fn sign(&self) -> Sign {
+        Sign::from(self.0.cmp(&0) as i8)
     }
 
     // NOTE(nekevss): non-euclid is required here for negative rounding.
@@ -162,10 +162,7 @@ impl NormalizedDurationRecord {
     ///
     /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
     pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
-        if date.sign() != DurationSign::Zero
-            && norm.sign() != DurationSign::Zero
-            && date.sign() != norm.sign()
-        {
+        if date.sign() != Sign::Zero && norm.sign() != Sign::Zero && date.sign() != norm.sign() {
             return Err(TemporalError::range()
                 .with_message("DateDuration and NormalizedTimeDuration must agree."));
         }
@@ -184,7 +181,7 @@ impl NormalizedDurationRecord {
         self.norm
     }
 
-    pub(crate) fn sign(&self) -> TemporalResult<DurationSign> {
+    pub(crate) fn sign(&self) -> TemporalResult<Sign> {
         Ok(self.date.sign())
     }
 }
@@ -212,7 +209,7 @@ impl NormalizedDurationRecord {
     #[allow(clippy::too_many_arguments)]
     fn nudge_calendar_unit(
         &self,
-        sign: NonZeroDurationSign,
+        sign: Sign,
         dest_epoch_ns: i128,
         dt: &DateTime,
         tz: Option<TimeZone>, // ???
@@ -561,7 +558,7 @@ impl NormalizedDurationRecord {
     #[allow(clippy::too_many_arguments)]
     fn bubble_relative_duration(
         &self,
-        sign: NonZeroDurationSign,
+        sign: Sign,
         nudge_epoch_ns: i128,
         date_time: &DateTime,
         tz: Option<TimeZone>,
@@ -695,7 +692,7 @@ impl NormalizedDurationRecord {
             || (tz.is_some() && options.smallest_unit == TemporalUnit::Day);
 
         // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
-        let sign = NonZeroDurationSign::from(self.sign()?);
+        let sign = self.sign()?.as_non_zero();
 
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_unit {

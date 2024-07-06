@@ -9,7 +9,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{normalized::NormalizedTimeDuration, DurationSign};
+use super::{normalized::NormalizedTimeDuration, Sign};
 
 /// `DateDuration` represents the [date duration record][spec] of the `Duration.`
 ///
@@ -274,7 +274,7 @@ impl DateDuration {
     /// Returns the sign for the current `DateDuration`.
     #[inline]
     #[must_use]
-    pub fn sign(&self) -> DurationSign {
+    pub fn sign(&self) -> Sign {
         super::duration_sign(&self.fields())
     }
 }

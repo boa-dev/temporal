@@ -8,7 +8,7 @@ use std::ops::Add;
 
 use crate::{
     components::{Date, ZonedDateTime},
-    TemporalError, TemporalResult, NS_PER_DAY,
+    Sign, TemporalError, TemporalResult, NS_PER_DAY,
 };
 
 mod increment;
@@ -21,20 +21,22 @@ pub(crate) enum DifferenceOperation {
     Since,
 }
 
+#[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy)]
 pub struct DifferenceSettings {
-    pub(crate) largest_unit: Option<TemporalUnit>,
-    pub(crate) smallest_unit: Option<TemporalUnit>,
-    pub(crate) rounding_mode: Option<TemporalRoundingMode>,
-    pub(crate) increment: Option<RoundingIncrement>,
+    pub largest_unit: Option<TemporalUnit>,
+    pub smallest_unit: Option<TemporalUnit>,
+    pub rounding_mode: Option<TemporalRoundingMode>,
+    pub increment: Option<RoundingIncrement>,
 }
 
+#[non_exhaustive]
 #[derive(Debug, Clone, Copy)]
 pub struct RoundingOptions {
-    pub(crate) largest_unit: Option<TemporalUnit>,
-    pub(crate) smallest_unit: Option<TemporalUnit>,
-    pub(crate) rounding_mode: Option<TemporalRoundingMode>,
-    pub(crate) increment: Option<RoundingIncrement>,
+    pub largest_unit: Option<TemporalUnit>,
+    pub smallest_unit: Option<TemporalUnit>,
+    pub rounding_mode: Option<TemporalRoundingMode>,
+    pub increment: Option<RoundingIncrement>,
 }
 
 // Note: Specification does not clearly state a default, but
@@ -51,6 +53,7 @@ impl Default for RoundingOptions {
     }
 }
 
+/// Internal options object that represents the resolved rounding options.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct ResolvedRoundingOptions {
     pub(crate) largest_unit: TemporalUnit,
@@ -65,7 +68,7 @@ impl ResolvedRoundingOptions {
         operation: DifferenceOperation,
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
-    ) -> TemporalResult<(f64, Self)> {
+    ) -> TemporalResult<(Sign, Self)> {
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         let increment = options.increment.unwrap_or_default();
@@ -75,10 +78,10 @@ impl ResolvedRoundingOptions {
                     .rounding_mode
                     .unwrap_or(TemporalRoundingMode::Trunc)
                     .negate();
-                (-1.0, mode)
+                (Sign::Negative, mode)
             }
             DifferenceOperation::Until => (
-                1.0,
+                Sign::Positive,
                 options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc),
             ),
         };

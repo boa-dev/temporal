@@ -50,6 +50,8 @@ pub(crate) mod rounding;
 #[doc(hidden)]
 pub(crate) mod utils;
 
+use std::cmp::Ordering;
+
 // TODO: evaluate positives and negatives of using tinystr.
 // Re-exporting tinystr as a convenience, as it is currently tied into the API.
 pub use tinystr::TinyAsciiStr;
@@ -77,6 +79,34 @@ impl<T> TemporalUnwrap for Option<T> {
     fn temporal_unwrap(self) -> TemporalResult<Self::Output> {
         debug_assert!(self.is_some());
         self.ok_or(TemporalError::assert())
+    }
+}
+
+#[repr(i8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Sign {
+    Positive = 1,
+    Zero = 0,
+    Negative = -1,
+}
+
+impl From<i8> for Sign {
+    fn from(value: i8) -> Self {
+        match value.cmp(&0) {
+            Ordering::Greater => Self::Positive,
+            Ordering::Equal => Self::Zero,
+            Ordering::Less => Self::Negative,
+        }
+    }
+}
+
+impl Sign {
+    /// Coerces the current `Sign` to be either negative or positive.
+    pub(crate) fn as_non_zero(&self) -> Self {
+        if matches!(self, Self::Zero) {
+            return Self::Positive;
+        }
+        *self
     }
 }
 

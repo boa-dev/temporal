@@ -175,6 +175,8 @@ impl Date {
         } else {
             duration.date()
         };
+
+        let sign = f64::from(sign as i8);
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
         Ok(Duration::from_date_duration(&DateDuration::new(
             date_duration.years * sign,
@@ -270,28 +272,12 @@ impl Date {
         self.add_date(&duration.negated(), overflow)
     }
 
-    pub fn until(
-        &self,
-        other: &Self,
-        settings: Option<DifferenceSettings>,
-    ) -> TemporalResult<Duration> {
-        self.diff_date(
-            DifferenceOperation::Until,
-            other,
-            settings.unwrap_or_default(),
-        )
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff_date(DifferenceOperation::Until, other, settings)
     }
 
-    pub fn since(
-        &self,
-        other: &Self,
-        settings: Option<DifferenceSettings>,
-    ) -> TemporalResult<Duration> {
-        self.diff_date(
-            DifferenceOperation::Since,
-            other,
-            settings.unwrap_or_default(),
-        )
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff_date(DifferenceOperation::Since, other, settings)
     }
 }
 
@@ -537,11 +523,15 @@ mod tests {
     fn simple_date_until() {
         let earlier = Date::from_str("1969-07-24").unwrap();
         let later = Date::from_str("1969-10-05").unwrap();
-        let result = earlier.until(&later, None).unwrap();
+        let result = earlier
+            .until(&later, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 73.0,);
 
         let later = Date::from_str("1996-03-03").unwrap();
-        let result = earlier.until(&later, None).unwrap();
+        let result = earlier
+            .until(&later, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 9719.0,);
     }
 
@@ -549,11 +539,15 @@ mod tests {
     fn simple_date_since() {
         let earlier = Date::from_str("1969-07-24").unwrap();
         let later = Date::from_str("1969-10-05").unwrap();
-        let result = later.since(&earlier, None).unwrap();
+        let result = later
+            .since(&earlier, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 73.0,);
 
         let later = Date::from_str("1996-03-03").unwrap();
-        let result = later.since(&earlier, None).unwrap();
+        let result = later
+            .since(&earlier, DifferenceSettings::default())
+            .unwrap();
         assert_eq!(result.days(), 9719.0,);
     }
 
