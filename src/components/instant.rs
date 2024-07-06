@@ -88,8 +88,10 @@ impl Instant {
             TimeDuration::new(0f64, 0f64, secs, millis, micros, nanos)?.to_normalized();
 
         let (round_result, _) = TimeDuration::round(0.0, &normalized_time_duration, resolved)?;
-        let (_, result) =
-            TimeDuration::from_normalized(round_result.norm(), resolved.largest_unit)?;
+        let (_, result) = TimeDuration::from_normalized(
+            round_result.normalized_time_duration(),
+            resolved.largest_unit,
+        )?;
         Ok(result)
     }
 

@@ -110,7 +110,9 @@ impl DateTime {
         // 5. If smallestUnit is "nanosecond" and roundingIncrement = 1, then
         if options.smallest_unit == TemporalUnit::Nanosecond && options.increment.get() == 1 {
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(diff.[[NormalizedTime]], diff.[[Days]]).
-            let norm_with_days = diff.norm().add_days(diff.date().days as i64)?;
+            let norm_with_days = diff
+                .normalized_time_duration()
+                .add_days(diff.date().days as i64)?;
             // b. Let timeResult be ! BalanceTimeDuration(normWithDays, largestUnit).
             let (days, time_duration) =
                 TimeDuration::from_normalized(norm_with_days, options.largest_unit)?;

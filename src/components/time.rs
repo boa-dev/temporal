@@ -104,7 +104,7 @@ impl Time {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
             let (round_record, _) = TimeDuration::round(0.0, &normalized_time, resolved)?;
             // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
-            normalized_time = round_record.norm()
+            normalized_time = round_record.normalized_time_duration()
         };
 
         // 7. Let result be BalanceTimeDuration(norm, settings.[[LargestUnit]]).

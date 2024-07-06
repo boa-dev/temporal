@@ -102,11 +102,11 @@ impl From<i8> for Sign {
 
 impl Sign {
     /// Coerces the current `Sign` to be either negative or positive.
-    pub(crate) fn as_non_zero(&self) -> Self {
+    pub(crate) fn as_sign_multiplier(&self) -> i8 {
         if matches!(self, Self::Zero) {
-            return Self::Positive;
+            return 1;
         }
-        *self
+        *self as i8
     }
 }
 

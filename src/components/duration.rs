@@ -552,7 +552,7 @@ impl Duration {
             // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
             // roundRecord.[[NormalizedDuration]].[[Days]]).
             let norm_with_days = round_record
-                .norm()
+                .normalized_time_duration()
                 .add_days(round_record.date().days as i64)?;
             // e. Let balanceResult be ? BalanceTimeDuration(normWithDays, largestUnit).
             let (balanced_days, balanced_time) =
