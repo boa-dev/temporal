@@ -852,7 +852,7 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
     let max = BigInt::from(crate::NS_MAX_INSTANT + i128::from(NS_PER_DAY));
     let min = BigInt::from(crate::NS_MIN_INSTANT - i128::from(NS_PER_DAY));
 
-    min < ns && max > ns
+    min <= ns && max >= ns
 }
 
 #[inline]

@@ -645,13 +645,14 @@ pub(crate) fn is_valid_duration(
         hours.mul_add(3600.0, minutes.mul_add(60.0, seconds)),
     );
     // Subseconds part
-    let normalized = milliseconds.mul_add(
+    let normalized_subseconds_parts = milliseconds.mul_add(
         10e-3,
-        microseconds.mul_add(10e-6, nanoseconds.mul_add(10e-9, normalized_seconds)),
+        microseconds.mul_add(10e-6, nanoseconds.mul_add(10e-9, 0.0)),
     );
 
+    let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
-    if normalized.abs() >= 2e53 {
+    if normalized_seconds.abs() >= 2e53 {
         return false;
     }
 
@@ -778,21 +779,17 @@ impl FromStr for Duration {
 
         let sign = f64::from(parse_record.sign as i8);
 
-        Ok(Self {
-            date: DateDuration::new(
-                f64::from(years) * sign,
-                f64::from(months) * sign,
-                f64::from(weeks) * sign,
-                f64::from(days) * sign,
-            )?,
-            time: TimeDuration::new(
-                hours * sign,
-                minutes * sign,
-                seconds * sign,
-                millis * sign,
-                micros * sign,
-                nanos * sign,
-            )?,
-        })
+        Self::new(
+            f64::from(years) * sign,
+            f64::from(months) * sign,
+            f64::from(weeks) * sign,
+            f64::from(days) * sign,
+            hours * sign,
+            minutes * sign,
+            seconds * sign,
+            millis * sign,
+            micros * sign,
+            nanos * sign,
+        )
     }
 }
