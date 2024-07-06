@@ -41,14 +41,6 @@ impl Date {
         Self { iso, calendar }
     }
 
-    #[inline]
-    /// Returns a new moved date and the days associated with that adjustment
-    pub(crate) fn move_relative_date(&self, duration: &Duration) -> TemporalResult<(Self, f64)> {
-        let new_date = self.add_date(duration, None)?;
-        let days = f64::from(self.days_until(&new_date));
-        Ok((new_date, days))
-    }
-
     /// Returns the date after adding the given duration to date.
     ///
     /// Temporal Equivalent: 3.5.13 `AddDate ( calendar, plainDate, duration [ , options [ , dateAdd ] ] )`
@@ -116,7 +108,6 @@ impl Date {
     }
 
     /// Equivalent: DifferenceTemporalPlainDate
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn diff_date(
         &self,
         op: DifferenceOperation,

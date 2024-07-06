@@ -64,24 +64,6 @@ impl Duration {
         Self { date, time }
     }
 
-    /// Utility function to create a year duration.
-    #[inline]
-    pub(crate) fn one_year(year_value: f64) -> Self {
-        Self::from_date_duration(&DateDuration::new_unchecked(year_value, 1f64, 0f64, 0f64))
-    }
-
-    /// Utility function to create a month duration.
-    #[inline]
-    pub(crate) fn one_month(month_value: f64) -> Self {
-        Self::from_date_duration(&DateDuration::new_unchecked(0f64, month_value, 0f64, 0f64))
-    }
-
-    /// Utility function to create a week duration.
-    #[inline]
-    pub(crate) fn one_week(week_value: f64) -> Self {
-        Self::from_date_duration(&DateDuration::new_unchecked(0f64, 0f64, week_value, 0f64))
-    }
-
     /// Returns the a `Vec` of the fields values.
     #[inline]
     #[must_use]

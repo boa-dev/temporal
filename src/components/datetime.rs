@@ -417,7 +417,7 @@ mod tests {
     use std::str::FromStr;
 
     use crate::{
-        components::{calendar::Calendar, Duration},
+        components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
     };
 
@@ -452,7 +452,12 @@ mod tests {
         let pdt =
             DateTime::new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
-        let result = pdt.add(&Duration::one_month(1.0), None).unwrap();
+        let result = pdt
+            .add(
+                &Duration::from_date_duration(&DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                None,
+            )
+            .unwrap();
 
         assert_eq!(result.month(), Ok(2));
         assert_eq!(result.day(), Ok(29));
@@ -464,7 +469,12 @@ mod tests {
         let pdt =
             DateTime::new(2000, 3, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
-        let result = pdt.subtract(&Duration::one_month(1.0), None).unwrap();
+        let result = pdt
+            .subtract(
+                &Duration::from_date_duration(&DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                None,
+            )
+            .unwrap();
 
         assert_eq!(result.month(), Ok(2));
         assert_eq!(result.day(), Ok(29));
