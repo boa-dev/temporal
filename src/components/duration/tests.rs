@@ -463,3 +463,31 @@ fn rounding_increment_non_integer() {
         &[0.0, 0.0, 0.0, 1e9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     );
 }
+
+#[test]
+fn basic_add_duration() {
+    let base = Duration::new(0.0, 0.0, 0.0, 1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let other = Duration::new(0.0, 0.0, 0.0, 2.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let result = base.add(&other).unwrap();
+    assert_eq!(result.days(), 3.0);
+    assert_eq!(result.minutes(), 10.0);
+
+    let other = Duration::new(0.0, 0.0, 0.0, -3.0, 0.0, -15.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let result = base.add(&other).unwrap();
+    assert_eq!(result.days(), -2.0);
+    assert_eq!(result.minutes(), -10.0);
+}
+
+#[test]
+fn basic_subtract_duration() {
+    let base = Duration::new(0.0, 0.0, 0.0, 3.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let other = Duration::new(0.0, 0.0, 0.0, 1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let result = base.subtract(&other).unwrap();
+    assert_eq!(result.days(), 2.0);
+    assert_eq!(result.minutes(), 10.0);
+
+    let other = Duration::new(0.0, 0.0, 0.0, -3.0, 0.0, -15.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let result = base.subtract(&other).unwrap();
+    assert_eq!(result.days(), 6.0);
+    assert_eq!(result.minutes(), 30.0);
+}
