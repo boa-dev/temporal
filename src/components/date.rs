@@ -25,7 +25,7 @@ use super::{
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Date {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
@@ -118,7 +118,7 @@ impl Date {
         // 2. Set other to ? ToTemporalDate(other).
 
         // 3. If ? CalendarEquals(temporalDate.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
-        if self.calendar().identifier()? != other.calendar().identifier()? {
+        if self.calendar().identifier() != other.calendar().identifier() {
             return Err(TemporalError::range()
                 .with_message("Calendars are for difference operation are not the same."));
         }

@@ -19,7 +19,7 @@ use super::{
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct DateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
