@@ -69,6 +69,14 @@ impl Default for Calendar {
     }
 }
 
+impl PartialEq for Calendar {
+    fn eq(&self, other: &Self) -> bool {
+        self.identifier() == other.identifier()
+    }
+}
+
+impl Eq for Calendar {}
+
 impl IcuCalendar for Calendar {
     type DateInner = AnyDateInner;
 
@@ -575,11 +583,11 @@ impl Calendar {
     }
 
     /// Returns the identifier of this calendar slot.
-    pub fn identifier(&self) -> TemporalResult<String> {
+    pub fn identifier(&self) -> String {
         if self.is_iso() {
-            return Ok(String::from("iso8601"));
+            return String::from("iso8601");
         }
-        Ok(String::from(self.0 .0.kind().as_bcp47_string()))
+        String::from(self.0 .0.kind().as_bcp47_string())
     }
 }
 
