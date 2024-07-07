@@ -400,6 +400,48 @@ impl Duration {
         }
     }
 
+    /// Returns the result of adding a `Duration` to the current `Duration`
+    #[inline]
+    pub fn add(&self, other: &Self) -> TemporalResult<Self> {
+        // NOTE: Implemented from AddDurations
+        // Steps 1-22 are functionally useless in this context.
+
+        // 23. Let largestUnit1 be DefaultTemporalLargestUnit(y1, mon1, w1, d1, h1, min1, s1, ms1, mus1).
+        let largest_one = self.default_largest_unit();
+        // 24. Let largestUnit2 be DefaultTemporalLargestUnit(y2, mon2, w2, d2, h2, min2, s2, ms2, mus2).
+        let largest_two = other.default_largest_unit();
+        // 25. Let largestUnit be LargerOfTwoTemporalUnits(largestUnit1, largestUnit2).
+        let largest_unit = largest_one.max(largest_two);
+        // 26. Let norm1 be NormalizeTimeDuration(h1, min1, s1, ms1, mus1, ns1).
+        let norm_one = NormalizedTimeDuration::from_time_duration(self.time());
+        // 27. Let norm2 be NormalizeTimeDuration(h2, min2, s2, ms2, mus2, ns2).
+        let norm_two = NormalizedTimeDuration::from_time_duration(other.time());
+
+        // 28. If IsCalendarUnit(largestUnit), throw a RangeError exception.
+        if largest_unit.is_calendar_unit() {
+            return Err(TemporalError::range().with_message(
+                "Largest unit cannot be a calendar unit when adding two durations.",
+            ));
+        }
+
+        // 29. Let normResult be ? AddNormalizedTimeDuration(norm1, norm2).
+        // 30. Set normResult to ? Add24HourDaysToNormalizedTimeDuration(normResult, d1 + d2).
+        let result = (norm_one + norm_two)?.add_days((self.days() + other.days()) as i64)?;
+
+        // 31. Let result be ? BalanceTimeDuration(normResult, largestUnit).
+        let (result_days, result_time) = TimeDuration::from_normalized(result, largest_unit)?;
+
+        // 32. Return ! CreateTemporalDuration(0, 0, 0, result.[[Days]], result.[[Hours]], result.[[Minutes]],
+        // result.[[Seconds]], result.[[Milliseconds]], result.[[Microseconds]], result.[[Nanoseconds]]).
+        Ok(Duration::from_day_and_time(result_days, &result_time))
+    }
+
+    /// Returns the result of subtracting a `Duration` from the current `Duration`
+    #[inline]
+    pub fn subtract(&self, other: &Self) -> TemporalResult<Self> {
+        self.add(&other.negated())
+    }
+
     #[inline]
     pub fn round(
         &self,
