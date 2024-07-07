@@ -5,7 +5,7 @@ use crate::{
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
     parsers::parse_date_time,
-    TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::{cmp::Ordering, str::FromStr};
@@ -77,7 +77,11 @@ impl DateTime {
         // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
         // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]],
         // result.[[Microsecond]], result.[[Nanosecond]]) is true.
-        assert!(result.is_within_limits());
+        temporal_assert!(
+            result.is_within_limits(),
+            "Assertion failed: the below datetime is not within valid limits:\n{:?}",
+            result
+        );
 
         // 9. Return ? CreateTemporalDateTime(result.[[Year]], result.[[Month]], result.[[Day]], result.[[Hour]],
         // result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]],

@@ -2,7 +2,7 @@
 
 use crate::{
     options::{TemporalRoundingMode, TemporalUnsignedRoundingMode},
-    TemporalResult, TemporalUnwrap,
+    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::{
@@ -41,7 +41,7 @@ pub(crate) struct IncrementRounder<T: Roundable> {
 }
 
 impl<T: Roundable> IncrementRounder<T> {
-    // ==== PUBLIC ====
+    #[inline]
     pub(crate) fn from_potentially_negative_parts(
         number: T,
         increment: NonZeroU128,
@@ -54,10 +54,12 @@ impl<T: Roundable> IncrementRounder<T> {
         })
     }
 
+    #[inline]
+    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     pub(crate) fn from_positive_parts(number: T, increment: NonZeroU128) -> TemporalResult<Self> {
         let increment = <T as NumCast>::from(increment.get()).temporal_unwrap()?;
 
-        debug_assert!(number >= T::ZERO);
+        temporal_assert!(number >= T::ZERO);
 
         Ok(Self {
             sign: true,
@@ -68,6 +70,7 @@ impl<T: Roundable> IncrementRounder<T> {
 }
 
 impl<T: Roundable> Round for IncrementRounder<T> {
+    #[inline]
     fn round(&self, mode: TemporalRoundingMode) -> i128 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
         let mut rounded =
@@ -81,6 +84,7 @@ impl<T: Roundable> Round for IncrementRounder<T> {
             * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
     }
 
+    #[inline]
     fn round_as_positive(&self, mode: TemporalRoundingMode) -> u64 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
         let rounded =
@@ -180,7 +184,7 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
                 return Roundable::result_ceil(dividend, divisor);
             };
             // 13. Assert: unsignedRoundingMode is half-even.
-            assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
+            debug_assert!(unsigned_rounding_mode == TemporalUnsignedRoundingMode::HalfEven);
             // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
             // 15. If cardinality is 0, return r1.
             if Roundable::is_even_cardinal(dividend, divisor) {

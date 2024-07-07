@@ -26,7 +26,7 @@ use crate::{
     error::TemporalError,
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     rounding::{IncrementRounder, Round},
-    utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    temporal_assert, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_bigint::BigInt;
@@ -58,6 +58,7 @@ impl IsoDateTime {
 
     // NOTE: The below assumes that nanos is from an `Instant` and thus in a valid range. -> Needs validation.
     /// Creates an `IsoDateTime` from a `BigInt` of epochNanoseconds.
+    #[allow(clippy::neg_cmp_op_on_partial_ord)]
     pub(crate) fn from_epoch_nanos(nanos: &BigInt, offset: f64) -> TemporalResult<Self> {
         // Skip the assert as nanos should be validated by Instant.
         // TODO: Determine whether value needs to be validated as integral.
@@ -88,7 +89,7 @@ impl IsoDateTime {
         // 11. Let microsecond be floor(remainderNs / 1000).
         let micros = (remainder_nanos / 1000f64).floor();
         // 12. Assert: microsecond < 1000.
-        debug_assert!(micros < 1000f64);
+        temporal_assert!(micros < 1000f64);
         // 13. Let nanosecond be remainderNs modulo 1000.
         let nanos = (remainder_nanos % 1000f64).floor();
 
@@ -852,7 +853,7 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
     let max = BigInt::from(crate::NS_MAX_INSTANT + i128::from(NS_PER_DAY));
     let min = BigInt::from(crate::NS_MIN_INSTANT - i128::from(NS_PER_DAY));
 
-    min < ns && max > ns
+    min <= ns && max >= ns
 }
 
 #[inline]
