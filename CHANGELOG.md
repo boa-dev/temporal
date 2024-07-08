@@ -1,6 +1,34 @@
 # CHANGELOG
 
-## What's Changed
+## What's Changed in v0.0.3
+
+* Implement add and subtract methods for Duration by @nekevss in [#74](https://github.com/boa-dev/temporal/pull/74)
+* Implement PartialEq and Eq for `Calendar`, `Date`, and `DateTime` by @nekevss in [#75](https://github.com/boa-dev/temporal/pull/75)
+* Update duration validation and switch asserts to debug-asserts by @nekevss in [#73](https://github.com/boa-dev/temporal/pull/73)
+* Update duration rounding to new algorithms by @nekevss in [#65](https://github.com/boa-dev/temporal/pull/65)
+* Remove `CalendarProtocol` and `TimeZoneProtocol` by @jedel1043 in [#66](https://github.com/boa-dev/temporal/pull/66)
+* Use groups in dependabot updates by @jedel1043 in [#69](https://github.com/boa-dev/temporal/pull/69)
+* Ensure parsing throws with unknown critical annotations by @jedel1043 in [#63](https://github.com/boa-dev/temporal/pull/63)
+* Reject `IsoDate` when outside the allowed range by @jedel1043 in [#62](https://github.com/boa-dev/temporal/pull/62)
+* Avoid overflowing when calling `NormalizedTimeDuration::add_days` by @jedel1043 in [#61](https://github.com/boa-dev/temporal/pull/61)
+* Ensure parsing throws when duplicate calendar is critical by @jedel1043 in [#58](https://github.com/boa-dev/temporal/pull/58)
+* Fix rounding when the dividend is smaller than the divisor by @jedel1043 in [#57](https://github.com/boa-dev/temporal/pull/57)
+* Implement the `toYearMonth`, `toMonthDay`, and `toDateTime` for `Date` component by @nekevss in [#56](https://github.com/boa-dev/temporal/pull/56)
+* Update increment rounding functionality by @nekevss in [#53](https://github.com/boa-dev/temporal/pull/53)
+* Patch `(un)balance_relative` to avoid panicking by @jedel1043 in [#48](https://github.com/boa-dev/temporal/pull/48)
+* Cleanup rounding increment usages with new struct by @jedel1043 in [#54](https://github.com/boa-dev/temporal/pull/54)
+* Add struct to encapsulate invariants of rounding increments by @jedel1043 in [#49](https://github.com/boa-dev/temporal/pull/49)
+* Migrate parsing to `ixdtf` crate by @nekevss in [#50](https://github.com/boa-dev/temporal/pull/50)
+* Fix method call in days_in_month by @nekevss in [#46](https://github.com/boa-dev/temporal/pull/46)
+* Implement add & subtract methods for `DateTime` component by @nekevss in [#45](https://github.com/boa-dev/temporal/pull/45)
+* Fix panics when no relative_to is supplied to round by @nekevss in [#40](https://github.com/boa-dev/temporal/pull/40)
+* Implement Time's until and since methods by @nekevss in [#36](https://github.com/boa-dev/temporal/pull/36)
+* Implements `Date`'s `add`, `subtract`, `until`, and `since` methods by @nekevss in [#35](https://github.com/boa-dev/temporal/pull/35)
+* Fix clippy lints and bump bitflags version by @nekevss in [#38](https://github.com/boa-dev/temporal/pull/38)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.2...v0.0.3
+
+## What's Changed in v0.0.2
 
 # [0.0.2 (2024-03-04)](https://github.com/boa-dev/temporal/compare/v0.0.1...v0.0.2)
 

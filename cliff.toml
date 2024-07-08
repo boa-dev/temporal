@@ -67,6 +67,11 @@ commit_preprocessors = [
   # remove issue numbers from commits
   { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" },
 ]
+# Commit grouping 
+commit_parsers = [
+  { message = "^Bump", skip = true },
+  { message = "^chore(release):", skip = true},
+]
 # protect breaking changes from being skipped due to matching a skipping commit_parser
 protect_breaking_commits = false
 # filter out the commits that are not matched by commit parsers
