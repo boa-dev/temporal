@@ -69,7 +69,6 @@ commit_preprocessors = [
 ]
 # Commit grouping 
 commit_parsers = [
-  { message = "^Bump", skip = true },
   { message = "^chore(release):", skip = true},
   { message = "^chore(dependabot):", skip = true},
 ]
