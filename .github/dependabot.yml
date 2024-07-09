@@ -5,6 +5,7 @@ updates:
     schedule:
       interval: weekly
     commit-message:
+      prefix: "chore(dependabot)"
       prefix-development: "chore(dependabot)"
     groups:
       ci-dependencies:
@@ -18,6 +19,7 @@ updates:
     schedule:
       interval: weekly
     commit-message:
+      prefix: "chore(dependabot)"
       prefix-development: "chore(dependabot)"
     groups:
       rust-dependencies:
