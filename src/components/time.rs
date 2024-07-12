@@ -7,10 +7,13 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
+    parsers::parse_time,
     TemporalError, TemporalResult,
 };
 
-use super::duration::normalized::NormalizedTimeDuration;
+use super::{duration::normalized::NormalizedTimeDuration, DateTime};
+
+use std::str::FromStr;
 
 /// The native Rust implementation of `Temporal.PlainTime`.
 #[non_exhaustive]
@@ -268,6 +271,33 @@ impl Time {
     }
 }
 
+impl From<DateTime> for Time {
+    fn from(value: DateTime) -> Self {
+        Time::new_unchecked(value.iso.time)
+    }
+}
+
+impl FromStr for Time {
+    type Err = TemporalError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let result = parse_time(s)?;
+
+        let (millisecond, rem) = (result.nanosecond / 1_000_000, result.nanosecond % 1_000_000);
+        let (microsecond, nanosecond) = (rem / 1_000, rem % 1_000);
+
+        Time::new(
+            result.hour.into(),
+            result.minute.into(),
+            result.second.into(),
+            millisecond as i32,
+            microsecond as i32,
+            nanosecond as i32,
+            ArithmeticOverflow::Reject,
+        )
+    }
+}
+
 // ==== Test land ====
 
 #[cfg(test)]
@@ -277,6 +307,7 @@ mod tests {
         iso::IsoTime,
         options::{ArithmeticOverflow, DifferenceSettings, TemporalUnit},
     };
+    use num_traits::FromPrimitive;
 
     use super::Time;
 
@@ -294,6 +325,32 @@ mod tests {
                 }
             }
         );
+    }
+
+    #[test]
+    fn from_str_cast_sanity_test() {
+        let max = u32::MAX;
+        let (millisecond, rem) = (max / 1_000_000, max % 1_000_000);
+        let (microsecond, nanosecond) = (rem / 1_000, rem % 1_000);
+
+        assert!(i32::from_u32(millisecond).is_some());
+        assert!(i32::from_u32(microsecond).is_some());
+        assert!(i32::from_u32(nanosecond).is_some());
+    }
+
+    #[test]
+    fn basic_parse_time() {
+        let result = "T12:05:24-05:00[u-ca=iso8601]".parse::<Time>();
+        assert_time(result.unwrap(), (12, 05, 24, 0, 0, 0));
+
+        let result = "T12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
+        assert_time(result.unwrap(), (12, 05, 24, 123, 456, 789));
+
+        let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
+        assert_time(result.unwrap(), (12, 05, 24, 123, 456, 789));
+
+        let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
+        assert_time(result.unwrap(), (12, 05, 24, 123, 456, 789));
     }
 
     #[test]

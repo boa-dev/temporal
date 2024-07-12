@@ -1,9 +1,9 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
-use crate::{TemporalError, TemporalResult};
+use crate::{TemporalError, TemporalResult, TemporalUnwrap};
 
 use ixdtf::parsers::{
-    records::{Annotation, IxdtfParseRecord},
+    records::{Annotation, IxdtfParseRecord, TimeRecord},
     IxdtfParser,
 };
 
@@ -122,6 +122,23 @@ pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> 
         Ok(dt) => Ok(dt),
         // Format and return the error from parsing YearMonth.
         _ => md_record.map_err(|e| TemporalError::range().with_message(format!("{e}"))),
+    }
+}
+
+pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
+    let time_record = IxdtfParser::new(source).parse_time();
+
+    let time_err = match time_record {
+        Ok(time) => return time.time.temporal_unwrap(),
+        Err(e) => TemporalError::range().with_message(format!("{e}")),
+    };
+
+    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
+
+    match dt_parse {
+        Ok(dt) if dt.time.is_some() => Ok(dt.time.temporal_unwrap()?),
+        // Format and return the error from parsing Time.
+        _ => Err(time_err),
     }
 }
 

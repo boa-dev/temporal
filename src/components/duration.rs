@@ -156,15 +156,6 @@ impl Duration {
         }
     }
 
-    /// Creates a `Duration` from only a `DateDuration`.
-    #[must_use]
-    pub fn from_date_duration(date: &DateDuration) -> Self {
-        Self {
-            date: *date,
-            time: TimeDuration::default(),
-        }
-    }
-
     /// Creates a `Duration` from a provided a day and a `TimeDuration`.
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
@@ -562,8 +553,7 @@ impl Duration {
             )?;
 
             // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
-            let target_date =
-                plain_date.add_date(&Duration::from_date_duration(&date_duration), None)?;
+            let target_date = plain_date.add_date(&Duration::from(date_duration), None)?;
 
             let plain_dt = DateTime::new_unchecked(
                 IsoDateTime::new(plain_date.iso, IsoTime::default())?,
@@ -731,6 +721,15 @@ impl From<TimeDuration> for Duration {
         Self {
             time: value,
             date: DateDuration::default(),
+        }
+    }
+}
+
+impl From<DateDuration> for Duration {
+    fn from(value: DateDuration) -> Self {
+        Self {
+            date: value,
+            time: TimeDuration::default(),
         }
     }
 }
