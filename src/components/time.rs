@@ -341,16 +341,16 @@ mod tests {
     #[test]
     fn basic_parse_time() {
         let result = "T12:05:24-05:00[u-ca=iso8601]".parse::<Time>();
-        assert_time(result.unwrap(), (12, 05, 24, 0, 0, 0));
+        assert_time(result.unwrap(), (12, 5, 24, 0, 0, 0));
 
         let result = "T12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
-        assert_time(result.unwrap(), (12, 05, 24, 123, 456, 789));
+        assert_time(result.unwrap(), (12, 5, 24, 123, 456, 789));
 
         let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
-        assert_time(result.unwrap(), (12, 05, 24, 123, 456, 789));
+        assert_time(result.unwrap(), (12, 5, 24, 123, 456, 789));
 
         let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
-        assert_time(result.unwrap(), (12, 05, 24, 123, 456, 789));
+        assert_time(result.unwrap(), (12, 5, 24, 123, 456, 789));
     }
 
     #[test]
