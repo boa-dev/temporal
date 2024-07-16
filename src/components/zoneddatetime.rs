@@ -12,11 +12,17 @@ use super::calendar::CalendarDateLike;
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
     tz: TimeZone,
+}
+
+impl PartialOrd for ZonedDateTime {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.instant.cmp(&other.instant))
+    }
 }
 
 // ==== Private API ====

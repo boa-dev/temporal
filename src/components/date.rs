@@ -7,14 +7,10 @@ use crate::{
         calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
         duration::DateDuration,
         DateTime, Duration,
-    },
-    iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
-    options::{
+    }, iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime}, options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         TemporalUnit,
-    },
-    parsers::parse_date_time,
-    TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
+    }, parsers::parse_date_time, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap
 };
 use std::str::FromStr;
 
@@ -203,6 +199,7 @@ impl Date {
             ArithmeticOverflow::Reject,
         )
     }
+
 
     #[inline]
     #[must_use]
