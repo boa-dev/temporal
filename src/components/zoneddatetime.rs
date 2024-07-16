@@ -27,7 +27,7 @@ impl Ord for ZonedDateTime {
 
 impl PartialOrd for ZonedDateTime {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(&other))
+        Some(self.cmp(other))
     }
 }
 
