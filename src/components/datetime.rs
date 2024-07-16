@@ -3,7 +3,10 @@
 use crate::{
     components::{calendar::Calendar, duration::TimeDuration, Instant},
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
+    options::{
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
+        TemporalUnit,
+    },
     parsers::parse_date_time,
     temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
 };
@@ -87,6 +90,43 @@ impl DateTime {
         // result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]],
         // result.[[Nanosecond]], dateTime.[[Calendar]]).
         Ok(Self::new_unchecked(result, self.calendar.clone()))
+    }
+
+    /// Difference two `DateTime`s together.
+    pub(crate) fn diff(
+        &self,
+        op: DifferenceOperation,
+        other: &Self,
+        settings: DifferenceSettings,
+    ) -> TemporalResult<Duration> {
+        // 3. If ? CalendarEquals(dateTime.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
+        if self.calendar != other.calendar {
+            return Err(TemporalError::range()
+                .with_message("Calendar must be the same when diffing two DateTimes"));
+        }
+
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », "nanosecond", "day").
+        let (sign, options) = ResolvedRoundingOptions::from_diff_settings(
+            settings,
+            op,
+            TemporalUnit::Day,
+            TemporalUnit::Nanosecond,
+        )?;
+
+        // Step 7-8 combined.
+        if self.iso == other.iso {
+            return Ok(Duration::default());
+        }
+
+        // Step 10-11.
+        let (result, _) = self.diff_dt_with_rounding(other, options)?;
+
+        // Step 12
+        match sign {
+            crate::Sign::Positive => Ok(result),
+            crate::Sign::Negative => Ok(result.negated()),
+            _ => unreachable!("Unreachable: sign must be Sign::Negative or Sign::Positive."),
+        }
     }
 
     // TODO: Figure out whether to handle resolvedOptions
@@ -349,6 +389,7 @@ impl DateTime {
     }
 
     #[inline]
+    /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
         &self,
         duration: &Duration,
@@ -358,12 +399,25 @@ impl DateTime {
     }
 
     #[inline]
+    /// Subtracts a `Duration` to the current `DateTime`.
     pub fn subtract(
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         self.add_or_subtract_duration(&duration.negated(), overflow)
+    }
+
+    #[inline]
+    /// Returns a `Duration` representing the period of time from this `DateTime` until the other `DateTime`.
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff(DifferenceOperation::Until, other, settings)
+    }
+
+    #[inline]
+    /// Returns a `Duration` representing the period of time from this `DateTime` since the other `DateTime`.
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff(DifferenceOperation::Since, other, settings)
     }
 }
 
