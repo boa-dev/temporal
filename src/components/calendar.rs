@@ -416,7 +416,7 @@ impl Calendar {
     ) -> TemporalResult<Duration> {
         if self.is_iso() {
             let date_duration = one.iso.diff_iso_date(&two.iso, largest_unit)?;
-            return Ok(Duration::from_date_duration(&date_duration));
+            return Ok(Duration::from(date_duration));
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))

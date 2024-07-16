@@ -14,7 +14,7 @@ use tinystr::TinyAsciiStr;
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
-    Duration,
+    Date, Duration,
 };
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
@@ -381,6 +381,15 @@ impl IsoDateSlots for DateTime {
     }
 }
 
+impl From<Date> for DateTime {
+    fn from(value: Date) -> Self {
+        DateTime::new_unchecked(
+            IsoDateTime::new_unchecked(value.iso, IsoTime::default()),
+            value.calendar().clone(),
+        )
+    }
+}
+
 impl FromStr for DateTime {
     type Err = TemporalError;
 
@@ -458,7 +467,7 @@ mod tests {
 
         let result = pdt
             .add(
-                &Duration::from_date_duration(&DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                &Duration::from(DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
                 None,
             )
             .unwrap();
@@ -475,7 +484,7 @@ mod tests {
 
         let result = pdt
             .subtract(
-                &Duration::from_date_duration(&DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                &Duration::from(DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
                 None,
             )
             .unwrap();

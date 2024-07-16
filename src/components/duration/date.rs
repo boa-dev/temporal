@@ -78,12 +78,8 @@ impl DateDuration {
                 if smallest_unit == TemporalUnit::Week {
                     // i. Assert: days = 0.
                     // ii. Let yearsMonthsDuration be ! CreateTemporalDuration(years, months, 0, 0, 0, 0, 0, 0, 0, 0).
-                    let years_months = Duration::from_date_duration(&Self::new_unchecked(
-                        self.years,
-                        self.months,
-                        0.0,
-                        0.0,
-                    ));
+                    let years_months =
+                        Duration::from(Self::new_unchecked(self.years, self.months, 0.0, 0.0));
 
                     // iii. Let later be ? AddDate(calendarRec, plainRelativeTo, yearsMonthsDuration).
                     let later = plain_relative.calendar().date_add(
@@ -104,7 +100,7 @@ impl DateDuration {
                 }
 
                 // b. Let yearsMonthsWeeksDaysDuration be ! CreateTemporalDuration(years, months, weeks, days, 0, 0, 0, 0, 0, 0).
-                let years_months_weeks = Duration::from_date_duration(self);
+                let years_months_weeks = Duration::from(*self);
 
                 // c. Let later be ? AddDate(calendarRec, plainRelativeTo, yearsMonthsWeeksDaysDuration).
                 let later = plain_relative.calendar().date_add(
@@ -131,12 +127,8 @@ impl DateDuration {
                 }
 
                 // c. Let monthsWeeksDaysDuration be ! CreateTemporalDuration(0, months, weeks, days, 0, 0, 0, 0, 0, 0).
-                let months_weeks_days = Duration::from_date_duration(&Self::new_unchecked(
-                    0.0,
-                    self.months,
-                    self.weeks,
-                    self.days,
-                ));
+                let months_weeks_days =
+                    Duration::from(Self::new_unchecked(0.0, self.months, self.weeks, self.days));
 
                 // d. Let later be ? AddDate(calendarRec, plainRelativeTo, monthsWeeksDaysDuration).
                 let later = plain_relative.calendar().date_add(
@@ -159,9 +151,8 @@ impl DateDuration {
                 // 13. Assert: years = 0.
                 // 14. Assert: months = 0.
                 // 15. Let weeksDaysDuration be ! CreateTemporalDuration(0, 0, weeks, days, 0, 0, 0, 0, 0, 0).
-                let weeks_days = Duration::from_date_duration(&Self::new_unchecked(
-                    0.0, 0.0, self.weeks, self.days,
-                ));
+                let weeks_days =
+                    Duration::from(Self::new_unchecked(0.0, 0.0, self.weeks, self.days));
 
                 // 16. Let later be ? AddDate(calendarRec, plainRelativeTo, weeksDaysDuration).
                 let later = plain_relative.calendar().date_add(

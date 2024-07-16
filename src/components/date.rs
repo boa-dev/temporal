@@ -96,7 +96,7 @@ impl Date {
 
         if largest_unit == TemporalUnit::Day {
             let days = self.days_until(other);
-            return Ok(Duration::from_date_duration(&DateDuration::new(
+            return Ok(Duration::from(DateDuration::new(
                 0f64,
                 0f64,
                 0f64,
@@ -169,7 +169,7 @@ impl Date {
 
         let sign = f64::from(sign as i8);
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
-        Ok(Duration::from_date_duration(&DateDuration::new(
+        Ok(Duration::from(DateDuration::new(
             date_duration.years * sign,
             date_duration.months * sign,
             date_duration.weeks * sign,
@@ -383,6 +383,8 @@ impl Date {
     }
 }
 
+// ==== Trait impls ====
+
 impl GetTemporalCalendar for Date {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
@@ -396,7 +398,13 @@ impl IsoDateSlots for Date {
     }
 }
 
-// ==== Trait impls ====
+impl From<DateTime> for Date {
+    fn from(value: DateTime) -> Self {
+        Date::new_unchecked(value.iso.date, value.calendar().clone())
+    }
+}
+
+// TODO: impl From<ZonedDateTime> for Date
 
 impl FromStr for Date {
     type Err = TemporalError;

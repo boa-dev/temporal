@@ -422,8 +422,7 @@ fn basic_negative_expand_rounding() {
 // test262/test/built-ins/Temporal/Duration/prototype/round/roundingincrement-non-integer.js
 #[test]
 fn rounding_increment_non_integer() {
-    let test_duration =
-        Duration::from_date_duration(&DateDuration::new(0.0, 0.0, 0.0, 1.0).unwrap());
+    let test_duration = Duration::from(DateDuration::new(0.0, 0.0, 0.0, 1.0).unwrap());
     let binding = Date::new(
         2000,
         1,
