@@ -19,9 +19,15 @@ pub struct ZonedDateTime {
     tz: TimeZone,
 }
 
+impl Ord for ZonedDateTime {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.instant.cmp(&other.instant)
+    }
+}
+
 impl PartialOrd for ZonedDateTime {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.instant.cmp(&other.instant))
+        Some(self.cmp(&other))
     }
 }
 
