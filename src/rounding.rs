@@ -100,7 +100,7 @@ impl Roundable for i128 {
     }
 
     fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
-        Some(dividend.rem_euclid(divisor).cmp(&divisor.div_euclid(2)))
+        Some((dividend.abs() % divisor).cmp(&(divisor / 2)))
     }
 
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
@@ -284,6 +284,14 @@ mod tests {
         .unwrap()
         .round(TemporalRoundingMode::Floor);
         assert_eq!(result, -10);
+
+        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
+            -14,
+            NonZeroU128::new(3).unwrap(),
+        )
+        .unwrap()
+        .round(TemporalRoundingMode::HalfExpand);
+        assert_eq!(result, -15);
     }
 
     #[test]
@@ -303,5 +311,17 @@ mod tests {
         .unwrap()
         .round(TemporalRoundingMode::Floor);
         assert_eq!(result, -9);
+    }
+
+    #[test]
+    fn dt_since_basic_rounding() {
+        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
+            -84082624864197532,
+            NonZeroU128::new(1800000000000).unwrap(),
+        )
+        .unwrap()
+        .round(TemporalRoundingMode::HalfExpand);
+
+        assert_eq!(result, -84083400000000000);
     }
 }

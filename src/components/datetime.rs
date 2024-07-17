@@ -486,6 +486,7 @@ mod tests {
     use crate::{
         components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
+        options::{DifferenceSettings, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     };
 
     use super::DateTime;
@@ -596,5 +597,62 @@ mod tests {
                 nanosecond: 102
             }
         );
+    }
+
+    fn create_diff_setting(
+        smallest: TemporalUnit,
+        increment: u32,
+        rounding_mode: TemporalRoundingMode,
+    ) -> DifferenceSettings {
+        DifferenceSettings {
+            largest_unit: None,
+            smallest_unit: Some(smallest),
+            increment: Some(unsafe { RoundingIncrement::new_unchecked(increment) }),
+            rounding_mode: Some(rounding_mode),
+        }
+    }
+
+    #[test]
+    fn dt_until_basic() {
+        let earlier =
+            DateTime::new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
+        let later =
+            DateTime::new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
+
+        let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
+        let result = earlier.until(&later, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 3.0);
+
+        let settings =
+            create_diff_setting(TemporalUnit::Minute, 30, TemporalRoundingMode::HalfExpand);
+        let result = earlier.until(&later, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 4.0);
+        assert_eq!(result.minutes(), 30.0);
+    }
+
+    #[test]
+    fn dt_since_basic() {
+        let earlier =
+            DateTime::new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
+        let later =
+            DateTime::new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
+
+        let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
+        let result = later.since(&earlier, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 3.0);
+
+        let settings =
+            create_diff_setting(TemporalUnit::Minute, 30, TemporalRoundingMode::HalfExpand);
+        let result = later.since(&earlier, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 4.0);
+        assert_eq!(result.minutes(), 30.0);
     }
 }
