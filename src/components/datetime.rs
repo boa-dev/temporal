@@ -24,6 +24,18 @@ pub struct DateTime {
     calendar: Calendar,
 }
 
+impl Ord for DateTime {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
+    }
+}
+
+impl PartialOrd for DateTime {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 // ==== Private DateTime API ====
 
 impl DateTime {
@@ -256,11 +268,6 @@ impl DateTime {
             self.nanosecond().into(),
             calendar,
         )
-    }
-
-    /// Compares two `DateTime`s, regardless of calendars
-    pub fn compare(&self, other: &Self) -> Sign {
-        (self.iso.cmp(&other.iso) as i8).into()
     }
 
     /// Validates whether ISO date slots are within iso limits at noon.
