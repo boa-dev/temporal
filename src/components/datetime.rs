@@ -191,11 +191,8 @@ impl DateTime {
         ))
     }
 
-    pub fn with_time<I>(&self, time_like: Option<I>) -> TemporalResult<Self>
-    where
-        I: Into<Time>,
-    {
-        let time: Time = time_like.map(Into::into).unwrap_or_default();
+    pub fn with_time(&self, time: Option<Time>) -> TemporalResult<Self> {
+        let time = time.unwrap_or_default();
         Self::new(
             self.iso_year(),
             self.iso_month().into(),
@@ -210,10 +207,7 @@ impl DateTime {
         )
     }
 
-    pub fn with_calendar<I>(&self, calendar_like: Option<I>) -> TemporalResult<Self>
-    where
-        I: Into<Calendar>,
-    {
+    pub fn with_calendar(&self, calendar: Option<Calendar>) -> TemporalResult<Self> {
         Self::new(
             self.iso_year(),
             self.iso_month().into(),
@@ -224,7 +218,7 @@ impl DateTime {
             self.millisecond().into(),
             self.microsecond().into(),
             self.nanosecond().into(),
-            calendar_like.map(Into::into).unwrap_or_default(),
+            calendar.unwrap_or_default(),
         )
     }
 

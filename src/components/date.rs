@@ -194,15 +194,12 @@ impl Date {
     }
 
     /// Creates a
-    pub fn with_calendar<I>(&self, calendar_like: Option<I>) -> TemporalResult<Self>
-    where
-        I: Into<Calendar>,
-    {
+    pub fn with_calendar(&self, calendar: Option<Calendar>) -> TemporalResult<Self> {
         Self::new(
             self.iso_year(),
             self.iso_month().into(),
             self.iso_day().into(),
-            calendar_like.map(Into::into).unwrap_or_default(),
+            calendar.unwrap_or_default(),
             ArithmeticOverflow::Reject,
         )
     }
