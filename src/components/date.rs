@@ -249,6 +249,8 @@ impl Date {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
     }
 
+    #[inline]
+    /// Adds a `Duration` to the current `Date`
     pub fn add(
         &self,
         duration: &Duration,
@@ -257,6 +259,8 @@ impl Date {
         self.add_date(duration, overflow)
     }
 
+    #[inline]
+    /// Subtracts a `Duration` to the current `Date`
     pub fn subtract(
         &self,
         duration: &Duration,
@@ -265,10 +269,14 @@ impl Date {
         self.add_date(&duration.negated(), overflow)
     }
 
+    #[inline]
+    /// Returns a `Duration` representing the time from this `Date` until the other `Date`.
     pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_date(DifferenceOperation::Until, other, settings)
     }
 
+    #[inline]
+    /// Returns a `Duration` representing the time passed from this `Date` since the other `Date`.
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_date(DifferenceOperation::Since, other, settings)
     }

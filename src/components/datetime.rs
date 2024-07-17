@@ -3,9 +3,12 @@
 use crate::{
     components::{calendar::Calendar, duration::TimeDuration, Instant},
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
+    options::{
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
+        TemporalUnit,
+    },
     parsers::parse_date_time,
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::{cmp::Ordering, str::FromStr};
@@ -87,6 +90,42 @@ impl DateTime {
         // result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]],
         // result.[[Nanosecond]], dateTime.[[Calendar]]).
         Ok(Self::new_unchecked(result, self.calendar.clone()))
+    }
+
+    /// Difference two `DateTime`s together.
+    pub(crate) fn diff(
+        &self,
+        op: DifferenceOperation,
+        other: &Self,
+        settings: DifferenceSettings,
+    ) -> TemporalResult<Duration> {
+        // 3. If ? CalendarEquals(dateTime.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
+        if self.calendar != other.calendar {
+            return Err(TemporalError::range()
+                .with_message("Calendar must be the same when diffing two DateTimes"));
+        }
+
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », "nanosecond", "day").
+        let (sign, options) = ResolvedRoundingOptions::from_diff_settings(
+            settings,
+            op,
+            TemporalUnit::Day,
+            TemporalUnit::Nanosecond,
+        )?;
+
+        // Step 7-8 combined.
+        if self.iso == other.iso {
+            return Ok(Duration::default());
+        }
+
+        // Step 10-11.
+        let (result, _) = self.diff_dt_with_rounding(other, options)?;
+
+        // Step 12
+        match sign {
+            Sign::Positive | Sign::Zero => Ok(result),
+            Sign::Negative => Ok(result.negated()),
+        }
     }
 
     // TODO: Figure out whether to handle resolvedOptions
@@ -381,6 +420,7 @@ impl DateTime {
     }
 
     #[inline]
+    /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
         &self,
         duration: &Duration,
@@ -390,12 +430,25 @@ impl DateTime {
     }
 
     #[inline]
+    /// Subtracts a `Duration` to the current `DateTime`.
     pub fn subtract(
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         self.add_or_subtract_duration(&duration.negated(), overflow)
+    }
+
+    #[inline]
+    /// Returns a `Duration` representing the period of time from this `DateTime` until the other `DateTime`.
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff(DifferenceOperation::Until, other, settings)
+    }
+
+    #[inline]
+    /// Returns a `Duration` representing the period of time from this `DateTime` since the other `DateTime`.
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff(DifferenceOperation::Since, other, settings)
     }
 }
 
@@ -464,6 +517,7 @@ mod tests {
     use crate::{
         components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
+        options::{DifferenceSettings, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     };
 
     use super::DateTime;
@@ -574,5 +628,62 @@ mod tests {
                 nanosecond: 102
             }
         );
+    }
+
+    fn create_diff_setting(
+        smallest: TemporalUnit,
+        increment: u32,
+        rounding_mode: TemporalRoundingMode,
+    ) -> DifferenceSettings {
+        DifferenceSettings {
+            largest_unit: None,
+            smallest_unit: Some(smallest),
+            increment: Some(RoundingIncrement::try_new(increment).unwrap()),
+            rounding_mode: Some(rounding_mode),
+        }
+    }
+
+    #[test]
+    fn dt_until_basic() {
+        let earlier =
+            DateTime::new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
+        let later =
+            DateTime::new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
+
+        let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
+        let result = earlier.until(&later, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 3.0);
+
+        let settings =
+            create_diff_setting(TemporalUnit::Minute, 30, TemporalRoundingMode::HalfExpand);
+        let result = earlier.until(&later, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 4.0);
+        assert_eq!(result.minutes(), 30.0);
+    }
+
+    #[test]
+    fn dt_since_basic() {
+        let earlier =
+            DateTime::new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
+        let later =
+            DateTime::new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
+
+        let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
+        let result = later.since(&earlier, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 3.0);
+
+        let settings =
+            create_diff_setting(TemporalUnit::Minute, 30, TemporalRoundingMode::HalfExpand);
+        let result = later.since(&earlier, settings).unwrap();
+
+        assert_eq!(result.days(), 973.0);
+        assert_eq!(result.hours(), 4.0);
+        assert_eq!(result.minutes(), 30.0);
     }
 }
