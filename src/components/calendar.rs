@@ -35,6 +35,8 @@ use icu_calendar::{
 };
 use tinystr::TinyAsciiStr;
 
+use super::ZonedDateTime;
+
 /// The ECMAScript defined protocol methods
 pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
     "dateAdd",
@@ -615,6 +617,36 @@ impl Calendar {
     ) -> TemporalResult<()> {
         // TODO: Research and implement the appropriate ResolveFields for all `BuiltinCalendars.`
         Err(TemporalError::range().with_message("CalendarResolveFields is not yet implemented."))
+    }
+}
+
+impl From<Date> for Calendar {
+    fn from(value: Date) -> Self {
+        value.calendar().clone()
+    }
+}
+
+impl From<DateTime> for Calendar {
+    fn from(value: DateTime) -> Self {
+        value.calendar().clone()
+    }
+}
+
+impl From<ZonedDateTime> for Calendar {
+    fn from(value: ZonedDateTime) -> Self {
+        value.calendar().clone()
+    }
+}
+
+impl From<MonthDay> for Calendar {
+    fn from(value: MonthDay) -> Self {
+        value.calendar().clone()
+    }
+}
+
+impl From<YearMonth> for Calendar {
+    fn from(value: YearMonth) -> Self {
+        value.calendar().clone()
     }
 }
 
