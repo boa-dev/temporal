@@ -8,7 +8,7 @@ use crate::{
         TemporalUnit,
     },
     parsers::parse_date_time,
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::{cmp::Ordering, str::FromStr};
@@ -123,9 +123,8 @@ impl DateTime {
 
         // Step 12
         match sign {
-            crate::Sign::Positive => Ok(result),
-            crate::Sign::Negative => Ok(result.negated()),
-            _ => unreachable!("Unreachable: sign must be Sign::Negative or Sign::Positive."),
+            Sign::Positive | Sign::Zero => Ok(result),
+            Sign::Negative => Ok(result.negated()),
         }
     }
 
@@ -607,7 +606,7 @@ mod tests {
         DifferenceSettings {
             largest_unit: None,
             smallest_unit: Some(smallest),
-            increment: Some(unsafe { RoundingIncrement::new_unchecked(increment) }),
+            increment: Some(RoundingIncrement::try_new(increment).unwrap()),
             rounding_mode: Some(rounding_mode),
         }
     }
