@@ -191,8 +191,8 @@ impl DateTime {
         ))
     }
 
-    pub fn with_time(&self, time: Option<Time>) -> TemporalResult<Self> {
-        let time = time.unwrap_or_default();
+    /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
+    pub fn with_time(&self, time: Time) -> TemporalResult<Self> {
         Self::new(
             self.iso_year(),
             self.iso_month().into(),
@@ -207,7 +207,8 @@ impl DateTime {
         )
     }
 
-    pub fn with_calendar(&self, calendar: Option<Calendar>) -> TemporalResult<Self> {
+    /// Creates a new `DateTime` from the current `DateTime` and a provided `Calendar`.
+    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::new(
             self.iso_year(),
             self.iso_month().into(),
@@ -218,7 +219,7 @@ impl DateTime {
             self.millisecond().into(),
             self.microsecond().into(),
             self.nanosecond().into(),
-            calendar.unwrap_or_default(),
+            calendar,
         )
     }
 

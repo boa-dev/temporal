@@ -193,13 +193,13 @@ impl Date {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
-    /// Creates a
-    pub fn with_calendar(&self, calendar: Option<Calendar>) -> TemporalResult<Self> {
+    /// Creates a new `Date` from the current `Date` and the provided calendar.
+    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::new(
             self.iso_year(),
             self.iso_month().into(),
             self.iso_day().into(),
-            calendar.unwrap_or_default(),
+            calendar,
             ArithmeticOverflow::Reject,
         )
     }
