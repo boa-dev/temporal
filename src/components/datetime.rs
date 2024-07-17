@@ -17,7 +17,7 @@ use tinystr::TinyAsciiStr;
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
-    Date, Duration,
+    Date, Duration, Time,
 };
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
@@ -228,6 +228,38 @@ impl DateTime {
             IsoDateTime::new(iso_date, iso_time)?,
             calendar,
         ))
+    }
+
+    /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
+    pub fn with_time(&self, time: Time) -> TemporalResult<Self> {
+        Self::new(
+            self.iso_year(),
+            self.iso_month().into(),
+            self.iso_day().into(),
+            time.hour().into(),
+            time.minute().into(),
+            time.second().into(),
+            time.millisecond().into(),
+            time.microsecond().into(),
+            time.nanosecond().into(),
+            self.calendar.clone(),
+        )
+    }
+
+    /// Creates a new `DateTime` from the current `DateTime` and a provided `Calendar`.
+    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
+        Self::new(
+            self.iso_year(),
+            self.iso_month().into(),
+            self.iso_day().into(),
+            self.hour().into(),
+            self.minute().into(),
+            self.second().into(),
+            self.millisecond().into(),
+            self.microsecond().into(),
+            self.nanosecond().into(),
+            calendar,
+        )
     }
 
     /// Validates whether ISO date slots are within iso limits at noon.

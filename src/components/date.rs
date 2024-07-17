@@ -193,13 +193,15 @@ impl Date {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
-    #[must_use]
-    /// Creates a `Date` from a `DateTime`.
-    pub fn from_datetime(dt: &DateTime) -> Self {
-        Self {
-            iso: dt.iso_date(),
-            calendar: dt.calendar().clone(),
-        }
+    /// Creates a new `Date` from the current `Date` and the provided calendar.
+    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
+        Self::new(
+            self.iso_year(),
+            self.iso_month().into(),
+            self.iso_day().into(),
+            calendar,
+            ArithmeticOverflow::Reject,
+        )
     }
 
     #[inline]
