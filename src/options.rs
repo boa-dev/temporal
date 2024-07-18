@@ -8,7 +8,7 @@ use std::ops::Add;
 
 use crate::{
     components::{Date, ZonedDateTime},
-    Sign, TemporalError, TemporalResult, NS_PER_DAY,
+    Sign, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY,
 };
 
 mod increment;
@@ -16,6 +16,7 @@ pub use increment::RoundingIncrement;
 
 // ==== RoundingOptions / DifferenceSettings ====
 
+#[derive(Debug, Clone, Copy)]
 pub(crate) enum DifferenceOperation {
     Until,
     Since,
@@ -156,6 +157,33 @@ impl ResolvedRoundingOptions {
 
         Ok(Self {
             largest_unit,
+            smallest_unit,
+            increment,
+            rounding_mode,
+        })
+    }
+
+    pub(crate) fn from_instant_options(options: RoundingOptions) -> TemporalResult<Self> {
+        let increment = options.increment.unwrap_or_default();
+        let rounding_mode = options.rounding_mode.unwrap_or_default();
+        let Some(smallest_unit) = options.smallest_unit else {
+            return Err(TemporalError::range()
+                .with_message("smallestUnit is required for an Instant.round operation."));
+        };
+        let maximum = match smallest_unit {
+            TemporalUnit::Hour => 24u64,
+            TemporalUnit::Minute => 24 * 60,
+            TemporalUnit::Second => 24 * 3600,
+            TemporalUnit::Millisecond => MS_PER_DAY as u64,
+            TemporalUnit::Microsecond => MS_PER_DAY as u64 * 1000,
+            TemporalUnit::Nanosecond => NS_PER_DAY,
+            _ => return Err(TemporalError::range().with_message("Invalid roundTo unit provided.")),
+        };
+
+        increment.validate(maximum, true)?;
+
+        Ok(Self {
+            largest_unit: TemporalUnit::Auto,
             smallest_unit,
             increment,
             rounding_mode,

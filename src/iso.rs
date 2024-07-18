@@ -59,7 +59,7 @@ impl IsoDateTime {
     // NOTE: The below assumes that nanos is from an `Instant` and thus in a valid range. -> Needs validation.
     /// Creates an `IsoDateTime` from a `BigInt` of epochNanoseconds.
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
-    pub(crate) fn from_epoch_nanos(nanos: &BigInt, offset: f64) -> TemporalResult<Self> {
+    pub(crate) fn from_epoch_nanos(nanos: &i128, offset: f64) -> TemporalResult<Self> {
         // Skip the assert as nanos should be validated by Instant.
         // TODO: Determine whether value needs to be validated as integral.
         // Get the component ISO parts
