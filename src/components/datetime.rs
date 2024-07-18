@@ -1,10 +1,14 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use crate::{
-    components::{calendar::Calendar, duration::TimeDuration, Instant}, iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime}, options::{
+    components::{calendar::Calendar, duration::TimeDuration, Instant},
+    iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
+    options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         TemporalUnit,
-    }, parsers::parse_date_time, temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap
+    },
+    parsers::parse_date_time,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use std::{cmp::Ordering, str::FromStr};

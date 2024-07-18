@@ -12,7 +12,9 @@ use crate::{
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         TemporalUnit,
-    }, parsers::parse_date_time, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap
+    },
+    parsers::parse_date_time,
+    TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
