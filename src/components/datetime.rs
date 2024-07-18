@@ -28,6 +28,18 @@ pub struct DateTime {
     calendar: Calendar,
 }
 
+impl Ord for DateTime {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
+    }
+}
+
+impl PartialOrd for DateTime {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 // ==== Private DateTime API ====
 
 impl DateTime {

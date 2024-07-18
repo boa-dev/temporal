@@ -13,8 +13,7 @@ pub const TIME_ZONE_PROPERTIES: [&str; 3] =
     ["getOffsetNanosecondsFor", "getPossibleInstantsFor", "id"];
 
 /// A Temporal `TimeZone`.
-#[derive(Debug, Clone)]
-#[allow(unused)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TimeZone {
     pub(crate) iana: Option<String>, // TODO: ICU4X IANA TimeZone support.
     pub(crate) offset: Option<i16>,

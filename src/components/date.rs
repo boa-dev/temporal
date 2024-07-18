@@ -31,6 +31,18 @@ pub struct Date {
     calendar: Calendar,
 }
 
+impl Ord for Date {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.iso.cmp(&other.iso)
+    }
+}
+
+impl PartialOrd for Date {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 // ==== Private API ====
 
 impl Date {
