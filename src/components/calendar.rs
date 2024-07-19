@@ -408,7 +408,7 @@ impl Calendar {
                     duration.years(),
                     duration.months(),
                     duration.weeks(),
-                    duration.days() + balance_days,
+                    duration.days().checked_add(&balance_days)?,
                 ),
                 overflow,
             )?;

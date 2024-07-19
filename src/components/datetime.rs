@@ -11,6 +11,7 @@ use crate::{
     temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
+use num_traits::AsPrimitive;
 use std::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
@@ -167,7 +168,7 @@ impl DateTime {
             // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(diff.[[NormalizedTime]], diff.[[Days]]).
             let norm_with_days = diff
                 .normalized_time_duration()
-                .add_days(diff.date().days as i64)?;
+                .add_days(diff.date().days.as_())?;
             // b. Let timeResult be ! BalanceTimeDuration(normWithDays, largestUnit).
             let (days, time_duration) =
                 TimeDuration::from_normalized(norm_with_days, options.largest_unit)?;
@@ -530,6 +531,7 @@ mod tests {
         components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
         options::{DifferenceSettings, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+        utils::FiniteF64,
     };
 
     use super::DateTime;
@@ -565,7 +567,15 @@ mod tests {
 
         let result = pdt
             .add(
-                &Duration::from(DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                &Duration::from(
+                    DateDuration::new(
+                        FiniteF64::default(),
+                        FiniteF64(1.0),
+                        FiniteF64::default(),
+                        FiniteF64::default(),
+                    )
+                    .unwrap(),
+                ),
                 None,
             )
             .unwrap();
@@ -582,7 +592,15 @@ mod tests {
 
         let result = pdt
             .subtract(
-                &Duration::from(DateDuration::new(0.0, 1.0, 0.0, 0.0).unwrap()),
+                &Duration::from(
+                    DateDuration::new(
+                        FiniteF64::default(),
+                        FiniteF64(1.0),
+                        FiniteF64::default(),
+                        FiniteF64::default(),
+                    )
+                    .unwrap(),
+                ),
                 None,
             )
             .unwrap();
@@ -597,7 +615,7 @@ mod tests {
         let dt =
             DateTime::new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default()).unwrap();
 
-        let result = dt.subtract(&Duration::hour(12.0), None).unwrap();
+        let result = dt.subtract(&Duration::hour(FiniteF64(12.0)), None).unwrap();
 
         assert_eq!(
             result.iso.date,
@@ -619,7 +637,7 @@ mod tests {
             }
         );
 
-        let result = dt.add(&Duration::hour(-12.0), None).unwrap();
+        let result = dt.add(&Duration::hour(FiniteF64(-12.0)), None).unwrap();
 
         assert_eq!(
             result.iso.date,

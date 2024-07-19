@@ -8,7 +8,8 @@ use crate::{
         RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
     parsers::parse_time,
-    TemporalError, TemporalResult,
+    utils::FiniteF64,
+    Sign, TemporalError, TemporalResult,
 };
 
 use super::{duration::normalized::NormalizedTimeDuration, DateTime};
@@ -60,19 +61,29 @@ impl Time {
     /// Adds a `TimeDuration` to the current `Time`.
     ///
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
-    pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> Self {
+    pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         let (_, result) = IsoTime::balance(
-            f64::from(self.hour()) + duration.hours,
-            f64::from(self.minute()) + duration.minutes,
-            f64::from(self.second()) + duration.seconds,
-            f64::from(self.millisecond()) + duration.milliseconds,
-            f64::from(self.microsecond()) + duration.microseconds,
-            f64::from(self.nanosecond()) + duration.nanoseconds,
+            FiniteF64::from(self.hour()).checked_add(&duration.hours)?.0,
+            FiniteF64::from(self.minute())
+                .checked_add(&duration.minutes)?
+                .0,
+            FiniteF64::from(self.second())
+                .checked_add(&duration.seconds)?
+                .0,
+            FiniteF64::from(self.millisecond())
+                .checked_add(&duration.milliseconds)?
+                .0,
+            FiniteF64::from(self.microsecond())
+                .checked_add(&duration.microseconds)?
+                .0,
+            FiniteF64::from(self.nanosecond())
+                .checked_add(&duration.nanoseconds)?
+                .0,
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`
 
-        Self::new_unchecked(result)
+        Ok(Self::new_unchecked(result))
     }
 
     // TODO: Migrate to
@@ -105,7 +116,8 @@ impl Time {
             || resolved.increment != RoundingIncrement::ONE
         {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            let (round_record, _) = TimeDuration::round(0.0, &normalized_time, resolved)?;
+            let (round_record, _) =
+                TimeDuration::round(FiniteF64::default(), &normalized_time, resolved)?;
             // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
             normalized_time = round_record.normalized_time_duration()
         };
@@ -113,20 +125,11 @@ impl Time {
         // 7. Let result be BalanceTimeDuration(norm, settings.[[LargestUnit]]).
         let result = TimeDuration::from_normalized(normalized_time, resolved.largest_unit)?.1;
 
-        let sign = f64::from(sign as i8);
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
-        Duration::new(
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            sign * result.hours,
-            sign * result.minutes,
-            sign * result.seconds,
-            sign * result.milliseconds,
-            sign * result.microseconds,
-            sign * result.nanoseconds,
-        )
+        match sign {
+            Sign::Positive | Sign::Zero => Ok(Duration::from(result)),
+            Sign::Negative => Ok(Duration::from(result.negated())),
+        }
     }
 }
 
@@ -203,13 +206,12 @@ impl Time {
             return Err(TemporalError::range()
                 .with_message("DateDuration values cannot be added to `Time`."));
         }
-        Ok(self.add_time_duration(duration.time()))
+        self.add_time_duration(duration.time())
     }
 
     /// Adds a `TimeDuration` to the current `Time`.
     #[inline]
-    #[must_use]
-    pub fn add_time_duration(&self, duration: &TimeDuration) -> Self {
+    pub fn add_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         self.add_to_time(duration)
     }
 
@@ -219,13 +221,12 @@ impl Time {
             return Err(TemporalError::range()
                 .with_message("DateDuration values cannot be added to `Time` component."));
         }
-        Ok(self.add_time_duration(duration.time()))
+        self.subtract_time_duration(duration.time())
     }
 
     /// Adds a `TimeDuration` to the current `Time`.
     #[inline]
-    #[must_use]
-    pub fn subtract_time_duration(&self, duration: &TimeDuration) -> Self {
+    pub fn subtract_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         self.add_to_time(&duration.negated())
     }
 

@@ -14,7 +14,8 @@ use crate::{
         TemporalUnit,
     },
     parsers::parse_date_time,
-    TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
+    utils::FiniteF64,
+    Sign, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
@@ -79,13 +80,20 @@ impl Date {
         // 4. Let overflow be ? ToTemporalOverflow(options).
         // 5. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
         // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm, "day").[[Days]].
-        let days = duration.days()
-            + TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?.0;
+        let days = duration.days().checked_add(
+            &TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?.0,
+        )?;
 
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
-        let result = self
-            .iso
-            .add_date_duration(&DateDuration::new(0f64, 0f64, 0f64, days)?, overflow)?;
+        let result = self.iso.add_date_duration(
+            &DateDuration::new(
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::default(),
+                days,
+            )?,
+            overflow,
+        )?;
 
         Ok(Self::new_unchecked(result, self.calendar().clone()))
     }
@@ -109,10 +117,10 @@ impl Date {
         if largest_unit == TemporalUnit::Day {
             let days = self.days_until(other);
             return Ok(Duration::from(DateDuration::new(
-                0f64,
-                0f64,
-                0f64,
-                f64::from(days),
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::from(days),
             )?));
         }
 
@@ -179,14 +187,11 @@ impl Date {
             duration.date()
         };
 
-        let sign = f64::from(sign as i8);
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
-        Ok(Duration::from(DateDuration::new(
-            date_duration.years * sign,
-            date_duration.months * sign,
-            date_duration.weeks * sign,
-            date_duration.days * sign,
-        )?))
+        match sign {
+            Sign::Positive | Sign::Zero => Ok(Duration::from(date_duration)),
+            Sign::Negative => Ok(Duration::from(date_duration.negated())),
+        }
     }
 }
 

@@ -15,15 +15,26 @@ fn get_round_result(
         .unwrap()
         .fields()
         .iter()
-        .map(|f| *f as i32)
+        .map(|f| f.as_date_value().unwrap())
         .collect::<Vec<i32>>()
 }
 
 // roundingmode-floor.js
 #[test]
 fn basic_positive_floor_rounding_v2() {
-    let test_duration =
-        Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+    let test_duration = Duration::new(
+        FiniteF64(5.0),
+        FiniteF64(6.0),
+        FiniteF64(7.0),
+        FiniteF64(8.0),
+        FiniteF64(40.0),
+        FiniteF64(30.0),
+        FiniteF64(20.0),
+        FiniteF64(123.0),
+        FiniteF64(987.0),
+        FiniteF64(500.0),
+    )
+    .unwrap();
     let forward_date = Date::new(
         2020,
         4,
@@ -89,8 +100,19 @@ fn basic_positive_floor_rounding_v2() {
 #[test]
 fn basic_negative_floor_rounding_v2() {
     // Test setup
-    let test_duration =
-        Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+    let test_duration = Duration::new(
+        FiniteF64(5.0),
+        FiniteF64(6.0),
+        FiniteF64(7.0),
+        FiniteF64(8.0),
+        FiniteF64(40.0),
+        FiniteF64(30.0),
+        FiniteF64(20.0),
+        FiniteF64(123.0),
+        FiniteF64(987.0),
+        FiniteF64(500.0),
+    )
+    .unwrap();
     let backward_date = Date::new(
         2020,
         12,
@@ -156,8 +178,19 @@ fn basic_negative_floor_rounding_v2() {
 // roundingmode-ceil.js
 #[test]
 fn basic_positive_ceil_rounding() {
-    let test_duration =
-        Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+    let test_duration = Duration::new(
+        FiniteF64(5.0),
+        FiniteF64(6.0),
+        FiniteF64(7.0),
+        FiniteF64(8.0),
+        FiniteF64(40.0),
+        FiniteF64(30.0),
+        FiniteF64(20.0),
+        FiniteF64(123.0),
+        FiniteF64(987.0),
+        FiniteF64(500.0),
+    )
+    .unwrap();
     let forward_date = Date::new(
         2020,
         4,
@@ -222,8 +255,19 @@ fn basic_positive_ceil_rounding() {
 
 #[test]
 fn basic_negative_ceil_rounding() {
-    let test_duration =
-        Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+    let test_duration = Duration::new(
+        FiniteF64(5.0),
+        FiniteF64(6.0),
+        FiniteF64(7.0),
+        FiniteF64(8.0),
+        FiniteF64(40.0),
+        FiniteF64(30.0),
+        FiniteF64(20.0),
+        FiniteF64(123.0),
+        FiniteF64(987.0),
+        FiniteF64(500.0),
+    )
+    .unwrap();
     let backward_date = Date::new(
         2020,
         12,
@@ -288,8 +332,19 @@ fn basic_negative_ceil_rounding() {
 // roundingmode-expand.js
 #[test]
 fn basic_positive_expand_rounding() {
-    let test_duration =
-        Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+    let test_duration = Duration::new(
+        FiniteF64(5.0),
+        FiniteF64(6.0),
+        FiniteF64(7.0),
+        FiniteF64(8.0),
+        FiniteF64(40.0),
+        FiniteF64(30.0),
+        FiniteF64(20.0),
+        FiniteF64(123.0),
+        FiniteF64(987.0),
+        FiniteF64(500.0),
+    )
+    .unwrap();
     let forward_date = Date::new(
         2020,
         4,
@@ -354,8 +409,19 @@ fn basic_positive_expand_rounding() {
 
 #[test]
 fn basic_negative_expand_rounding() {
-    let test_duration =
-        Duration::new(5.0, 6.0, 7.0, 8.0, 40.0, 30.0, 20.0, 123.0, 987.0, 500.0).unwrap();
+    let test_duration = Duration::new(
+        FiniteF64(5.0),
+        FiniteF64(6.0),
+        FiniteF64(7.0),
+        FiniteF64(8.0),
+        FiniteF64(40.0),
+        FiniteF64(30.0),
+        FiniteF64(20.0),
+        FiniteF64(123.0),
+        FiniteF64(987.0),
+        FiniteF64(500.0),
+    )
+    .unwrap();
 
     let backward_date = Date::new(
         2020,
@@ -422,7 +488,15 @@ fn basic_negative_expand_rounding() {
 // test262/test/built-ins/Temporal/Duration/prototype/round/roundingincrement-non-integer.js
 #[test]
 fn rounding_increment_non_integer() {
-    let test_duration = Duration::from(DateDuration::new(0.0, 0.0, 0.0, 1.0).unwrap());
+    let test_duration = Duration::from(
+        DateDuration::new(
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64(1.0),
+        )
+        .unwrap(),
+    );
     let binding = Date::new(
         2000,
         1,
@@ -450,7 +524,18 @@ fn rounding_increment_non_integer() {
 
     assert_eq!(
         result.fields(),
-        &[0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        &[
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64(2.0),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default()
+        ]
     );
 
     let _ = options
@@ -459,19 +544,66 @@ fn rounding_increment_non_integer() {
     let result = test_duration.round(options, &relative_to).unwrap();
     assert_eq!(
         result.fields(),
-        &[0.0, 0.0, 0.0, 1e9, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        &[
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64(1e9),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default()
+        ]
     );
 }
 
 #[test]
 fn basic_add_duration() {
-    let base = Duration::new(0.0, 0.0, 0.0, 1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0).unwrap();
-    let other = Duration::new(0.0, 0.0, 0.0, 2.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let base = Duration::new(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64(1.0),
+        FiniteF64::default(),
+        FiniteF64(5.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
+    let other = Duration::new(
+        FiniteF64(0.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64(2.0),
+        FiniteF64::default(),
+        FiniteF64(5.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
     let result = base.add(&other).unwrap();
     assert_eq!(result.days(), 3.0);
     assert_eq!(result.minutes(), 10.0);
 
-    let other = Duration::new(0.0, 0.0, 0.0, -3.0, 0.0, -15.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let other = Duration::new(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64(-3.0),
+        FiniteF64::default(),
+        FiniteF64(-15.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
     let result = base.add(&other).unwrap();
     assert_eq!(result.days(), -2.0);
     assert_eq!(result.minutes(), -10.0);
@@ -479,13 +611,49 @@ fn basic_add_duration() {
 
 #[test]
 fn basic_subtract_duration() {
-    let base = Duration::new(0.0, 0.0, 0.0, 3.0, 0.0, 15.0, 0.0, 0.0, 0.0, 0.0).unwrap();
-    let other = Duration::new(0.0, 0.0, 0.0, 1.0, 0.0, 5.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let base = Duration::new(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64(3.0),
+        FiniteF64::default(),
+        FiniteF64(15.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
+    let other = Duration::new(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64(1.0),
+        FiniteF64::default(),
+        FiniteF64(5.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
     let result = base.subtract(&other).unwrap();
     assert_eq!(result.days(), 2.0);
     assert_eq!(result.minutes(), 10.0);
 
-    let other = Duration::new(0.0, 0.0, 0.0, -3.0, 0.0, -15.0, 0.0, 0.0, 0.0, 0.0).unwrap();
+    let other = Duration::new(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64(-3.0),
+        FiniteF64::default(),
+        FiniteF64(-15.0),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
     let result = base.subtract(&other).unwrap();
     assert_eq!(result.days(), 6.0);
     assert_eq!(result.minutes(), 30.0);

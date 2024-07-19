@@ -26,11 +26,13 @@ use crate::{
     error::TemporalError,
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
     rounding::{IncrementRounder, Round},
-    temporal_assert, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    temporal_assert,
+    utils::{self, FiniteF64},
+    TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_bigint::BigInt;
-use num_traits::{cast::FromPrimitive, ToPrimitive};
+use num_traits::{cast::FromPrimitive, AsPrimitive, ToPrimitive};
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
 #[non_exhaustive]
@@ -152,18 +154,15 @@ impl IsoDateTime {
         let date = Date::new_unchecked(self.date, calendar);
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
-        let duration = Duration::new(
+        let date_duration = DateDuration::new(
             date_duration.years,
             date_duration.months,
             date_duration.weeks,
-            date_duration.days + f64::from(t_result.0),
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            date_duration
+                .days
+                .checked_add(&FiniteF64::from(t_result.0))?,
         )?;
+        let duration = Duration::from(date_duration);
 
         // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
         let added_date = date.add_date(&duration, overflow)?;
@@ -238,9 +237,9 @@ impl IsoDateTime {
             date_diff.days()
         } else {
             // a. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, dateDifference.[[Days]]).
-            time_duration = time_duration.add_days(date_diff.days() as i64)?;
+            time_duration = time_duration.add_days(date_diff.days().as_())?;
             // b. Set days to 0.
-            0.0
+            FiniteF64::default()
         };
 
         // 17. Return ? CreateNormalizedDurationRecord(dateDifference.[[Years]], dateDifference.[[Months]], dateDifference.[[Weeks]], days, timeDuration).
@@ -355,8 +354,8 @@ impl IsoDate {
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
         let intermediate = balance_iso_year_month(
-            self.year + duration.years as i32,
-            i32::from(self.month) + duration.months as i32,
+            self.year + duration.years.as_date_value()?,
+            i32::from(self.month) + duration.months.as_date_value()?,
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
@@ -368,7 +367,8 @@ impl IsoDate {
         )?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days = duration.days as i32 + (duration.weeks as i32 * 7);
+        let additional_days =
+            duration.days.as_date_value()? + (duration.weeks.as_date_value()? * 7);
         // 6. Let d be intermediate.[[Day]] + days.
         let d = i32::from(intermediate.day) + additional_days;
 
@@ -468,7 +468,12 @@ impl IsoDate {
         };
 
         // 17. Return ! CreateDateDurationRecord(years, months, weeks, days).
-        DateDuration::new(years as f64, months as f64, weeks as f64, days as f64)
+        DateDuration::new(
+            FiniteF64::from(years),
+            FiniteF64::from(months),
+            FiniteF64::from(weeks),
+            FiniteF64::from(days),
+        )
     }
 }
 
@@ -638,14 +643,21 @@ impl IsoTime {
 
     /// Difference this `IsoTime` against another and returning a `TimeDuration`.
     pub(crate) fn diff(&self, other: &Self) -> TimeDuration {
-        let h = f64::from(other.hour) - f64::from(self.hour);
-        let m = f64::from(other.minute) - f64::from(self.minute);
-        let s = f64::from(other.second) - f64::from(self.second);
-        let ms = f64::from(other.millisecond) - f64::from(self.millisecond);
-        let mis = f64::from(other.microsecond) - f64::from(self.microsecond);
-        let ns = f64::from(other.nanosecond) - f64::from(self.nanosecond);
+        let h = i32::from(other.hour) - i32::from(self.hour);
+        let m = i32::from(other.minute) - i32::from(self.minute);
+        let s = i32::from(other.second) - i32::from(self.second);
+        let ms = i32::from(other.millisecond) - i32::from(self.millisecond);
+        let mis = i32::from(other.microsecond) - i32::from(self.microsecond);
+        let ns = i32::from(other.nanosecond) - i32::from(self.nanosecond);
 
-        TimeDuration::new_unchecked(h, m, s, ms, mis, ns)
+        TimeDuration::new_unchecked(
+            FiniteF64::from(h),
+            FiniteF64::from(m),
+            FiniteF64::from(s),
+            FiniteF64::from(ms),
+            FiniteF64::from(mis),
+            FiniteF64::from(ns),
+        )
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the

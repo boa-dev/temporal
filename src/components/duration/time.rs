@@ -5,7 +5,9 @@ use std::num::NonZeroU128;
 use crate::{
     options::{ResolvedRoundingOptions, TemporalUnit},
     rounding::{IncrementRounder, Round},
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert,
+    utils::FiniteF64,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{
@@ -26,17 +28,17 @@ use num_traits::{Euclid, FromPrimitive, MulAdd};
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct TimeDuration {
     /// `TimeDuration`'s internal hour value.
-    pub hours: f64,
+    pub hours: FiniteF64,
     /// `TimeDuration`'s internal minute value.
-    pub minutes: f64,
+    pub minutes: FiniteF64,
     /// `TimeDuration`'s internal second value.
-    pub seconds: f64,
+    pub seconds: FiniteF64,
     /// `TimeDuration`'s internal millisecond value.
-    pub milliseconds: f64,
+    pub milliseconds: FiniteF64,
     /// `TimeDuration`'s internal microsecond value.
-    pub microseconds: f64,
+    pub microseconds: FiniteF64,
     /// `TimeDuration`'s internal nanosecond value.
-    pub nanoseconds: f64,
+    pub nanoseconds: FiniteF64,
 }
 // ==== TimeDuration Private API ====
 
@@ -44,12 +46,12 @@ impl TimeDuration {
     /// Creates a new `TimeDuration`.
     #[must_use]
     pub(crate) const fn new_unchecked(
-        hours: f64,
-        minutes: f64,
-        seconds: f64,
-        milliseconds: f64,
-        microseconds: f64,
-        nanoseconds: f64,
+        hours: FiniteF64,
+        minutes: FiniteF64,
+        seconds: FiniteF64,
+        milliseconds: FiniteF64,
+        microseconds: FiniteF64,
+        nanoseconds: FiniteF64,
     ) -> Self {
         Self {
             hours,
@@ -71,7 +73,7 @@ impl TimeDuration {
     pub(crate) fn from_normalized(
         norm: NormalizedTimeDuration,
         largest_unit: TemporalUnit,
-    ) -> TemporalResult<(f64, Self)> {
+    ) -> TemporalResult<(FiniteF64, Self)> {
         // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
         let mut days = 0;
         let mut hours = 0;
@@ -198,19 +200,20 @@ impl TimeDuration {
         // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
         let days = (days as i64).mul_add(sign.into(), 0);
         let result = Self::new_unchecked(
-            (hours as i32).mul_add(sign, 0).into(),
-            (minutes as i32).mul_add(sign, 0).into(),
-            (seconds as i32).mul_add(sign, 0).into(),
-            (milliseconds as i32).mul_add(sign, 0).into(),
-            (microseconds as i32).mul_add(sign, 0).into(),
-            (nanoseconds as i32).mul_add(sign, 0).into(),
+            FiniteF64::from((hours as i32).mul_add(sign, 0)),
+            FiniteF64::from((minutes as i32).mul_add(sign, 0)),
+            FiniteF64::from((seconds as i32).mul_add(sign, 0)),
+            FiniteF64::from((milliseconds as i32).mul_add(sign, 0)),
+            FiniteF64::from((microseconds as i32).mul_add(sign, 0)),
+            FiniteF64::from((nanoseconds as i32).mul_add(sign, 0)),
         );
 
+        let days = FiniteF64::try_from(days as f64)?;
         if !is_valid_duration(
-            0.0,
-            0.0,
-            0.0,
-            days as f64,
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            days,
             result.hours,
             result.minutes,
             result.seconds,
@@ -222,7 +225,7 @@ impl TimeDuration {
         }
 
         // TODO: Remove cast below.
-        Ok((days as f64, result))
+        Ok((days, result))
     }
 
     /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.
@@ -234,7 +237,7 @@ impl TimeDuration {
     /// Returns the value of `TimeDuration`'s fields.
     #[inline]
     #[must_use]
-    pub(crate) fn fields(&self) -> Vec<f64> {
+    pub(crate) fn fields(&self) -> Vec<FiniteF64> {
         Vec::from(&[
             self.hours,
             self.minutes,
@@ -251,12 +254,12 @@ impl TimeDuration {
 impl TimeDuration {
     /// Creates a new validated `TimeDuration`.
     pub fn new(
-        hours: f64,
-        minutes: f64,
-        seconds: f64,
-        milliseconds: f64,
-        microseconds: f64,
-        nanoseconds: f64,
+        hours: FiniteF64,
+        minutes: FiniteF64,
+        seconds: FiniteF64,
+        milliseconds: FiniteF64,
+        microseconds: FiniteF64,
+        nanoseconds: FiniteF64,
     ) -> TemporalResult<Self> {
         let result = Self::new_unchecked(
             hours,
@@ -267,10 +270,10 @@ impl TimeDuration {
             nanoseconds,
         );
         if !is_valid_duration(
-            0.0,
-            0.0,
-            0.0,
-            0.0,
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
             hours,
             minutes,
             seconds,
@@ -285,55 +288,6 @@ impl TimeDuration {
         Ok(result)
     }
 
-    /// Creates a partial `TimeDuration` with all values set to `NaN`.
-    #[must_use]
-    pub const fn partial() -> Self {
-        Self {
-            hours: f64::NAN,
-            minutes: f64::NAN,
-            seconds: f64::NAN,
-            milliseconds: f64::NAN,
-            microseconds: f64::NAN,
-            nanoseconds: f64::NAN,
-        }
-    }
-
-    /// Creates a `TimeDuration` from a provided partial `TimeDuration`.
-    #[must_use]
-    pub fn from_partial(partial: &TimeDuration) -> Self {
-        Self {
-            hours: if partial.hours.is_nan() {
-                0.0
-            } else {
-                partial.hours
-            },
-            minutes: if partial.minutes.is_nan() {
-                0.0
-            } else {
-                partial.minutes
-            },
-            seconds: if partial.seconds.is_nan() {
-                0.0
-            } else {
-                partial.seconds
-            },
-            milliseconds: if partial.milliseconds.is_nan() {
-                0.0
-            } else {
-                partial.milliseconds
-            },
-            microseconds: if partial.microseconds.is_nan() {
-                0.0
-            } else {
-                partial.microseconds
-            },
-            nanoseconds: if partial.nanoseconds.is_nan() {
-                0.0
-            } else {
-                partial.nanoseconds
-            },
-        }
-    }
     /// Returns a new `TimeDuration` representing the absolute value of the current.
     #[inline]
     #[must_use]
@@ -353,12 +307,12 @@ impl TimeDuration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            hours: self.hours * -1f64,
-            minutes: self.minutes * -1f64,
-            seconds: self.seconds * -1f64,
-            milliseconds: self.milliseconds * -1f64,
-            microseconds: self.microseconds * -1f64,
-            nanoseconds: self.nanoseconds * -1f64,
+            hours: self.hours.negate(),
+            minutes: self.minutes.negate(),
+            seconds: self.seconds.negate(),
+            milliseconds: self.milliseconds.negate(),
+            microseconds: self.microseconds.negate(),
+            nanoseconds: self.nanoseconds.negate(),
         }
     }
 
@@ -380,7 +334,7 @@ impl TimeDuration {
 impl TimeDuration {
     // TODO: Maybe move to `NormalizedTimeDuration`
     pub(crate) fn round(
-        days: f64,
+        days: FiniteF64,
         norm: &NormalizedTimeDuration,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<(NormalizedDurationRecord, Option<i128>)> {
@@ -389,21 +343,19 @@ impl TimeDuration {
             // 2. If unit is "day", then
             TemporalUnit::Day => {
                 // a. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
-                let fractional_days = days + norm.as_fractional_days();
+                let fractional_days = days.checked_add(&FiniteF64(norm.as_fractional_days()))?;
                 // b. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
                 let days = IncrementRounder::from_potentially_negative_parts(
-                    fractional_days,
+                    fractional_days.0,
                     options.increment.as_extended_increment(),
                 )?
                 .round(options.rounding_mode);
                 // c. Let total be fractionalDays.
                 // d. Set norm to ZeroTimeDuration().
                 (
-                    f64::from_i128(days).ok_or(
-                        TemporalError::range().with_message("days exceeded a valid range."),
-                    )?,
+                    FiniteF64::try_from(days)?,
                     NormalizedTimeDuration::default(),
-                    i128::from_f64(fractional_days),
+                    i128::from_f64(fractional_days.0),
                 )
             }
             // 3. Else,
@@ -433,7 +385,15 @@ impl TimeDuration {
 
         // 4. Return the Record { [[NormalizedDuration]]: ? CreateNormalizedDurationRecord(0, 0, 0, days, norm), [[Total]]: total  }.
         Ok((
-            NormalizedDurationRecord::new(DateDuration::new(0.0, 0.0, 0.0, days)?, norm)?,
+            NormalizedDurationRecord::new(
+                DateDuration::new(
+                    FiniteF64::default(),
+                    FiniteF64::default(),
+                    FiniteF64::default(),
+                    days,
+                )?,
+                norm,
+            )?,
             total,
         ))
     }
