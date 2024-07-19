@@ -3,7 +3,7 @@
 use crate::{TemporalError, TemporalResult, TemporalUnwrap};
 
 use ixdtf::parsers::{
-    records::{Annotation, IxdtfParseRecord, TimeRecord},
+    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UTCOffsetRecord},
     IxdtfParser,
 };
 
@@ -77,19 +77,24 @@ pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> 
     parse_ixdtf(source, ParseVariant::DateTime)
 }
 
+pub(crate) struct IxdtfParseInstantRecord {
+    pub(crate) date: DateRecord,
+    pub(crate) time: TimeRecord,
+    pub(crate) offset: UTCOffsetRecord,
+}
+
 /// A utility function for parsing an `Instant` string
 #[inline]
-pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseInstantRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
-    // Validate required fields on an Instant value
-    if record.time.is_none() || record.date.is_none() || record.offset.is_none() {
+    let (Some(date), Some(time), Some(offset)) = (record.date, record.time, record.offset) else {
         return Err(
             TemporalError::range().with_message("Required fields missing from Instant string.")
         );
-    }
+    };
 
-    Ok(record)
+    Ok(IxdtfParseInstantRecord { date, time, offset })
 }
 
 /// A utility function for parsing a `YearMonth` string

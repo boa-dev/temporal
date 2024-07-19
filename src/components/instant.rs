@@ -279,27 +279,21 @@ impl FromStr for Instant {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ixdtf_record = parse_instant(s)?;
 
-        // NOTE: parse_instant requires the DateRecord, TimeRecord, and OffsetRecord
-        // to be present. So the below `temporal_unwraps` are on fields that
-        // have already been proven as present.
-
         // Find the IsoDate
-        let date = ixdtf_record.date.temporal_unwrap()?;
         let iso_date = IsoDate::new(
-            date.year,
-            date.month.into(),
-            date.day.into(),
+            ixdtf_record.date.year,
+            ixdtf_record.date.month.into(),
+            ixdtf_record.date.day.into(),
             ArithmeticOverflow::Reject,
         )?;
 
         // Find the IsoTime
-        let time = ixdtf_record.time.temporal_unwrap()?;
-        let (millisecond, remainder) = time.nanosecond.div_rem_euclid(&1_000_000);
+        let (millisecond, remainder) = ixdtf_record.time.nanosecond.div_rem_euclid(&1_000_000);
         let (microsecond, nanosecond) = remainder.div_rem_euclid(&1_000);
         let iso_time = IsoTime::new(
-            time.hour.into(),
-            time.minute.into(),
-            time.second.into(),
+            ixdtf_record.time.hour.into(),
+            ixdtf_record.time.minute.into(),
+            ixdtf_record.time.second.into(),
             millisecond as i32,
             microsecond as i32,
             nanosecond as i32,
@@ -307,11 +301,10 @@ impl FromStr for Instant {
         )?;
 
         // Find the offset
-        let offset_record = ixdtf_record.offset.temporal_unwrap()?;
-        let offset = f64::from(offset_record.hour) * NANOSECONDS_PER_HOUR
-            + f64::from(offset_record.minute) * NANOSECONDS_PER_MINUTE
-            + f64::from(offset_record.second) * NANOSECONDS_PER_SECOND
-            + f64::from(offset_record.nanosecond);
+        let offset = f64::from(ixdtf_record.offset.hour) * NANOSECONDS_PER_HOUR
+            + f64::from(ixdtf_record.offset.minute) * NANOSECONDS_PER_MINUTE
+            + f64::from(ixdtf_record.offset.second) * NANOSECONDS_PER_SECOND
+            + f64::from(ixdtf_record.offset.nanosecond);
 
         let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time).as_nanoseconds(offset);
 
