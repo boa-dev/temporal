@@ -26,6 +26,31 @@ pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
 
+/// A `PartialDuration` is a Duration that may have fields not set.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+pub struct PartialDuration {
+    /// A potentially existent `years` field.
+    pub years: Option<FiniteF64>,
+    /// A potentially existent `months` field.
+    pub months: Option<FiniteF64>,
+    /// A potentially existent `weeks` field.
+    pub weeks: Option<FiniteF64>,
+    /// A potentially existent `days` field.
+    pub days: Option<FiniteF64>,
+    /// A potentially existent `hours` field.
+    pub hours: Option<FiniteF64>,
+    /// A potentially existent `minutes` field.
+    pub minutes: Option<FiniteF64>,
+    /// A potentially existent `seconds` field.
+    pub seconds: Option<FiniteF64>,
+    /// A potentially existent `milliseconds` field.
+    pub milliseconds: Option<FiniteF64>,
+    /// A potentially existent `microseconds` field.
+    pub microseconds: Option<FiniteF64>,
+    /// A potentially existent `nanoseconds` field.
+    pub nanoseconds: Option<FiniteF64>,
+}
+
 /// The native Rust implementation of `Temporal.Duration`.
 ///
 /// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
@@ -171,6 +196,26 @@ impl Duration {
             ),
             time: *time,
         }
+    }
+
+    /// Creates a `Duration` from a provided `PartialDuration`.
+    pub fn from_partial_duration(partial: PartialDuration) -> TemporalResult<Self> {
+        if partial == PartialDuration::default() {
+            return Err(TemporalError::r#type()
+                .with_message("PartialDuration cannot have all empty fields."));
+        }
+        Self::new(
+            partial.years.unwrap_or_default(),
+            partial.months.unwrap_or_default(),
+            partial.weeks.unwrap_or_default(),
+            partial.days.unwrap_or_default(),
+            partial.hours.unwrap_or_default(),
+            partial.minutes.unwrap_or_default(),
+            partial.seconds.unwrap_or_default(),
+            partial.milliseconds.unwrap_or_default(),
+            partial.microseconds.unwrap_or_default(),
+            partial.nanoseconds.unwrap_or_default(),
+        )
     }
 
     /// Return if the Durations values are within their valid ranges.

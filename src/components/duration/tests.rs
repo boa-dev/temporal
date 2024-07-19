@@ -658,3 +658,17 @@ fn basic_subtract_duration() {
     assert_eq!(result.days(), 6.0);
     assert_eq!(result.minutes(), 30.0);
 }
+
+#[test]
+fn partial_duration_empty() {
+    let err = Duration::from_partial_duration(PartialDuration::default());
+    assert!(err.is_err())
+}
+
+#[test]
+fn partial_duration_values() {
+    let mut partial = PartialDuration::default();
+    let _ = partial.years.insert(FiniteF64(20.0));
+    let result = Duration::from_partial_duration(partial).unwrap();
+    assert_eq!(result.years(), 20.0);
+}
