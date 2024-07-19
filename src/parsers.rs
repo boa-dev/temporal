@@ -88,7 +88,13 @@ pub(crate) struct IxdtfParseInstantRecord {
 pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseInstantRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
-    let (Some(date), Some(time), Some(offset)) = (record.date, record.time, record.offset) else {
+    let IxdtfParseRecord {
+        date: Some(date),
+        time: Some(time),
+        offset: Some(offset),
+        ..
+    } = record
+    else {
         return Err(
             TemporalError::range().with_message("Required fields missing from Instant string.")
         );
