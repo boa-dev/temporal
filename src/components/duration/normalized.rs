@@ -49,6 +49,16 @@ impl NormalizedTimeDuration {
         Self(nanoseconds)
     }
 
+    /// Equivalent to 7.5.27 NormalizedTimeDurationFromEpochNanosecondsDifference ( one, two )
+    pub(crate) fn from_nanosecond_difference(one: i128, two: i128) -> TemporalResult<Self> {
+        let result = one - two;
+        if result.abs() > MAX_TIME_DURATION {
+            return Err(TemporalError::range()
+                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+        }
+        Ok(Self(result))
+    }
+
     // NOTE: `days: f64` should be an integer -> `i64`.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     #[allow(unused)]

@@ -1,6 +1,5 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
-use num_bigint::BigInt;
 use tinystr::TinyStr4;
 
 use crate::{
@@ -51,7 +50,7 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn new(nanos: BigInt, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
+    pub fn new(nanos: i128, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
         let instant = Instant::new(nanos)?;
         Ok(Self::new_unchecked(instant, calendar, tz))
     }
@@ -162,16 +161,15 @@ mod tests {
     use std::str::FromStr;
 
     use crate::components::{calendar::Calendar, tz::TimeZone};
-    use num_bigint::BigInt;
 
     use super::ZonedDateTime;
 
     #[test]
     fn basic_zdt_test() {
-        let nov_30_2023_utc = BigInt::from(1_701_308_952_000_000_000i64);
+        let nov_30_2023_utc = 1_701_308_952_000_000_000i128;
 
         let zdt = ZonedDateTime::new(
-            nov_30_2023_utc.clone(),
+            nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
             TimeZone {
                 iana: None,

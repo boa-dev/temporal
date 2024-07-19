@@ -3,7 +3,7 @@
 use crate::{TemporalError, TemporalResult, TemporalUnwrap};
 
 use ixdtf::parsers::{
-    records::{Annotation, IxdtfParseRecord, TimeRecord},
+    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UTCOffsetRecord},
     IxdtfParser,
 };
 
@@ -72,26 +72,39 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
 }
 
 /// A utility function for parsing a `DateTime` string
+#[inline]
 pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
     parse_ixdtf(source, ParseVariant::DateTime)
 }
 
+pub(crate) struct IxdtfParseInstantRecord {
+    pub(crate) date: DateRecord,
+    pub(crate) time: TimeRecord,
+    pub(crate) offset: UTCOffsetRecord,
+}
+
 /// A utility function for parsing an `Instant` string
-#[allow(unused)]
-pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseRecord> {
+#[inline]
+pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseInstantRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
-    // Validate required fields on an Instant value
-    if record.time.is_none() || record.date.is_none() || record.offset.is_none() {
+    let IxdtfParseRecord {
+        date: Some(date),
+        time: Some(time),
+        offset: Some(offset),
+        ..
+    } = record
+    else {
         return Err(
             TemporalError::range().with_message("Required fields missing from Instant string.")
         );
-    }
+    };
 
-    Ok(record)
+    Ok(IxdtfParseInstantRecord { date, time, offset })
 }
 
 /// A utility function for parsing a `YearMonth` string
+#[inline]
 pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
@@ -109,6 +122,7 @@ pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord>
 }
 
 /// A utilty function for parsing a `MonthDay` String.
+#[inline]
 pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
 
@@ -125,6 +139,7 @@ pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> 
     }
 }
 
+#[inline]
 pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
     let time_record = IxdtfParser::new(source).parse_time();
 
@@ -142,4 +157,4 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
     }
 }
 
-// TODO: ParseTemporalTimeString, ParseTimeZoneString, ParseZonedDateTimeString
+// TODO: ParseTimeZoneString, ParseZonedDateTimeString

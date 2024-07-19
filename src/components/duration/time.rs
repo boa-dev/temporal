@@ -23,7 +23,7 @@ use num_traits::{Euclid, FromPrimitive, MulAdd};
 /// [spec]: https://tc39.es/proposal-temporal/#sec-temporal-time-duration-records
 /// [field spec]: https://tc39.es/proposal-temporal/#sec-properties-of-temporal-duration-instances
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct TimeDuration {
     /// `TimeDuration`'s internal hour value.
     pub hours: f64,
