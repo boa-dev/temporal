@@ -279,8 +279,9 @@ impl FromStr for Instant {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ixdtf_record = parse_instant(s)?;
 
-        // NOTE: parse_instant rejects on missing required fields. So the below
-        // `temporal_unwraps` MUST be present.
+        // NOTE: parse_instant requires the DateRecord, TimeRecord, and OffsetRecord
+        // to be present. So the below `temporal_unwraps` are on fields that
+        // have already been proven as present.
 
         // Find the IsoDate
         let date = ixdtf_record.date.temporal_unwrap()?;

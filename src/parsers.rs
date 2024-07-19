@@ -72,12 +72,13 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
 }
 
 /// A utility function for parsing a `DateTime` string
+#[inline]
 pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
     parse_ixdtf(source, ParseVariant::DateTime)
 }
 
 /// A utility function for parsing an `Instant` string
-#[allow(unused)]
+#[inline]
 pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
@@ -92,6 +93,7 @@ pub(crate) fn parse_instant(source: &str) -> TemporalResult<IxdtfParseRecord> {
 }
 
 /// A utility function for parsing a `YearMonth` string
+#[inline]
 pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
@@ -109,6 +111,7 @@ pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord>
 }
 
 /// A utilty function for parsing a `MonthDay` String.
+#[inline]
 pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
 
@@ -125,6 +128,7 @@ pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> 
     }
 }
 
+#[inline]
 pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
     let time_record = IxdtfParser::new(source).parse_time();
 
