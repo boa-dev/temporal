@@ -10,7 +10,7 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
-    fields::{FieldKey, TemporalFields},
+    fields::{TemporalFieldKey, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalResult,
@@ -620,7 +620,10 @@ impl Calendar {
     }
 
     /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(&self, _keys: &[FieldKey]) -> TemporalResult<Vec<FieldKey>> {
+    pub fn field_keys_to_ignore(
+        &self,
+        _keys: &[TemporalFieldKey],
+    ) -> TemporalResult<Vec<TemporalFieldKey>> {
         // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
         Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
     }
