@@ -49,6 +49,20 @@ impl MonthDay {
         self.iso.day
     }
 
+    // returns the `month` value of `MonthDay`.
+    #[inline]
+    #[must_use]
+    pub fn month(&self) -> u8 {
+        self.iso.month
+    }
+
+    /// Returns the string identifier for the current calendar used.
+    #[inline]
+    #[must_use]
+    pub fn calendar_id(&self) -> String {
+        self.calendar.identifier()
+    }
+
     /// Returns a reference to `MonthDay`'s `CalendarSlot`
     #[inline]
     #[must_use]
