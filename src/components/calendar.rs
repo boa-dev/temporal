@@ -10,9 +10,10 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
+    fields::{FieldKey, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
-    TemporalError, TemporalFields, TemporalResult,
+    TemporalError, TemporalResult,
 };
 
 use icu_calendar::{
@@ -298,12 +299,16 @@ impl Calendar {
             );
         }
 
+        let era =
+            Era::from_str(&fields.era()).map_err(|e| TemporalError::general(format!("{e:?}")))?;
+        let month_code = MonthCode::from_str(&fields.month_code())
+            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
         // NOTE: This might preemptively throw as `ICU4X` does not support constraining.
         // Resolve month and monthCode;
         let calendar_date = self.0.date_from_codes(
-            Era::from(fields.era()),
+            era,
             fields.year().unwrap_or(0),
-            MonthCode(fields.month_code()),
+            month_code,
             fields.day().unwrap_or(0) as u8,
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
@@ -354,11 +359,15 @@ impl Calendar {
             );
         }
 
+        let era =
+            Era::from_str(&fields.era()).map_err(|e| TemporalError::general(format!("{e:?}")))?;
+        let month_code = MonthCode::from_str(&fields.month_code())
+            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
         let calendar_date = self.0.date_from_codes(
-            Era::from(fields.era()),
+            era,
             fields.year().unwrap_or(0),
-            MonthCode(fields.month_code()),
+            month_code,
             fields.day().unwrap_or(1) as u8,
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
@@ -604,7 +613,7 @@ impl Calendar {
     }
 
     /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(&self, _keys: &[String]) -> TemporalResult<Vec<String>> {
+    pub fn field_keys_to_ignore(&self, _keys: &[FieldKey]) -> TemporalResult<Vec<FieldKey>> {
         // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
         Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
     }
