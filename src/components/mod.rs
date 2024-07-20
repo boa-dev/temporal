@@ -42,5 +42,6 @@ pub use month_day::MonthDay;
 pub use time::Time;
 #[doc(inline)]
 pub use year_month::YearMonth;
+pub use year_month::YearMonthFields;
 #[doc(inline)]
 pub use zoneddatetime::ZonedDateTime;

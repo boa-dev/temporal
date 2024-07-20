@@ -6,11 +6,10 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     components::calendar::Calendar,
-    fields::FieldMap,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
     utils::{self, pad_iso_year},
-    TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{
@@ -19,7 +18,7 @@ use super::{
 };
 
 // Subset of `TemporalFields` representing just the  `YearMonthFields`
-pub struct YearMonthFields(i32, u8);
+pub struct YearMonthFields(pub i32, pub u8);
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -116,37 +115,32 @@ impl YearMonth {
 
     pub fn add_duration(
         &self,
-        duration: Duration,
+        duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
-        self.add_or_subtract_duration(true, duration, overflow)
+        self.add_or_subtract_duration(duration, overflow)
     }
 
     pub fn subtract_duration(
         &self,
-        duration: Duration,
+        duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
-        self.add_or_subtract_duration(false, duration, overflow)
+        self.add_or_subtract_duration(&duration.negated(), overflow)
     }
 
     pub(crate) fn add_or_subtract_duration(
         &self,
-        addition: bool,
-        mut duration: Duration,
+        duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
-        if !addition {
-            duration = duration.negated()
-        }
-
         let mut fields = YearMonthFields(self.iso_date().year, self.iso_date().month).into();
 
         let mut intermediate_date = self
             .get_calendar()
             .date_from_fields(&mut fields, overflow)?;
 
-        intermediate_date = intermediate_date.add_date(&duration, Some(overflow))?;
+        intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
 
         let mut result_fields =
             YearMonthFields(intermediate_date.iso_year(), intermediate_date.iso_month()).into();
@@ -188,17 +182,5 @@ impl FromStr for YearMonth {
             Calendar::from_str(calendar)?,
             ArithmeticOverflow::Reject,
         )
-    }
-}
-
-// Conversion to `TemporalFields`
-impl From<YearMonthFields> for TemporalFields {
-    fn from(value: YearMonthFields) -> Self {
-        TemporalFields {
-            bit_map: FieldMap::YEAR | FieldMap::MONTH,
-            year: Some(value.0),
-            month: Some(value.1.into()),
-            ..Default::default()
-        }
     }
 }
