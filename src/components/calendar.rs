@@ -10,9 +10,10 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
+    fields::{TemporalFieldKey, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
-    TemporalError, TemporalFields, TemporalResult,
+    TemporalError, TemporalResult,
 };
 
 use icu_calendar::{
@@ -290,21 +291,28 @@ impl Calendar {
             // Resolve month and monthCode;
             fields.iso_resolve_month()?;
             return Date::new(
-                fields.year().unwrap_or(0),
-                fields.month().unwrap_or(0),
-                fields.day().unwrap_or(0),
+                fields.year.unwrap_or(0),
+                fields.month.unwrap_or(0),
+                fields.day.unwrap_or(0),
                 self.clone(),
                 overflow,
             );
         }
 
+        let era = Era::from_str(&fields.era.map_or(String::default(), |s| s.to_string()))
+            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
+        let month_code = MonthCode(
+            fields
+                .month_code
+                .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
+        );
         // NOTE: This might preemptively throw as `ICU4X` does not support constraining.
         // Resolve month and monthCode;
         let calendar_date = self.0.date_from_codes(
-            Era::from(fields.era()),
-            fields.year().unwrap_or(0),
-            MonthCode(fields.month_code()),
-            fields.day().unwrap_or(0) as u8,
+            era,
+            fields.year.unwrap_or(0),
+            month_code,
+            fields.day.unwrap_or(0) as u8,
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         Date::new(
@@ -325,8 +333,8 @@ impl Calendar {
         if self.is_iso() {
             fields.iso_resolve_month()?;
             return MonthDay::new(
-                fields.month().unwrap_or(0),
-                fields.day().unwrap_or(0),
+                fields.month.unwrap_or(0),
+                fields.day.unwrap_or(0),
                 self.clone(),
                 overflow,
             );
@@ -346,20 +354,28 @@ impl Calendar {
         if self.is_iso() {
             fields.iso_resolve_month()?;
             return YearMonth::new(
-                fields.year().unwrap_or(0),
-                fields.month().unwrap_or(0),
-                fields.day(),
+                fields.year.unwrap_or(0),
+                fields.month.unwrap_or(0),
+                fields.day,
                 self.clone(),
                 overflow,
             );
         }
 
+        let era = Era::from_str(&fields.era.map_or(String::default(), |s| s.to_string()))
+            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
+        let month_code = MonthCode(
+            fields
+                .month_code
+                .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
+        );
+
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
         let calendar_date = self.0.date_from_codes(
-            Era::from(fields.era()),
-            fields.year().unwrap_or(0),
-            MonthCode(fields.month_code()),
-            fields.day().unwrap_or(1) as u8,
+            era,
+            fields.year.unwrap_or(0),
+            month_code,
+            fields.day.unwrap_or(1) as u8,
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         YearMonth::new(
@@ -604,7 +620,10 @@ impl Calendar {
     }
 
     /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(&self, _keys: &[String]) -> TemporalResult<Vec<String>> {
+    pub fn field_keys_to_ignore(
+        &self,
+        _keys: &[TemporalFieldKey],
+    ) -> TemporalResult<Vec<TemporalFieldKey>> {
         // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
         Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
     }
