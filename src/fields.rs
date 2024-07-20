@@ -1,25 +1,83 @@
 //! This module implements a native Rust `TemporalField` and components.
 
-use std::{collections::hash_map::Keys, str::FromStr};
+use core::fmt;
+use std::str::FromStr;
 
 use crate::{components::calendar::Calendar, error::TemporalError, iso::IsoDate, TemporalResult};
 
-use rustc_hash::FxHashMap;
+use bitflags::bitflags;
+use tinystr::TinyAsciiStr;
+
 // use rustc_hash::FxHashSet;
+bitflags! {
+    /// FieldMap maps the currently active fields on the `TemporalField`
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+    pub struct FieldMap: u16 {
+        /// Represents an active `year` field
+        const YEAR = 0b0000_0000_0000_0001;
+        /// Represents an active `month` field
+        const MONTH = 0b0000_0000_0000_0010;
+        /// Represents an active `monthCode` field
+        const MONTH_CODE = 0b0000_0000_0000_0100;
+        /// Represents an active `day` field
+        const DAY = 0b0000_0000_0000_1000;
+        /// Represents an active `hour` field
+        const HOUR = 0b0000_0000_0001_0000;
+        /// Represents an active `minute` field
+        const MINUTE = 0b0000_0000_0010_0000;
+        /// Represents an active `second` field
+        const SECOND = 0b0000_0000_0100_0000;
+        /// Represents an active `millisecond` field
+        const MILLISECOND = 0b0000_0000_1000_0000;
+        /// Represents an active `microsecond` field
+        const MICROSECOND = 0b0000_0001_0000_0000;
+        /// Represents an active `nanosecond` field
+        const NANOSECOND = 0b0000_0010_0000_0000;
+        /// Represents an active `offset` field
+        const OFFSET = 0b0000_0100_0000_0000;
+        /// Represents an active `era` field
+        const ERA = 0b0000_1000_0000_0000;
+        /// Represents an active `eraYear` field
+        const ERA_YEAR = 0b0001_0000_0000_0000;
+        /// Represents an active `timeZone` field
+        const TIME_ZONE = 0b0010_0000_0000_0000;
+        // NOTE(nekevss): Two bits preserved if needed.
+    }
+}
+
+impl From<FieldKey> for FieldMap {
+    fn from(value: FieldKey) -> Self {
+        match value {
+            FieldKey::Year => FieldMap::YEAR,
+            FieldKey::Month => FieldMap::MONTH,
+            FieldKey::MonthCode => FieldMap::MONTH_CODE,
+            FieldKey::Day => FieldMap::DAY,
+            FieldKey::Hour => FieldMap::HOUR,
+            FieldKey::Minute => FieldMap::MINUTE,
+            FieldKey::Second => FieldMap::SECOND,
+            FieldKey::Millisecond => FieldMap::MILLISECOND,
+            FieldKey::Microsecond => FieldMap::MICROSECOND,
+            FieldKey::Nanosecond => FieldMap::NANOSECOND,
+            FieldKey::Offset => FieldMap::OFFSET,
+            FieldKey::Era => FieldMap::ERA,
+            FieldKey::EraYear => FieldMap::ERA_YEAR,
+            FieldKey::TimeZone => FieldMap::TIME_ZONE,
+        }
+    }
+}
 
 /// The post conversion field value.
 #[derive(Debug, Clone)]
-#[allow(variant_size_differences)]
 pub enum FieldValue {
     /// Designates the values as an integer.
-    Integer(i32),
+    Integer(Option<i32>),
     /// Designates the value as a string.
     String(String),
 }
 
 impl From<i32> for FieldValue {
     fn from(value: i32) -> Self {
-        FieldValue::Integer(value)
+        Self::Integer(Some(value))
     }
 }
 
@@ -51,7 +109,7 @@ impl FromStr for FieldConversion {
     }
 }
 
-#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKey {
     Year,
     Month,
@@ -69,23 +127,25 @@ pub enum FieldKey {
     TimeZone,
 }
 
-impl FieldKey {
-    fn default_value(&self) -> Option<FieldValue> {
-        match self {
-            Self::Year => None,
-            Self::Month => None,
-            Self::MonthCode => None,
-            Self::Day => None,
-            Self::Hour => Some(FieldValue::Integer(0)),
-            Self::Minute => Some(FieldValue::Integer(0)),
-            Self::Second => Some(FieldValue::Integer(0)),
-            Self::Millisecond => Some(FieldValue::Integer(0)),
-            Self::Microsecond => Some(FieldValue::Integer(0)),
-            Self::Nanosecond => Some(FieldValue::Integer(0)),
-            Self::Offset => None,
-            Self::Era => None,
-            Self::EraYear => None,
-            Self::TimeZone => None,
+impl TryFrom<FieldMap> for FieldKey {
+    type Error = TemporalError;
+    fn try_from(value: FieldMap) -> Result<Self, Self::Error> {
+        match value {
+            FieldMap::YEAR => Ok(FieldKey::Year),
+            FieldMap::MONTH => Ok(FieldKey::Month),
+            FieldMap::MONTH_CODE => Ok(FieldKey::MonthCode),
+            FieldMap::DAY => Ok(FieldKey::Day),
+            FieldMap::HOUR => Ok(FieldKey::Hour),
+            FieldMap::MINUTE => Ok(FieldKey::Minute),
+            FieldMap::SECOND => Ok(FieldKey::Second),
+            FieldMap::MILLISECOND => Ok(FieldKey::Millisecond),
+            FieldMap::MICROSECOND => Ok(FieldKey::Microsecond),
+            FieldMap::NANOSECOND => Ok(FieldKey::Nanosecond),
+            FieldMap::OFFSET => Ok(FieldKey::Offset),
+            FieldMap::ERA => Ok(FieldKey::Era),
+            FieldMap::ERA_YEAR => Ok(FieldKey::EraYear),
+            FieldMap::TIME_ZONE => Ok(FieldKey::TimeZone),
+            _ => Err(TemporalError::range().with_message("Invalid FieldMap bit value.")),
         }
     }
 }
@@ -140,89 +200,225 @@ impl FromStr for FieldKey {
 /// | "timeZone"   |              `None`               | undefined  |
 #[derive(Debug, Default, Clone)]
 pub struct TemporalFields {
-    properties: FxHashMap<FieldKey, FieldValue>,
+    bit_map: FieldMap,
+    pub(crate) year: Option<i32>,
+    pub(crate) month: Option<i32>,
+    pub(crate) month_code: Option<TinyAsciiStr<4>>,
+    pub(crate) day: Option<i32>,
+    hour: i32,
+    minute: i32,
+    second: i32,
+    millisecond: i32,
+    microsecond: i32,
+    nanosecond: i32,
+    offset: Option<TinyAsciiStr<16>>,
+    pub(crate) era: Option<TinyAsciiStr<16>>,
+    era_year: Option<i32>,
+    time_zone: Option<TinyAsciiStr<32>>,
 }
 
 impl TemporalFields {
-    pub fn keys(&self) -> Keys<'_, FieldKey, FieldValue> {
-        self.properties.keys()
+    pub fn keys(&self) -> TemporalFieldsKeys {
+        TemporalFieldsKeys {
+            iter: self.bit_map.iter(),
+        }
     }
 
-    /// Get the value of the provided `FieldKey`
-    pub fn get(&self, key: &FieldKey) -> Option<&FieldValue> {
-        self.properties.get(key)
+    pub fn values(&self) -> Values {
+        Values {
+            fields: self,
+            iter: self.bit_map.iter(),
+        }
     }
 
-    /// Sets the provided FieldKey value to it's default
-    pub fn set_default(&mut self, key: FieldKey) {
-        if let Some(value) = key.default_value() {
-            let _ = self.properties.insert(key, value);
+    pub fn get(&self, key: FieldKey) -> Option<FieldValue> {
+        if !self.bit_map.contains(key.into()) {
+            return None;
+        }
+
+        match key {
+            FieldKey::Year => Some(FieldValue::Integer(self.year)),
+            FieldKey::Month => Some(FieldValue::Integer(self.month)),
+            FieldKey::MonthCode => Some(FieldValue::String(
+                self.month_code.map_or(String::default(), |s| s.to_string()),
+            )),
+            FieldKey::Day => Some(FieldValue::Integer(self.day)),
+            FieldKey::Hour => Some(FieldValue::from(self.hour)),
+            FieldKey::Minute => Some(FieldValue::from(self.minute)),
+            FieldKey::Second => Some(FieldValue::from(self.second)),
+            FieldKey::Millisecond => Some(FieldValue::from(self.millisecond)),
+            FieldKey::Microsecond => Some(FieldValue::from(self.microsecond)),
+            FieldKey::Nanosecond => Some(FieldValue::from(self.nanosecond)),
+            FieldKey::Offset => Some(FieldValue::String(
+                self.offset.map_or(String::default(), |s| s.to_string()),
+            )),
+            FieldKey::Era => Some(FieldValue::String(
+                self.era.map_or(String::default(), |s| s.to_string()),
+            )),
+            FieldKey::EraYear => Some(FieldValue::Integer(self.era_year)),
+            FieldKey::TimeZone => Some(FieldValue::String(
+                self.time_zone.map_or(String::default(), |s| s.to_string()),
+            )),
         }
     }
 
     /// Validate and insert a key-value pair.
-    pub fn insert(
-        &mut self,
-        key: FieldKey,
-        value: FieldValue,
-    ) -> TemporalResult<Option<FieldValue>> {
+    pub fn insert(&mut self, key: FieldKey, value: FieldValue) -> TemporalResult<()> {
         match key {
-            FieldKey::Year
-            | FieldKey::Month
-            | FieldKey::Day
-            | FieldKey::Hour
-            | FieldKey::Minute
-            | FieldKey::Second
-            | FieldKey::Millisecond
-            | FieldKey::Microsecond
-            | FieldKey::Nanosecond
-            | FieldKey::EraYear => {
-                if !matches!(value, FieldValue::Integer(_)) {
-                    return Err(TemporalError::r#type().with_message("Invalid Field type."));
-                }
-                Ok(self.properties.insert(key, value))
+            FieldKey::Year => {
+                let FieldValue::Integer(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.year = value;
             }
-            FieldKey::MonthCode | FieldKey::Offset | FieldKey::TimeZone | FieldKey::Era => {
-                if !matches!(value, FieldValue::String(_)) {
-                    return Err(TemporalError::r#type().with_message("Invalid Field type."));
-                }
-                Ok(self.properties.insert(key, value))
+            FieldKey::Month => {
+                let FieldValue::Integer(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.month = value;
+            }
+            FieldKey::MonthCode => {
+                let FieldValue::String(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.month_code = Some(
+                    TinyAsciiStr::<4>::from_str(&value)
+                        .map_err(|_| TemporalError::general("Invalid MonthCode id."))?,
+                );
+            }
+            FieldKey::Day => {
+                let FieldValue::Integer(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.day = value;
+            }
+            FieldKey::Hour => {
+                let FieldValue::Integer(Some(value)) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.hour = value;
+            }
+            FieldKey::Minute => {
+                let FieldValue::Integer(Some(value)) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.minute = value;
+            }
+            FieldKey::Second => {
+                let FieldValue::Integer(Some(value)) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.second = value;
+            }
+            FieldKey::Millisecond => {
+                let FieldValue::Integer(Some(value)) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.millisecond = value;
+            }
+            FieldKey::Microsecond => {
+                let FieldValue::Integer(Some(value)) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.microsecond = value;
+            }
+            FieldKey::Nanosecond => {
+                let FieldValue::Integer(Some(value)) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.nanosecond = value;
+            }
+            FieldKey::Offset => {
+                let FieldValue::String(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.offset = Some(
+                    TinyAsciiStr::<16>::from_str(&value)
+                        .map_err(|_| TemporalError::general("Invalid offset string."))?,
+                );
+            }
+            FieldKey::Era => {
+                let FieldValue::String(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.era = Some(
+                    TinyAsciiStr::<16>::from_str(&value)
+                        .map_err(|_| TemporalError::general("Invalid era identifier."))?,
+                );
+            }
+            FieldKey::EraYear => {
+                let FieldValue::Integer(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.day = value;
+            }
+            FieldKey::TimeZone => {
+                let FieldValue::String(value) = value else {
+                    return Err(
+                        TemporalError::r#type().with_message("Invalid type for temporal field.")
+                    );
+                };
+                self.time_zone = Some(
+                    TinyAsciiStr::<32>::from_str(&value)
+                        .map_err(|_| TemporalError::general("Invalid Time Zone identifier."))?,
+                );
             }
         }
+
+        // Set the field as active and exit.
+        self.bit_map.set(key.into(), true);
+        Ok(())
     }
 
     /// Resolve `TemporalFields` month and monthCode fields.
     pub(crate) fn iso_resolve_month(&mut self) -> TemporalResult<()> {
-        let Some(mc) = self.properties.get(&FieldKey::MonthCode) else {
-            let result = match self.properties.get(&FieldKey::Month) {
-                Some(_) => Ok(()),
-                None => Err(TemporalError::range()
-                    .with_message("month and MonthCode values cannot both be undefined.")),
+        let Some(mc) = self.month_code else {
+            match self.month {
+                Some(_) => return Ok(()),
+                None => {
+                    return Err(TemporalError::range()
+                        .with_message("month and MonthCode values cannot both be undefined."))
+                }
             };
-
-            return result;
-        };
-
-        let FieldValue::String(unresolved_month_code) = mc else {
-            return Err(TemporalError::assert());
         };
 
         // MonthCode is present and needs to be resolved.
 
-        let month_code_integer = month_code_to_integer(unresolved_month_code)?;
+        let month_code_integer = month_code_to_integer(&mc)?;
 
-        let new_month = match self.properties.get(&FieldKey::Month) {
-            Some(&FieldValue::Integer(month)) if month != month_code_integer => {
-                return Err(
-                    TemporalError::range().with_message("month and monthCode cannot be resolved.")
-                )
-            }
-            _ => month_code_integer,
-        };
+        if self.month.is_some() && self.month != Some(month_code_integer) {
+            return Err(
+                TemporalError::range().with_message("month and monthCode cannot be resolved.")
+            );
+        }
 
-        let _ = self
-            .properties
-            .insert(FieldKey::Month, FieldValue::Integer(new_month));
+        self.insert(FieldKey::Month, FieldValue::from(month_code_integer))?;
 
         Ok(())
     }
@@ -230,76 +426,116 @@ impl TemporalFields {
     // TODO: Determine if this should be moved to `Calendar`.
     /// Merges two `TemporalFields` depending on the calendar.
     pub fn merge_fields(&self, other: &Self, calendar: Calendar) -> TemporalResult<Self> {
-        let add_keys = other.keys().copied().collect::<Vec<_>>();
+        let add_keys = other.keys().collect::<Vec<_>>();
         let overridden_keys = calendar.field_keys_to_ignore(&add_keys)?;
 
         let mut result = Self::default();
 
         for key in self.keys() {
-            let value = if overridden_keys.contains(key) {
+            let value = if overridden_keys.contains(&key) {
                 other.get(key)
             } else {
                 self.get(key)
             };
 
-            if let Some(value) = value {
-                result.insert(*key, value.clone())?;
-            }
+            let Some(value) = value else {
+                return Err(TemporalError::general(
+                    "Nonexistent FieldKey used when merging fields.",
+                ));
+            };
+
+            result.insert(key, value)?;
         }
 
         Ok(result)
     }
 }
 
-impl TemporalFields {
-    pub fn year(&self) -> Option<i32> {
-        let Some(FieldValue::Integer(i)) = self.get(&FieldKey::Year) else {
-            return None;
-        };
-        Some(*i)
-    }
-
-    pub fn month(&self) -> Option<i32> {
-        let Some(FieldValue::Integer(i)) = self.get(&FieldKey::Month) else {
-            return None;
-        };
-        Some(*i)
-    }
-
-    pub fn month_code(&self) -> String {
-        let Some(FieldValue::String(mc)) = self.get(&FieldKey::MonthCode) else {
-            return String::default();
-        };
-        mc.clone()
-    }
-
-    pub fn day(&self) -> Option<i32> {
-        let Some(FieldValue::Integer(i)) = self.get(&FieldKey::Day) else {
-            return None;
-        };
-        Some(*i)
-    }
-
-    pub fn era(&self) -> String {
-        let Some(FieldValue::String(era)) = self.get(&FieldKey::Era) else {
-            return String::default();
-        };
-        era.clone()
-    }
-}
-
 impl From<IsoDate> for TemporalFields {
     fn from(value: IsoDate) -> Self {
-        let mut fields = Self::default();
-        let _ = fields.insert(FieldKey::Year, FieldValue::Integer(value.year));
-        let _ = fields.insert(FieldKey::Month, FieldValue::Integer(value.month.into()));
-        let _ = fields.insert(FieldKey::Day, FieldValue::Integer(value.day.into()));
-        fields
+        Self {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH | FieldMap::DAY,
+            year: Some(value.year),
+            month: Some(value.month.into()),
+            day: Some(value.day.into()),
+            ..Default::default()
+        }
     }
 }
 
-fn month_code_to_integer(mc: &str) -> TemporalResult<i32> {
-    match mc {
+/// Iterator over `TemporalFields` keys.
+pub struct TemporalFieldsKeys {
+    iter: bitflags::iter::Iter<FieldMap>,
+}
+
+impl fmt::Debug for TemporalFieldsKeys {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TemporalFields KeyIterator")
+    }
+}
+
+impl Iterator for TemporalFieldsKeys {
+    type Item = FieldKey;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()?.try_into().ok()
+    }
+}
+
+/// An iterator over `TemporalFields`'s values.
+pub struct Values<'a> {
+    fields: &'a TemporalFields,
+    iter: bitflags::iter::Iter<FieldMap>,
+}
+
+impl fmt::Debug for Values<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "TemporalFields Values Iterator")
+    }
+}
+
+impl Iterator for Values<'_> {
+    type Item = FieldValue;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let field = self.iter.next()?;
+
+        match field {
+            FieldMap::YEAR => Some(FieldValue::Integer(self.fields.year)),
+            FieldMap::MONTH => Some(FieldValue::Integer(self.fields.month)),
+            FieldMap::MONTH_CODE => Some(FieldValue::String(
+                self.fields
+                    .month_code
+                    .map_or(String::default(), |s| s.to_string()),
+            )),
+            FieldMap::DAY => Some(FieldValue::Integer(self.fields.day)),
+            FieldMap::HOUR => Some(FieldValue::from(self.fields.hour)),
+            FieldMap::MINUTE => Some(FieldValue::from(self.fields.minute)),
+            FieldMap::SECOND => Some(FieldValue::from(self.fields.second)),
+            FieldMap::MILLISECOND => Some(FieldValue::from(self.fields.millisecond)),
+            FieldMap::MICROSECOND => Some(FieldValue::from(self.fields.microsecond)),
+            FieldMap::NANOSECOND => Some(FieldValue::from(self.fields.nanosecond)),
+            FieldMap::OFFSET => Some(FieldValue::String(
+                self.fields
+                    .offset
+                    .map_or(String::default(), |s| s.to_string()),
+            )),
+            FieldMap::ERA => Some(FieldValue::String(
+                self.fields.era.map_or(String::default(), |s| s.to_string()),
+            )),
+            FieldMap::ERA_YEAR => Some(FieldValue::Integer(self.fields.era_year)),
+            FieldMap::TIME_ZONE => Some(FieldValue::String(
+                self.fields
+                    .time_zone
+                    .map_or(String::default(), |s| s.to_string()),
+            )),
+            _ => None,
+        }
+    }
+}
+
+fn month_code_to_integer(mc: &TinyAsciiStr<4>) -> TemporalResult<i32> {
+    match mc.as_str() {
         "M01" => Ok(1),
         "M02" => Ok(2),
         "M03" => Ok(3),
