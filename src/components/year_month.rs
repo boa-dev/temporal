@@ -9,7 +9,8 @@ use crate::{
     fields::FieldMap,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    utils, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
+    utils::{self, pad_iso_year},
+    TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 
 use super::{
@@ -57,6 +58,13 @@ impl YearMonth {
         self.iso.year
     }
 
+    /// Returns the padded ISO year string
+    #[inline]
+    #[must_use]
+    pub fn padded_iso_year_string(&self) -> String {
+        pad_iso_year(self.iso.year)
+    }
+
     /// Returns the `month` value for this `YearMonth`.
     #[inline]
     #[must_use]
@@ -97,6 +105,13 @@ impl YearMonth {
     #[must_use]
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
+    }
+
+    /// Returns the string identifier for the current calendar used.
+    #[inline]
+    #[must_use]
+    pub fn calendar_id(&self) -> String {
+        self.calendar.identifier()
     }
 
     pub fn add_duration(
