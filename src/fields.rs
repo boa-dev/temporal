@@ -237,6 +237,12 @@ impl TemporalFields {
         }
     }
 
+    /// Sets a field as active. This will require the field's default value to be used if the field is not yet set.
+    #[inline]
+    pub fn activate_field(&mut self, key: FieldKey) {
+        self.bit_map.set(key.into(), true);
+    }
+
     /// Gets the value of a `FieldKey` if the field has been set to active. If the field
     /// has not been set, then return `None`.
     #[inline]
