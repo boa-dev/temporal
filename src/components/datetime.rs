@@ -531,7 +531,7 @@ mod tests {
         components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
         options::{DifferenceSettings, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
-        utils::FiniteF64,
+        primitive::FiniteF64,
     };
 
     use super::DateTime;

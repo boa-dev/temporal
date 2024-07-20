@@ -4,9 +4,8 @@ use crate::{
     components::{DateTime, Time},
     iso::{IsoDateTime, IsoTime},
     options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
-    temporal_assert,
-    utils::FiniteF64,
-    Sign, TemporalError, TemporalResult,
+    primitive::FiniteF64,
+    temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use num_traits::AsPrimitive;
@@ -795,16 +794,16 @@ impl FromStr for Duration {
         let sign = f64::from(parse_record.sign as i8);
 
         Self::new(
-            FiniteF64::from(years).unchecked_mul(sign),
-            FiniteF64::from(months).unchecked_mul(sign),
-            FiniteF64::from(weeks).unchecked_mul(sign),
-            FiniteF64::from(days).unchecked_mul(sign),
-            FiniteF64::try_from(hours)?.unchecked_mul(sign),
-            FiniteF64::try_from(minutes)?.unchecked_mul(sign),
-            FiniteF64::try_from(seconds)?.unchecked_mul(sign),
-            FiniteF64::try_from(millis)?.unchecked_mul(sign),
-            FiniteF64::try_from(micros)?.unchecked_mul(sign),
-            FiniteF64::try_from(nanos)?.unchecked_mul(sign),
+            FiniteF64::from(years).copysign(sign),
+            FiniteF64::from(months).copysign(sign),
+            FiniteF64::from(weeks).copysign(sign),
+            FiniteF64::from(days).copysign(sign),
+            FiniteF64::try_from(hours)?.copysign(sign),
+            FiniteF64::try_from(minutes)?.copysign(sign),
+            FiniteF64::try_from(seconds)?.copysign(sign),
+            FiniteF64::try_from(millis)?.copysign(sign),
+            FiniteF64::try_from(micros)?.copysign(sign),
+            FiniteF64::try_from(nanos)?.copysign(sign),
         )
     }
 }

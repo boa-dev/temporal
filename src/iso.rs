@@ -25,10 +25,9 @@ use crate::{
     },
     error::TemporalError,
     options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    temporal_assert,
-    utils::{self, FiniteF64},
-    TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    temporal_assert, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_bigint::BigInt;

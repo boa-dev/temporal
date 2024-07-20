@@ -4,10 +4,9 @@ use std::num::NonZeroU128;
 
 use crate::{
     options::{ResolvedRoundingOptions, TemporalUnit},
+    primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    temporal_assert,
-    utils::FiniteF64,
-    TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{
@@ -16,7 +15,7 @@ use super::{
     DateDuration,
 };
 
-use num_traits::{Euclid, FromPrimitive, MulAdd};
+use num_traits::{Euclid, FromPrimitive};
 
 /// `TimeDuration` represents the [Time Duration record][spec] of the `Duration.`
 ///
@@ -198,17 +197,16 @@ impl TimeDuration {
 
         // NOTE: days may have the potentially to exceed i64
         // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
-        let days = (days as i64).mul_add(sign.into(), 0);
+        let days = FiniteF64::try_from(days as f64)?.copysign(sign.into());
         let result = Self::new_unchecked(
-            FiniteF64::from((hours as i32).mul_add(sign, 0)),
-            FiniteF64::from((minutes as i32).mul_add(sign, 0)),
-            FiniteF64::from((seconds as i32).mul_add(sign, 0)),
-            FiniteF64::from((milliseconds as i32).mul_add(sign, 0)),
-            FiniteF64::from((microseconds as i32).mul_add(sign, 0)),
-            FiniteF64::from((nanoseconds as i32).mul_add(sign, 0)),
+            FiniteF64::try_from(hours)?.copysign(f64::from(sign)),
+            FiniteF64::try_from(minutes)?.copysign(f64::from(sign)),
+            FiniteF64::try_from(seconds)?.copysign(f64::from(sign)),
+            FiniteF64::try_from(milliseconds)?.copysign(f64::from(sign)),
+            FiniteF64::try_from(microseconds)?.copysign(f64::from(sign)),
+            FiniteF64::try_from(nanoseconds)?.copysign(f64::from(sign)),
         );
 
-        let days = FiniteF64::try_from(days as f64)?;
         if !is_valid_duration(
             FiniteF64::default(),
             FiniteF64::default(),

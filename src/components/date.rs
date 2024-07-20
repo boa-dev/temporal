@@ -14,7 +14,7 @@ use crate::{
         TemporalUnit,
     },
     parsers::parse_date_time,
-    utils::FiniteF64,
+    primitive::FiniteF64,
     Sign, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;

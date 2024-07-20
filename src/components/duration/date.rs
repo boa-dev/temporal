@@ -1,6 +1,6 @@
 //! Implementation of a `DateDuration`
 
-use crate::{utils::FiniteF64, Sign, TemporalError, TemporalResult};
+use crate::{primitive::FiniteF64, Sign, TemporalError, TemporalResult};
 
 /// `DateDuration` represents the [date duration record][spec] of the `Duration.`
 ///

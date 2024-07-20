@@ -10,8 +10,8 @@ use crate::{
         RoundingOptions, TemporalUnit,
     },
     parsers::parse_instant,
+    primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    utils::FiniteF64,
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
@@ -321,7 +321,7 @@ mod tests {
     use crate::{
         components::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
-        utils::FiniteF64,
+        primitive::FiniteF64,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
     use num_traits::ToPrimitive;

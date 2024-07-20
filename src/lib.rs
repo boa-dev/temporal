@@ -44,6 +44,7 @@ pub mod fields;
 pub mod iso;
 pub mod options;
 pub mod parsers;
+pub mod primitive;
 
 #[doc(hidden)]
 pub(crate) mod rounding;

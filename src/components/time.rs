@@ -8,7 +8,7 @@ use crate::{
         RoundingIncrement, TemporalRoundingMode, TemporalUnit,
     },
     parsers::parse_time,
-    utils::FiniteF64,
+    primitive::FiniteF64,
     Sign, TemporalError, TemporalResult,
 };
 

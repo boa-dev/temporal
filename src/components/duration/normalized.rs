@@ -8,8 +8,8 @@ use crate::{
     components::{tz::TimeZone, Date, DateTime},
     iso::IsoDate,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalRoundingMode, TemporalUnit},
+    primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    utils::FiniteF64,
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
