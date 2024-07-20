@@ -46,6 +46,7 @@ bitflags! {
 }
 
 impl From<FieldKey> for FieldMap {
+    #[inline]
     fn from(value: FieldKey) -> Self {
         match value {
             FieldKey::Year => FieldMap::YEAR,
@@ -109,6 +110,7 @@ impl FromStr for FieldConversion {
     }
 }
 
+/// This enum represents the valid keys of a `TemporalField`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FieldKey {
     Year,
@@ -218,12 +220,16 @@ pub struct TemporalFields {
 }
 
 impl TemporalFields {
+    /// Returns an iterator over the `TemporalField`'s keys.
+    #[inline]
     pub fn keys(&self) -> TemporalFieldsKeys {
         TemporalFieldsKeys {
             iter: self.bit_map.iter(),
         }
     }
 
+    /// Returns an iterator over the `TemporalField`'s values.
+    #[inline]
     pub fn values(&self) -> Values {
         Values {
             fields: self,
@@ -231,6 +237,9 @@ impl TemporalFields {
         }
     }
 
+    /// Gets the value of a `FieldKey` if the field has been set to active. If the field
+    /// has not been set, then return `None`.
+    #[inline]
     pub fn get(&self, key: FieldKey) -> Option<FieldValue> {
         if !self.bit_map.contains(key.into()) {
             return None;
@@ -262,7 +271,8 @@ impl TemporalFields {
         }
     }
 
-    /// Validate and insert a key-value pair.
+    /// Validate and insert a key-value pair. This will also set the field as acitve if the value was successfully inserted.
+    #[inline]
     pub fn insert(&mut self, key: FieldKey, value: FieldValue) -> TemporalResult<()> {
         match key {
             FieldKey::Year => {
@@ -397,6 +407,7 @@ impl TemporalFields {
     }
 
     /// Resolve `TemporalFields` month and monthCode fields.
+    #[inline]
     pub(crate) fn iso_resolve_month(&mut self) -> TemporalResult<()> {
         let Some(mc) = self.month_code else {
             match self.month {
@@ -410,7 +421,7 @@ impl TemporalFields {
 
         // MonthCode is present and needs to be resolved.
 
-        let month_code_integer = month_code_to_integer(&mc)?;
+        let month_code_integer = month_code_to_integer(mc)?;
 
         if self.month.is_some() && self.month != Some(month_code_integer) {
             return Err(
@@ -425,6 +436,7 @@ impl TemporalFields {
 
     // TODO: Determine if this should be moved to `Calendar`.
     /// Merges two `TemporalFields` depending on the calendar.
+    #[inline]
     pub fn merge_fields(&self, other: &Self, calendar: Calendar) -> TemporalResult<Self> {
         let add_keys = other.keys().collect::<Vec<_>>();
         let overridden_keys = calendar.field_keys_to_ignore(&add_keys)?;
@@ -534,7 +546,7 @@ impl Iterator for Values<'_> {
     }
 }
 
-fn month_code_to_integer(mc: &TinyAsciiStr<4>) -> TemporalResult<i32> {
+fn month_code_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<i32> {
     match mc.as_str() {
         "M01" => Ok(1),
         "M02" => Ok(2),

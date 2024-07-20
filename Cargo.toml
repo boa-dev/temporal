@@ -21,7 +21,7 @@ exclude = [
 tinystr = "0.7.6"
 icu_calendar = { version = "1.5.2", default-features = false, features = ["compiled_data"] }
 rustc-hash = { version = "2.0.0", features = ["std"] }
+bitflags = "2.6.0"
 num-bigint = { version = "0.4.6", features = ["serde"] }
 num-traits = "0.2.19"
 ixdtf = { version = "0.2.0", features = ["duration"]}
-bitflags = "2.6.0"
