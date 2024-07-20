@@ -4,45 +4,8 @@ use std::{collections::hash_map::Keys, str::FromStr};
 
 use crate::{components::calendar::Calendar, error::TemporalError, iso::IsoDate, TemporalResult};
 
-use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 // use rustc_hash::FxHashSet;
-
-bitflags! {
-    /// FieldMap maps the currently active fields on the `TemporalField`
-    #[derive(Debug, PartialEq, Eq)]
-    pub struct FieldMap: u16 {
-        /// Represents an active `year` field
-        const YEAR = 0b0000_0000_0000_0001;
-        /// Represents an active `month` field
-        const MONTH = 0b0000_0000_0000_0010;
-        /// Represents an active `monthCode` field
-        const MONTH_CODE = 0b0000_0000_0000_0100;
-        /// Represents an active `day` field
-        const DAY = 0b0000_0000_0000_1000;
-        /// Represents an active `hour` field
-        const HOUR = 0b0000_0000_0001_0000;
-        /// Represents an active `minute` field
-        const MINUTE = 0b0000_0000_0010_0000;
-        /// Represents an active `second` field
-        const SECOND = 0b0000_0000_0100_0000;
-        /// Represents an active `millisecond` field
-        const MILLISECOND = 0b0000_0000_1000_0000;
-        /// Represents an active `microsecond` field
-        const MICROSECOND = 0b0000_0001_0000_0000;
-        /// Represents an active `nanosecond` field
-        const NANOSECOND = 0b0000_0010_0000_0000;
-        /// Represents an active `offset` field
-        const OFFSET = 0b0000_0100_0000_0000;
-        /// Represents an active `era` field
-        const ERA = 0b0000_1000_0000_0000;
-        /// Represents an active `eraYear` field
-        const ERA_YEAR = 0b0001_0000_0000_0000;
-        /// Represents an active `timeZone` field
-        const TIME_ZONE = 0b0010_0000_0000_0000;
-        // NOTE(nekevss): Two bits preserved if needed.
-    }
-}
 
 /// The post conversion field value.
 #[derive(Debug, Clone)]
