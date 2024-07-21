@@ -4,9 +4,11 @@ use crate::{
     components::{DateTime, Time},
     iso::{IsoDateTime, IsoTime},
     options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
+    primitive::FiniteF64,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use num_traits::AsPrimitive;
 use std::str::FromStr;
 
 use self::normalized::NormalizedTimeDuration;
@@ -22,6 +24,31 @@ mod tests;
 pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
+
+/// A `PartialDuration` is a Duration that may have fields not set.
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+pub struct PartialDuration {
+    /// A potentially existent `years` field.
+    pub years: Option<FiniteF64>,
+    /// A potentially existent `months` field.
+    pub months: Option<FiniteF64>,
+    /// A potentially existent `weeks` field.
+    pub weeks: Option<FiniteF64>,
+    /// A potentially existent `days` field.
+    pub days: Option<FiniteF64>,
+    /// A potentially existent `hours` field.
+    pub hours: Option<FiniteF64>,
+    /// A potentially existent `minutes` field.
+    pub minutes: Option<FiniteF64>,
+    /// A potentially existent `seconds` field.
+    pub seconds: Option<FiniteF64>,
+    /// A potentially existent `milliseconds` field.
+    pub milliseconds: Option<FiniteF64>,
+    /// A potentially existent `microseconds` field.
+    pub microseconds: Option<FiniteF64>,
+    /// A potentially existent `nanoseconds` field.
+    pub nanoseconds: Option<FiniteF64>,
+}
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
@@ -47,10 +74,17 @@ pub struct Duration {
 
 #[cfg(test)]
 impl Duration {
-    pub(crate) fn hour(value: f64) -> Self {
+    pub(crate) fn hour(value: FiniteF64) -> Self {
         Self::new_unchecked(
             DateDuration::default(),
-            TimeDuration::new_unchecked(value, 0.0, 0.0, 0.0, 0.0, 0.0),
+            TimeDuration::new_unchecked(
+                value,
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::default(),
+            ),
         )
     }
 }
@@ -67,7 +101,7 @@ impl Duration {
     /// Returns the a `Vec` of the fields values.
     #[inline]
     #[must_use]
-    pub(crate) fn fields(&self) -> Vec<f64> {
+    pub(crate) fn fields(&self) -> Vec<FiniteF64> {
         Vec::from(&[
             self.years(),
             self.months(),
@@ -108,16 +142,16 @@ impl Duration {
     /// Creates a new validated `Duration`.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        years: f64,
-        months: f64,
-        weeks: f64,
-        days: f64,
-        hours: f64,
-        minutes: f64,
-        seconds: f64,
-        milliseconds: f64,
-        microseconds: f64,
-        nanoseconds: f64,
+        years: FiniteF64,
+        months: FiniteF64,
+        weeks: FiniteF64,
+        days: FiniteF64,
+        hours: FiniteF64,
+        minutes: FiniteF64,
+        seconds: FiniteF64,
+        milliseconds: FiniteF64,
+        microseconds: FiniteF64,
+        nanoseconds: FiniteF64,
     ) -> TemporalResult<Self> {
         let duration = Self::new_unchecked(
             DateDuration::new_unchecked(years, months, weeks, days),
@@ -147,47 +181,40 @@ impl Duration {
         Ok(duration)
     }
 
-    /// Creates a partial `Duration` with all fields set to `NaN`.
-    #[must_use]
-    pub const fn partial() -> Self {
-        Self {
-            date: DateDuration::partial(),
-            time: TimeDuration::partial(),
-        }
-    }
-
     /// Creates a `Duration` from a provided a day and a `TimeDuration`.
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
     #[must_use]
-    pub fn from_day_and_time(day: f64, time: &TimeDuration) -> Self {
+    pub fn from_day_and_time(day: FiniteF64, time: &TimeDuration) -> Self {
         Self {
-            date: DateDuration::new_unchecked(0.0, 0.0, 0.0, day),
+            date: DateDuration::new_unchecked(
+                FiniteF64::default(),
+                FiniteF64::default(),
+                FiniteF64::default(),
+                day,
+            ),
             time: *time,
         }
     }
 
-    /// Creates a new valid `Duration` from a partial `Duration`.
-    pub fn from_partial(partial: &Duration) -> TemporalResult<Self> {
-        let duration = Self {
-            date: DateDuration::from_partial(partial.date()),
-            time: TimeDuration::from_partial(partial.time()),
-        };
-        if !is_valid_duration(
-            duration.years(),
-            duration.months(),
-            duration.weeks(),
-            duration.days(),
-            duration.hours(),
-            duration.minutes(),
-            duration.seconds(),
-            duration.milliseconds(),
-            duration.microseconds(),
-            duration.nanoseconds(),
-        ) {
-            return Err(TemporalError::range().with_message("Duration was not valid."));
+    /// Creates a `Duration` from a provided `PartialDuration`.
+    pub fn from_partial_duration(partial: PartialDuration) -> TemporalResult<Self> {
+        if partial == PartialDuration::default() {
+            return Err(TemporalError::r#type()
+                .with_message("PartialDuration cannot have all empty fields."));
         }
-        Ok(duration)
+        Self::new(
+            partial.years.unwrap_or_default(),
+            partial.months.unwrap_or_default(),
+            partial.weeks.unwrap_or_default(),
+            partial.days.unwrap_or_default(),
+            partial.hours.unwrap_or_default(),
+            partial.minutes.unwrap_or_default(),
+            partial.seconds.unwrap_or_default(),
+            partial.milliseconds.unwrap_or_default(),
+            partial.microseconds.unwrap_or_default(),
+            partial.nanoseconds.unwrap_or_default(),
+        )
     }
 
     /// Return if the Durations values are within their valid ranges.
@@ -221,133 +248,73 @@ impl Duration {
         self.time = time;
     }
 
-    /// Set the value for `years`.
-    #[inline]
-    pub fn set_years(&mut self, y: f64) {
-        self.date.years = y;
-    }
-
     /// Returns the `years` field of duration.
     #[inline]
     #[must_use]
-    pub const fn years(&self) -> f64 {
+    pub const fn years(&self) -> FiniteF64 {
         self.date.years
-    }
-
-    /// Set the value for `months`.
-    #[inline]
-    pub fn set_months(&mut self, mo: f64) {
-        self.date.months = mo;
     }
 
     /// Returns the `months` field of duration.
     #[inline]
     #[must_use]
-    pub const fn months(&self) -> f64 {
+    pub const fn months(&self) -> FiniteF64 {
         self.date.months
     }
 
-    /// Set the value for `weeks`.
-    #[inline]
-    pub fn set_weeks(&mut self, w: f64) {
-        self.date.weeks = w;
-    }
-
     /// Returns the `weeks` field of duration.
     #[inline]
     #[must_use]
-    pub const fn weeks(&self) -> f64 {
+    pub const fn weeks(&self) -> FiniteF64 {
         self.date.weeks
     }
 
-    /// Set the value for `days`.
-    #[inline]
-    pub fn set_days(&mut self, d: f64) {
-        self.date.days = d;
-    }
-
     /// Returns the `weeks` field of duration.
     #[inline]
     #[must_use]
-    pub const fn days(&self) -> f64 {
+    pub const fn days(&self) -> FiniteF64 {
         self.date.days
     }
 
-    /// Set the value for `hours`.
-    #[inline]
-    pub fn set_hours(&mut self, h: f64) {
-        self.time.hours = h;
-    }
-
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn hours(&self) -> f64 {
+    pub const fn hours(&self) -> FiniteF64 {
         self.time.hours
     }
 
-    /// Set the value for `minutes`.
-    #[inline]
-    pub fn set_minutes(&mut self, m: f64) {
-        self.time.minutes = m;
-    }
-
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn minutes(&self) -> f64 {
+    pub const fn minutes(&self) -> FiniteF64 {
         self.time.minutes
-    }
-
-    /// Set the value for `seconds`.
-    #[inline]
-    pub fn set_seconds(&mut self, s: f64) {
-        self.time.seconds = s;
     }
 
     /// Returns the `seconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn seconds(&self) -> f64 {
+    pub const fn seconds(&self) -> FiniteF64 {
         self.time.seconds
-    }
-
-    /// Set the value for `milliseconds`.
-    #[inline]
-    pub fn set_milliseconds(&mut self, ms: f64) {
-        self.time.milliseconds = ms;
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn milliseconds(&self) -> f64 {
+    pub const fn milliseconds(&self) -> FiniteF64 {
         self.time.milliseconds
-    }
-
-    /// Set the value for `microseconds`.
-    #[inline]
-    pub fn set_microseconds(&mut self, mis: f64) {
-        self.time.microseconds = mis;
     }
 
     /// Returns the `microseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn microseconds(&self) -> f64 {
+    pub const fn microseconds(&self) -> FiniteF64 {
         self.time.microseconds
-    }
-
-    /// Set the value for `nanoseconds`.
-    #[inline]
-    pub fn set_nanoseconds(&mut self, ns: f64) {
-        self.time.nanoseconds = ns;
     }
 
     /// Returns the `nanoseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn nanoseconds(&self) -> f64 {
+    pub const fn nanoseconds(&self) -> FiniteF64 {
         self.time.nanoseconds
     }
 }
@@ -417,7 +384,8 @@ impl Duration {
 
         // 29. Let normResult be ? AddNormalizedTimeDuration(norm1, norm2).
         // 30. Set normResult to ? Add24HourDaysToNormalizedTimeDuration(normResult, d1 + d2).
-        let result = (norm_one + norm_two)?.add_days((self.days() + other.days()) as i64)?;
+        let result =
+            (norm_one + norm_two)?.add_days((self.days().checked_add(&other.days())?).as_())?;
 
         // 31. Let result be ? BalanceTimeDuration(normResult, largestUnit).
         let (result_days, result_time) = TimeDuration::from_normalized(result, largest_unit)?;
@@ -549,7 +517,7 @@ impl Duration {
                 self.years(),
                 self.months(),
                 self.weeks(),
-                self.days() + f64::from(balanced_days),
+                self.days().checked_add(&FiniteF64::from(balanced_days))?,
             )?;
 
             // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
@@ -593,7 +561,7 @@ impl Duration {
             // roundRecord.[[NormalizedDuration]].[[Days]]).
             let norm_with_days = round_record
                 .normalized_time_duration()
-                .add_days(round_record.date().days as i64)?;
+                .add_days(round_record.date().days.as_())?;
             // e. Let balanceResult be ? BalanceTimeDuration(normWithDays, largestUnit).
             let (balanced_days, balanced_time) =
                 TimeDuration::from_normalized(norm_with_days, resolved_options.largest_unit)?;
@@ -610,21 +578,22 @@ impl Duration {
 
 // TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.
 
+// NOTE: Can FiniteF64 optimize the duration_validation
 /// Utility function to check whether the `Duration` fields are valid.
 #[inline]
 #[must_use]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn is_valid_duration(
-    years: f64,
-    months: f64,
-    weeks: f64,
-    days: f64,
-    hours: f64,
-    minutes: f64,
-    seconds: f64,
-    milliseconds: f64,
-    microseconds: f64,
-    nanoseconds: f64,
+    years: FiniteF64,
+    months: FiniteF64,
+    weeks: FiniteF64,
+    days: FiniteF64,
+    hours: FiniteF64,
+    minutes: FiniteF64,
+    seconds: FiniteF64,
+    milliseconds: FiniteF64,
+    microseconds: FiniteF64,
+    nanoseconds: FiniteF64,
 ) -> bool {
     // 1. Let sign be ! DurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
     let set = vec![
@@ -642,10 +611,8 @@ pub(crate) fn is_valid_duration(
     let sign = duration_sign(&set);
     // 2. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
+        // FiniteF64 must always be finite.
         // a. If 𝔽(v) is not finite, return false.
-        if !v.is_finite() {
-            return false;
-        }
         // b. If v < 0 and sign > 0, return false.
         if v < 0f64 && sign == Sign::Positive {
             return false;
@@ -676,14 +643,16 @@ pub(crate) fn is_valid_duration(
     // in C++ with an implementation of std::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
-    let normalized_seconds = days.mul_add(
+    let normalized_seconds = days.0.mul_add(
         86_400.0,
-        hours.mul_add(3600.0, minutes.mul_add(60.0, seconds)),
+        hours.0.mul_add(3600.0, minutes.0.mul_add(60.0, seconds.0)),
     );
     // Subseconds part
-    let normalized_subseconds_parts = milliseconds.mul_add(
+    let normalized_subseconds_parts = milliseconds.0.mul_add(
         10e-3,
-        microseconds.mul_add(10e-6, nanoseconds.mul_add(10e-9, 0.0)),
+        microseconds
+            .0
+            .mul_add(10e-6, nanoseconds.0.mul_add(10e-9, 0.0)),
     );
 
     let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
@@ -701,7 +670,7 @@ pub(crate) fn is_valid_duration(
 /// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
-fn duration_sign(set: &Vec<f64>) -> Sign {
+fn duration_sign(set: &Vec<FiniteF64>) -> Sign {
     // 1. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If v < 0, return -1.
@@ -825,16 +794,16 @@ impl FromStr for Duration {
         let sign = f64::from(parse_record.sign as i8);
 
         Self::new(
-            f64::from(years) * sign,
-            f64::from(months) * sign,
-            f64::from(weeks) * sign,
-            f64::from(days) * sign,
-            hours * sign,
-            minutes * sign,
-            seconds * sign,
-            millis * sign,
-            micros * sign,
-            nanos * sign,
+            FiniteF64::from(years).copysign(sign),
+            FiniteF64::from(months).copysign(sign),
+            FiniteF64::from(weeks).copysign(sign),
+            FiniteF64::from(days).copysign(sign),
+            FiniteF64::try_from(hours)?.copysign(sign),
+            FiniteF64::try_from(minutes)?.copysign(sign),
+            FiniteF64::try_from(seconds)?.copysign(sign),
+            FiniteF64::try_from(millis)?.copysign(sign),
+            FiniteF64::try_from(micros)?.copysign(sign),
+            FiniteF64::try_from(nanos)?.copysign(sign),
         )
     }
 }

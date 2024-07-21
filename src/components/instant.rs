@@ -10,6 +10,7 @@ use crate::{
         RoundingOptions, TemporalUnit,
     },
     parsers::parse_instant,
+    primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
@@ -32,17 +33,18 @@ pub struct Instant {
 // ==== Private API ====
 
 impl Instant {
+    // TODO: Update to `i128`?
     /// Adds a `TimeDuration` to the current `Instant`.
     ///
     /// Temporal-Proposal equivalent: `AddDurationToOrSubtractDurationFrom`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         let result = self.epoch_nanoseconds()
-            + duration.nanoseconds
-            + (duration.microseconds * 1000f64)
-            + (duration.milliseconds * 1_000_000f64)
-            + (duration.seconds * NANOSECONDS_PER_SECOND)
-            + (duration.minutes * NANOSECONDS_PER_MINUTE)
-            + (duration.hours * NANOSECONDS_PER_HOUR);
+            + duration.nanoseconds.0
+            + (duration.microseconds.0 * 1000f64)
+            + (duration.milliseconds.0 * 1_000_000f64)
+            + (duration.seconds.0 * NANOSECONDS_PER_SECOND)
+            + (duration.minutes.0 * NANOSECONDS_PER_MINUTE)
+            + (duration.hours.0 * NANOSECONDS_PER_HOUR);
         let nanos = i128::from_f64(result).ok_or_else(|| {
             TemporalError::range().with_message("Duration added to instant exceeded valid range.")
         })?;
@@ -78,7 +80,7 @@ impl Instant {
             other.epoch_nanos,
             self.epoch_nanos,
         )?;
-        let (round_record, _) = TimeDuration::round(0.0, &diff, resolved_options)?;
+        let (round_record, _) = TimeDuration::round(FiniteF64::default(), &diff, resolved_options)?;
 
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
@@ -319,6 +321,7 @@ mod tests {
     use crate::{
         components::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
+        primitive::FiniteF64,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
     use num_traits::ToPrimitive;
@@ -358,12 +361,12 @@ mod tests {
             assert_eq!(
                 td,
                 TimeDuration {
-                    hours: expected.0,
-                    minutes: expected.1,
-                    seconds: expected.2,
-                    milliseconds: expected.3,
-                    microseconds: expected.4,
-                    nanoseconds: expected.5,
+                    hours: FiniteF64(expected.0),
+                    minutes: FiniteF64(expected.1),
+                    seconds: FiniteF64(expected.2),
+                    milliseconds: FiniteF64(expected.3),
+                    microseconds: FiniteF64(expected.4),
+                    nanoseconds: FiniteF64(expected.5),
                 }
             )
         };
@@ -437,12 +440,12 @@ mod tests {
             assert_eq!(
                 td,
                 TimeDuration {
-                    hours: expected.0,
-                    minutes: expected.1,
-                    seconds: expected.2,
-                    milliseconds: expected.3,
-                    microseconds: expected.4,
-                    nanoseconds: expected.5,
+                    hours: FiniteF64(expected.0),
+                    minutes: FiniteF64(expected.1),
+                    seconds: FiniteF64(expected.2),
+                    milliseconds: FiniteF64(expected.3),
+                    microseconds: FiniteF64(expected.4),
+                    nanoseconds: FiniteF64(expected.5),
                 }
             )
         };
