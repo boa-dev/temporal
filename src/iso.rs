@@ -175,7 +175,11 @@ impl IsoDateTime {
 
     pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
         let (rounded_days, rounded_time) = self.time.round(resolved_options)?;
-        let balance_result = IsoDate::balance(self.date.year, self.date.month.into(), i32::from(self.date.day) + rounded_days);
+        let balance_result = IsoDate::balance(
+            self.date.year,
+            self.date.month.into(),
+            i32::from(self.date.day) + rounded_days,
+        );
         Self::new(balance_result, rounded_time)
     }
 
@@ -724,7 +728,7 @@ impl IsoTime {
             }
             _ => {
                 return Err(TemporalError::range()
-                    .with_message("Invalid smallestUNit value for time rounding."))
+                    .with_message("Invalid smallestUnit value for time rounding."))
             }
         };
         // 7. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.

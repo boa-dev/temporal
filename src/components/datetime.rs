@@ -543,7 +543,10 @@ mod tests {
     use crate::{
         components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
-        options::{DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit},
+        options::{
+            DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
+            TemporalUnit,
+        },
         primitive::FiniteF64,
     };
 
@@ -744,33 +747,45 @@ mod tests {
             assert_eq!(dt.nanosecond(), expected.8);
         };
 
-        let gen_rounding_options = | smallest: TemporalUnit, increment: u32 | -> RoundingOptions {
+        let gen_rounding_options = |smallest: TemporalUnit, increment: u32| -> RoundingOptions {
             RoundingOptions {
                 largest_unit: None,
                 smallest_unit: Some(smallest),
                 increment: Some(RoundingIncrement::try_new(increment).unwrap()),
                 rounding_mode: None,
             }
-
         };
-        let dt = DateTime::new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default()).unwrap(); 
+        let dt =
+            DateTime::new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default()).unwrap();
 
-        let result = dt.round(gen_rounding_options(TemporalUnit::Hour, 4)).unwrap();
+        let result = dt
+            .round(gen_rounding_options(TemporalUnit::Hour, 4))
+            .unwrap();
         assert_datetime(result, (1976, 11, 18, 16, 0, 0, 0, 0, 0));
 
-        let result = dt.round(gen_rounding_options(TemporalUnit::Minute, 15)).unwrap();
+        let result = dt
+            .round(gen_rounding_options(TemporalUnit::Minute, 15))
+            .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 30, 0, 0, 0, 0));
-        
-        let result = dt.round(gen_rounding_options(TemporalUnit::Second, 30)).unwrap();
+
+        let result = dt
+            .round(gen_rounding_options(TemporalUnit::Second, 30))
+            .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 0, 0, 0));
-        
-        let result = dt.round(gen_rounding_options(TemporalUnit::Millisecond, 10)).unwrap();
+
+        let result = dt
+            .round(gen_rounding_options(TemporalUnit::Millisecond, 10))
+            .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 120, 0, 0));
-        
-        let result = dt.round(gen_rounding_options(TemporalUnit::Microsecond, 10)).unwrap();
+
+        let result = dt
+            .round(gen_rounding_options(TemporalUnit::Microsecond, 10))
+            .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 460, 0));
-        
-        let result = dt.round(gen_rounding_options(TemporalUnit::Nanosecond, 10)).unwrap();
+
+        let result = dt
+            .round(gen_rounding_options(TemporalUnit::Nanosecond, 10))
+            .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 456, 790));
     }
 }
