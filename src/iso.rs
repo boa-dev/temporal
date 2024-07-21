@@ -24,7 +24,7 @@ use crate::{
         Date, Duration,
     },
     error::TemporalError,
-    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
     temporal_assert, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -171,6 +171,12 @@ impl IsoDateTime {
         // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
         // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
         Ok(Self::new_unchecked(added_date.iso, t_result.1))
+    }
+
+    pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
+        let (rounded_days, rounded_time) = self.time.round(resolved_options)?;
+        let balance_result = IsoDate::balance(self.date.year, self.date.month.into(), i32::from(self.date.day) + rounded_days);
+        Self::new(balance_result, rounded_time)
     }
 
     // TODO: Determine whether to provide an options object...seems duplicative.
@@ -665,140 +671,146 @@ impl IsoTime {
     /// Rounds the current `IsoTime` according to the provided settings.
     pub(crate) fn round(
         &self,
-        increment: RoundingIncrement,
-        unit: TemporalUnit,
-        mode: TemporalRoundingMode,
-        day_length_ns: Option<u64>,
+        resolved_options: ResolvedRoundingOptions,
     ) -> TemporalResult<(i32, Self)> {
-        // 1. Let fractionalSecond be nanosecond × 10-9 + microsecond × 10-6 + millisecond × 10-3 + second.
-
-        let quantity = match unit {
-            // 2. If unit is "day", then
-            // a. If dayLengthNs is not present, set dayLengthNs to nsPerDay.
-            // b. Let quantity be (((((hour × 60 + minute) × 60 + second) × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond) / dayLengthNs.
-            // 3. Else if unit is "hour", then
-            // a. Let quantity be (fractionalSecond / 60 + minute) / 60 + hour.
-            TemporalUnit::Hour | TemporalUnit::Day => {
-                u64::from(self.nanosecond)
-                    + u64::from(self.microsecond) * 1_000
-                    + u64::from(self.millisecond) * 1_000_000
-                    + u64::from(self.second) * 1_000_000_000
-                    + u64::from(self.minute) * 60 * 1_000_000_000
-                    + u64::from(self.hour) * 60 * 60 * 1_000_000_000
+        // 1. If unit is "day" or "hour", then
+        let quantity = match resolved_options.smallest_unit {
+            TemporalUnit::Day | TemporalUnit::Hour => {
+                // a. Let quantity be ((((hour × 60 + minute) × 60 + second) × 1000 + millisecond)
+                // × 1000 + microsecond) × 1000 + nanosecond.
+                ((((i128::from(self.hour) * 60 + i128::from(self.minute)) * 60
+                    + i128::from(self.second))
+                    * 1000
+                    + i128::from(self.millisecond))
+                    * 1000
+                    + i128::from(self.microsecond))
+                    * 1000
+                    + i128::from(self.nanosecond)
             }
-            // 4. Else if unit is "minute", then
-            // a. Let quantity be fractionalSecond / 60 + minute.
+            // 2. Else if unit is "minute", then
             TemporalUnit::Minute => {
-                u64::from(self.nanosecond)
-                    + u64::from(self.microsecond) * 1_000
-                    + u64::from(self.millisecond) * 1_000_000
-                    + u64::from(self.second) * 1_000_000_000
-                    + u64::from(self.minute) * 60
+                // a. Let quantity be (((minute × 60 + second) × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond.
+                (((i128::from(self.minute) * 60 + i128::from(self.second)) * 1000
+                    + i128::from(self.millisecond))
+                    * 1000
+                    + i128::from(self.microsecond))
+                    * 1000
+                    + i128::from(self.nanosecond)
             }
-            // 5. Else if unit is "second", then
-            // a. Let quantity be fractionalSecond.
+            // 3. Else if unit is "second", then
             TemporalUnit::Second => {
-                u64::from(self.nanosecond)
-                    + u64::from(self.microsecond) * 1_000
-                    + u64::from(self.millisecond) * 1_000_000
-                    + u64::from(self.second) * 1_000_000_000
+                // a. Let quantity be ((second × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond.
+                ((i128::from(self.second) * 1000 + i128::from(self.millisecond)) * 1000
+                    + i128::from(self.microsecond))
+                    * 1000
+                    + i128::from(self.nanosecond)
             }
-            // 6. Else if unit is "millisecond", then
-            // a. Let quantity be nanosecond × 10-6 + microsecond × 10-3 + millisecond.
+            // 4. Else if unit is "millisecond", then
             TemporalUnit::Millisecond => {
-                u64::from(self.nanosecond)
-                    + u64::from(self.microsecond) * 1_000
-                    + u64::from(self.millisecond) * 1_000_000
+                // a. Let quantity be (millisecond × 1000 + microsecond) × 1000 + nanosecond.
+                (i128::from(self.millisecond) * 1000 + i128::from(self.microsecond)) * 1000
+                    + i128::from(self.nanosecond)
             }
-            // 7. Else if unit is "microsecond", then
-            // a. Let quantity be nanosecond × 10-3 + microsecond.
+            // 5. Else if unit is "microsecond", then
             TemporalUnit::Microsecond => {
-                u64::from(self.nanosecond) + 1_000 * u64::from(self.microsecond)
+                // a. Let quantity be microsecond × 1000 + nanosecond.
+                i128::from(self.microsecond) * 1000 + i128::from(self.nanosecond)
             }
-            // 8. Else,
-            // a. Assert: unit is "nanosecond".
-            // b. Let quantity be nanosecond.
-            TemporalUnit::Nanosecond => u64::from(self.nanosecond),
+            // 6. Else,
+            TemporalUnit::Nanosecond => {
+                // a. Assert: unit is "nanosecond".
+                // b. Let quantity be nanosecond.
+                i128::from(self.nanosecond)
+            }
             _ => {
                 return Err(TemporalError::range()
-                    .with_message("Invalid temporal unit provided to Time.round."))
+                    .with_message("Invalid smallestUNit value for time rounding."))
             }
         };
+        // 7. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
+        let length = NonZeroU128::new(
+            resolved_options
+                .smallest_unit
+                .as_nanoseconds()
+                .temporal_unwrap()?
+                .into(),
+        )
+        .temporal_unwrap()?;
 
-        let ns_per_unit = if unit == TemporalUnit::Day {
-            unsafe { NonZeroU128::new_unchecked(day_length_ns.unwrap_or(NS_PER_DAY).into()) }
-        } else {
-            let nanos = unit.as_nanoseconds().temporal_unwrap()?;
-            unsafe { NonZeroU128::new_unchecked(nanos.into()) }
-        };
+        let increment = resolved_options
+            .increment
+            .as_extended_increment()
+            .checked_mul(length)
+            .ok_or(TemporalError::range().with_message("increment exceeded valid range."))?;
 
-        let increment = ns_per_unit
-            .checked_mul(increment.as_extended_increment())
-            .temporal_unwrap()?;
-
-        // TODO: Verify validity of cast or handle better for result.
-        // 9. Let result be RoundNumberToIncrement(quantity, increment, roundingMode).
+        // 8. Let result be RoundNumberToIncrement(quantity, increment × unitLength, roundingMode) / unitLength.
         let result =
-            IncrementRounder::<i128>::from_potentially_negative_parts(quantity.into(), increment)?
-                .round(mode)
-                / i128::from_u128(ns_per_unit.get()).temporal_unwrap()?;
+            IncrementRounder::<i128>::from_potentially_negative_parts(quantity, increment)?
+                .round(resolved_options.rounding_mode)
+                / length.get() as i128;
 
-        let result = match unit {
-            // 10. If unit is "day", then
-            // a. Return the Record { [[Days]]: result, [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
-            TemporalUnit::Day => (result as i32, IsoTime::default()),
-            // 11. If unit is "hour", then
+        let result_f64 = f64::from_i128(result)
+            .ok_or(TemporalError::range().with_message("round result valid range."))?;
+
+        match resolved_options.smallest_unit {
+            // 9. If unit is "day", then
+            // a. Return Time Record { [[Days]]: result, [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0  }.
+            TemporalUnit::Day => Ok((result_f64 as i32, Self::default())),
+            // 10. If unit is "hour", then
             // a. Return BalanceTime(result, 0, 0, 0, 0, 0).
-            TemporalUnit::Hour => IsoTime::balance(result as f64, 0.0, 0.0, 0.0, 0.0, 0.0),
-            // 12. If unit is "minute", then
-            // a. Return BalanceTime(hour, result, 0, 0, 0, 0).
-            TemporalUnit::Minute => {
-                IsoTime::balance(f64::from(self.hour), result as f64, 0.0, 0.0, 0.0, 0.0)
-            }
-            // 13. If unit is "second", then
-            // a. Return BalanceTime(hour, minute, result, 0, 0, 0).
-            TemporalUnit::Second => IsoTime::balance(
-                f64::from(self.hour),
-                f64::from(self.minute),
-                result as f64,
+            TemporalUnit::Hour => Ok(Self::balance(result_f64, 0.0, 0.0, 0.0, 0.0, 0.0)),
+            // 11. If unit is "minute", then
+            // a. Return BalanceTime(hour, result, 0.0, 0.0, 0.0, 0).
+            TemporalUnit::Minute => Ok(Self::balance(
+                self.hour.into(),
+                result_f64,
                 0.0,
                 0.0,
                 0.0,
-            ),
-            // 14. If unit is "millisecond", then
-            // a. Return BalanceTime(hour, minute, second, result, 0, 0).
-            TemporalUnit::Millisecond => IsoTime::balance(
-                f64::from(self.hour),
-                f64::from(self.minute),
-                f64::from(self.second),
-                result as f64,
+                0.0,
+            )),
+            // 12. If unit is "second", then
+            // a. Return BalanceTime(hour, minute, result, 0.0, 0.0, 0).
+            TemporalUnit::Second => Ok(Self::balance(
+                self.hour.into(),
+                self.minute.into(),
+                result_f64,
                 0.0,
                 0.0,
-            ),
-            // 15. If unit is "microsecond", then
+                0.0,
+            )),
+            // 13. If unit is "millisecond", then
+            // a. Return BalanceTime(hour, minute, second, result, 0.0, 0).
+            TemporalUnit::Millisecond => Ok(Self::balance(
+                self.hour.into(),
+                self.minute.into(),
+                self.second.into(),
+                result_f64,
+                0.0,
+                0.0,
+            )),
+            // 14. If unit is "microsecond", then
             // a. Return BalanceTime(hour, minute, second, millisecond, result, 0).
-            TemporalUnit::Microsecond => IsoTime::balance(
-                f64::from(self.hour),
-                f64::from(self.minute),
-                f64::from(self.second),
-                f64::from(self.millisecond),
-                result as f64,
+            TemporalUnit::Microsecond => Ok(Self::balance(
+                self.hour.into(),
+                self.minute.into(),
+                self.second.into(),
+                self.millisecond.into(),
+                result_f64,
                 0.0,
-            ),
-            // 16. Assert: unit is "nanosecond".
-            // 17. Return BalanceTime(hour, minute, second, millisecond, microsecond, result).
-            TemporalUnit::Nanosecond => IsoTime::balance(
-                f64::from(self.hour),
-                f64::from(self.minute),
-                f64::from(self.second),
-                f64::from(self.millisecond),
-                f64::from(self.microsecond),
-                result as f64,
-            ),
-            _ => unreachable!("Error is thrown in previous match."),
-        };
-
-        Ok(result)
+            )),
+            // 15. Assert: unit is "nanosecond".
+            // 16. Return BalanceTime(hour, minute, second, millisecond, microsecond, result).
+            TemporalUnit::Nanosecond => Ok(Self::balance(
+                self.hour.into(),
+                self.minute.into(),
+                self.second.into(),
+                self.millisecond.into(),
+                self.microsecond.into(),
+                result_f64,
+            )),
+            _ => Err(TemporalError::assert()),
+        }
     }
 
     /// Checks if the time is a valid `IsoTime`

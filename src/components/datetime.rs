@@ -5,7 +5,7 @@ use crate::{
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        TemporalUnit,
+        RoundingOptions, TemporalUnit,
     },
     parsers::parse_date_time,
     temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
@@ -463,6 +463,19 @@ impl DateTime {
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff(DifferenceOperation::Since, other, settings)
     }
+
+    /// Rounds the current datetime based on provided options.
+    pub fn round(&self, options: RoundingOptions) -> TemporalResult<Self> {
+        let resolved = ResolvedRoundingOptions::from_dt_options(options)?;
+
+        if resolved.is_noop() {
+            return Ok(self.clone());
+        }
+
+        let result = self.iso.round(resolved)?;
+
+        Ok(Self::new_unchecked(result, self.calendar.clone()))
+    }
 }
 
 // ==== Trait impls ====
@@ -530,7 +543,7 @@ mod tests {
     use crate::{
         components::{calendar::Calendar, duration::DateDuration, Duration},
         iso::{IsoDate, IsoTime},
-        options::{DifferenceSettings, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+        options::{DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit},
         primitive::FiniteF64,
     };
 
@@ -715,5 +728,49 @@ mod tests {
         assert_eq!(result.days(), 973.0);
         assert_eq!(result.hours(), 4.0);
         assert_eq!(result.minutes(), 30.0);
+    }
+
+    #[test]
+    fn dt_round_basic() {
+        let assert_datetime = |dt: DateTime, expected: (i32, u8, u8, u8, u8, u8, u16, u16, u16)| {
+            assert_eq!(dt.iso_year(), expected.0);
+            assert_eq!(dt.iso_month(), expected.1);
+            assert_eq!(dt.iso_day(), expected.2);
+            assert_eq!(dt.hour(), expected.3);
+            assert_eq!(dt.minute(), expected.4);
+            assert_eq!(dt.second(), expected.5);
+            assert_eq!(dt.millisecond(), expected.6);
+            assert_eq!(dt.microsecond(), expected.7);
+            assert_eq!(dt.nanosecond(), expected.8);
+        };
+
+        let gen_rounding_options = | smallest: TemporalUnit, increment: u32 | -> RoundingOptions {
+            RoundingOptions {
+                largest_unit: None,
+                smallest_unit: Some(smallest),
+                increment: Some(RoundingIncrement::try_new(increment).unwrap()),
+                rounding_mode: None,
+            }
+
+        };
+        let dt = DateTime::new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default()).unwrap(); 
+
+        let result = dt.round(gen_rounding_options(TemporalUnit::Hour, 4)).unwrap();
+        assert_datetime(result, (1976, 11, 18, 16, 0, 0, 0, 0, 0));
+
+        let result = dt.round(gen_rounding_options(TemporalUnit::Minute, 15)).unwrap();
+        assert_datetime(result, (1976, 11, 18, 14, 30, 0, 0, 0, 0));
+        
+        let result = dt.round(gen_rounding_options(TemporalUnit::Second, 30)).unwrap();
+        assert_datetime(result, (1976, 11, 18, 14, 23, 30, 0, 0, 0));
+        
+        let result = dt.round(gen_rounding_options(TemporalUnit::Millisecond, 10)).unwrap();
+        assert_datetime(result, (1976, 11, 18, 14, 23, 30, 120, 0, 0));
+        
+        let result = dt.round(gen_rounding_options(TemporalUnit::Microsecond, 10)).unwrap();
+        assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 460, 0));
+        
+        let result = dt.round(gen_rounding_options(TemporalUnit::Nanosecond, 10)).unwrap();
+        assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 456, 790));
     }
 }

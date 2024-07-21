@@ -429,7 +429,7 @@ impl Duration {
         // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         let existing_largest_unit = self.default_largest_unit();
         let resolved_options =
-            ResolvedRoundingOptions::from_options(options, existing_largest_unit)?;
+            ResolvedRoundingOptions::from_duration_options(options, existing_largest_unit)?;
 
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
