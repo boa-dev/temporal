@@ -255,7 +255,7 @@ impl Time {
         rounding_mode: Option<TemporalRoundingMode>,
     ) -> TemporalResult<Self> {
         let increment = RoundingIncrement::try_from(rounding_increment.unwrap_or(1.0))?;
-        let mode = rounding_mode.unwrap_or(TemporalRoundingMode::HalfExpand);
+        let rounding_mode = rounding_mode.unwrap_or(TemporalRoundingMode::HalfExpand);
 
         let max = smallest_unit
             .to_maximum_rounding_increment()
@@ -266,7 +266,14 @@ impl Time {
         // Safety (nekevss): to_rounding_increment returns a value in the range of a u32.
         increment.validate(u64::from(max), false)?;
 
-        let (_, result) = self.iso.round(increment, smallest_unit, mode, None)?;
+        let resolved = ResolvedRoundingOptions {
+            largest_unit: TemporalUnit::Auto,
+            increment,
+            smallest_unit,
+            rounding_mode,
+        };
+
+        let (_, result) = self.iso.round(resolved)?;
 
         Ok(Self::new_unchecked(result))
     }

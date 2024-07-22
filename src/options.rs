@@ -102,7 +102,7 @@ impl ResolvedRoundingOptions {
         Ok((sign, resolved))
     }
 
-    pub(crate) fn from_options(
+    pub(crate) fn from_duration_options(
         options: RoundingOptions,
         existing_largest: TemporalUnit,
     ) -> TemporalResult<Self> {
@@ -157,6 +157,30 @@ impl ResolvedRoundingOptions {
 
         Ok(Self {
             largest_unit,
+            smallest_unit,
+            increment,
+            rounding_mode,
+        })
+    }
+
+    // NOTE: Should the GetTemporalUnitValuedOption check be integrated into these validations.
+    pub(crate) fn from_dt_options(options: RoundingOptions) -> TemporalResult<Self> {
+        let increment = options.increment.unwrap_or_default();
+        let rounding_mode = options.rounding_mode.unwrap_or_default();
+        let smallest_unit = options.smallest_unit.unwrap_or(TemporalUnit::Day);
+        let (maximum, inclusive) = if smallest_unit == TemporalUnit::Day {
+            (1, true)
+        } else {
+            let maximum = smallest_unit
+                .to_maximum_rounding_increment()
+                .ok_or(TemporalError::range().with_message("smallestUnit must be a time unit."))?;
+            (maximum, false)
+        };
+
+        increment.validate(maximum.into(), inclusive)?;
+
+        Ok(Self {
+            largest_unit: TemporalUnit::Auto,
             smallest_unit,
             increment,
             rounding_mode,
