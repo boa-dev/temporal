@@ -689,3 +689,43 @@ impl fmt::Display for TemporalRoundingMode {
         .fmt(f)
     }
 }
+
+/// values for `CalendarName`, whether to show the calendar in toString() methods
+/// https://tc39.es/proposal-temporal/#sec-temporal-gettemporalshowcalendarnameoption
+#[derive(Debug, Clone, Copy)]
+pub enum CalendarName {
+    /// `Auto` option
+    Auto,
+    /// `Always` option
+    Always,
+    /// `Never` option
+    Never,
+    // `Critical` option
+    Critical,
+}
+
+impl fmt::Display for CalendarName {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CalendarName::Auto => "auto",
+            CalendarName::Always => "always",
+            CalendarName::Never => "never",
+            CalendarName::Critical => "critical",
+        }
+        .fmt(f)
+    }
+}
+
+impl FromStr for CalendarName {
+    type Err = TemporalError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(Self::Auto),
+            "always" => Ok(Self::Always),
+            "never" => Ok(Self::Never),
+            "critical" => Ok(Self::Critical),
+            _ => Err(TemporalError::range().with_message("Invalid CalendarName provided.")),
+        }
+    }
+}
