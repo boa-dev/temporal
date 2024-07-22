@@ -682,38 +682,32 @@ impl IsoTime {
             TemporalUnit::Day | TemporalUnit::Hour => {
                 // a. Let quantity be ((((hour × 60 + minute) × 60 + second) × 1000 + millisecond)
                 // × 1000 + microsecond) × 1000 + nanosecond.
-                ((((i128::from(self.hour) * 60 + i128::from(self.minute)) * 60
-                    + i128::from(self.second))
-                    * 1000
-                    + i128::from(self.millisecond))
-                    * 1000
-                    + i128::from(self.microsecond))
-                    * 1000
-                    + i128::from(self.nanosecond)
+                let minutes = i128::from(self.hour) * 60 + i128::from(self.minute);
+                let seconds = minutes * 60 + i128::from(self.second);
+                let millis = seconds * 1000 + i128::from(self.millisecond);
+                let micros = millis * 1000 + i128::from(self.microsecond);
+                micros * 1000 + i128::from(self.nanosecond)
             }
             // 2. Else if unit is "minute", then
             TemporalUnit::Minute => {
                 // a. Let quantity be (((minute × 60 + second) × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond.
-                (((i128::from(self.minute) * 60 + i128::from(self.second)) * 1000
-                    + i128::from(self.millisecond))
-                    * 1000
-                    + i128::from(self.microsecond))
-                    * 1000
-                    + i128::from(self.nanosecond)
+                let seconds = i128::from(self.minute) * 60 + i128::from(self.second);
+                let millis = seconds * 1000 + i128::from(self.millisecond);
+                let micros = millis * 1000 + i128::from(self.microsecond);
+                micros * 1000 + i128::from(self.nanosecond)
             }
             // 3. Else if unit is "second", then
             TemporalUnit::Second => {
                 // a. Let quantity be ((second × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond.
-                ((i128::from(self.second) * 1000 + i128::from(self.millisecond)) * 1000
-                    + i128::from(self.microsecond))
-                    * 1000
-                    + i128::from(self.nanosecond)
+                let millis = i128::from(self.second) * 1000 + i128::from(self.millisecond);
+                let micros = millis * 1000 + i128::from(self.microsecond);
+                micros * 1000 + i128::from(self.nanosecond)
             }
             // 4. Else if unit is "millisecond", then
             TemporalUnit::Millisecond => {
                 // a. Let quantity be (millisecond × 1000 + microsecond) × 1000 + nanosecond.
-                (i128::from(self.millisecond) * 1000 + i128::from(self.microsecond)) * 1000
-                    + i128::from(self.nanosecond)
+                let micros = i128::from(self.millisecond) * 1000 + i128::from(self.microsecond);
+                micros * 1000 + i128::from(self.nanosecond)
             }
             // 5. Else if unit is "microsecond", then
             TemporalUnit::Microsecond => {
