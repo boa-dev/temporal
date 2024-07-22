@@ -691,7 +691,7 @@ impl fmt::Display for TemporalRoundingMode {
 }
 
 /// values for `CalendarName`, whether to show the calendar in toString() methods
-/// https://tc39.es/proposal-temporal/#sec-temporal-gettemporalshowcalendarnameoption
+/// <https://tc39.es/proposal-temporal/#sec-temporal-gettemporalshowcalendarnameoption>
 #[derive(Debug, Clone, Copy)]
 pub enum CalendarName {
     /// `Auto` option
