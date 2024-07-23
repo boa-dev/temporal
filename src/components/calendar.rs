@@ -310,6 +310,10 @@ impl Calendar {
         let month_code = MonthCode(
             fields
                 .month_code
+                .map(|mc| {
+                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
+                        .expect("MonthCode as_str is always valid.")
+                })
                 .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
         );
         // NOTE: This might preemptively throw as `ICU4X` does not support constraining.
@@ -373,6 +377,10 @@ impl Calendar {
         let month_code = MonthCode(
             fields
                 .month_code
+                .map(|mc| {
+                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
+                        .expect("MonthCode as_str is always valid.")
+                })
                 .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
         );
 
@@ -628,8 +636,23 @@ impl Calendar {
     /// Provides field keys to be ignored depending on the calendar.
     pub fn field_keys_to_ignore(
         &self,
-        _keys: &[TemporalFieldKey],
+        keys: &[TemporalFieldKey],
     ) -> TemporalResult<Vec<TemporalFieldKey>> {
+        let mut ignored_keys = Vec::default();
+        if self.is_iso() {
+            // NOTE: It is okay for ignored keys to have duplicates?
+            for key in keys {
+                ignored_keys.push(*key);
+                if key == &TemporalFieldKey::Month {
+                    ignored_keys.push(TemporalFieldKey::MonthCode)
+                } else if key == &TemporalFieldKey::MonthCode {
+                    ignored_keys.push(TemporalFieldKey::Month)
+                }
+            }
+
+            return Ok(ignored_keys);
+        }
+
         // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
         Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
     }

@@ -21,14 +21,38 @@ use std::str::FromStr;
 
 use super::{
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    MonthDay, Time, YearMonth,
+    MonthCode, MonthDay, Time, YearMonth,
 };
 
+// TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
+/// A partial Date that may or may not be complete.
+#[derive(Debug, Clone, Copy)]
 pub struct PartialDate {
-    pub year: Option<i32>,
-    pub month: Option<i32>,
-    pub month_code: Option<&str>,
-    pub day: Option<i32>,
+    pub(crate) year: Option<i32>,
+    pub(crate) month: Option<i32>,
+    pub(crate) month_code: Option<MonthCode>,
+    pub(crate) day: Option<i32>,
+}
+
+impl PartialDate {
+    /// Create a new `PartialDate`
+    pub fn new(
+        year: Option<i32>,
+        month: Option<i32>,
+        month_code: Option<MonthCode>,
+        day: Option<i32>,
+    ) -> TemporalResult<Self> {
+        if year.is_none() && month.is_none() && month_code.is_none() && day.is_none() {
+            return Err(TemporalError::r#type()
+                .with_message("A partial date must have at least one defined field."));
+        }
+        Ok(Self {
+            year,
+            month,
+            month_code,
+            day,
+        })
+    }
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.
@@ -217,6 +241,28 @@ impl Date {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
+    /// Creates a date time with values from a `PartialDate`.
+    pub fn with(
+        &self,
+        partial: PartialDate,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
+        let fields = TemporalFields::from(self);
+        // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
+        let partial_fields = TemporalFields::from(partial);
+
+        // 8. Let fields be ? CalendarMergeFields(calendarRec, fieldsResult.[[Fields]], partialDate).
+        let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
+
+        // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
+        // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
+        self.calendar.date_from_fields(
+            &mut merge_result,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )
+    }
+
     /// Creates a new `Date` from the current `Date` and the provided calendar.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::new(
@@ -403,7 +449,7 @@ impl Date {
     /// Converts the current `Date<C>` into a `YearMonth<C>`
     #[inline]
     pub fn to_year_month(&self) -> TemporalResult<YearMonth> {
-        let mut fields: TemporalFields = self.iso_date().into();
+        let mut fields: TemporalFields = self.into();
         self.get_calendar()
             .year_month_from_fields(&mut fields, ArithmeticOverflow::Constrain)
     }
@@ -411,7 +457,7 @@ impl Date {
     /// Converts the current `Date<C>` into a `MonthDay<C>`
     #[inline]
     pub fn to_month_day(&self) -> TemporalResult<MonthDay> {
-        let mut fields: TemporalFields = self.iso_date().into();
+        let mut fields: TemporalFields = self.into();
         self.get_calendar()
             .month_day_from_fields(&mut fields, ArithmeticOverflow::Constrain)
     }
