@@ -50,10 +50,10 @@ impl YearMonth {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
-    /// Returns the `year` value for this `YearMonth`.
+    /// Returns the iso year value for this `YearMonth`.
     #[inline]
     #[must_use]
-    pub fn year(&self) -> i32 {
+    pub fn iso_year(&self) -> i32 {
         self.iso.year
     }
 
@@ -64,10 +64,10 @@ impl YearMonth {
         pad_iso_year(self.iso.year)
     }
 
-    /// Returns the `month` value for this `YearMonth`.
+    /// Returns the iso month value for this `YearMonth`.
     #[inline]
     #[must_use]
-    pub fn month(&self) -> u8 {
+    pub fn iso_month(&self) -> u8 {
         self.iso.month
     }
 
@@ -79,7 +79,9 @@ impl YearMonth {
     #[inline]
     #[must_use]
     pub fn in_leap_year(&self) -> bool {
-        utils::mathematical_in_leap_year(utils::epoch_time_for_year(self.iso.year)) == 1
+        self.get_calendar()
+            .in_leap_year(&CalendarDateLike::YearMonth(self.clone()))
+            .is_ok_and(|is_leap_year| is_leap_year)
     }
 
     pub fn get_days_in_year(&self) -> TemporalResult<u16> {

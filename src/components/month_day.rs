@@ -42,17 +42,17 @@ impl MonthDay {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
-    /// Returns the `day` value of `MonthDay`.
+    /// Returns the iso day value of `MonthDay`.
     #[inline]
     #[must_use]
-    pub fn day(&self) -> u8 {
+    pub fn iso_day(&self) -> u8 {
         self.iso.day
     }
 
-    // returns the `month` value of `MonthDay`.
+    // returns the iso month value of `MonthDay`.
     #[inline]
     #[must_use]
-    pub fn month(&self) -> u8 {
+    pub fn iso_month(&self) -> u8 {
         self.iso.month
     }
 
