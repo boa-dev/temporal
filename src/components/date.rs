@@ -24,6 +24,13 @@ use super::{
     MonthDay, Time, YearMonth,
 };
 
+pub struct PartialDate {
+    pub year: Option<i32>,
+    pub month: Option<i32>,
+    pub month_code: Option<&str>,
+    pub day: Option<i32>,
+}
+
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]

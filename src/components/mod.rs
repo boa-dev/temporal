@@ -45,3 +45,23 @@ pub use year_month::YearMonth;
 pub use year_month::YearMonthFields;
 #[doc(inline)]
 pub use zoneddatetime::ZonedDateTime;
+
+
+#[derive(Debug, Clone, Copy)]
+#[repr(u8)]
+pub enum MonthCode {
+    One = 1,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Eleven,
+    Twelve,
+    Thirteen,
+}
+
