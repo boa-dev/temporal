@@ -8,7 +8,7 @@ use crate::{
     components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
     options::ArithmeticOverflow,
-    utils::{self, pad_iso_year},
+    utils::pad_iso_year,
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
