@@ -16,6 +16,18 @@ pub(crate) fn epoch_days_to_epoch_ms(day: i32, time: f64) -> f64 {
     f64::from(day).mul_add(f64::from(MS_PER_DAY), time).floor()
 }
 
+/// 3.5.11 PadISOYear ( y )
+///
+/// returns a String representation of y suitable for inclusion in an ISO 8601 string
+pub(crate) fn pad_iso_year(year: i32) -> String {
+    if (0..9999).contains(&year) {
+        return format!("{:04}", year);
+    }
+    let year_sign = if year > 0 { "+" } else { "-" };
+    let year_string = format!("{:06}", year.abs());
+    format!("{year_sign}{year_string}",)
+}
+
 /// `EpochTimeToDayNumber`
 ///
 /// This equation is the equivalent to `ECMAScript`'s `Date(t)`

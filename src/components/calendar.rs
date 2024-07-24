@@ -253,6 +253,10 @@ pub enum CalendarDateLike {
     DateTime(DateTime),
     /// Represents a `Date`.
     Date(Date),
+    /// Represents a `YearMonth`.
+    YearMonth(YearMonth),
+    /// Represents a `MonthDay`.
+    MonthDay(MonthDay),
 }
 
 impl CalendarDateLike {
@@ -263,6 +267,8 @@ impl CalendarDateLike {
         match self {
             CalendarDateLike::DateTime(dt) => dt.iso_date(),
             CalendarDateLike::Date(d) => d.iso_date(),
+            CalendarDateLike::YearMonth(ym) => ym.iso_date(),
+            CalendarDateLike::MonthDay(md) => md.iso_date(),
         }
     }
 }

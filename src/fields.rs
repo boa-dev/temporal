@@ -3,7 +3,12 @@
 use core::fmt;
 use std::str::FromStr;
 
-use crate::{components::calendar::Calendar, error::TemporalError, iso::IsoDate, TemporalResult};
+use crate::{
+    components::{calendar::Calendar, YearMonthFields},
+    error::TemporalError,
+    iso::IsoDate,
+    TemporalResult,
+};
 
 use bitflags::bitflags;
 use tinystr::TinyAsciiStr;
@@ -575,5 +580,17 @@ fn month_code_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<i32> {
         "M12" => Ok(12),
         "M13" => Ok(13),
         _ => Err(TemporalError::range().with_message("monthCode is not within the valid values.")),
+    }
+}
+
+// Conversion to `TemporalFields`
+impl From<YearMonthFields> for TemporalFields {
+    fn from(value: YearMonthFields) -> Self {
+        TemporalFields {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH,
+            year: Some(value.0),
+            month: Some(value.1.into()),
+            ..Default::default()
+        }
     }
 }

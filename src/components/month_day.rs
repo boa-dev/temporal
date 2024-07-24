@@ -2,6 +2,8 @@
 
 use std::str::FromStr;
 
+use tinystr::TinyAsciiStr;
+
 use crate::{
     components::calendar::Calendar,
     iso::{IsoDate, IsoDateSlots},
@@ -9,7 +11,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::GetTemporalCalendar;
+use super::calendar::{CalendarDateLike, GetTemporalCalendar};
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
@@ -35,22 +37,30 @@ impl MonthDay {
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
+        // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
         let iso = IsoDate::new(1972, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
 
-    /// Returns the `month` value of `MonthDay`.
+    /// Returns the iso day value of `MonthDay`.
     #[inline]
     #[must_use]
-    pub fn month(&self) -> u8 {
+    pub fn iso_day(&self) -> u8 {
+        self.iso.day
+    }
+
+    // returns the iso month value of `MonthDay`.
+    #[inline]
+    #[must_use]
+    pub fn iso_month(&self) -> u8 {
         self.iso.month
     }
 
-    /// Returns the `day` value of `MonthDay`.
+    /// Returns the string identifier for the current calendar used.
     #[inline]
     #[must_use]
-    pub fn day(&self) -> u8 {
-        self.iso.day
+    pub fn calendar_id(&self) -> String {
+        self.calendar.identifier()
     }
 
     /// Returns a reference to `MonthDay`'s `CalendarSlot`
@@ -58,6 +68,13 @@ impl MonthDay {
     #[must_use]
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
+    }
+
+    /// Returns the `monthCode` value of `MonthDay`.
+    #[inline]
+    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        self.calendar
+            .month_code(&CalendarDateLike::MonthDay(self.clone()))
     }
 }
 
