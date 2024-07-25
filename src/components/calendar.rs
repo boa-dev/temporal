@@ -638,7 +638,7 @@ impl Calendar {
         &self,
         keys: &[TemporalFieldKey],
     ) -> TemporalResult<Vec<TemporalFieldKey>> {
-        let mut ignored_keys = Vec::default();
+        let mut ignored_keys = Vec::with_capacity(5);
         if self.is_iso() {
             // NOTE: It is okay for ignored keys to have duplicates?
             for key in keys {
