@@ -32,6 +32,8 @@ pub struct PartialDate {
     pub(crate) month: Option<i32>,
     pub(crate) month_code: Option<MonthCode>,
     pub(crate) day: Option<i32>,
+    pub(crate) era: Option<TinyAsciiStr<16>>,
+    pub(crate) era_year: Option<i32>,
 }
 
 impl PartialDate {
@@ -41,8 +43,13 @@ impl PartialDate {
         month: Option<i32>,
         month_code: Option<MonthCode>,
         day: Option<i32>,
+        era: Option<TinyAsciiStr<16>>,
+        era_year: Option<i32>,
     ) -> TemporalResult<Self> {
-        if year.is_none() && month.is_none() && month_code.is_none() && day.is_none() {
+        if !(day.is_some()
+            && (month.is_some() || month_code.is_some())
+            && (year.is_some() || (era.is_some() && era_year.is_some())))
+        {
             return Err(TemporalError::r#type()
                 .with_message("A partial date must have at least one defined field."));
         }
@@ -51,6 +58,8 @@ impl PartialDate {
             month,
             month_code,
             day,
+            era,
+            era_year,
         })
     }
 }

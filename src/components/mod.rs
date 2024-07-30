@@ -50,6 +50,7 @@ pub use zoneddatetime::ZonedDateTime;
 
 use crate::TemporalError;
 
+// TODO: Update to account for https://tc39.es/proposal-intl-era-monthcode/
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum MonthCode {

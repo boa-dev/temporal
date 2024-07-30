@@ -10,7 +10,7 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
-    fields::{TemporalFieldKey, TemporalFields},
+    fields::{FieldMap, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalResult,
@@ -634,19 +634,16 @@ impl Calendar {
     }
 
     /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(
-        &self,
-        keys: &[TemporalFieldKey],
-    ) -> TemporalResult<Vec<TemporalFieldKey>> {
-        let mut ignored_keys = Vec::with_capacity(5);
+    pub fn field_keys_to_ignore(&self, keys: FieldMap) -> TemporalResult<FieldMap> {
+        let mut ignored_keys = FieldMap::empty();
         if self.is_iso() {
             // NOTE: It is okay for ignored keys to have duplicates?
-            for key in keys {
-                ignored_keys.push(*key);
-                if key == &TemporalFieldKey::Month {
-                    ignored_keys.push(TemporalFieldKey::MonthCode)
-                } else if key == &TemporalFieldKey::MonthCode {
-                    ignored_keys.push(TemporalFieldKey::Month)
+            for key in keys.iter() {
+                ignored_keys.set(key, true);
+                if key == FieldMap::MONTH {
+                    ignored_keys.set(FieldMap::MONTH_CODE, true);
+                } else if key == FieldMap::MONTH_CODE {
+                    ignored_keys.set(FieldMap::MONTH, true);
                 }
             }
 
@@ -700,8 +697,9 @@ impl From<YearMonth> for Calendar {
 
 #[cfg(test)]
 mod tests {
+    use crate::{components::Date, iso::IsoDate, options::TemporalUnit};
 
-    use super::*;
+    use super::Calendar;
 
     #[test]
     fn date_until_largest_year() {
@@ -948,7 +946,7 @@ mod tests {
             ),
         ];
 
-        let calendar = Calendar::from_str("iso8601").unwrap();
+        let calendar = Calendar::default();
 
         for test in tests {
             let first = Date::new_unchecked(

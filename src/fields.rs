@@ -456,16 +456,15 @@ impl TemporalFields {
     /// Merges two `TemporalFields` depending on the calendar.
     #[inline]
     pub fn merge_fields(&self, other: &Self, calendar: &Calendar) -> TemporalResult<Self> {
-        let add_keys = other.keys().collect::<Vec<_>>();
-        let overridden_keys = calendar.field_keys_to_ignore(&add_keys)?;
+        let overridden_keys = calendar.field_keys_to_ignore(other.bit_map)?;
 
         let mut result = Self::default();
 
-        for key in self.keys() {
-            let value = if overridden_keys.contains(&key) {
-                other.get(key)
+        for key in self.bit_map.iter() {
+            let value = if overridden_keys.contains(key) {
+                other.get(key.try_into()?)
             } else {
-                self.get(key)
+                self.get(key.try_into()?)
             };
 
             let Some(value) = value else {
@@ -474,7 +473,7 @@ impl TemporalFields {
                 ));
             };
 
-            result.insert(key, value)?;
+            result.insert(key.try_into()?, value)?;
         }
 
         Ok(result)
@@ -511,6 +510,12 @@ impl From<PartialDate> for TemporalFields {
         if value.day.is_some() {
             bit_map.set(FieldMap::DAY, true)
         };
+        if value.era.is_some() {
+            bit_map.set(FieldMap::ERA, true)
+        }
+        if value.era_year.is_some() {
+            bit_map.set(FieldMap::ERA_YEAR, true)
+        }
 
         Self {
             bit_map,
@@ -518,6 +523,8 @@ impl From<PartialDate> for TemporalFields {
             month: value.month,
             month_code: value.month_code,
             day: value.day,
+            era: value.era,
+            era_year: value.era_year,
             ..Default::default()
         }
     }
