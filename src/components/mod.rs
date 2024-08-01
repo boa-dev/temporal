@@ -28,8 +28,10 @@ mod time;
 mod year_month;
 mod zoneddatetime;
 
+use std::str::FromStr;
+
 #[doc(inline)]
-pub use date::Date;
+pub use date::{Date, PartialDate};
 #[doc(inline)]
 pub use datetime::DateTime;
 #[doc(inline)]
@@ -45,3 +47,91 @@ pub use year_month::YearMonth;
 pub use year_month::YearMonthFields;
 #[doc(inline)]
 pub use zoneddatetime::ZonedDateTime;
+
+use crate::TemporalError;
+
+// TODO: Update to account for https://tc39.es/proposal-intl-era-monthcode/
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum MonthCode {
+    One = 1,
+    Two,
+    Three,
+    Four,
+    Five,
+    Six,
+    Seven,
+    Eight,
+    Nine,
+    Ten,
+    Eleven,
+    Twelve,
+    Thirteen,
+}
+
+impl MonthCode {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::One => "M01",
+            Self::Two => "M02",
+            Self::Three => "M03",
+            Self::Four => "M04",
+            Self::Five => "M05",
+            Self::Six => "M06",
+            Self::Seven => "M07",
+            Self::Eight => "M08",
+            Self::Nine => "M09",
+            Self::Ten => "M10",
+            Self::Eleven => "M11",
+            Self::Twelve => "M12",
+            Self::Thirteen => "M13",
+        }
+    }
+}
+
+impl FromStr for MonthCode {
+    type Err = TemporalError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "M01" => Ok(Self::One),
+            "M02" => Ok(Self::Two),
+            "M03" => Ok(Self::Three),
+            "M04" => Ok(Self::Four),
+            "M05" => Ok(Self::Five),
+            "M06" => Ok(Self::Six),
+            "M07" => Ok(Self::Seven),
+            "M08" => Ok(Self::Eight),
+            "M09" => Ok(Self::Nine),
+            "M10" => Ok(Self::Ten),
+            "M11" => Ok(Self::Eleven),
+            "M12" => Ok(Self::Twelve),
+            "M13" => Ok(Self::Thirteen),
+            _ => {
+                Err(TemporalError::range()
+                    .with_message("monthCode is not within the valid values."))
+            }
+        }
+    }
+}
+
+impl TryFrom<u8> for MonthCode {
+    type Error = TemporalError;
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::One),
+            2 => Ok(Self::Two),
+            3 => Ok(Self::Three),
+            4 => Ok(Self::Four),
+            5 => Ok(Self::Five),
+            6 => Ok(Self::Six),
+            7 => Ok(Self::Seven),
+            8 => Ok(Self::Eight),
+            9 => Ok(Self::Nine),
+            10 => Ok(Self::Ten),
+            11 => Ok(Self::Eleven),
+            12 => Ok(Self::Twelve),
+            13 => Ok(Self::Thirteen),
+            _ => Err(TemporalError::range().with_message("Invalid MonthCode value.")),
+        }
+    }
+}

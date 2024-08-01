@@ -4,9 +4,8 @@ use core::fmt;
 use std::str::FromStr;
 
 use crate::{
-    components::{calendar::Calendar, YearMonthFields},
+    components::{calendar::Calendar, Date, MonthCode, PartialDate, YearMonthFields},
     error::TemporalError,
-    iso::IsoDate,
     TemporalResult,
 };
 
@@ -210,7 +209,7 @@ pub struct TemporalFields {
     bit_map: FieldMap,
     pub(crate) year: Option<i32>,
     pub(crate) month: Option<i32>,
-    pub(crate) month_code: Option<TinyAsciiStr<4>>,
+    pub(crate) month_code: Option<MonthCode>,
     pub(crate) day: Option<i32>,
     hour: i32,
     minute: i32,
@@ -260,7 +259,8 @@ impl TemporalFields {
             TemporalFieldKey::Year => Some(TemporalFieldValue::Integer(self.year)),
             TemporalFieldKey::Month => Some(TemporalFieldValue::Integer(self.month)),
             TemporalFieldKey::MonthCode => Some(TemporalFieldValue::String(
-                self.month_code.map_or(String::default(), |s| s.to_string()),
+                self.month_code
+                    .map_or(String::default(), |s| s.as_str().to_owned()),
             )),
             TemporalFieldKey::Day => Some(TemporalFieldValue::Integer(self.day)),
             TemporalFieldKey::Hour => Some(TemporalFieldValue::from(self.hour)),
@@ -312,10 +312,7 @@ impl TemporalFields {
                         TemporalError::r#type().with_message("Invalid type for temporal field.")
                     );
                 };
-                self.month_code = Some(
-                    TinyAsciiStr::<4>::from_str(&value)
-                        .map_err(|_| TemporalError::general("Invalid MonthCode id."))?,
-                );
+                self.month_code = Some(MonthCode::from_str(&value)?);
             }
             TemporalFieldKey::Day => {
                 let TemporalFieldValue::Integer(value) = value else {
@@ -436,9 +433,9 @@ impl TemporalFields {
 
         // MonthCode is present and needs to be resolved.
 
-        let month_code_integer = month_code_to_integer(mc)?;
+        let month_code_int: i32 = (mc as u8).into();
 
-        if self.month.is_some() && self.month != Some(month_code_integer) {
+        if self.month.is_some() && self.month != Some(month_code_int) {
             return Err(
                 TemporalError::range().with_message("month and monthCode cannot be resolved.")
             );
@@ -446,7 +443,7 @@ impl TemporalFields {
 
         self.insert(
             TemporalFieldKey::Month,
-            TemporalFieldValue::from(month_code_integer),
+            TemporalFieldValue::from(month_code_int),
         )?;
 
         Ok(())
@@ -455,39 +452,84 @@ impl TemporalFields {
     // TODO: Determine if this should be moved to `Calendar`.
     /// Merges two `TemporalFields` depending on the calendar.
     #[inline]
-    pub fn merge_fields(&self, other: &Self, calendar: Calendar) -> TemporalResult<Self> {
-        let add_keys = other.keys().collect::<Vec<_>>();
-        let overridden_keys = calendar.field_keys_to_ignore(&add_keys)?;
+    pub fn merge_fields(&self, other: &Self, calendar: &Calendar) -> TemporalResult<Self> {
+        let overridden_keys = calendar.field_keys_to_ignore(other.bit_map)?;
 
         let mut result = Self::default();
 
-        for key in self.keys() {
-            let value = if overridden_keys.contains(&key) {
-                other.get(key)
+        for key in self.bit_map.iter() {
+            let value = if overridden_keys.contains(key) {
+                other.get(key.try_into()?)
             } else {
-                self.get(key)
+                self.get(key.try_into()?)
             };
 
-            let Some(value) = value else {
-                return Err(TemporalError::general(
-                    "Nonexistent TemporalFieldKey used when merging fields.",
-                ));
+            if let Some(value) = value {
+                result.insert(key.try_into()?, value)?;
             };
-
-            result.insert(key, value)?;
         }
 
         Ok(result)
     }
 }
 
-impl From<IsoDate> for TemporalFields {
-    fn from(value: IsoDate) -> Self {
+impl From<&Date> for TemporalFields {
+    fn from(value: &Date) -> Self {
         Self {
-            bit_map: FieldMap::YEAR | FieldMap::MONTH | FieldMap::DAY,
-            year: Some(value.year),
-            month: Some(value.month.into()),
-            day: Some(value.day.into()),
+            bit_map: FieldMap::YEAR | FieldMap::MONTH | FieldMap::MONTH_CODE | FieldMap::DAY,
+            year: Some(value.iso.year),
+            month: Some(value.iso.month.into()),
+            month_code: Some(
+                MonthCode::try_from(value.iso.month).expect("Date must always have a valid month."),
+            ),
+            day: Some(value.iso.day.into()),
+            ..Default::default()
+        }
+    }
+}
+
+impl From<PartialDate> for TemporalFields {
+    fn from(value: PartialDate) -> Self {
+        let mut bit_map = FieldMap::empty();
+        if value.year.is_some() {
+            bit_map.set(FieldMap::YEAR, true)
+        };
+        if value.month.is_some() {
+            bit_map.set(FieldMap::MONTH, true)
+        };
+        if value.month_code.is_some() {
+            bit_map.set(FieldMap::MONTH_CODE, true)
+        };
+        if value.day.is_some() {
+            bit_map.set(FieldMap::DAY, true)
+        };
+        if value.era.is_some() {
+            bit_map.set(FieldMap::ERA, true)
+        }
+        if value.era_year.is_some() {
+            bit_map.set(FieldMap::ERA_YEAR, true)
+        }
+
+        Self {
+            bit_map,
+            year: value.year,
+            month: value.month,
+            month_code: value.month_code,
+            day: value.day,
+            era: value.era,
+            era_year: value.era_year,
+            ..Default::default()
+        }
+    }
+}
+
+// Conversion to `TemporalFields`
+impl From<YearMonthFields> for TemporalFields {
+    fn from(value: YearMonthFields) -> Self {
+        TemporalFields {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH,
+            year: Some(value.0),
+            month: Some(value.1.into()),
             ..Default::default()
         }
     }
@@ -536,7 +578,7 @@ impl Iterator for Values<'_> {
             FieldMap::MONTH_CODE => Some(TemporalFieldValue::String(
                 self.fields
                     .month_code
-                    .map_or(String::default(), |s| s.to_string()),
+                    .map_or(String::default(), |s| s.as_str().to_owned()),
             )),
             FieldMap::DAY => Some(TemporalFieldValue::Integer(self.fields.day)),
             FieldMap::HOUR => Some(TemporalFieldValue::from(self.fields.hour)),
@@ -560,37 +602,6 @@ impl Iterator for Values<'_> {
                     .map_or(String::default(), |s| s.to_string()),
             )),
             _ => None,
-        }
-    }
-}
-
-fn month_code_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<i32> {
-    match mc.as_str() {
-        "M01" => Ok(1),
-        "M02" => Ok(2),
-        "M03" => Ok(3),
-        "M04" => Ok(4),
-        "M05" => Ok(5),
-        "M06" => Ok(6),
-        "M07" => Ok(7),
-        "M08" => Ok(8),
-        "M09" => Ok(9),
-        "M10" => Ok(10),
-        "M11" => Ok(11),
-        "M12" => Ok(12),
-        "M13" => Ok(13),
-        _ => Err(TemporalError::range().with_message("monthCode is not within the valid values.")),
-    }
-}
-
-// Conversion to `TemporalFields`
-impl From<YearMonthFields> for TemporalFields {
-    fn from(value: YearMonthFields) -> Self {
-        TemporalFields {
-            bit_map: FieldMap::YEAR | FieldMap::MONTH,
-            year: Some(value.0),
-            month: Some(value.1.into()),
-            ..Default::default()
         }
     }
 }

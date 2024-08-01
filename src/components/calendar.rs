@@ -10,7 +10,7 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
-    fields::{TemporalFieldKey, TemporalFields},
+    fields::{FieldMap, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalResult,
@@ -310,6 +310,10 @@ impl Calendar {
         let month_code = MonthCode(
             fields
                 .month_code
+                .map(|mc| {
+                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
+                        .expect("MonthCode as_str is always valid.")
+                })
                 .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
         );
         // NOTE: This might preemptively throw as `ICU4X` does not support constraining.
@@ -373,6 +377,10 @@ impl Calendar {
         let month_code = MonthCode(
             fields
                 .month_code
+                .map(|mc| {
+                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
+                        .expect("MonthCode as_str is always valid.")
+                })
                 .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
         );
 
@@ -626,10 +634,22 @@ impl Calendar {
     }
 
     /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(
-        &self,
-        _keys: &[TemporalFieldKey],
-    ) -> TemporalResult<Vec<TemporalFieldKey>> {
+    pub fn field_keys_to_ignore(&self, keys: FieldMap) -> TemporalResult<FieldMap> {
+        let mut ignored_keys = FieldMap::empty();
+        if self.is_iso() {
+            // NOTE: It is okay for ignored keys to have duplicates?
+            for key in keys.iter() {
+                ignored_keys.set(key, true);
+                if key == FieldMap::MONTH {
+                    ignored_keys.set(FieldMap::MONTH_CODE, true);
+                } else if key == FieldMap::MONTH_CODE {
+                    ignored_keys.set(FieldMap::MONTH, true);
+                }
+            }
+
+            return Ok(ignored_keys);
+        }
+
         // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
         Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
     }
@@ -677,8 +697,9 @@ impl From<YearMonth> for Calendar {
 
 #[cfg(test)]
 mod tests {
+    use crate::{components::Date, iso::IsoDate, options::TemporalUnit};
 
-    use super::*;
+    use super::Calendar;
 
     #[test]
     fn date_until_largest_year() {
@@ -925,7 +946,7 @@ mod tests {
             ),
         ];
 
-        let calendar = Calendar::from_str("iso8601").unwrap();
+        let calendar = Calendar::default();
 
         for test in tests {
             let first = Date::new_unchecked(
