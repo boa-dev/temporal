@@ -26,7 +26,7 @@ use super::{
 
 // TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
 /// A partial Date that may or may not be complete.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct PartialDate {
     pub(crate) year: Option<i32>,
     pub(crate) month: Option<i32>,
@@ -637,6 +637,74 @@ mod tests {
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
         assert_eq!(result.days(), 9719.0,);
+    }
+
+    #[test]
+    fn basic_date_with() {
+        let base = Date::new(
+            1976,
+            11,
+            18,
+            Calendar::default(),
+            ArithmeticOverflow::Constrain,
+        )
+        .unwrap();
+
+        // Year
+        let partial = PartialDate {
+            year: Some(2019),
+            ..Default::default()
+        };
+        let with_year = base.with(partial, None).unwrap();
+        assert_eq!(with_year.year().unwrap(), 2019);
+        assert_eq!(with_year.month().unwrap(), 11);
+        assert_eq!(
+            with_year.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M11").unwrap()
+        );
+        assert_eq!(with_year.day().unwrap(), 18);
+
+        // Month
+        let partial = PartialDate {
+            month: Some(5),
+            ..Default::default()
+        };
+        let with_month = base.with(partial, None).unwrap();
+        assert_eq!(with_month.year().unwrap(), 1976);
+        assert_eq!(with_month.month().unwrap(), 5);
+        assert_eq!(
+            with_month.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M05").unwrap()
+        );
+        assert_eq!(with_month.day().unwrap(), 18);
+
+        // Month Code
+        let partial = PartialDate {
+            month_code: Some(MonthCode::Five),
+            ..Default::default()
+        };
+        let with_mc = base.with(partial, None).unwrap();
+        assert_eq!(with_mc.year().unwrap(), 1976);
+        assert_eq!(with_mc.month().unwrap(), 5);
+        assert_eq!(
+            with_mc.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M05").unwrap()
+        );
+        assert_eq!(with_mc.day().unwrap(), 18);
+
+        // Day
+        let partial = PartialDate {
+            day: Some(17),
+            ..Default::default()
+        };
+        let with_day = base.with(partial, None).unwrap();
+        assert_eq!(with_day.year().unwrap(), 1976);
+        assert_eq!(with_day.month().unwrap(), 11);
+        assert_eq!(
+            with_day.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M11").unwrap()
+        );
+        assert_eq!(with_day.day().unwrap(), 17);
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js

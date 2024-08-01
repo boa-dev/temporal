@@ -4,10 +4,7 @@ use core::fmt;
 use std::str::FromStr;
 
 use crate::{
-    components::{
-        YearMonthFields,
-        {calendar::Calendar, Date, MonthCode, PartialDate},
-    },
+    components::{calendar::Calendar, Date, MonthCode, PartialDate, YearMonthFields},
     error::TemporalError,
     TemporalResult,
 };
@@ -467,13 +464,9 @@ impl TemporalFields {
                 self.get(key.try_into()?)
             };
 
-            let Some(value) = value else {
-                return Err(TemporalError::general(
-                    "Nonexistent TemporalFieldKey used when merging fields.",
-                ));
+            if let Some(value) = value {
+                result.insert(key.try_into()?, value)?;
             };
-
-            result.insert(key.try_into()?, value)?;
         }
 
         Ok(result)
