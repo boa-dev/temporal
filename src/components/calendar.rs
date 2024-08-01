@@ -675,8 +675,9 @@ impl From<YearMonth> for Calendar {
     }
 }
 
-#[cfg(all(test, feature = "compiled_data"))]
+#[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -939,22 +940,22 @@ mod tests {
                 .date_until(&first, &second, TemporalUnit::Year)
                 .unwrap();
             assert_eq!(
-                result.years() as i32,
+                result.years().0 as i32,
                 test.2 .0,
                 "year failed for test \"{test:?}\""
             );
             assert_eq!(
-                result.months() as i32,
+                result.months().0 as i32,
                 test.2 .1,
                 "months failed for test \"{test:?}\""
             );
             assert_eq!(
-                result.weeks() as i32,
+                result.weeks().0 as i32,
                 test.2 .2,
                 "weeks failed for test \"{test:?}\""
             );
             assert_eq!(
-                result.days() as i32,
+                result.days().0 as i32,
                 test.2 .3,
                 "days failed for test \"{test:?}\""
             );
