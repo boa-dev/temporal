@@ -21,8 +21,48 @@ use std::str::FromStr;
 
 use super::{
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    MonthDay, Time, YearMonth,
+    MonthCode, MonthDay, Time, YearMonth,
 };
+
+// TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
+/// A partial Date that may or may not be complete.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct PartialDate {
+    pub(crate) year: Option<i32>,
+    pub(crate) month: Option<i32>,
+    pub(crate) month_code: Option<MonthCode>,
+    pub(crate) day: Option<i32>,
+    pub(crate) era: Option<TinyAsciiStr<16>>,
+    pub(crate) era_year: Option<i32>,
+}
+
+impl PartialDate {
+    /// Create a new `PartialDate`
+    pub fn new(
+        year: Option<i32>,
+        month: Option<i32>,
+        month_code: Option<MonthCode>,
+        day: Option<i32>,
+        era: Option<TinyAsciiStr<16>>,
+        era_year: Option<i32>,
+    ) -> TemporalResult<Self> {
+        if !(day.is_some()
+            && (month.is_some() || month_code.is_some())
+            && (year.is_some() || (era.is_some() && era_year.is_some())))
+        {
+            return Err(TemporalError::r#type()
+                .with_message("A partial date must have at least one defined field."));
+        }
+        Ok(Self {
+            year,
+            month,
+            month_code,
+            day,
+            era,
+            era_year,
+        })
+    }
+}
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
@@ -208,6 +248,28 @@ impl Date {
     ) -> TemporalResult<Self> {
         let iso = IsoDate::new(year, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
+    }
+
+    /// Creates a date time with values from a `PartialDate`.
+    pub fn with(
+        &self,
+        partial: PartialDate,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
+        let fields = TemporalFields::from(self);
+        // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
+        let partial_fields = TemporalFields::from(partial);
+
+        // 8. Let fields be ? CalendarMergeFields(calendarRec, fieldsResult.[[Fields]], partialDate).
+        let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
+
+        // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
+        // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
+        self.calendar.date_from_fields(
+            &mut merge_result,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )
     }
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
@@ -396,7 +458,7 @@ impl Date {
     /// Converts the current `Date<C>` into a `YearMonth<C>`
     #[inline]
     pub fn to_year_month(&self) -> TemporalResult<YearMonth> {
-        let mut fields: TemporalFields = self.iso_date().into();
+        let mut fields: TemporalFields = self.into();
         self.get_calendar()
             .year_month_from_fields(&mut fields, ArithmeticOverflow::Constrain)
     }
@@ -404,7 +466,7 @@ impl Date {
     /// Converts the current `Date<C>` into a `MonthDay<C>`
     #[inline]
     pub fn to_month_day(&self) -> TemporalResult<MonthDay> {
-        let mut fields: TemporalFields = self.iso_date().into();
+        let mut fields: TemporalFields = self.into();
         self.get_calendar()
             .month_day_from_fields(&mut fields, ArithmeticOverflow::Constrain)
     }
@@ -575,6 +637,74 @@ mod tests {
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
         assert_eq!(result.days(), 9719.0,);
+    }
+
+    #[test]
+    fn basic_date_with() {
+        let base = Date::new(
+            1976,
+            11,
+            18,
+            Calendar::default(),
+            ArithmeticOverflow::Constrain,
+        )
+        .unwrap();
+
+        // Year
+        let partial = PartialDate {
+            year: Some(2019),
+            ..Default::default()
+        };
+        let with_year = base.with(partial, None).unwrap();
+        assert_eq!(with_year.year().unwrap(), 2019);
+        assert_eq!(with_year.month().unwrap(), 11);
+        assert_eq!(
+            with_year.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M11").unwrap()
+        );
+        assert_eq!(with_year.day().unwrap(), 18);
+
+        // Month
+        let partial = PartialDate {
+            month: Some(5),
+            ..Default::default()
+        };
+        let with_month = base.with(partial, None).unwrap();
+        assert_eq!(with_month.year().unwrap(), 1976);
+        assert_eq!(with_month.month().unwrap(), 5);
+        assert_eq!(
+            with_month.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M05").unwrap()
+        );
+        assert_eq!(with_month.day().unwrap(), 18);
+
+        // Month Code
+        let partial = PartialDate {
+            month_code: Some(MonthCode::Five),
+            ..Default::default()
+        };
+        let with_mc = base.with(partial, None).unwrap();
+        assert_eq!(with_mc.year().unwrap(), 1976);
+        assert_eq!(with_mc.month().unwrap(), 5);
+        assert_eq!(
+            with_mc.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M05").unwrap()
+        );
+        assert_eq!(with_mc.day().unwrap(), 18);
+
+        // Day
+        let partial = PartialDate {
+            day: Some(17),
+            ..Default::default()
+        };
+        let with_day = base.with(partial, None).unwrap();
+        assert_eq!(with_day.year().unwrap(), 1976);
+        assert_eq!(with_day.month().unwrap(), 11);
+        assert_eq!(
+            with_day.month_code().unwrap(),
+            TinyAsciiStr::<4>::from_str("M11").unwrap()
+        );
+        assert_eq!(with_day.day().unwrap(), 17);
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js
