@@ -50,6 +50,15 @@ pub struct PartialDuration {
     pub nanoseconds: Option<FiniteF64>,
 }
 
+impl PartialDuration {
+    /// Returns whether the `PartialDuration` is empty.
+    #[inline]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self == &Self::default()
+    }
+}
+
 /// The native Rust implementation of `Temporal.Duration`.
 ///
 /// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
