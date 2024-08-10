@@ -136,9 +136,3 @@ impl PartialOrd<f64> for FiniteF64 {
         self.0.partial_cmp(other)
     }
 }
-
-impl From<FiniteF64> for f64 {
-    fn from(value: FiniteF64) -> Self {
-        value.0
-    }
-}
