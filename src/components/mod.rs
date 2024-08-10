@@ -41,7 +41,7 @@ pub use instant::Instant;
 #[doc(inline)]
 pub use month_day::MonthDay;
 #[doc(inline)]
-pub use time::Time;
+pub use time::{Time, PartialTime};
 #[doc(inline)]
 pub use year_month::YearMonth;
 pub use year_month::YearMonthFields;

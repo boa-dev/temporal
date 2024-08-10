@@ -16,10 +16,13 @@ use std::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use super::{
-    calendar::{CalendarDateLike, GetTemporalCalendar},
-    duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
-    Date, Duration, Time,
+    calendar::{CalendarDateLike, GetTemporalCalendar}, duration::normalized::{NormalizedTimeDuration, RelativeRoundResult}, Date, Duration, PartialDate, PartialTime, Time
 };
+
+pub struct PartialDateTime {
+    date: PartialDate,
+    time: PartialTime,
+}
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]

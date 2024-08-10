@@ -37,6 +37,26 @@ pub struct PartialDate {
 }
 
 impl PartialDate {
+    pub fn from_parts(
+        year: Option<i32>,
+        month: Option<i32>,
+        month_code: Option<MonthCode>,
+        day: Option<i32>,
+        era: Option<TinyAsciiStr<16>>,
+        era_year: Option<i32>,
+    ) -> Self {
+        Self {
+            year,
+            month,
+            month_code,
+            day,
+            era,
+            era_year,
+        }
+    }
+}
+
+impl PartialDate {
     /// Create a new `PartialDate`
     pub fn new(
         year: Option<i32>,

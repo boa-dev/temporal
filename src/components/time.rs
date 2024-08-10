@@ -16,6 +16,36 @@ use super::{duration::normalized::NormalizedTimeDuration, DateTime};
 
 use std::str::FromStr;
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct PartialTime {
+    pub(crate) hour: Option<i32>,
+    pub(crate) minute: Option<i32>,
+    pub(crate) second: Option<i32>,
+    pub(crate) millisecond: Option<i32>,
+    pub(crate) microsecond: Option<i32>,
+    pub(crate) nanosecond: Option<i32>,
+}
+
+impl PartialTime {
+    pub fn from_parts(
+        hour: Option<i32>,
+        minute: Option<i32>,
+        second: Option<i32>,
+        millisecond: Option<i32>,
+        microsecond: Option<i32>,
+        nanosecond: Option<i32>,
+    ) -> Self {
+        Self {
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+        }
+    }
+}
+
 /// The native Rust implementation of `Temporal.PlainTime`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -156,6 +186,20 @@ impl Time {
             overflow,
         )?;
         Ok(Self::new_unchecked(time))
+    }
+
+    pub fn with(
+        &self,
+        partial: PartialTime,
+        overflow: Option<ArithmeticOverflow>
+    ) -> TemporalResult<Self> {
+        let hour = partial.hour.unwrap_or(self.hour().into());
+        let minute = partial.minute.unwrap_or(self.minute().into());
+        let second = partial.second.unwrap_or(self.second().into());
+        let millisecond = partial.millisecond.unwrap_or(self.millisecond().into());
+        let microsecond = partial.microsecond.unwrap_or(self.microsecond().into());
+        let nanosecond = partial.nanosecond.unwrap_or(self.nanosecond().into());
+        Self::new(hour, minute, second, millisecond, microsecond, nanosecond, overflow.unwrap_or(ArithmeticOverflow::Constrain))
     }
 
     /// Returns the internal `hour` field.
