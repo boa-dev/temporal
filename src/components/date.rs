@@ -21,37 +21,36 @@ use std::str::FromStr;
 
 use super::{
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    MonthCode, MonthDay, Time, YearMonth,
+    MonthCode, MonthDay, PartialDateTime, Time, YearMonth,
 };
 
 // TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
 /// A partial Date that may or may not be complete.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PartialDate {
-    pub(crate) year: Option<i32>,
-    pub(crate) month: Option<i32>,
-    pub(crate) month_code: Option<MonthCode>,
-    pub(crate) day: Option<i32>,
-    pub(crate) era: Option<TinyAsciiStr<16>>,
-    pub(crate) era_year: Option<i32>,
+    // A potentially set `year` field.
+    pub year: Option<i32>,
+    // A potentially set `month` field.
+    pub month: Option<i32>,
+    // A potentially set `month_code` field.
+    pub month_code: Option<MonthCode>,
+    // A potentially set `day` field.
+    pub day: Option<i32>,
+    // A potentially set `era` field.
+    pub era: Option<TinyAsciiStr<16>>,
+    // A potentially set `era_year` field.
+    pub era_year: Option<i32>,
 }
 
-impl PartialDate {
-    pub fn from_parts(
-        year: Option<i32>,
-        month: Option<i32>,
-        month_code: Option<MonthCode>,
-        day: Option<i32>,
-        era: Option<TinyAsciiStr<16>>,
-        era_year: Option<i32>,
-    ) -> Self {
+impl From<PartialDateTime> for PartialDate {
+    fn from(value: PartialDateTime) -> Self {
         Self {
-            year,
-            month,
-            month_code,
-            day,
-            era,
-            era_year,
+            year: value.year,
+            month: value.month,
+            month_code: value.month_code,
+            day: value.day,
+            era: value.era,
+            era_year: value.era_year,
         }
     }
 }

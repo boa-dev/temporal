@@ -12,40 +12,36 @@ use crate::{
     Sign, TemporalError, TemporalResult,
 };
 
-use super::{duration::normalized::NormalizedTimeDuration, DateTime};
+use super::{duration::normalized::NormalizedTimeDuration, DateTime, PartialDateTime};
 
 use std::str::FromStr;
 
 /// A `PartialTime` represents partially filled `Time` fields.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PartialTime {
-    pub(crate) hour: Option<i32>,
-    pub(crate) minute: Option<i32>,
-    pub(crate) second: Option<i32>,
-    pub(crate) millisecond: Option<i32>,
-    pub(crate) microsecond: Option<i32>,
-    pub(crate) nanosecond: Option<i32>,
+    // A potentially set `hour` field.
+    pub hour: Option<i32>,
+    // A potentially set `minute` field.
+    pub minute: Option<i32>,
+    // A potentially set `second` field.
+    pub second: Option<i32>,
+    // A potentially set `millisecond` field.
+    pub millisecond: Option<i32>,
+    // A potentially set `microsecond` field.
+    pub microsecond: Option<i32>,
+    // A potentially set `nanosecond` field.
+    pub nanosecond: Option<i32>,
 }
 
-impl PartialTime {
-    /// Creates a `PartialTime` from its parts.
-    #[inline]
-    #[must_use]
-    pub fn from_parts(
-        hour: Option<i32>,
-        minute: Option<i32>,
-        second: Option<i32>,
-        millisecond: Option<i32>,
-        microsecond: Option<i32>,
-        nanosecond: Option<i32>,
-    ) -> Self {
+impl From<PartialDateTime> for PartialTime {
+    fn from(value: PartialDateTime) -> Self {
         Self {
-            hour,
-            minute,
-            second,
-            millisecond,
-            microsecond,
-            nanosecond,
+            hour: value.hour,
+            minute: value.minute,
+            second: value.second,
+            millisecond: value.millisecond,
+            microsecond: value.microsecond,
+            nanosecond: value.nanosecond,
         }
     }
 }

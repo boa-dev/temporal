@@ -18,66 +18,36 @@ use tinystr::TinyAsciiStr;
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
-    Date, Duration, MonthCode, PartialDate, PartialTime, Time,
+    Date, Duration, MonthCode, PartialDate, Time,
 };
 
 /// A partial DateTime record
+#[derive(Debug, Default, Copy, Clone)]
 pub struct PartialDateTime {
-    date: PartialDate,
-    time: PartialTime,
-}
-
-impl PartialDateTime {
-    /// Creates a `PartialDateTime` from its individual parts.
-    #[inline]
-    #[must_use]
-    #[allow(clippy::too_many_arguments)]
-    pub fn from_parts(
-        year: Option<i32>,
-        month: Option<i32>,
-        month_code: Option<MonthCode>,
-        day: Option<i32>,
-        era: Option<TinyAsciiStr<16>>,
-        era_year: Option<i32>,
-        hour: Option<i32>,
-        minute: Option<i32>,
-        second: Option<i32>,
-        millisecond: Option<i32>,
-        microsecond: Option<i32>,
-        nanosecond: Option<i32>,
-    ) -> Self {
-        Self {
-            date: PartialDate::from_parts(year, month, month_code, day, era, era_year),
-            time: PartialTime::from_parts(
-                hour,
-                minute,
-                second,
-                millisecond,
-                microsecond,
-                nanosecond,
-            ),
-        }
-    }
-
-    /// Creates a `PartialDateTime` from a `PartialDate`.
-    #[inline]
-    #[must_use]
-    pub fn from_partial_date(partial: PartialDate) -> Self {
-        Self {
-            date: partial,
-            time: PartialTime::default(),
-        }
-    }
-
-    /// Creates a `PartialDateTime` from a `PartialTime`.
-    #[inline]
-    #[must_use]
-    pub fn from_partial_time(partial: PartialTime) -> Self {
-        Self {
-            date: PartialDate::default(),
-            time: partial,
-        }
-    }
+    // A potentially set `year` field.
+    pub year: Option<i32>,
+    // A potentially set `month` field.
+    pub month: Option<i32>,
+    // A potentially set `month_code` field.
+    pub month_code: Option<MonthCode>,
+    // A potentially set `day` field.
+    pub day: Option<i32>,
+    // A potentially set `era` field.
+    pub era: Option<TinyAsciiStr<16>>,
+    // A potentially set `era_year` field.
+    pub era_year: Option<i32>,
+    // A potentially set `hour` field.
+    pub hour: Option<i32>,
+    // A potentially set `minute` field.
+    pub minute: Option<i32>,
+    // A potentially set `second` field.
+    pub second: Option<i32>,
+    // A potentially set `millisecond` field.
+    pub millisecond: Option<i32>,
+    // A potentially set `microsecond` field.
+    pub microsecond: Option<i32>,
+    // A potentially set `nanosecond` field.
+    pub nanosecond: Option<i32>,
 }
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
@@ -310,7 +280,7 @@ impl DateTime {
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         let fields = TemporalFields::from(self);
-        let partial_fields = TemporalFields::from(partial_datetime.date);
+        let partial_fields = TemporalFields::from(PartialDate::from(partial_datetime));
 
         let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
 
@@ -320,7 +290,7 @@ impl DateTime {
         )?;
 
         let time = self.iso.time.with(
-            partial_datetime.time,
+            partial_datetime.into(),
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
         )?;
 
@@ -630,8 +600,8 @@ mod tests {
 
     use crate::{
         components::{
-            calendar::Calendar, duration::DateDuration, DateTime, Duration, MonthCode, PartialDate,
-            PartialDateTime, PartialTime,
+            calendar::Calendar, duration::DateDuration, DateTime, Duration, MonthCode,
+            PartialDateTime,
         },
         options::{
             DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
@@ -686,11 +656,8 @@ mod tests {
 
         // Test year
         let partial = PartialDateTime {
-            date: PartialDate {
-                year: Some(2019),
-                ..Default::default()
-            },
-            time: PartialTime::default(),
+            year: Some(2019),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -700,11 +667,8 @@ mod tests {
 
         // Test month
         let partial = PartialDateTime {
-            date: PartialDate {
-                month: Some(5),
-                ..Default::default()
-            },
-            time: PartialTime::default(),
+            month: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -714,11 +678,8 @@ mod tests {
 
         // Test monthCode
         let partial = PartialDateTime {
-            date: PartialDate {
-                month_code: Some(MonthCode::Five),
-                ..Default::default()
-            },
-            time: PartialTime::default(),
+            month_code: Some(MonthCode::Five),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -728,11 +689,8 @@ mod tests {
 
         // Test day
         let partial = PartialDateTime {
-            date: PartialDate {
-                day: Some(5),
-                ..Default::default()
-            },
-            time: PartialTime::default(),
+            day: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -742,11 +700,8 @@ mod tests {
 
         // Test hour
         let partial = PartialDateTime {
-            date: PartialDate::default(),
-            time: PartialTime {
-                hour: Some(5),
-                ..Default::default()
-            },
+            hour: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -756,11 +711,8 @@ mod tests {
 
         // Test minute
         let partial = PartialDateTime {
-            date: PartialDate::default(),
-            time: PartialTime {
-                minute: Some(5),
-                ..Default::default()
-            },
+            minute: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -770,11 +722,8 @@ mod tests {
 
         // Test second
         let partial = PartialDateTime {
-            date: PartialDate::default(),
-            time: PartialTime {
-                second: Some(5),
-                ..Default::default()
-            },
+            second: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -784,11 +733,8 @@ mod tests {
 
         // Test second
         let partial = PartialDateTime {
-            date: PartialDate::default(),
-            time: PartialTime {
-                millisecond: Some(5),
-                ..Default::default()
-            },
+            millisecond: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -798,11 +744,8 @@ mod tests {
 
         // Test second
         let partial = PartialDateTime {
-            date: PartialDate::default(),
-            time: PartialTime {
-                microsecond: Some(5),
-                ..Default::default()
-            },
+            microsecond: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
@@ -812,11 +755,8 @@ mod tests {
 
         // Test second
         let partial = PartialDateTime {
-            date: PartialDate::default(),
-            time: PartialTime {
-                nanosecond: Some(5),
-                ..Default::default()
-            },
+            nanosecond: Some(5),
+            ..Default::default()
         };
         let result = pdt.with(partial, None).unwrap();
         assert_datetime(
