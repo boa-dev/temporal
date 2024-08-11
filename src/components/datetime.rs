@@ -8,7 +8,7 @@ use crate::{
         RoundingOptions, TemporalUnit,
     },
     parsers::parse_date_time,
-    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
 };
 
 use num_traits::AsPrimitive;
@@ -16,12 +16,68 @@ use std::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use super::{
-    calendar::{CalendarDateLike, GetTemporalCalendar}, duration::normalized::{NormalizedTimeDuration, RelativeRoundResult}, Date, Duration, PartialDate, PartialTime, Time
+    calendar::{CalendarDateLike, GetTemporalCalendar},
+    duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
+    Date, Duration, MonthCode, PartialDate, PartialTime, Time,
 };
 
+/// A partial DateTime record
 pub struct PartialDateTime {
     date: PartialDate,
     time: PartialTime,
+}
+
+impl PartialDateTime {
+    /// Creates a `PartialDateTime` from its individual parts.
+    #[inline]
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn from_parts(
+        year: Option<i32>,
+        month: Option<i32>,
+        month_code: Option<MonthCode>,
+        day: Option<i32>,
+        era: Option<TinyAsciiStr<16>>,
+        era_year: Option<i32>,
+        hour: Option<i32>,
+        minute: Option<i32>,
+        second: Option<i32>,
+        millisecond: Option<i32>,
+        microsecond: Option<i32>,
+        nanosecond: Option<i32>,
+    ) -> Self {
+        Self {
+            date: PartialDate::from_parts(year, month, month_code, day, era, era_year),
+            time: PartialTime::from_parts(
+                hour,
+                minute,
+                second,
+                millisecond,
+                microsecond,
+                nanosecond,
+            ),
+        }
+    }
+
+    /// Creates a `PartialDateTime` from a `PartialDate`.
+    #[inline]
+    #[must_use]
+    pub fn from_partial_date(partial: PartialDate) -> Self {
+        Self {
+            date: partial,
+            time: PartialTime::default(),
+        }
+    }
+
+    /// Creates a `PartialDateTime` from a `PartialTime`.
+    #[inline]
+    #[must_use]
+    pub fn from_partial_time(partial: PartialTime) -> Self {
+        Self {
+            date: PartialDate::default(),
+            time: partial,
+        }
+    }
 }
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
@@ -244,6 +300,33 @@ impl DateTime {
             IsoDateTime::new(iso_date, iso_time)?,
             calendar,
         ))
+    }
+
+    /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
+    #[inline]
+    pub fn with(
+        &self,
+        partial_datetime: PartialDateTime,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        let fields = TemporalFields::from(self);
+        let partial_fields = TemporalFields::from(partial_datetime.date);
+
+        let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
+
+        let result_date = self.calendar.date_from_fields(
+            &mut merge_result,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+
+        let time = self.iso.time.with(
+            partial_datetime.time,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+
+        let iso_datetime = IsoDateTime::new(result_date.iso, time)?;
+
+        Ok(Self::new_unchecked(iso_datetime, self.calendar().clone()))
     }
 
     /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
@@ -543,9 +626,13 @@ impl FromStr for DateTime {
 mod tests {
     use std::str::FromStr;
 
+    use tinystr::{tinystr, TinyAsciiStr};
+
     use crate::{
-        components::{calendar::Calendar, duration::DateDuration, Duration},
-        iso::{IsoDate, IsoTime},
+        components::{
+            calendar::Calendar, duration::DateDuration, DateTime, Duration, MonthCode, PartialDate,
+            PartialDateTime, PartialTime,
+        },
         options::{
             DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
             TemporalUnit,
@@ -553,7 +640,21 @@ mod tests {
         primitive::FiniteF64,
     };
 
-    use super::DateTime;
+    fn assert_datetime(
+        dt: DateTime,
+        fields: (i32, u8, TinyAsciiStr<4>, u8, u8, u8, u8, u16, u16, u16),
+    ) {
+        assert_eq!(dt.year().unwrap(), fields.0);
+        assert_eq!(dt.month().unwrap(), fields.1);
+        assert_eq!(dt.month_code().unwrap(), fields.2);
+        assert_eq!(dt.day().unwrap(), fields.3);
+        assert_eq!(dt.hour(), fields.4);
+        assert_eq!(dt.minute(), fields.5);
+        assert_eq!(dt.second(), fields.6);
+        assert_eq!(dt.millisecond(), fields.7);
+        assert_eq!(dt.microsecond(), fields.8);
+        assert_eq!(dt.nanosecond(), fields.9);
+    }
 
     #[test]
     #[allow(clippy::float_cmp)]
@@ -576,6 +677,152 @@ mod tests {
 
         assert!(negative_limit.is_err());
         assert!(positive_limit.is_err());
+    }
+
+    #[test]
+    fn basic_with_test() {
+        let pdt =
+            DateTime::new(1976, 11, 18, 15, 23, 30, 123, 456, 789, Calendar::default()).unwrap();
+
+        // Test year
+        let partial = PartialDateTime {
+            date: PartialDate {
+                year: Some(2019),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (2019, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 456, 789),
+        );
+
+        // Test month
+        let partial = PartialDateTime {
+            date: PartialDate {
+                month: Some(5),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 5, tinystr!(4, "M05"), 18, 15, 23, 30, 123, 456, 789),
+        );
+
+        // Test monthCode
+        let partial = PartialDateTime {
+            date: PartialDate {
+                month_code: Some(MonthCode::Five),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 5, tinystr!(4, "M05"), 18, 15, 23, 30, 123, 456, 789),
+        );
+
+        // Test day
+        let partial = PartialDateTime {
+            date: PartialDate {
+                day: Some(5),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 5, 15, 23, 30, 123, 456, 789),
+        );
+
+        // Test hour
+        let partial = PartialDateTime {
+            date: PartialDate::default(),
+            time: PartialTime {
+                hour: Some(5),
+                ..Default::default()
+            },
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 18, 5, 23, 30, 123, 456, 789),
+        );
+
+        // Test minute
+        let partial = PartialDateTime {
+            date: PartialDate::default(),
+            time: PartialTime {
+                minute: Some(5),
+                ..Default::default()
+            },
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 18, 15, 5, 30, 123, 456, 789),
+        );
+
+        // Test second
+        let partial = PartialDateTime {
+            date: PartialDate::default(),
+            time: PartialTime {
+                second: Some(5),
+                ..Default::default()
+            },
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 5, 123, 456, 789),
+        );
+
+        // Test second
+        let partial = PartialDateTime {
+            date: PartialDate::default(),
+            time: PartialTime {
+                millisecond: Some(5),
+                ..Default::default()
+            },
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 5, 456, 789),
+        );
+
+        // Test second
+        let partial = PartialDateTime {
+            date: PartialDate::default(),
+            time: PartialTime {
+                microsecond: Some(5),
+                ..Default::default()
+            },
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 5, 789),
+        );
+
+        // Test second
+        let partial = PartialDateTime {
+            date: PartialDate::default(),
+            time: PartialTime {
+                nanosecond: Some(5),
+                ..Default::default()
+            },
+        };
+        let result = pdt.with(partial, None).unwrap();
+        assert_datetime(
+            result,
+            (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 456, 5),
+        );
     }
 
     // options-undefined.js
@@ -635,47 +882,15 @@ mod tests {
             DateTime::new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default()).unwrap();
 
         let result = dt.subtract(&Duration::hour(FiniteF64(12.0)), None).unwrap();
-
-        assert_eq!(
-            result.iso.date,
-            IsoDate {
-                year: 2019,
-                month: 10,
-                day: 28
-            }
-        );
-        assert_eq!(
-            result.iso.time,
-            IsoTime {
-                hour: 22,
-                minute: 46,
-                second: 38,
-                millisecond: 271,
-                microsecond: 986,
-                nanosecond: 102
-            }
+        assert_datetime(
+            result,
+            (2019, 10, tinystr!(4, "M10"), 28, 22, 46, 38, 271, 986, 102),
         );
 
         let result = dt.add(&Duration::hour(FiniteF64(-12.0)), None).unwrap();
-
-        assert_eq!(
-            result.iso.date,
-            IsoDate {
-                year: 2019,
-                month: 10,
-                day: 28
-            }
-        );
-        assert_eq!(
-            result.iso.time,
-            IsoTime {
-                hour: 22,
-                minute: 46,
-                second: 38,
-                millisecond: 271,
-                microsecond: 986,
-                nanosecond: 102
-            }
+        assert_datetime(
+            result,
+            (2019, 10, tinystr!(4, "M10"), 28, 22, 46, 38, 271, 986, 102),
         );
     }
 

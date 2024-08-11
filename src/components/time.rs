@@ -16,6 +16,7 @@ use super::{duration::normalized::NormalizedTimeDuration, DateTime};
 
 use std::str::FromStr;
 
+/// A `PartialTime` represents partially filled `Time` fields.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PartialTime {
     pub(crate) hour: Option<i32>,
@@ -27,6 +28,9 @@ pub struct PartialTime {
 }
 
 impl PartialTime {
+    /// Creates a `PartialTime` from its parts.
+    #[inline]
+    #[must_use]
     pub fn from_parts(
         hour: Option<i32>,
         minute: Option<i32>,
@@ -191,15 +195,12 @@ impl Time {
     pub fn with(
         &self,
         partial: PartialTime,
-        overflow: Option<ArithmeticOverflow>
+        overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        let hour = partial.hour.unwrap_or(self.hour().into());
-        let minute = partial.minute.unwrap_or(self.minute().into());
-        let second = partial.second.unwrap_or(self.second().into());
-        let millisecond = partial.millisecond.unwrap_or(self.millisecond().into());
-        let microsecond = partial.microsecond.unwrap_or(self.microsecond().into());
-        let nanosecond = partial.nanosecond.unwrap_or(self.nanosecond().into());
-        Self::new(hour, minute, second, millisecond, microsecond, nanosecond, overflow.unwrap_or(ArithmeticOverflow::Constrain))
+        let iso = self
+            .iso
+            .with(partial, overflow.unwrap_or(ArithmeticOverflow::Constrain))?;
+        Ok(Self::new_unchecked(iso))
     }
 
     /// Returns the internal `hour` field.
