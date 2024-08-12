@@ -279,15 +279,6 @@ impl DateTime {
         partial_datetime: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        // Validate that the `PartialDate` is a valid, actionable `PartialDate`
-        if !(partial_datetime.day.is_some()
-            && (partial_datetime.month.is_some() || partial_datetime.month_code.is_some())
-            && (partial_datetime.year.is_some() || (partial_datetime.era.is_some() && partial_datetime.era_year.is_some())))
-        {
-            return Err(TemporalError::r#type()
-                .with_message("A partial date must have at least one defined field."));
-        }
-
         // Determine the Date from the provided fields.
         let fields = TemporalFields::from(self);
         let partial_fields = TemporalFields::from(PartialDate::from(partial_datetime));

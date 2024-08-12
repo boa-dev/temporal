@@ -247,14 +247,6 @@ impl Date {
         partial: PartialDate,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        // Validate that the PartialDate is valid partial.
-        if !(partial.day.is_some()
-            && (partial.month.is_some() || partial.month_code.is_some())
-            && (partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some())))
-        {
-            return Err(TemporalError::r#type()
-                .with_message("A partial date must have at least one defined field."));
-        }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
         let fields = TemporalFields::from(self);
         // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
