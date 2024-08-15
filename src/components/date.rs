@@ -21,7 +21,7 @@ use std::str::FromStr;
 
 use super::{
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    MonthCode, MonthDay, PartialDateTime, Time, YearMonth,
+    MonthCode, MonthDay, Time, YearMonth,
 };
 
 // TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
@@ -40,19 +40,6 @@ pub struct PartialDate {
     pub era: Option<TinyAsciiStr<16>>,
     // A potentially set `era_year` field.
     pub era_year: Option<i32>,
-}
-
-impl From<PartialDateTime> for PartialDate {
-    fn from(value: PartialDateTime) -> Self {
-        Self {
-            year: value.year,
-            month: value.month,
-            month_code: value.month_code,
-            day: value.day,
-            era: value.era,
-            era_year: value.era_year,
-        }
-    }
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.

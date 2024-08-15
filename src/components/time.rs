@@ -12,7 +12,7 @@ use crate::{
     Sign, TemporalError, TemporalResult,
 };
 
-use super::{duration::normalized::NormalizedTimeDuration, DateTime, PartialDateTime};
+use super::{duration::normalized::NormalizedTimeDuration, DateTime};
 
 use std::str::FromStr;
 
@@ -31,19 +31,6 @@ pub struct PartialTime {
     pub microsecond: Option<i32>,
     // A potentially set `nanosecond` field.
     pub nanosecond: Option<i32>,
-}
-
-impl From<PartialDateTime> for PartialTime {
-    fn from(value: PartialDateTime) -> Self {
-        Self {
-            hour: value.hour,
-            minute: value.minute,
-            second: value.second,
-            millisecond: value.millisecond,
-            microsecond: value.microsecond,
-            nanosecond: value.nanosecond,
-        }
-    }
 }
 
 /// The native Rust implementation of `Temporal.PlainTime`.
