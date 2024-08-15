@@ -21,7 +21,7 @@ use crate::{
             normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
             DateDuration, TimeDuration,
         },
-        Date, Duration,
+        Date, Duration, PartialTime,
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
@@ -563,6 +563,30 @@ impl IsoTime {
                 ))
             }
         }
+    }
+
+    /// Creates a new `Time` with the fields provided from a `PartialTime`.
+    #[inline]
+    pub(crate) fn with(
+        &self,
+        partial: PartialTime,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        let hour = partial.hour.unwrap_or(self.hour.into());
+        let minute = partial.minute.unwrap_or(self.minute.into());
+        let second = partial.second.unwrap_or(self.second.into());
+        let millisecond = partial.millisecond.unwrap_or(self.millisecond.into());
+        let microsecond = partial.microsecond.unwrap_or(self.microsecond.into());
+        let nanosecond = partial.nanosecond.unwrap_or(self.nanosecond.into());
+        Self::new(
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+            overflow,
+        )
     }
 
     /// Returns an `IsoTime` set to 12:00:00

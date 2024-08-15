@@ -4,7 +4,7 @@ use core::fmt;
 use std::str::FromStr;
 
 use crate::{
-    components::{calendar::Calendar, Date, MonthCode, PartialDate, YearMonthFields},
+    components::{calendar::Calendar, Date, DateTime, MonthCode, PartialDate, YearMonthFields},
     error::TemporalError,
     TemporalResult,
 };
@@ -470,6 +470,22 @@ impl TemporalFields {
         }
 
         Ok(result)
+    }
+}
+
+impl From<&DateTime> for TemporalFields {
+    fn from(value: &DateTime) -> Self {
+        Self {
+            bit_map: FieldMap::YEAR | FieldMap::MONTH | FieldMap::MONTH_CODE | FieldMap::DAY,
+            year: Some(value.iso.date.year),
+            month: Some(value.iso.date.month.into()),
+            month_code: Some(
+                MonthCode::try_from(value.iso.date.month)
+                    .expect("Date must always have a valid month."),
+            ),
+            day: Some(value.iso.date.day.into()),
+            ..Default::default()
+        }
     }
 }
 

@@ -28,40 +28,18 @@ use super::{
 /// A partial Date that may or may not be complete.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct PartialDate {
-    pub(crate) year: Option<i32>,
-    pub(crate) month: Option<i32>,
-    pub(crate) month_code: Option<MonthCode>,
-    pub(crate) day: Option<i32>,
-    pub(crate) era: Option<TinyAsciiStr<16>>,
-    pub(crate) era_year: Option<i32>,
-}
-
-impl PartialDate {
-    /// Create a new `PartialDate`
-    pub fn new(
-        year: Option<i32>,
-        month: Option<i32>,
-        month_code: Option<MonthCode>,
-        day: Option<i32>,
-        era: Option<TinyAsciiStr<16>>,
-        era_year: Option<i32>,
-    ) -> TemporalResult<Self> {
-        if !(day.is_some()
-            && (month.is_some() || month_code.is_some())
-            && (year.is_some() || (era.is_some() && era_year.is_some())))
-        {
-            return Err(TemporalError::r#type()
-                .with_message("A partial date must have at least one defined field."));
-        }
-        Ok(Self {
-            year,
-            month,
-            month_code,
-            day,
-            era,
-            era_year,
-        })
-    }
+    // A potentially set `year` field.
+    pub year: Option<i32>,
+    // A potentially set `month` field.
+    pub month: Option<i32>,
+    // A potentially set `month_code` field.
+    pub month_code: Option<MonthCode>,
+    // A potentially set `day` field.
+    pub day: Option<i32>,
+    // A potentially set `era` field.
+    pub era: Option<TinyAsciiStr<16>>,
+    // A potentially set `era_year` field.
+    pub era_year: Option<i32>,
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.

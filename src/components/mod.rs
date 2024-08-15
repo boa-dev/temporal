@@ -33,7 +33,7 @@ use std::str::FromStr;
 #[doc(inline)]
 pub use date::{Date, PartialDate};
 #[doc(inline)]
-pub use datetime::DateTime;
+pub use datetime::{DateTime, PartialDateTime};
 #[doc(inline)]
 pub use duration::Duration;
 #[doc(inline)]
@@ -41,7 +41,7 @@ pub use instant::Instant;
 #[doc(inline)]
 pub use month_day::MonthDay;
 #[doc(inline)]
-pub use time::Time;
+pub use time::{PartialTime, Time};
 #[doc(inline)]
 pub use year_month::YearMonth;
 pub use year_month::YearMonthFields;
