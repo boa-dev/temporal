@@ -17,7 +17,7 @@ use super::{duration::normalized::NormalizedTimeDuration, DateTime};
 use std::str::FromStr;
 
 /// A `PartialTime` represents partially filled `Time` fields.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct PartialTime {
     // A potentially set `hour` field.
     pub hour: Option<i32>,
@@ -31,6 +31,12 @@ pub struct PartialTime {
     pub microsecond: Option<i32>,
     // A potentially set `nanosecond` field.
     pub nanosecond: Option<i32>,
+}
+
+impl PartialTime {
+    pub(crate) fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 /// The native Rust implementation of `Temporal.PlainTime`.
@@ -180,6 +186,10 @@ impl Time {
         partial: PartialTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        if partial.is_empty() {
+            return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
+        }
+
         let iso = self
             .iso
             .with(partial, overflow.unwrap_or(ArithmeticOverflow::Constrain))?;
