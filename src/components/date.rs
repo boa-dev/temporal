@@ -45,7 +45,7 @@ pub struct PartialDate {
 impl PartialDate {
     /// Returns a boolean for if the current `PartialDate` is empty.
     pub(crate) fn is_empty(&self) -> bool {
-        *self == Self::default() 
+        *self == Self::default()
     }
 }
 
@@ -242,7 +242,7 @@ impl Date {
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         if partial.is_empty() {
-            return Err(TemporalError::r#type().with_message("A PartialDate must have a field."))
+            return Err(TemporalError::r#type().with_message("A PartialDate must have a field."));
         }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
         let fields = TemporalFields::from(self);
@@ -625,6 +625,21 @@ mod tests {
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
         assert_eq!(result.days(), 9719.0,);
+    }
+
+    #[test]
+    fn date_with_empty_error() {
+        let base = Date::new(
+            1976,
+            11,
+            18,
+            Calendar::default(),
+            ArithmeticOverflow::Constrain,
+        )
+        .unwrap();
+
+        let err = base.with(PartialDate::default(), None);
+        assert!(err.is_err());
     }
 
     #[test]
