@@ -20,6 +20,7 @@ pub mod calendar;
 pub mod duration;
 pub mod tz;
 
+mod calendar_types;
 mod date;
 mod datetime;
 mod instant;

@@ -111,7 +111,7 @@ impl YearMonth {
     /// Returns the string identifier for the current calendar used.
     #[inline]
     #[must_use]
-    pub fn calendar_id(&self) -> String {
+    pub fn calendar_id(&self) -> &'static str {
         self.calendar.identifier()
     }
 

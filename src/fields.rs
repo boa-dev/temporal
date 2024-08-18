@@ -57,12 +57,6 @@ impl From<TemporalFieldKey> for FieldMap {
             TemporalFieldKey::Month => FieldMap::MONTH,
             TemporalFieldKey::MonthCode => FieldMap::MONTH_CODE,
             TemporalFieldKey::Day => FieldMap::DAY,
-            TemporalFieldKey::Hour => FieldMap::HOUR,
-            TemporalFieldKey::Minute => FieldMap::MINUTE,
-            TemporalFieldKey::Second => FieldMap::SECOND,
-            TemporalFieldKey::Millisecond => FieldMap::MILLISECOND,
-            TemporalFieldKey::Microsecond => FieldMap::MICROSECOND,
-            TemporalFieldKey::Nanosecond => FieldMap::NANOSECOND,
             TemporalFieldKey::Offset => FieldMap::OFFSET,
             TemporalFieldKey::Era => FieldMap::ERA,
             TemporalFieldKey::EraYear => FieldMap::ERA_YEAR,
@@ -121,12 +115,6 @@ pub enum TemporalFieldKey {
     Month,
     MonthCode,
     Day,
-    Hour,
-    Minute,
-    Second,
-    Millisecond,
-    Microsecond,
-    Nanosecond,
     Offset,
     Era,
     EraYear,
@@ -141,12 +129,6 @@ impl TryFrom<FieldMap> for TemporalFieldKey {
             FieldMap::MONTH => Ok(TemporalFieldKey::Month),
             FieldMap::MONTH_CODE => Ok(TemporalFieldKey::MonthCode),
             FieldMap::DAY => Ok(TemporalFieldKey::Day),
-            FieldMap::HOUR => Ok(TemporalFieldKey::Hour),
-            FieldMap::MINUTE => Ok(TemporalFieldKey::Minute),
-            FieldMap::SECOND => Ok(TemporalFieldKey::Second),
-            FieldMap::MILLISECOND => Ok(TemporalFieldKey::Millisecond),
-            FieldMap::MICROSECOND => Ok(TemporalFieldKey::Microsecond),
-            FieldMap::NANOSECOND => Ok(TemporalFieldKey::Nanosecond),
             FieldMap::OFFSET => Ok(TemporalFieldKey::Offset),
             FieldMap::ERA => Ok(TemporalFieldKey::Era),
             FieldMap::ERA_YEAR => Ok(TemporalFieldKey::EraYear),
@@ -164,12 +146,6 @@ impl FromStr for TemporalFieldKey {
             "month" => Ok(Self::Month),
             "monthCode" => Ok(Self::MonthCode),
             "day" => Ok(Self::Day),
-            "hour" => Ok(Self::Hour),
-            "minute" => Ok(Self::Minute),
-            "second" => Ok(Self::Second),
-            "millisecond" => Ok(Self::Millisecond),
-            "microsecond" => Ok(Self::Microsecond),
-            "nanosecond" => Ok(Self::Nanosecond),
             "offset" => Ok(Self::Offset),
             "era" => Ok(Self::Era),
             "eraYear" => Ok(Self::EraYear),
@@ -211,12 +187,6 @@ pub struct TemporalFields {
     pub(crate) month: Option<i32>,
     pub(crate) month_code: Option<MonthCode>,
     pub(crate) day: Option<i32>,
-    hour: i32,
-    minute: i32,
-    second: i32,
-    millisecond: i32,
-    microsecond: i32,
-    nanosecond: i32,
     offset: Option<TinyAsciiStr<16>>,
     pub(crate) era: Option<TinyAsciiStr<16>>,
     era_year: Option<i32>,
@@ -263,12 +233,6 @@ impl TemporalFields {
                     .map_or(String::default(), |s| s.as_str().to_owned()),
             )),
             TemporalFieldKey::Day => Some(TemporalFieldValue::Integer(self.day)),
-            TemporalFieldKey::Hour => Some(TemporalFieldValue::from(self.hour)),
-            TemporalFieldKey::Minute => Some(TemporalFieldValue::from(self.minute)),
-            TemporalFieldKey::Second => Some(TemporalFieldValue::from(self.second)),
-            TemporalFieldKey::Millisecond => Some(TemporalFieldValue::from(self.millisecond)),
-            TemporalFieldKey::Microsecond => Some(TemporalFieldValue::from(self.microsecond)),
-            TemporalFieldKey::Nanosecond => Some(TemporalFieldValue::from(self.nanosecond)),
             TemporalFieldKey::Offset => Some(TemporalFieldValue::String(
                 self.offset.map_or(String::default(), |s| s.to_string()),
             )),
@@ -321,54 +285,6 @@ impl TemporalFields {
                     );
                 };
                 self.day = value;
-            }
-            TemporalFieldKey::Hour => {
-                let TemporalFieldValue::Integer(Some(value)) = value else {
-                    return Err(
-                        TemporalError::r#type().with_message("Invalid type for temporal field.")
-                    );
-                };
-                self.hour = value;
-            }
-            TemporalFieldKey::Minute => {
-                let TemporalFieldValue::Integer(Some(value)) = value else {
-                    return Err(
-                        TemporalError::r#type().with_message("Invalid type for temporal field.")
-                    );
-                };
-                self.minute = value;
-            }
-            TemporalFieldKey::Second => {
-                let TemporalFieldValue::Integer(Some(value)) = value else {
-                    return Err(
-                        TemporalError::r#type().with_message("Invalid type for temporal field.")
-                    );
-                };
-                self.second = value;
-            }
-            TemporalFieldKey::Millisecond => {
-                let TemporalFieldValue::Integer(Some(value)) = value else {
-                    return Err(
-                        TemporalError::r#type().with_message("Invalid type for temporal field.")
-                    );
-                };
-                self.millisecond = value;
-            }
-            TemporalFieldKey::Microsecond => {
-                let TemporalFieldValue::Integer(Some(value)) = value else {
-                    return Err(
-                        TemporalError::r#type().with_message("Invalid type for temporal field.")
-                    );
-                };
-                self.microsecond = value;
-            }
-            TemporalFieldKey::Nanosecond => {
-                let TemporalFieldValue::Integer(Some(value)) = value else {
-                    return Err(
-                        TemporalError::r#type().with_message("Invalid type for temporal field.")
-                    );
-                };
-                self.nanosecond = value;
             }
             TemporalFieldKey::Offset => {
                 let TemporalFieldValue::String(value) = value else {
@@ -603,12 +519,6 @@ impl Iterator for Values<'_> {
                     .map_or(String::default(), |s| s.as_str().to_owned()),
             )),
             FieldMap::DAY => Some(TemporalFieldValue::Integer(self.fields.day)),
-            FieldMap::HOUR => Some(TemporalFieldValue::from(self.fields.hour)),
-            FieldMap::MINUTE => Some(TemporalFieldValue::from(self.fields.minute)),
-            FieldMap::SECOND => Some(TemporalFieldValue::from(self.fields.second)),
-            FieldMap::MILLISECOND => Some(TemporalFieldValue::from(self.fields.millisecond)),
-            FieldMap::MICROSECOND => Some(TemporalFieldValue::from(self.fields.microsecond)),
-            FieldMap::NANOSECOND => Some(TemporalFieldValue::from(self.fields.nanosecond)),
             FieldMap::OFFSET => Some(TemporalFieldValue::String(
                 self.fields
                     .offset

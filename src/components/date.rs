@@ -24,6 +24,7 @@ use super::{
     MonthCode, MonthDay, Time, YearMonth,
 };
 
+// TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate "ethiopic-amete-alem".
 // TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
 /// A partial Date that may or may not be complete.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]

@@ -615,11 +615,11 @@ impl Calendar {
     }
 
     /// Returns the identifier of this calendar slot.
-    pub fn identifier(&self) -> String {
+    pub fn identifier(&self) -> &'static str {
         if self.is_iso() {
-            return String::from("iso8601");
+            return "iso8601";
         }
-        String::from(self.0 .0.kind().as_bcp47_string())
+        self.0 .0.kind().as_bcp47_string()
     }
 }
 
