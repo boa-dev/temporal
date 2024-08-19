@@ -472,7 +472,7 @@ impl TemporalFields {
         Ok(result)
     }
 
-    /// Creates a `TemporalFeild` from a `PartialDate`.
+    /// Creates a `TemporalField` from a `PartialDate`.
     pub(crate) fn from_partial_date(partial: &PartialDate) -> Self {
         let mut bit_map = FieldMap::empty();
         if partial.year.is_some() {
