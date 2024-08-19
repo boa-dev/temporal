@@ -24,8 +24,10 @@ use super::{
 /// A partial DateTime record
 #[derive(Debug, Default, Copy, Clone)]
 pub struct PartialDateTime {
-    date: PartialDate,
-    time: PartialTime,
+    /// The `PartialDate` portion of a `PartialDateTime`
+    pub date: PartialDate,
+    /// The `PartialTime` portion of a `PartialDateTime`
+    pub time: PartialTime,
 }
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
@@ -250,6 +252,14 @@ impl DateTime {
         ))
     }
 
+    /// Create a `DateTime` from a `Date` and a `Time`.
+    pub fn from_date_and_time(date: Date, time: Time) -> TemporalResult<Self> {
+        Ok(Self::new_unchecked(
+            IsoDateTime::new(date.iso, time.iso)?,
+            date.calendar().clone(),
+        ))
+    }
+
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
     #[inline]
     pub fn with(
@@ -257,9 +267,14 @@ impl DateTime {
         partial_datetime: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        if partial_datetime.date.is_empty() && partial_datetime.time.is_empty() {
+            return Err(
+                TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
+            );
+        }
         // Determine the Date from the provided fields.
         let fields = TemporalFields::from(self);
-        let partial_fields = TemporalFields::from(partial_datetime.date);
+        let partial_fields = TemporalFields::from_partial_date(&partial_datetime.date);
 
         let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
 
@@ -773,6 +788,15 @@ mod tests {
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 456, 5),
         );
+    }
+
+    #[test]
+    fn datetime_with_empty_partial() {
+        let pdt =
+            DateTime::new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
+
+        let err = pdt.with(PartialDateTime::default(), None);
+        assert!(err.is_err());
     }
 
     // options-undefined.js

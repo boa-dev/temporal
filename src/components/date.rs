@@ -26,7 +26,7 @@ use super::{
 
 // TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
 /// A partial Date that may or may not be complete.
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct PartialDate {
     // A potentially set `year` field.
     pub year: Option<i32>,
@@ -40,6 +40,13 @@ pub struct PartialDate {
     pub era: Option<TinyAsciiStr<16>>,
     // A potentially set `era_year` field.
     pub era_year: Option<i32>,
+}
+
+impl PartialDate {
+    /// Returns a boolean for if the current `PartialDate` is empty.
+    pub(crate) fn is_empty(&self) -> bool {
+        *self == Self::default()
+    }
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.
@@ -234,10 +241,13 @@ impl Date {
         partial: PartialDate,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        if partial.is_empty() {
+            return Err(TemporalError::r#type().with_message("A PartialDate must have a field."));
+        }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
         let fields = TemporalFields::from(self);
         // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
-        let partial_fields = TemporalFields::from(partial);
+        let partial_fields = TemporalFields::from_partial_date(&partial);
 
         // 8. Let fields be ? CalendarMergeFields(calendarRec, fieldsResult.[[Fields]], partialDate).
         let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
@@ -615,6 +625,21 @@ mod tests {
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
         assert_eq!(result.days(), 9719.0,);
+    }
+
+    #[test]
+    fn date_with_empty_error() {
+        let base = Date::new(
+            1976,
+            11,
+            18,
+            Calendar::default(),
+            ArithmeticOverflow::Constrain,
+        )
+        .unwrap();
+
+        let err = base.with(PartialDate::default(), None);
+        assert!(err.is_err());
     }
 
     #[test]

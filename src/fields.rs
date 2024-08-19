@@ -471,6 +471,40 @@ impl TemporalFields {
 
         Ok(result)
     }
+
+    /// Creates a `TemporalField` from a `PartialDate`.
+    pub(crate) fn from_partial_date(partial: &PartialDate) -> Self {
+        let mut bit_map = FieldMap::empty();
+        if partial.year.is_some() {
+            bit_map.set(FieldMap::YEAR, true)
+        };
+        if partial.month.is_some() {
+            bit_map.set(FieldMap::MONTH, true)
+        };
+        if partial.month_code.is_some() {
+            bit_map.set(FieldMap::MONTH_CODE, true)
+        };
+        if partial.day.is_some() {
+            bit_map.set(FieldMap::DAY, true)
+        };
+        if partial.era.is_some() {
+            bit_map.set(FieldMap::ERA, true)
+        }
+        if partial.era_year.is_some() {
+            bit_map.set(FieldMap::ERA_YEAR, true)
+        }
+
+        Self {
+            bit_map,
+            year: partial.year,
+            month: partial.month,
+            month_code: partial.month_code,
+            day: partial.day,
+            era: partial.era,
+            era_year: partial.era_year,
+            ..Default::default()
+        }
+    }
 }
 
 impl From<&DateTime> for TemporalFields {
@@ -504,38 +538,10 @@ impl From<&Date> for TemporalFields {
     }
 }
 
+// TODO: Remove in favor of a more formal `TemporalFields::create_from_partial method`
 impl From<PartialDate> for TemporalFields {
     fn from(value: PartialDate) -> Self {
-        let mut bit_map = FieldMap::empty();
-        if value.year.is_some() {
-            bit_map.set(FieldMap::YEAR, true)
-        };
-        if value.month.is_some() {
-            bit_map.set(FieldMap::MONTH, true)
-        };
-        if value.month_code.is_some() {
-            bit_map.set(FieldMap::MONTH_CODE, true)
-        };
-        if value.day.is_some() {
-            bit_map.set(FieldMap::DAY, true)
-        };
-        if value.era.is_some() {
-            bit_map.set(FieldMap::ERA, true)
-        }
-        if value.era_year.is_some() {
-            bit_map.set(FieldMap::ERA_YEAR, true)
-        }
-
-        Self {
-            bit_map,
-            year: value.year,
-            month: value.month,
-            month_code: value.month_code,
-            day: value.day,
-            era: value.era,
-            era_year: value.era_year,
-            ..Default::default()
-        }
+        Self::from_partial_date(&value)
     }
 }
 
