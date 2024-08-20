@@ -34,9 +34,24 @@ use icu_calendar::{
     AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, DateDuration as IcuDateDuration,
     DateDurationUnit as IcuDateDurationUnit, Gregorian, Iso, Ref,
 };
-use tinystr::TinyAsciiStr;
+use tinystr::{tinystr, TinyAsciiStr};
 
-use super::ZonedDateTime;
+use super::{
+    calendar_types::{
+        CalendarFields, EraInfo, BUDDHIST_ERA, BUDDHIST_ERA_IDENTIFIERS, CHINESE_ERA, COPTIC_ERA,
+        COPTIC_INVERSE_ERA, DANGI_ERA, ETHIOPICAA_ERA, ETHIOPIC_ERA, ETHIOPIC_ERA_IDENTIFIERS,
+        ETHIOPIC_ETHIOPICAA_ERA, ETHIOPIC_ETHOPICAA_ERA_IDENTIFIERS, ETHOPICAA_ERA_IDENTIFIERS,
+        GREGORY_ERA, GREGORY_ERA_IDENTIFIERS, GREGORY_INVERSE_ERA, GREGORY_INVERSE_ERA_IDENTIFIERS,
+        HEBREW_ERA, HEBREW_ERA_IDENTIFIERS, HEISEI_ERA, INDIAN_ERA, INDIAN_ERA_IDENTIFIERS,
+        ISLAMIC_CIVIL_ERA, ISLAMIC_CIVIL_ERA_IDENTIFIERS, ISLAMIC_ERA, ISLAMIC_ERA_IDENTIFIERS,
+        ISLAMIC_TBLA_ERA, ISLAMIC_TBLA_ERA_IDENTIFIERS, ISLAMIC_UMALQURA_ERA,
+        ISLAMIC_UMALQURA_ERA_IDENTIFIERS, ISO_ERA, JAPANESE_ERA, JAPANESE_ERA_IDENTIFIERS,
+        JAPANESE_INVERSE_ERA, JAPANESE_INVERSE_ERA_IDENTIFIERS, MEJEI_ERA, PERSIAN_ERA,
+        PERSIAN_ERA_IDENTIFIERS, REIWA_ERA, ROC_ERA, ROC_ERA_IDENTIFIERS, ROC_INVERSE_ERA,
+        ROC_INVERSE_ERA_IDENTIFIERS, SHOWA_ERA, TAISHO_ERA,
+    },
+    PartialDate, ZonedDateTime,
+};
 
 /// The ECMAScript defined protocol methods
 pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
@@ -62,6 +77,51 @@ pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
     "yearMonthFromFields",
     "yearOfWeek",
 ];
+
+pub trait CalendarMethods {
+    /// Returns the calendar year value.
+    fn year(&self) -> TemporalResult<i32>;
+
+    /// Returns the calendar month value.
+    fn month(&self) -> TemporalResult<u8>;
+
+    /// Returns the calendar month code value.
+    fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>>;
+
+    /// Returns the calendar day value.
+    fn day(&self) -> TemporalResult<u8>;
+
+    /// Returns the calendar day of week value.
+    fn day_of_week(&self) -> TemporalResult<u16>;
+
+    /// Returns the calendar day of year value.
+    fn day_of_year(&self) -> TemporalResult<u16>;
+
+    /// Returns the calendar week of year value.
+    fn week_of_year(&self) -> TemporalResult<u16>;
+
+    /// Returns the calendar year of week value.
+    fn year_of_week(&self) -> TemporalResult<i32>;
+
+    /// Returns the calendar days in week value.
+    fn days_in_week(&self) -> TemporalResult<u16>;
+
+    /// Returns the calendar days in month value.
+    fn days_in_month(&self) -> TemporalResult<u16>;
+
+    /// Returns the calendar days in year value.
+    fn days_in_year(&self) -> TemporalResult<u16>;
+
+    /// Returns the calendar months in year value.
+    fn months_in_year(&self) -> TemporalResult<u16>;
+
+    /// Returns returns whether the date in a leap year for the given calendar.
+    fn in_leap_year(&self) -> TemporalResult<bool>;
+
+    fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>>;
+
+    fn era_year(&self) -> TemporalResult<Option<i32>>;
+}
 
 #[derive(Debug, Clone)]
 pub struct Calendar(Ref<'static, AnyCalendar>);
@@ -248,18 +308,18 @@ impl From<&[String]> for CalendarFieldsType {
 
 /// The `DateLike` objects that can be provided to the `CalendarProtocol`.
 #[derive(Debug)]
-pub enum CalendarDateLike {
+pub enum CalendarDateLike<'a> {
     /// Represents a `DateTime`.
-    DateTime(DateTime),
+    DateTime(&'a DateTime),
     /// Represents a `Date`.
-    Date(Date),
+    Date(&'a Date),
     /// Represents a `YearMonth`.
-    YearMonth(YearMonth),
+    YearMonth(&'a YearMonth),
     /// Represents a `MonthDay`.
-    MonthDay(MonthDay),
+    MonthDay(&'a MonthDay),
 }
 
-impl CalendarDateLike {
+impl CalendarDateLike<'_> {
     /// Retrieves the internal `IsoDate` field.
     #[inline]
     #[must_use]
@@ -290,39 +350,25 @@ impl Calendar {
     /// `CalendarDateFromFields`
     pub fn date_from_fields(
         &self,
-        fields: &mut TemporalFields,
+        fields: &CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Date> {
         if self.is_iso() {
             // Resolve month and monthCode;
-            fields.iso_resolve_month()?;
             return Date::new(
-                fields.year.unwrap_or(0),
-                fields.month.unwrap_or(0),
-                fields.day.unwrap_or(0),
+                fields.era_year.year,
+                fields.month_code.as_month_integer()?.into(),
+                fields.day.into(),
                 self.clone(),
                 overflow,
             );
         }
 
-        let era = Era::from_str(&fields.era.map_or(String::default(), |s| s.to_string()))
-            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
-        let month_code = MonthCode(
-            fields
-                .month_code
-                .map(|mc| {
-                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
-                        .expect("MonthCode as_str is always valid.")
-                })
-                .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
-        );
-        // NOTE: This might preemptively throw as `ICU4X` does not support constraining.
-        // Resolve month and monthCode;
         let calendar_date = self.0.date_from_codes(
-            era,
-            fields.year.unwrap_or(0),
-            month_code,
-            fields.day.unwrap_or(0) as u8,
+            Era(fields.era_year.era.0),
+            fields.era_year.year,
+            MonthCode(fields.month_code.0),
+            fields.day,
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         Date::new(
@@ -624,6 +670,94 @@ impl Calendar {
 }
 
 impl Calendar {
+    /// CalendarFields equivalent.
+    pub fn fields_from_partial(
+        &self,
+        partial_date: &PartialDate,
+    ) -> TemporalResult<CalendarFields> {
+        CalendarFields::try_from_partial_and_calendar(self, partial_date)
+    }
+
+    pub(crate) fn get_era_info(&self, era: &TinyAsciiStr<19>) -> Option<EraInfo> {
+        match self.0 .0.kind() {
+            AnyCalendarKind::Buddhist if BUDDHIST_ERA_IDENTIFIERS.contains(era) => {
+                Some(BUDDHIST_ERA)
+            }
+            AnyCalendarKind::Chinese if *era == tinystr!(19, "chinese") => Some(CHINESE_ERA),
+            AnyCalendarKind::Coptic if *era == tinystr!(19, "coptic") => Some(COPTIC_ERA),
+            AnyCalendarKind::Coptic if *era == tinystr!(19, "coptic-inverse") => {
+                Some(COPTIC_INVERSE_ERA)
+            }
+            AnyCalendarKind::Dangi if *era == tinystr!(19, "dangi") => Some(DANGI_ERA),
+            AnyCalendarKind::Ethiopian if ETHIOPIC_ERA_IDENTIFIERS.contains(era) => {
+                Some(ETHIOPIC_ERA)
+            }
+            AnyCalendarKind::Ethiopian if ETHIOPIC_ETHOPICAA_ERA_IDENTIFIERS.contains(era) => {
+                Some(ETHIOPIC_ETHIOPICAA_ERA)
+            }
+            AnyCalendarKind::EthiopianAmeteAlem if ETHOPICAA_ERA_IDENTIFIERS.contains(era) => {
+                Some(ETHIOPICAA_ERA)
+            }
+            AnyCalendarKind::Gregorian if GREGORY_ERA_IDENTIFIERS.contains(era) => {
+                Some(GREGORY_ERA)
+            }
+            AnyCalendarKind::Gregorian if GREGORY_INVERSE_ERA_IDENTIFIERS.contains(era) => {
+                Some(GREGORY_INVERSE_ERA)
+            }
+            AnyCalendarKind::Hebrew if HEBREW_ERA_IDENTIFIERS.contains(era) => Some(HEBREW_ERA),
+            AnyCalendarKind::Indian if INDIAN_ERA_IDENTIFIERS.contains(era) => Some(INDIAN_ERA),
+            // TODO: Determine whether observational is islamic or islamic-rgsa
+            AnyCalendarKind::IslamicCivil if ISLAMIC_CIVIL_ERA_IDENTIFIERS.contains(era) => {
+                Some(ISLAMIC_CIVIL_ERA)
+            }
+            AnyCalendarKind::IslamicObservational if ISLAMIC_ERA_IDENTIFIERS.contains(era) => {
+                Some(ISLAMIC_ERA)
+            }
+            AnyCalendarKind::IslamicTabular if ISLAMIC_TBLA_ERA_IDENTIFIERS.contains(era) => {
+                Some(ISLAMIC_TBLA_ERA)
+            }
+            AnyCalendarKind::IslamicUmmAlQura if ISLAMIC_UMALQURA_ERA_IDENTIFIERS.contains(era) => {
+                Some(ISLAMIC_UMALQURA_ERA)
+            }
+            AnyCalendarKind::Iso if *era == tinystr!(19, "default") => Some(ISO_ERA),
+            AnyCalendarKind::Japanese if *era == tinystr!(19, "heisei") => Some(HEISEI_ERA),
+            AnyCalendarKind::Japanese if JAPANESE_ERA_IDENTIFIERS.contains(era) => {
+                Some(JAPANESE_ERA)
+            }
+            AnyCalendarKind::Japanese if JAPANESE_INVERSE_ERA_IDENTIFIERS.contains(era) => {
+                Some(JAPANESE_INVERSE_ERA)
+            }
+            AnyCalendarKind::Japanese if *era == tinystr!(19, "mejei") => Some(MEJEI_ERA),
+            AnyCalendarKind::Japanese if *era == tinystr!(19, "reiwa") => Some(REIWA_ERA),
+            AnyCalendarKind::Japanese if *era == tinystr!(19, "showa") => Some(SHOWA_ERA),
+            AnyCalendarKind::Japanese if *era == tinystr!(19, "taisho") => Some(TAISHO_ERA),
+            AnyCalendarKind::Persian if PERSIAN_ERA_IDENTIFIERS.contains(era) => Some(PERSIAN_ERA),
+            AnyCalendarKind::Roc if ROC_ERA_IDENTIFIERS.contains(era) => Some(ROC_ERA),
+            AnyCalendarKind::Roc if ROC_INVERSE_ERA_IDENTIFIERS.contains(era) => {
+                Some(ROC_INVERSE_ERA)
+            }
+            _ => None,
+        }
+    }
+
+    pub(crate) fn get_calendar_default_era(&self) -> Option<EraInfo> {
+        match self.0 .0.kind() {
+            AnyCalendarKind::Buddhist => Some(BUDDHIST_ERA),
+            AnyCalendarKind::Chinese => Some(CHINESE_ERA),
+            AnyCalendarKind::Dangi => Some(DANGI_ERA),
+            AnyCalendarKind::EthiopianAmeteAlem => Some(ETHIOPICAA_ERA),
+            AnyCalendarKind::Hebrew => Some(HEBREW_ERA),
+            AnyCalendarKind::Indian => Some(INDIAN_ERA),
+            AnyCalendarKind::IslamicCivil => Some(ISLAMIC_CIVIL_ERA),
+            AnyCalendarKind::IslamicObservational => Some(ISLAMIC_ERA),
+            AnyCalendarKind::IslamicTabular => Some(ISLAMIC_TBLA_ERA),
+            AnyCalendarKind::IslamicUmmAlQura => Some(ISLAMIC_UMALQURA_ERA),
+            AnyCalendarKind::Iso => Some(ISO_ERA),
+            AnyCalendarKind::Persian => Some(PERSIAN_ERA),
+            _ => None,
+        }
+    }
+
     /// Returns the designated field descriptors for builtin calendars.
     pub fn field_descriptors(
         &self,

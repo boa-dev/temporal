@@ -16,7 +16,8 @@ use std::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use super::{
-    calendar::{CalendarDateLike, GetTemporalCalendar},
+    calendar::{CalendarDateLike, CalendarMethods, GetTemporalCalendar},
+    calendar_types::CalendarFields,
     duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
     Date, Duration, PartialDate, PartialTime, Time,
 };
@@ -278,10 +279,9 @@ impl DateTime {
 
         let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
 
-        let result_date = self.calendar.date_from_fields(
-            &mut merge_result,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )?;
+        let result_date = self
+            .calendar
+            .date_from_fields(&fields, overflow.unwrap_or(ArithmeticOverflow::Constrain))?;
 
         // Determine the `Time` based off the partial values.
         let time = self.iso.time.with(
@@ -405,84 +405,89 @@ impl DateTime {
 
 // ==== Calendar-derived public API ====
 
-impl DateTime {
+impl CalendarMethods for DateTime {
     /// Returns the calendar year value.
-    pub fn year(&self) -> TemporalResult<i32> {
-        self.calendar
-            .year(&CalendarDateLike::DateTime(self.clone()))
+    fn year(&self) -> TemporalResult<i32> {
+        self.calendar.year(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar month value.
-    pub fn month(&self) -> TemporalResult<u8> {
-        self.calendar
-            .month(&CalendarDateLike::DateTime(self.clone()))
+    fn month(&self) -> TemporalResult<u8> {
+        self.calendar.month(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar
-            .month_code(&CalendarDateLike::DateTime(self.clone()))
+    fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        self.calendar.month_code(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar day value.
-    pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar.day(&CalendarDateLike::DateTime(self.clone()))
+    fn day(&self) -> TemporalResult<u8> {
+        self.calendar.day(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .day_of_week(&CalendarDateLike::DateTime(self.clone()))
+    fn day_of_week(&self) -> TemporalResult<u16> {
+        self.calendar.day_of_week(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar day of year value.
-    pub fn day_of_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .day_of_year(&CalendarDateLike::DateTime(self.clone()))
+    fn day_of_year(&self) -> TemporalResult<u16> {
+        self.calendar.day_of_year(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<u16> {
+    fn week_of_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .week_of_year(&CalendarDateLike::DateTime(self.clone()))
+            .week_of_year(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<i32> {
+    fn year_of_week(&self) -> TemporalResult<i32> {
         self.calendar
-            .year_of_week(&CalendarDateLike::DateTime(self.clone()))
+            .year_of_week(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar days in week value.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
+    fn days_in_week(&self) -> TemporalResult<u16> {
         self.calendar
-            .days_in_week(&CalendarDateLike::DateTime(self.clone()))
+            .days_in_week(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar days in month value.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
+    fn days_in_month(&self) -> TemporalResult<u16> {
         self.calendar
-            .days_in_month(&CalendarDateLike::DateTime(self.clone()))
+            .days_in_month(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar days in year value.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
+    fn days_in_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .days_in_year(&CalendarDateLike::DateTime(self.clone()))
+            .days_in_year(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns the calendar months in year value.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
+    fn months_in_year(&self) -> TemporalResult<u16> {
         self.calendar
-            .months_in_year(&CalendarDateLike::DateTime(self.clone()))
+            .months_in_year(&CalendarDateLike::DateTime(self))
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
-    pub fn in_leap_year(&self) -> TemporalResult<bool> {
+    fn in_leap_year(&self) -> TemporalResult<bool> {
         self.calendar
-            .in_leap_year(&CalendarDateLike::DateTime(self.clone()))
+            .in_leap_year(&CalendarDateLike::DateTime(self))
     }
 
+    fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+        self.calendar.era(&CalendarDateLike::DateTime(self))
+    }
+
+    fn era_year(&self) -> TemporalResult<Option<i32>> {
+        self.calendar.era_year(&CalendarDateLike::DateTime(self))
+    }
+}
+
+impl DateTime {
     #[inline]
     /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
@@ -595,8 +600,9 @@ mod tests {
 
     use crate::{
         components::{
-            calendar::Calendar, duration::DateDuration, DateTime, Duration, MonthCode, PartialDate,
-            PartialDateTime, PartialTime,
+            calendar::{Calendar, CalendarMethods},
+            duration::DateDuration,
+            DateTime, Duration, PartialDate, PartialDateTime, PartialTime,
         },
         options::{
             DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
@@ -680,7 +686,7 @@ mod tests {
         // Test monthCode
         let partial = PartialDateTime {
             date: PartialDate {
-                month_code: Some(MonthCode::Five),
+                month_code: Some(tinystr!(4, "M05")),
                 ..Default::default()
             },
             time: PartialTime::default(),

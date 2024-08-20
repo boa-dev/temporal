@@ -188,7 +188,7 @@ pub struct TemporalFields {
     pub(crate) month_code: Option<MonthCode>,
     pub(crate) day: Option<i32>,
     offset: Option<TinyAsciiStr<16>>,
-    pub(crate) era: Option<TinyAsciiStr<16>>,
+    pub(crate) era: Option<TinyAsciiStr<19>>,
     era_year: Option<i32>,
     time_zone: Option<TinyAsciiStr<32>>,
 }
@@ -304,7 +304,7 @@ impl TemporalFields {
                     );
                 };
                 self.era = Some(
-                    TinyAsciiStr::<16>::from_str(&value)
+                    TinyAsciiStr::<19>::from_str(&value)
                         .map_err(|_| TemporalError::general("Invalid era identifier."))?,
                 );
             }

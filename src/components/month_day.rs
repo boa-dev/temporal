@@ -73,8 +73,7 @@ impl MonthDay {
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar
-            .month_code(&CalendarDateLike::MonthDay(self.clone()))
+        self.calendar.month_code(&CalendarDateLike::MonthDay(self))
     }
 }
 

@@ -20,8 +20,10 @@ use crate::{
 use std::str::FromStr;
 
 use super::{
+    calendar::CalendarMethods,
+    calendar_types::CalendarFields,
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    MonthCode, MonthDay, Time, YearMonth,
+    MonthDay, Time, YearMonth,
 };
 
 // TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate "ethiopic-amete-alem".
@@ -34,11 +36,11 @@ pub struct PartialDate {
     // A potentially set `month` field.
     pub month: Option<i32>,
     // A potentially set `month_code` field.
-    pub month_code: Option<MonthCode>,
+    pub month_code: Option<TinyAsciiStr<4>>,
     // A potentially set `day` field.
     pub day: Option<i32>,
     // A potentially set `era` field.
-    pub era: Option<TinyAsciiStr<16>>,
+    pub era: Option<TinyAsciiStr<19>>,
     // A potentially set `era_year` field.
     pub era_year: Option<i32>,
 }
@@ -246,19 +248,15 @@ impl Date {
             return Err(TemporalError::r#type().with_message("A PartialDate must have a field."));
         }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
-        let fields = TemporalFields::from(self);
         // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
-        let partial_fields = TemporalFields::from_partial_date(&partial);
-
         // 8. Let fields be ? CalendarMergeFields(calendarRec, fieldsResult.[[Fields]], partialDate).
-        let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
+        let fields =
+            CalendarFields::try_from_partial_with_fallback_date(self.calendar(), &partial, self)?;
 
         // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
-        self.calendar.date_from_fields(
-            &mut merge_result,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )
+        self.calendar
+            .date_from_fields(&fields, overflow.unwrap_or(ArithmeticOverflow::Constrain))
     }
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
@@ -352,80 +350,78 @@ impl Date {
 
 // ==== Calendar-derived Public API ====
 
-impl Date {
+impl CalendarMethods for Date {
     /// Returns the calendar year value.
-    pub fn year(&self) -> TemporalResult<i32> {
-        self.calendar.year(&CalendarDateLike::Date(self.clone()))
+    fn year(&self) -> TemporalResult<i32> {
+        self.calendar.year(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar month value.
-    pub fn month(&self) -> TemporalResult<u8> {
-        self.calendar.month(&CalendarDateLike::Date(self.clone()))
+    fn month(&self) -> TemporalResult<u8> {
+        self.calendar.month(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar
-            .month_code(&CalendarDateLike::Date(self.clone()))
+    fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        self.calendar.month_code(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar day value.
-    pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar.day(&CalendarDateLike::Date(self.clone()))
+    fn day(&self) -> TemporalResult<u8> {
+        self.calendar.day(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .day_of_week(&CalendarDateLike::Date(self.clone()))
+    fn day_of_week(&self) -> TemporalResult<u16> {
+        self.calendar.day_of_week(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar day of year value.
-    pub fn day_of_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .day_of_year(&CalendarDateLike::Date(self.clone()))
+    fn day_of_year(&self) -> TemporalResult<u16> {
+        self.calendar.day_of_year(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .week_of_year(&CalendarDateLike::Date(self.clone()))
+    fn week_of_year(&self) -> TemporalResult<u16> {
+        self.calendar.week_of_year(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<i32> {
-        self.calendar
-            .year_of_week(&CalendarDateLike::Date(self.clone()))
+    fn year_of_week(&self) -> TemporalResult<i32> {
+        self.calendar.year_of_week(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar days in week value.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_week(&CalendarDateLike::Date(self.clone()))
+    fn days_in_week(&self) -> TemporalResult<u16> {
+        self.calendar.days_in_week(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar days in month value.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_month(&CalendarDateLike::Date(self.clone()))
+    fn days_in_month(&self) -> TemporalResult<u16> {
+        self.calendar.days_in_month(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar days in year value.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_year(&CalendarDateLike::Date(self.clone()))
+    fn days_in_year(&self) -> TemporalResult<u16> {
+        self.calendar.days_in_year(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar months in year value.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .months_in_year(&CalendarDateLike::Date(self.clone()))
+    fn months_in_year(&self) -> TemporalResult<u16> {
+        self.calendar.months_in_year(&CalendarDateLike::Date(self))
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
-    pub fn in_leap_year(&self) -> TemporalResult<bool> {
-        self.calendar
-            .in_leap_year(&CalendarDateLike::Date(self.clone()))
+    fn in_leap_year(&self) -> TemporalResult<bool> {
+        self.calendar.in_leap_year(&CalendarDateLike::Date(self))
+    }
+
+    fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+        self.calendar.era(&CalendarDateLike::Date(self))
+    }
+
+    fn era_year(&self) -> TemporalResult<Option<i32>> {
+        self.calendar.era_year(&CalendarDateLike::Date(self))
     }
 }
 
@@ -508,6 +504,8 @@ impl FromStr for Date {
 
 #[cfg(test)]
 mod tests {
+    use tinystr::tinystr;
+
     use super::*;
 
     #[test]
@@ -684,7 +682,7 @@ mod tests {
 
         // Month Code
         let partial = PartialDate {
-            month_code: Some(MonthCode::Five),
+            month_code: Some(tinystr!(4, "M05")),
             ..Default::default()
         };
         let with_mc = base.with(partial, None).unwrap();

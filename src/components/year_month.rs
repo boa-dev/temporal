@@ -14,6 +14,7 @@ use crate::{
 
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
+    calendar_types::CalendarFields,
     Duration,
 };
 
@@ -71,32 +72,48 @@ impl YearMonth {
         self.iso.month
     }
 
+    pub fn year(&self) -> TemporalResult<i32> {
+        self.calendar().year(&CalendarDateLike::YearMonth(self))
+    }
+
+    pub fn month(&self) -> TemporalResult<u8> {
+        self.calendar().month(&CalendarDateLike::YearMonth(self))
+    }
+
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.get_calendar()
-            .month_code(&CalendarDateLike::YearMonth(self.clone()))
+            .month_code(&CalendarDateLike::YearMonth(self))
     }
 
     #[inline]
     #[must_use]
     pub fn in_leap_year(&self) -> bool {
         self.get_calendar()
-            .in_leap_year(&CalendarDateLike::YearMonth(self.clone()))
+            .in_leap_year(&CalendarDateLike::YearMonth(self))
             .is_ok_and(|is_leap_year| is_leap_year)
     }
 
     pub fn get_days_in_year(&self) -> TemporalResult<u16> {
         self.get_calendar()
-            .days_in_year(&CalendarDateLike::YearMonth(self.clone()))
+            .days_in_year(&CalendarDateLike::YearMonth(self))
     }
 
     pub fn get_days_in_month(&self) -> TemporalResult<u16> {
         self.get_calendar()
-            .days_in_month(&CalendarDateLike::YearMonth(self.clone()))
+            .days_in_month(&CalendarDateLike::YearMonth(self))
     }
 
     pub fn get_months_in_year(&self) -> TemporalResult<u16> {
         self.get_calendar()
-            .months_in_year(&CalendarDateLike::YearMonth(self.clone()))
+            .months_in_year(&CalendarDateLike::YearMonth(self))
+    }
+
+    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+        self.calendar().era(&CalendarDateLike::YearMonth(self))
+    }
+
+    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+        self.calendar().era_year(&CalendarDateLike::YearMonth(self))
     }
 }
 
@@ -136,11 +153,9 @@ impl YearMonth {
         duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
-        let mut fields = YearMonthFields(self.iso_date().year, self.iso_date().month).into();
+        let fields = CalendarFields::try_from_year_month(self.calendar(), self)?;
 
-        let mut intermediate_date = self
-            .get_calendar()
-            .date_from_fields(&mut fields, overflow)?;
+        let mut intermediate_date = self.get_calendar().date_from_fields(&fields, overflow)?;
 
         intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
 
