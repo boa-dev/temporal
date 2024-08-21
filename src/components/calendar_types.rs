@@ -13,7 +13,7 @@ use super::{
 /// `CalendarFields` represents the static values
 pub struct CalendarFields {
     pub(crate) era_year: EraYear,
-    pub(crate) month_code: MonthCodeV2,
+    pub(crate) month_code: MonthCode,
     pub(crate) day: u8,
 }
 
@@ -28,7 +28,7 @@ impl CalendarFields {
             partial_date.era_year,
             calendar,
         )?;
-        let month_code = MonthCodeV2::try_from_partial_date(partial_date, calendar)?;
+        let month_code = MonthCode::try_from_partial_date(partial_date, calendar)?;
         let day = Day::try_from_partial_field(
             partial_date
                 .day
@@ -50,7 +50,7 @@ impl CalendarFields {
     ) -> TemporalResult<Self> {
         let year = partial_date.year.unwrap_or(fallback.year()?);
         let month_code =
-            MonthCodeV2::try_from_partial_date_with_fallback(partial_date, calendar, fallback)?;
+            MonthCode::try_from_partial_date_with_fallback(partial_date, calendar, fallback)?;
         let day = Day::try_from_partial_field(partial_date.day.unwrap_or(fallback.day()?.into()))?;
         // TODO: Determine best way to handle era/eraYear.
         let (era, era_year) =
@@ -80,7 +80,7 @@ impl CalendarFields {
         year_month: &YearMonth,
     ) -> TemporalResult<Self> {
         let year = year_month.year()?;
-        let month_code = MonthCodeV2(year_month.month_code()?);
+        let month_code = MonthCode(year_month.month_code()?);
         let era = year_month
             .era()?
             .map(|t| TinyAsciiStr::<19>::from_bytes(t.as_bytes()))
@@ -194,9 +194,9 @@ const MONTH_TWELVE_LEAP: TinyAsciiStr<4> = tinystr!(4, "M12L");
 const MONTH_THIRTEEN: TinyAsciiStr<4> = tinystr!(4, "M13");
 
 /// MonthCode struct v2
-pub struct MonthCodeV2(pub(crate) TinyAsciiStr<4>);
+pub struct MonthCode(pub(crate) TinyAsciiStr<4>);
 
-impl MonthCodeV2 {
+impl MonthCode {
     pub fn try_new(month_code: &TinyAsciiStr<4>, calendar: &Calendar) -> TemporalResult<Self> {
         const COMMON_MONTH_CODES: [TinyAsciiStr<4>; 12] = [
             MONTH_ONE,
@@ -229,17 +229,17 @@ impl MonthCodeV2 {
         ];
 
         if COMMON_MONTH_CODES.contains(month_code) {
-            return Ok(MonthCodeV2(*month_code));
+            return Ok(MonthCode(*month_code));
         }
 
         match calendar.identifier() {
             "chinese" | "dangi" if LUNAR_LEAP_MONTHS.contains(month_code) => {
-                Ok(MonthCodeV2(*month_code))
+                Ok(MonthCode(*month_code))
             }
             "coptic" | "ethiopic" | "ethiopicaa" if MONTH_THIRTEEN == *month_code => {
-                Ok(MonthCodeV2(*month_code))
+                Ok(MonthCode(*month_code))
             }
-            "hebrew" if MONTH_FIVE_LEAP == *month_code => Ok(MonthCodeV2(*month_code)),
+            "hebrew" if MONTH_FIVE_LEAP == *month_code => Ok(MonthCode(*month_code)),
             _ => Err(TemporalError::range()
                 .with_message("MonthCode was not valid for the current calendar.")),
         }
