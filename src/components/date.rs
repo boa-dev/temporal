@@ -15,7 +15,7 @@ use crate::{
     },
     parsers::parse_date_time,
     primitive::FiniteF64,
-    Sign, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 use std::str::FromStr;
 
@@ -443,17 +443,15 @@ impl Date {
     /// Converts the current `Date<C>` into a `YearMonth<C>`
     #[inline]
     pub fn to_year_month(&self) -> TemporalResult<YearMonth> {
-        let mut fields: TemporalFields = self.into();
         self.get_calendar()
-            .year_month_from_fields(&mut fields, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(&self.try_into()?, ArithmeticOverflow::Constrain)
     }
 
     /// Converts the current `Date<C>` into a `MonthDay<C>`
     #[inline]
     pub fn to_month_day(&self) -> TemporalResult<MonthDay> {
-        let mut fields: TemporalFields = self.into();
         self.get_calendar()
-            .month_day_from_fields(&mut fields, ArithmeticOverflow::Constrain)
+            .month_day_from_fields(&self.try_into()?, ArithmeticOverflow::Constrain)
     }
 }
 

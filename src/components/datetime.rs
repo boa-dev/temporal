@@ -8,7 +8,7 @@ use crate::{
         RoundingOptions, TemporalUnit,
     },
     parsers::parse_date_time,
-    temporal_assert, Sign, TemporalError, TemporalFields, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use num_traits::AsPrimitive;
@@ -274,10 +274,11 @@ impl DateTime {
             );
         }
         // Determine the Date from the provided fields.
-        let fields = TemporalFields::from(self);
-        let partial_fields = TemporalFields::from_partial_date(&partial_datetime.date);
-
-        let mut merge_result = fields.merge_fields(&partial_fields, self.calendar())?;
+        let fields = CalendarFields::try_from_partial_with_fallback_date(
+            self.calendar(),
+            &partial_datetime.date,
+            self,
+        )?;
 
         let result_date = self
             .calendar

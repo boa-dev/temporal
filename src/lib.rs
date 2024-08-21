@@ -40,7 +40,6 @@
 
 pub mod components;
 pub mod error;
-pub mod fields;
 pub mod iso;
 pub mod options;
 pub mod parsers;
@@ -59,8 +58,6 @@ pub use tinystr::TinyAsciiStr;
 
 #[doc(inline)]
 pub use error::TemporalError;
-#[doc(inline)]
-pub use fields::TemporalFields;
 
 /// The `Temporal` result type
 pub type TemporalResult<T> = Result<T, TemporalError>;

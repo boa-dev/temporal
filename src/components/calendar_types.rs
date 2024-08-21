@@ -6,12 +6,12 @@ use crate::{TemporalError, TemporalResult};
 
 use super::{
     calendar::{Calendar, CalendarMethods},
-    PartialDate, YearMonth,
+    Date, PartialDate, YearMonth,
 };
 
-// TODO: Deal with "ethiopic-amete-alem" in relation to Era.
+// TODO: Potentially store calendar identifier in `CalendarFields` so that it is self contained.
+/// `CalendarFields` represents the static values
 pub struct CalendarFields {
-    pub(crate) calendar: &'static str,
     pub(crate) era_year: EraYear,
     pub(crate) month_code: MonthCodeV2,
     pub(crate) day: u8,
@@ -28,14 +28,14 @@ impl CalendarFields {
             partial_date.era_year,
             calendar,
         )?;
-        let month_code = MonthCodeV2::try_from_partial_date_and_calendar(partial_date, calendar)?;
+        let month_code = MonthCodeV2::try_from_partial_date(partial_date, calendar)?;
         let day = Day::try_from_partial_field(
             partial_date
                 .day
                 .ok_or(TemporalError::range().with_message("Required day field is empty."))?,
         )?;
+
         Ok(Self {
-            calendar: calendar.identifier(),
             era_year,
             month_code,
             day: day.0,
@@ -49,8 +49,8 @@ impl CalendarFields {
         fallback: &impl CalendarMethods,
     ) -> TemporalResult<Self> {
         let year = partial_date.year.unwrap_or(fallback.year()?);
-        let month = partial_date.month.unwrap_or(fallback.month()?.into());
-        let month_code = MonthCodeV2(partial_date.month_code.unwrap_or(fallback.month_code()?));
+        let month_code =
+            MonthCodeV2::try_from_partial_date_with_fallback(partial_date, calendar, fallback)?;
         let day = Day::try_from_partial_field(partial_date.day.unwrap_or(fallback.day()?.into()))?;
         // TODO: Determine best way to handle era/eraYear.
         let (era, era_year) =
@@ -68,10 +68,7 @@ impl CalendarFields {
         let era_year =
             EraYear::try_from_partial_values_and_calendar(Some(year), era, era_year, calendar)?;
 
-        are_month_and_month_code_resolvable(month, &month_code.0)?;
-
         Ok(Self {
-            calendar: calendar.identifier(),
             era_year,
             month_code,
             day: day.0,
@@ -95,11 +92,18 @@ impl CalendarFields {
             EraYear::try_from_partial_values_and_calendar(Some(year), era, era_year, calendar)?;
 
         Ok(Self {
-            calendar: calendar.identifier(),
             era_year,
             month_code,
             day: 1,
         })
+    }
+}
+
+impl TryFrom<&Date> for CalendarFields {
+    type Error = TemporalError;
+
+    fn try_from(value: &Date) -> Result<Self, Self::Error> {
+        Self::try_from_partial_with_fallback_date(value.calendar(), &PartialDate::default(), value)
     }
 }
 
@@ -241,7 +245,7 @@ impl MonthCodeV2 {
         }
     }
 
-    pub(crate) fn try_from_partial_date_and_calendar(
+    pub(crate) fn try_from_partial_date(
         partial_date: &PartialDate,
         calendar: &Calendar,
     ) -> TemporalResult<Self> {
@@ -266,6 +270,38 @@ impl MonthCodeV2 {
             }
             _ => Err(TemporalError::range()
                 .with_message("Month code needed is required to determine date.")),
+        }
+    }
+
+    pub(crate) fn try_from_partial_date_with_fallback(
+        partial: &PartialDate,
+        calendar: &Calendar,
+        fallback: &impl CalendarMethods,
+    ) -> TemporalResult<Self> {
+        match partial {
+            PartialDate {
+                month: Some(month),
+                month_code: None,
+                ..
+            } => Self::try_new(&month_to_month_code(*month)?, calendar),
+            PartialDate {
+                month_code: Some(month_code),
+                month: None,
+                ..
+            } => Self::try_new(month_code, calendar),
+            PartialDate {
+                month: Some(month),
+                month_code: Some(month_code),
+                ..
+            } => {
+                are_month_and_month_code_resolvable(*month, month_code)?;
+                Self::try_new(month_code, calendar)
+            }
+            PartialDate {
+                month: None,
+                month_code: None,
+                ..
+            } => Ok(Self(fallback.month_code()?)),
         }
     }
 
@@ -387,7 +423,8 @@ pub(crate) const ISLAMIC_CIVIL_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 3] = [
     era_identifier!("ah"),
 ];
 
-pub(crate) const ISLAMIC_RGSA_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 2] =
+// TODO: Support islamic-rgsa
+pub(crate) const _ISLAMIC_RGSA_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 2] =
     [era_identifier!("islamic-rgsa"), era_identifier!("ah")];
 
 pub(crate) const ISLAMIC_TBLA_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 2] =
@@ -436,7 +473,8 @@ pub(crate) const HEBREW_ERA: EraInfo = valid_era!("hebrew", i32::MIN..=i32::MAX)
 pub(crate) const INDIAN_ERA: EraInfo = valid_era!("indian", i32::MIN..=i32::MAX);
 pub(crate) const ISLAMIC_ERA: EraInfo = valid_era!("islamic", i32::MIN..=i32::MAX);
 pub(crate) const ISLAMIC_CIVIL_ERA: EraInfo = valid_era!("islamic-civil", i32::MIN..=i32::MAX);
-pub(crate) const ISLAMIC_RGSA_ERA: EraInfo = valid_era!("islamic-rgsa", i32::MIN..=i32::MAX);
+// TODO: Support islamic-rgsa
+pub(crate) const _ISLAMIC_RGSA_ERA: EraInfo = valid_era!("islamic-rgsa", i32::MIN..=i32::MAX);
 pub(crate) const ISLAMIC_TBLA_ERA: EraInfo = valid_era!("islamic-tbla", i32::MIN..=i32::MAX);
 pub(crate) const ISLAMIC_UMALQURA_ERA: EraInfo =
     valid_era!("islamic-umalqura", i32::MIN..=i32::MAX);

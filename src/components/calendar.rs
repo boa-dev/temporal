@@ -10,7 +10,6 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
-    fields::{FieldMap, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalResult,
@@ -383,14 +382,13 @@ impl Calendar {
     /// `CalendarMonthDayFromFields`
     pub fn month_day_from_fields(
         &self,
-        fields: &mut TemporalFields,
+        fields: &CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<MonthDay> {
         if self.is_iso() {
-            fields.iso_resolve_month()?;
             return MonthDay::new(
-                fields.month.unwrap_or(0),
-                fields.day.unwrap_or(0),
+                fields.month_code.as_month_integer()?.into(),
+                fields.day.into(),
                 self.clone(),
                 overflow,
             );
@@ -404,38 +402,25 @@ impl Calendar {
     /// `CalendarYearMonthFromFields`
     pub fn year_month_from_fields(
         &self,
-        fields: &mut TemporalFields,
+        fields: &CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
         if self.is_iso() {
-            fields.iso_resolve_month()?;
             return YearMonth::new(
-                fields.year.unwrap_or(0),
-                fields.month.unwrap_or(0),
-                fields.day,
+                fields.era_year.year,
+                fields.month_code.as_month_integer()?.into(),
+                Some(fields.day.into()),
                 self.clone(),
                 overflow,
             );
         }
 
-        let era = Era::from_str(&fields.era.map_or(String::default(), |s| s.to_string()))
-            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
-        let month_code = MonthCode(
-            fields
-                .month_code
-                .map(|mc| {
-                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
-                        .expect("MonthCode as_str is always valid.")
-                })
-                .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
-        );
-
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
         let calendar_date = self.0.date_from_codes(
-            era,
-            fields.year.unwrap_or(0),
-            month_code,
-            fields.day.unwrap_or(1) as u8,
+            Era(fields.era_year.era.0),
+            fields.era_year.year,
+            MonthCode(fields.month_code.0),
+            fields.day,
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         YearMonth::new(
@@ -756,46 +741,6 @@ impl Calendar {
             AnyCalendarKind::Persian => Some(PERSIAN_ERA),
             _ => None,
         }
-    }
-
-    /// Returns the designated field descriptors for builtin calendars.
-    pub fn field_descriptors(
-        &self,
-        _fields_type: CalendarFieldsType,
-    ) -> TemporalResult<Vec<(String, bool)>> {
-        // TODO: Research and implement the appropriate descriptors for all `BuiltinCalendars.`
-        Err(TemporalError::range().with_message("FieldDescriptors is not yet implemented."))
-    }
-
-    /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(&self, keys: FieldMap) -> TemporalResult<FieldMap> {
-        let mut ignored_keys = FieldMap::empty();
-        if self.is_iso() {
-            // NOTE: It is okay for ignored keys to have duplicates?
-            for key in keys.iter() {
-                ignored_keys.set(key, true);
-                if key == FieldMap::MONTH {
-                    ignored_keys.set(FieldMap::MONTH_CODE, true);
-                } else if key == FieldMap::MONTH_CODE {
-                    ignored_keys.set(FieldMap::MONTH, true);
-                }
-            }
-
-            return Ok(ignored_keys);
-        }
-
-        // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
-        Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
-    }
-
-    /// `CalendarResolveFields`
-    pub fn resolve_fields(
-        &self,
-        _fields: &mut TemporalFields,
-        _typ: CalendarFieldsType,
-    ) -> TemporalResult<()> {
-        // TODO: Research and implement the appropriate ResolveFields for all `BuiltinCalendars.`
-        Err(TemporalError::range().with_message("CalendarResolveFields is not yet implemented."))
     }
 }
 

@@ -15,11 +15,8 @@ use crate::{
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     calendar_types::CalendarFields,
-    Duration,
+    Duration, PartialDate,
 };
-
-// Subset of `TemporalFields` representing just the  `YearMonthFields`
-pub struct YearMonthFields(pub i32, pub u8);
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -159,11 +156,14 @@ impl YearMonth {
 
         intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
 
-        let mut result_fields =
-            YearMonthFields(intermediate_date.iso_year(), intermediate_date.iso_month()).into();
+        let result_fields = CalendarFields::try_from_partial_with_fallback_date(
+            self.calendar(),
+            &PartialDate::default(),
+            &intermediate_date,
+        )?;
 
         self.get_calendar()
-            .year_month_from_fields(&mut result_fields, overflow)
+            .year_month_from_fields(&result_fields, overflow)
     }
 }
 
