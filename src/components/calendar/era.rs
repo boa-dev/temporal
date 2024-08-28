@@ -1,7 +1,7 @@
 //! Calendar Eras constants
 
 // The general source for this implementation as of 2024-08-28 is the intl-era-monthcode proposal.
-// 
+//
 // As this source is currently a proposal, its content are subject to change, so full era support
 // should be viewed as experimental.
 //
