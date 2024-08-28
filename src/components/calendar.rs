@@ -86,10 +86,10 @@ pub trait CalendarMethods {
     fn day_of_year(&self) -> TemporalResult<u16>;
 
     /// Returns the calendar week of year value.
-    fn week_of_year(&self) -> TemporalResult<u16>;
+    fn week_of_year(&self) -> TemporalResult<Option<u16>>;
 
     /// Returns the calendar year of week value.
-    fn year_of_week(&self) -> TemporalResult<i32>;
+    fn year_of_week(&self) -> TemporalResult<Option<i32>>;
 
     /// Returns the calendar days in week value.
     fn days_in_week(&self) -> TemporalResult<u16>;
@@ -550,7 +550,7 @@ impl Calendar {
     }
 
     /// `CalendarWeekOfYear`
-    pub fn week_of_year(&self, date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn week_of_year(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<u16>> {
         if self.is_iso() {
             let date = date_like.as_iso_date().as_icu4x()?;
 
@@ -560,13 +560,13 @@ impl Calendar {
                 .week_of_year(&week_calculator)
                 .map_err(|err| TemporalError::range().with_message(err.to_string()))?;
 
-            return Ok(week_of.week);
+            return Ok(Some(week_of.week));
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarYearOfWeek`
-    pub fn year_of_week(&self, date_like: &CalendarDateLike) -> TemporalResult<i32> {
+    pub fn year_of_week(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<i32>> {
         if self.is_iso() {
             let date = date_like.as_iso_date().as_icu4x()?;
 
@@ -577,9 +577,9 @@ impl Calendar {
                 .map_err(|err| TemporalError::range().with_message(err.to_string()))?;
 
             return match week_of.unit {
-                RelativeUnit::Previous => Ok(date.year().number - 1),
-                RelativeUnit::Current => Ok(date.year().number),
-                RelativeUnit::Next => Ok(date.year().number + 1),
+                RelativeUnit::Previous => Ok(Some(date.year().number - 1)),
+                RelativeUnit::Current => Ok(Some(date.year().number)),
+                RelativeUnit::Next => Ok(Some(date.year().number + 1)),
             };
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
@@ -673,12 +673,12 @@ impl Calendar {
             AnyCalendarKind::Ethiopian
                 if era::ETHIOPIC_ETHOPICAA_ERA_IDENTIFIERS.contains(era_alias) =>
             {
-                Some(era::ETHIOPIC_ETHIOPICAA_ERA)
+                Some(era::ETHIOPIC_ETHIOAA_ERA)
             }
             AnyCalendarKind::EthiopianAmeteAlem
-                if era::ETHOPICAA_ERA_IDENTIFIERS.contains(era_alias) =>
+                if era::ETHIOAA_ERA_IDENTIFIERS.contains(era_alias) =>
             {
-                Some(era::ETHIOPICAA_ERA)
+                Some(era::ETHIOAA_ERA)
             }
             AnyCalendarKind::Gregorian if era::GREGORY_ERA_IDENTIFIERS.contains(era_alias) => {
                 Some(era::GREGORY_ERA)
@@ -757,7 +757,7 @@ impl Calendar {
             AnyCalendarKind::Buddhist => Some(era::BUDDHIST_ERA),
             AnyCalendarKind::Chinese => Some(era::CHINESE_ERA),
             AnyCalendarKind::Dangi => Some(era::DANGI_ERA),
-            AnyCalendarKind::EthiopianAmeteAlem => Some(era::ETHIOPICAA_ERA),
+            AnyCalendarKind::EthiopianAmeteAlem => Some(era::ETHIOAA_ERA),
             AnyCalendarKind::Hebrew => Some(era::HEBREW_ERA),
             AnyCalendarKind::Indian => Some(era::INDIAN_ERA),
             AnyCalendarKind::IslamicCivil => Some(era::ISLAMIC_CIVIL_ERA),

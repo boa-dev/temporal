@@ -339,20 +339,20 @@ fn are_month_and_month_code_resolvable(month: i32, mc: &TinyAsciiStr<4>) -> Temp
 
 fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
     match mc {
-        MONTH_ONE | MONTH_ONE_LEAP => Ok(1),
-        MONTH_TWO | MONTH_TWO_LEAP => Ok(2),
-        MONTH_THREE | MONTH_THREE_LEAP => Ok(3),
-        MONTH_FOUR | MONTH_FOUR_LEAP => Ok(4),
-        MONTH_FIVE | MONTH_FIVE_LEAP => Ok(5),
-        MONTH_SIX | MONTH_SIX_LEAP => Ok(6),
-        MONTH_SEVEN | MONTH_SEVEN_LEAP => Ok(7),
-        MONTH_EIGHT | MONTH_EIGHT_LEAP => Ok(8),
-        MONTH_NINE | MONTH_NINE_LEAP => Ok(9),
-        MONTH_TEN | MONTH_TEN_LEAP => Ok(10),
-        MONTH_ELEVEN | MONTH_ELEVEN_LEAP => Ok(11),
-        MONTH_TWELVE | MONTH_TWELVE_LEAP => Ok(12),
+        MONTH_ONE => Ok(1),
+        MONTH_TWO => Ok(2),
+        MONTH_THREE => Ok(3),
+        MONTH_FOUR => Ok(4),
+        MONTH_FIVE => Ok(5),
+        MONTH_SIX => Ok(6),
+        MONTH_SEVEN => Ok(7),
+        MONTH_EIGHT => Ok(8),
+        MONTH_NINE => Ok(9),
+        MONTH_TEN => Ok(10),
+        MONTH_ELEVEN => Ok(11),
+        MONTH_TWELVE => Ok(12),
         MONTH_THIRTEEN => Ok(13),
         _ => Err(TemporalError::range()
-            .with_message(format!("Invalid monthCode value: {}", mc.as_str()))),
+            .with_message(format!("MonthCode is not supported: {}", mc.as_str()))),
     }
 }

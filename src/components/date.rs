@@ -382,12 +382,12 @@ impl CalendarMethods for Date {
     }
 
     /// Returns the calendar week of year value.
-    fn week_of_year(&self) -> TemporalResult<u16> {
+    fn week_of_year(&self) -> TemporalResult<Option<u16>> {
         self.calendar.week_of_year(&CalendarDateLike::Date(self))
     }
 
     /// Returns the calendar year of week value.
-    fn year_of_week(&self) -> TemporalResult<i32> {
+    fn year_of_week(&self) -> TemporalResult<Option<i32>> {
         self.calendar.year_of_week(&CalendarDateLike::Date(self))
     }
 

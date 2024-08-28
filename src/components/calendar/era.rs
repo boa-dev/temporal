@@ -1,5 +1,14 @@
 //! Calendar Eras constants
 
+// The general source for this implementation as of 2024-08-28 is the intl-era-monthcode proposal.
+// 
+// As this source is currently a proposal, its content are subject to change, so full era support
+// should be viewed as experimental.
+//
+// Source: https://tc39.es/proposal-intl-era-monthcode/
+
+// TODO (0.1.0): Feature flag certain eras as experimental
+
 use std::ops::RangeInclusive;
 
 use tinystr::{tinystr, TinyAsciiStr};
@@ -32,13 +41,13 @@ pub(crate) const ETHIOPIC_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 2] =
     [era_identifier!("ethiopic"), era_identifier!("incar")];
 
 pub(crate) const ETHIOPIC_ETHOPICAA_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 3] = [
-    era_identifier!("ethiopicaa"),
+    era_identifier!("ethioaa"),
     era_identifier!("ethiopic-amete-alem"), // TODO: probably will break?
     era_identifier!("mundi"),
 ];
 
-pub(crate) const ETHOPICAA_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 3] = [
-    era_identifier!("ethiopicaa"),
+pub(crate) const ETHIOAA_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 3] = [
+    era_identifier!("ethioaa"),
     era_identifier!("ethiopic-amete-alem"), // TODO: probably will break?
     era_identifier!("mundi"),
 ];
@@ -105,6 +114,8 @@ pub(crate) const ROC_INVERSE_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 2] = [
     era_identifier!("before-roc"),
 ];
 
+// NOTE: The below currently might not align 100% with ICU4X.
+// TODO: Update to align with ICU4X depending on any Era updates.
 pub(crate) const ISO_ERA: EraInfo = valid_era!("default", i32::MIN..=i32::MAX);
 pub(crate) const BUDDHIST_ERA: EraInfo = valid_era!("buddhist", i32::MIN..=i32::MAX);
 pub(crate) const CHINESE_ERA: EraInfo = valid_era!("chinese", i32::MIN..=i32::MAX);
@@ -112,8 +123,8 @@ pub(crate) const COPTIC_ERA: EraInfo = valid_era!("coptic", 1..=i32::MAX);
 pub(crate) const COPTIC_INVERSE_ERA: EraInfo = valid_era!("coptic-inverse", 1..=i32::MAX);
 pub(crate) const DANGI_ERA: EraInfo = valid_era!("dangi", i32::MIN..=i32::MAX);
 pub(crate) const ETHIOPIC_ERA: EraInfo = valid_era!("ethiopic", 1..=i32::MAX);
-pub(crate) const ETHIOPIC_ETHIOPICAA_ERA: EraInfo = valid_era!("ethiopicaa", i32::MIN..=5500);
-pub(crate) const ETHIOPICAA_ERA: EraInfo = valid_era!("ethiopicaa", i32::MIN..=i32::MAX);
+pub(crate) const ETHIOPIC_ETHIOAA_ERA: EraInfo = valid_era!("ethioaa", i32::MIN..=5500);
+pub(crate) const ETHIOAA_ERA: EraInfo = valid_era!("ethioaa", i32::MIN..=i32::MAX);
 pub(crate) const GREGORY_ERA: EraInfo = valid_era!("gregory", 1..=i32::MAX);
 pub(crate) const GREGORY_INVERSE_ERA: EraInfo = valid_era!("gregory-inverse", 1..=i32::MAX);
 pub(crate) const HEBREW_ERA: EraInfo = valid_era!("hebrew", i32::MIN..=i32::MAX);
