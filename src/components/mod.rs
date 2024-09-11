@@ -30,6 +30,8 @@ mod year_month;
 mod zoneddatetime;
 
 #[doc(inline)]
+pub use calendar_types::{CalendarFields, MonthCode};
+#[doc(inline)]
 pub use date::{Date, PartialDate};
 #[doc(inline)]
 pub use datetime::{DateTime, PartialDateTime};

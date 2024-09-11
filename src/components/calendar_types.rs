@@ -11,16 +11,17 @@ use super::{
 
 // TODO: Potentially store calendar identifier in `CalendarFields` so that it is self contained.
 /// `CalendarFields` represents the static values
+#[derive(Debug)]
 pub struct CalendarFields {
     pub(crate) era_year: EraYear,
     pub(crate) month_code: MonthCode,
-    pub(crate) day: u8,
+    pub(crate) day: i32,
 }
 
 impl CalendarFields {
     pub fn try_from_partial_and_calendar(
-        calendar: &Calendar,
         partial_date: &PartialDate,
+        calendar: &Calendar,
     ) -> TemporalResult<Self> {
         let era_year = EraYear::try_from_partial_values_and_calendar(
             partial_date.year,
@@ -29,11 +30,9 @@ impl CalendarFields {
             calendar,
         )?;
         let month_code = MonthCode::try_from_partial_date(partial_date, calendar)?;
-        let day = Day::try_from_partial_field(
-            partial_date
-                .day
-                .ok_or(TemporalError::range().with_message("Required day field is empty."))?,
-        )?;
+        let day = Day(partial_date
+            .day
+            .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?);
 
         Ok(Self {
             era_year,
@@ -51,7 +50,7 @@ impl CalendarFields {
         let year = partial_date.year.unwrap_or(fallback.year()?);
         let month_code =
             MonthCode::try_from_partial_date_with_fallback(partial_date, calendar, fallback)?;
-        let day = Day::try_from_partial_field(partial_date.day.unwrap_or(fallback.day()?.into()))?;
+        let day = Day(partial_date.day.unwrap_or(fallback.day()?.into()));
         // TODO: Determine best way to handle era/eraYear.
         let (era, era_year) =
             if let (Some(era), Some(era_year)) = (partial_date.era, partial_date.era_year) {
@@ -107,21 +106,12 @@ impl TryFrom<&Date> for CalendarFields {
     }
 }
 
-pub struct Day(u8);
+pub struct Day(i32);
 
-impl Day {
-    fn try_from_partial_field(value: i32) -> TemporalResult<Self> {
-        if !(1..=31).contains(&value) {
-            return Err(
-                TemporalError::range().with_message("day value was not within a valid day range.")
-            );
-        };
-        Ok(Self(value as u8))
-    }
-}
-
+#[derive(Debug)]
 pub struct Era(pub(crate) TinyAsciiStr<16>);
 
+#[derive(Debug)]
 pub struct EraYear {
     pub(crate) era: Era,
     pub(crate) year: i32,
@@ -137,7 +127,7 @@ impl EraYear {
         match (year, era, era_year) {
             (Some(year), None, None) => {
                 let Some(era) = calendar.get_calendar_default_era() else {
-                    return Err(TemporalError::range()
+                    return Err(TemporalError::r#type()
                         .with_message("Era is required for the provided calendar."));
                 };
                 Ok(Self {
@@ -160,7 +150,7 @@ impl EraYear {
                     era: Era(era_info.name),
                 })
             }
-            _ => Err(TemporalError::range()
+            _ => Err(TemporalError::r#type()
                 .with_message("Required fields missing to determine an era and year.")),
         }
     }
@@ -193,7 +183,11 @@ const MONTH_TWELVE: TinyAsciiStr<4> = tinystr!(4, "M12");
 const MONTH_TWELVE_LEAP: TinyAsciiStr<4> = tinystr!(4, "M12L");
 const MONTH_THIRTEEN: TinyAsciiStr<4> = tinystr!(4, "M13");
 
+// TODO: Handle instances where month values may be outside of valid
+// bounds. In other words, it is totally possible for a value to be
+// passed in that is { month: 300 } with overflow::constrain.
 /// MonthCode struct v2
+#[derive(Debug)]
 pub struct MonthCode(pub(crate) TinyAsciiStr<4>);
 
 impl MonthCode {
@@ -268,8 +262,8 @@ impl MonthCode {
                 are_month_and_month_code_resolvable(*month, month_code)?;
                 Self::try_new(month_code, calendar)
             }
-            _ => Err(TemporalError::range()
-                .with_message("Month code needed is required to determine date.")),
+            _ => Err(TemporalError::r#type()
+                .with_message("Month or  monthCode is required to determine date.")),
         }
     }
 
@@ -354,5 +348,69 @@ fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
         MONTH_THIRTEEN => Ok(13),
         _ => Err(TemporalError::range()
             .with_message(format!("MonthCode is not supported: {}", mc.as_str()))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use tinystr::tinystr;
+
+    use crate::{
+        components::{calendar::Calendar, PartialDate},
+        options::ArithmeticOverflow,
+    };
+
+    use super::CalendarFields;
+
+    #[test]
+    fn day_overflow_test() {
+        let bad_fields = PartialDate {
+            year: Some(2019),
+            month: Some(1),
+            day: Some(32),
+            ..Default::default()
+        };
+
+        let cal = Calendar::default();
+
+        let fields = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal).unwrap();
+
+        let err = cal.date_from_fields(&fields, ArithmeticOverflow::Reject);
+        assert!(err.is_err());
+        let result = cal.date_from_fields(&fields, ArithmeticOverflow::Constrain);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn unresolved_month_and_month_code() {
+        let bad_fields = PartialDate {
+            year: Some(1976),
+            month: Some(11),
+            month_code: Some(tinystr!(4, "M12")),
+            day: Some(18),
+            ..Default::default()
+        };
+
+        let cal = Calendar::default();
+        let err = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal);
+        assert!(err.is_err());
+    }
+
+    #[test]
+    fn missing_partial_fields() {
+        let bad_fields = PartialDate {
+            year: Some(2019),
+            day: Some(19),
+            ..Default::default()
+        };
+
+        let cal = Calendar::default();
+        let err = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal);
+        assert!(err.is_err());
+
+        let bad_fields = PartialDate::default();
+        let err = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal);
+        assert!(err.is_err());
+        println!("{err:?}");
     }
 }

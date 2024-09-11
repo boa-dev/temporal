@@ -346,17 +346,19 @@ impl Calendar {
             return Date::new(
                 fields.era_year.year,
                 fields.month_code.as_month_integer()?.into(),
-                fields.day.into(),
+                fields.day,
                 self.clone(),
                 overflow,
             );
         }
 
+        // TODO: Implement overflow logic here.
+
         let calendar_date = self.0.date_from_codes(
             Era(fields.era_year.era.0),
             fields.era_year.year,
             MonthCode(fields.month_code.0),
-            fields.day,
+            fields.day as u8, // TODO: FIX
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         Date::new(
@@ -377,7 +379,7 @@ impl Calendar {
         if self.is_iso() {
             return MonthDay::new(
                 fields.month_code.as_month_integer()?.into(),
-                fields.day.into(),
+                fields.day,
                 self.clone(),
                 overflow,
             );
@@ -398,18 +400,20 @@ impl Calendar {
             return YearMonth::new(
                 fields.era_year.year,
                 fields.month_code.as_month_integer()?.into(),
-                Some(fields.day.into()),
+                Some(fields.day),
                 self.clone(),
                 overflow,
             );
         }
+
+        // TODO: Implement overflow logic
 
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
         let calendar_date = self.0.date_from_codes(
             Era(fields.era_year.era.0),
             fields.era_year.year,
             MonthCode(fields.month_code.0),
-            fields.day,
+            fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         YearMonth::new(
@@ -649,7 +653,7 @@ impl Calendar {
         &self,
         partial_date: &PartialDate,
     ) -> TemporalResult<CalendarFields> {
-        CalendarFields::try_from_partial_and_calendar(self, partial_date)
+        CalendarFields::try_from_partial_and_calendar(partial_date, self)
     }
 
     pub(crate) fn get_era_info(&self, era_alias: &TinyAsciiStr<19>) -> Option<EraInfo> {
