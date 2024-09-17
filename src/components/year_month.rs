@@ -14,11 +14,8 @@ use crate::{
 
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
-    Duration,
+    Duration, PartialDate,
 };
-
-// Subset of `TemporalFields` representing just the  `YearMonthFields`
-pub struct YearMonthFields(pub i32, pub u8);
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -71,32 +68,48 @@ impl YearMonth {
         self.iso.month
     }
 
+    pub fn year(&self) -> TemporalResult<i32> {
+        self.calendar().year(&CalendarDateLike::YearMonth(self))
+    }
+
+    pub fn month(&self) -> TemporalResult<u8> {
+        self.calendar().month(&CalendarDateLike::YearMonth(self))
+    }
+
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.get_calendar()
-            .month_code(&CalendarDateLike::YearMonth(self.clone()))
+            .month_code(&CalendarDateLike::YearMonth(self))
     }
 
     #[inline]
     #[must_use]
     pub fn in_leap_year(&self) -> bool {
         self.get_calendar()
-            .in_leap_year(&CalendarDateLike::YearMonth(self.clone()))
+            .in_leap_year(&CalendarDateLike::YearMonth(self))
             .is_ok_and(|is_leap_year| is_leap_year)
     }
 
     pub fn get_days_in_year(&self) -> TemporalResult<u16> {
         self.get_calendar()
-            .days_in_year(&CalendarDateLike::YearMonth(self.clone()))
+            .days_in_year(&CalendarDateLike::YearMonth(self))
     }
 
     pub fn get_days_in_month(&self) -> TemporalResult<u16> {
         self.get_calendar()
-            .days_in_month(&CalendarDateLike::YearMonth(self.clone()))
+            .days_in_month(&CalendarDateLike::YearMonth(self))
     }
 
     pub fn get_months_in_year(&self) -> TemporalResult<u16> {
         self.get_calendar()
-            .months_in_year(&CalendarDateLike::YearMonth(self.clone()))
+            .months_in_year(&CalendarDateLike::YearMonth(self))
+    }
+
+    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+        self.calendar().era(&CalendarDateLike::YearMonth(self))
+    }
+
+    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+        self.calendar().era_year(&CalendarDateLike::YearMonth(self))
     }
 }
 
@@ -111,7 +124,7 @@ impl YearMonth {
     /// Returns the string identifier for the current calendar used.
     #[inline]
     #[must_use]
-    pub fn calendar_id(&self) -> String {
+    pub fn calendar_id(&self) -> &'static str {
         self.calendar.identifier()
     }
 
@@ -136,19 +149,16 @@ impl YearMonth {
         duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
-        let mut fields = YearMonthFields(self.iso_date().year, self.iso_date().month).into();
+        let partial = PartialDate::try_from_year_month(self)?;
 
-        let mut intermediate_date = self
-            .get_calendar()
-            .date_from_fields(&mut fields, overflow)?;
+        let mut intermediate_date = self.get_calendar().date_from_partial(&partial, overflow)?;
 
         intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
 
-        let mut result_fields =
-            YearMonthFields(intermediate_date.iso_year(), intermediate_date.iso_month()).into();
+        let result_fields = PartialDate::default().with_fallback_date(&intermediate_date)?;
 
         self.get_calendar()
-            .year_month_from_fields(&mut result_fields, overflow)
+            .year_month_from_partial(&result_fields, overflow)
     }
 }
 

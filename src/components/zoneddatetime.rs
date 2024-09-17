@@ -97,25 +97,25 @@ impl ZonedDateTime {
     #[inline]
     pub fn year(&self) -> TemporalResult<i32> {
         let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
-        self.calendar.year(&CalendarDateLike::DateTime(dt))
+        self.calendar.year(&CalendarDateLike::DateTime(&dt))
     }
 
     /// Returns the `month` value for this `ZonedDateTime`.
     pub fn month(&self) -> TemporalResult<u8> {
         let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
-        self.calendar.month(&CalendarDateLike::DateTime(dt))
+        self.calendar.month(&CalendarDateLike::DateTime(&dt))
     }
 
     /// Returns the `monthCode` value for this `ZonedDateTime`.
     pub fn month_code(&self) -> TemporalResult<TinyStr4> {
         let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
-        self.calendar.month_code(&CalendarDateLike::DateTime(dt))
+        self.calendar.month_code(&CalendarDateLike::DateTime(&dt))
     }
 
     /// Returns the `day` value for this `ZonedDateTime`.
     pub fn day(&self) -> TemporalResult<u8> {
         let dt = self.tz.get_datetime_for(&self.instant, &self.calendar)?;
-        self.calendar.day(&CalendarDateLike::DateTime(dt))
+        self.calendar.day(&CalendarDateLike::DateTime(&dt))
     }
 
     /// Returns the `hour` value for this `ZonedDateTime`.

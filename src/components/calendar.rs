@@ -10,7 +10,6 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Date, DateTime, Duration, MonthDay, YearMonth,
     },
-    fields::{FieldMap, TemporalFields},
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalResult,
@@ -34,34 +33,17 @@ use icu_calendar::{
     AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, DateDuration as IcuDateDuration,
     DateDurationUnit as IcuDateDurationUnit, Gregorian, Iso, Ref,
 };
-use tinystr::TinyAsciiStr;
+use tinystr::{tinystr, TinyAsciiStr};
 
-use super::ZonedDateTime;
+use super::{PartialDate, ZonedDateTime};
 
-/// The ECMAScript defined protocol methods
-pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
-    "dateAdd",
-    "dateFromFields",
-    "dateUntil",
-    "day",
-    "dayOfWeek",
-    "dayOfYear",
-    "daysInMonth",
-    "daysInWeek",
-    "daysInYear",
-    "fields",
-    "id",
-    "inLeapYear",
-    "mergeFields",
-    "month",
-    "monthCode",
-    "monthDayFromFields",
-    "monthsInYear",
-    "weekOfYear",
-    "year",
-    "yearMonthFromFields",
-    "yearOfWeek",
-];
+mod era;
+mod types;
+
+pub use types::ResolvedCalendarFields;
+pub(crate) use types::{ascii_four_to_integer, month_to_month_code};
+
+use era::EraInfo;
 
 #[derive(Debug, Clone)]
 pub struct Calendar(Ref<'static, AnyCalendar>);
@@ -248,18 +230,18 @@ impl From<&[String]> for CalendarFieldsType {
 
 /// The `DateLike` objects that can be provided to the `CalendarProtocol`.
 #[derive(Debug)]
-pub enum CalendarDateLike {
+pub enum CalendarDateLike<'a> {
     /// Represents a `DateTime`.
-    DateTime(DateTime),
+    DateTime(&'a DateTime),
     /// Represents a `Date`.
-    Date(Date),
+    Date(&'a Date),
     /// Represents a `YearMonth`.
-    YearMonth(YearMonth),
+    YearMonth(&'a YearMonth),
     /// Represents a `MonthDay`.
-    MonthDay(MonthDay),
+    MonthDay(&'a MonthDay),
 }
 
-impl CalendarDateLike {
+impl CalendarDateLike<'_> {
     /// Retrieves the internal `IsoDate` field.
     #[inline]
     #[must_use]
@@ -283,46 +265,35 @@ pub trait GetTemporalCalendar {
 
 impl Calendar {
     /// Returns whether the current calendar is `ISO`
+    #[inline]
     pub fn is_iso(&self) -> bool {
         matches!(self.0 .0, AnyCalendar::Iso(_))
     }
 
     /// `CalendarDateFromFields`
-    pub fn date_from_fields(
+    pub fn date_from_partial(
         &self,
-        fields: &mut TemporalFields,
+        partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Date> {
+        let fields = self.resolve_partial_date_fields(partial, overflow)?;
+
         if self.is_iso() {
             // Resolve month and monthCode;
-            fields.iso_resolve_month()?;
             return Date::new(
-                fields.year.unwrap_or(0),
-                fields.month.unwrap_or(0),
-                fields.day.unwrap_or(0),
+                fields.era_year.year,
+                fields.month_code.as_iso_month_integer()?.into(),
+                fields.day,
                 self.clone(),
                 overflow,
             );
         }
 
-        let era = Era::from_str(&fields.era.map_or(String::default(), |s| s.to_string()))
-            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
-        let month_code = MonthCode(
-            fields
-                .month_code
-                .map(|mc| {
-                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
-                        .expect("MonthCode as_str is always valid.")
-                })
-                .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
-        );
-        // NOTE: This might preemptively throw as `ICU4X` does not support constraining.
-        // Resolve month and monthCode;
         let calendar_date = self.0.date_from_codes(
-            era,
-            fields.year.unwrap_or(0),
-            month_code,
-            fields.day.unwrap_or(0) as u8,
+            Era(fields.era_year.era.0),
+            fields.era_year.year,
+            MonthCode(fields.month_code.0),
+            fields.day as u8, // TODO: FIX
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         Date::new(
@@ -335,16 +306,16 @@ impl Calendar {
     }
 
     /// `CalendarMonthDayFromFields`
-    pub fn month_day_from_fields(
+    pub fn month_day_from_partial(
         &self,
-        fields: &mut TemporalFields,
+        partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<MonthDay> {
+        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
-            fields.iso_resolve_month()?;
             return MonthDay::new(
-                fields.month.unwrap_or(0),
-                fields.day.unwrap_or(0),
+                resolved_fields.month_code.as_iso_month_integer()?.into(),
+                resolved_fields.day,
                 self.clone(),
                 overflow,
             );
@@ -356,40 +327,28 @@ impl Calendar {
     }
 
     /// `CalendarYearMonthFromFields`
-    pub fn year_month_from_fields(
+    pub fn year_month_from_partial(
         &self,
-        fields: &mut TemporalFields,
+        partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
+        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
-            fields.iso_resolve_month()?;
             return YearMonth::new(
-                fields.year.unwrap_or(0),
-                fields.month.unwrap_or(0),
-                fields.day,
+                resolved_fields.era_year.year,
+                resolved_fields.month_code.as_iso_month_integer()?.into(),
+                Some(resolved_fields.day),
                 self.clone(),
                 overflow,
             );
         }
 
-        let era = Era::from_str(&fields.era.map_or(String::default(), |s| s.to_string()))
-            .map_err(|e| TemporalError::general(format!("{e:?}")))?;
-        let month_code = MonthCode(
-            fields
-                .month_code
-                .map(|mc| {
-                    TinyAsciiStr::from_bytes(mc.as_str().as_bytes())
-                        .expect("MonthCode as_str is always valid.")
-                })
-                .ok_or(TemporalError::range().with_message("No MonthCode provided."))?,
-        );
-
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
         let calendar_date = self.0.date_from_codes(
-            era,
-            fields.year.unwrap_or(0),
-            month_code,
-            fields.day.unwrap_or(1) as u8,
+            Era(resolved_fields.era_year.era.0),
+            resolved_fields.era_year.year,
+            MonthCode(resolved_fields.month_code.0),
+            resolved_fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         YearMonth::new(
@@ -530,7 +489,7 @@ impl Calendar {
     }
 
     /// `CalendarWeekOfYear`
-    pub fn week_of_year(&self, date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn week_of_year(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<u16>> {
         if self.is_iso() {
             let date = date_like.as_iso_date().as_icu4x()?;
 
@@ -540,13 +499,13 @@ impl Calendar {
                 .week_of_year(&week_calculator)
                 .map_err(|err| TemporalError::range().with_message(err.to_string()))?;
 
-            return Ok(week_of.week);
+            return Ok(Some(week_of.week));
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarYearOfWeek`
-    pub fn year_of_week(&self, date_like: &CalendarDateLike) -> TemporalResult<i32> {
+    pub fn year_of_week(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<i32>> {
         if self.is_iso() {
             let date = date_like.as_iso_date().as_icu4x()?;
 
@@ -557,9 +516,9 @@ impl Calendar {
                 .map_err(|err| TemporalError::range().with_message(err.to_string()))?;
 
             return match week_of.unit {
-                RelativeUnit::Previous => Ok(date.year().number - 1),
-                RelativeUnit::Current => Ok(date.year().number),
-                RelativeUnit::Next => Ok(date.year().number + 1),
+                RelativeUnit::Previous => Ok(Some(date.year().number - 1)),
+                RelativeUnit::Current => Ok(Some(date.year().number)),
+                RelativeUnit::Next => Ok(Some(date.year().number + 1)),
             };
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
@@ -615,53 +574,141 @@ impl Calendar {
     }
 
     /// Returns the identifier of this calendar slot.
-    pub fn identifier(&self) -> String {
+    pub fn identifier(&self) -> &'static str {
         if self.is_iso() {
-            return String::from("iso8601");
+            return "iso8601";
         }
-        String::from(self.0 .0.kind().as_bcp47_string())
+        self.0 .0.kind().as_bcp47_string()
     }
 }
 
 impl Calendar {
-    /// Returns the designated field descriptors for builtin calendars.
-    pub fn field_descriptors(
+    /// CalendarFields equivalent.
+    #[inline]
+    pub fn resolve_partial_date_fields(
         &self,
-        _fields_type: CalendarFieldsType,
-    ) -> TemporalResult<Vec<(String, bool)>> {
-        // TODO: Research and implement the appropriate descriptors for all `BuiltinCalendars.`
-        Err(TemporalError::range().with_message("FieldDescriptors is not yet implemented."))
+        partial_date: &PartialDate,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<ResolvedCalendarFields> {
+        ResolvedCalendarFields::try_from_partial_and_calendar(self, partial_date, overflow)
     }
 
-    /// Provides field keys to be ignored depending on the calendar.
-    pub fn field_keys_to_ignore(&self, keys: FieldMap) -> TemporalResult<FieldMap> {
-        let mut ignored_keys = FieldMap::empty();
-        if self.is_iso() {
-            // NOTE: It is okay for ignored keys to have duplicates?
-            for key in keys.iter() {
-                ignored_keys.set(key, true);
-                if key == FieldMap::MONTH {
-                    ignored_keys.set(FieldMap::MONTH_CODE, true);
-                } else if key == FieldMap::MONTH_CODE {
-                    ignored_keys.set(FieldMap::MONTH, true);
-                }
+    pub(crate) fn get_era_info(&self, era_alias: &TinyAsciiStr<19>) -> Option<EraInfo> {
+        match self.0 .0.kind() {
+            AnyCalendarKind::Buddhist if era::BUDDHIST_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::BUDDHIST_ERA)
             }
-
-            return Ok(ignored_keys);
+            AnyCalendarKind::Chinese if *era_alias == tinystr!(19, "chinese") => {
+                Some(era::CHINESE_ERA)
+            }
+            AnyCalendarKind::Coptic if *era_alias == tinystr!(19, "coptic") => {
+                Some(era::COPTIC_ERA)
+            }
+            AnyCalendarKind::Coptic if *era_alias == tinystr!(19, "coptic-inverse") => {
+                Some(era::COPTIC_INVERSE_ERA)
+            }
+            AnyCalendarKind::Dangi if *era_alias == tinystr!(19, "dangi") => Some(era::DANGI_ERA),
+            AnyCalendarKind::Ethiopian if era::ETHIOPIC_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::ETHIOPIC_ERA)
+            }
+            AnyCalendarKind::Ethiopian
+                if era::ETHIOPIC_ETHOPICAA_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::ETHIOPIC_ETHIOAA_ERA)
+            }
+            AnyCalendarKind::EthiopianAmeteAlem
+                if era::ETHIOAA_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::ETHIOAA_ERA)
+            }
+            AnyCalendarKind::Gregorian if era::GREGORY_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::GREGORY_ERA)
+            }
+            AnyCalendarKind::Gregorian
+                if era::GREGORY_INVERSE_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::GREGORY_INVERSE_ERA)
+            }
+            AnyCalendarKind::Hebrew if era::HEBREW_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::HEBREW_ERA)
+            }
+            AnyCalendarKind::Indian if era::INDIAN_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::INDIAN_ERA)
+            }
+            // TODO: Determine whether observational is islamic or islamic-rgsa
+            AnyCalendarKind::IslamicCivil
+                if era::ISLAMIC_CIVIL_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::ISLAMIC_CIVIL_ERA)
+            }
+            AnyCalendarKind::IslamicObservational
+                if era::ISLAMIC_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::ISLAMIC_ERA)
+            }
+            AnyCalendarKind::IslamicTabular
+                if era::ISLAMIC_TBLA_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::ISLAMIC_TBLA_ERA)
+            }
+            AnyCalendarKind::IslamicUmmAlQura
+                if era::ISLAMIC_UMALQURA_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::ISLAMIC_UMALQURA_ERA)
+            }
+            AnyCalendarKind::Iso if *era_alias == tinystr!(19, "default") => Some(era::ISO_ERA),
+            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "heisei") => {
+                Some(era::HEISEI_ERA)
+            }
+            AnyCalendarKind::Japanese if era::JAPANESE_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::JAPANESE_ERA)
+            }
+            AnyCalendarKind::Japanese
+                if era::JAPANESE_INVERSE_ERA_IDENTIFIERS.contains(era_alias) =>
+            {
+                Some(era::JAPANESE_INVERSE_ERA)
+            }
+            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "mejei") => {
+                Some(era::MEJEI_ERA)
+            }
+            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "reiwa") => {
+                Some(era::REIWA_ERA)
+            }
+            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "showa") => {
+                Some(era::SHOWA_ERA)
+            }
+            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "taisho") => {
+                Some(era::TAISHO_ERA)
+            }
+            AnyCalendarKind::Persian if era::PERSIAN_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::PERSIAN_ERA)
+            }
+            AnyCalendarKind::Roc if era::ROC_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::ROC_ERA)
+            }
+            AnyCalendarKind::Roc if era::ROC_INVERSE_ERA_IDENTIFIERS.contains(era_alias) => {
+                Some(era::ROC_INVERSE_ERA)
+            }
+            _ => None,
         }
-
-        // TODO: Research and implement the appropriate KeysToIgnore for all `BuiltinCalendars.`
-        Err(TemporalError::range().with_message("FieldKeysToIgnore is not yet implemented."))
     }
 
-    /// `CalendarResolveFields`
-    pub fn resolve_fields(
-        &self,
-        _fields: &mut TemporalFields,
-        _typ: CalendarFieldsType,
-    ) -> TemporalResult<()> {
-        // TODO: Research and implement the appropriate ResolveFields for all `BuiltinCalendars.`
-        Err(TemporalError::range().with_message("CalendarResolveFields is not yet implemented."))
+    pub(crate) fn get_calendar_default_era(&self) -> Option<EraInfo> {
+        match self.0 .0.kind() {
+            AnyCalendarKind::Buddhist => Some(era::BUDDHIST_ERA),
+            AnyCalendarKind::Chinese => Some(era::CHINESE_ERA),
+            AnyCalendarKind::Dangi => Some(era::DANGI_ERA),
+            AnyCalendarKind::EthiopianAmeteAlem => Some(era::ETHIOAA_ERA),
+            AnyCalendarKind::Hebrew => Some(era::HEBREW_ERA),
+            AnyCalendarKind::Indian => Some(era::INDIAN_ERA),
+            AnyCalendarKind::IslamicCivil => Some(era::ISLAMIC_CIVIL_ERA),
+            AnyCalendarKind::IslamicObservational => Some(era::ISLAMIC_ERA),
+            AnyCalendarKind::IslamicTabular => Some(era::ISLAMIC_TBLA_ERA),
+            AnyCalendarKind::IslamicUmmAlQura => Some(era::ISLAMIC_UMALQURA_ERA),
+            AnyCalendarKind::Iso => Some(era::ISO_ERA),
+            AnyCalendarKind::Persian => Some(era::PERSIAN_ERA),
+            _ => None,
+        }
     }
 }
 
