@@ -35,81 +35,15 @@ use icu_calendar::{
 };
 use tinystr::{tinystr, TinyAsciiStr};
 
-use super::{calendar_types::CalendarFields, PartialDate, ZonedDateTime};
+use super::{PartialDate, ZonedDateTime};
 
 mod era;
+mod types;
+
+pub use types::ResolvedCalendarFields;
+pub(crate) use types::{ascii_four_to_integer, month_to_month_code};
 
 use era::EraInfo;
-
-/// The ECMAScript defined protocol methods
-pub const CALENDAR_PROTOCOL_METHODS: [&str; 21] = [
-    "dateAdd",
-    "dateFromFields",
-    "dateUntil",
-    "day",
-    "dayOfWeek",
-    "dayOfYear",
-    "daysInMonth",
-    "daysInWeek",
-    "daysInYear",
-    "fields",
-    "id",
-    "inLeapYear",
-    "mergeFields",
-    "month",
-    "monthCode",
-    "monthDayFromFields",
-    "monthsInYear",
-    "weekOfYear",
-    "year",
-    "yearMonthFromFields",
-    "yearOfWeek",
-];
-
-pub trait CalendarMethods {
-    /// Returns the calendar year value.
-    fn year(&self) -> TemporalResult<i32>;
-
-    /// Returns the calendar month value.
-    fn month(&self) -> TemporalResult<u8>;
-
-    /// Returns the calendar month code value.
-    fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>>;
-
-    /// Returns the calendar day value.
-    fn day(&self) -> TemporalResult<u8>;
-
-    /// Returns the calendar day of week value.
-    fn day_of_week(&self) -> TemporalResult<u16>;
-
-    /// Returns the calendar day of year value.
-    fn day_of_year(&self) -> TemporalResult<u16>;
-
-    /// Returns the calendar week of year value.
-    fn week_of_year(&self) -> TemporalResult<Option<u16>>;
-
-    /// Returns the calendar year of week value.
-    fn year_of_week(&self) -> TemporalResult<Option<i32>>;
-
-    /// Returns the calendar days in week value.
-    fn days_in_week(&self) -> TemporalResult<u16>;
-
-    /// Returns the calendar days in month value.
-    fn days_in_month(&self) -> TemporalResult<u16>;
-
-    /// Returns the calendar days in year value.
-    fn days_in_year(&self) -> TemporalResult<u16>;
-
-    /// Returns the calendar months in year value.
-    fn months_in_year(&self) -> TemporalResult<u16>;
-
-    /// Returns returns whether the date in a leap year for the given calendar.
-    fn in_leap_year(&self) -> TemporalResult<bool>;
-
-    fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>>;
-
-    fn era_year(&self) -> TemporalResult<Option<i32>>;
-}
 
 #[derive(Debug, Clone)]
 pub struct Calendar(Ref<'static, AnyCalendar>);
@@ -331,28 +265,29 @@ pub trait GetTemporalCalendar {
 
 impl Calendar {
     /// Returns whether the current calendar is `ISO`
+    #[inline]
     pub fn is_iso(&self) -> bool {
         matches!(self.0 .0, AnyCalendar::Iso(_))
     }
 
     /// `CalendarDateFromFields`
-    pub fn date_from_fields(
+    pub fn date_from_partial(
         &self,
-        fields: &CalendarFields,
+        partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Date> {
+        let fields = self.resolve_partial_date_fields(partial, overflow)?;
+
         if self.is_iso() {
             // Resolve month and monthCode;
             return Date::new(
                 fields.era_year.year,
-                fields.month_code.as_month_integer()?.into(),
+                fields.month_code.as_iso_month_integer()?.into(),
                 fields.day,
                 self.clone(),
                 overflow,
             );
         }
-
-        // TODO: Implement overflow logic here.
 
         let calendar_date = self.0.date_from_codes(
             Era(fields.era_year.era.0),
@@ -371,15 +306,16 @@ impl Calendar {
     }
 
     /// `CalendarMonthDayFromFields`
-    pub fn month_day_from_fields(
+    pub fn month_day_from_partial(
         &self,
-        fields: &CalendarFields,
+        partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<MonthDay> {
+        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
             return MonthDay::new(
-                fields.month_code.as_month_integer()?.into(),
-                fields.day,
+                resolved_fields.month_code.as_iso_month_integer()?.into(),
+                resolved_fields.day,
                 self.clone(),
                 overflow,
             );
@@ -391,29 +327,28 @@ impl Calendar {
     }
 
     /// `CalendarYearMonthFromFields`
-    pub fn year_month_from_fields(
+    pub fn year_month_from_partial(
         &self,
-        fields: &CalendarFields,
+        partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
+        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
             return YearMonth::new(
-                fields.era_year.year,
-                fields.month_code.as_month_integer()?.into(),
-                Some(fields.day),
+                resolved_fields.era_year.year,
+                resolved_fields.month_code.as_iso_month_integer()?.into(),
+                Some(resolved_fields.day),
                 self.clone(),
                 overflow,
             );
         }
 
-        // TODO: Implement overflow logic
-
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
         let calendar_date = self.0.date_from_codes(
-            Era(fields.era_year.era.0),
-            fields.era_year.year,
-            MonthCode(fields.month_code.0),
-            fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
+            Era(resolved_fields.era_year.era.0),
+            resolved_fields.era_year.year,
+            MonthCode(resolved_fields.month_code.0),
+            resolved_fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
         YearMonth::new(
@@ -649,11 +584,13 @@ impl Calendar {
 
 impl Calendar {
     /// CalendarFields equivalent.
-    pub fn fields_from_partial(
+    #[inline]
+    pub fn resolve_partial_date_fields(
         &self,
         partial_date: &PartialDate,
-    ) -> TemporalResult<CalendarFields> {
-        CalendarFields::try_from_partial_and_calendar(partial_date, self)
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<ResolvedCalendarFields> {
+        ResolvedCalendarFields::try_from_partial_and_calendar(self, partial_date, overflow)
     }
 
     pub(crate) fn get_era_info(&self, era_alias: &TinyAsciiStr<19>) -> Option<EraInfo> {

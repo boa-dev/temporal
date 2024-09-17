@@ -20,7 +20,6 @@ pub mod calendar;
 pub mod duration;
 pub mod tz;
 
-mod calendar_types;
 mod date;
 mod datetime;
 mod instant;
@@ -29,8 +28,6 @@ mod time;
 mod year_month;
 mod zoneddatetime;
 
-#[doc(inline)]
-pub use calendar_types::{CalendarFields, MonthCode};
 #[doc(inline)]
 pub use date::{Date, PartialDate};
 #[doc(inline)]

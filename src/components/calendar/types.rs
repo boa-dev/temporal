@@ -1,27 +1,28 @@
-//! Implementation of `CalendarFields`
+//! Implementation of `ResolvedCalendarFields`
 
 use tinystr::{tinystr, TinyAsciiStr};
 
+use crate::iso::{constrain_iso_day, is_valid_iso_day};
+use crate::options::ArithmeticOverflow;
 use crate::{TemporalError, TemporalResult};
 
-use super::{
-    calendar::{Calendar, CalendarMethods},
-    Date, PartialDate, YearMonth,
-};
+use crate::components::{calendar::Calendar, PartialDate};
 
-// TODO: Potentially store calendar identifier in `CalendarFields` so that it is self contained.
-/// `CalendarFields` represents the static values
+/// `ResolvedCalendarFields` represents the resolved field values necessary for
+/// creating a Date from potentially partial values.
 #[derive(Debug)]
-pub struct CalendarFields {
+pub struct ResolvedCalendarFields {
     pub(crate) era_year: EraYear,
     pub(crate) month_code: MonthCode,
     pub(crate) day: i32,
 }
 
-impl CalendarFields {
+impl ResolvedCalendarFields {
+    #[inline]
     pub fn try_from_partial_and_calendar(
-        partial_date: &PartialDate,
         calendar: &Calendar,
+        partial_date: &PartialDate,
+        overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let era_year = EraYear::try_from_partial_values_and_calendar(
             partial_date.year,
@@ -29,84 +30,50 @@ impl CalendarFields {
             partial_date.era_year,
             calendar,
         )?;
-        let month_code = MonthCode::try_from_partial_date(partial_date, calendar)?;
-        let day = Day(partial_date
-            .day
-            .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?);
+        if calendar.is_iso() {
+            let month_code =
+                resolve_iso_month(partial_date.month_code, partial_date.month, overflow)?;
+            let day = partial_date
+                .day
+                .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
 
-        Ok(Self {
-            era_year,
-            month_code,
-            day: day.0,
-        })
-    }
-
-    /// Create a `CalendarFields1 from a `PartialDate`, falling back to the values provided by date if present.
-    pub fn try_from_partial_with_fallback_date(
-        calendar: &Calendar,
-        partial_date: &PartialDate,
-        fallback: &impl CalendarMethods,
-    ) -> TemporalResult<Self> {
-        let year = partial_date.year.unwrap_or(fallback.year()?);
-        let month_code =
-            MonthCode::try_from_partial_date_with_fallback(partial_date, calendar, fallback)?;
-        let day = Day(partial_date.day.unwrap_or(fallback.day()?.into()));
-        // TODO: Determine best way to handle era/eraYear.
-        let (era, era_year) =
-            if let (Some(era), Some(era_year)) = (partial_date.era, partial_date.era_year) {
-                (Some(era), Some(era_year))
+            let day = if overflow == ArithmeticOverflow::Constrain {
+                i32::from(constrain_iso_day(
+                    era_year.year,
+                    ascii_four_to_integer(month_code)?.into(),
+                    day,
+                ))
             } else {
-                let era = fallback
-                    .era()?
-                    .map(|t| TinyAsciiStr::<19>::from_bytes(t.as_bytes()))
-                    .transpose()
-                    .map_err(|_| TemporalError::general("Invalid era parsing."))?;
-                (era, fallback.era_year()?)
+                if !is_valid_iso_day(
+                    era_year.year,
+                    ascii_four_to_integer(month_code)?.into(),
+                    day,
+                ) {
+                    return Err(
+                        TemporalError::range().with_message("day value is not in a valid range.")
+                    );
+                }
+                day
             };
+            return Ok(Self {
+                era_year,
+                month_code: MonthCode(month_code),
+                day,
+            });
+        }
 
-        let era_year =
-            EraYear::try_from_partial_values_and_calendar(Some(year), era, era_year, calendar)?;
-
-        Ok(Self {
-            era_year,
-            month_code,
-            day: day.0,
-        })
-    }
-
-    pub(crate) fn try_from_year_month(
-        calendar: &Calendar,
-        year_month: &YearMonth,
-    ) -> TemporalResult<Self> {
-        let year = year_month.year()?;
-        let month_code = MonthCode(year_month.month_code()?);
-        let era = year_month
-            .era()?
-            .map(|t| TinyAsciiStr::<19>::from_bytes(t.as_bytes()))
-            .transpose()
-            .map_err(|_| TemporalError::general("Invalid era parsing."))?;
-        let era_year = year_month.era_year()?;
-
-        let era_year =
-            EraYear::try_from_partial_values_and_calendar(Some(year), era, era_year, calendar)?;
+        let month_code = MonthCode::try_from_partial_date(partial_date, calendar)?;
+        let day = partial_date
+            .day
+            .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
 
         Ok(Self {
             era_year,
             month_code,
-            day: 1,
+            day,
         })
     }
 }
-
-impl TryFrom<&Date> for CalendarFields {
-    type Error = TemporalError;
-
-    fn try_from(value: &Date) -> Result<Self, Self::Error> {
-        Self::try_from_partial_with_fallback_date(value.calendar(), &PartialDate::default(), value)
-    }
-}
-
-pub struct Day(i32);
 
 #[derive(Debug)]
 pub struct Era(pub(crate) TinyAsciiStr<16>);
@@ -263,48 +230,17 @@ impl MonthCode {
                 Self::try_new(month_code, calendar)
             }
             _ => Err(TemporalError::r#type()
-                .with_message("Month or  monthCode is required to determine date.")),
+                .with_message("Month or monthCode is required to determine date.")),
         }
     }
 
-    pub(crate) fn try_from_partial_date_with_fallback(
-        partial: &PartialDate,
-        calendar: &Calendar,
-        fallback: &impl CalendarMethods,
-    ) -> TemporalResult<Self> {
-        match partial {
-            PartialDate {
-                month: Some(month),
-                month_code: None,
-                ..
-            } => Self::try_new(&month_to_month_code(*month)?, calendar),
-            PartialDate {
-                month_code: Some(month_code),
-                month: None,
-                ..
-            } => Self::try_new(month_code, calendar),
-            PartialDate {
-                month: Some(month),
-                month_code: Some(month_code),
-                ..
-            } => {
-                are_month_and_month_code_resolvable(*month, month_code)?;
-                Self::try_new(month_code, calendar)
-            }
-            PartialDate {
-                month: None,
-                month_code: None,
-                ..
-            } => Ok(Self(fallback.month_code()?)),
-        }
-    }
-
-    pub fn as_month_integer(&self) -> TemporalResult<u8> {
+    pub fn as_iso_month_integer(&self) -> TemporalResult<u8> {
         ascii_four_to_integer(self.0)
     }
 }
 
-fn month_to_month_code(month: i32) -> TemporalResult<TinyAsciiStr<4>> {
+// NOTE: This is a greedy function, should handle differently for all calendars.
+pub(crate) fn month_to_month_code(month: i32) -> TemporalResult<TinyAsciiStr<4>> {
     match month {
         1 => Ok(MONTH_ONE),
         2 => Ok(MONTH_TWO),
@@ -331,7 +267,8 @@ fn are_month_and_month_code_resolvable(month: i32, mc: &TinyAsciiStr<4>) -> Temp
     Ok(())
 }
 
-fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
+// NOTE: This is a greedy function, should handle differently for all calendars.
+pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
     match mc {
         MONTH_ONE => Ok(1),
         MONTH_TWO => Ok(2),
@@ -345,9 +282,44 @@ fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
         MONTH_TEN => Ok(10),
         MONTH_ELEVEN => Ok(11),
         MONTH_TWELVE => Ok(12),
-        MONTH_THIRTEEN => Ok(13),
         _ => Err(TemporalError::range()
             .with_message(format!("MonthCode is not supported: {}", mc.as_str()))),
+    }
+}
+
+fn resolve_iso_month(
+    mc: Option<TinyAsciiStr<4>>,
+    month: Option<i32>,
+    overflow: ArithmeticOverflow,
+) -> TemporalResult<TinyAsciiStr<4>> {
+    match (mc, month) {
+        (None, None) => {
+            Err(TemporalError::r#type().with_message("Month or monthCode must be provided."))
+        }
+        (None, Some(month)) => {
+            if overflow == ArithmeticOverflow::Constrain {
+                return month_to_month_code(month.clamp(1, 12));
+            }
+            if !(1..=12).contains(&month) {
+                return Err(
+                    TemporalError::range().with_message("month value is not in a valid range.")
+                );
+            }
+            month_to_month_code(month)
+        }
+        (Some(mc), None) => {
+            // Check that monthCode is parsable.
+            let _ = ascii_four_to_integer(mc)?;
+            Ok(mc)
+        }
+        (Some(mc), Some(month)) => {
+            let month_code_int = i32::from(ascii_four_to_integer(mc)?);
+            if month != month_code_int {
+                return Err(TemporalError::range()
+                    .with_message("month and monthCode could not be resolved."));
+            }
+            Ok(mc)
+        }
     }
 }
 
@@ -360,7 +332,7 @@ mod tests {
         options::ArithmeticOverflow,
     };
 
-    use super::CalendarFields;
+    use super::ResolvedCalendarFields;
 
     #[test]
     fn day_overflow_test() {
@@ -373,11 +345,9 @@ mod tests {
 
         let cal = Calendar::default();
 
-        let fields = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal).unwrap();
-
-        let err = cal.date_from_fields(&fields, ArithmeticOverflow::Reject);
+        let err = cal.date_from_partial(&bad_fields, ArithmeticOverflow::Reject);
         assert!(err.is_err());
-        let result = cal.date_from_fields(&fields, ArithmeticOverflow::Constrain);
+        let result = cal.date_from_partial(&bad_fields, ArithmeticOverflow::Constrain);
         assert!(result.is_ok());
     }
 
@@ -392,7 +362,11 @@ mod tests {
         };
 
         let cal = Calendar::default();
-        let err = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal);
+        let err = ResolvedCalendarFields::try_from_partial_and_calendar(
+            &cal,
+            &bad_fields,
+            ArithmeticOverflow::Reject,
+        );
         assert!(err.is_err());
     }
 
@@ -405,12 +379,19 @@ mod tests {
         };
 
         let cal = Calendar::default();
-        let err = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal);
+        let err = ResolvedCalendarFields::try_from_partial_and_calendar(
+            &cal,
+            &bad_fields,
+            ArithmeticOverflow::Reject,
+        );
         assert!(err.is_err());
 
         let bad_fields = PartialDate::default();
-        let err = CalendarFields::try_from_partial_and_calendar(&bad_fields, &cal);
+        let err = ResolvedCalendarFields::try_from_partial_and_calendar(
+            &cal,
+            &bad_fields,
+            ArithmeticOverflow::Reject,
+        );
         assert!(err.is_err());
-        println!("{err:?}");
     }
 }

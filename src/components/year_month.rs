@@ -14,7 +14,6 @@ use crate::{
 
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
-    calendar_types::CalendarFields,
     Duration, PartialDate,
 };
 
@@ -150,20 +149,16 @@ impl YearMonth {
         duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<YearMonth> {
-        let fields = CalendarFields::try_from_year_month(self.calendar(), self)?;
+        let partial = PartialDate::try_from_year_month(self)?;
 
-        let mut intermediate_date = self.get_calendar().date_from_fields(&fields, overflow)?;
+        let mut intermediate_date = self.get_calendar().date_from_partial(&partial, overflow)?;
 
         intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
 
-        let result_fields = CalendarFields::try_from_partial_with_fallback_date(
-            self.calendar(),
-            &PartialDate::default(),
-            &intermediate_date,
-        )?;
+        let result_fields = PartialDate::default().with_fallback_date(&intermediate_date)?;
 
         self.get_calendar()
-            .year_month_from_fields(&result_fields, overflow)
+            .year_month_from_partial(&result_fields, overflow)
     }
 }
 
