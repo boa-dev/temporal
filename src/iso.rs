@@ -300,10 +300,9 @@ impl IsoDate {
         let id = match overflow {
             ArithmeticOverflow::Constrain => {
                 let month = month.clamp(1, 12);
-                let days_in_month = utils::iso_days_in_month(year, month);
-                let d = day.clamp(1, days_in_month);
+                let day = constrain_iso_day(year, month, day);
                 // NOTE: Values are clamped in a u8 range.
-                Self::new_unchecked(year, month as u8, d as u8)
+                Self::new_unchecked(year, month as u8, day)
             }
             ArithmeticOverflow::Reject => {
                 if !is_valid_date(year, month, day) {
@@ -942,9 +941,7 @@ fn is_valid_date(year: i32, month: i32, day: i32) -> bool {
     if !(1..=12).contains(&month) {
         return false;
     }
-
-    let days_in_month = utils::iso_days_in_month(year, month);
-    (1..=days_in_month).contains(&day)
+    is_valid_iso_day(year, month, day)
 }
 
 #[inline]
@@ -962,6 +959,18 @@ fn balance_iso_year_month(year: i32, month: i32) -> (i32, i32) {
     let m = (month - 1).rem_euclid(12) + 1;
     // 4. Return the Record { [[Year]]: year, [[Month]]: month  }.
     (y, m)
+}
+
+#[inline]
+pub(crate) fn constrain_iso_day(year: i32, month: i32, day: i32) -> u8 {
+    let days_in_month = utils::iso_days_in_month(year, month);
+    day.clamp(1, days_in_month) as u8
+}
+
+#[inline]
+pub(crate) fn is_valid_iso_day(year: i32, month: i32, day: i32) -> bool {
+    let days_in_month = utils::iso_days_in_month(year, month);
+    (1..=days_in_month).contains(&day)
 }
 
 // ==== `IsoTime` specific utilities ====

@@ -59,7 +59,7 @@ impl MonthDay {
     /// Returns the string identifier for the current calendar used.
     #[inline]
     #[must_use]
-    pub fn calendar_id(&self) -> String {
+    pub fn calendar_id(&self) -> &'static str {
         self.calendar.identifier()
     }
 
@@ -73,8 +73,7 @@ impl MonthDay {
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar
-            .month_code(&CalendarDateLike::MonthDay(self.clone()))
+        self.calendar.month_code(&CalendarDateLike::MonthDay(self))
     }
 }
 
