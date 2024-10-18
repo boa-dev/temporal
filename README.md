@@ -1,7 +1,5 @@
 # Temporal in Rust
 
-:warning: This crate is highly experimental and NOT stable. We cannot make any guarantee that the API will be stable until `0.1.0`. Do not use in production without extreme caution :warning:
-
 `Temporal` is a calendar and timezone aware date/time library that is currently being designed and proposed as a new
 builtin to the `ECMAScript` specification.
 
@@ -13,6 +11,12 @@ as we intended to make an engine agnostic and general usage implementation of `T
 Relevent links regarding Temporal can be found below.
 
 [Temporal Documentation](https://tc39.es/proposal-temporal/docs/) | [Temporal Specification](https://tc39.es/proposal-temporal/) | [Temporal Repository](https://github.com/tc39/proposal-temporal)
+
+## Core Maintainers
+- Jason Williams ([jasonwilliams](https://github.com/orgs/boa-dev/people/jasonwilliams))
+- José Julián Espina ([jedel1043](https://github.com/orgs/boa-dev/people/jedel1043))
+- Kevin Ness ([nekevss](https://github.com/orgs/boa-dev/people/nekevss))
+- Boa Developers
 
 ## Contributing
 
