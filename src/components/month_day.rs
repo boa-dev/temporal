@@ -16,12 +16,12 @@ use super::calendar::{CalendarDateLike, GetTemporalCalendar};
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
-pub struct MonthDay {
+pub struct PlainMonthDay {
     iso: IsoDate,
     calendar: Calendar,
 }
 
-impl MonthDay {
+impl PlainMonthDay {
     /// Creates a new unchecked `MonthDay`
     #[inline]
     #[must_use]
@@ -31,14 +31,14 @@ impl MonthDay {
 
     /// Creates a new valid `MonthDay`.
     #[inline]
-    pub fn new(
+    pub fn new_with_overflow(
         month: i32,
         day: i32,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
-        let iso = IsoDate::new(1972, month, day, overflow)?;
+        let iso = IsoDate::new_with_overflow(1972, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
 
@@ -77,13 +77,13 @@ impl MonthDay {
     }
 }
 
-impl GetTemporalCalendar for MonthDay {
+impl GetTemporalCalendar for PlainMonthDay {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
 
-impl IsoDateSlots for MonthDay {
+impl IsoDateSlots for PlainMonthDay {
     #[inline]
     /// Returns this structs `IsoDate`.
     fn iso_date(&self) -> IsoDate {
@@ -91,7 +91,7 @@ impl IsoDateSlots for MonthDay {
     }
 }
 
-impl FromStr for MonthDay {
+impl FromStr for PlainMonthDay {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -103,7 +103,7 @@ impl FromStr for MonthDay {
 
         let date = date.temporal_unwrap()?;
 
-        Self::new(
+        Self::new_with_overflow(
             date.month.into(),
             date.day.into(),
             Calendar::from_str(calendar)?,

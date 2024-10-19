@@ -3,10 +3,12 @@ use std::num::{NonZeroU128, NonZeroU32};
 use crate::{TemporalError, TemporalResult};
 
 // ==== RoundingIncrement option ====
+
 // Invariants:
 // RoundingIncrement(n): 1 <= n < 10^9
-/// A numeric rounding increment.
 // TODO: Add explanation on what exactly are rounding increments.
+
+/// A numeric rounding increment.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct RoundingIncrement(pub(crate) NonZeroU32);
 

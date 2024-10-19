@@ -1,21 +1,12 @@
 //! An implementation of `TimeDuration` and it's methods.
 
-use std::num::NonZeroU128;
-
 use crate::{
-    options::{ResolvedRoundingOptions, TemporalUnit},
-    primitive::FiniteF64,
-    rounding::{IncrementRounder, Round},
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
+    options::TemporalUnit, primitive::FiniteF64, temporal_assert, TemporalError, TemporalResult,
 };
 
-use super::{
-    is_valid_duration,
-    normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    DateDuration,
-};
+use super::{is_valid_duration, normalized::NormalizedTimeDuration};
 
-use num_traits::{Euclid, FromPrimitive};
+use num_traits::Euclid;
 
 /// `TimeDuration` represents the [Time Duration record][spec] of the `Duration.`
 ///
@@ -324,75 +315,5 @@ impl TimeDuration {
             && self.milliseconds.abs() < 1000f64
             && self.milliseconds.abs() < 1000f64
             && self.milliseconds.abs() < 1000f64
-    }
-}
-
-// ==== TimeDuration method impls ====
-
-impl TimeDuration {
-    // TODO: Maybe move to `NormalizedTimeDuration`
-    pub(crate) fn round(
-        days: FiniteF64,
-        norm: &NormalizedTimeDuration,
-        options: ResolvedRoundingOptions,
-    ) -> TemporalResult<(NormalizedDurationRecord, Option<i128>)> {
-        // 1. Assert: IsCalendarUnit(unit) is false.
-        let (days, norm, total) = match options.smallest_unit {
-            // 2. If unit is "day", then
-            TemporalUnit::Day => {
-                // a. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
-                let fractional_days = days.checked_add(&FiniteF64(norm.as_fractional_days()))?;
-                // b. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
-                let days = IncrementRounder::from_potentially_negative_parts(
-                    fractional_days.0,
-                    options.increment.as_extended_increment(),
-                )?
-                .round(options.rounding_mode);
-                // c. Let total be fractionalDays.
-                // d. Set norm to ZeroTimeDuration().
-                (
-                    FiniteF64::try_from(days)?,
-                    NormalizedTimeDuration::default(),
-                    i128::from_f64(fractional_days.0),
-                )
-            }
-            // 3. Else,
-            TemporalUnit::Hour
-            | TemporalUnit::Minute
-            | TemporalUnit::Second
-            | TemporalUnit::Millisecond
-            | TemporalUnit::Microsecond
-            | TemporalUnit::Nanosecond => {
-                // a. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains unit, is time.
-                // b. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
-                let divisor = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
-                // c. Let total be DivideNormalizedTimeDuration(norm, divisor).
-                let total = norm.divide(divisor as i64);
-                let non_zero_divisor = unsafe { NonZeroU128::new_unchecked(divisor.into()) };
-                // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
-                let norm = norm.round(
-                    non_zero_divisor
-                        .checked_mul(options.increment.as_extended_increment())
-                        .temporal_unwrap()?,
-                    options.rounding_mode,
-                )?;
-                (days, norm, Some(total))
-            }
-            _ => return Err(TemporalError::assert()),
-        };
-
-        // 4. Return the Record { [[NormalizedDuration]]: ? CreateNormalizedDurationRecord(0, 0, 0, days, norm), [[Total]]: total  }.
-        Ok((
-            NormalizedDurationRecord::new(
-                DateDuration::new(
-                    FiniteF64::default(),
-                    FiniteF64::default(),
-                    FiniteF64::default(),
-                    days,
-                )?,
-                norm,
-            )?,
-            total,
-        ))
     }
 }
