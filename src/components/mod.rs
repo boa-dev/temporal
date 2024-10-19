@@ -19,9 +19,9 @@ mod year_month;
 mod zoneddatetime;
 
 #[doc(inline)]
-pub use date::{PlainDate, PartialDate};
+pub use date::{PartialDate, PlainDate};
 #[doc(inline)]
-pub use datetime::{PlainDateTime, PartialDateTime};
+pub use datetime::{PartialDateTime, PlainDateTime};
 #[doc(inline)]
 pub use duration::Duration;
 #[doc(inline)]

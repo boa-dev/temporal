@@ -1,15 +1,10 @@
 //! An implementation of `TimeDuration` and it's methods.
 
 use crate::{
-    options::TemporalUnit,
-    primitive::FiniteF64,
-    temporal_assert, TemporalError, TemporalResult
+    options::TemporalUnit, primitive::FiniteF64, temporal_assert, TemporalError, TemporalResult,
 };
 
-use super::{
-    is_valid_duration,
-    normalized::NormalizedTimeDuration,
-};
+use super::{is_valid_duration, normalized::NormalizedTimeDuration};
 
 use num_traits::Euclid;
 

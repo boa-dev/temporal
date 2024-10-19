@@ -4,7 +4,7 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
 use crate::{
-    components::{calendar::Calendar, PlainDateTime, Instant},
+    components::{calendar::Calendar, Instant, PlainDateTime},
     TemporalError, TemporalResult,
 };
 

@@ -21,7 +21,7 @@ use crate::{
             normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
             DateDuration, TimeDuration,
         },
-        PlainDate, Duration, PartialTime,
+        Duration, PartialTime, PlainDate,
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},

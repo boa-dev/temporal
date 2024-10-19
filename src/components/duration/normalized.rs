@@ -2,7 +2,7 @@
 
 use std::{num::NonZeroU128, ops::Add};
 
-use num_traits::{AsPrimitive, FromPrimitive, Euclid};
+use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
     components::{tz::TimeZone, PlainDate, PlainDateTime},

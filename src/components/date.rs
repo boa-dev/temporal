@@ -6,7 +6,7 @@ use crate::{
     components::{
         calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
         duration::DateDuration,
-        PlainDateTime, Duration,
+        Duration, PlainDateTime,
     },
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{
@@ -297,31 +297,19 @@ impl PlainDate {
 
 impl PlainDate {
     /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
-    pub fn new(
-        year: i32,
-        month: i32,
-        day: i32,
-        calendar: Calendar,
-    ) -> TemporalResult<Self> {
+    pub fn new(year: i32, month: i32, day: i32, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
     }
 
-
     /// Creates a new `PlainDate` rejecting any date that may be invalid.
-    pub fn try_new(
-        year: i32,
-        month: i32,
-        day: i32,
-        calendar: Calendar,
-    ) -> TemporalResult<Self> {
+    pub fn try_new(year: i32, month: i32, day: i32, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Reject)
     }
 
     /// Creates a new `PlainDate` with the specified overflow.
-    /// 
+    ///
     /// This operation is the public facing API to Temporal's `RegulateIsoDate`
     #[inline]
-    #[must_use]
     pub fn new_with_overflow(
         year: i32,
         month: i32,
@@ -717,12 +705,7 @@ mod tests {
 
     #[test]
     fn date_with_empty_error() {
-        let base = PlainDate::new(
-            1976,
-            11,
-            18,
-            Calendar::default(),
-        ).unwrap();
+        let base = PlainDate::new(1976, 11, 18, Calendar::default()).unwrap();
 
         let err = base.with(PartialDate::default(), None);
         assert!(err.is_err());
@@ -730,12 +713,7 @@ mod tests {
 
     #[test]
     fn basic_date_with() {
-        let base = PlainDate::new(
-            1976,
-            11,
-            18,
-            Calendar::default(),
-        ).unwrap();
+        let base = PlainDate::new(1976, 11, 18, Calendar::default()).unwrap();
 
         // Year
         let partial = PartialDate {

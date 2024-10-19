@@ -67,13 +67,18 @@ pub type TemporalResult<T> = Result<T, TemporalError>;
 
 pub mod partial {
     //! Partial Date/Time component records.
-    //! 
+    //!
     //! The partial records are `temporal_rs`'s method of addressing
     //! `TemporalFields` in the specification.
-    pub use crate::components::{PartialDate, PartialDateTime, PartialTime, duration::PartialDuration};
+    pub use crate::components::{
+        duration::PartialDuration, PartialDate, PartialDateTime, PartialTime,
+    };
 }
 
-pub use crate::components::{calendar::Calendar, PlainDate, PlainDateTime, PlainTime, PlainMonthDay, PlainYearMonth, Instant, Duration, ZonedDateTime};
+pub use crate::components::{
+    calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    PlainYearMonth, ZonedDateTime,
+};
 
 /// A library specific trait for unwrapping assertions.
 pub(crate) trait TemporalUnwrap {

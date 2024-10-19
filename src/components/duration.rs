@@ -491,17 +491,18 @@ impl Duration {
             || self.days() == 0.0;
 
         // 34. If zonedRelativeTo is not undefined and plainDateTimeOrRelativeToWillBeUsed is true, then
-        let _precalculated: Option<PlainDateTime> = if relative_to.zdt.is_some() && pdtr_will_be_used {
-            return Err(TemporalError::general("Not yet implemented."));
-            // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
-            // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
-            // b. Let instant be ! CreateTemporalInstant(zonedRelativeTo.[[Nanoseconds]]).
-            // c. Set precalculatedPlainDateTime to ? GetPlainDateTimeFor(timeZoneRec, instant, zonedRelativeTo.[[Calendar]]).
-            // d. Set plainRelativeTo to ! CreateTemporalDate(precalculatedPlainDateTime.[[ISOYear]],
-            // precalculatedPlainDateTime.[[ISOMonth]], precalculatedPlainDateTime.[[ISODay]], zonedRelativeTo.[[Calendar]]).
-        } else {
-            None
-        };
+        let _precalculated: Option<PlainDateTime> =
+            if relative_to.zdt.is_some() && pdtr_will_be_used {
+                return Err(TemporalError::general("Not yet implemented."));
+                // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
+                // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
+                // b. Let instant be ! CreateTemporalInstant(zonedRelativeTo.[[Nanoseconds]]).
+                // c. Set precalculatedPlainDateTime to ? GetPlainDateTimeFor(timeZoneRec, instant, zonedRelativeTo.[[Calendar]]).
+                // d. Set plainRelativeTo to ! CreateTemporalDate(precalculatedPlainDateTime.[[ISOYear]],
+                // precalculatedPlainDateTime.[[ISOMonth]], precalculatedPlainDateTime.[[ISODay]], zonedRelativeTo.[[Calendar]]).
+            } else {
+                None
+            };
         // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
 
         // 36. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
