@@ -29,7 +29,7 @@ mod year_month;
 mod zoneddatetime;
 
 #[doc(inline)]
-pub use date::{Date, PartialDate};
+pub use date::{partial_to_date, Date, PartialDate};
 #[doc(inline)]
 pub use datetime::{DateTime, PartialDateTime};
 #[doc(inline)]

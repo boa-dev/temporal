@@ -25,6 +25,84 @@ use super::{
     MonthDay, Time, YearMonth,
 };
 
+#[macro_export]
+macro_rules! partial_date {
+    () => {};
+    ($year:literal, $month:literal, $day:literal) => {
+        PartialDate {
+            year: Some($year),
+            month: Some($month),
+            day: Some($day),
+            ..Default::default()
+        }
+    };
+    (($era_year:literal, $era:literal), $month:literal, $day:literal) => {
+        PartialDate {
+            era_year: Some($era_year),
+            era: Some(tinystr!(19, $era)),
+            month: Some($month),
+            day: Some($day),
+            ..Default::default()
+        }
+    };
+    ($year:literal, $month_code:literal, $month:literal, $day:literal) => {
+        PartialDate {
+            year: Some($year),
+            month: Some($month),
+            month_code: Some(tinystr!(4, $month_code)),
+            day: Some($day),
+            ..Default::default()
+        }
+    };
+    (($era_year:literal, $era:literal), $month_code:literal, $month:literal, $day:literal) => {
+        PartialDate {
+            era_year: Some($era_year),
+            era: Some(tinystr!(19, $era)),
+            month: Some($month),
+            month_code: Some(tinystr!(4, $month_code)),
+            day: Some($day),
+            ..Default::default()
+        }
+    };
+}
+
+/// This function is a utility function used in the [date] macro to
+/// convert a `PartialDate` and `&str` into a `Date`
+#[inline]
+pub fn partial_to_date(partial: &PartialDate, calendar_name: &str) -> TemporalResult<Date> {
+    let calendar = Calendar::from_str(calendar_name)?;
+    calendar.date_from_partial(partial, ArithmeticOverflow::Reject)
+}
+
+#[macro_export]
+macro_rules! date {
+    ($year:literal, $month:literal, $day:literal) => {{
+        let partial = partial_date!($year, $month, $day);
+        partial_to_date(&partial, "iso8601")
+    }};
+    (($era_year:literal, $era:literal), $month:literal, $day:literal) => {{
+        let partial = partial_date!(($era_year, $era), $month, $day);
+        partial_to_date(&partial, "iso8601")
+    }};
+
+    ($year:literal, $month:literal, $day:literal, $calendar:literal) => {{
+        let partial = partial_date!($year, $month, $day);
+        partial_to_date(&partial, $calendar)
+    }};
+    (($era_year:literal, $era:literal), $month:literal, $day:literal, $calendar:literal) => {{
+        let partial = partial_date!(($era_year, $era), $month, $day);
+        partial_to_date(&partial, $calendar)
+    }};
+    ($year:literal, $month_code:literal, $month:literal, $day:literal, $calendar:literal) => {{
+        let partial = partial_date!($year, $month_code, $month, $day);
+        partial_to_date(&partial, $calendar)
+    }};
+    (($era_year:literal, $era:literal), $month_code:literal, $month:literal, $day:literal, $calendar:literal) => {{
+        let partial = partial_date!(($era_year, $era), $month_code, $month, $day);
+        partial_to_date(&partial, $calendar)
+    }};
+}
+
 // TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate "ethiopic-amete-alem".
 // TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
 /// A partial Date that may or may not be complete.
@@ -577,6 +655,15 @@ mod tests {
     use tinystr::tinystr;
 
     use super::*;
+
+    #[test]
+    fn date_macro_test() {
+        let one = date!(2020, 10, 19);
+        let two = date!(2020, 10, 19, "iso8601");
+        let three = date!(2020, "M10", 10, 19, "iso8601");
+        assert_eq!(one, two);
+        assert_eq!(two, three);
+    }
 
     #[test]
     fn simple_date_add() {
