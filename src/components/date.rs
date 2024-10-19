@@ -6,7 +6,7 @@ use crate::{
     components::{
         calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
         duration::DateDuration,
-        DateTime, Duration,
+        PlainDateTime, Duration,
     },
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{
@@ -22,12 +22,13 @@ use std::str::FromStr;
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    MonthDay, Time, YearMonth,
+    PlainMonthDay, PlainTime, PlainYearMonth,
 };
 
-// TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate "ethiopic-amete-alem".
-// TODO: PrepareTemporalFields expects a type error to be thrown when all partial fields are None/undefined.
-/// A partial Date that may or may not be complete.
+// TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate
+// "ethiopic-amete-alem". TODO: PrepareTemporalFields expects a type
+// error to be thrown when all partial fields are None/undefined.
+/// A partial PlainDate that may or may not be complete.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct PartialDate {
     // A potentially set `year` field.
@@ -50,7 +51,7 @@ impl PartialDate {
         *self == Self::default()
     }
 
-    pub(crate) fn try_from_year_month(year_month: &YearMonth) -> TemporalResult<Self> {
+    pub(crate) fn try_from_year_month(year_month: &PlainYearMonth) -> TemporalResult<Self> {
         let (year, era, era_year) = if year_month.era()?.is_some() {
             (
                 None,
@@ -74,8 +75,8 @@ impl PartialDate {
         })
     }
 
-    crate::impl_with_fallback_method!(with_fallback_date, Date);
-    crate::impl_with_fallback_method!(with_fallback_datetime, DateTime);
+    crate::impl_with_fallback_method!(with_fallback_date, PlainDate);
+    crate::impl_with_fallback_method!(with_fallback_datetime, PlainDateTime);
     // TODO: ZonedDateTime
 }
 
@@ -124,18 +125,18 @@ macro_rules! impl_with_fallback_method {
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct Date {
+pub struct PlainDate {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
 }
 
-impl Ord for Date {
+impl Ord for PlainDate {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.iso.cmp(&other.iso)
     }
 }
 
-impl PartialOrd for Date {
+impl PartialOrd for PlainDate {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
     }
@@ -143,7 +144,7 @@ impl PartialOrd for Date {
 
 // ==== Private API ====
 
-impl Date {
+impl PlainDate {
     /// Create a new `Date` with the date values and calendar slot.
     #[inline]
     #[must_use]
@@ -270,8 +271,8 @@ impl Date {
         let date_duration = if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
             let dest_epoch_ns = other.iso.as_nanoseconds().temporal_unwrap()?;
-            // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
-            let dt = DateTime::new_unchecked(
+            // b. Let dateTime be ISO PlainDate-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
+            let dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new_unchecked(self.iso, IsoTime::default()),
                 self.calendar.clone(),
             );
@@ -294,16 +295,41 @@ impl Date {
 
 // ==== Public API ====
 
-impl Date {
-    /// Creates a new `Date` while checking for validity.
+impl PlainDate {
+    /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
     pub fn new(
+        year: i32,
+        month: i32,
+        day: i32,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
+    }
+
+
+    /// Creates a new `PlainDate` rejecting any date that may be invalid.
+    pub fn try_new(
+        year: i32,
+        month: i32,
+        day: i32,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Reject)
+    }
+
+    /// Creates a new `PlainDate` with the specified overflow.
+    /// 
+    /// This operation is the public facing API to Temporal's `RegulateIsoDate`
+    #[inline]
+    #[must_use]
+    pub fn new_with_overflow(
         year: i32,
         month: i32,
         day: i32,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        let iso = IsoDate::new(year, month, day, overflow)?;
+        let iso = IsoDate::new_with_overflow(year, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
 
@@ -329,12 +355,11 @@ impl Date {
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::new(
+        Self::try_new(
             self.iso_year(),
             self.iso_month().into(),
             self.iso_day().into(),
             calendar,
-            ArithmeticOverflow::Reject,
         )
     }
 
@@ -418,7 +443,7 @@ impl Date {
 
 // ==== Calendar-derived Public API ====
 
-impl Date {
+impl PlainDate {
     /// Returns the calendar year value.
     pub fn year(&self) -> TemporalResult<i32> {
         self.calendar.year(&CalendarDateLike::Date(self))
@@ -495,31 +520,31 @@ impl Date {
 
 // ==== ToX Methods ====
 
-impl Date {
-    /// Converts the current `Date<C>` into a `DateTime<C>`
+impl PlainDate {
+    /// Converts the current `Date` into a `DateTime`
     ///
     /// # Notes
     ///
     /// If no time is provided, then the time will default to midnight.
     #[inline]
-    pub fn to_date_time(&self, time: Option<Time>) -> TemporalResult<DateTime> {
+    pub fn to_date_time(&self, time: Option<PlainTime>) -> TemporalResult<PlainDateTime> {
         let time = time.unwrap_or_default();
         let iso = IsoDateTime::new(self.iso_date(), time.iso)?;
-        Ok(DateTime::new_unchecked(iso, self.get_calendar()))
+        Ok(PlainDateTime::new_unchecked(iso, self.get_calendar()))
     }
 
-    /// Converts the current `Date<C>` into a `YearMonth<C>`
+    /// Converts the current `Date<C>` into a `PlainYearMonth`
     #[inline]
-    pub fn to_year_month(&self) -> TemporalResult<YearMonth> {
+    pub fn to_year_month(&self) -> TemporalResult<PlainYearMonth> {
         self.get_calendar().year_month_from_partial(
             &PartialDate::default().with_fallback_date(self)?,
             ArithmeticOverflow::Constrain,
         )
     }
 
-    /// Converts the current `Date<C>` into a `MonthDay<C>`
+    /// Converts the current `Date<C>` into a `PlainMonthDay`
     #[inline]
-    pub fn to_month_day(&self) -> TemporalResult<MonthDay> {
+    pub fn to_month_day(&self) -> TemporalResult<PlainMonthDay> {
         self.get_calendar().month_day_from_partial(
             &PartialDate::default().with_fallback_date(self)?,
             ArithmeticOverflow::Constrain,
@@ -529,28 +554,28 @@ impl Date {
 
 // ==== Trait impls ====
 
-impl GetTemporalCalendar for Date {
+impl GetTemporalCalendar for PlainDate {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
 
-impl IsoDateSlots for Date {
+impl IsoDateSlots for PlainDate {
     /// Returns the structs `IsoDate`
     fn iso_date(&self) -> IsoDate {
         self.iso
     }
 }
 
-impl From<DateTime> for Date {
-    fn from(value: DateTime) -> Self {
-        Date::new_unchecked(value.iso.date, value.calendar().clone())
+impl From<PlainDateTime> for PlainDate {
+    fn from(value: PlainDateTime) -> Self {
+        PlainDate::new_unchecked(value.iso.date, value.calendar().clone())
     }
 }
 
-// TODO: impl From<ZonedDateTime> for Date
+// TODO: impl From<ZonedDateTime> for PlainDate
 
-impl FromStr for Date {
+impl FromStr for PlainDate {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -558,17 +583,11 @@ impl FromStr for Date {
 
         let calendar = parse_record.calendar.unwrap_or("iso8601");
 
-        // Assertion: Date must exist on a DateTime parse.
+        // Assertion: PlainDate must exist on a DateTime parse.
         let date = parse_record.date.temporal_unwrap()?;
+        let calendar = Calendar::from_str(calendar)?;
 
-        let date = IsoDate::new(
-            date.year,
-            date.month.into(),
-            date.day.into(),
-            ArithmeticOverflow::Reject,
-        )?;
-
-        Ok(Self::new_unchecked(date, Calendar::from_str(calendar)?))
+        Self::try_new(date.year, date.month.into(), date.day.into(), calendar)
     }
 }
 
@@ -580,7 +599,7 @@ mod tests {
 
     #[test]
     fn simple_date_add() {
-        let base = Date::from_str("1976-11-18").unwrap();
+        let base = PlainDate::from_str("1976-11-18").unwrap();
 
         // Test 1
         let result = base
@@ -622,7 +641,7 @@ mod tests {
 
     #[test]
     fn simple_date_subtract() {
-        let base = Date::from_str("2019-11-18").unwrap();
+        let base = PlainDate::from_str("2019-11-18").unwrap();
 
         // Test 1
         let result = base
@@ -666,14 +685,14 @@ mod tests {
 
     #[test]
     fn simple_date_until() {
-        let earlier = Date::from_str("1969-07-24").unwrap();
-        let later = Date::from_str("1969-10-05").unwrap();
+        let earlier = PlainDate::from_str("1969-07-24").unwrap();
+        let later = PlainDate::from_str("1969-10-05").unwrap();
         let result = earlier
             .until(&later, DifferenceSettings::default())
             .unwrap();
         assert_eq!(result.days(), 73.0,);
 
-        let later = Date::from_str("1996-03-03").unwrap();
+        let later = PlainDate::from_str("1996-03-03").unwrap();
         let result = earlier
             .until(&later, DifferenceSettings::default())
             .unwrap();
@@ -682,14 +701,14 @@ mod tests {
 
     #[test]
     fn simple_date_since() {
-        let earlier = Date::from_str("1969-07-24").unwrap();
-        let later = Date::from_str("1969-10-05").unwrap();
+        let earlier = PlainDate::from_str("1969-07-24").unwrap();
+        let later = PlainDate::from_str("1969-10-05").unwrap();
         let result = later
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
         assert_eq!(result.days(), 73.0,);
 
-        let later = Date::from_str("1996-03-03").unwrap();
+        let later = PlainDate::from_str("1996-03-03").unwrap();
         let result = later
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
@@ -698,14 +717,12 @@ mod tests {
 
     #[test]
     fn date_with_empty_error() {
-        let base = Date::new(
+        let base = PlainDate::new(
             1976,
             11,
             18,
             Calendar::default(),
-            ArithmeticOverflow::Constrain,
-        )
-        .unwrap();
+        ).unwrap();
 
         let err = base.with(PartialDate::default(), None);
         assert!(err.is_err());
@@ -713,14 +730,12 @@ mod tests {
 
     #[test]
     fn basic_date_with() {
-        let base = Date::new(
+        let base = PlainDate::new(
             1976,
             11,
             18,
             Calendar::default(),
-            ArithmeticOverflow::Constrain,
-        )
-        .unwrap();
+        ).unwrap();
 
         // Year
         let partial = PartialDate {
@@ -825,7 +840,7 @@ mod tests {
             "+999999-01-01",
         ];
         for s in INVALID_STRINGS {
-            assert!(Date::from_str(s).is_err())
+            assert!(PlainDate::from_str(s).is_err())
         }
     }
 
@@ -841,7 +856,7 @@ mod tests {
             "1970-01-01T00:00[foo=bar][!_foo-bar0=Dont-Ignore-This-99999999999]",
         ];
         for s in INVALID_STRINGS {
-            assert!(Date::from_str(s).is_err())
+            assert!(PlainDate::from_str(s).is_err())
         }
     }
 }

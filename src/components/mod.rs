@@ -1,18 +1,8 @@
 //! The primary date-time components provided by Temporal.
 //!
-//! The below components are the main primitives of the `Temporal` specification:
-//!   - `Date` -> `PlainDate`
-//!   - `DateTime` -> `PlainDateTime`
-//!   - `Time` -> `PlainTime`
-//!   - `Duration` -> `Duration`
-//!   - `Instant` -> `Instant`
-//!   - `MonthDay` -> `PlainMonthDay`
-//!   - `YearMonth` -> `PlainYearMonth`
-//!   - `ZonedDateTime` -> `ZonedDateTime`
-//!
-//! The Temporal specification, along with this implementation aims to provide
-//! full support for time zones and non-gregorian calendars that are compliant
-//! with standards like ISO 8601, RFC 3339, and RFC 5545.
+//! The Temporal specification, along with this implementation aims to
+//! provide full support for time zones and non-gregorian calendars that
+//! are compliant with standards like ISO 8601, RFC 3339, and RFC 5545.
 
 // TODO: Expand upon above introduction.
 
@@ -29,18 +19,18 @@ mod year_month;
 mod zoneddatetime;
 
 #[doc(inline)]
-pub use date::{Date, PartialDate};
+pub use date::{PlainDate, PartialDate};
 #[doc(inline)]
-pub use datetime::{DateTime, PartialDateTime};
+pub use datetime::{PlainDateTime, PartialDateTime};
 #[doc(inline)]
 pub use duration::Duration;
 #[doc(inline)]
 pub use instant::Instant;
 #[doc(inline)]
-pub use month_day::MonthDay;
+pub use month_day::PlainMonthDay;
 #[doc(inline)]
-pub use time::{PartialTime, Time};
+pub use time::{PartialTime, PlainTime};
 #[doc(inline)]
-pub use year_month::YearMonth;
+pub use year_month::PlainYearMonth;
 #[doc(inline)]
 pub use zoneddatetime::ZonedDateTime;

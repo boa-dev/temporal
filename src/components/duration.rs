@@ -1,7 +1,7 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{DateTime, Time},
+    components::{PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
     primitive::FiniteF64,
@@ -20,6 +20,7 @@ mod time;
 #[cfg(test)]
 mod tests;
 
+// TODO: Determine visibility.
 #[doc(inline)]
 pub use date::DateDuration;
 #[doc(inline)]
@@ -490,7 +491,7 @@ impl Duration {
             || self.days() == 0.0;
 
         // 34. If zonedRelativeTo is not undefined and plainDateTimeOrRelativeToWillBeUsed is true, then
-        let _precalculated: Option<DateTime> = if relative_to.zdt.is_some() && pdtr_will_be_used {
+        let _precalculated: Option<PlainDateTime> = if relative_to.zdt.is_some() && pdtr_will_be_used {
             return Err(TemporalError::general("Not yet implemented."));
             // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
             // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
@@ -519,7 +520,7 @@ impl Duration {
         // 39. Else if plainRelativeTo is not undefined, then
         } else if let Some(plain_date) = relative_to.date {
             // a. Let targetTime be AddTime(0, 0, 0, 0, 0, 0, norm).
-            let (balanced_days, time) = Time::default().add_normalized_time_duration(norm);
+            let (balanced_days, time) = PlainTime::default().add_normalized_time_duration(norm);
             // b. Let dateDuration be ? CreateTemporalDuration(duration.[[Years]], duration.[[Months]], duration.[[Weeks]],
             // duration.[[Days]] + targetTime.[[Days]], 0, 0, 0, 0, 0, 0).
             let date_duration = DateDuration::new(
@@ -532,12 +533,12 @@ impl Duration {
             // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
             let target_date = plain_date.add_date(&Duration::from(date_duration), None)?;
 
-            let plain_dt = DateTime::new_unchecked(
+            let plain_dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new(plain_date.iso, IsoTime::default())?,
                 plain_date.calendar().clone(),
             );
 
-            let target_dt = DateTime::new_unchecked(
+            let target_dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new(target_date.iso, time.iso)?,
                 target_date.calendar().clone(),
             );
@@ -565,7 +566,7 @@ impl Duration {
             );
 
             // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
-            let (round_record, _) = TimeDuration::round(self.days(), &norm, resolved_options)?;
+            let (round_record, _) = norm.round(self.days(), resolved_options)?;
             // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
             // roundRecord.[[NormalizedDuration]].[[Days]]).
             let norm_with_days = round_record

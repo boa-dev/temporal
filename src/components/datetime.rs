@@ -18,10 +18,10 @@ use tinystr::TinyAsciiStr;
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
-    Date, Duration, PartialDate, PartialTime, Time,
+    PlainDate, Duration, PartialDate, PartialTime, PlainTime,
 };
 
-/// A partial DateTime record
+/// A partial PlainDateTime record
 #[derive(Debug, Default, Copy, Clone)]
 pub struct PartialDateTime {
     /// The `PartialDate` portion of a `PartialDateTime`
@@ -33,26 +33,26 @@ pub struct PartialDateTime {
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
-pub struct DateTime {
+pub struct PlainDateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
 }
 
-impl Ord for DateTime {
+impl Ord for PlainDateTime {
     fn cmp(&self, other: &Self) -> Ordering {
         self.iso.cmp(&other.iso)
     }
 }
 
-impl PartialOrd for DateTime {
+impl PartialOrd for PlainDateTime {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-// ==== Private DateTime API ====
+// ==== Private PlainDateTime API ====
 
-impl DateTime {
+impl PlainDateTime {
     /// Creates a new unchecked `DateTime`.
     #[inline]
     #[must_use]
@@ -124,7 +124,7 @@ impl DateTime {
         // 3. If ? CalendarEquals(dateTime.[[Calendar]], other.[[Calendar]]) is false, throw a RangeError exception.
         if self.calendar != other.calendar {
             return Err(TemporalError::range()
-                .with_message("Calendar must be the same when diffing two DateTimes"));
+                .with_message("Calendar must be the same when diffing two PlainDateTimes"));
         }
 
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », "nanosecond", "day").
@@ -218,12 +218,10 @@ impl DateTime {
     }
 }
 
-// ==== Public DateTime API ====
+// ==== Public PlainDateTime API ====
 
-impl DateTime {
-    /// Creates a new validated `DateTime`.
-    #[inline]
-    #[allow(clippy::too_many_arguments)]
+impl PlainDateTime {
+    /// Creates a new `DateTime`, constraining any arguments that into a valid range.
     pub fn new(
         year: i32,
         month: i32,
@@ -236,7 +234,42 @@ impl DateTime {
         nanosecond: i32,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
-        let iso_date = IsoDate::new(year, month, day, ArithmeticOverflow::Reject)?;
+        Self::new_with_overflow(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond, calendar, ArithmeticOverflow::Constrain)
+    }
+
+    /// Creates a new `DateTime`, rejecting any arguments that are not in a valid range.
+    pub fn try_new(
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        minute: i32,
+        second: i32,
+        millisecond: i32,
+        microsecond: i32,
+        nanosecond: i32,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond, calendar, ArithmeticOverflow::Reject)
+    }
+
+    /// Creates a new `DateTime` with the provided [`ArithmeticOverflow`] option.
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_with_overflow(
+        year: i32,
+        month: i32,
+        day: i32,
+        hour: i32,
+        minute: i32,
+        second: i32,
+        millisecond: i32,
+        microsecond: i32,
+        nanosecond: i32,
+        calendar: Calendar,
+        overflow: ArithmeticOverflow
+    ) -> TemporalResult<Self> {
+        let iso_date = IsoDate::new_with_overflow(year, month, day, overflow)?;
         let iso_time = IsoTime::new(
             hour,
             minute,
@@ -244,7 +277,7 @@ impl DateTime {
             millisecond,
             microsecond,
             nanosecond,
-            ArithmeticOverflow::Reject,
+            overflow,
         )?;
         Ok(Self::new_unchecked(
             IsoDateTime::new(iso_date, iso_time)?,
@@ -253,7 +286,7 @@ impl DateTime {
     }
 
     /// Create a `DateTime` from a `Date` and a `Time`.
-    pub fn from_date_and_time(date: Date, time: Time) -> TemporalResult<Self> {
+    pub fn from_date_and_time(date: PlainDate, time: PlainTime) -> TemporalResult<Self> {
         Ok(Self::new_unchecked(
             IsoDateTime::new(date.iso, time.iso)?,
             date.calendar().clone(),
@@ -290,8 +323,8 @@ impl DateTime {
     }
 
     /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
-    pub fn with_time(&self, time: Time) -> TemporalResult<Self> {
-        Self::new(
+    pub fn with_time(&self, time: PlainTime) -> TemporalResult<Self> {
+        Self::try_new(
             self.iso_year(),
             self.iso_month().into(),
             self.iso_day().into(),
@@ -307,7 +340,7 @@ impl DateTime {
 
     /// Creates a new `DateTime` from the current `DateTime` and a provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::new(
+        Self::try_new(
             self.iso_year(),
             self.iso_month().into(),
             self.iso_day().into(),
@@ -400,7 +433,7 @@ impl DateTime {
 
 // ==== Calendar-derived public API ====
 
-impl DateTime {
+impl PlainDateTime {
     /// Returns the calendar year value.
     pub fn year(&self) -> TemporalResult<i32> {
         self.calendar.year(&CalendarDateLike::DateTime(self))
@@ -482,7 +515,7 @@ impl DateTime {
     }
 }
 
-impl DateTime {
+impl PlainDateTime {
     #[inline]
     /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
@@ -531,28 +564,28 @@ impl DateTime {
 
 // ==== Trait impls ====
 
-impl GetTemporalCalendar for DateTime {
+impl GetTemporalCalendar for PlainDateTime {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
 
-impl IsoDateSlots for DateTime {
+impl IsoDateSlots for PlainDateTime {
     fn iso_date(&self) -> IsoDate {
         self.iso.date
     }
 }
 
-impl From<Date> for DateTime {
-    fn from(value: Date) -> Self {
-        DateTime::new_unchecked(
+impl From<PlainDate> for PlainDateTime {
+    fn from(value: PlainDate) -> Self {
+        PlainDateTime::new_unchecked(
             IsoDateTime::new_unchecked(value.iso, IsoTime::default()),
             value.calendar().clone(),
         )
     }
 }
 
-impl FromStr for DateTime {
+impl FromStr for PlainDateTime {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -573,7 +606,7 @@ impl FromStr for DateTime {
 
         let parsed_date = parse_record.date.temporal_unwrap()?;
 
-        let date = IsoDate::new(
+        let date = IsoDate::new_with_overflow(
             parsed_date.year,
             parsed_date.month.into(),
             parsed_date.day.into(),
@@ -595,7 +628,7 @@ mod tests {
 
     use crate::{
         components::{
-            calendar::Calendar, duration::DateDuration, DateTime, Duration, PartialDate,
+            calendar::Calendar, duration::DateDuration, PlainDateTime, Duration, PartialDate,
             PartialDateTime, PartialTime,
         },
         options::{
@@ -606,7 +639,7 @@ mod tests {
     };
 
     fn assert_datetime(
-        dt: DateTime,
+        dt: PlainDateTime,
         fields: (i32, u8, TinyAsciiStr<4>, u8, u8, u8, u8, u16, u16, u16),
     ) {
         assert_eq!(dt.year().unwrap(), fields.0);
@@ -626,7 +659,7 @@ mod tests {
     fn plain_date_time_limits() {
         // This test is primarily to assert that the `expect` in the epoch methods is
         // valid, i.e., a valid instant is within the range of an f64.
-        let negative_limit = DateTime::new(
+        let negative_limit = PlainDateTime::try_new(
             -271_821,
             4,
             19,
@@ -638,7 +671,7 @@ mod tests {
             0,
             Calendar::from_str("iso8601").unwrap(),
         );
-        let positive_limit = DateTime::new(275_760, 9, 14, 0, 0, 0, 0, 0, 0, Calendar::default());
+        let positive_limit = PlainDateTime::try_new(275_760, 9, 14, 0, 0, 0, 0, 0, 0, Calendar::default());
 
         assert!(negative_limit.is_err());
         assert!(positive_limit.is_err());
@@ -647,7 +680,7 @@ mod tests {
     #[test]
     fn basic_with_test() {
         let pdt =
-            DateTime::new(1976, 11, 18, 15, 23, 30, 123, 456, 789, Calendar::default()).unwrap();
+            PlainDateTime::try_new(1976, 11, 18, 15, 23, 30, 123, 456, 789, Calendar::default()).unwrap();
 
         // Test year
         let partial = PartialDateTime {
@@ -793,7 +826,7 @@ mod tests {
     #[test]
     fn datetime_with_empty_partial() {
         let pdt =
-            DateTime::new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
         let err = pdt.with(PartialDateTime::default(), None);
         assert!(err.is_err());
@@ -803,7 +836,7 @@ mod tests {
     #[test]
     fn datetime_add_test() {
         let pdt =
-            DateTime::new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
         let result = pdt
             .add(
@@ -828,7 +861,7 @@ mod tests {
     #[test]
     fn datetime_subtract_test() {
         let pdt =
-            DateTime::new(2000, 3, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2000, 3, 31, 12, 34, 56, 987, 654, 321, Calendar::default()).unwrap();
 
         let result = pdt
             .subtract(
@@ -853,7 +886,7 @@ mod tests {
     #[test]
     fn datetime_subtract_hour_overflows() {
         let dt =
-            DateTime::new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default()).unwrap();
 
         let result = dt.subtract(&Duration::hour(FiniteF64(12.0)), None).unwrap();
         assert_datetime(
@@ -884,9 +917,9 @@ mod tests {
     #[test]
     fn dt_until_basic() {
         let earlier =
-            DateTime::new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
         let later =
-            DateTime::new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
 
         let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
         let result = earlier.until(&later, settings).unwrap();
@@ -906,9 +939,9 @@ mod tests {
     #[test]
     fn dt_since_basic() {
         let earlier =
-            DateTime::new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2019, 1, 8, 8, 22, 36, 123, 456, 789, Calendar::default()).unwrap();
         let later =
-            DateTime::new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
+            PlainDateTime::try_new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default()).unwrap();
 
         let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
         let result = later.since(&earlier, settings).unwrap();
@@ -927,7 +960,7 @@ mod tests {
 
     #[test]
     fn dt_round_basic() {
-        let assert_datetime = |dt: DateTime, expected: (i32, u8, u8, u8, u8, u8, u16, u16, u16)| {
+        let assert_datetime = |dt: PlainDateTime, expected: (i32, u8, u8, u8, u8, u8, u16, u16, u16)| {
             assert_eq!(dt.iso_year(), expected.0);
             assert_eq!(dt.iso_month(), expected.1);
             assert_eq!(dt.iso_day(), expected.2);
@@ -948,7 +981,7 @@ mod tests {
             }
         };
         let dt =
-            DateTime::new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default()).unwrap();
+            PlainDateTime::try_new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default()).unwrap();
 
         let result = dt
             .round(gen_rounding_options(TemporalUnit::Hour, 4))

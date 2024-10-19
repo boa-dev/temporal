@@ -12,7 +12,7 @@ use crate::{
     Sign, TemporalError, TemporalResult,
 };
 
-use super::{duration::normalized::NormalizedTimeDuration, DateTime};
+use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
 
 use std::str::FromStr;
 
@@ -42,13 +42,13 @@ impl PartialTime {
 /// The native Rust implementation of `Temporal.PlainTime`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Time {
+pub struct PlainTime {
     pub(crate) iso: IsoTime,
 }
 
 // ==== Private API ====
 
-impl Time {
+impl PlainTime {
     #[inline]
     #[must_use]
     /// Creates a new unvalidated `Time`.
@@ -114,7 +114,7 @@ impl Time {
     pub(crate) fn diff_time(
         &self,
         op: DifferenceOperation,
-        other: &Time,
+        other: &PlainTime,
         settings: DifferenceSettings,
     ) -> TemporalResult<Duration> {
         // 1. If operation is SINCE, let sign be -1. Otherwise, let sign be 1.
@@ -140,7 +140,7 @@ impl Time {
         {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
             let (round_record, _) =
-                TimeDuration::round(FiniteF64::default(), &normalized_time, resolved)?;
+                normalized_time.round(FiniteF64::default(), resolved)?;
             // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
             normalized_time = round_record.normalized_time_duration()
         };
@@ -158,9 +158,35 @@ impl Time {
 
 // ==== Public API ====
 
-impl Time {
-    /// Creates a new `IsoTime` value.
+impl PlainTime {
+    /// Creates a new `PlainTime`, constraining any field into a valid range.
     pub fn new(
+        hour: i32,
+        minute: i32,
+        second: i32,
+        millisecond: i32,
+        microsecond: i32,
+        nanosecond: i32,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(hour, minute, second, millisecond, microsecond, nanosecond, ArithmeticOverflow::Constrain)
+    }
+
+    /// Creates a new `PlainTime`, rejecting any field that is not in a valid range.
+    pub fn try_new(
+        hour: i32,
+        minute: i32,
+        second: i32,
+        millisecond: i32,
+        microsecond: i32,
+        nanosecond: i32,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(hour, minute, second, millisecond, microsecond, nanosecond, ArithmeticOverflow::Reject)
+    }
+
+
+    /// Creates a new `PlainTime` with the provided [`ArithmeticOverflow`] option.
+    #[inline]
+    pub fn new_with_overflow(
         hour: i32,
         minute: i32,
         second: i32,
@@ -317,13 +343,13 @@ impl Time {
     }
 }
 
-impl From<DateTime> for Time {
-    fn from(value: DateTime) -> Self {
-        Time::new_unchecked(value.iso.time)
+impl From<PlainDateTime> for PlainTime {
+    fn from(value: PlainDateTime) -> Self {
+        PlainTime::new_unchecked(value.iso.time)
     }
 }
 
-impl FromStr for Time {
+impl FromStr for PlainTime {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -332,7 +358,7 @@ impl FromStr for Time {
         let (millisecond, rem) = (result.nanosecond / 1_000_000, result.nanosecond % 1_000_000);
         let (microsecond, nanosecond) = (rem / 1_000, rem % 1_000);
 
-        Time::new(
+        PlainTime::new_with_overflow(
             result.hour.into(),
             result.minute.into(),
             result.second.into(),
@@ -355,12 +381,12 @@ mod tests {
     };
     use num_traits::FromPrimitive;
 
-    use super::Time;
+    use super::PlainTime;
 
-    fn assert_time(result: Time, values: (u8, u8, u8, u16, u16, u16)) {
+    fn assert_time(result: PlainTime, values: (u8, u8, u8, u16, u16, u16)) {
         assert_eq!(
             result,
-            Time {
+            PlainTime {
                 iso: IsoTime {
                     hour: values.0,
                     minute: values.1,
@@ -386,22 +412,22 @@ mod tests {
 
     #[test]
     fn basic_parse_time() {
-        let result = "T12:05:24-05:00[u-ca=iso8601]".parse::<Time>();
+        let result = "T12:05:24-05:00[u-ca=iso8601]".parse::<PlainTime>();
         assert_time(result.unwrap(), (12, 5, 24, 0, 0, 0));
 
-        let result = "T12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
+        let result = "T12:05:24.123456789-05:00[u-ca=iso8601]".parse::<PlainTime>();
         assert_time(result.unwrap(), (12, 5, 24, 123, 456, 789));
 
-        let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
+        let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<PlainTime>();
         assert_time(result.unwrap(), (12, 5, 24, 123, 456, 789));
 
-        let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<Time>();
+        let result = "2024-05-04 12:05:24.123456789-05:00[u-ca=iso8601]".parse::<PlainTime>();
         assert_time(result.unwrap(), (12, 5, 24, 123, 456, 789));
     }
 
     #[test]
     fn time_round_millisecond() {
-        let base = Time::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
+        let base = PlainTime::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
 
         let result_1 = base
             .round(TemporalUnit::Millisecond, Some(1.0), None)
@@ -426,7 +452,7 @@ mod tests {
 
     #[test]
     fn time_round_microsecond() {
-        let base = Time::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
+        let base = PlainTime::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
 
         let result_1 = base
             .round(TemporalUnit::Microsecond, Some(1.0), None)
@@ -451,7 +477,7 @@ mod tests {
 
     #[test]
     fn time_round_nanoseconds() {
-        let base = Time::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
+        let base = PlainTime::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
 
         let result_1 = base
             .round(TemporalUnit::Nanosecond, Some(1.0), None)
@@ -476,7 +502,7 @@ mod tests {
 
     #[test]
     fn add_duration_basic() {
-        let base = Time::new_unchecked(IsoTime::new_unchecked(15, 23, 30, 123, 456, 789));
+        let base = PlainTime::new_unchecked(IsoTime::new_unchecked(15, 23, 30, 123, 456, 789));
         let result = base.add(&"PT16H".parse::<Duration>().unwrap()).unwrap();
 
         assert_time(result, (7, 23, 30, 123, 456, 789));
@@ -484,9 +510,9 @@ mod tests {
 
     #[test]
     fn since_basic() {
-        let one = Time::new(15, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
-        let two = Time::new(14, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
-        let three = Time::new(13, 30, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
+        let one = PlainTime::new_with_overflow(15, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
+        let two = PlainTime::new_with_overflow(14, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
+        let three = PlainTime::new_with_overflow(13, 30, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
 
         let result = one.since(&two, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1.0);
@@ -505,9 +531,9 @@ mod tests {
 
     #[test]
     fn until_basic() {
-        let one = Time::new(15, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
-        let two = Time::new(16, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
-        let three = Time::new(17, 0, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
+        let one = PlainTime::new_with_overflow(15, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
+        let two = PlainTime::new_with_overflow(16, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
+        let three = PlainTime::new_with_overflow(17, 0, 30, 123, 456, 789, ArithmeticOverflow::Constrain).unwrap();
 
         let result = one.until(&two, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1.0);
@@ -527,82 +553,82 @@ mod tests {
     #[test]
     // test262/test/built-ins/Temporal/PlainTime/prototype/round/roundingincrement-nanoseconds.js
     fn rounding_increment_nanos() {
-        let time = Time::new(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain).unwrap();
+        let time = PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain).unwrap();
 
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(1.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(2.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 322, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 322, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(4.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(5.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(8.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(10.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(20.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(25.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 325, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 325, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(40.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(50.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(100.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(125.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 375, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 375, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(200.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 400, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 400, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(250.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 250, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 250, ArithmeticOverflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(TemporalUnit::Nanosecond, Some(500.0), None)
                 .unwrap(),
-            Time::new(3, 34, 56, 987, 654, 500, ArithmeticOverflow::Constrain).unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 500, ArithmeticOverflow::Constrain).unwrap()
         );
     }
 }

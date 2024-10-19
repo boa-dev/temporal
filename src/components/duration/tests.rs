@@ -1,6 +1,6 @@
 use crate::{
-    components::{calendar::Calendar, Date},
-    options::{ArithmeticOverflow, RoundingIncrement, TemporalRoundingMode},
+    components::{calendar::Calendar, PlainDate},
+    options::{RoundingIncrement, TemporalRoundingMode},
 };
 
 use super::*;
@@ -35,14 +35,12 @@ fn basic_positive_floor_rounding_v2() {
         FiniteF64(500.0),
     )
     .unwrap();
-    let forward_date = Date::new(
+    let forward_date = PlainDate::new(
         2020,
         4,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
 
     let relative_forward = RelativeTo {
         date: Some(&forward_date),
@@ -113,14 +111,12 @@ fn basic_negative_floor_rounding_v2() {
         FiniteF64(500.0),
     )
     .unwrap();
-    let backward_date = Date::new(
+    let backward_date = PlainDate::new(
         2020,
         12,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
 
     let relative_backward = RelativeTo {
         date: Some(&backward_date),
@@ -191,14 +187,12 @@ fn basic_positive_ceil_rounding() {
         FiniteF64(500.0),
     )
     .unwrap();
-    let forward_date = Date::new(
+    let forward_date = PlainDate::new(
         2020,
         4,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
 
     let relative_forward = RelativeTo {
         date: Some(&forward_date),
@@ -268,14 +262,12 @@ fn basic_negative_ceil_rounding() {
         FiniteF64(500.0),
     )
     .unwrap();
-    let backward_date = Date::new(
+    let backward_date = PlainDate::new(
         2020,
         12,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
     let relative_backward = RelativeTo {
         date: Some(&backward_date),
         zdt: None,
@@ -345,14 +337,12 @@ fn basic_positive_expand_rounding() {
         FiniteF64(500.0),
     )
     .unwrap();
-    let forward_date = Date::new(
+    let forward_date = PlainDate::new(
         2020,
         4,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
 
     let relative_forward = RelativeTo {
         date: Some(&forward_date),
@@ -423,14 +413,12 @@ fn basic_negative_expand_rounding() {
     )
     .unwrap();
 
-    let backward_date = Date::new(
+    let backward_date = PlainDate::new(
         2020,
         12,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
 
     let relative_backward = RelativeTo {
         date: Some(&backward_date),
@@ -497,14 +485,12 @@ fn rounding_increment_non_integer() {
         )
         .unwrap(),
     );
-    let binding = Date::new(
+    let binding = PlainDate::new(
         2000,
         1,
         1,
         Calendar::from_str("iso8601").unwrap(),
-        ArithmeticOverflow::Reject,
-    )
-    .unwrap();
+    ).unwrap();
     let relative_to = RelativeTo {
         date: Some(&binding),
         zdt: None,

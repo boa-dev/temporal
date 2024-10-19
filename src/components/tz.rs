@@ -4,13 +4,9 @@ use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 
 use crate::{
-    components::{calendar::Calendar, DateTime, Instant},
+    components::{calendar::Calendar, PlainDateTime, Instant},
     TemporalError, TemporalResult,
 };
-
-/// Any object that implements the `TzProtocol` must implement the below methods/properties.
-pub const TIME_ZONE_PROPERTIES: [&str; 3] =
-    ["getOffsetNanosecondsFor", "getPossibleInstantsFor", "id"];
 
 /// A Temporal `TimeZone`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -24,9 +20,9 @@ impl TimeZone {
         &self,
         instant: &Instant,
         calendar: &Calendar,
-    ) -> TemporalResult<DateTime> {
+    ) -> TemporalResult<PlainDateTime> {
         let nanos = self.get_offset_nanos_for()?;
-        DateTime::from_instant(instant, nanos.to_f64().unwrap_or(0.0), calendar.clone())
+        PlainDateTime::from_instant(instant, nanos.to_f64().unwrap_or(0.0), calendar.clone())
     }
 }
 

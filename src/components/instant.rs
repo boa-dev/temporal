@@ -80,7 +80,7 @@ impl Instant {
             other.epoch_nanos,
             self.epoch_nanos,
         )?;
-        let (round_record, _) = TimeDuration::round(FiniteF64::default(), &diff, resolved_options)?;
+        let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
 
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
@@ -282,7 +282,7 @@ impl FromStr for Instant {
         let ixdtf_record = parse_instant(s)?;
 
         // Find the IsoDate
-        let iso_date = IsoDate::new(
+        let iso_date = IsoDate::new_with_overflow(
             ixdtf_record.date.year,
             ixdtf_record.date.month.into(),
             ixdtf_record.date.day.into(),

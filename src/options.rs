@@ -7,7 +7,7 @@ use core::{fmt, str::FromStr};
 use std::ops::Add;
 
 use crate::{
-    components::{Date, ZonedDateTime},
+    components::{PlainDate, ZonedDateTime},
     Sign, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY,
 };
 
@@ -222,7 +222,7 @@ impl ResolvedRoundingOptions {
 // ==== RelativeTo Object ====
 
 pub struct RelativeTo<'a> {
-    pub date: Option<&'a Date>,
+    pub date: Option<&'a PlainDate>,
     pub zdt: Option<&'a ZonedDateTime>,
 }
 

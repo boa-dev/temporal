@@ -21,7 +21,7 @@ use crate::{
             normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
             DateDuration, TimeDuration,
         },
-        Date, Duration, PartialTime,
+        PlainDate, Duration, PartialTime,
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
@@ -150,7 +150,7 @@ impl IsoDateTime {
         let t_result = self.time.add(norm);
 
         // 4. Let datePart be ! CreateTemporalDate(year, month, day, calendarRec.[[Receiver]]).
-        let date = Date::new_unchecked(self.date, calendar);
+        let date = PlainDate::new_unchecked(self.date, calendar);
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
         let date_duration = DateDuration::new(
@@ -221,15 +221,14 @@ impl IsoDateTime {
         }
 
         // 9. Let date1 be ! CreateTemporalDate(y1, mon1, d1, calendarRec.[[Receiver]]).
-        let date_one = Date::new_unchecked(self.date, calendar.clone());
+        let date_one = PlainDate::new_unchecked(self.date, calendar.clone());
         // 10. Let date2 be ! CreateTemporalDate(adjustedDate.[[Year]], adjustedDate.[[Month]],
         // adjustedDate.[[Day]], calendarRec.[[Receiver]]).
-        let date_two = Date::new(
+        let date_two = PlainDate::try_new(
             adjusted_date.year,
             adjusted_date.month.into(),
             adjusted_date.day.into(),
             calendar.clone(),
-            ArithmeticOverflow::Reject,
         )?;
 
         // 11. Let dateLargestUnit be LargerOfTwoTemporalUnits("day", largestUnit).
@@ -291,7 +290,7 @@ impl IsoDate {
         Self { year, month, day }
     }
 
-    pub(crate) fn new(
+    pub(crate) fn new_with_overflow(
         year: i32,
         month: i32,
         day: i32,
@@ -367,7 +366,7 @@ impl IsoDate {
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
-        let intermediate = Self::new(
+        let intermediate = Self::new_with_overflow(
             intermediate.0,
             intermediate.1,
             i32::from(self.day),
@@ -453,7 +452,7 @@ impl IsoDate {
         let intermediate =
             balance_iso_year_month(self.year + years, i32::from(self.month) + months);
         // 10. Let constrained be ! RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], d1, "constrain").
-        let constrained = Self::new(
+        let constrained = Self::new_with_overflow(
             intermediate.0,
             intermediate.1,
             self.day.into(),
