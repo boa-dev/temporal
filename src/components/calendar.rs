@@ -8,7 +8,7 @@ use std::str::FromStr;
 use crate::{
     components::{
         duration::{DateDuration, TimeDuration},
-        Date, DateTime, Duration, MonthDay, YearMonth,
+        Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
     iso::{IsoDate, IsoDateSlots},
     options::{ArithmeticOverflow, TemporalUnit},
@@ -201,14 +201,15 @@ impl FromStr for Calendar {
     }
 }
 
+// TODO: Potentially dead code.
 /// Designate the type of `CalendarFields` needed
 #[derive(Debug, Clone, Copy)]
 pub enum CalendarFieldsType {
-    /// Whether the Fields should return for a Date.
+    /// Whether the Fields should return for a PlainDate.
     Date,
-    /// Whether the Fields should return for a YearMonth.
+    /// Whether the Fields should return for a PlainYearMonth.
     YearMonth,
-    /// Whether the Fields should return for a MonthDay.
+    /// Whether the Fields should return for a PlainMonthDay.
     MonthDay,
 }
 
@@ -231,14 +232,14 @@ impl From<&[String]> for CalendarFieldsType {
 /// The `DateLike` objects that can be provided to the `CalendarProtocol`.
 #[derive(Debug)]
 pub enum CalendarDateLike<'a> {
-    /// Represents a `DateTime`.
-    DateTime(&'a DateTime),
-    /// Represents a `Date`.
-    Date(&'a Date),
-    /// Represents a `YearMonth`.
-    YearMonth(&'a YearMonth),
-    /// Represents a `MonthDay`.
-    MonthDay(&'a MonthDay),
+    /// Represents a `PlainDateTime`.
+    DateTime(&'a PlainDateTime),
+    /// Represents a `PlainDate`.
+    Date(&'a PlainDate),
+    /// Represents a `PlainYearMonth`.
+    YearMonth(&'a PlainYearMonth),
+    /// Represents a `PlainMonthDay`.
+    MonthDay(&'a PlainMonthDay),
 }
 
 impl CalendarDateLike<'_> {
@@ -275,12 +276,12 @@ impl Calendar {
         &self,
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<Date> {
+    ) -> TemporalResult<PlainDate> {
         let fields = self.resolve_partial_date_fields(partial, overflow)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
-            return Date::new(
+            return PlainDate::new_with_overflow(
                 fields.era_year.year,
                 fields.month_code.as_iso_month_integer()?.into(),
                 fields.day,
@@ -296,7 +297,7 @@ impl Calendar {
             fields.day as u8, // TODO: FIX
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
-        Date::new(
+        PlainDate::new_with_overflow(
             iso.year().number,
             iso.month().ordinal as i32,
             iso.day_of_month().0 as i32,
@@ -305,15 +306,15 @@ impl Calendar {
         )
     }
 
-    /// `CalendarMonthDayFromFields`
+    /// `CalendarPlainMonthDayFromFields`
     pub fn month_day_from_partial(
         &self,
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<MonthDay> {
+    ) -> TemporalResult<PlainMonthDay> {
         let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
-            return MonthDay::new(
+            return PlainMonthDay::new_with_overflow(
                 resolved_fields.month_code.as_iso_month_integer()?.into(),
                 resolved_fields.day,
                 self.clone(),
@@ -326,15 +327,15 @@ impl Calendar {
         Err(TemporalError::range().with_message("Not yet implemented/supported."))
     }
 
-    /// `CalendarYearMonthFromFields`
+    /// `CalendarPlainYearMonthFromFields`
     pub fn year_month_from_partial(
         &self,
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<YearMonth> {
+    ) -> TemporalResult<PlainYearMonth> {
         let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
-            return YearMonth::new(
+            return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.year,
                 resolved_fields.month_code.as_iso_month_integer()?.into(),
                 Some(resolved_fields.day),
@@ -351,7 +352,7 @@ impl Calendar {
             resolved_fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
         )?;
         let iso = self.0.date_to_iso(&calendar_date);
-        YearMonth::new(
+        PlainYearMonth::new_with_overflow(
             iso.year().number,
             iso.month().ordinal as i32,
             Some(iso.day_of_month().0 as i32),
@@ -363,10 +364,10 @@ impl Calendar {
     /// `CalendarDateAdd`
     pub fn date_add(
         &self,
-        date: &Date,
+        date: &PlainDate,
         duration: &Duration,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<Date> {
+    ) -> TemporalResult<PlainDate> {
         if self.is_iso() {
             // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
             // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
@@ -386,12 +387,11 @@ impl Calendar {
                 overflow,
             )?;
             // 11. Return ? CreateTemporalDate(result.[[Year]], result.[[Month]], result.[[Day]], "iso8601").
-            return Date::new(
+            return PlainDate::try_new(
                 result.year,
                 result.month.into(),
                 result.day.into(),
                 date.calendar().clone(),
-                ArithmeticOverflow::Reject,
             );
         }
 
@@ -401,8 +401,8 @@ impl Calendar {
     /// `CalendarDateUntil`
     pub fn date_until(
         &self,
-        one: &Date,
-        two: &Date,
+        one: &PlainDate,
+        two: &PlainDate,
         largest_unit: TemporalUnit,
     ) -> TemporalResult<Duration> {
         if self.is_iso() {
@@ -712,14 +712,14 @@ impl Calendar {
     }
 }
 
-impl From<Date> for Calendar {
-    fn from(value: Date) -> Self {
+impl From<PlainDate> for Calendar {
+    fn from(value: PlainDate) -> Self {
         value.calendar().clone()
     }
 }
 
-impl From<DateTime> for Calendar {
-    fn from(value: DateTime) -> Self {
+impl From<PlainDateTime> for Calendar {
+    fn from(value: PlainDateTime) -> Self {
         value.calendar().clone()
     }
 }
@@ -730,27 +730,27 @@ impl From<ZonedDateTime> for Calendar {
     }
 }
 
-impl From<MonthDay> for Calendar {
-    fn from(value: MonthDay) -> Self {
+impl From<PlainMonthDay> for Calendar {
+    fn from(value: PlainMonthDay) -> Self {
         value.calendar().clone()
     }
 }
 
-impl From<YearMonth> for Calendar {
-    fn from(value: YearMonth) -> Self {
+impl From<PlainYearMonth> for Calendar {
+    fn from(value: PlainYearMonth) -> Self {
         value.calendar().clone()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{components::Date, iso::IsoDate, options::TemporalUnit};
+    use crate::{components::PlainDate, iso::IsoDate, options::TemporalUnit};
 
     use super::Calendar;
 
     #[test]
     fn date_until_largest_year() {
-        // tests format: (Date one, Date two, Duration result)
+        // tests format: (Date one, PlainDate two, Duration result)
         let tests = [
             ((2021, 7, 16), (2021, 7, 16), (0, 0, 0, 0, 0, 0, 0, 0, 0, 0)),
             ((2021, 7, 16), (2021, 7, 17), (0, 0, 0, 1, 0, 0, 0, 0, 0, 0)),
@@ -996,11 +996,11 @@ mod tests {
         let calendar = Calendar::default();
 
         for test in tests {
-            let first = Date::new_unchecked(
+            let first = PlainDate::new_unchecked(
                 IsoDate::new_unchecked(test.0 .0, test.0 .1, test.0 .2),
                 calendar.clone(),
             );
-            let second = Date::new_unchecked(
+            let second = PlainDate::new_unchecked(
                 IsoDate::new_unchecked(test.1 .0, test.1 .1, test.1 .2),
                 calendar.clone(),
             );

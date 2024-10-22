@@ -20,12 +20,12 @@ use super::{
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
-pub struct YearMonth {
+pub struct PlainYearMonth {
     iso: IsoDate,
     calendar: Calendar,
 }
 
-impl YearMonth {
+impl PlainYearMonth {
     /// Creates an unvalidated `YearMonth`.
     #[inline]
     #[must_use]
@@ -35,7 +35,7 @@ impl YearMonth {
 
     /// Creates a new valid `YearMonth`.
     #[inline]
-    pub fn new(
+    pub fn new_with_overflow(
         year: i32,
         month: i32,
         reference_day: Option<i32>,
@@ -43,7 +43,7 @@ impl YearMonth {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let day = reference_day.unwrap_or(1);
-        let iso = IsoDate::new(year, month, day, overflow)?;
+        let iso = IsoDate::new_with_overflow(year, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
 
@@ -113,7 +113,7 @@ impl YearMonth {
     }
 }
 
-impl YearMonth {
+impl PlainYearMonth {
     /// Returns the Calendar value.
     #[inline]
     #[must_use]
@@ -132,7 +132,7 @@ impl YearMonth {
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<YearMonth> {
+    ) -> TemporalResult<Self> {
         self.add_or_subtract_duration(duration, overflow)
     }
 
@@ -140,7 +140,7 @@ impl YearMonth {
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<YearMonth> {
+    ) -> TemporalResult<Self> {
         self.add_or_subtract_duration(&duration.negated(), overflow)
     }
 
@@ -148,7 +148,7 @@ impl YearMonth {
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
-    ) -> TemporalResult<YearMonth> {
+    ) -> TemporalResult<Self> {
         let partial = PartialDate::try_from_year_month(self)?;
 
         let mut intermediate_date = self.get_calendar().date_from_partial(&partial, overflow)?;
@@ -162,14 +162,14 @@ impl YearMonth {
     }
 }
 
-impl GetTemporalCalendar for YearMonth {
+impl GetTemporalCalendar for PlainYearMonth {
     /// Returns a reference to `YearMonth`'s `CalendarSlot`
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
     }
 }
 
-impl IsoDateSlots for YearMonth {
+impl IsoDateSlots for PlainYearMonth {
     #[inline]
     /// Returns this `YearMonth`'s `IsoDate`
     fn iso_date(&self) -> IsoDate {
@@ -177,7 +177,7 @@ impl IsoDateSlots for YearMonth {
     }
 }
 
-impl FromStr for YearMonth {
+impl FromStr for PlainYearMonth {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -187,7 +187,7 @@ impl FromStr for YearMonth {
 
         let date = record.date.temporal_unwrap()?;
 
-        Self::new(
+        Self::new_with_overflow(
             date.year,
             date.month.into(),
             None,

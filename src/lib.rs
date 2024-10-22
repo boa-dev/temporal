@@ -1,14 +1,15 @@
-//! The `Temporal` crate is an implementation of ECMAScript's Temporal buitl-in.
+//! The `Temporal` crate is an implementation of ECMAScript's Temporal
+//! built-in objects.
 //!
-//! The crate is being designed with both engine and general use in mind.
+//! The crate is being designed with both engine and general use in
+//! mind.
 //!
-//! IMPORTANT NOTE: Please note that this library is actively being developed and is very
-//! much experimental and NOT STABLE.
+//! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that
+//! provides new JS objects and functions for working with dates and
+//! times that fully supports time zones and non-gregorian calendars.
 //!
-//! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that provides new JS objects and functions
-//! for working with dates and times that fully supports time zones and non-gregorian calendars.
-//!
-//! This library's primary source is the Temporal Proposal [specification][spec].
+//! This library's primary source is the Temporal Proposal
+//! [specification][spec].
 //!
 //! [proposal]: https://github.com/tc39/proposal-temporal
 //! [spec]: https://tc39.es/proposal-temporal/
@@ -38,12 +39,13 @@
     clippy::missing_panics_doc,
 )]
 
-pub mod components;
 pub mod error;
-pub mod iso;
 pub mod options;
 pub mod parsers;
 pub mod primitive;
+
+pub(crate) mod components;
+pub(crate) mod iso;
 
 #[doc(hidden)]
 pub(crate) mod rounding;
@@ -52,8 +54,9 @@ pub(crate) mod utils;
 
 use std::cmp::Ordering;
 
-// TODO: evaluate positives and negatives of using tinystr.
-// Re-exporting tinystr as a convenience, as it is currently tied into the API.
+// TODO: evaluate positives and negatives of using tinystr. Re-exporting
+// tinystr as a convenience, as it is currently tied into the API.
+/// Re-export of `TinyAsciiStr` from `tinystr`.
 pub use tinystr::TinyAsciiStr;
 
 #[doc(inline)]
@@ -62,12 +65,27 @@ pub use error::TemporalError;
 /// The `Temporal` result type
 pub type TemporalResult<T> = Result<T, TemporalError>;
 
+pub mod partial {
+    //! Partial Date/Time component records.
+    //!
+    //! The partial records are `temporal_rs`'s method of addressing
+    //! `TemporalFields` in the specification.
+    pub use crate::components::{
+        duration::PartialDuration, PartialDate, PartialDateTime, PartialTime,
+    };
+}
+
+pub use crate::components::{
+    calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    PlainYearMonth, ZonedDateTime,
+};
+
 /// A library specific trait for unwrapping assertions.
 pub(crate) trait TemporalUnwrap {
     type Output;
 
-    /// `temporal_rs` based assertion for unwrapping. This will panic in debug
-    /// builds, but throws error during runtime.
+    /// `temporal_rs` based assertion for unwrapping. This will panic in
+    /// debug builds, but throws error during runtime.
     fn temporal_unwrap(self) -> TemporalResult<Self::Output>;
 }
 
@@ -80,6 +98,7 @@ impl<T> TemporalUnwrap for Option<T> {
     }
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! temporal_assert {
     ($condition:expr $(,)*) => {
@@ -95,6 +114,9 @@ macro_rules! temporal_assert {
     };
 }
 
+// TODO: Determine final home or leave in the top level? ops::Sign,
+// types::Sign, etc.
+/// A general Sign type.
 #[repr(i8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {

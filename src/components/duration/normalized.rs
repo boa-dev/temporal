@@ -2,12 +2,12 @@
 
 use std::{num::NonZeroU128, ops::Add};
 
-use num_traits::{AsPrimitive, Euclid};
+use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
-    components::{tz::TimeZone, Date, DateTime},
+    components::{tz::TimeZone, PlainDate, PlainDateTime},
     iso::IsoDate,
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalRoundingMode, TemporalUnit},
+    options::{ResolvedRoundingOptions, TemporalRoundingMode, TemporalUnit},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -124,8 +124,74 @@ impl NormalizedTimeDuration {
         Ok(Self(result))
     }
 
+    /// The equivalent of `RoundTimeDuration` abstract operation.
+    pub(crate) fn round(
+        &self,
+        days: FiniteF64,
+        options: ResolvedRoundingOptions,
+    ) -> TemporalResult<(NormalizedDurationRecord, Option<i128>)> {
+        // 1. Assert: IsCalendarUnit(unit) is false.
+        let (days, norm, total) = match options.smallest_unit {
+            // 2. If unit is "day", then
+            TemporalUnit::Day => {
+                // a. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
+                let fractional_days = days.checked_add(&FiniteF64(self.as_fractional_days()))?;
+                // b. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
+                let days = IncrementRounder::from_potentially_negative_parts(
+                    fractional_days.0,
+                    options.increment.as_extended_increment(),
+                )?
+                .round(options.rounding_mode);
+                // c. Let total be fractionalDays.
+                // d. Set norm to ZeroTimeDuration().
+                (
+                    FiniteF64::try_from(days)?,
+                    NormalizedTimeDuration::default(),
+                    i128::from_f64(fractional_days.0),
+                )
+            }
+            // 3. Else,
+            TemporalUnit::Hour
+            | TemporalUnit::Minute
+            | TemporalUnit::Second
+            | TemporalUnit::Millisecond
+            | TemporalUnit::Microsecond
+            | TemporalUnit::Nanosecond => {
+                // a. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains unit, is time.
+                // b. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
+                let divisor = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
+                // c. Let total be DivideNormalizedTimeDuration(norm, divisor).
+                let total = self.divide(divisor as i64);
+                let non_zero_divisor = unsafe { NonZeroU128::new_unchecked(divisor.into()) };
+                // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+                let norm = self.round_inner(
+                    non_zero_divisor
+                        .checked_mul(options.increment.as_extended_increment())
+                        .temporal_unwrap()?,
+                    options.rounding_mode,
+                )?;
+                (days, norm, Some(total))
+            }
+            _ => return Err(TemporalError::assert()),
+        };
+
+        // 4. Return the Record { [[NormalizedDuration]]: ? CreateNormalizedDurationRecord(0, 0, 0, days, norm), [[Total]]: total  }.
+        Ok((
+            NormalizedDurationRecord::new(
+                DateDuration::new(
+                    FiniteF64::default(),
+                    FiniteF64::default(),
+                    FiniteF64::default(),
+                    days,
+                )?,
+                norm,
+            )?,
+            total,
+        ))
+    }
+
     /// Round the current `NormalizedTimeDuration`.
-    pub(super) fn round(
+    pub(super) fn round_inner(
         &self,
         increment: NonZeroU128,
         mode: TemporalRoundingMode,
@@ -221,7 +287,7 @@ impl NormalizedDurationRecord {
         &self,
         sign: Sign,
         dest_epoch_ns: i128,
-        dt: &DateTime,
+        dt: &PlainDateTime,
         tz: Option<TimeZone>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
@@ -312,22 +378,20 @@ impl NormalizedDurationRecord {
 
                 // c. Let weeksStart be ! CreateTemporalDate(isoResult1.[[Year]], isoResult1.[[Month]], isoResult1.[[Day]],
                 // calendarRec.[[Receiver]]).
-                let weeks_start = Date::new(
+                let weeks_start = PlainDate::try_new(
                     iso_one.year,
                     iso_one.month.into(),
                     iso_one.day.into(),
                     dt.calendar().clone(),
-                    ArithmeticOverflow::Reject,
                 )?;
 
                 // d. Let weeksEnd be ! CreateTemporalDate(isoResult2.[[Year]], isoResult2.[[Month]], isoResult2.[[Day]],
                 // calendarRec.[[Receiver]]).
-                let weeks_end = Date::new(
+                let weeks_end = PlainDate::try_new(
                     iso_two.year,
                     iso_two.month.into(),
                     iso_two.day.into(),
                     dt.calendar().clone(),
-                    ArithmeticOverflow::Reject,
                 )?;
 
                 // e. Let untilOptions be OrdinaryObjectCreate(null).
@@ -541,7 +605,7 @@ impl NormalizedDurationRecord {
         let total = norm.divide(unit_length as i64);
 
         // 5. Let roundedNorm be ? RoundNormalizedTimeDurationToIncrement(norm, unitLength × increment, roundingMode).
-        let rounded_norm = norm.round(
+        let rounded_norm = norm.round_inner(
             unsafe {
                 NonZeroU128::new_unchecked(unit_length.into())
                     .checked_mul(options.increment.as_extended_increment())
@@ -607,7 +671,7 @@ impl NormalizedDurationRecord {
         &self,
         sign: Sign,
         nudge_epoch_ns: i128,
-        date_time: &DateTime,
+        date_time: &PlainDateTime,
         tz: Option<TimeZone>,
         largest_unit: TemporalUnit,
         smallest_unit: TemporalUnit,
@@ -744,7 +808,7 @@ impl NormalizedDurationRecord {
     pub(crate) fn round_relative_duration(
         &self,
         dest_epoch_ns: i128,
-        dt: &DateTime,
+        dt: &PlainDateTime,
         tz: Option<TimeZone>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<RelativeRoundResult> {
