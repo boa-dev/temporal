@@ -176,8 +176,12 @@ impl PlainDate {
         }
 
         // 4. Let overflow be ? ToTemporalOverflow(options).
-        // 5. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-        // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm, "day").[[Days]].
+        // 5. Let norm be NormalizeTimeDuration(duration.[[Hours]],
+        //    duration.[[Minutes]], duration.[[Seconds]],
+        //    duration.[[Milliseconds]], duration.[[Microseconds]],
+        //    duration.[[Nanoseconds]]).
+        // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm,
+        //    "day").[[Days]].
         let days = duration.days().checked_add(
             &TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?.0,
         )?;
@@ -271,7 +275,7 @@ impl PlainDate {
         let date_duration = if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
             let dest_epoch_ns = other.iso.as_nanoseconds().temporal_unwrap()?;
-            // b. Let dateTime be ISO PlainDate-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
+            // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
             let dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new_unchecked(self.iso, IsoTime::default()),
                 self.calendar.clone(),
