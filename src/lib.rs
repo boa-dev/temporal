@@ -1,5 +1,5 @@
 //! The `Temporal` crate is an implementation of ECMAScript's Temporal
-//! buitl-in.
+//! built-in objects.
 //!
 //! The crate is being designed with both engine and general use in
 //! mind.

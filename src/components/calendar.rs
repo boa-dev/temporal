@@ -232,9 +232,9 @@ impl From<&[String]> for CalendarFieldsType {
 /// The `DateLike` objects that can be provided to the `CalendarProtocol`.
 #[derive(Debug)]
 pub enum CalendarDateLike<'a> {
-    /// Represents a `DateTime`.
+    /// Represents a `PlainDateTime`.
     DateTime(&'a PlainDateTime),
-    /// Represents a `Date`.
+    /// Represents a `PlainDate`.
     Date(&'a PlainDate),
     /// Represents a `PlainYearMonth`.
     YearMonth(&'a PlainYearMonth),
