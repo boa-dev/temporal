@@ -507,6 +507,12 @@ pub struct IsoTime {
     pub millisecond: u16, // 0..=999
     pub microsecond: u16, // 0..=999
     pub nanosecond: u16,  // 0..=999
+    pub hour: u8,         // 0..=23
+    pub minute: u8,       // 0..=59
+    pub second: u8,       // 0..=59
+    pub millisecond: u16, // 0..=999
+    pub microsecond: u16, // 0..=999
+    pub nanosecond: u16,  // 0..=999
 }
 
 impl IsoTime {
