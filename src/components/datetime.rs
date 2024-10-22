@@ -67,8 +67,10 @@ impl PlainDateTime {
         IsoDateTime::new_unchecked(iso, IsoTime::noon()).is_within_limits()
     }
 
+    // TODO: Potentially deprecate and remove.
     /// Create a new `DateTime` from an `Instant`.
     #[inline]
+    #[allow(unused)]
     pub(crate) fn from_instant(
         instant: &Instant,
         offset: f64,
@@ -210,7 +212,7 @@ impl PlainDateTime {
         // [[Day]]: d1, [[Hour]]: h1, [[Minute]]: min1, [[Second]]: s1, [[Millisecond]]:
         // ms1, [[Microsecond]]: mus1, [[Nanosecond]]: ns1 }.
         // 7. Let destEpochNs be GetUTCEpochNanoseconds(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2).
-        let dest_epoch_ns = other.iso.as_nanoseconds(0.0).temporal_unwrap()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds().temporal_unwrap()?;
 
         // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
         // roundingIncrement, smallestUnit, roundingMode).

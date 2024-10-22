@@ -43,6 +43,10 @@
 extern crate alloc;
 extern crate core;
 
+// TODO: Support SystemTime directly / pull in OS code from std::time?
+#[cfg(feature = "std")]
+extern crate std;
+
 pub mod error;
 pub mod options;
 pub mod parsers;
@@ -50,6 +54,12 @@ pub mod primitive;
 
 pub(crate) mod components;
 pub(crate) mod iso;
+
+#[cfg(feature = "std")]
+mod sys;
+
+#[cfg(all(feature = "tzdb", not(target_os = "windows")))]
+pub mod tzdb;
 
 #[doc(hidden)]
 pub(crate) mod rounding;
@@ -83,6 +93,9 @@ pub use crate::components::{
     calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
     PlainYearMonth, ZonedDateTime,
 };
+
+#[cfg(feature = "std")]
+pub use crate::components::Now;
 
 /// A library specific trait for unwrapping assertions.
 pub(crate) trait TemporalUnwrap {

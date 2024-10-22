@@ -494,8 +494,8 @@ impl NormalizedDurationRecord {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
             (
-                start.as_nanoseconds(0.0).unwrap_or(0),
-                end.as_nanoseconds(0.0).unwrap_or(0),
+                start.as_nanoseconds().unwrap_or(0),
+                end.as_nanoseconds().unwrap_or(0),
             )
         // 8. Else,
         } else {
@@ -782,7 +782,7 @@ impl NormalizedDurationRecord {
             } else {
                 // 1. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]],
                 // end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-                end.as_nanoseconds(0.0).temporal_unwrap()?
+                end.as_nanoseconds().temporal_unwrap()?
             };
             // viii. Let beyondEnd be nudgedEpochNs - endEpochNs.
             let beyond_end = nudge_epoch_ns - end_epoch_ns;
