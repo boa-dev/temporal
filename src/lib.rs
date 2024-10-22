@@ -90,7 +90,7 @@ pub mod partial {
 }
 
 pub use crate::components::{
-    calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    calendar::Calendar, Duration, Instant, Now, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
     PlainYearMonth, ZonedDateTime,
 };
 
