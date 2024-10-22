@@ -14,6 +14,7 @@ mod date;
 mod datetime;
 mod instant;
 mod month_day;
+mod now;
 mod time;
 mod year_month;
 mod zoneddatetime;
@@ -28,6 +29,8 @@ pub use duration::Duration;
 pub use instant::Instant;
 #[doc(inline)]
 pub use month_day::PlainMonthDay;
+#[doc(inline)]
+pub use now::Now;
 #[doc(inline)]
 pub use time::{PartialTime, PlainTime};
 #[doc(inline)]

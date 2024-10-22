@@ -47,6 +47,11 @@ pub mod primitive;
 pub(crate) mod components;
 pub(crate) mod iso;
 
+mod sys;
+
+#[cfg(all(feature = "tzdb", not(target_os = "windows")))]
+pub mod tzdb;
+
 #[doc(hidden)]
 pub(crate) mod rounding;
 #[doc(hidden)]
@@ -76,7 +81,7 @@ pub mod partial {
 }
 
 pub use crate::components::{
-    calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    calendar::Calendar, Duration, Instant, Now, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
     PlainYearMonth, ZonedDateTime,
 };
 

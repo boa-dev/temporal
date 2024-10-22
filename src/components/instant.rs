@@ -308,7 +308,9 @@ impl FromStr for Instant {
             + f64::from(ixdtf_record.offset.second) * NANOSECONDS_PER_SECOND
             + f64::from(ixdtf_record.offset.nanosecond);
 
-        let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time).as_nanoseconds(offset);
+        let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time)
+            .as_nanoseconds()
+            .map(|v| v + offset as i128);
 
         Self::from_epoch_milliseconds(nanoseconds.unwrap_or(i128::MAX))
     }
