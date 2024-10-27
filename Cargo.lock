@@ -374,7 +374,6 @@ dependencies = [
  "ixdtf",
  "num-bigint",
  "num-traits",
- "once_cell",
  "rustc-hash",
  "tinystr",
  "tzif",
