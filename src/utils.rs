@@ -38,6 +38,10 @@ pub(crate) fn epoch_time_to_day_number(t: f64) -> i32 {
     (t / f64::from(MS_PER_DAY)).floor() as i32
 }
 
+pub(crate) fn epoch_ms_to_ms_in_day(t: f64) -> u32 {
+    (t % f64::from(MS_PER_DAY)) as u32
+}
+
 /// Mathematically determine the days in a year.
 pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
     if y % 4 != 0 {
@@ -106,7 +110,13 @@ pub(crate) fn epoch_time_for_month_given_year(m: i32, y: i32) -> f64 {
     let leap_day = mathematical_days_in_year(y) - 365;
 
     // Includes day. i.e. end of month + 1
-    let days = match m {
+    let days = month_to_day(m, leap_day as u16);
+
+    f64::from(MS_PER_DAY) * f64::from(days)
+}
+
+fn month_to_day(m: i32, leap_day: u16) -> u16 {
+    match m {
         0 => 0,
         1 => 31,
         2 => 59 + leap_day,
@@ -120,9 +130,7 @@ pub(crate) fn epoch_time_for_month_given_year(m: i32, y: i32) -> f64 {
         10 => 304 + leap_day,
         11 => 334 + leap_day,
         _ => unreachable!(),
-    };
-
-    f64::from(MS_PER_DAY) * f64::from(days)
+    }
 }
 
 pub(crate) fn epoch_time_to_date(t: f64) -> u8 {
@@ -144,9 +152,23 @@ pub(crate) fn epoch_time_to_date(t: f64) -> u8 {
     date as u8
 }
 
+// TODO: Update to u16 (1..=365 + leap_day)
 pub(crate) fn epoch_time_to_day_in_year(t: f64) -> i32 {
     epoch_time_to_day_number(t)
         - (epoch_day_number_for_year(f64::from(epoch_time_to_epoch_year(t))) as i32)
+}
+
+pub(crate) fn epoch_seconds_to_day_of_week(t: f64) -> u16 {
+    (((t / 86_400.0).floor() + 4.0) % 7.0) as u16
+}
+
+pub(crate) fn epoch_seconds_to_day_of_month(t: f64) -> u16 {
+    let leap_day = mathematical_in_leap_year(t);
+    epoch_time_to_day_in_year(t * 1_000.0) as u16
+        - month_to_day(
+            epoch_time_to_month_in_year(t * 1_000.0) as i32,
+            leap_day as u16,
+        )
 }
 
 // Trait implementations
