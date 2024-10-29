@@ -35,6 +35,7 @@ pub(crate) fn epoch_time_to_day_number(t: f64) -> i32 {
     (t / f64::from(MS_PER_DAY)).floor() as i32
 }
 
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_ms_to_ms_in_day(t: f64) -> u32 {
     (t % f64::from(MS_PER_DAY)) as u32
 }
@@ -155,10 +156,12 @@ pub(crate) fn epoch_time_to_day_in_year(t: f64) -> i32 {
         - (epoch_day_number_for_year(f64::from(epoch_time_to_epoch_year(t))) as i32)
 }
 
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_seconds_to_day_of_week(t: f64) -> u16 {
     (((t / 86_400.0).floor() + 4.0) % 7.0) as u16
 }
 
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_seconds_to_day_of_month(t: f64) -> u16 {
     let leap_day = mathematical_in_leap_year(t);
     epoch_time_to_day_in_year(t * 1_000.0) as u16
