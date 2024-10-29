@@ -49,7 +49,7 @@ pub(crate) mod iso;
 
 mod sys;
 
-#[cfg(all(feature = "tzdb", not(target_os = "windows")))]
+// #[cfg(all(feature = "tzdb", not(target_os = "windows")))]
 pub mod tzdb;
 
 #[doc(hidden)]

@@ -29,6 +29,8 @@ ixdtf = { version = "0.2.0", features = ["duration"]}
 
 tzif = "0.2.3"
 iana-time-zone = "0.1.61"
+jiff-tzdb = "0.1.1"
+combine = "4.6.7"
 
 [features]
 experimental = ["tzdb"]
