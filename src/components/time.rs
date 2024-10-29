@@ -14,7 +14,7 @@ use crate::{
 
 use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 /// A `PartialTime` represents partially filled `Time` fields.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]

@@ -3,8 +3,8 @@
 //! Temporal has various instances where user's can define options for how an
 //! operation may be completed.
 
+use core::ops::Add;
 use core::{fmt, str::FromStr};
-use std::ops::Add;
 
 use crate::{
     components::{PlainDate, ZonedDateTime},
@@ -342,7 +342,7 @@ impl Add<usize> for TemporalUnit {
 pub struct ParseTemporalUnitError;
 
 impl fmt::Display for ParseTemporalUnitError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid TemporalUnit")
     }
 }
@@ -369,7 +369,7 @@ impl FromStr for TemporalUnit {
 }
 
 impl fmt::Display for TemporalUnit {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Auto => "auto",
             Self::Year => "year",
@@ -403,7 +403,7 @@ pub enum ArithmeticOverflow {
 pub struct ParseArithmeticOverflowError;
 
 impl fmt::Display for ParseArithmeticOverflowError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid overflow value")
     }
 }
@@ -421,7 +421,7 @@ impl FromStr for ArithmeticOverflow {
 }
 
 impl fmt::Display for ArithmeticOverflow {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Constrain => "constrain",
             Self::Reject => "reject",
@@ -444,7 +444,7 @@ pub enum DurationOverflow {
 pub struct ParseDurationOverflowError;
 
 impl fmt::Display for ParseDurationOverflowError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid duration overflow value")
     }
 }
@@ -462,7 +462,7 @@ impl FromStr for DurationOverflow {
 }
 
 impl fmt::Display for DurationOverflow {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Constrain => "constrain",
             Self::Balance => "balance",
@@ -489,7 +489,7 @@ pub enum InstantDisambiguation {
 pub struct ParseInstantDisambiguationError;
 
 impl fmt::Display for ParseInstantDisambiguationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid instant disambiguation value")
     }
 }
@@ -509,7 +509,7 @@ impl FromStr for InstantDisambiguation {
 }
 
 impl fmt::Display for InstantDisambiguation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Compatible => "compatible",
             Self::Earlier => "earlier",
@@ -538,7 +538,7 @@ pub enum OffsetDisambiguation {
 pub struct ParseOffsetDisambiguationError;
 
 impl fmt::Display for ParseOffsetDisambiguationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid offset disambiguation value")
     }
 }
@@ -558,7 +558,7 @@ impl FromStr for OffsetDisambiguation {
 }
 
 impl fmt::Display for OffsetDisambiguation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Use => "use",
             Self::Prefer => "prefer",
@@ -674,7 +674,7 @@ impl FromStr for TemporalRoundingMode {
 }
 
 impl fmt::Display for TemporalRoundingMode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Ceil => "ceil",
             Self::Floor => "floor",
@@ -705,7 +705,7 @@ pub enum CalendarName {
 }
 
 impl fmt::Display for CalendarName {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             CalendarName::Auto => "auto",
             CalendarName::Always => "always",

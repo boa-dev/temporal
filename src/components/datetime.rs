@@ -11,8 +11,8 @@ use crate::{
     temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
+use core::{cmp::Ordering, str::FromStr};
 use num_traits::AsPrimitive;
-use std::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use super::{
@@ -648,7 +648,7 @@ impl FromStr for PlainDateTime {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use tinystr::{tinystr, TinyAsciiStr};
 

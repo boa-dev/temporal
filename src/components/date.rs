@@ -17,7 +17,9 @@ use crate::{
     primitive::FiniteF64,
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
-use std::str::FromStr;
+
+use alloc::format;
+use core::str::FromStr;
 
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
@@ -131,13 +133,13 @@ pub struct PlainDate {
 }
 
 impl Ord for PlainDate {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.iso.cmp(&other.iso)
     }
 }
 
 impl PartialOrd for PlainDate {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }

@@ -1,4 +1,4 @@
-use std::num::{NonZeroU128, NonZeroU32};
+use core::num::{NonZeroU128, NonZeroU32};
 
 use crate::{TemporalError, TemporalResult};
 

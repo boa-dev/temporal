@@ -1,6 +1,6 @@
 //! This module implements `MonthDay` and any directly related algorithms.
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use tinystr::TinyAsciiStr;
 

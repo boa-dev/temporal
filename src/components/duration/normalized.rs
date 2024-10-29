@@ -1,6 +1,6 @@
 //! This module implements the normalized `Duration` records.
 
-use std::{num::NonZeroU128, ops::Add};
+use core::{num::NonZeroU128, ops::Add};
 
 use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 

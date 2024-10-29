@@ -19,13 +19,13 @@ pub struct ZonedDateTime {
 }
 
 impl Ord for ZonedDateTime {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.instant.cmp(&other.instant)
     }
 }
 
 impl PartialOrd for ZonedDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -158,7 +158,7 @@ impl ZonedDateTime {
 #[cfg(test)]
 mod tests {
 
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use crate::components::{calendar::Calendar, tz::TimeZone};
 

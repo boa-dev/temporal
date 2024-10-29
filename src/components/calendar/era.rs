@@ -9,7 +9,7 @@
 
 // TODO (0.1.0): Feature flag certain eras as experimental
 
-use std::ops::RangeInclusive;
+use core::ops::RangeInclusive;
 
 use tinystr::{tinystr, TinyAsciiStr};
 

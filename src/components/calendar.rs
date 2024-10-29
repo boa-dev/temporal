@@ -3,7 +3,10 @@
 //! The goal of the calendar module of `boa_temporal` is to provide
 //! Temporal compatible calendar implementations.
 
-use std::str::FromStr;
+use alloc::borrow::ToOwned;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
+use core::str::FromStr;
 
 use crate::{
     components::{
