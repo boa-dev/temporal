@@ -415,19 +415,21 @@ fn cmp_seconds_to_transitions(
         (TransitionDay::WithLeap(start), TransitionDay::WithLeap(end)) => {
             let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000.0) as u16;
             let is_transition = *start == day_in_year || *end == day_in_year;
-            let mut is_dst = *start <= day_in_year && day_in_year < *end;
-            if start > end {
-                is_dst = !is_dst;
-            }
+            let is_dst = if start > end {
+                mwd < end || start <= mwd
+            } else {
+                start <= mwd && mwd < end
+            };
             (is_transition, is_dst)
         }
         (TransitionDay::NoLeap(start), TransitionDay::NoLeap(end)) => {
             let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000.0) as u16;
             let is_transition = *start == day_in_year || *end == day_in_year;
-            let mut is_dst = *start <= day_in_year && day_in_year < *end;
-            if start > end {
-                is_dst = !is_dst;
-            }
+            let is_dst = if start > end {
+                mwd < end || start <= mwd
+            } else {
+                start <= mwd && mwd < end
+            };
             (is_transition, is_dst)
         }
         // NOTE: The assumption here is that mismatched day types on
