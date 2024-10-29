@@ -146,10 +146,7 @@ impl From<TzifData> for Tzif {
 }
 
 impl Tzif {
-    pub fn from_fallback(identifier: &str) -> TemporalResult<Self> {
-        let Some((_canonical_name, data)) = jiff_tzdb::get(identifier) else {
-            return Err(TemporalError::general("Not a valid IANA identifier."));
-        };
+    pub fn from_bytes(data: &[u8]) -> TemporalResult<Self> {
         let Ok((parse_result, _)) = tzif::parse::tzif::tzif().parse(data) else {
             return Err(TemporalError::general("Illformed Tzif data."));
         };
@@ -469,7 +466,19 @@ impl FsTzdbProvider {
         if let Some(tzif) = self.cache.borrow().get(identifier) {
             return Ok(tzif.clone());
         }
-        let tzif = Tzif::read_tzif(identifier)?;
+        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        let (identifier, tzif) = { (identifier, Tzif::read_tzif(identifier)?) };
+
+        #[cfg(target_os = "windows")]
+        let (identifier, tzif) = {
+            let Some((canonical_name, data)) = jiff_tzdb::get(identifier) else {
+                return Err(
+                    TemporalError::range().with_message("Time zone identifier does not exist.")
+                );
+            };
+            (canonical_name, Tzif::from_bytes(data)?)
+        };
+
         Ok(self
             .cache
             .borrow_mut()
@@ -724,6 +733,11 @@ mod tests {
 
     #[test]
     fn new_york_duplicate_with_slim_format() {
+        let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
+        let new_york = Tzif::from_bytes(data);
+        assert!(new_york.is_ok());
+        let new_york = new_york.unwrap();
+
         let date = crate::iso::IsoDate {
             year: 2017,
             month: 11,
@@ -741,10 +755,6 @@ mod tests {
         let edge_case_seconds = edge_case
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
-
-        let new_york = Tzif::from_fallback("America/New_York");
-        assert!(new_york.is_ok());
-        let new_york = new_york.unwrap();
 
         let locals = new_york
             .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
@@ -767,6 +777,11 @@ mod tests {
 
     #[test]
     fn sydney_duplicate_case_with_slim_format() {
+        let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
+        let sydney = Tzif::from_bytes(data);
+        assert!(sydney.is_ok());
+        let sydney = sydney.unwrap();
+
         // Australia Daylight savings day
         let date = crate::iso::IsoDate {
             year: 2017,
@@ -785,10 +800,6 @@ mod tests {
         let seconds = today
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
-
-        let sydney = Tzif::from_fallback("Australia/Sydney");
-        assert!(sydney.is_ok());
-        let sydney = sydney.unwrap();
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
 

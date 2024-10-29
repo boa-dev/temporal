@@ -9,9 +9,9 @@ use crate::{
 
 use super::{calendar::CalendarDateLike, tz::TzProvider, PlainDateTime};
 
-#[cfg(all(feature = "experimental", not(target_os = "windows")))]
+#[cfg(feature = "experimental")]
 use crate::{components::tz::TZ_PROVIDER, TemporalError};
-#[cfg(all(feature = "experimental", not(target_os = "windows")))]
+#[cfg(feature = "experimental")]
 use std::ops::DerefMut;
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
@@ -101,7 +101,7 @@ impl ZonedDateTime {
 
 // ===== TzProvider APIs for ZonedDateTime =====
 
-#[cfg(all(feature = "experimental", not(target_os = "windows")))]
+#[cfg(feature = "experimental")]
 impl ZonedDateTime {
     pub fn year(&self) -> TemporalResult<i32> {
         let mut provider = TZ_PROVIDER
@@ -223,7 +223,7 @@ impl ZonedDateTime {
     }
 }
 
-#[cfg(all(feature = "tzdb", not(target_os = "windows")))]
+#[cfg(feature = "tzdb")]
 #[cfg(test)]
 mod tests {
 
