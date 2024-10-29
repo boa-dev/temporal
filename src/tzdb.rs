@@ -147,7 +147,7 @@ impl Tzif {
         };
         match offset_range.contains(&current_diff) {
             true if next_record.is_dst => Ok(Vec::default()),
-            true => Ok(vec![initial_record, next_record]),
+            true => Ok(vec![next_record, initial_record]),
             false => Ok(vec![initial_record]),
         }
     }
