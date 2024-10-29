@@ -101,7 +101,6 @@ impl Tzif {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         // TODO: it would be nice to resolve the Posix str into a local time type record.
-        println!("Searching for{:?}", seconds);
         let Some(b_search_result) = self.binary_search(seconds) else {
             return Err(TemporalError::general("Only Tzif v2+ is supported."));
         };
@@ -111,8 +110,6 @@ impl Tzif {
             .data_block2
             .as_ref()
             .expect("binary_search validates that data_block2 exists.");
-
-        println!("Data block: {:?}", data_block);
 
         let estimated_idx = match b_search_result {
             Ok(idx) => idx,
