@@ -64,26 +64,34 @@ impl Tzif {
 
     // There are ultimately
     pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeTypeRecord> {
-        self.binary_search(epoch_seconds)
-            .map(|idx| {
-                let db = self
-                    .0
-                    .data_block2
-                    .as_ref()
-                    .expect("binary search throws error if datablock doesn't exist.");
-                get_local_record(db, idx - 1)
-            })
-            .ok_or(TemporalError::general("No transition time found."))
+        let Some(result) = self.binary_search(epoch_seconds) else {
+            return Err(TemporalError::general("Only Tzif v2+ is supported."));
+        };
+
+        let db = self
+            .0
+            .data_block2
+            .as_ref()
+            .expect("binary search throws error if datablock doesn't exist.");
+
+        match result {
+            Ok(idx) => Ok(get_local_record(db, idx - 1)),
+            Err(idx) if idx == 0 => Ok(get_local_record(db, idx)),
+            Err(idx) => {
+                if db.transition_times.len() <= idx {
+                    return Err(TemporalError::general("TODO: Support POSIX tz string."));
+                }
+                Ok(get_local_record(db, idx - 1))
+            }
+        }
     }
 
     // There are various other ways to search rather than binary_search. See glibc
-    pub fn binary_search(&self, epoch_seconds: &Seconds) -> Option<usize> {
+    pub fn binary_search(&self, epoch_seconds: &Seconds) -> Option<Result<usize, usize>> {
         self.0
             .data_block2
             .as_ref()
-            .map(|b| match b.transition_times.binary_search(epoch_seconds) {
-                Ok(idx) | Err(idx) => idx,
-            })
+            .map(|b| b.transition_times.binary_search(epoch_seconds))
     }
 
     pub fn v2_estimate_tz_pair(
@@ -93,16 +101,34 @@ impl Tzif {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         // TODO: it would be nice to resolve the Posix str into a local time type record.
-        let estimated_idx = self.binary_search(seconds).expect("values to exist. Although that won't always be the case, so handling via POSIX proleptic tz string.");
+        println!("Searching for{:?}", seconds);
+        let Some(b_search_result) = self.binary_search(seconds) else {
+            return Err(TemporalError::general("Only Tzif v2+ is supported."));
+        };
+
+        let data_block = self
+            .0
+            .data_block2
+            .as_ref()
+            .expect("binary_search validates that data_block2 exists.");
+
+        println!("Data block: {:?}", data_block);
+
+        let estimated_idx = match b_search_result {
+            Ok(idx) => idx,
+            Err(idx) if idx == 0 => return Ok(vec![get_local_record(data_block, idx)]),
+            Err(idx) => {
+                if data_block.transition_times.len() <= idx {
+                    return Err(TemporalError::general("TODO: Support POSIX tz string."));
+                }
+                idx
+            }
+        };
 
         // The estimated index will be off based on the amount missing
         // from the lack of offset.
         //
         // This means that we may need (idx, idx - 1) or (idx - 1, idx - 2)
-        let Some(ref data_block) = self.0.data_block2 else {
-            return Err(TemporalError::general("tbd"));
-        };
-
         let record = get_local_record(data_block, estimated_idx);
         let record_minus_one = get_local_record(data_block, estimated_idx - 1);
 
@@ -360,5 +386,75 @@ mod tests {
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
         assert_eq!(locals.len(), 2);
+    }
+
+    // TODO: Determine the validity of this test. Primarily, this test
+    // goes beyond the regularly historic limit of transition_times, so
+    // even when on a DST boundary the first time zone is returned. The
+    // question is whether this behavior is consistent with what would
+    // be expected.
+    #[test]
+    fn before_epoch_northern_hemisphere() {
+        let date = crate::iso::IsoDate {
+            year: 1880,
+            month: 11,
+            day: 5,
+        };
+        let time = crate::iso::IsoTime {
+            hour: 1,
+            minute: 30,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+            nanosecond: 0,
+        };
+        let edge_case = IsoDateTime::new(date, time).unwrap();
+        let edge_case_seconds = edge_case
+            .as_nanoseconds()
+            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+
+        let new_york = Tzif::read_tzif("America/New_York");
+        assert!(new_york.is_ok());
+        let new_york = new_york.unwrap();
+
+        let locals = new_york
+            .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
+            .unwrap();
+
+        assert_eq!(locals.len(), 1);
+    }
+
+    // TODO: Determine the validity of this test. Primarily, this test
+    // goes beyond the regularly historic limit of transition_times, so
+    // even when on a DST boundary the first time zone is returned. The
+    // question is whether this behavior is consistent with what would
+    // be expected.
+    #[test]
+    fn before_epoch_southern_hemisphere() {
+        // Australia Daylight savings day
+        let date = crate::iso::IsoDate {
+            year: 1880,
+            month: 4,
+            day: 2,
+        };
+        let time = crate::iso::IsoTime {
+            hour: 2,
+            minute: 30,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+            nanosecond: 0,
+        };
+        let today = IsoDateTime::new(date, time).unwrap();
+        let seconds = today
+            .as_nanoseconds()
+            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+
+        let sydney = Tzif::read_tzif("Australia/Sydney");
+        assert!(sydney.is_ok());
+        let sydney = sydney.unwrap();
+
+        let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
+        assert_eq!(locals.len(), 1);
     }
 }
