@@ -399,7 +399,7 @@ fn cmp_seconds_to_transitions(
             } else {
                 *start <= day_in_year && day_in_year < *end
             };
-           (is_transition, is_dst)
+            (is_transition, is_dst)
         }
         // NOTE: The assumption here is that mismatched day types on
         // a POSIX string is an illformed string.

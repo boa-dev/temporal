@@ -56,5 +56,5 @@ fn system_date_time(
 
 fn system_instant() -> TemporalResult<Instant> {
     let nanos = sys::get_system_nanoseconds()?;
-    Instant::new(i128::from_u128(nanos).temporal_unwrap()?)
+    Instant::try_new(i128::from_u128(nanos).temporal_unwrap()?)
 }
