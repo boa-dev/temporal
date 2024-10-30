@@ -2,6 +2,8 @@
 
 use tinystr::{tinystr, TinyAsciiStr};
 
+use alloc::format;
+
 use crate::iso::{constrain_iso_day, is_valid_iso_day};
 use crate::options::ArithmeticOverflow;
 use crate::{TemporalError, TemporalResult};

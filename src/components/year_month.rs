@@ -1,6 +1,7 @@
 //! This module implements `YearMonth` and any directly related algorithms.
 
-use std::str::FromStr;
+use alloc::string::String;
+use core::str::FromStr;
 
 use tinystr::TinyAsciiStr;
 

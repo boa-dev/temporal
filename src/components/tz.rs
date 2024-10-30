@@ -1,5 +1,7 @@
 //! This module implements the Temporal `TimeZone` and components.
 
+use alloc::string::String;
+use alloc::vec::Vec;
 use num_bigint::BigInt;
 use num_traits::ToPrimitive;
 

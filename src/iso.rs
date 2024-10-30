@@ -12,7 +12,8 @@
 //!
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
-use std::num::NonZeroU128;
+use alloc::string::ToString;
+use core::num::NonZeroU128;
 
 use crate::{
     components::{

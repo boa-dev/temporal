@@ -7,9 +7,12 @@ use crate::{
     primitive::FiniteF64,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
+use alloc::format;
+use alloc::vec;
+use alloc::vec::Vec;
+use core::str::FromStr;
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use num_traits::AsPrimitive;
-use std::str::FromStr;
 
 use self::normalized::NormalizedTimeDuration;
 
@@ -651,7 +654,7 @@ pub(crate) fn is_valid_duration(
     // 7. NOTE: The above step cannot be implemented directly using floating-point arithmetic.
     // Multiplying by 10**-3, 10**-6, and 10**-9 respectively may be imprecise when milliseconds,
     // microseconds, or nanoseconds is an unsafe integer. This multiplication can be implemented
-    // in C++ with an implementation of std::remquo() with sufficient bits in the quotient.
+    // in C++ with an implementation of core::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
     let normalized_seconds = days.0.mul_add(

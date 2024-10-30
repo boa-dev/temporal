@@ -132,7 +132,7 @@ impl PartialEq<f64> for FiniteF64 {
 }
 
 impl PartialOrd<f64> for FiniteF64 {
-    fn partial_cmp(&self, other: &f64) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &f64) -> Option<core::cmp::Ordering> {
         self.0.partial_cmp(other)
     }
 }

@@ -1,6 +1,6 @@
 //! An implementation of the Temporal Instant.
 
-use std::{num::NonZeroU128, str::FromStr};
+use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
     components::{duration::TimeDuration, Duration},
