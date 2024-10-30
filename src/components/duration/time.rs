@@ -180,11 +180,11 @@ impl TimeDuration {
             _ => temporal_assert!(largest_unit == TemporalUnit::Nanosecond),
         }
 
-        // NOTE(nekevss): `mul_add` is essentially the Rust's implementation of `core::fma()`, so that's handy, but
+        // NOTE(nekevss): `mul_add` is essentially the Rust's implementation of `std::fma()`, so that's handy, but
         // this should be tested much further.
         // 11. NOTE: When largestUnit is "millisecond", "microsecond", or "nanosecond", milliseconds, microseconds, or
         // nanoseconds may be an unsafe integer. In this case, care must be taken when implementing the calculation
-        // using floating point arithmetic. It can be implemented in C++ using core::fma(). String manipulation will also
+        // using floating point arithmetic. It can be implemented in C++ using std::fma(). String manipulation will also
         // give an exact result, since the multiplication is by a power of 10.
 
         // NOTE: days may have the potentially to exceed i64
