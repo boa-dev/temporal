@@ -112,7 +112,8 @@ macro_rules! temporal_assert {
     };
     ($condition:expr, $($args:tt)+) => {
         if !$condition {
-            println!($($args)+);
+            #[cfg(feature = "log")]
+            log::error!($($args)+);
             return Err(TemporalError::assert());
         }
     };
