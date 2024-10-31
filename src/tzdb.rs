@@ -122,6 +122,17 @@ impl Tzif {
             .binary_search(epoch_seconds))
     }
 
+    // For more information, see /docs/TZDB.md
+    /// This function determines the Time Zone output for a local epoch
+    /// nanoseconds value without an offset.
+    /// 
+    /// Basically, if someone provides a DateTime 2017-11-05T01:30:00,
+    /// we have no way of knowing if this value is in DST or STD.
+    /// Furthermore, for the above example, this should return 2 time
+    /// zones due to there being two 2017-11-05T01:30:00. On the other
+    /// side of the transition, the DateTime 2017-03-12T02:30:00 could
+    /// be provided. This time does NOT exist due to the +1 jump from
+    /// 02:00 -> 03:00 (but of course it does as a nanosecond value).
     pub fn v2_estimate_tz_pair(
         &self,
         seconds: &Seconds,
@@ -134,6 +145,7 @@ impl Tzif {
         let data_block = self.get_data_block2()?;
 
         let estimated_idx = match b_search_result {
+            // TODO: Double check returning early here with tests.
             Ok(idx) => return Ok(vec![get_local_record(data_block, idx)]),
             Err(idx) if idx == 0 => return Ok(vec![get_local_record(data_block, idx)]),
             Err(idx) => {
@@ -151,7 +163,10 @@ impl Tzif {
         let record = get_local_record(data_block, estimated_idx);
         let record_minus_one = get_local_record(data_block, estimated_idx - 1);
 
-        // Potential shift bugs with odd historical transitions?
+        // Q: Potential shift bugs with odd historical transitions? This
+        //
+        // Shifts the 2 rule window for positive zones that would have returned
+        // a different idx.
         let shift_window = usize::from((record.utoff + record_minus_one.utoff) >= Seconds(0));
 
         let new_idx = estimated_idx - shift_window;
@@ -162,6 +177,7 @@ impl Tzif {
         let initial_record = get_local_record(data_block, new_idx - 1);
         let next_record = get_local_record(data_block, new_idx);
 
+        // Adjust for offset inversion from northern/southern hemisphere.
         let offset_range = if initial_record.utoff < next_record.utoff {
             initial_record.utoff..next_record.utoff
         } else {
