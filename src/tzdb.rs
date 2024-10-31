@@ -32,6 +32,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use alloc::string::{String, ToString};
+use alloc::{vec, vec::Vec};
+
 use tzif::{
     self,
     data::{

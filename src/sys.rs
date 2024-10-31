@@ -1,3 +1,4 @@
+use alloc::string::{String, ToString};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{TemporalError, TemporalResult};
