@@ -34,9 +34,6 @@ use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use core::cell::RefCell;
 
-use alloc::string::{String, ToString};
-use alloc::{vec, vec::Vec};
-
 use combine::Parser;
 
 use tzif::{
@@ -150,7 +147,7 @@ impl Tzif {
         let Ok((parse_result, _)) = tzif::parse::tzif::tzif().parse(data) else {
             return Err(TemporalError::general("Illformed Tzif data."));
         };
-        Ok(Self(parse_result))
+        Ok(Self::from(parse_result))
     }
 
     fn read_tzif(identifier: &str) -> TemporalResult<Self> {
@@ -166,7 +163,7 @@ impl Tzif {
     }
 
     pub fn posix_tz_string(&self) -> Option<&PosixTzString> {
-        self.0.footer.as_ref()
+        self.footer.as_ref()
     }
 
     pub fn get_data_block2(&self) -> TemporalResult<&DataBlock> {
@@ -175,7 +172,7 @@ impl Tzif {
             .ok_or(TemporalError::general("Only Tzif V2+ is supported."))
     }
 
-    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeTypeRecord> {
+    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeRecord> {
         let db = self.get_data_block2()?;
         let result = db.transition_times.binary_search(epoch_seconds);
 
@@ -216,7 +213,7 @@ impl Tzif {
 
         let estimated_idx = match b_search_result {
             // TODO: Double check returning early here with tests.
-            Ok(idx) => return Ok(vec![get_local_record(db, idx)]),
+            Ok(idx) => return Ok(get_local_record(db, idx).into()),
             Err(idx) if idx == 0 => {
                 return Ok(LocalTimeRecordResult::Single(
                     get_local_record(db, idx).into(),
