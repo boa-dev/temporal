@@ -609,7 +609,14 @@ mod tests {
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
 
+        #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
+        #[cfg(target_os = "windows")]
+        let new_york = {
+            let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
+            Tzif::from_bytes(data)
+        };
+
         assert!(new_york.is_ok());
         let new_york = new_york.unwrap();
 
@@ -640,7 +647,14 @@ mod tests {
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
 
+        #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
+        #[cfg(target_os = "windows")]
+        let sydney = {
+            let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
+            Tzif::from_bytes(data)
+        };
+
         assert!(sydney.is_ok());
         let sydney = sydney.unwrap();
 
@@ -668,7 +682,14 @@ mod tests {
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
 
+        #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
+        #[cfg(target_os = "windows")]
+        let new_york = {
+            let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
+            Tzif::from_bytes(data)
+        };
+
         assert!(new_york.is_ok());
         let new_york = new_york.unwrap();
 
@@ -712,7 +733,14 @@ mod tests {
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
 
+        #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
+        #[cfg(target_os = "windows")]
+        let sydney = {
+            let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
+            Tzif::from_bytes(data)
+        };
+
         assert!(sydney.is_ok());
         let sydney = sydney.unwrap();
 
@@ -845,7 +873,14 @@ mod tests {
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
 
+        #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
+        #[cfg(target_os = "windows")]
+        let new_york = {
+            let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
+            Tzif::from_bytes(data)
+        };
+
         assert!(new_york.is_ok());
         let new_york = new_york.unwrap();
 
@@ -882,7 +917,14 @@ mod tests {
             .as_nanoseconds()
             .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
 
+        #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
+        #[cfg(target_os = "windows")]
+        let sydney = {
+            let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
+            Tzif::from_bytes(data)
+        };
+
         assert!(sydney.is_ok());
         let sydney = sydney.unwrap();
 
