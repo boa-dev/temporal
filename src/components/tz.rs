@@ -12,7 +12,9 @@ use crate::{
 /// A Temporal `TimeZone`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TimeZone {
+    /// The IANA identifier for this time zone.
     pub(crate) iana: Option<String>, // TODO: ICU4X IANA TimeZone support.
+    /// The offset minutes of a time zone.
     pub(crate) offset: Option<i16>,
 }
 
