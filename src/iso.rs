@@ -37,8 +37,8 @@ use num_traits::{cast::FromPrimitive, AsPrimitive, ToPrimitive};
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoDateTime {
-    pub(crate) date: IsoDate,
-    pub(crate) time: IsoTime,
+    pub date: IsoDate,
+    pub time: IsoTime,
 }
 
 impl IsoDateTime {
@@ -48,7 +48,7 @@ impl IsoDateTime {
     }
 
     /// Creates a new validated `IsoDateTime` that is within valid limits.
-    pub(crate) fn new(date: IsoDate, time: IsoTime) -> TemporalResult<Self> {
+    pub fn new(date: IsoDate, time: IsoTime) -> TemporalResult<Self> {
         if !iso_dt_within_valid_limits(date, &time) {
             return Err(
                 TemporalError::range().with_message("IsoDateTime not within a valid range.")
@@ -58,6 +58,8 @@ impl IsoDateTime {
     }
 
     // NOTE: The below assumes that nanos is from an `Instant` and thus in a valid range. -> Needs validation.
+    //
+    // TODO: Move away from offset use of f64
     /// Creates an `IsoDateTime` from a `BigInt` of epochNanoseconds.
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
     pub(crate) fn from_epoch_nanos(nanos: &i128, offset: f64) -> TemporalResult<Self> {
@@ -132,8 +134,8 @@ impl IsoDateTime {
 
     // TODO: Move offset away from f64?
     /// Returns this `IsoDateTime` in nanoseconds
-    pub(crate) fn as_nanoseconds(&self, offset: f64) -> Option<i128> {
-        utc_epoch_nanos(self.date, &self.time, offset).and_then(|z| z.to_i128())
+    pub fn as_nanoseconds(&self) -> Option<i128> {
+        utc_epoch_nanos(self.date, &self.time).and_then(|z| z.to_i128())
     }
 
     /// Specification equivalent to 5.5.9 `AddDateTime`.
@@ -279,9 +281,9 @@ pub trait IsoDateSlots {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoDate {
-    pub(crate) year: i32,
-    pub(crate) month: u8,
-    pub(crate) day: u8,
+    pub year: i32,
+    pub month: u8,
+    pub day: u8,
 }
 
 impl IsoDate {
@@ -336,7 +338,7 @@ impl IsoDate {
 
     /// Returns this `IsoDate` in nanoseconds.
     pub(crate) fn as_nanoseconds(&self) -> Option<i128> {
-        utc_epoch_nanos(*self, &IsoTime::default(), 0.0).and_then(|z| z.to_i128())
+        utc_epoch_nanos(*self, &IsoTime::default()).and_then(|z| z.to_i128())
     }
 
     /// Functionally the same as Date's abstract operation `MakeDay`
@@ -499,12 +501,12 @@ impl IsoDate {
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoTime {
-    pub(crate) hour: u8,         // 0..=23
-    pub(crate) minute: u8,       // 0..=59
-    pub(crate) second: u8,       // 0..=59
-    pub(crate) millisecond: u16, // 0..=999
-    pub(crate) microsecond: u16, // 0..=999
-    pub(crate) nanosecond: u16,  // 0..=999
+    pub hour: u8,         // 0..=23
+    pub minute: u8,       // 0..=59
+    pub second: u8,       // 0..=59
+    pub millisecond: u16, // 0..=999
+    pub microsecond: u16, // 0..=999
+    pub nanosecond: u16,  // 0..=999
 }
 
 impl IsoTime {
@@ -889,7 +891,7 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
     {
         return false;
     }
-    let Some(ns) = utc_epoch_nanos(date, time, 0.0) else {
+    let Some(ns) = utc_epoch_nanos(date, time) else {
         return false;
     };
 
@@ -901,7 +903,7 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
 
 #[inline]
 /// Utility function to convert a `IsoDate` and `IsoTime` values into epoch nanoseconds
-fn utc_epoch_nanos(date: IsoDate, time: &IsoTime, offset: f64) -> Option<i128> {
+fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> Option<i128> {
     let ms = time.to_epoch_ms();
     let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
 
@@ -910,7 +912,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime, offset: f64) -> Option<i128> {
         f64::from(time.microsecond).mul_add(1_000f64, f64::from(time.nanosecond)),
     );
 
-    i128::from_f64(epoch_nanos - offset)
+    i128::from_f64(epoch_nanos)
 }
 
 // ==== `IsoDate` specific utiltiy functions ====

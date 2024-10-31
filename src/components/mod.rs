@@ -18,6 +18,13 @@ mod time;
 mod year_month;
 mod zoneddatetime;
 
+#[cfg(feature = "std")]
+mod now;
+
+#[cfg(feature = "std")]
+#[doc(inline)]
+pub use now::Now;
+
 #[doc(inline)]
 pub use date::{PartialDate, PlainDate};
 #[doc(inline)]
