@@ -11,10 +11,10 @@ use crate::{components::Instant, iso::IsoDateTime, TemporalError, TemporalResult
 
 #[cfg(all(feature = "tzdb", not(target_os = "windows")))]
 use crate::tzdb::FsTzdbProvider;
-#[cfg(feature = "experimental")]
+#[cfg(all(feature = "experimental", not(target_os = "windows")))]
 use std::sync::{LazyLock, Mutex};
 
-#[cfg(feature = "experimental")]
+#[cfg(all(feature = "experimental", not(target_os = "windows")))]
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
     LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
 

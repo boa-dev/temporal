@@ -116,7 +116,7 @@ impl Tzif {
     // For more information, see /docs/TZDB.md
     /// This function determines the Time Zone output for a local epoch
     /// nanoseconds value without an offset.
-    /// 
+    ///
     /// Basically, if someone provides a DateTime 2017-11-05T01:30:00,
     /// we have no way of knowing if this value is in DST or STD.
     /// Furthermore, for the above example, this should return 2 time
