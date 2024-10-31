@@ -189,8 +189,7 @@ impl Tzif {
                             "No POSIX tz string to resolve with.",
                         ))?,
                         epoch_seconds.0,
-                    )
-                    .into();
+                    );
                 }
                 Ok(get_local_record(db, idx - 1).into())
             }
@@ -430,7 +429,7 @@ fn cmp_seconds_to_transitions(
             } else {
                 *start <= day_in_year && day_in_year < *end
             };
-           (is_transition, is_dst)
+            (is_transition, is_dst)
         }
         // NOTE: The assumption here is that mismatched day types on
         // a POSIX string is an illformed string.
