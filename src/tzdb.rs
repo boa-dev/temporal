@@ -97,7 +97,6 @@ impl Tzif {
             .ok_or(TemporalError::general("Only Tzif V2+ is supported."))
     }
 
-    // There are ultimately
     pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeTypeRecord> {
         let result = self.binary_search(epoch_seconds)?;
 
