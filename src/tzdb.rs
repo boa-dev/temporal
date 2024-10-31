@@ -27,7 +27,9 @@
 // where
 // offset diff = is_dst { dst_off - std_off } else { std_off - dst_off }, i.e. to_offset - from_offset
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
+#[cfg(not(target_os = "windows"))]
+use std::path::PathBuf;
 
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
@@ -47,6 +49,7 @@ use tzif::{
 
 use crate::{components::tz::TzProvider, iso::IsoDateTime, utils, TemporalError, TemporalResult};
 
+#[cfg(not(target_os = "windows"))]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -150,7 +153,8 @@ impl Tzif {
         Ok(Self::from(parse_result))
     }
 
-    fn read_tzif(identifier: &str) -> TemporalResult<Self> {
+    #[cfg(not(target_os = "windows"))]
+    pub fn read_tzif(identifier: &str) -> TemporalResult<Self> {
         let mut path = PathBuf::from(ZONEINFO_DIR);
         path.push(identifier);
         Self::from_path(&path)
