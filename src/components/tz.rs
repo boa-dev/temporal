@@ -9,7 +9,7 @@ use num_traits::ToPrimitive;
 
 use crate::{components::Instant, iso::IsoDateTime, TemporalError, TemporalResult};
 
-#[cfg(feature = "experimental")]
+#[cfg(all(feature = "tzdb", not(target_os = "windows")))]
 use crate::tzdb::FsTzdbProvider;
 #[cfg(feature = "experimental")]
 use std::sync::{LazyLock, Mutex};
@@ -21,16 +21,16 @@ pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
 use super::ZonedDateTime;
 
 pub trait TzProvider {
-    fn check_identifier(&mut self, identifier: &str) -> bool;
+    fn check_identifier(&self, identifier: &str) -> bool;
 
     fn get_named_tz_epoch_nanoseconds(
-        &mut self,
+        &self,
         identifier: &str,
         iso_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<i128>>;
 
     fn get_named_tz_offset_nanoseconds(
-        &mut self,
+        &self,
         identifier: &str,
         epoch_nanoseconds: i128,
     ) -> TemporalResult<i128>;

@@ -27,19 +27,19 @@
 // where
 // offset diff = is_dst { dst_off - std_off } else { std_off - dst_off }, i.e. to_offset - from_offset
 
-use std::{
-    collections::HashMap,
-    path::{Path, PathBuf},
-};
+use std::path::{Path, PathBuf};
 
+use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
+use core::cell::RefCell;
 
 use tzif::{
     self,
     data::{
+        posix::PosixTzString,
         time::Seconds,
-        tzif::{DataBlock, LocalTimeTypeRecord, TzifData},
+        tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
 };
 
@@ -49,8 +49,34 @@ const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
 pub type TransitionInfo = [Option<LocalTimeTypeRecord>; 2];
 
-#[derive(Debug)]
-pub struct Tzif(TzifData);
+#[derive(Debug, Clone)]
+pub struct Tzif {
+    pub header1: TzifHeader,
+    pub data_block1: DataBlock,
+    pub header2: Option<TzifHeader>,
+    pub data_block2: Option<DataBlock>,
+    pub footer: Option<PosixTzString>,
+}
+
+impl From<TzifData> for Tzif {
+    fn from(value: TzifData) -> Self {
+        let TzifData {
+            header1,
+            data_block1,
+            header2,
+            data_block2,
+            footer,
+        } = value;
+
+        Self {
+            header1,
+            data_block1,
+            header2,
+            data_block2,
+            footer,
+        }
+    }
+}
 
 impl Tzif {
     fn read_tzif(identifier: &str) -> TemporalResult<Self> {
@@ -61,21 +87,21 @@ impl Tzif {
 
     pub fn from_path<P: AsRef<Path>>(path: P) -> TemporalResult<Self> {
         tzif::parse_tzif_file(path)
-            .map(Self)
+            .map(Into::into)
             .map_err(|e| TemporalError::general(e.to_string()))
+    }
+
+    pub fn get_data_block2(&self) -> TemporalResult<&DataBlock> {
+        self.data_block2
+            .as_ref()
+            .ok_or(TemporalError::general("Only Tzif V2+ is supported."))
     }
 
     // There are ultimately
     pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeTypeRecord> {
-        let Some(result) = self.binary_search(epoch_seconds) else {
-            return Err(TemporalError::general("Only Tzif v2+ is supported."));
-        };
+        let result = self.binary_search(epoch_seconds)?;
 
-        let db = self
-            .0
-            .data_block2
-            .as_ref()
-            .expect("binary search throws error if datablock doesn't exist.");
+        let db = self.get_data_block2()?;
 
         match result {
             Ok(idx) => Ok(get_local_record(db, idx - 1)),
@@ -90,11 +116,11 @@ impl Tzif {
     }
 
     // There are various other ways to search rather than binary_search. See glibc
-    pub fn binary_search(&self, epoch_seconds: &Seconds) -> Option<Result<usize, usize>> {
-        self.0
-            .data_block2
-            .as_ref()
-            .map(|b| b.transition_times.binary_search(epoch_seconds))
+    pub fn binary_search(&self, epoch_seconds: &Seconds) -> TemporalResult<Result<usize, usize>> {
+        Ok(self
+            .get_data_block2()?
+            .transition_times
+            .binary_search(epoch_seconds))
     }
 
     pub fn v2_estimate_tz_pair(
@@ -104,18 +130,12 @@ impl Tzif {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         // TODO: it would be nice to resolve the Posix str into a local time type record.
-        let Some(b_search_result) = self.binary_search(seconds) else {
-            return Err(TemporalError::general("Only Tzif v2+ is supported."));
-        };
+        let b_search_result = self.binary_search(seconds)?;
 
-        let data_block = self
-            .0
-            .data_block2
-            .as_ref()
-            .expect("binary_search validates that data_block2 exists.");
+        let data_block = self.get_data_block2()?;
 
         let estimated_idx = match b_search_result {
-            Ok(idx) => idx,
+            Ok(idx) => return Ok(vec![get_local_record(data_block, idx)]),
             Err(idx) if idx == 0 => return Ok(vec![get_local_record(data_block, idx)]),
             Err(idx) => {
                 if data_block.transition_times.len() <= idx {
@@ -133,7 +153,7 @@ impl Tzif {
         let record_minus_one = get_local_record(data_block, estimated_idx - 1);
 
         // Potential shift bugs with odd historical transitions?
-        let shift_window = usize::from((record.utoff + record_minus_one.utoff).0.signum() >= 0);
+        let shift_window = usize::from((record.utoff + record_minus_one.utoff) >= Seconds(0));
 
         let new_idx = estimated_idx - shift_window;
 
@@ -163,28 +183,31 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
 
 #[derive(Debug, Default)]
 pub struct FsTzdbProvider {
-    cache: HashMap<String, Tzif>,
+    cache: RefCell<BTreeMap<String, Tzif>>,
 }
 
 impl FsTzdbProvider {
-    pub fn get(&mut self, identifier: &str) -> TemporalResult<&Tzif> {
-        if !self.cache.contains_key(identifier) {
-            let tzif = Tzif::read_tzif(identifier)?;
-            self.cache.insert(identifier.into(), tzif);
-            self.cache.get(identifier).ok_or(TemporalError::assert())
-        } else {
-            self.cache.get(identifier).ok_or(TemporalError::assert())
+    pub fn get(&self, identifier: &str) -> TemporalResult<Tzif> {
+        if let Some(tzif) = self.cache.borrow().get(identifier) {
+            return Ok(tzif.clone());
         }
+        let tzif = Tzif::read_tzif(identifier)?;
+        Ok(self
+            .cache
+            .borrow_mut()
+            .entry(identifier.into())
+            .or_insert(tzif)
+            .clone())
     }
 }
 
 impl TzProvider for FsTzdbProvider {
-    fn check_identifier(&mut self, identifier: &str) -> bool {
+    fn check_identifier(&self, identifier: &str) -> bool {
         self.get(identifier).is_ok()
     }
 
     fn get_named_tz_epoch_nanoseconds(
-        &mut self,
+        &self,
         identifier: &str,
         iso_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<i128>> {
@@ -201,7 +224,7 @@ impl TzProvider for FsTzdbProvider {
     }
 
     fn get_named_tz_offset_nanoseconds(
-        &mut self,
+        &self,
         identifier: &str,
         epoch_nanoseconds: i128,
     ) -> TemporalResult<i128> {
@@ -223,7 +246,7 @@ mod tests {
 
     #[test]
     fn one_second_after_empty_edge_case() {
-        let mut provider = FsTzdbProvider::default();
+        let provider = FsTzdbProvider::default();
         let date = crate::iso::IsoDate {
             year: 2017,
             month: 3,
@@ -247,7 +270,7 @@ mod tests {
 
     #[test]
     fn one_second_before_empty_edge_case() {
-        let mut provider = FsTzdbProvider::default();
+        let provider = FsTzdbProvider::default();
         let date = crate::iso::IsoDate {
             year: 2017,
             month: 3,
