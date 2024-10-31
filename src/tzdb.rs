@@ -98,9 +98,8 @@ impl Tzif {
     }
 
     pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeTypeRecord> {
-        let result = self.binary_search(epoch_seconds)?;
-
         let db = self.get_data_block2()?;
+        let result = db.transition_times.binary_search(epoch_seconds);
 
         match result {
             Ok(idx) => Ok(get_local_record(db, idx - 1)),
@@ -112,14 +111,6 @@ impl Tzif {
                 Ok(get_local_record(db, idx - 1))
             }
         }
-    }
-
-    // There are various other ways to search rather than binary_search. See glibc
-    pub fn binary_search(&self, epoch_seconds: &Seconds) -> TemporalResult<Result<usize, usize>> {
-        Ok(self
-            .get_data_block2()?
-            .transition_times
-            .binary_search(epoch_seconds))
     }
 
     // For more information, see /docs/TZDB.md
@@ -140,16 +131,15 @@ impl Tzif {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         // TODO: it would be nice to resolve the Posix str into a local time type record.
-        let b_search_result = self.binary_search(seconds)?;
-
-        let data_block = self.get_data_block2()?;
+        let db = self.get_data_block2()?;
+        let b_search_result = db.transition_times.binary_search(seconds);
 
         let estimated_idx = match b_search_result {
             // TODO: Double check returning early here with tests.
-            Ok(idx) => return Ok(vec![get_local_record(data_block, idx)]),
-            Err(idx) if idx == 0 => return Ok(vec![get_local_record(data_block, idx)]),
+            Ok(idx) => return Ok(vec![get_local_record(db, idx)]),
+            Err(idx) if idx == 0 => return Ok(vec![get_local_record(db, idx)]),
             Err(idx) => {
-                if data_block.transition_times.len() <= idx {
+                if db.transition_times.len() <= idx {
                     return Err(TemporalError::general("TODO: Support POSIX tz string."));
                 }
                 idx
@@ -160,8 +150,8 @@ impl Tzif {
         // from the lack of offset.
         //
         // This means that we may need (idx, idx - 1) or (idx - 1, idx - 2)
-        let record = get_local_record(data_block, estimated_idx);
-        let record_minus_one = get_local_record(data_block, estimated_idx - 1);
+        let record = get_local_record(db, estimated_idx);
+        let record_minus_one = get_local_record(db, estimated_idx - 1);
 
         // Q: Potential shift bugs with odd historical transitions? This
         //
@@ -171,11 +161,11 @@ impl Tzif {
 
         let new_idx = estimated_idx - shift_window;
 
-        let current_transition = data_block.transition_times[new_idx];
+        let current_transition = db.transition_times[new_idx];
         let current_diff = *seconds - current_transition;
 
-        let initial_record = get_local_record(data_block, new_idx - 1);
-        let next_record = get_local_record(data_block, new_idx);
+        let initial_record = get_local_record(db, new_idx - 1);
+        let next_record = get_local_record(db, new_idx);
 
         // Adjust for offset inversion from northern/southern hemisphere.
         let offset_range = if initial_record.utoff < next_record.utoff {
