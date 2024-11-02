@@ -87,11 +87,11 @@ impl From<LocalTimeTypeRecord> for LocalTimeRecord {
 }
 
 // TODO: Workshop record name?
-/// The `LocalTimeRecord` result represents the result of searching for a 
+/// The `LocalTimeRecord` result represents the result of searching for a
 /// a for a time zone transition without the offset seconds applied to the
 /// epoch seconds.
-/// 
-/// As a result of the search, it is possible for the resulting search to be either 
+///
+/// As a result of the search, it is possible for the resulting search to be either
 /// Empty (due to an invalid time being provided that would be in the +1 tz shift)
 /// or two time zones (when a time exists in the ambiguous range of a -1 shift).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -121,18 +121,18 @@ impl From<(LocalTimeTypeRecord, LocalTimeTypeRecord)> for LocalTimeRecordResult 
     }
 }
 
-/// `TZif` stands for Time zone information format is laid out by [RFC 8536] and
-/// laid out by the [tzdata manual](tzif5)
-/// 
+/// `TZif` stands for Time zone information format is laid out by [RFC 8536][rfc8356] and
+/// laid out by the [tzdata manual][tzif-manual]
+///
 /// To be specific, this representation of `TZif` is solely to extend functionality
-/// fo the parsed type from the `tzif` [rust crate](tzif-crate), which has further detail on the
+/// fo the parsed type from the `tzif` [rust crate][tzif-crate], which has further detail on the
 /// layout in Rust.
-/// 
-/// `TZif` files are compiled via [`zic`](zic-manual), which offers a variety of options for changing the layout
+///
+/// `TZif` files are compiled via [`zic`][zic-manual], which offers a variety of options for changing the layout
 /// and range of a `TZif`.
-/// 
+///
 /// [rfc8536]: https://datatracker.ietf.org/doc/html/rfc8536
-/// [tzif5]: https://man.archlinux.org/man/tzfile.5.en
+/// [tzif-manual]: https://man7.org/linux/man-pages/man5/tzfile.5.html
 /// [tzif-crate]: https://docs.rs/tzif/latest/tzif/
 /// [zic-manual]: https://man7.org/linux/man-pages/man8/zic.8.html
 #[derive(Debug, Clone)]
@@ -206,7 +206,7 @@ impl Tzif {
                 if db.transition_times.len() <= idx {
                     // The transition time provided is beyond the length of
                     // the available transition time, so the time zone is
-                    // resolved with the POSIX tz string. 
+                    // resolved with the POSIX tz string.
                     return resolve_posix_tz_string_for_epoch_seconds(
                         self.posix_tz_string().ok_or(TemporalError::general(
                             "No POSIX tz string to resolve with.",
@@ -248,7 +248,7 @@ impl Tzif {
                 if db.transition_times.len() <= idx {
                     // The transition time provided is beyond the length of
                     // the available transition time, so the time zone is
-                    // resolved with the POSIX tz string. 
+                    // resolved with the POSIX tz string.
                     return resolve_posix_tz_string(
                         self.posix_tz_string()
                             .ok_or(TemporalError::general("Could not resolve time zone."))?,
