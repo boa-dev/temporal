@@ -121,7 +121,7 @@ impl From<(LocalTimeTypeRecord, LocalTimeTypeRecord)> for LocalTimeRecordResult 
     }
 }
 
-/// `TZif` stands for Time zone information format is laid out by [RFC 8536][rfc8356] and
+/// `TZif` stands for Time zone information format is laid out by [RFC 8536][rfc8536] and
 /// laid out by the [tzdata manual][tzif-manual]
 ///
 /// To be specific, this representation of `TZif` is solely to extend functionality
