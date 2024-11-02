@@ -52,6 +52,7 @@ use crate::{components::tz::TzProvider, iso::IsoDateTime, utils, TemporalError, 
 #[cfg(not(target_os = "windows"))]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
+/// `LocalTimeRecord` represents an local time offset record.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LocalTimeRecord {
     /// Whether the local time record is a Daylight Savings Time.
@@ -61,14 +62,14 @@ pub struct LocalTimeRecord {
 }
 
 impl LocalTimeRecord {
-    fn dst_zi(info: &ZoneVariantInfo) -> Self {
+    fn from_dst(info: &ZoneVariantInfo) -> Self {
         Self {
             is_dst: true,
             offset: -info.offset.0,
         }
     }
 
-    fn std_zi(info: &ZoneVariantInfo) -> Self {
+    fn from_std(info: &ZoneVariantInfo) -> Self {
         Self {
             is_dst: false,
             offset: -info.offset.0,
@@ -85,16 +86,20 @@ impl From<LocalTimeTypeRecord> for LocalTimeRecord {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum TransitionTimeSearch {
-    Index(usize),
-    PosixTz,
-}
-
+// TODO: Workshop record name?
+/// The `LocalTimeRecord` result represents the result of searching for a 
+/// a for a time zone transition without the offset seconds applied to the
+/// epoch seconds.
+/// 
+/// As a result of the search, it is possible for the resulting search to be either 
+/// Empty (due to an invalid time being provided that would be in the +1 tz shift)
+/// or two time zones (when a time exists in the ambiguous range of a -1 shift).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalTimeRecordResult {
     Empty,
     Single(LocalTimeRecord),
+    // Note(nekevss): it may be best to switch this to initial, need to double check
+    // disambiguation ops with inverse DST-STD relationship
     Ambiguous {
         std: LocalTimeRecord,
         dst: LocalTimeRecord,
@@ -116,6 +121,20 @@ impl From<(LocalTimeTypeRecord, LocalTimeTypeRecord)> for LocalTimeRecordResult 
     }
 }
 
+/// `TZif` stands for Time zone information format is laid out by [RFC 8536] and
+/// laid out by the [tzdata manual](tzif5)
+/// 
+/// To be specific, this representation of `TZif` is solely to extend functionality
+/// fo the parsed type from the `tzif` [rust crate](tzif-crate), which has further detail on the
+/// layout in Rust.
+/// 
+/// `TZif` files are compiled via [`zic`](zic-manual), which offers a variety of options for changing the layout
+/// and range of a `TZif`.
+/// 
+/// [rfc8536]: https://datatracker.ietf.org/doc/html/rfc8536
+/// [tzif5]: https://man.archlinux.org/man/tzfile.5.en
+/// [tzif-crate]: https://docs.rs/tzif/latest/tzif/
+/// [zic-manual]: https://man7.org/linux/man-pages/man8/zic.8.html
 #[derive(Debug, Clone)]
 pub struct Tzif {
     pub header1: TzifHeader,
@@ -185,6 +204,9 @@ impl Tzif {
             Err(idx) if idx == 0 => Ok(get_local_record(db, idx).into()),
             Err(idx) => {
                 if db.transition_times.len() <= idx {
+                    // The transition time provided is beyond the length of
+                    // the available transition time, so the time zone is
+                    // resolved with the POSIX tz string. 
                     return resolve_posix_tz_string_for_epoch_seconds(
                         self.posix_tz_string().ok_or(TemporalError::general(
                             "No POSIX tz string to resolve with.",
@@ -211,7 +233,6 @@ impl Tzif {
     pub fn v2_estimate_tz_pair(&self, seconds: &Seconds) -> TemporalResult<LocalTimeRecordResult> {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
-        // TODO: it would be nice to resolve the Posix str into a local time type record.
         let db = self.get_data_block2()?;
         let b_search_result = db.transition_times.binary_search(seconds);
 
@@ -225,6 +246,9 @@ impl Tzif {
             }
             Err(idx) => {
                 if db.transition_times.len() <= idx {
+                    // The transition time provided is beyond the length of
+                    // the available transition time, so the time zone is
+                    // resolved with the POSIX tz string. 
                     return resolve_posix_tz_string(
                         self.posix_tz_string()
                             .ok_or(TemporalError::general("Could not resolve time zone."))?,
@@ -277,7 +301,7 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 ) -> TemporalResult<LocalTimeRecord> {
     let Some(dst_variant) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecord::std_zi(&posix_tz_string.std_info));
+        return Ok(LocalTimeRecord::from_std(&posix_tz_string.std_info));
     };
 
     let start = &dst_variant.start_date;
@@ -292,12 +316,11 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         cmp_seconds_to_transitions(&start.day, &end.day, seconds)?;
 
     match compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant) {
-        TransitionType::Dst => Ok(LocalTimeRecord::dst_zi(&dst_variant.variant_info)),
-        TransitionType::Std => Ok(LocalTimeRecord::std_zi(&posix_tz_string.std_info)),
+        TransitionType::Dst => Ok(LocalTimeRecord::from_dst(&dst_variant.variant_info)),
+        TransitionType::Std => Ok(LocalTimeRecord::from_std(&posix_tz_string.std_info)),
     }
 }
 
-// TODO: Validate validity when dealing with epoch nanoseconds vs. ambiguous nanoseconds.
 #[inline]
 /// Resolve the footer of a tzif file.
 ///
@@ -309,7 +332,7 @@ fn resolve_posix_tz_string(
     let std = &posix_tz_string.std_info;
     let Some(dst) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecordResult::Single(LocalTimeRecord::std_zi(
+        return Ok(LocalTimeRecordResult::Single(LocalTimeRecord::from_std(
             &posix_tz_string.std_info,
         )));
     };
@@ -341,8 +364,8 @@ fn resolve_posix_tz_string(
             true if is_dst == TransitionType::Dst => return Ok(LocalTimeRecordResult::Empty),
             true => {
                 return Ok(LocalTimeRecordResult::Ambiguous {
-                    std: LocalTimeRecord::std_zi(std),
-                    dst: LocalTimeRecord::dst_zi(&dst.variant_info),
+                    std: LocalTimeRecord::from_std(std),
+                    dst: LocalTimeRecord::from_dst(&dst.variant_info),
                 })
             }
             _ => {}
@@ -350,10 +373,10 @@ fn resolve_posix_tz_string(
     }
 
     match is_dst {
-        TransitionType::Dst => Ok(LocalTimeRecordResult::Single(LocalTimeRecord::dst_zi(
+        TransitionType::Dst => Ok(LocalTimeRecordResult::Single(LocalTimeRecord::from_dst(
             &dst.variant_info,
         ))),
-        TransitionType::Std => Ok(LocalTimeRecordResult::Single(LocalTimeRecord::std_zi(
+        TransitionType::Std => Ok(LocalTimeRecordResult::Single(LocalTimeRecord::from_std(
             &posix_tz_string.std_info,
         ))),
     }
@@ -542,7 +565,7 @@ mod tests {
     use super::{FsTzdbProvider, Tzif};
 
     #[test]
-    fn one_second_after_empty_edge_case() {
+    fn exactly_transition_time_after_empty_edge_case() {
         let provider = FsTzdbProvider::default();
         let date = crate::iso::IsoDate {
             year: 2017,
