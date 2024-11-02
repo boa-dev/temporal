@@ -301,6 +301,7 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
     db.local_time_type_records[db.transition_types[idx]]
 }
 
+#[inline]
 fn resolve_posix_tz_string_for_epoch_seconds(
     posix_tz_string: &PosixTzString,
     seconds: i64,
@@ -333,10 +334,10 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     }
 }
 
-#[inline]
 /// Resolve the footer of a tzif file.
 ///
 /// Seconds are epoch seconds in local time.
+#[inline]
 fn resolve_posix_tz_string(
     posix_tz_string: &PosixTzString,
     seconds: i64,
@@ -415,8 +416,21 @@ fn compute_tz_for_epoch_seconds(
     transition
 }
 
+/// The month, week of month, and day of week value built into the POSIX tz string.
+///
+/// For more information, see the [POSIX tz string docs](https://sourceware.org/glibc/manual/2.40/html_node/Proleptic-TZ.html)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Mwd(u16, u16, u16);
+
+impl Mwd {
+    fn from_seconds(seconds: f64) -> Self {
+        let month = utils::epoch_time_to_month_in_year(seconds * 1_000.0) as u16 + 1;
+        let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
+        let week_of_month = day_of_month / 7 + 1;
+        let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
+        Self(month, week_of_month, day_of_week)
+    }
+}
 
 fn cmp_seconds_to_transitions(
     start: &TransitionDay,
@@ -428,11 +442,7 @@ fn cmp_seconds_to_transitions(
             TransitionDay::Mwd(start_month, start_week, start_day),
             TransitionDay::Mwd(end_month, end_week, end_day),
         ) => {
-            let month = utils::epoch_time_to_month_in_year(seconds * 1_000.0) as u16 + 1;
-            let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
-            let week_of_month = day_of_month / 7 + 1;
-            let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
-            let mwd = Mwd(month, week_of_month, day_of_week);
+            let mwd = Mwd::from_seconds(seconds);
             let start = Mwd(*start_month, *start_week, *start_day);
             let end = Mwd(*end_month, *end_week, *end_day);
 
