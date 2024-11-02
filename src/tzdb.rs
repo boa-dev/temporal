@@ -62,14 +62,14 @@ pub struct LocalTimeRecord {
 }
 
 impl LocalTimeRecord {
-    fn from_dst(info: &ZoneVariantInfo) -> Self {
+    fn from_daylight_savings_time(info: &ZoneVariantInfo) -> Self {
         Self {
             is_dst: true,
             offset: -info.offset.0,
         }
     }
 
-    fn from_std(info: &ZoneVariantInfo) -> Self {
+    fn from_standard_time(info: &ZoneVariantInfo) -> Self {
         Self {
             is_dst: false,
             offset: -info.offset.0,
@@ -104,6 +104,12 @@ pub enum LocalTimeRecordResult {
         std: LocalTimeRecord,
         dst: LocalTimeRecord,
     },
+}
+
+impl From<LocalTimeRecord> for LocalTimeRecordResult {
+    fn from(value: LocalTimeRecord) -> Self {
+        Self::Single(value)
+    }
 }
 
 impl From<LocalTimeTypeRecord> for LocalTimeRecordResult {
@@ -301,7 +307,9 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 ) -> TemporalResult<LocalTimeRecord> {
     let Some(dst_variant) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecord::from_std(&posix_tz_string.std_info));
+        return Ok(LocalTimeRecord::from_standard_time(
+            &posix_tz_string.std_info,
+        ));
     };
 
     let start = &dst_variant.start_date;
@@ -316,8 +324,12 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         cmp_seconds_to_transitions(&start.day, &end.day, seconds)?;
 
     match compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant) {
-        TransitionType::Dst => Ok(LocalTimeRecord::from_dst(&dst_variant.variant_info)),
-        TransitionType::Std => Ok(LocalTimeRecord::from_std(&posix_tz_string.std_info)),
+        TransitionType::Dst => Ok(LocalTimeRecord::from_daylight_savings_time(
+            &dst_variant.variant_info,
+        )),
+        TransitionType::Std => Ok(LocalTimeRecord::from_standard_time(
+            &posix_tz_string.std_info,
+        )),
     }
 }
 
@@ -332,9 +344,7 @@ fn resolve_posix_tz_string(
     let std = &posix_tz_string.std_info;
     let Some(dst) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecordResult::Single(LocalTimeRecord::from_std(
-            &posix_tz_string.std_info,
-        )));
+        return Ok(LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).into());
     };
 
     // TODO: Resolve safety issue around utils.
@@ -364,8 +374,8 @@ fn resolve_posix_tz_string(
             true if is_dst == TransitionType::Dst => return Ok(LocalTimeRecordResult::Empty),
             true => {
                 return Ok(LocalTimeRecordResult::Ambiguous {
-                    std: LocalTimeRecord::from_std(std),
-                    dst: LocalTimeRecord::from_dst(&dst.variant_info),
+                    std: LocalTimeRecord::from_standard_time(std),
+                    dst: LocalTimeRecord::from_daylight_savings_time(&dst.variant_info),
                 })
             }
             _ => {}
@@ -373,12 +383,12 @@ fn resolve_posix_tz_string(
     }
 
     match is_dst {
-        TransitionType::Dst => Ok(LocalTimeRecordResult::Single(LocalTimeRecord::from_dst(
-            &dst.variant_info,
-        ))),
-        TransitionType::Std => Ok(LocalTimeRecordResult::Single(LocalTimeRecord::from_std(
-            &posix_tz_string.std_info,
-        ))),
+        TransitionType::Dst => {
+            Ok(LocalTimeRecord::from_daylight_savings_time(&dst.variant_info).into())
+        }
+        TransitionType::Std => {
+            Ok(LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).into())
+        }
     }
 }
 
