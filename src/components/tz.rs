@@ -9,12 +9,12 @@ use num_traits::ToPrimitive;
 
 use crate::{components::Instant, iso::IsoDateTime, TemporalError, TemporalResult};
 
-#[cfg(all(feature = "tzdb", not(target_os = "windows")))]
+#[cfg(feature = "experimental")]
 use crate::tzdb::FsTzdbProvider;
-#[cfg(all(feature = "experimental", not(target_os = "windows")))]
+#[cfg(feature = "experimental")]
 use std::sync::{LazyLock, Mutex};
 
-#[cfg(all(feature = "experimental", not(target_os = "windows")))]
+#[cfg(feature = "experimental")]
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
     LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
 

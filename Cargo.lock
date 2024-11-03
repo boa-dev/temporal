@@ -213,6 +213,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "jiff-tzdb"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91335e575850c5c4c673b9bd467b0e025f164ca59d0564f69d0c2ee0ffad4653"
+
+[[package]]
 name = "js-sys"
 version = "0.3.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -349,9 +355,11 @@ name = "temporal_rs"
 version = "0.0.3"
 dependencies = [
  "bitflags",
+ "combine",
  "iana-time-zone",
  "icu_calendar",
  "ixdtf",
+ "jiff-tzdb",
  "log",
  "num-traits",
  "rustc-hash",
