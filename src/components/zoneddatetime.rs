@@ -14,7 +14,7 @@ use super::{calendar::CalendarDateLike, tz::TzProvider, Duration, PlainDate, Pla
 #[cfg(feature = "experimental")]
 use crate::components::tz::TZ_PROVIDER;
 #[cfg(feature = "experimental")]
-use std::ops::DerefMut;
+use std::ops::Deref;
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
@@ -55,7 +55,7 @@ impl ZonedDateTime {
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<Instant> {
         // 1. If DateDurationSign(duration.[[Date]]) = 0, then
         if duration.date().sign() == Sign::Zero {
@@ -99,7 +99,7 @@ impl ZonedDateTime {
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
         // 1. Let duration be ? ToTemporalDuration(temporalDurationLike).
         // 2. If operation is subtract, set duration to CreateNegatedTemporalDuration(duration).
@@ -171,74 +171,74 @@ impl ZonedDateTime {
 #[cfg(feature = "experimental")]
 impl ZonedDateTime {
     pub fn year(&self) -> TemporalResult<i32> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.year_with_provider(provider.deref_mut())
+        self.year_with_provider(provider.deref())
     }
 
     pub fn month(&self) -> TemporalResult<u8> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.month_with_provider(provider.deref_mut())
+        self.month_with_provider(provider.deref())
     }
 
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.month_code_with_provider(provider.deref_mut())
+        self.month_code_with_provider(provider.deref())
     }
 
     pub fn day(&self) -> TemporalResult<u8> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.day_with_provider(provider.deref_mut())
+        self.day_with_provider(provider.deref())
     }
 
     pub fn hour(&self) -> TemporalResult<u8> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.hour_with_provider(provider.deref_mut())
+        self.hour_with_provider(provider.deref())
     }
 
     pub fn minute(&self) -> TemporalResult<u8> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.minute_with_provider(provider.deref_mut())
+        self.minute_with_provider(provider.deref())
     }
 
     pub fn second(&self) -> TemporalResult<u8> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.second_with_provider(provider.deref_mut())
+        self.second_with_provider(provider.deref())
     }
 
     pub fn millisecond(&self) -> TemporalResult<u16> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.millisecond_with_provider(provider.deref_mut())
+        self.millisecond_with_provider(provider.deref())
     }
 
     pub fn microsecond(&self) -> TemporalResult<u16> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.millisecond_with_provider(provider.deref_mut())
+        self.millisecond_with_provider(provider.deref())
     }
 
     pub fn nanosecond(&self) -> TemporalResult<u16> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
 
-        self.millisecond_with_provider(provider.deref_mut())
+        self.millisecond_with_provider(provider.deref())
     }
 
     pub fn add(
@@ -246,14 +246,14 @@ impl ZonedDateTime {
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
 
         self.add_internal(
             duration,
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
-            provider.deref_mut(),
+            provider.deref(),
         )
     }
 
@@ -262,13 +262,13 @@ impl ZonedDateTime {
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        let mut provider = TZ_PROVIDER
+        let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
         self.add_internal(
             &duration.negated(),
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
-            provider.deref_mut(),
+            provider.deref(),
         )
     }
 }
@@ -276,14 +276,14 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Returns the `year` value for this `ZonedDateTime`.
     #[inline]
-    pub fn year_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<i32> {
+    pub fn year_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<i32> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
         self.calendar.year(&CalendarDateLike::DateTime(&dt))
     }
 
     /// Returns the `month` value for this `ZonedDateTime`.
-    pub fn month_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u8> {
+    pub fn month_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
         self.calendar.month(&CalendarDateLike::DateTime(&dt))
@@ -292,7 +292,7 @@ impl ZonedDateTime {
     /// Returns the `monthCode` value for this `ZonedDateTime`.
     pub fn month_code_with_provider(
         &self,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<TinyAsciiStr<4>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
@@ -300,44 +300,44 @@ impl ZonedDateTime {
     }
 
     /// Returns the `day` value for this `ZonedDateTime`.
-    pub fn day_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u8> {
+    pub fn day_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
         self.calendar.day(&CalendarDateLike::DateTime(&dt))
     }
 
     /// Returns the `hour` value for this `ZonedDateTime`.
-    pub fn hour_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u8> {
+    pub fn hour_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.hour)
     }
 
     /// Returns the `minute` value for this `ZonedDateTime`.
-    pub fn minute_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u8> {
+    pub fn minute_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.minute)
     }
 
     /// Returns the `second` value for this `ZonedDateTime`.
-    pub fn second_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u8> {
+    pub fn second_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.second)
     }
 
     /// Returns the `millisecond` value for this `ZonedDateTime`.
-    pub fn millisecond_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u16> {
+    pub fn millisecond_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.millisecond)
     }
 
     /// Returns the `microsecond` value for this `ZonedDateTime`.
-    pub fn microsecond_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u16> {
+    pub fn microsecond_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.millisecond)
     }
 
     /// Returns the `nanosecond` value for this `ZonedDateTime`.
-    pub fn nanosecond_with_provider(&self, provider: &mut impl TzProvider) -> TemporalResult<u16> {
+    pub fn nanosecond_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.nanosecond)
     }
@@ -346,7 +346,7 @@ impl ZonedDateTime {
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
         self.add_internal(
             duration,
@@ -359,7 +359,7 @@ impl ZonedDateTime {
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
         self.add_internal(
             &duration.negated(),
@@ -384,7 +384,7 @@ mod tests {
 
     #[test]
     fn basic_zdt_test() {
-        let provider = &mut FsTzdbProvider::default();
+        let provider = &FsTzdbProvider::default();
         let nov_30_2023_utc = 1_701_308_952_000_000_000i128;
 
         let zdt = ZonedDateTime::try_new(

@@ -49,7 +49,7 @@ pub enum ParsedTimeZone<'a> {
 }
 
 impl<'a> ParsedTimeZone<'a> {
-    pub fn from_str(s: &'a str, provider: &mut impl TzProvider) -> TemporalResult<Self> {
+    pub fn from_str(s: &'a str, provider: &impl TzProvider) -> TemporalResult<Self> {
         if s == "Z" {
             return Ok(Self::Offset { minutes: 0 });
         }
@@ -94,7 +94,7 @@ impl TimeZone {
     pub(crate) fn get_iso_datetime_for(
         &self,
         instant: &Instant,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<IsoDateTime> {
         let nanos = self.get_offset_nanos_for(instant.epoch_nanos, provider)?;
         IsoDateTime::from_epoch_nanos(&instant.epoch_nanos, nanos.to_f64().unwrap_or(0.0))
@@ -106,7 +106,7 @@ impl TimeZone {
     pub fn get_offset_nanos_for(
         &self,
         epoch_ns: i128,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<i128> {
         // 1. Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let parsed = ParsedTimeZone::from_str(&self.0, provider)?;
@@ -124,7 +124,7 @@ impl TimeZone {
         &self,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<i128> {
         // 1. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
         let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
@@ -136,7 +136,7 @@ impl TimeZone {
     pub fn get_possible_epoch_ns_for(
         &self,
         iso: IsoDateTime,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<Vec<i128>> {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let possible_nanoseconds = match ParsedTimeZone::from_str(&self.0, provider)? {
@@ -208,7 +208,7 @@ impl TimeZone {
         nanos: Vec<i128>,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<i128> {
         // 1. Let n be possibleEpochNs's length.
         let n = nanos.len();
