@@ -1,5 +1,7 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
+use alloc::format;
+
 use crate::{TemporalError, TemporalResult, TemporalUnwrap};
 
 use ixdtf::parsers::{

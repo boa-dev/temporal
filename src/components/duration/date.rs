@@ -1,6 +1,7 @@
 //! Implementation of a `DateDuration`
 
 use crate::{primitive::FiniteF64, Sign, TemporalError, TemporalResult};
+use alloc::vec::Vec;
 
 /// `DateDuration` represents the [date duration record][spec] of the `Duration.`
 ///

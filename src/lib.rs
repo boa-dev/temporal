@@ -17,6 +17,7 @@
     html_logo_url = "https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg",
     html_favicon_url = "https://raw.githubusercontent.com/boa-dev/boa/main/assets/logo.svg"
 )]
+#![no_std]
 #![cfg_attr(not(test), forbid(clippy::unwrap_used))]
 #![allow(
     // Currently throws a false positive regarding dependencies that are only used in benchmarks.
@@ -39,6 +40,13 @@
     clippy::missing_panics_doc,
 )]
 
+extern crate alloc;
+extern crate core;
+
+// TODO: Support SystemTime directly / pull in OS code from std::time?
+#[cfg(feature = "std")]
+extern crate std;
+
 pub mod error;
 pub mod options;
 pub mod parsers;
@@ -47,6 +55,7 @@ pub mod primitive;
 pub(crate) mod components;
 pub(crate) mod iso;
 
+#[cfg(feature = "std")]
 mod sys;
 
 #[cfg(feature = "tzdb")]
@@ -57,7 +66,7 @@ pub(crate) mod rounding;
 #[doc(hidden)]
 pub(crate) mod utils;
 
-use std::cmp::Ordering;
+use core::cmp::Ordering;
 
 // TODO: evaluate positives and negatives of using tinystr. Re-exporting
 // tinystr as a convenience, as it is currently tied into the API.
@@ -81,9 +90,12 @@ pub mod partial {
 }
 
 pub use crate::components::{
-    calendar::Calendar, Duration, Instant, Now, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
     PlainYearMonth, ZonedDateTime,
 };
+
+#[cfg(feature = "std")]
+pub use crate::components::Now;
 
 /// A library specific trait for unwrapping assertions.
 pub(crate) trait TemporalUnwrap {
@@ -113,7 +125,8 @@ macro_rules! temporal_assert {
     };
     ($condition:expr, $($args:tt)+) => {
         if !$condition {
-            println!($($args)+);
+            #[cfg(feature = "log")]
+            log::error!($($args)+);
             return Err(TemporalError::assert());
         }
     };

@@ -1,5 +1,7 @@
 //! This module implements `TemporalError`.
 
+use alloc::boxed::Box;
+use alloc::string::ToString;
 use core::fmt;
 
 use icu_calendar::CalendarError;

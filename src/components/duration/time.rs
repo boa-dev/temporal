@@ -6,6 +6,7 @@ use crate::{
 
 use super::{is_valid_duration, normalized::NormalizedTimeDuration};
 
+use alloc::vec::Vec;
 use num_traits::Euclid;
 
 /// `TimeDuration` represents the [Time Duration record][spec] of the `Duration.`

@@ -26,13 +26,13 @@ pub struct ZonedDateTime {
 }
 
 impl Ord for ZonedDateTime {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
         self.instant.cmp(&other.instant)
     }
 }
 
 impl PartialOrd for ZonedDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
         Some(self.cmp(other))
     }
 }
@@ -373,9 +373,12 @@ impl ZonedDateTime {
 #[cfg(test)]
 mod tests {
 
-    use std::str::FromStr;
+    use core::str::FromStr;
 
-    use crate::{components::{calendar::Calendar, tz::TimeZone, Duration}, tzdb::FsTzdbProvider};
+    use crate::{
+        components::{calendar::Calendar, tz::TimeZone, Duration},
+        tzdb::FsTzdbProvider,
+    };
 
     use super::ZonedDateTime;
 
@@ -492,7 +495,8 @@ mod tests {
             0.into(),
             0.into(),
             800.into(),
-        ).unwrap();
+        )
+        .unwrap();
         // "1970-01-04T12:23:45.678902034+00:00[UTC]"
         let expected =
             ZonedDateTime::try_new(303825678902034, Calendar::default(), TimeZone::default())

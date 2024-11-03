@@ -12,7 +12,8 @@
 //!
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
-use std::num::NonZeroU128;
+use alloc::string::ToString;
+use core::num::NonZeroU128;
 
 use crate::{
     components::{
@@ -30,7 +31,6 @@ use crate::{
     temporal_assert, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
-use num_bigint::BigInt;
 use num_traits::{cast::FromPrimitive, AsPrimitive, ToPrimitive};
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
@@ -904,15 +904,15 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
         return false;
     };
 
-    let max = BigInt::from(crate::NS_MAX_INSTANT + i128::from(NS_PER_DAY));
-    let min = BigInt::from(crate::NS_MIN_INSTANT - i128::from(NS_PER_DAY));
+    let max = crate::NS_MAX_INSTANT + i128::from(NS_PER_DAY);
+    let min = crate::NS_MIN_INSTANT - i128::from(NS_PER_DAY);
 
     min <= ns && max >= ns
 }
 
 #[inline]
 /// Utility function to convert a `IsoDate` and `IsoTime` values into epoch nanoseconds
-fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> Option<BigInt> {
+fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> Option<i128> {
     let ms = time.to_epoch_ms();
     let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
 
@@ -921,7 +921,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> Option<BigInt> {
         f64::from(time.microsecond).mul_add(1_000f64, f64::from(time.nanosecond)),
     );
 
-    BigInt::from_f64(epoch_nanos)
+    i128::from_f64(epoch_nanos)
 }
 
 // ==== `IsoDate` specific utiltiy functions ====

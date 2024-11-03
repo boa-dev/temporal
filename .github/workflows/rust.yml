@@ -56,7 +56,12 @@ jobs:
         uses: taiki-e/install-action@nextest
       - name: Test
         run: cargo test
-
+      - name: Cargo build --all-features
+        run: cargo build --quiet --all-features
+      - name: Install latest nextest
+        uses: taiki-e/install-action@nextest
+      - name: Test --all-features
+        run: cargo test --all-features
   docs:
     name: Documentation
     runs-on: ubuntu-latest

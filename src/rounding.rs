@@ -5,7 +5,7 @@ use crate::{
     temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use std::{
+use core::{
     cmp::Ordering,
     num::NonZeroU128,
     ops::{Div, Neg},
@@ -199,7 +199,7 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
 
 #[cfg(test)]
 mod tests {
-    use std::num::NonZeroU128;
+    use core::num::NonZeroU128;
 
     use super::{IncrementRounder, Round, TemporalRoundingMode};
 

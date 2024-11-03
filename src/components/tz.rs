@@ -1,6 +1,9 @@
 //! This module implements the Temporal `TimeZone` and components.
 
-use std::{iter::Peekable, str::Chars};
+use alloc::borrow::ToOwned;
+use alloc::string::String;
+use alloc::{vec, vec::Vec};
+use core::{iter::Peekable, str::Chars};
 
 use num_traits::ToPrimitive;
 
@@ -23,16 +26,16 @@ pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
 use super::{instant::is_valid_epoch_nanos, ZonedDateTime};
 
 pub trait TzProvider {
-    fn check_identifier(&mut self, identifier: &str) -> bool;
+    fn check_identifier(&self, identifier: &str) -> bool;
 
     fn get_named_tz_epoch_nanoseconds(
-        &mut self,
+        &self,
         identifier: &str,
         iso_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<i128>>;
 
     fn get_named_tz_offset_nanoseconds(
-        &mut self,
+        &self,
         identifier: &str,
         epoch_nanoseconds: i128,
     ) -> TemporalResult<i128>;
