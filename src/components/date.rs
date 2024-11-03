@@ -66,7 +66,7 @@ macro_rules! partial_date {
     };
 }
 
-/// This function is a utility function used in the [date] macro to
+/// This function is a utility function used in the date macro to
 /// convert a `PartialDate` and `&str` into a `Date`
 #[inline]
 pub fn partial_to_date(partial: &PartialDate, calendar_name: &str) -> TemporalResult<Date> {
