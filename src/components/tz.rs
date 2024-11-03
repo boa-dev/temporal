@@ -243,7 +243,7 @@ impl TimeZone {
 
         // NOTE: Below is rather greedy, but should in theory work.
         //
-        // Primarily moving hour +/-3 to account Australia/Troll as 
+        // Primarily moving hour +/-3 to account Australia/Troll as
         // the precision of before/after does not entirely matter as
         // long is it is distinctly before / after any transition.
 
