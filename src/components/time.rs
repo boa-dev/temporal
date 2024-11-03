@@ -221,11 +221,25 @@ impl PlainTime {
         Ok(Self::new_unchecked(time))
     }
 
+    /// Creates a new `PlainTime` from a `PartialTime`.
+    pub fn from_partial(partial: PartialTime, overflow: Option<ArithmeticOverflow>) -> TemporalResult<Self> {
+        // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
+        if partial.is_empty() {
+            return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
+        }
+
+        let overflow = overflow.unwrap_or_default();
+        let iso = IsoTime::default().with(partial, overflow)?;
+        Ok(Self::new_unchecked(iso))
+    }
+
+    /// Creates a new `PlainTime` using the current `PlainTime` fields as a fallback.
     pub fn with(
         &self,
         partial: PartialTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
         if partial.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
         }

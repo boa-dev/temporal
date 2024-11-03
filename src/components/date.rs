@@ -327,6 +327,19 @@ impl PlainDate {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
+    /// Create a `PlainDate` from a `PartialDate`
+    #[inline]
+    pub fn from_partial(partial: PartialDate, calendar: Option<Calendar>, overflow: Option<ArithmeticOverflow>) -> TemporalResult<Self> {
+        let year_check = partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some());
+        let month_check = partial.month.is_some() || partial.month_code.is_some();
+        if !year_check || !month_check || partial.day.is_none() {
+            return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."))
+        }
+        let calendar = calendar.unwrap_or_default();
+        let overflow = overflow.unwrap_or_default();
+        calendar.date_from_partial(&partial, overflow)
+    }
+
     /// Creates a date time with values from a `PartialDate`.
     pub fn with(
         &self,

@@ -60,9 +60,10 @@ impl PlainDateTime {
         Self { iso, calendar }
     }
 
+    // TODO: Potentially deprecate and remove.
+    /// Utility function for validating `IsoDate`s
     #[inline]
     #[must_use]
-    /// Utility function for validating `IsoDate`s
     fn validate_iso(iso: IsoDate) -> bool {
         IsoDateTime::new_unchecked(iso, IsoTime::noon()).is_within_limits()
     }
@@ -319,6 +320,13 @@ impl PlainDateTime {
             IsoDateTime::new(date.iso, time.iso)?,
             date.calendar().clone(),
         ))
+    }
+
+    /// Creates a `DateTime` from a `PartialDateTime`.
+    pub fn from_partial(partial: PartialDateTime, calendar:Option<Calendar>, overflow: Option<ArithmeticOverflow>) -> TemporalResult<Self> {
+        let date = PlainDate::from_partial(partial.date, calendar, overflow)?;
+        let time = PlainTime::from_partial(partial.time, overflow)?;
+        Self::from_date_and_time(date, time)
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
