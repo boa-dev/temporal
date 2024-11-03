@@ -24,10 +24,13 @@ rustc-hash = { version = "2.0.0", features = ["std"] }
 bitflags = "2.6.0"
 num-traits = "0.2.19"
 ixdtf = { version = "0.2.0", features = ["duration"]}
+iana-time-zone = "0.1.61"
+
+# log feature
 log = { version = "0.4.0", optional = true }
 
+# tzdb feature
 tzif = { version = "0.2.3", optional = true }
-iana-time-zone = "0.1.61"
 jiff-tzdb = { version = "0.1.1", optional = true }
 combine = { version = "4.6.7", optional = true }
 
