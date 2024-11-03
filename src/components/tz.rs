@@ -242,18 +242,22 @@ impl TimeZone {
         }
 
         // NOTE: Below is rather greedy, but should in theory work.
+        //
+        // Primarily moving hour +/-3 to account Australia/Troll as 
+        // the precision of before/after does not entirely matter as
+        // long is it is distinctly before / after any transition.
 
         // 6. Let before be the latest possible ISO Date-Time Record for
         //    which CompareISODateTime(before, isoDateTime) = -1 and !
         //    GetPossibleEpochNanoseconds(timeZone, before) is not
         //    empty.
         let mut before = iso;
-        before.time.hour -= 1;
+        before.time.hour -= 3;
         // 7. Let after be the earliest possible ISO Date-Time Record
         //    for which CompareISODateTime(after, isoDateTime) = 1 and !
         //    GetPossibleEpochNanoseconds(timeZone, after) is not empty.
         let mut after = iso;
-        after.time.hour += 1;
+        after.time.hour += 3;
 
         // 8. Let beforePossible be !
         //    GetPossibleEpochNanoseconds(timeZone, before).
