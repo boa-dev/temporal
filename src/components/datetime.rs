@@ -323,13 +323,79 @@ impl PlainDateTime {
     }
 
     /// Creates a `DateTime` from a `PartialDateTime`.
-    pub fn from_partial(partial: PartialDateTime, calendar:Option<Calendar>, overflow: Option<ArithmeticOverflow>) -> TemporalResult<Self> {
+    ///
+    /// ```rust
+    /// use temporal_rs::{PlainDateTime, partial::{PartialDateTime, PartialTime, PartialDate}};
+    ///
+    /// let date = PartialDate {
+    ///     year: Some(2000),
+    ///     month: Some(13),
+    ///     day: Some(2),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let time = PartialTime {
+    ///     hour: Some(4),
+    ///     minute: Some(25),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let partial = PartialDateTime { date, time };
+    ///
+    /// let date = PlainDateTime::from_partial(partial, None, None).unwrap();
+    ///
+    /// assert_eq!(date.year().unwrap(), 2000);
+    /// assert_eq!(date.month().unwrap(), 12);
+    /// assert_eq!(date.day().unwrap(), 2);
+    /// assert_eq!(date.calendar().identifier(), "iso8601");
+    /// assert_eq!(date.hour(), 4);
+    /// assert_eq!(date.minute(), 25);
+    /// assert_eq!(date.second(), 0);
+    /// assert_eq!(date.millisecond(), 0);
+    ///
+    /// ```
+    pub fn from_partial(
+        partial: PartialDateTime,
+        calendar: Option<Calendar>,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
         let date = PlainDate::from_partial(partial.date, calendar, overflow)?;
         let time = PlainTime::from_partial(partial.time, overflow)?;
         Self::from_date_and_time(date, time)
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
+    ///
+    /// ```rust
+    /// use temporal_rs::{Calendar, PlainDateTime, partial::{PartialDateTime, PartialTime, PartialDate}};
+    ///
+    /// let initial = PlainDateTime::try_new(2000, 12, 2, 0,0,0,0,0,0, Calendar::default()).unwrap();
+    ///
+    /// let date = PartialDate {
+    ///     month: Some(5),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let time = PartialTime {
+    ///     hour: Some(4),
+    ///     second: Some(30),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let partial = PartialDateTime { date, time };
+    ///
+    /// let date = initial.with(partial, None).unwrap();
+    ///
+    /// assert_eq!(date.year().unwrap(), 2000);
+    /// assert_eq!(date.month().unwrap(), 5);
+    /// assert_eq!(date.day().unwrap(), 2);
+    /// assert_eq!(date.calendar().identifier(), "iso8601");
+    /// assert_eq!(date.hour(), 4);
+    /// assert_eq!(date.minute(), 0);
+    /// assert_eq!(date.second(), 30);
+    /// assert_eq!(date.millisecond(), 0);
+    ///
+    /// ```
     #[inline]
     pub fn with(
         &self,

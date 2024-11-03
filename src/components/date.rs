@@ -328,12 +328,36 @@ impl PlainDate {
     }
 
     /// Create a `PlainDate` from a `PartialDate`
+    ///
+    /// ```rust
+    /// use temporal_rs::{PlainDate, partial::PartialDate};
+    ///
+    /// let partial = PartialDate {
+    ///     year: Some(2000),
+    ///     month: Some(13),
+    ///     day: Some(2),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let date = PlainDate::from_partial(partial, None, None).unwrap();
+    ///
+    /// assert_eq!(date.year().unwrap(), 2000);
+    /// assert_eq!(date.month().unwrap(), 12);
+    /// assert_eq!(date.day().unwrap(), 2);
+    /// assert_eq!(date.calendar().identifier(), "iso8601");
+    ///
+    /// ```
     #[inline]
-    pub fn from_partial(partial: PartialDate, calendar: Option<Calendar>, overflow: Option<ArithmeticOverflow>) -> TemporalResult<Self> {
-        let year_check = partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some());
+    pub fn from_partial(
+        partial: PartialDate,
+        calendar: Option<Calendar>,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        let year_check =
+            partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some());
         let month_check = partial.month.is_some() || partial.month_code.is_some();
         if !year_check || !month_check || partial.day.is_none() {
-            return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."))
+            return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."));
         }
         let calendar = calendar.unwrap_or_default();
         let overflow = overflow.unwrap_or_default();
