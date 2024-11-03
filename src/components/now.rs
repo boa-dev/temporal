@@ -1,7 +1,7 @@
 //! The Temporal Now component
 
-use alloc::string::String;
 use crate::{sys, TemporalResult};
+use alloc::string::String;
 
 #[cfg(feature = "std")]
 use num_traits::FromPrimitive;
