@@ -3,13 +3,23 @@
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    components::{calendar::Calendar, tz::TimeZone, Instant},
+    Calendar, TimeZone, Instant, Duration, PlainDateTime, PlainDate,
+    components::{tz::TzProvider, calendar::CalendarDateLike},
     iso::IsoDateTime,
     options::{ArithmeticOverflow, Disambiguation},
+    partial::{PartialDate, PartialTime},
     Sign, TemporalError, TemporalResult,
 };
 
-use super::{calendar::CalendarDateLike, tz::TzProvider, Duration, PlainDate, PlainDateTime};
+/// A struct representing a partial `ZonedDateTime`.
+pub struct PartialZonedDateTime {
+    /// The `PartialDate` portion of a `PartialDateTime`
+    pub date: PartialDate,
+    /// The `PartialTime` portion of a `PartialDateTime`
+    pub time: PartialTime,
+    /// The time zone value of a partial time zone.
+    pub timezone: TimeZone,
+}
 
 #[cfg(feature = "experimental")]
 use crate::components::tz::TZ_PROVIDER;
@@ -78,7 +88,7 @@ impl ZonedDateTime {
                 .with_message("Intermediate ISO datetime was not within a valid range."));
         }
         // 6. Let intermediateNs be ! GetEpochNanosecondsFor(timeZone, intermediateDateTime, compatible).
-        let intermediate_ns = self.tz().get_epoch_nanoseconds_for(
+        let intermediate_ns = self.timezone().get_epoch_nanoseconds_for(
             intermediate,
             Disambiguation::Compatible,
             provider,
@@ -111,7 +121,7 @@ impl ZonedDateTime {
         Ok(Self::new_unchecked(
             epoch_ns,
             self.calendar().clone(),
-            self.tz().clone(),
+            self.timezone().clone(),
         ))
     }
 }
@@ -136,8 +146,13 @@ impl ZonedDateTime {
     /// Returns `ZonedDateTime`'s `TimeZone` slot.
     #[inline]
     #[must_use]
-    pub fn tz(&self) -> &TimeZone {
+    pub fn timezone(&self) -> &TimeZone {
         &self.tz
+    }
+
+    #[inline]
+    pub fn from_partial(partial: PartialZonedDateTime) -> TemporalResult<Self> {
+        todo!()
     }
 
     /// Returns the `epochSeconds` value of this `ZonedDateTime`.

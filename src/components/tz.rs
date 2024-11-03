@@ -75,7 +75,7 @@ impl Default for TimeZone {
 
 impl From<&ZonedDateTime> for TimeZone {
     fn from(value: &ZonedDateTime) -> Self {
-        value.tz().clone()
+        value.timezone().clone()
     }
 }
 
