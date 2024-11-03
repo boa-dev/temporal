@@ -375,10 +375,10 @@ mod tests {
 
     use core::str::FromStr;
 
-    use crate::{
-        components::{calendar::Calendar, tz::TimeZone, Duration},
-        tzdb::FsTzdbProvider,
-    };
+    use crate::{tzdb::FsTzdbProvider, Calendar};
+
+    #[cfg(not(target_os = "windows"))]
+    use crate::{Duration, TimeZone};
 
     use super::ZonedDateTime;
 
