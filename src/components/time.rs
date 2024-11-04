@@ -159,6 +159,15 @@ impl PlainTime {
 
 impl PlainTime {
     /// Creates a new `PlainTime`, constraining any field into a valid range.
+    ///
+    /// ```rust
+    /// use temporal_rs::PlainTime;
+    ///
+    /// let time = PlainTime::new(23, 59, 59, 999, 999, 999).unwrap();
+    ///
+    /// let constrained_time = PlainTime::new(24, 59, 59, 999, 999, 999).unwrap();
+    /// assert_eq!(time, constrained_time);
+    /// ```
     pub fn new(
         hour: i32,
         minute: i32,
@@ -179,6 +188,15 @@ impl PlainTime {
     }
 
     /// Creates a new `PlainTime`, rejecting any field that is not in a valid range.
+    ///
+    /// ```rust
+    /// use temporal_rs::PlainTime;
+    ///
+    /// let time = PlainTime::try_new(23, 59, 59, 999, 999, 999).unwrap();
+    ///
+    /// let invalid_time = PlainTime::try_new(24, 59, 59, 999, 999, 999);
+    /// assert!(invalid_time.is_err());
+    /// ```
     pub fn try_new(
         hour: i32,
         minute: i32,
@@ -221,11 +239,68 @@ impl PlainTime {
         Ok(Self::new_unchecked(time))
     }
 
+    /// Creates a new `PlainTime` from a `PartialTime`.
+    ///
+    /// ```rust
+    /// use temporal_rs::{partial::PartialTime, PlainTime};
+    ///
+    /// let partial_time = PartialTime {
+    ///     hour: Some(22),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let time = PlainTime::from_partial(partial_time, None).unwrap();
+    ///
+    /// assert_eq!(time.hour(), 22);
+    /// assert_eq!(time.minute(), 0);
+    /// assert_eq!(time.second(), 0);
+    /// assert_eq!(time.millisecond(), 0);
+    /// assert_eq!(time.microsecond(), 0);
+    /// assert_eq!(time.nanosecond(), 0);
+    ///
+    /// ```
+    pub fn from_partial(
+        partial: PartialTime,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
+        if partial.is_empty() {
+            return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
+        }
+
+        let overflow = overflow.unwrap_or_default();
+        let iso = IsoTime::default().with(partial, overflow)?;
+        Ok(Self::new_unchecked(iso))
+    }
+
+    /// Creates a new `PlainTime` using the current `PlainTime` fields as a fallback.
+    ///
+    /// ```rust
+    /// use temporal_rs::{partial::PartialTime, PlainTime};
+    ///
+    /// let partial_time = PartialTime {
+    ///     hour: Some(22),
+    ///     ..Default::default()
+    /// };
+    ///
+    /// let initial = PlainTime::try_new(15, 30, 12, 123, 456, 789).unwrap();
+    ///
+    /// let time = initial.with(partial_time, None).unwrap();
+    ///
+    /// assert_eq!(time.hour(), 22);
+    /// assert_eq!(time.minute(), 30);
+    /// assert_eq!(time.second(), 12);
+    /// assert_eq!(time.millisecond(), 123);
+    /// assert_eq!(time.microsecond(), 456);
+    /// assert_eq!(time.nanosecond(), 789);
+    ///
+    /// ```
     pub fn with(
         &self,
         partial: PartialTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
         if partial.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
         }

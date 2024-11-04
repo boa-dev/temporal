@@ -390,9 +390,10 @@ impl fmt::Display for TemporalUnit {
 /// `ArithmeticOverflow` can also be used as an
 /// assignment overflow and consists of the "constrain"
 /// and "reject" options.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ArithmeticOverflow {
     /// Constrain option
+    #[default]
     Constrain,
     /// Constrain option
     Reject,
