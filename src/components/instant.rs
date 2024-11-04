@@ -48,7 +48,7 @@ impl Instant {
         let nanos = i128::from_f64(result).ok_or_else(|| {
             TemporalError::range().with_message("Duration added to instant exceeded valid range.")
         })?;
-        Self::new(nanos)
+        Self::try_new(nanos)
     }
 
     // TODO: Add test for `diff_instant`.
@@ -150,7 +150,7 @@ impl Instant {
 impl Instant {
     /// Create a new validated `Instant`.
     #[inline]
-    pub fn new(epoch_nanoseconds: i128) -> TemporalResult<Self> {
+    pub fn try_new(epoch_nanoseconds: i128) -> TemporalResult<Self> {
         if !is_valid_epoch_nanos(&epoch_nanoseconds) {
             return Err(TemporalError::range()
                 .with_message("Instant nanoseconds are not within a valid epoch range."));
@@ -230,7 +230,7 @@ impl Instant {
         let resolved_options = ResolvedRoundingOptions::from_instant_options(options)?;
 
         let round_result = self.round_instant(resolved_options)?;
-        Self::new(round_result)
+        Self::try_new(round_result)
     }
 
     /// Returns the `epochSeconds` value for this `Instant`.
@@ -335,8 +335,8 @@ mod tests {
         // valid, i.e., a valid instant is within the range of an f64.
         let max = NS_MAX_INSTANT;
         let min = NS_MIN_INSTANT;
-        let max_instant = Instant::new(max).unwrap();
-        let min_instant = Instant::new(min).unwrap();
+        let max_instant = Instant::try_new(max).unwrap();
+        let min_instant = Instant::try_new(min).unwrap();
 
         assert_eq!(max_instant.epoch_nanoseconds(), max.to_f64().unwrap());
         assert_eq!(min_instant.epoch_nanoseconds(), min.to_f64().unwrap());
@@ -344,8 +344,8 @@ mod tests {
         let max_plus_one = NS_MAX_INSTANT + 1;
         let min_minus_one = NS_MIN_INSTANT - 1;
 
-        assert!(Instant::new(max_plus_one).is_err());
-        assert!(Instant::new(min_minus_one).is_err());
+        assert!(Instant::try_new(max_plus_one).is_err());
+        assert!(Instant::try_new(min_minus_one).is_err());
     }
 
     #[test]
@@ -373,11 +373,11 @@ mod tests {
             )
         };
 
-        let earlier = Instant::new(
+        let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
         )
         .unwrap();
-        let later = Instant::new(
+        let later = Instant::try_new(
             1_572_345_998_271_986_289, /* 2019-10-29T10:46:38.271986289Z */
         )
         .unwrap();
@@ -452,11 +452,11 @@ mod tests {
             )
         };
 
-        let earlier = Instant::new(
+        let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
         )
         .unwrap();
-        let later = Instant::new(
+        let later = Instant::try_new(
             1_572_345_998_271_986_289, /* 2019-10-29T10:46:38.271986289Z */
         )
         .unwrap();

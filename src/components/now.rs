@@ -1,10 +1,15 @@
 //! The Temporal Now component
 
+use crate::{sys, TemporalResult};
 use alloc::string::String;
+
+#[cfg(feature = "std")]
 use num_traits::FromPrimitive;
 
-use crate::{iso::IsoDateTime, sys, TemporalResult, TemporalUnwrap};
+#[cfg(feature = "std")]
+use crate::{iso::IsoDateTime, TemporalUnwrap};
 
+#[cfg(feature = "std")]
 use super::{
     calendar::Calendar,
     tz::{TimeZone, TzProvider},
@@ -19,7 +24,10 @@ impl Now {
     pub fn time_zone_id() -> TemporalResult<String> {
         sys::get_system_tz_identifier()
     }
+}
 
+#[cfg(feature = "std")]
+impl Now {
     /// Returns the current instant
     pub fn instant() -> TemporalResult<Instant> {
         system_instant()
@@ -34,6 +42,7 @@ impl Now {
     }
 }
 
+#[cfg(feature = "std")]
 fn system_date_time(
     tz: Option<TimeZone>,
     provider: &mut impl TzProvider,
@@ -55,7 +64,8 @@ fn system_date_time(
     )
 }
 
+#[cfg(feature = "std")]
 fn system_instant() -> TemporalResult<Instant> {
     let nanos = sys::get_system_nanoseconds()?;
-    Instant::new(i128::from_u128(nanos).temporal_unwrap()?)
+    Instant::try_new(i128::from_u128(nanos).temporal_unwrap()?)
 }

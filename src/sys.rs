@@ -1,7 +1,8 @@
 use alloc::string::{String, ToString};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::{TemporalError, TemporalResult};
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 // TODO: Need to implement system handling for non_std.
 

@@ -110,7 +110,7 @@ impl IsoDateTime {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn balance(
+    pub fn balance(
         year: i32,
         month: i32,
         day: i32,
@@ -336,7 +336,15 @@ impl IsoDate {
         )
     }
 
+    pub(crate) fn is_valid_day_range(&self) -> TemporalResult<()> {
+        if self.to_epoch_days().abs() > 100_000_000 {
+            return Err(TemporalError::range().with_message("Not in a valid ISO day range."));
+        }
+        Ok(())
+    }
+
     /// Returns this `IsoDate` in nanoseconds.
+    #[inline]
     pub(crate) fn as_nanoseconds(&self) -> Option<i128> {
         utc_epoch_nanos(*self, &IsoTime::default()).and_then(|z| z.to_i128())
     }
@@ -344,6 +352,7 @@ impl IsoDate {
     /// Functionally the same as Date's abstract operation `MakeDay`
     ///
     /// Equivalent to `IsoDateToEpochDays`
+    #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
         iso_date_to_epoch_days(self.year, (self.month - 1).into(), self.day.into())
     }

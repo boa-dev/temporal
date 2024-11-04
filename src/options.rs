@@ -473,8 +473,8 @@ impl fmt::Display for DurationOverflow {
 }
 
 /// The disambiguation options for an instant.
-#[derive(Debug, Clone, Copy)]
-pub enum InstantDisambiguation {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Disambiguation {
     /// Compatible option
     Compatible,
     /// Earlier option
@@ -487,16 +487,16 @@ pub enum InstantDisambiguation {
 
 /// A parsing error on `InstantDisambiguation` options.
 #[derive(Debug, Clone, Copy)]
-pub struct ParseInstantDisambiguationError;
+pub struct ParseDisambiguationError;
 
-impl fmt::Display for ParseInstantDisambiguationError {
+impl fmt::Display for ParseDisambiguationError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid instant disambiguation value")
     }
 }
 
-impl FromStr for InstantDisambiguation {
-    type Err = ParseInstantDisambiguationError;
+impl FromStr for Disambiguation {
+    type Err = ParseDisambiguationError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -504,12 +504,12 @@ impl FromStr for InstantDisambiguation {
             "earlier" => Ok(Self::Earlier),
             "later" => Ok(Self::Later),
             "reject" => Ok(Self::Reject),
-            _ => Err(ParseInstantDisambiguationError),
+            _ => Err(ParseDisambiguationError),
         }
     }
 }
 
-impl fmt::Display for InstantDisambiguation {
+impl fmt::Display for Disambiguation {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Compatible => "compatible",
