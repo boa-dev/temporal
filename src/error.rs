@@ -1,6 +1,6 @@
 //! This module implements `TemporalError`.
 
-use alloc::boxed::Box;
+use alloc::borrow::Cow;
 use alloc::string::ToString;
 use core::fmt;
 
@@ -39,75 +39,94 @@ impl fmt::Display for ErrorKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemporalError {
     kind: ErrorKind,
-    msg: Box<str>,
+    msg: Cow<'static, str>,
 }
 
 impl TemporalError {
-    fn new(kind: ErrorKind) -> Self {
+    #[inline]
+    #[must_use]
+    const fn new(kind: ErrorKind) -> Self {
         Self {
             kind,
-            msg: Box::default(),
+            msg: Cow::Borrowed(""),
         }
     }
 
     /// Create a generic error
+    #[inline]
     #[must_use]
     pub fn general<S>(msg: S) -> Self
     where
-        S: Into<Box<str>>,
+        S: Into<Cow<'static, str>>,
     {
         Self::new(ErrorKind::Generic).with_message(msg)
     }
 
     /// Create a range error.
+    #[inline]
     #[must_use]
-    pub fn range() -> Self {
+    pub const fn range() -> Self {
         Self::new(ErrorKind::Range)
     }
 
     /// Create a type error.
+    #[inline]
     #[must_use]
-    pub fn r#type() -> Self {
+    pub const fn r#type() -> Self {
         Self::new(ErrorKind::Type)
     }
 
     /// Create a syntax error.
+    #[inline]
     #[must_use]
-    pub fn syntax() -> Self {
+    pub const fn syntax() -> Self {
         Self::new(ErrorKind::Syntax)
     }
 
     /// Creates an assertion error
-    pub(crate) fn assert() -> Self {
+    #[inline]
+    #[must_use]
+    pub(crate) const fn assert() -> Self {
         Self::new(ErrorKind::Assert)
     }
 
     /// Create an abrupt end error.
+    #[inline]
     #[must_use]
     pub fn abrupt_end() -> Self {
         Self::syntax().with_message("Abrupt end to parsing target.")
     }
 
     /// Add a message to the error.
+    #[inline]
     #[must_use]
     pub fn with_message<S>(mut self, msg: S) -> Self
     where
-        S: Into<Box<str>>,
+        S: Into<Cow<'static, str>>,
     {
         self.msg = msg.into();
         self
     }
 
     /// Returns this error's kind.
+    #[inline]
     #[must_use]
-    pub fn kind(&self) -> ErrorKind {
+    pub const fn kind(&self) -> ErrorKind {
         self.kind
     }
 
     /// Returns the error message.
+    #[inline]
     #[must_use]
     pub fn message(&self) -> &str {
         &self.msg
+    }
+
+    /// Extracts the error message.
+    #[inline]
+    #[must_use]
+    pub fn into_message(self) -> Cow<'static, str> {
+        self.msg
     }
 }
 
