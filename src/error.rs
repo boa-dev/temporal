@@ -1,6 +1,6 @@
 //! This module implements `TemporalError`.
 
-use alloc::boxed::Box;
+use alloc::borrow::Cow;
 use alloc::string::ToString;
 use core::fmt;
 
@@ -39,14 +39,14 @@ impl fmt::Display for ErrorKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemporalError {
     kind: ErrorKind,
-    msg: Box<str>,
+    msg: Cow<'static, str>,
 }
 
 impl TemporalError {
     fn new(kind: ErrorKind) -> Self {
         Self {
             kind,
-            msg: Box::default(),
+            msg: Cow::Borrowed(""),
         }
     }
 
@@ -54,7 +54,7 @@ impl TemporalError {
     #[must_use]
     pub fn general<S>(msg: S) -> Self
     where
-        S: Into<Box<str>>,
+        S: Into<Cow<'static, str>>,
     {
         Self::new(ErrorKind::Generic).with_message(msg)
     }
@@ -92,7 +92,7 @@ impl TemporalError {
     #[must_use]
     pub fn with_message<S>(mut self, msg: S) -> Self
     where
-        S: Into<Box<str>>,
+        S: Into<Cow<'static, str>>,
     {
         self.msg = msg.into();
         self
@@ -108,6 +108,12 @@ impl TemporalError {
     #[must_use]
     pub fn message(&self) -> &str {
         &self.msg
+    }
+
+    /// Extracts the error message.
+    #[must_use]
+    pub fn into_message(self) -> Cow<'static, str> {
+        self.msg
     }
 }
 
