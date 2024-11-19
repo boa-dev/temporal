@@ -109,6 +109,12 @@ impl TemporalError {
     pub fn message(&self) -> &str {
         &self.msg
     }
+
+    /// Extracts the error message.
+    #[must_use]
+    pub fn into_message(self) -> Box<str> {
+        self.msg
+    }
 }
 
 impl fmt::Display for TemporalError {
