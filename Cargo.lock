@@ -131,7 +131,7 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform",
  "icu_provider",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
  "zerovec",
 ]
@@ -150,7 +150,7 @@ checksum = "13acbb8371917fc971be86fc8057c41a64b521c184808a698c02acc242dbf637"
 dependencies = [
  "displaydoc",
  "litemap",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
  "zerovec",
 ]
@@ -165,7 +165,7 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform_data",
  "icu_provider",
- "tinystr",
+ "tinystr 0.7.6",
  "zerovec",
 ]
 
@@ -185,7 +185,7 @@ dependencies = [
  "icu_locid",
  "icu_provider_macros",
  "stable_deref_trait",
- "tinystr",
+ "tinystr 0.7.6",
  "writeable",
  "yoke",
  "zerofrom",
@@ -205,11 +205,12 @@ dependencies = [
 
 [[package]]
 name = "ixdtf"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2123305f927452a9502fc05c33800280d90127c95c50eb45ec6b3c50346afbf3"
+checksum = "fb6cd1080e64f68b07c577e3c687f4a894b3d1bd6093cb36b55c7bd07675aa3a"
 dependencies = [
  "displaydoc",
+ "utf8_iter",
 ]
 
 [[package]]
@@ -363,7 +364,7 @@ dependencies = [
  "log",
  "num-traits",
  "rustc-hash",
- "tinystr",
+ "tinystr 0.8.0",
  "tzif",
 ]
 
@@ -378,10 +379,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "tzif"
-version = "0.2.3"
+name = "tinystr"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61b8eb18929606c6f3eea7ef096a91dd5c26dbbde2a20a343c4a409b851666fd"
+checksum = "b2b56a820bb70060f096338fcc02edb78cb3f8fb21c5078503f48588cfcaf494"
+dependencies = [
+ "displaydoc",
+]
+
+[[package]]
+name = "tzif"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5cecffbab91858408738280e7bb6aac788f59a522dda961cd6b15542f0c08559"
 dependencies = [
  "combine",
 ]
@@ -391,6 +401,12 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "utf8_iter"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "wasm-bindgen"
