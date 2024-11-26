@@ -8,6 +8,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 use core::str::FromStr;
 
+use crate::parsers::parse_date_time;
 use crate::{
     components::{
         duration::{DateDuration, TimeDuration},
@@ -190,13 +191,21 @@ impl Calendar {
 impl FromStr for Calendar {
     type Err = TemporalError;
 
+    // 13.39 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut cal_str = s;
+        if let Ok(record) = parse_date_time(s) {
+            if let Some(calendar) = record.calendar {
+                cal_str = calendar;
+            }
+        }
+
         // NOTE(nekesss): Catch the iso identifier here, as `iso8601` is not a valid ID below.
-        if s == "iso8601" {
+        if cal_str.to_lowercase() == "iso8601" {
             return Ok(Self::default());
         }
 
-        let Some(cal) = AnyCalendarKind::get_for_bcp47_string(s) else {
+        let Some(cal) = AnyCalendarKind::get_for_bcp47_string(cal_str) else {
             return Err(TemporalError::range().with_message("Not a builtin calendar."));
         };
 
@@ -322,6 +331,7 @@ impl Calendar {
                 resolved_fields.day,
                 self.clone(),
                 overflow,
+                None,
             );
         }
 

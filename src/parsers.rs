@@ -127,18 +127,8 @@ pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord>
 #[inline]
 pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
-
-    if let Ok(md) = md_record {
-        return Ok(md);
-    }
-
-    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
-
-    match dt_parse {
-        Ok(dt) => Ok(dt),
-        // Format and return the error from parsing YearMonth.
-        _ => md_record.map_err(|e| TemporalError::range().with_message(format!("{e}"))),
-    }
+    // Error needs to be a RangeError
+    md_record.map_err(|e| TemporalError::range().with_message(format!("{e}")))
 }
 
 #[inline]

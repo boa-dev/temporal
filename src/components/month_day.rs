@@ -36,9 +36,11 @@ impl PlainMonthDay {
         day: i32,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
+        ref_year: Option<i32>,
     ) -> TemporalResult<Self> {
+        let ry = ref_year.unwrap_or(1972);
         // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
-        let iso = IsoDate::new_with_overflow(1972, month, day, overflow)?;
+        let iso = IsoDate::new_with_overflow(ry, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
     }
 
@@ -54,6 +56,13 @@ impl PlainMonthDay {
     #[must_use]
     pub fn iso_month(&self) -> u8 {
         self.iso.month
+    }
+
+    // returns the iso year value of `MonthDay`.
+    #[inline]
+    #[must_use]
+    pub fn iso_year(&self) -> i32 {
+        self.iso.year
     }
 
     /// Returns the string identifier for the current calendar used.
@@ -108,6 +117,7 @@ impl FromStr for PlainMonthDay {
             date.day.into(),
             Calendar::from_str(calendar)?,
             ArithmeticOverflow::Reject,
+            None,
         )
     }
 }
