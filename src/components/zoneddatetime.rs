@@ -1,14 +1,18 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
+use alloc::{borrow::ToOwned, string::String};
+use ixdtf::parsers::records::TimeZoneRecord;
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    Calendar, TimeZone, Instant, Duration, PlainDateTime, PlainDate,
-    components::{tz::TzProvider, calendar::CalendarDateLike},
-    iso::IsoDateTime,
-    options::{ArithmeticOverflow, Disambiguation},
+    components::{calendar::CalendarDateLike, tz::TzProvider},
+    iso::{IsoDate, IsoDateTime, IsoTime},
+    options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation, TemporalRoundingMode},
+    parsers,
     partial::{PartialDate, PartialTime},
-    Sign, TemporalError, TemporalResult,
+    rounding::{IncrementRounder, Round},
+    temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, Sign, TemporalError,
+    TemporalResult, TimeZone,
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -17,14 +21,19 @@ pub struct PartialZonedDateTime {
     pub date: PartialDate,
     /// The `PartialTime` portion of a `PartialDateTime`
     pub time: PartialTime,
+    /// An optional offset string
+    pub offset: Option<String>,
     /// The time zone value of a partial time zone.
     pub timezone: TimeZone,
 }
 
 #[cfg(feature = "experimental")]
 use crate::components::tz::TZ_PROVIDER;
+use core::{num::NonZeroU128, str::FromStr};
 #[cfg(feature = "experimental")]
 use std::ops::Deref;
+
+use super::{tz::parse_offset, EpochNanoseconds};
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
@@ -151,8 +160,50 @@ impl ZonedDateTime {
     }
 
     #[inline]
-    pub fn from_partial(partial: PartialZonedDateTime) -> TemporalResult<Self> {
-        todo!()
+    pub fn from_partial_with_provider(
+        partial: PartialZonedDateTime,
+        calendar: Option<Calendar>,
+        overflow: Option<ArithmeticOverflow>,
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<Self> {
+        let calendar = calendar.unwrap_or_default();
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let date = calendar.date_from_partial(&partial.date, overflow)?.iso;
+        let time = if !partial.time.is_empty() {
+            Some(IsoTime::default().with(partial.time, overflow)?)
+        } else {
+            None
+        };
+
+        // Handle time zones
+        let offset = partial
+            .offset
+            .map(|offset| {
+                let mut cursor = offset.chars().peekable();
+                parse_offset(&mut cursor)
+            })
+            .transpose()?;
+
+        let offset_nanos = match offset {
+            Some(TimeZone::OffsetMinutes(minutes)) => Some(i64::from(minutes) * 60_000_000_000),
+            None => None,
+            _ => unreachable!(),
+        };
+
+        let epoch_nanos = interpret_isodatetime_offset(
+            date,
+            time,
+            offset_nanos,
+            &partial.timezone,
+            disambiguation,
+            offset_option,
+            true,
+            provider,
+        )?;
+
+        Ok(Self::new_unchecked(Instant::from(epoch_nanos), calendar, partial.timezone))
     }
 
     /// Returns the `epochSeconds` value of this `ZonedDateTime`.
@@ -380,6 +431,193 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider,
         )
+    }
+
+    // TODO: Should IANA Identifier be prechecked or allow potentially invalid IANA Identifer values here?
+    pub fn from_str_with_provider(
+        source: &str,
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<Self> {
+        let parse_result = parsers::parse_date_time(source)?;
+
+        let Some(annotation) = parse_result.tz else {
+            return Err(TemporalError::r#type()
+                .with_message("Time zone annotation is required for ZonedDateTime string."));
+        };
+
+        let timezone = match annotation.tz {
+            TimeZoneRecord::Name(s) => TimeZone::IanaIdentifier(s.to_owned()),
+            TimeZoneRecord::Offset(offset_record) => {
+                // NOTE: ixdtf parser restricts minute/second to 0..=60
+                let minutes = i16::from((offset_record.hour * 60) + offset_record.minute);
+                TimeZone::OffsetMinutes(minutes * i16::from(offset_record.sign as i8))
+            }
+            // TimeZoneRecord is non_exhaustive, but all current branches are matching.
+            _ => return Err(TemporalError::assert()),
+        };
+
+        let offset_nanos = parse_result.offset.map(|record| {
+            let hours_in_ns = i64::from(record.hour) * 3_600_000_000_000_i64;
+            let minutes_in_ns = i64::from(record.minute) * 60_000_000_000_i64;
+            let seconds_in_ns = i64::from(record.minute) * 1_000_000_000_i64;
+            (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(record.nanosecond))
+                * i64::from(record.sign as i8)
+        });
+
+        let calendar = Calendar::from_str(parse_result.calendar.unwrap_or("iso8601"))?;
+
+        let time = parse_result
+            .time
+            .map(|time| {
+                IsoTime::from_components(
+                    i32::from(time.hour),
+                    i32::from(time.minute),
+                    i32::from(time.second),
+                    f64::from(time.nanosecond),
+                )
+            })
+            .transpose()?;
+
+        let Some(parsed_date) = parse_result.date else {
+            return Err(
+                TemporalError::range().with_message("No valid DateRecord Parse Node was found.")
+            );
+        };
+
+        let date = IsoDate::new_with_overflow(
+            parsed_date.year,
+            parsed_date.month.into(),
+            parsed_date.day.into(),
+            ArithmeticOverflow::Reject,
+        )?;
+
+        let epoch_nanos = interpret_isodatetime_offset(
+            date,
+            time,
+            offset_nanos,
+            &timezone,
+            disambiguation,
+            offset_option,
+            true,
+            provider,
+        )?;
+
+        Ok(Self::new_unchecked(
+            Instant::from(epoch_nanos),
+            calendar,
+            timezone,
+        ))
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn interpret_isodatetime_offset(
+    date: IsoDate,
+    time: Option<IsoTime>,
+    offset_nanos: Option<i64>,
+    timezone: &TimeZone,
+    disambiguation: Disambiguation,
+    offset_option: OffsetDisambiguation,
+    match_minutes: bool,
+    provider: &impl TzProvider,
+) -> TemporalResult<EpochNanoseconds> {
+    // 1.  If time is start-of-day, then
+    let Some(time) = time else {
+        // a. Assert: offsetBehaviour is wall.
+        // b. Assert: offsetNanoseconds is 0.
+        temporal_assert!(offset_nanos.is_none());
+        // c. Return ? GetStartOfDay(timeZone, isoDate).
+        return timezone.get_start_of_day(&date, provider);
+    };
+
+    // 2. Let isoDateTime be CombineISODateAndTimeRecord(isoDate, time).
+    // TODO: Deal with offsetBehavior == wall.
+    match offset_nanos {
+        // 4. If offsetBehaviour is exact, or offsetBehaviour is option and offsetOption is use, then
+        Some(offset) if offset_option == OffsetDisambiguation::Use => {
+            // a. Let balanced be BalanceISODateTime(isoDate.[[Year]], isoDate.[[Month]],
+            // isoDate.[[Day]], time.[[Hour]], time.[[Minute]], time.[[Second]], time.[[Millisecond]],
+            // time.[[Microsecond]], time.[[Nanosecond]] - offsetNanoseconds).
+            let iso = IsoDateTime::balance(
+                date.year,
+                date.month.into(),
+                date.day.into(),
+                time.hour.into(),
+                time.minute.into(),
+                time.second.into(),
+                time.millisecond.into(),
+                time.microsecond.into(),
+                i64::from(time.nanosecond) - offset,
+            );
+
+            // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
+            iso.date.is_valid_day_range()?;
+
+            // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
+            // d. If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
+            // e. Return epochNanoseconds.
+            iso.as_nanoseconds()
+        }
+        // 5. Assert: offsetBehaviour is option.
+        // 6. Assert: offsetOption is prefer or reject.
+        Some(offset)
+            if offset_option == OffsetDisambiguation::Prefer
+                || offset_option == OffsetDisambiguation::Reject =>
+        {
+            // 7. Perform ? CheckISODaysRange(isoDate).
+            date.is_valid_day_range()?;
+            let iso = IsoDateTime::new_unchecked(date, time);
+            // 8. Let utcEpochNanoseconds be GetUTCEpochNanoseconds(isoDateTime).
+            let utc_epochs = iso.as_nanoseconds()?;
+            // 9. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
+            let possible_nanos = timezone.get_possible_epoch_ns_for(iso, provider)?;
+            // 10. For each element candidate of possibleEpochNs, do
+            for candidate in &possible_nanos {
+                // a. Let candidateOffset be utcEpochNanoseconds - candidate.
+                let candidate_offset = utc_epochs.0 - candidate;
+                // b. If candidateOffset = offsetNanoseconds, then
+                if candidate_offset == offset.into() {
+                    // i. Return candidate.
+                    return EpochNanoseconds::try_from(*candidate);
+                }
+                // c. If matchBehaviour is match-minutes, then
+                if match_minutes {
+                    // i. Let roundedCandidateNanoseconds be RoundNumberToIncrement(candidateOffset, 60 × 10**9, half-expand).
+                    let rounded_candidate = IncrementRounder::from_potentially_negative_parts(
+                        candidate_offset,
+                        unsafe { NonZeroU128::new_unchecked(60_000_000_000) },
+                    )?
+                    .round(TemporalRoundingMode::HalfExpand);
+                    // ii. If roundedCandidateNanoseconds = offsetNanoseconds, then
+                    if rounded_candidate == offset.into() {
+                        // 1. Return candidate.
+                        return EpochNanoseconds::try_from(*candidate);
+                    }
+                }
+            }
+
+            // 11. If offsetOption is reject, throw a RangeError exception.
+            if offset_option == OffsetDisambiguation::Reject {
+                return Err(TemporalError::range()
+                    .with_message("Offsets could not be determined without disambiguation"));
+            }
+            // 12. Return ? DisambiguatePossibleEpochNanoseconds(possibleEpochNs, timeZone, isoDateTime, disambiguation).
+            timezone.disambiguate_possible_epoch_nanos(
+                possible_nanos,
+                iso,
+                disambiguation,
+                provider,
+            )
+        }
+        // NOTE: This is inverted as the logic works better for matching against
+        // 3. If offsetBehaviour is wall, or offsetBehaviour is option and offsetOption is ignore, then
+        _ => {
+            // a. Return ? GetEpochNanosecondsFor(timeZone, isoDateTime, disambiguation).
+            let iso = IsoDateTime::new_unchecked(date, time);
+            timezone.get_epoch_nanoseconds_for(iso, disambiguation, provider)
+        }
     }
 }
 

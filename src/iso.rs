@@ -23,12 +23,7 @@ use crate::{
             DateDuration, TimeDuration,
         },
         Duration, PartialTime, PlainDate,
-    },
-    error::TemporalError,
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
-    primitive::FiniteF64,
-    rounding::{IncrementRounder, Round},
-    temporal_assert, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    }, error::TemporalError, options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit}, primitive::FiniteF64, rounding::{IncrementRounder, Round}, temporal_assert, time::EpochNanoseconds, utils, TemporalResult, TemporalUnwrap, NS_PER_DAY
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_traits::{cast::FromPrimitive, AsPrimitive, ToPrimitive};
@@ -62,39 +57,39 @@ impl IsoDateTime {
     // TODO: Move away from offset use of f64
     /// Creates an `IsoDateTime` from a `BigInt` of epochNanoseconds.
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
-    pub(crate) fn from_epoch_nanos(nanos: &i128, offset: f64) -> TemporalResult<Self> {
+    pub(crate) fn from_epoch_nanos(nanos: &i128, offset: i64) -> TemporalResult<Self> {
         // Skip the assert as nanos should be validated by Instant.
         // TODO: Determine whether value needs to be validated as integral.
         // Get the component ISO parts
-        let mathematical_nanos = nanos.to_f64().ok_or_else(|| {
+        let mathematical_nanos = nanos.to_i64().ok_or_else(|| {
             TemporalError::range().with_message("nanos was not within a valid range.")
         })?;
 
         // 2. Let remainderNs be epochNanoseconds modulo 10^6.
-        let remainder_nanos = mathematical_nanos % 1_000_000f64;
+        let remainder_nanos = mathematical_nanos % 1_000_000;
 
         // 3. Let epochMilliseconds be 𝔽((epochNanoseconds - remainderNs) / 10^6).
-        let epoch_millis = ((mathematical_nanos - remainder_nanos) / 1_000_000f64).floor();
+        let epoch_millis = (mathematical_nanos - remainder_nanos) / 1_000_000;
 
-        let year = utils::epoch_time_to_epoch_year(epoch_millis);
-        let month = utils::epoch_time_to_month_in_year(epoch_millis) + 1;
-        let day = utils::epoch_time_to_date(epoch_millis);
+        let year = utils::epoch_time_to_epoch_year(epoch_millis as f64);
+        let month = utils::epoch_time_to_month_in_year(epoch_millis as f64) + 1;
+        let day = utils::epoch_time_to_date(epoch_millis as f64);
 
         // 7. Let hour be ℝ(! HourFromTime(epochMilliseconds)).
-        let hour = (epoch_millis / 3_600_000f64).floor() % 24f64;
+        let hour = (epoch_millis / 3_600_000) % 24;
         // 8. Let minute be ℝ(! MinFromTime(epochMilliseconds)).
-        let minute = (epoch_millis / 60_000f64).floor() % 60f64;
+        let minute = (epoch_millis / 60_000) % 60;
         // 9. Let second be ℝ(! SecFromTime(epochMilliseconds)).
-        let second = (epoch_millis / 1000f64).floor() % 60f64;
+        let second = (epoch_millis / 1000) % 60;
         // 10. Let millisecond be ℝ(! msFromTime(epochMilliseconds)).
-        let millis = (epoch_millis % 1000f64).floor() % 1000f64;
+        let millis = (epoch_millis % 1000) % 1000;
 
         // 11. Let microsecond be floor(remainderNs / 1000).
-        let micros = (remainder_nanos / 1000f64).floor();
+        let micros = remainder_nanos / 1000;
         // 12. Assert: microsecond < 1000.
-        temporal_assert!(micros < 1000f64);
+        temporal_assert!(micros < 1000);
         // 13. Let nanosecond be remainderNs modulo 1000.
-        let nanos = (remainder_nanos % 1000f64).floor();
+        let nanos = remainder_nanos % 1000;
 
         Ok(Self::balance(
             year,
@@ -114,12 +109,12 @@ impl IsoDateTime {
         year: i32,
         month: i32,
         day: i32,
-        hour: f64,
-        minute: f64,
-        second: f64,
-        millisecond: f64,
-        microsecond: f64,
-        nanosecond: f64,
+        hour: i64,
+        minute: i64,
+        second: i64,
+        millisecond: i64,
+        microsecond: i64,
+        nanosecond: i64,
     ) -> Self {
         let (overflow_day, time) =
             IsoTime::balance(hour, minute, second, millisecond, microsecond, nanosecond);
@@ -132,10 +127,9 @@ impl IsoDateTime {
         iso_dt_within_valid_limits(self.date, &self.time)
     }
 
-    // TODO: Move offset away from f64?
     /// Returns this `IsoDateTime` in nanoseconds
-    pub fn as_nanoseconds(&self) -> Option<i128> {
-        utc_epoch_nanos(self.date, &self.time).and_then(|z| z.to_i128())
+    pub fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+        utc_epoch_nanos(self.date, &self.time)
     }
 
     /// Specification equivalent to 5.5.9 `AddDateTime`.
@@ -345,8 +339,8 @@ impl IsoDate {
 
     /// Returns this `IsoDate` in nanoseconds.
     #[inline]
-    pub(crate) fn as_nanoseconds(&self) -> Option<i128> {
-        utc_epoch_nanos(*self, &IsoTime::default()).and_then(|z| z.to_i128())
+    pub(crate) fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+        utc_epoch_nanos(*self, &IsoTime::default())
     }
 
     /// Functionally the same as Date's abstract operation `MakeDay`
@@ -635,41 +629,41 @@ impl IsoTime {
     // NOTE(nekevss): f64 is needed here as values could exceed i32 when input.
     /// Balances and creates a new `IsoTime` with `day` overflow from the provided values.
     pub(crate) fn balance(
-        hour: f64,
-        minute: f64,
-        second: f64,
-        millisecond: f64,
-        microsecond: f64,
-        nanosecond: f64,
+        hour: i64,
+        minute: i64,
+        second: i64,
+        millisecond: i64,
+        microsecond: i64,
+        nanosecond: i64,
     ) -> (i32, Self) {
         // 1. Set microsecond to microsecond + floor(nanosecond / 1000).
         // 2. Set nanosecond to nanosecond modulo 1000.
-        let (quotient, nanosecond) = div_mod(nanosecond, 1000f64);
+        let (quotient, nanosecond) = div_mod(nanosecond, 1000);
         let microsecond = microsecond + quotient;
 
         // 3. Set millisecond to millisecond + floor(microsecond / 1000).
         // 4. Set microsecond to microsecond modulo 1000.
-        let (quotient, microsecond) = div_mod(microsecond, 1000f64);
+        let (quotient, microsecond) = div_mod(microsecond, 1000);
         let millisecond = millisecond + quotient;
 
         // 5. Set second to second + floor(millisecond / 1000).
         // 6. Set millisecond to millisecond modulo 1000.
-        let (quotient, millisecond) = div_mod(millisecond, 1000f64);
+        let (quotient, millisecond) = div_mod(millisecond, 1000);
         let second = second + quotient;
 
         // 7. Set minute to minute + floor(second / 60).
         // 8. Set second to second modulo 60.
-        let (quotient, second) = div_mod(second, 60f64);
+        let (quotient, second) = div_mod(second, 60);
         let minute = minute + quotient;
 
         // 9. Set hour to hour + floor(minute / 60).
         // 10. Set minute to minute modulo 60.
-        let (quotient, minute) = div_mod(minute, 60f64);
+        let (quotient, minute) = div_mod(minute, 60);
         let hour = hour + quotient;
 
         // 11. Let days be floor(hour / 24).
         // 12. Set hour to hour modulo 24.
-        let (days, hour) = div_mod(hour, 24f64);
+        let (days, hour) = div_mod(hour, 24);
 
         let time = Self::new_unchecked(
             hour as u8,
@@ -780,35 +774,28 @@ impl IsoTime {
                 .round(resolved_options.rounding_mode)
                 / length.get() as i128;
 
-        let result_f64 = f64::from_i128(result)
+        let result_i64 = i64::from_i128(result)
             .ok_or(TemporalError::range().with_message("round result valid range."))?;
 
         match resolved_options.smallest_unit {
             // 9. If unit is "day", then
             // a. Return Time Record { [[Days]]: result, [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0  }.
-            TemporalUnit::Day => Ok((result_f64 as i32, Self::default())),
+            TemporalUnit::Day => Ok((result_i64 as i32, Self::default())),
             // 10. If unit is "hour", then
             // a. Return BalanceTime(result, 0, 0, 0, 0, 0).
-            TemporalUnit::Hour => Ok(Self::balance(result_f64, 0.0, 0.0, 0.0, 0.0, 0.0)),
+            TemporalUnit::Hour => Ok(Self::balance(result_i64, 0, 0, 0, 0, 0)),
             // 11. If unit is "minute", then
             // a. Return BalanceTime(hour, result, 0.0, 0.0, 0.0, 0).
-            TemporalUnit::Minute => Ok(Self::balance(
-                self.hour.into(),
-                result_f64,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-            )),
+            TemporalUnit::Minute => Ok(Self::balance(self.hour.into(), result_i64, 0, 0, 0, 0)),
             // 12. If unit is "second", then
             // a. Return BalanceTime(hour, minute, result, 0.0, 0.0, 0).
             TemporalUnit::Second => Ok(Self::balance(
                 self.hour.into(),
                 self.minute.into(),
-                result_f64,
-                0.0,
-                0.0,
-                0.0,
+                result_i64,
+                0,
+                0,
+                0,
             )),
             // 13. If unit is "millisecond", then
             // a. Return BalanceTime(hour, minute, second, result, 0.0, 0).
@@ -816,9 +803,9 @@ impl IsoTime {
                 self.hour.into(),
                 self.minute.into(),
                 self.second.into(),
-                result_f64,
-                0.0,
-                0.0,
+                result_i64,
+                0,
+                0,
             )),
             // 14. If unit is "microsecond", then
             // a. Return BalanceTime(hour, minute, second, millisecond, result, 0).
@@ -827,8 +814,8 @@ impl IsoTime {
                 self.minute.into(),
                 self.second.into(),
                 self.millisecond.into(),
-                result_f64,
-                0.0,
+                result_i64,
+                0,
             )),
             // 15. Assert: unit is "nanosecond".
             // 16. Return BalanceTime(hour, minute, second, millisecond, microsecond, result).
@@ -838,7 +825,7 @@ impl IsoTime {
                 self.second.into(),
                 self.millisecond.into(),
                 self.microsecond.into(),
-                result_f64,
+                result_i64,
             )),
             _ => Err(TemporalError::assert()),
         }
@@ -863,17 +850,17 @@ impl IsoTime {
 
     pub(crate) fn add(&self, norm: NormalizedTimeDuration) -> (i32, Self) {
         // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
-        let seconds = f64::from(self.second) + norm.seconds() as f64;
+        let seconds = i64::from(self.second) + norm.seconds();
         // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
         let nanos = i32::from(self.nanosecond) + norm.subseconds();
         // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
         Self::balance(
-            f64::from(self.hour),
-            f64::from(self.minute),
+            self.hour.into(),
+            self.minute.into(),
             seconds,
-            f64::from(self.millisecond),
-            f64::from(self.microsecond),
-            f64::from(nanos),
+            self.millisecond.into(),
+            self.microsecond.into(),
+            nanos.into(),
         )
     }
 
@@ -900,19 +887,19 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
     {
         return false;
     }
-    let Some(ns) = utc_epoch_nanos(date, time) else {
+    let Ok(ns) = utc_epoch_nanos(date, time) else {
         return false;
     };
 
     let max = crate::NS_MAX_INSTANT + i128::from(NS_PER_DAY);
     let min = crate::NS_MIN_INSTANT - i128::from(NS_PER_DAY);
 
-    min <= ns && max >= ns
+    min <= ns.0 && max >= ns.0
 }
 
 #[inline]
 /// Utility function to convert a `IsoDate` and `IsoTime` values into epoch nanoseconds
-fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> Option<i128> {
+fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanoseconds> {
     let ms = time.to_epoch_ms();
     let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
 
@@ -921,7 +908,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> Option<i128> {
         f64::from(time.microsecond).mul_add(1_000f64, f64::from(time.nanosecond)),
     );
 
-    i128::from_f64(epoch_nanos)
+    EpochNanoseconds::try_from(epoch_nanos)
 }
 
 // ==== `IsoDate` specific utiltiy functions ====
@@ -1002,6 +989,6 @@ fn is_valid_time(hour: i32, minute: i32, second: i32, ms: i32, mis: i32, ns: i32
 
 // NOTE(nekevss): Considering the below: Balance can probably be altered from f64.
 #[inline]
-fn div_mod(dividend: f64, divisor: f64) -> (f64, f64) {
+fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
     (dividend.div_euclid(divisor), dividend.rem_euclid(divisor))
 }

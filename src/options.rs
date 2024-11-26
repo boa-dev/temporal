@@ -522,7 +522,7 @@ impl fmt::Display for Disambiguation {
 }
 
 /// Offset disambiguation options.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum OffsetDisambiguation {
     /// Use option
     Use,

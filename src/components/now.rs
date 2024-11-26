@@ -51,7 +51,7 @@ fn system_date_time(
     // a. Let timeZone be SystemTimeZoneIdentifier().
     // 2. Else,
     // a. Let timeZone be ? ToTemporalTimeZoneIdentifier(temporalTimeZoneLike).
-    let tz = tz.unwrap_or(sys::get_system_tz_identifier()?.into());
+    let tz = tz.unwrap_or(TimeZone::IanaIdentifier(sys::get_system_tz_identifier()?));
     // 3. Let epochNs be SystemUTCEpochNanoseconds().
     // TODO: Handle u128 -> i128 better for system nanoseconds
     let epoch_ns = EpochNanoseconds::try_from(sys::get_system_nanoseconds()?)?;

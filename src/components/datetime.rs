@@ -74,7 +74,7 @@ impl PlainDateTime {
     #[allow(unused)]
     pub(crate) fn from_instant(
         instant: &Instant,
-        offset: f64,
+        offset: i64,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
         let iso = IsoDateTime::from_epoch_nanos(&instant.as_i128(), offset)?;
@@ -213,11 +213,11 @@ impl PlainDateTime {
         // [[Day]]: d1, [[Hour]]: h1, [[Minute]]: min1, [[Second]]: s1, [[Millisecond]]:
         // ms1, [[Microsecond]]: mus1, [[Nanosecond]]: ns1 }.
         // 7. Let destEpochNs be GetUTCEpochNanoseconds(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2).
-        let dest_epoch_ns = other.iso.as_nanoseconds().temporal_unwrap()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds()?;
 
         // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
         // roundingIncrement, smallestUnit, roundingMode).
-        diff.round_relative_duration(dest_epoch_ns, self, None, options)
+        diff.round_relative_duration(dest_epoch_ns.0, self, None, options)
     }
 }
 
