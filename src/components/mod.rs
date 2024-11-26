@@ -40,4 +40,4 @@ pub use time::{PartialTime, PlainTime};
 #[doc(inline)]
 pub use year_month::PlainYearMonth;
 #[doc(inline)]
-pub use zoneddatetime::ZonedDateTime;
+pub use zoneddatetime::{PartialZonedDateTime, ZonedDateTime};

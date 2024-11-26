@@ -1,11 +1,16 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
 use alloc::{borrow::ToOwned, string::String};
+use core::{num::NonZeroU128, str::FromStr};
 use ixdtf::parsers::records::TimeZoneRecord;
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    components::{calendar::CalendarDateLike, tz::TzProvider},
+    components::{
+        EpochNanoseconds,
+        calendar::CalendarDateLike,
+        tz::{parse_offset, TzProvider},
+    },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation, TemporalRoundingMode},
     parsers,
@@ -14,6 +19,11 @@ use crate::{
     temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, Sign, TemporalError,
     TemporalResult, TimeZone,
 };
+
+#[cfg(feature = "experimental")]
+use crate::components::tz::TZ_PROVIDER;
+#[cfg(feature = "experimental")]
+use std::ops::Deref;
 
 /// A struct representing a partial `ZonedDateTime`.
 pub struct PartialZonedDateTime {
@@ -26,14 +36,6 @@ pub struct PartialZonedDateTime {
     /// The time zone value of a partial time zone.
     pub timezone: TimeZone,
 }
-
-#[cfg(feature = "experimental")]
-use crate::components::tz::TZ_PROVIDER;
-use core::{num::NonZeroU128, str::FromStr};
-#[cfg(feature = "experimental")]
-use std::ops::Deref;
-
-use super::{tz::parse_offset, EpochNanoseconds};
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
@@ -164,12 +166,15 @@ impl ZonedDateTime {
         partial: PartialZonedDateTime,
         calendar: Option<Calendar>,
         overflow: Option<ArithmeticOverflow>,
-        disambiguation: Disambiguation,
-        offset_option: OffsetDisambiguation,
+        disambiguation: Option<Disambiguation>,
+        offset_option: Option<OffsetDisambiguation>,
         provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
         let calendar = calendar.unwrap_or_default();
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let disambiguation = disambiguation.unwrap_or(Disambiguation::Compatible);
+        let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
+
         let date = calendar.date_from_partial(&partial.date, overflow)?.iso;
         let time = if !partial.time.is_empty() {
             Some(IsoTime::default().with(partial.time, overflow)?)
@@ -335,6 +340,17 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider.deref(),
         )
+    }
+
+    pub fn from_str(
+        source: &str,
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        Self::from_str_with_provider(source, disambiguation, offset_option, provider.deref())
     }
 }
 
@@ -624,15 +640,17 @@ pub fn interpret_isodatetime_offset(
 #[cfg(feature = "tzdb")]
 #[cfg(test)]
 mod tests {
-
+    use crate::{
+        options::{Disambiguation, OffsetDisambiguation},
+        partial::{PartialDate, PartialTime, PartialZonedDateTime},
+        tzdb::FsTzdbProvider,
+        Calendar, ZonedDateTime,
+    };
     use core::str::FromStr;
-
-    use crate::{tzdb::FsTzdbProvider, Calendar};
+    use tinystr::tinystr;
 
     #[cfg(not(target_os = "windows"))]
     use crate::{Duration, TimeZone};
-
-    use super::ZonedDateTime;
 
     #[test]
     fn basic_zdt_test() {
@@ -642,7 +660,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            "Z".into(),
+            TimeZone::try_from_str_with_provider("Z", provider).unwrap(),
         )
         .unwrap();
 
@@ -656,7 +674,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            "America/New_York".into(),
+            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
         )
         .unwrap();
 
@@ -670,7 +688,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            "Australia/Sydney".into(),
+            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
         )
         .unwrap();
 
@@ -690,7 +708,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            "Z".into(),
+            TimeZone::try_from_str("Z").unwrap(),
         )
         .unwrap();
 
@@ -704,7 +722,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            "America/New_York".into(),
+            TimeZone::try_from_str("America/New_York").unwrap(),
         )
         .unwrap();
 
@@ -718,7 +736,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            "Australia/Sydney".into(),
+            TimeZone::try_from_str("Australia/Sydney").unwrap(),
         )
         .unwrap();
 
@@ -756,5 +774,39 @@ mod tests {
 
         let result = zdt.add(&d, None).unwrap();
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn zdt_from_partial() {
+        let provider = &FsTzdbProvider::default();
+        let partial = PartialZonedDateTime {
+            date: PartialDate {
+                year: Some(1970),
+                month_code: Some(tinystr!(4, "M01")),
+                day: Some(1),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+            offset: None,
+            timezone: TimeZone::default(),
+        };
+
+        let result =
+            ZonedDateTime::from_partial_with_provider(partial, None, None, None, None, provider);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn zdt_from_str() {
+        let provider = &FsTzdbProvider::default();
+
+        let zdt_str = "1970-01-01T00:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_str_with_provider(
+            zdt_str,
+            Disambiguation::Compatible,
+            OffsetDisambiguation::Reject,
+            provider,
+        );
+        assert!(result.is_ok());
     }
 }

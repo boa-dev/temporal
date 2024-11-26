@@ -17,7 +17,10 @@ use crate::{
 #[cfg(feature = "experimental")]
 use crate::tzdb::FsTzdbProvider;
 #[cfg(feature = "experimental")]
-use std::sync::{LazyLock, Mutex};
+use std::{
+    ops::Deref,
+    sync::{LazyLock, Mutex},
+};
 
 #[cfg(feature = "experimental")]
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
@@ -48,16 +51,27 @@ pub enum TimeZone {
 }
 
 impl TimeZone {
+    #[cfg(feature = "experimental")]
+    pub fn try_from_str(source: &str) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        Self::try_from_str_with_provider(source, provider.deref())
+    }
+
     /// Parses a `TimeZone` from a provided `&str`.
-    pub fn try_from_str(s: &str, provider: &impl TzProvider) -> TemporalResult<Self> {
-        if s == "Z" {
+    pub fn try_from_str_with_provider(
+        source: &str,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<Self> {
+        if source == "Z" {
             return Ok(Self::OffsetMinutes(0));
         }
-        let mut cursor = s.chars().peekable();
+        let mut cursor = source.chars().peekable();
         if cursor.peek().map_or(false, is_ascii_sign) {
             return parse_offset(&mut cursor);
-        } else if provider.check_identifier(s) {
-            return Ok(Self::IanaIdentifier(s.to_owned()));
+        } else if provider.check_identifier(source) {
+            return Ok(Self::IanaIdentifier(source.to_owned()));
         }
         Err(TemporalError::range().with_message("Valid time zone was not provided."))
     }
