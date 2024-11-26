@@ -644,13 +644,13 @@ mod tests {
         options::{Disambiguation, OffsetDisambiguation},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         tzdb::FsTzdbProvider,
-        Calendar, ZonedDateTime,
+        Calendar, TimeZone, ZonedDateTime,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
 
     #[cfg(not(target_os = "windows"))]
-    use crate::{Duration, TimeZone};
+    use crate::Duration;
 
     #[test]
     fn basic_zdt_test() {
