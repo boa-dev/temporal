@@ -41,3 +41,6 @@ pub use time::{PartialTime, PlainTime};
 pub use year_month::PlainYearMonth;
 #[doc(inline)]
 pub use zoneddatetime::ZonedDateTime;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EpochNanoseconds(i128);
