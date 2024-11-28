@@ -12,7 +12,7 @@ use crate::{
     parsers::parse_instant,
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap, NS_MAX_INSTANT,
 };
 
 use num_traits::{Euclid, FromPrimitive};
@@ -34,6 +34,17 @@ impl TryFrom<i128> for EpochNanoseconds {
                 .with_message("Instant nanoseconds are not within a valid epoch range."));
         }
         Ok(Self(value))
+    }
+}
+
+impl TryFrom<u128> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: u128) -> Result<Self, Self::Error> {
+        if (NS_MAX_INSTANT as u128) < value {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        }
+        Ok(Self(value as i128))
     }
 }
 

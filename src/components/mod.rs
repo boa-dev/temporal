@@ -32,7 +32,7 @@ pub use datetime::{PartialDateTime, PlainDateTime};
 #[doc(inline)]
 pub use duration::Duration;
 #[doc(inline)]
-pub use instant::Instant;
+pub use instant::{EpochNanoseconds, Instant};
 #[doc(inline)]
 pub use month_day::PlainMonthDay;
 #[doc(inline)]
@@ -41,6 +41,3 @@ pub use time::{PartialTime, PlainTime};
 pub use year_month::PlainYearMonth;
 #[doc(inline)]
 pub use zoneddatetime::ZonedDateTime;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EpochNanoseconds(i128);
