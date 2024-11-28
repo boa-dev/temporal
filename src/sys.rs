@@ -2,9 +2,9 @@ use alloc::string::{String, ToString};
 
 use crate::{TemporalError, TemporalResult};
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use web_time::{SystemTime, UNIX_EPOCH};
 
-// TODO: Need to implement system handling for non_std.
+// TODO: Need to implement SystemTime handling for non_std.
 
 /// Returns the system time in nanoseconds.
 pub(crate) fn get_system_nanoseconds() -> TemporalResult<u128> {
