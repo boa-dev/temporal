@@ -1,7 +1,7 @@
 //! This module implements `YearMonth` and any directly related algorithms.
 
 use alloc::string::String;
-use core::str::FromStr;
+use core::str::{self, FromStr};
 
 use tinystr::TinyAsciiStr;
 
@@ -184,7 +184,7 @@ impl FromStr for PlainYearMonth {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let record = crate::parsers::parse_year_month(s)?;
 
-        let calendar = record.calendar.unwrap_or("iso8601");
+        let calendar = record.calendar.unwrap_or("iso8601".as_bytes());
 
         let date = record.date.temporal_unwrap()?;
 
@@ -192,7 +192,7 @@ impl FromStr for PlainYearMonth {
             date.year,
             date.month.into(),
             None,
-            Calendar::from_str(calendar)?,
+            Calendar::from_utf8(calendar)?,
             ArithmeticOverflow::Reject,
         )
     }

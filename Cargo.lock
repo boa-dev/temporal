@@ -131,7 +131,7 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform",
  "icu_provider",
- "tinystr 0.7.6",
+ "tinystr",
  "writeable",
  "zerovec",
 ]
@@ -150,7 +150,7 @@ checksum = "13acbb8371917fc971be86fc8057c41a64b521c184808a698c02acc242dbf637"
 dependencies = [
  "displaydoc",
  "litemap",
- "tinystr 0.7.6",
+ "tinystr",
  "writeable",
  "zerovec",
 ]
@@ -165,7 +165,7 @@ dependencies = [
  "icu_locid",
  "icu_locid_transform_data",
  "icu_provider",
- "tinystr 0.7.6",
+ "tinystr",
  "zerovec",
 ]
 
@@ -185,7 +185,7 @@ dependencies = [
  "icu_locid",
  "icu_provider_macros",
  "stable_deref_trait",
- "tinystr 0.7.6",
+ "tinystr",
  "writeable",
  "yoke",
  "zerofrom",
@@ -364,7 +364,7 @@ dependencies = [
  "log",
  "num-traits",
  "rustc-hash",
- "tinystr 0.8.0",
+ "tinystr",
  "tzif",
 ]
 
@@ -376,15 +376,6 @@ checksum = "9117f5d4db391c1cf6927e7bea3db74b9a1c1add8f7eda9ffd5364f40f57b82f"
 dependencies = [
  "displaydoc",
  "zerovec",
-]
-
-[[package]]
-name = "tinystr"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2b56a820bb70060f096338fcc02edb78cb3f8fb21c5078503f48588cfcaf494"
-dependencies = [
- "displaydoc",
 ]
 
 [[package]]

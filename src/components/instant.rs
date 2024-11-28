@@ -15,6 +15,7 @@ use crate::{
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
+use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use num_traits::{Euclid, FromPrimitive, ToPrimitive};
 
 use super::duration::normalized::NormalizedTimeDuration;
@@ -303,10 +304,15 @@ impl FromStr for Instant {
         )?;
 
         // Find the offset
-        let offset = f64::from(ixdtf_record.offset.hour) * NANOSECONDS_PER_HOUR
-            + f64::from(ixdtf_record.offset.minute) * NANOSECONDS_PER_MINUTE
-            + f64::from(ixdtf_record.offset.second) * NANOSECONDS_PER_SECOND
-            + f64::from(ixdtf_record.offset.nanosecond);
+        let offset = match ixdtf_record.offset {
+            UtcOffsetRecordOrZ::Offset(offset) => {
+                f64::from(offset.hour) * NANOSECONDS_PER_HOUR
+                    + f64::from(offset.minute) * NANOSECONDS_PER_MINUTE
+                    + f64::from(offset.second) * NANOSECONDS_PER_SECOND
+                    + f64::from(offset.nanosecond)
+            }
+            UtcOffsetRecordOrZ::Z => 0.0,
+        };
 
         let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time)
             .as_nanoseconds()

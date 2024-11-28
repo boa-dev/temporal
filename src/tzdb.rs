@@ -185,7 +185,7 @@ impl Tzif {
         Self::from_path(&path)
     }
 
-    pub fn from_path<P: AsRef<Path>>(path: P) -> TemporalResult<Self> {
+    pub fn from_path(path: &Path) -> TemporalResult<Self> {
         tzif::parse_tzif_file(path)
             .map(Into::into)
             .map_err(|e| TemporalError::general(e.to_string()))

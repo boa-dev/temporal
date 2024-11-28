@@ -5,7 +5,7 @@ use alloc::format;
 use crate::{TemporalError, TemporalResult, TemporalUnwrap};
 
 use ixdtf::parsers::{
-    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UTCOffsetRecord},
+    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
     IxdtfParser,
 };
 
@@ -28,10 +28,10 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
 
     let mut first_calendar: Option<Annotation> = None;
     let mut critical_duplicate_calendar = false;
-    let mut parser = IxdtfParser::new(source);
+    let mut parser = IxdtfParser::from_str(source);
 
     let handler = cast_handler(&mut parser, |annotation: Annotation<'_>| {
-        if annotation.key == "u-ca" {
+        if annotation.key == "u-ca".as_bytes() {
             match first_calendar {
                 Some(ref cal) => {
                     if cal.critical || annotation.critical {
@@ -82,7 +82,7 @@ pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> 
 pub(crate) struct IxdtfParseInstantRecord {
     pub(crate) date: DateRecord,
     pub(crate) time: TimeRecord,
-    pub(crate) offset: UTCOffsetRecord,
+    pub(crate) offset: UtcOffsetRecordOrZ,
 }
 
 /// A utility function for parsing an `Instant` string
@@ -133,7 +133,7 @@ pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> 
 
 #[inline]
 pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
-    let time_record = IxdtfParser::new(source).parse_time();
+    let time_record = IxdtfParser::from_str(source).parse_time();
 
     let time_err = match time_record {
         Ok(time) => return time.time.temporal_unwrap(),

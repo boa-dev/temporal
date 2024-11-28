@@ -18,7 +18,7 @@ exclude = [
 ]
 
 [dependencies]
-tinystr = "0.8.0"
+tinystr = "0.7.6"
 icu_calendar = { version = "1.5.2", default-features = false, features = ["compiled_data"] }
 rustc-hash = { version = "2.0.0", features = ["std"] }
 bitflags = "2.6.0"

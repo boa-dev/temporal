@@ -612,11 +612,11 @@ impl FromStr for PlainDate {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parse_record = parse_date_time(s)?;
 
-        let calendar = parse_record.calendar.unwrap_or("iso8601");
+        let calendar = parse_record.calendar.unwrap_or("iso8601".as_bytes());
 
         // Assertion: PlainDate must exist on a DateTime parse.
         let date = parse_record.date.temporal_unwrap()?;
-        let calendar = Calendar::from_str(calendar)?;
+        let calendar = Calendar::from_utf8(calendar)?;
 
         Self::try_new(date.year, date.month.into(), date.day.into(), calendar)
     }
