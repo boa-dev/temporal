@@ -207,7 +207,7 @@ impl FromStr for Calendar {
     // 13.39 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         if let Ok(record) = parse_date_time(s) {
-            return Self::from_utf8(record.calendar.unwrap_or("".as_bytes()))
+            return Self::from_utf8(record.calendar.unwrap_or("".as_bytes()));
         }
 
         Self::from_utf8(s.as_bytes())
