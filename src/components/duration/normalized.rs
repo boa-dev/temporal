@@ -74,7 +74,7 @@ impl NormalizedTimeDuration {
 
     // TODO: Potentially, update divisor to u64?
     /// `Divide the NormalizedTimeDuraiton` by a divisor.
-    pub(super) fn divide(&self, divisor: i64) -> i128 {
+    pub(crate) fn divide(&self, divisor: i64) -> i128 {
         // TODO: Validate.
         self.0 / i128::from(divisor)
     }
