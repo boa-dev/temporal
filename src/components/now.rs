@@ -92,10 +92,10 @@ mod tests {
         })
         .unwrap();
 
-        let now_plus_three = now.add(&two_seconds, None).unwrap();
+        let now_plus_two = now.add(&two_seconds, None).unwrap();
 
-        assert_eq!(now_plus_three.second(), then.second());
-        assert_eq!(now_plus_three.minute(), then.minute());
-        assert_eq!(now_plus_three.hour(), then.hour());
+        assert_eq!(now_plus_two.second(), then.second());
+        assert_eq!(now_plus_two.minute(), then.minute());
+        assert_eq!(now_plus_two.hour(), then.hour());
     }
 }
