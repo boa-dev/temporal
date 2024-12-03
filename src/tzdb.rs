@@ -298,7 +298,9 @@ impl Tzif {
 
 #[inline]
 fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
-    db.local_time_type_records[db.transition_types[idx]]
+    // NOTE: Transition type can be empty. If no transition_type exists,
+    // then use 0 as the default index of local_time_type_records.
+    db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)]
 }
 
 #[inline]
