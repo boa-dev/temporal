@@ -35,7 +35,7 @@ impl Now {
 
     pub fn plain_date_time_with_provider(
         tz: Option<TimeZone>,
-        provider: &mut impl TzProvider,
+        provider: &impl TzProvider,
     ) -> TemporalResult<PlainDateTime> {
         let iso = system_date_time(tz, provider)?;
         Ok(PlainDateTime::new_unchecked(iso, Calendar::default()))
@@ -45,7 +45,7 @@ impl Now {
 #[cfg(feature = "std")]
 fn system_date_time(
     tz: Option<TimeZone>,
-    provider: &mut impl TzProvider,
+    provider: &impl TzProvider,
 ) -> TemporalResult<IsoDateTime> {
     // 1. If temporalTimeZoneLike is undefined, then
     // a. Let timeZone be SystemTimeZoneIdentifier().
@@ -68,4 +68,34 @@ fn system_date_time(
 fn system_instant() -> TemporalResult<Instant> {
     let nanos = sys::get_system_nanoseconds()?;
     Instant::try_new(i128::from_u128(nanos).temporal_unwrap()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::thread;
+    use std::time::Duration as StdDuration;
+
+    use crate::{partial::PartialDuration, tzdb::FsTzdbProvider, Duration, Now};
+
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn now_datetime_test() {
+        let provider = &FsTzdbProvider::default();
+
+        let now = Now::plain_date_time_with_provider(None, provider).unwrap();
+        thread::sleep(StdDuration::from_secs(2));
+        let then = Now::plain_date_time_with_provider(None, provider).unwrap();
+
+        let two_seconds = Duration::from_partial_duration(PartialDuration {
+            seconds: Some(2.into()),
+            ..Default::default()
+        })
+        .unwrap();
+
+        let now_plus_three = now.add(&two_seconds, None).unwrap();
+
+        assert_eq!(now_plus_three.second(), then.second());
+        assert_eq!(now_plus_three.minute(), then.minute());
+        assert_eq!(now_plus_three.hour(), then.hour());
+    }
 }
