@@ -43,7 +43,6 @@
 extern crate alloc;
 extern crate core;
 
-// TODO: Support SystemTime directly / pull in OS code from std::time?
 #[cfg(feature = "std")]
 extern crate std;
 
