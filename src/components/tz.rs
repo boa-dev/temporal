@@ -7,6 +7,7 @@ use core::{iter::Peekable, str::Chars};
 
 use num_traits::ToPrimitive;
 
+use crate::components::instant::EpochNanoseconds;
 use crate::{
     components::{duration::normalized::NormalizedTimeDuration, Instant},
     iso::{IsoDate, IsoDateTime},
@@ -96,8 +97,8 @@ impl TimeZone {
         instant: &Instant,
         provider: &impl TzProvider,
     ) -> TemporalResult<IsoDateTime> {
-        let nanos = self.get_offset_nanos_for(instant.epoch_nanos, provider)?;
-        IsoDateTime::from_epoch_nanos(&instant.epoch_nanos, nanos.to_f64().unwrap_or(0.0))
+        let nanos = self.get_offset_nanos_for(instant.as_i128(), provider)?;
+        IsoDateTime::from_epoch_nanos(&instant.as_i128(), nanos.to_f64().unwrap_or(0.0))
     }
 }
 
@@ -125,7 +126,7 @@ impl TimeZone {
         iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TzProvider,
-    ) -> TemporalResult<i128> {
+    ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
         let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
         // 2. Return ? DisambiguatePossibleEpochNanoseconds(possibleEpochNs, timeZone, isoDateTime, disambiguation).
@@ -209,22 +210,24 @@ impl TimeZone {
         iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TzProvider,
-    ) -> TemporalResult<i128> {
+    ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let n be possibleEpochNs's length.
         let n = nanos.len();
         // 2. If n = 1, then
         if n == 1 {
             // a. Return possibleEpochNs[0].
-            return Ok(nanos[0]);
+            return EpochNanoseconds::try_from(nanos[0]);
         // 3. If n ≠ 0, then
         } else if n != 0 {
             match disambiguation {
                 // a. If disambiguation is earlier or compatible, then
                 // i. Return possibleEpochNs[0].
-                Disambiguation::Compatible | Disambiguation::Earlier => return Ok(nanos[0]),
+                Disambiguation::Compatible | Disambiguation::Earlier => {
+                    return EpochNanoseconds::try_from(nanos[0])
+                }
                 // b. If disambiguation is later, then
                 // i. Return possibleEpochNs[n - 1].
-                Disambiguation::Later => return Ok(nanos[n - 1]),
+                Disambiguation::Later => return EpochNanoseconds::try_from(nanos[n - 1]),
                 // c. Assert: disambiguation is reject.
                 // d. Throw a RangeError exception.
                 Disambiguation::Reject => {
@@ -300,7 +303,7 @@ impl TimeZone {
             let possible = self.get_possible_epoch_ns_for(earlier, provider)?;
             // f. Assert: possibleEpochNs is not empty.
             // g. Return possibleEpochNs[0].
-            return Ok(possible[0]);
+            return EpochNanoseconds::try_from(possible[0]);
         }
         // 17. Assert: disambiguation is compatible or later.
         // 18. Let timeDuration be TimeDurationFromComponents(0, 0, 0, 0, 0, nanoseconds).
@@ -322,7 +325,7 @@ impl TimeZone {
         let n = possible.len();
         // 24. Assert: n ≠ 0.
         // 25. Return possibleEpochNs[n - 1].
-        Ok(possible[n - 1])
+        EpochNanoseconds::try_from(possible[n - 1])
     }
 }
 

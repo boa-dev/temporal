@@ -77,7 +77,7 @@ impl PlainDateTime {
         offset: f64,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
-        let iso = IsoDateTime::from_epoch_nanos(&instant.epoch_nanos, offset)?;
+        let iso = IsoDateTime::from_epoch_nanos(&instant.as_i128(), offset)?;
         Ok(Self { iso, calendar })
     }
 

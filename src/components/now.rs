@@ -13,7 +13,7 @@ use crate::{iso::IsoDateTime, TemporalUnwrap};
 use super::{
     calendar::Calendar,
     tz::{TimeZone, TzProvider},
-    Instant, PlainDateTime,
+    EpochNanoseconds, Instant, PlainDateTime,
 };
 
 /// The Temporal Now object.
@@ -54,14 +54,9 @@ fn system_date_time(
     let tz = tz.unwrap_or(sys::get_system_tz_identifier()?.into());
     // 3. Let epochNs be SystemUTCEpochNanoseconds().
     // TODO: Handle u128 -> i128 better for system nanoseconds
-    let epoch_ns = sys::get_system_nanoseconds()?;
+    let epoch_ns = EpochNanoseconds::try_from(sys::get_system_nanoseconds()?)?;
     // 4. Return GetISODateTimeFor(timeZone, epochNs).
-    tz.get_iso_datetime_for(
-        &Instant {
-            epoch_nanos: epoch_ns as i128,
-        },
-        provider,
-    )
+    tz.get_iso_datetime_for(&Instant::from(epoch_ns), provider)
 }
 
 #[cfg(feature = "std")]

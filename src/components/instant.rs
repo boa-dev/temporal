@@ -12,10 +12,10 @@ use crate::{
     parsers::parse_instant,
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap, NS_MAX_INSTANT,
 };
 
-use num_traits::{Euclid, FromPrimitive, ToPrimitive};
+use num_traits::{Euclid, FromPrimitive};
 
 use super::duration::normalized::NormalizedTimeDuration;
 
@@ -23,11 +23,51 @@ const NANOSECONDS_PER_SECOND: f64 = 1e9;
 const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
 const NANOSECONDS_PER_HOUR: f64 = 60f64 * NANOSECONDS_PER_MINUTE;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EpochNanoseconds(i128);
+
+impl TryFrom<i128> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: i128) -> Result<Self, Self::Error> {
+        if !is_valid_epoch_nanos(&value) {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        }
+        Ok(Self(value))
+    }
+}
+
+impl TryFrom<u128> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: u128) -> Result<Self, Self::Error> {
+        if (NS_MAX_INSTANT as u128) < value {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        }
+        Ok(Self(value as i128))
+    }
+}
+
+impl TryFrom<f64> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        let Some(value) = i128::from_f64(value) else {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        };
+        Self::try_from(value)
+    }
+}
+
 /// The native Rust implementation of `Temporal.Instant`
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Instant {
-    pub(crate) epoch_nanos: i128,
+pub struct Instant(EpochNanoseconds);
+
+impl From<EpochNanoseconds> for Instant {
+    fn from(value: EpochNanoseconds) -> Self {
+        Self(value)
+    }
 }
 
 // ==== Private API ====
@@ -38,17 +78,15 @@ impl Instant {
     ///
     /// Temporal-Proposal equivalent: `AddDurationToOrSubtractDurationFrom`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
-        let result = self.epoch_nanoseconds()
+        let current_nanos = self.epoch_nanoseconds() as f64;
+        let result = current_nanos
             + duration.nanoseconds.0
             + (duration.microseconds.0 * 1000f64)
             + (duration.milliseconds.0 * 1_000_000f64)
             + (duration.seconds.0 * NANOSECONDS_PER_SECOND)
             + (duration.minutes.0 * NANOSECONDS_PER_MINUTE)
             + (duration.hours.0 * NANOSECONDS_PER_HOUR);
-        let nanos = i128::from_f64(result).ok_or_else(|| {
-            TemporalError::range().with_message("Duration added to instant exceeded valid range.")
-        })?;
-        Self::try_new(nanos)
+        Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
     // TODO: Add test for `diff_instant`.
@@ -76,10 +114,8 @@ impl Instant {
         // Below are the steps from Difference Instant.
         // 5. Let diffRecord be DifferenceInstant(instant.[[Nanoseconds]], other.[[Nanoseconds]],
         // settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-        let diff = NormalizedTimeDuration::from_nanosecond_difference(
-            other.epoch_nanos,
-            self.epoch_nanos,
-        )?;
+        let diff =
+            NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
 
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
@@ -127,21 +163,15 @@ impl Instant {
             return Err(TemporalError::range().with_message("Increment exceeded a valid range."));
         };
 
-        let rounded = IncrementRounder::<i128>::from_positive_parts(self.epoch_nanos, increment)?
+        let rounded = IncrementRounder::<i128>::from_positive_parts(self.as_i128(), increment)?
             .round_as_positive(resolved_options.rounding_mode);
 
         Ok(rounded.into())
     }
 
-    /// Utility for converting `Instant` to f64.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if called on an invalid `Instant`.
-    pub(crate) fn to_f64(&self) -> f64 {
-        self.epoch_nanos
-            .to_f64()
-            .expect("A valid instant is representable by f64.")
+    // Utility for converting `Instant` to `i128`.
+    pub fn as_i128(&self) -> i128 {
+        self.0 .0
     }
 }
 
@@ -150,25 +180,15 @@ impl Instant {
 impl Instant {
     /// Create a new validated `Instant`.
     #[inline]
-    pub fn try_new(epoch_nanoseconds: i128) -> TemporalResult<Self> {
-        if !is_valid_epoch_nanos(&epoch_nanoseconds) {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
-        }
-        Ok(Self {
-            epoch_nanos: epoch_nanoseconds,
-        })
+    pub fn try_new(nanoseconds: i128) -> TemporalResult<Self> {
+        Ok(Self::from(EpochNanoseconds::try_from(nanoseconds)?))
     }
 
     pub fn from_epoch_milliseconds(epoch_milliseconds: i128) -> TemporalResult<Self> {
         let epoch_nanos = epoch_milliseconds
             .checked_mul(1_000_000)
             .unwrap_or(i128::MAX);
-        if !is_valid_epoch_nanos(&epoch_nanos) {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
-        }
-        Ok(Self { epoch_nanos })
+        Self::try_new(epoch_nanos)
     }
 
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
@@ -235,35 +255,26 @@ impl Instant {
 
     /// Returns the `epochSeconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_seconds(&self) -> f64 {
-        (&self.epoch_nanos / 1_000_000_000)
-            .to_f64()
-            .expect("A validated Instant should be within a valid f64")
-            .floor()
+    pub fn epoch_seconds(&self) -> i128 {
+        self.as_i128() / 1_000_000_000
     }
 
     /// Returns the `epochMilliseconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_milliseconds(&self) -> f64 {
-        (&self.epoch_nanos / 1_000_000)
-            .to_f64()
-            .expect("A validated Instant should be within a valid f64")
-            .floor()
+    pub fn epoch_milliseconds(&self) -> i128 {
+        self.as_i128() / 1_000_000
     }
 
     /// Returns the `epochMicroseconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_microseconds(&self) -> f64 {
-        (&self.epoch_nanos / 1_000)
-            .to_f64()
-            .expect("A validated Instant should be within a valid f64")
-            .floor()
+    pub fn epoch_microseconds(&self) -> i128 {
+        self.as_i128() / 1_000
     }
 
     /// Returns the `epochNanoseconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_nanoseconds(&self) -> f64 {
-        self.to_f64()
+    pub fn epoch_nanoseconds(&self) -> i128 {
+        self.as_i128()
     }
 }
 
@@ -326,7 +337,6 @@ mod tests {
         primitive::FiniteF64,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
-    use num_traits::ToPrimitive;
 
     #[test]
     #[allow(clippy::float_cmp)]
@@ -338,8 +348,8 @@ mod tests {
         let max_instant = Instant::try_new(max).unwrap();
         let min_instant = Instant::try_new(min).unwrap();
 
-        assert_eq!(max_instant.epoch_nanoseconds(), max.to_f64().unwrap());
-        assert_eq!(min_instant.epoch_nanoseconds(), min.to_f64().unwrap());
+        assert_eq!(max_instant.epoch_nanoseconds(), max);
+        assert_eq!(min_instant.epoch_nanoseconds(), min);
 
         let max_plus_one = NS_MAX_INSTANT + 1;
         let min_minus_one = NS_MIN_INSTANT - 1;

@@ -85,10 +85,7 @@ impl ZonedDateTime {
         )?;
 
         // 7. Return ? AddInstant(intermediateNs, duration.[[Time]]).
-        Instant {
-            epoch_nanos: intermediate_ns,
-        }
-        .add_to_instant(duration.time())
+        Instant::from(intermediate_ns).add_to_instant(duration.time())
     }
 
     #[inline]
@@ -109,11 +106,13 @@ impl ZonedDateTime {
         // 6. Let timeZone be zonedDateTime.[[TimeZone]].
         // 7. Let internalDuration be ToInternalDurationRecord(duration).
         // 8. Let epochNanoseconds be ? AddZonedDateTime(zonedDateTime.[[EpochNanoseconds]], timeZone, calendar, internalDuration, overflow).
-        let epoch_ns = self
-            .add_as_instant(duration, overflow, provider)?
-            .epoch_nanos;
+        let epoch_ns = self.add_as_instant(duration, overflow, provider)?;
         // 9. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
-        Self::try_new(epoch_ns, self.calendar().clone(), self.tz().clone())
+        Ok(Self::new_unchecked(
+            epoch_ns,
+            self.calendar().clone(),
+            self.tz().clone(),
+        ))
     }
 }
 
@@ -143,25 +142,25 @@ impl ZonedDateTime {
 
     /// Returns the `epochSeconds` value of this `ZonedDateTime`.
     #[must_use]
-    pub fn epoch_seconds(&self) -> f64 {
+    pub fn epoch_seconds(&self) -> i128 {
         self.instant.epoch_seconds()
     }
 
     /// Returns the `epochMilliseconds` value of this `ZonedDateTime`.
     #[must_use]
-    pub fn epoch_milliseconds(&self) -> f64 {
+    pub fn epoch_milliseconds(&self) -> i128 {
         self.instant.epoch_milliseconds()
     }
 
     /// Returns the `epochMicroseconds` value of this `ZonedDateTime`.
     #[must_use]
-    pub fn epoch_microseconds(&self) -> f64 {
+    pub fn epoch_microseconds(&self) -> i128 {
         self.instant.epoch_microseconds()
     }
 
     /// Returns the `epochNanoseconds` value of this `ZonedDateTime`.
     #[must_use]
-    pub fn epoch_nanoseconds(&self) -> f64 {
+    pub fn epoch_nanoseconds(&self) -> i128 {
         self.instant.epoch_nanoseconds()
     }
 }

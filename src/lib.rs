@@ -88,6 +88,11 @@ pub mod partial {
     };
 }
 
+// TODO: Potentially bikeshed how `EpochNanoseconds` should be exported.
+pub mod time {
+    pub use crate::components::EpochNanoseconds;
+}
+
 pub use crate::components::{
     calendar::Calendar, tz::TimeZone, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay,
     PlainTime, PlainYearMonth, ZonedDateTime,
