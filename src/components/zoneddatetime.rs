@@ -596,11 +596,11 @@ pub fn interpret_isodatetime_offset(
             // 10. For each element candidate of possibleEpochNs, do
             for candidate in &possible_nanos {
                 // a. Let candidateOffset be utcEpochNanoseconds - candidate.
-                let candidate_offset = utc_epochs.0 - candidate;
+                let candidate_offset = utc_epochs.0 - candidate.0;
                 // b. If candidateOffset = offsetNanoseconds, then
                 if candidate_offset == offset.into() {
                     // i. Return candidate.
-                    return EpochNanoseconds::try_from(*candidate);
+                    return Ok(*candidate);
                 }
                 // c. If matchBehaviour is match-minutes, then
                 if match_minutes {
@@ -613,7 +613,7 @@ pub fn interpret_isodatetime_offset(
                     // ii. If roundedCandidateNanoseconds = offsetNanoseconds, then
                     if rounded_candidate == offset.into() {
                         // 1. Return candidate.
-                        return EpochNanoseconds::try_from(*candidate);
+                        return Ok(*candidate);
                     }
                 }
             }

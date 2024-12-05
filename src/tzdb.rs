@@ -47,7 +47,11 @@ use tzif::{
     },
 };
 
-use crate::{components::tz::TzProvider, iso::IsoDateTime, utils, TemporalError, TemporalResult};
+use crate::{
+    components::{tz::TzProvider, EpochNanoseconds},
+    iso::IsoDateTime,
+    utils, TemporalError, TemporalResult,
+};
 
 #[cfg(not(target_os = "windows"))]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
@@ -544,17 +548,25 @@ impl TzProvider for FsTzdbProvider {
         &self,
         identifier: &str,
         iso_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<i128>> {
-        let seconds = (iso_datetime.as_nanoseconds()?.0 / 1_000_000_000) as i64;
+    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+        let epoch_nanos = iso_datetime.as_nanoseconds()?;
+        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
         let tzif = self.get(identifier)?;
         let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
             LocalTimeRecordResult::Empty => Vec::default(),
-            LocalTimeRecordResult::Single(r) => vec![r.offset as i128 * 1_000_000_000],
-            LocalTimeRecordResult::Ambiguous { std, dst } => vec![
-                std.offset as i128 * 1_000_000_000,
-                dst.offset as i128 * 1_000_000_000,
-            ],
+            LocalTimeRecordResult::Single(r) => {
+                let epoch_ns =
+                    EpochNanoseconds::try_from(epoch_nanos.0 + seconds_to_nanoseconds(r.offset))?;
+                vec![epoch_ns]
+            }
+            LocalTimeRecordResult::Ambiguous { std, dst } => {
+                let std_epoch_ns =
+                    EpochNanoseconds::try_from(epoch_nanos.0 + seconds_to_nanoseconds(std.offset))?;
+                let dst_epoch_ns =
+                    EpochNanoseconds::try_from(epoch_nanos.0 + seconds_to_nanoseconds(dst.offset))?;
+                vec![std_epoch_ns, dst_epoch_ns]
+            }
         };
         Ok(result)
     }
@@ -570,7 +582,11 @@ impl TzProvider for FsTzdbProvider {
         Ok(local_time_record_result.offset as i128 * 1_000_000_000)
     }
 }
-//
+
+#[inline]
+fn seconds_to_nanoseconds(seconds: i64) -> i128 {
+    seconds as i128 * 1_000_000_000
+}
 
 #[cfg(test)]
 mod tests {

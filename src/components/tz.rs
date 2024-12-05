@@ -11,7 +11,7 @@ use crate::{
     components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
-    TemporalError, TemporalResult,
+    TemporalError, TemporalResult, ZonedDateTime,
 };
 
 #[cfg(feature = "experimental")]
@@ -26,8 +26,6 @@ use std::{
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
     LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
 
-use super::{instant::is_valid_epoch_nanos, ZonedDateTime};
-
 pub trait TzProvider {
     fn check_identifier(&self, identifier: &str) -> bool;
 
@@ -35,7 +33,7 @@ pub trait TzProvider {
         &self,
         identifier: &str,
         iso_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<i128>>;
+    ) -> TemporalResult<Vec<EpochNanoseconds>>;
 
     fn get_named_tz_offset_nanoseconds(
         &self,
@@ -135,7 +133,7 @@ impl TimeZone {
         &self,
         iso: IsoDateTime,
         provider: &impl TzProvider,
-    ) -> TemporalResult<Vec<i128>> {
+    ) -> TemporalResult<Vec<EpochNanoseconds>> {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let possible_nanoseconds = match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, then
@@ -167,7 +165,7 @@ impl TimeZone {
                 // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
                 let epoch_ns = balanced.as_nanoseconds()?;
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
-                vec![epoch_ns.0]
+                vec![epoch_ns]
             }
             // 3. Else,
             Self::IanaIdentifier(identifier) => {
@@ -180,13 +178,7 @@ impl TimeZone {
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
-        for ns in &possible_nanoseconds {
-            // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
-            if !is_valid_epoch_nanos(ns) {
-                return Err(TemporalError::range()
-                    .with_message("A possible nanosecond exceeded valid range."));
-            }
-        }
+        // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
         // 5. Return possibleEpochNanoseconds.
         Ok(possible_nanoseconds)
     }
@@ -201,7 +193,7 @@ impl TimeZone {
     // TODO: This can be optimized by just not using a vec.
     pub(crate) fn disambiguate_possible_epoch_nanos(
         &self,
-        nanos: Vec<i128>,
+        nanos: Vec<EpochNanoseconds>,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TzProvider,
@@ -211,18 +203,16 @@ impl TimeZone {
         // 2. If n = 1, then
         if n == 1 {
             // a. Return possibleEpochNs[0].
-            return EpochNanoseconds::try_from(nanos[0]);
+            return Ok(nanos[0]);
         // 3. If n ≠ 0, then
         } else if n != 0 {
             match disambiguation {
                 // a. If disambiguation is earlier or compatible, then
                 // i. Return possibleEpochNs[0].
-                Disambiguation::Compatible | Disambiguation::Earlier => {
-                    return EpochNanoseconds::try_from(nanos[0])
-                }
+                Disambiguation::Compatible | Disambiguation::Earlier => return Ok(nanos[0]),
                 // b. If disambiguation is later, then
                 // i. Return possibleEpochNs[n - 1].
-                Disambiguation::Later => return EpochNanoseconds::try_from(nanos[n - 1]),
+                Disambiguation::Later => return Ok(nanos[n - 1]),
                 // c. Assert: disambiguation is reject.
                 // d. Throw a RangeError exception.
                 Disambiguation::Reject => {
@@ -269,10 +259,10 @@ impl TimeZone {
         debug_assert_eq!(after_possible.len(), 1);
         // 12. Let offsetBefore be GetOffsetNanosecondsFor(timeZone,
         //     beforePossible[0]).
-        let offset_before = self.get_offset_nanos_for(before_possible[0], provider)?;
+        let offset_before = self.get_offset_nanos_for(before_possible[0].0, provider)?;
         // 13. Let offsetAfter be GetOffsetNanosecondsFor(timeZone,
         //     afterPossible[0]).
-        let offset_after = self.get_offset_nanos_for(after_possible[0], provider)?;
+        let offset_after = self.get_offset_nanos_for(after_possible[0].0, provider)?;
         // 14. Let nanoseconds be offsetAfter - offsetBefore.
         let nanoseconds = offset_after - offset_before;
         // 15. Assert: abs(nanoseconds) ≤ nsPerDay.
@@ -298,7 +288,7 @@ impl TimeZone {
             let possible = self.get_possible_epoch_ns_for(earlier, provider)?;
             // f. Assert: possibleEpochNs is not empty.
             // g. Return possibleEpochNs[0].
-            return EpochNanoseconds::try_from(possible[0]);
+            return Ok(possible[0]);
         }
         // 17. Assert: disambiguation is compatible or later.
         // 18. Let timeDuration be TimeDurationFromComponents(0, 0, 0, 0, 0, nanoseconds).
@@ -320,7 +310,7 @@ impl TimeZone {
         let n = possible.len();
         // 24. Assert: n ≠ 0.
         // 25. Return possibleEpochNs[n - 1].
-        EpochNanoseconds::try_from(possible[n - 1])
+        Ok(possible[n - 1])
     }
 
     pub(crate) fn get_start_of_day(
@@ -334,7 +324,7 @@ impl TimeZone {
         let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
         // 3. If possibleEpochNs is not empty, return possibleEpochNs[0].
         if !possible_nanos.is_empty() {
-            return EpochNanoseconds::try_from(possible_nanos[0]);
+            return Ok(possible_nanos[0]);
         }
         // 4. Assert: IsOffsetTimeZoneIdentifier(timeZone) is false.
         // 5. Let possibleEpochNsAfter be GetNamedTimeZoneEpochNanoseconds(timeZone, isoDateTimeAfter), where
