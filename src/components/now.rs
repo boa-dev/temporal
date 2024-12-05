@@ -70,27 +70,27 @@ mod tests {
     use std::thread;
     use std::time::Duration as StdDuration;
 
-    use crate::{partial::PartialDuration, tzdb::FsTzdbProvider, Duration, Now};
+    use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider, Now};
 
     #[cfg(feature = "tzdb")]
     #[test]
     fn now_datetime_test() {
         let provider = &FsTzdbProvider::default();
+        let sleep = 2;
 
-        let now = Now::plain_date_time_with_provider(None, provider).unwrap();
-        thread::sleep(StdDuration::from_secs(2));
-        let then = Now::plain_date_time_with_provider(None, provider).unwrap();
+        let before = Now::plain_date_time_with_provider(None, provider).unwrap();
+        thread::sleep(StdDuration::from_secs(sleep));
+        let after = Now::plain_date_time_with_provider(None, provider).unwrap();
 
-        let two_seconds = Duration::from_partial_duration(PartialDuration {
-            seconds: Some(2.into()),
-            ..Default::default()
-        })
-        .unwrap();
+        let diff = after.since(&before, DifferenceSettings::default()).unwrap();
 
-        let now_plus_two = now.add(&two_seconds, None).unwrap();
+        let sleep_base = sleep as f64;
+        let tolerable_range = sleep_base..=sleep_base + 5.0;
 
-        assert_eq!(now_plus_two.second(), then.second());
-        assert_eq!(now_plus_two.minute(), then.minute());
-        assert_eq!(now_plus_two.hour(), then.hour());
+        // We assert a tolerable range of sleep + 5 because std::thread::sleep
+        // is only guaranteed to be >= the value to sleep. So to prevent sporadic
+        // errors, we only assert a range.
+        assert!(tolerable_range.contains(&diff.seconds().as_inner()));
+        assert!(diff.hours().is_zero());
     }
 }
