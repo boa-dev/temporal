@@ -7,9 +7,9 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     components::{
-        EpochNanoseconds,
         calendar::CalendarDateLike,
         tz::{parse_offset, TzProvider},
+        EpochNanoseconds,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation, TemporalRoundingMode},
@@ -208,7 +208,11 @@ impl ZonedDateTime {
             provider,
         )?;
 
-        Ok(Self::new_unchecked(Instant::from(epoch_nanos), calendar, partial.timezone))
+        Ok(Self::new_unchecked(
+            Instant::from(epoch_nanos),
+            calendar,
+            partial.timezone,
+        ))
     }
 
     /// Returns the `epochSeconds` value of this `ZonedDateTime`.

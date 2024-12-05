@@ -493,10 +493,7 @@ impl NormalizedDurationRecord {
             // TODO: Test valid range of EpochNanoseconds in order to add `expect` over `unwrap_or`
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-            (
-                start.as_nanoseconds()?,
-                end.as_nanoseconds()?,
-            )
+            (start.as_nanoseconds()?, end.as_nanoseconds()?)
         // 8. Else,
         } else {
             // a. Let startDateTime be ! CreateTemporalDateTime(start.[[Year]], start.[[Month]], start.[[Day]],

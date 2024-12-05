@@ -545,10 +545,7 @@ impl TzProvider for FsTzdbProvider {
         identifier: &str,
         iso_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<i128>> {
-        let seconds = (iso_datetime
-            .as_nanoseconds()
-            .expect("IsoDateTime to be valid")
-            / 1_000_000_000) as i64;
+        let seconds = (iso_datetime.as_nanoseconds()?.0 / 1_000_000_000) as i64;
         let tzif = self.get(identifier)?;
         let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
@@ -650,9 +647,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = edge_case
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -688,9 +683,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = today
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -723,9 +716,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = edge_case
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -774,9 +765,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = today
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -827,9 +816,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = edge_case
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         let locals = new_york
             .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
@@ -872,9 +859,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = today
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
 
@@ -914,9 +899,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = edge_case
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -958,9 +941,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = today
-            .as_nanoseconds()
-            .map_or(0, |nanos| (nanos / 1_000_000_000) as i64);
+        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");

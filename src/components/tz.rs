@@ -9,7 +9,7 @@ use num_traits::ToPrimitive;
 
 use crate::{
     components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
-    iso::{IsoDate, IsoTime, IsoDateTime},
+    iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
     TemporalError, TemporalResult,
 };
@@ -165,8 +165,7 @@ impl TimeZone {
                 // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
                 balanced.date.is_valid_day_range()?;
                 // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
-                let epoch_ns = balanced
-                    .as_nanoseconds()?;
+                let epoch_ns = balanced.as_nanoseconds()?;
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
                 vec![epoch_ns.0]
             }
