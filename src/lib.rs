@@ -54,7 +54,7 @@ pub mod primitive;
 pub(crate) mod components;
 pub(crate) mod iso;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "now")]
 mod sys;
 
 #[cfg(feature = "tzdb")]

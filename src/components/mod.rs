@@ -18,10 +18,10 @@ mod time;
 mod year_month;
 mod zoneddatetime;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "now")]
 mod now;
 
-#[cfg(feature = "std")]
+#[cfg(feature = "now")]
 #[doc(inline)]
 pub use now::Now;
 
