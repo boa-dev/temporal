@@ -1,3 +1,46 @@
+## What's Changed in v0.0.4
+
+* bump release by @jasonwilliams in [#120](https://github.com/boa-dev/temporal/pull/120)
+* Add an `EpochNanosecond` new type by @nekevss in [#116](https://github.com/boa-dev/temporal/pull/116)
+* Migrate to `web_time::SystemTime` for `wasm32-unknown-unknown` targets by @nekevss in [#118](https://github.com/boa-dev/temporal/pull/118)
+* Bug fixes and more implementation by @jasonwilliams in [#110](https://github.com/boa-dev/temporal/pull/110)
+* Some `Error` optimizations by @CrazyboyQCD in [#112](https://github.com/boa-dev/temporal/pull/112)
+* Add `from_partial` methods to `PlainTime`, `PlainDate`, and `PlainDateTime` by @nekevss in [#106](https://github.com/boa-dev/temporal/pull/106)
+* Implement `ZonedDateTime`'s add and subtract methods by @nekevss in [#102](https://github.com/boa-dev/temporal/pull/102)
+* Add matrix links to README and some layout adjustments by @nekevss in [#108](https://github.com/boa-dev/temporal/pull/108)
+* Stub out `tzdb` support for Windows and POSIX tz string by @nekevss in [#100](https://github.com/boa-dev/temporal/pull/100)
+* Stub out tzdb support to unblock `Now` and `ZonedDateTime` by @nekevss in [#99](https://github.com/boa-dev/temporal/pull/99)
+* Remove num-bigint dependency and rely on primitives by @nekevss in [#103](https://github.com/boa-dev/temporal/pull/103)
+* Move to no_std by @Manishearth in [#101](https://github.com/boa-dev/temporal/pull/101)
+* General API cleanup and adjustments by @nekevss in [#97](https://github.com/boa-dev/temporal/pull/97)
+* Update README.md by @jasonwilliams in [#96](https://github.com/boa-dev/temporal/pull/96)
+* Refactor `TemporalFields` into `CalendarFields` by @nekevss in [#95](https://github.com/boa-dev/temporal/pull/95)
+* Patch for partial records by @nekevss in [#94](https://github.com/boa-dev/temporal/pull/94)
+* Add `PartialTime` and `PartialDateTime` with corresponding `with` methods. by @nekevss in [#92](https://github.com/boa-dev/temporal/pull/92)
+* Implement `MonthCode`, `PartialDate`, and `Date::with` by @nekevss in [#89](https://github.com/boa-dev/temporal/pull/89)
+* Add is empty for partialDuration by @jasonwilliams in [#90](https://github.com/boa-dev/temporal/pull/90)
+* Fix lints for rustc 1.80.0 by @jedel1043 in [#91](https://github.com/boa-dev/temporal/pull/91)
+* adding methods for yearMonth and MonthDay by @jasonwilliams in [#44](https://github.com/boa-dev/temporal/pull/44)
+* Implement `DateTime` round method by @nekevss in [#88](https://github.com/boa-dev/temporal/pull/88)
+* Update `Duration` types to use a `FiniteF64` instead of `f64` primitive. by @nekevss in [#86](https://github.com/boa-dev/temporal/pull/86)
+* Refactor `TemporalFields` interface and add `FieldsKey` enum by @nekevss in [#87](https://github.com/boa-dev/temporal/pull/87)
+* Updates to instant and its methods by @nekevss in [#85](https://github.com/boa-dev/temporal/pull/85)
+* Implement compare functionality and some more traits by @nekevss in [#82](https://github.com/boa-dev/temporal/pull/82)
+* Implement `DateTime` diffing methods `Until` and `Since` by @nekevss in [#83](https://github.com/boa-dev/temporal/pull/83)
+* Add `with_*` methods to `Date` and `DateTime` by @nekevss in [#84](https://github.com/boa-dev/temporal/pull/84)
+* Add some missing trait implementations by @nekevss in [#81](https://github.com/boa-dev/temporal/pull/81)
+* chore(dependabot): bump zerovec-derive from 0.10.2 to 0.10.3 by @dependabot[bot] in [#80](https://github.com/boa-dev/temporal/pull/80)
+* Add prefix option to commit-message by @nekevss in [#79](https://github.com/boa-dev/temporal/pull/79)
+* Add commit-message prefix to dependabot by @nekevss in [#77](https://github.com/boa-dev/temporal/pull/77)
+* Bump zerovec from 0.10.2 to 0.10.4 by @dependabot[bot] in [#78](https://github.com/boa-dev/temporal/pull/78)
+
+## New Contributors
+* @jasonwilliams made their first contribution in [#120](https://github.com/boa-dev/temporal/pull/120)
+* @CrazyboyQCD made their first contribution in [#112](https://github.com/boa-dev/temporal/pull/112)
+* @Manishearth made their first contribution in [#101](https://github.com/boa-dev/temporal/pull/101)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.3...v0.0.4
+
 # CHANGELOG
 
 ## What's Changed in v0.0.3
