@@ -633,7 +633,6 @@ impl IsoTime {
         )
     }
 
-    // NOTE(nekevss): f64 is needed here as values could exceed i32 when input.
     /// Balances and creates a new `IsoTime` with `day` overflow from the provided values.
     pub(crate) fn balance(
         hour: i64,

@@ -27,9 +27,9 @@ use std::ops::Deref;
 
 /// A struct representing a partial `ZonedDateTime`.
 pub struct PartialZonedDateTime {
-    /// The `PartialDate` portion of a `PartialDateTime`
+    /// The `PartialDate` portion of a `PartialZonedDateTime`
     pub date: PartialDate,
-    /// The `PartialTime` portion of a `PartialDateTime`
+    /// The `PartialTime` portion of a `PartialZonedDateTime`
     pub time: PartialTime,
     /// An optional offset string
     pub offset: Option<String>,
