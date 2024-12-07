@@ -1,41 +1,70 @@
-[package]
-name = "temporal_rs"
-keywords = ["date", "time", "calendar", "timezone", "duration"]
-categories = ["date-and-time", "internationalization"]
-readme = "./README.md"
-description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
-version = "0.0.4"
+[workspace]
+resolver = "2"
+
+[workspace.package]
 edition = "2021"
+version = "0.0.4"
+rust-version = "1.80"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/boa-dev/temporal"
-rust-version = "1.80"
+readme = "./README.md"
 exclude = [
     "docs/*",
     ".github/*",
     ".gitignore",
     "LICENSE*",
+    "CONTRIBUTING.md",
+    "cliff.toml",
 ]
 
-[dependencies]
+[workspace.dependencies]
 tinystr = "0.7.6"
-icu_calendar = { version = "1.5.2", default-features = false, features = ["compiled_data"] }
-rustc-hash = { version = "2.0.0", features = ["std"] }
+icu_calendar = { version = "1.5.2", default-features = false}
+rustc-hash = "2.0.0"
 bitflags = "2.6.0"
 num-traits = "0.2.19"
-ixdtf = { version = "0.2.0", features = ["duration"]}
+ixdtf = "0.2.0"
 iana-time-zone = "0.1.61"
+log = "0.4.0"
+tzif = "0.2.3"
+jiff-tzdb = "0.1.1"
+combine = "4.6.7"
+web-time = "1.1.0"
+
+[package]
+name = "temporal_rs"
+keywords = ["date", "time", "calendar", "timezone", "duration"]
+categories = ["date-and-time", "internationalization"]
+description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+exclude.workspace = true
+
+[dependencies]
+tinystr.workspace = true
+icu_calendar = { workspace = true, features = ["compiled_data"] }
+rustc-hash = { workspace = true, features = ["std"] }
+bitflags.workspace = true
+num-traits.workspace = true
+ixdtf = { workspace = true, features = ["duration"]}
+iana-time-zone.workspace = true
 
 # log feature
-log = { version = "0.4.0", optional = true }
+log = { workspace = true, optional = true }
 
 # tzdb feature
-tzif = { version = "0.2.3", optional = true }
-jiff-tzdb = { version = "0.1.1", optional = true }
-combine = { version = "4.6.7", optional = true }
+tzif = { workspace = true, optional = true }
+jiff-tzdb = { workspace = true, optional = true }
+combine = { workspace = true, optional = true }
 
 # System time feature
-web-time = { version = "1.1.0", optional =  true }
+web-time = { workspace = true, optional =  true }
 
 [features]
 log = ["dep:log"]

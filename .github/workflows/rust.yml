@@ -28,17 +28,21 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         key: lint
+    - name: Install cargo-workspaces
+      run: cargo install cargo-workspaces
     - name: Check rustfmt
       run: cargo fmt --all -- --check
     - name: Check clippy
-      run: cargo clippy --all-targets --all-features
+      run: cargo ws exec cargo clippy --all-features --all-targets
+    - name: Check clippy (No features)
+      run: cargo ws exec cargo clippy --no-default-features --all-targets
 
   build-test:
     name: Test (${{ matrix.rust.name }}, ${{ matrix.os }})
     strategy:
       matrix:
         rust:
-          # possibly add the MSRV here
+          # TODO: possibly add the MSRV here
           - { version: stable, name: stable }
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
@@ -50,16 +54,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: build-test
+
       - name: Cargo build
         run: cargo build --quiet
-      - name: Install latest nextest
-        uses: taiki-e/install-action@nextest
       - name: Test
         run: cargo test
+
       - name: Cargo build --all-features
         run: cargo build --quiet --all-features
-      - name: Install latest nextest
-        uses: taiki-e/install-action@nextest
       - name: Test --all-features
         run: cargo test --all-features
   docs:
