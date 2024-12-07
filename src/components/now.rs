@@ -86,5 +86,6 @@ mod tests {
         // errors, we only assert a range.
         assert!(tolerable_range.contains(&diff.seconds().as_inner()));
         assert!(diff.hours().is_zero());
+        assert!(diff.minutes().is_zero());
     }
 }
