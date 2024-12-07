@@ -7,6 +7,7 @@ use web_time::{SystemTime, UNIX_EPOCH};
 // TODO: Need to implement SystemTime handling for non_std.
 
 /// Returns the system time in nanoseconds.
+#[cfg(feature = "now")]
 pub(crate) fn get_system_nanoseconds() -> TemporalResult<u128> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

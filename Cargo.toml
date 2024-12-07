@@ -40,5 +40,6 @@ web-time = { version = "1.1.0", optional =  true }
 [features]
 log = ["dep:log"]
 experimental = ["tzdb"]
+now = ["std", "dep:web-time"]
 tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine"]
 std = []
