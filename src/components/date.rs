@@ -276,7 +276,7 @@ impl PlainDate {
         // 12. If roundingGranularityIsNoop is false, then
         let date_duration = if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
-            let dest_epoch_ns = other.iso.as_nanoseconds().temporal_unwrap()?;
+            let dest_epoch_ns = other.iso.as_nanoseconds()?;
             // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
             let dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new_unchecked(self.iso, IsoTime::default()),
@@ -284,7 +284,7 @@ impl PlainDate {
             );
             // c. Set duration to ? RoundRelativeDuration(duration, destEpochNs, dateTime, calendarRec, unset, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
             *duration
-                .round_relative_duration(dest_epoch_ns, &dt, None, resolved)?
+                .round_relative_duration(dest_epoch_ns.0, &dt, None, resolved)?
                 .0
                 .date()
         } else {

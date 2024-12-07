@@ -24,7 +24,7 @@ const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
 const NANOSECONDS_PER_HOUR: f64 = 60f64 * NANOSECONDS_PER_MINUTE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EpochNanoseconds(i128);
+pub struct EpochNanoseconds(pub(crate) i128);
 
 impl TryFrom<i128> for EpochNanoseconds {
     type Error = TemporalError;
@@ -321,9 +321,9 @@ impl FromStr for Instant {
 
         let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time)
             .as_nanoseconds()
-            .map(|v| v + offset as i128);
+            .map(|v| v.0 + offset as i128);
 
-        Self::from_epoch_milliseconds(nanoseconds.unwrap_or(i128::MAX))
+        Self::try_new(nanoseconds.unwrap_or(i128::MAX))
     }
 }
 

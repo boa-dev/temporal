@@ -3,13 +3,10 @@
 use crate::{sys, TemporalResult};
 use alloc::string::String;
 
-#[cfg(feature = "std")]
 use num_traits::FromPrimitive;
 
-#[cfg(feature = "std")]
 use crate::{iso::IsoDateTime, TemporalUnwrap};
 
-#[cfg(feature = "std")]
 use super::{
     calendar::Calendar,
     tz::{TimeZone, TzProvider},
@@ -26,7 +23,6 @@ impl Now {
     }
 }
 
-#[cfg(feature = "std")]
 impl Now {
     /// Returns the current instant
     pub fn instant() -> TemporalResult<Instant> {
@@ -42,7 +38,6 @@ impl Now {
     }
 }
 
-#[cfg(feature = "std")]
 fn system_date_time(
     tz: Option<TimeZone>,
     provider: &impl TzProvider,
@@ -51,7 +46,7 @@ fn system_date_time(
     // a. Let timeZone be SystemTimeZoneIdentifier().
     // 2. Else,
     // a. Let timeZone be ? ToTemporalTimeZoneIdentifier(temporalTimeZoneLike).
-    let tz = tz.unwrap_or(sys::get_system_tz_identifier()?.into());
+    let tz = tz.unwrap_or(TimeZone::IanaIdentifier(sys::get_system_tz_identifier()?));
     // 3. Let epochNs be SystemUTCEpochNanoseconds().
     // TODO: Handle u128 -> i128 better for system nanoseconds
     let epoch_ns = EpochNanoseconds::try_from(sys::get_system_nanoseconds()?)?;
@@ -59,7 +54,6 @@ fn system_date_time(
     tz.get_iso_datetime_for(&Instant::from(epoch_ns), provider)
 }
 
-#[cfg(feature = "std")]
 fn system_instant() -> TemporalResult<Instant> {
     let nanos = sys::get_system_nanoseconds()?;
     Instant::try_new(i128::from_u128(nanos).temporal_unwrap()?)

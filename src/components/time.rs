@@ -1,5 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
+use num_traits::AsPrimitive;
+
 use crate::{
     components::{duration::TimeDuration, Duration},
     iso::IsoTime,
@@ -70,12 +72,12 @@ impl PlainTime {
         let nanosecond = i32::from(self.nanosecond()) + norm.subseconds();
         // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
         let (day, balance_result) = IsoTime::balance(
-            f64::from(self.hour()),
-            f64::from(self.minute()),
-            second as f64,
-            f64::from(self.millisecond()),
-            f64::from(self.microsecond()),
-            f64::from(nanosecond),
+            self.hour().into(),
+            self.minute().into(),
+            second,
+            self.millisecond().into(),
+            self.microsecond().into(),
+            nanosecond.into(),
         );
 
         (day, Self::new_unchecked(balance_result))
@@ -86,22 +88,24 @@ impl PlainTime {
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
     pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         let (_, result) = IsoTime::balance(
-            FiniteF64::from(self.hour()).checked_add(&duration.hours)?.0,
+            FiniteF64::from(self.hour())
+                .checked_add(&duration.hours)?
+                .as_(),
             FiniteF64::from(self.minute())
                 .checked_add(&duration.minutes)?
-                .0,
+                .as_(),
             FiniteF64::from(self.second())
                 .checked_add(&duration.seconds)?
-                .0,
+                .as_(),
             FiniteF64::from(self.millisecond())
                 .checked_add(&duration.milliseconds)?
-                .0,
+                .as_(),
             FiniteF64::from(self.microsecond())
                 .checked_add(&duration.microseconds)?
-                .0,
+                .as_(),
             FiniteF64::from(self.nanosecond())
                 .checked_add(&duration.nanoseconds)?
-                .0,
+                .as_(),
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`

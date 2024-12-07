@@ -493,10 +493,7 @@ impl NormalizedDurationRecord {
             // TODO: Test valid range of EpochNanoseconds in order to add `expect` over `unwrap_or`
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-            (
-                start.as_nanoseconds().unwrap_or(0),
-                end.as_nanoseconds().unwrap_or(0),
-            )
+            (start.as_nanoseconds()?, end.as_nanoseconds()?)
         // 8. Else,
         } else {
             // a. Let startDateTime be ! CreateTemporalDateTime(start.[[Year]], start.[[Month]], start.[[Day]],
@@ -531,7 +528,7 @@ impl NormalizedDurationRecord {
         // 12. Let progress be (destEpochNs - startEpochNs) / (endEpochNs - startEpochNs).
         // 13. Let total be r1 + progress × increment × sign.
         let progress =
-            (dest_epoch_ns - start_epoch_ns) as f64 / (end_epoch_ns - start_epoch_ns) as f64;
+            (dest_epoch_ns - start_epoch_ns.0) as f64 / (end_epoch_ns.0 - start_epoch_ns.0) as f64;
         let total = r1 as f64
             + progress * options.increment.get() as f64 * f64::from(sign.as_sign_multiplier());
 
@@ -561,7 +558,7 @@ impl NormalizedDurationRecord {
                     NormalizedTimeDuration::default(),
                 )?,
                 total: Some(total as i128),
-                nudge_epoch_ns: end_epoch_ns,
+                nudge_epoch_ns: end_epoch_ns.0,
                 expanded: true,
             })
         // 18. Else,
@@ -575,7 +572,7 @@ impl NormalizedDurationRecord {
                     NormalizedTimeDuration::default(),
                 )?,
                 total: Some(total as i128),
-                nudge_epoch_ns: start_epoch_ns,
+                nudge_epoch_ns: start_epoch_ns.0,
                 expanded: false,
             })
         }
@@ -782,10 +779,10 @@ impl NormalizedDurationRecord {
             } else {
                 // 1. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]],
                 // end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-                end.as_nanoseconds().temporal_unwrap()?
+                end.as_nanoseconds()?
             };
             // viii. Let beyondEnd be nudgedEpochNs - endEpochNs.
-            let beyond_end = nudge_epoch_ns - end_epoch_ns;
+            let beyond_end = nudge_epoch_ns - end_epoch_ns.0;
             // ix. If beyondEnd < 0, let beyondEndSign be -1; else if beyondEnd > 0, let beyondEndSign be 1; else let beyondEndSign be 0.
             // x. If beyondEndSign ≠ -sign, then
             if beyond_end.signum() != -i128::from(sign.as_sign_multiplier()) {
