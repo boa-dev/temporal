@@ -53,7 +53,7 @@ use crate::{
     utils, TemporalError, TemporalResult,
 };
 
-#[cfg(target_family "unix")]
+#[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
 /// `LocalTimeRecord` represents an local time offset record.
