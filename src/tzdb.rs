@@ -28,7 +28,7 @@
 // offset diff = is_dst { dst_off - std_off } else { std_off - dst_off }, i.e. to_offset - from_offset
 
 use std::path::Path;
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_family = "unix")]
 use std::path::PathBuf;
 
 use alloc::collections::BTreeMap;
@@ -53,7 +53,7 @@ use crate::{
     utils, TemporalError, TemporalResult,
 };
 
-#[cfg(not(target_os = "windows"))]
+#[cfg(target_family "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
 /// `LocalTimeRecord` represents an local time offset record.
@@ -182,7 +182,7 @@ impl Tzif {
         Ok(Self::from(parse_result))
     }
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(target_family = "unix")]
     pub fn read_tzif(identifier: &str) -> TemporalResult<Self> {
         let mut path = PathBuf::from(ZONEINFO_DIR);
         path.push(identifier);
@@ -517,10 +517,10 @@ impl FsTzdbProvider {
         if let Some(tzif) = self.cache.borrow().get(identifier) {
             return Ok(tzif.clone());
         }
-        #[cfg(any(target_os = "linux", target_os = "macos"))]
+        #[cfg(target_family = "unix")]
         let (identifier, tzif) = { (identifier, Tzif::read_tzif(identifier)?) };
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_family = "windows", target_family = "wasm"))]
         let (identifier, tzif) = {
             let Some((canonical_name, data)) = jiff_tzdb::get(identifier) else {
                 return Err(
