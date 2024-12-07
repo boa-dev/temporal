@@ -253,22 +253,10 @@ impl Instant {
         Self::try_new(round_result)
     }
 
-    /// Returns the `epochSeconds` value for this `Instant`.
-    #[must_use]
-    pub fn epoch_seconds(&self) -> i128 {
-        self.as_i128() / 1_000_000_000
-    }
-
     /// Returns the `epochMilliseconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_milliseconds(&self) -> i128 {
-        self.as_i128() / 1_000_000
-    }
-
-    /// Returns the `epochMicroseconds` value for this `Instant`.
-    #[must_use]
-    pub fn epoch_microseconds(&self) -> i128 {
-        self.as_i128() / 1_000
+    pub fn epoch_milliseconds(&self) -> i64 {
+        (self.as_i128() / 1_000_000) as i64
     }
 
     /// Returns the `epochNanoseconds` value for this `Instant`.

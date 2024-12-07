@@ -216,22 +216,10 @@ impl ZonedDateTime {
         ))
     }
 
-    /// Returns the `epochSeconds` value of this `ZonedDateTime`.
-    #[must_use]
-    pub fn epoch_seconds(&self) -> i128 {
-        self.instant.epoch_seconds()
-    }
-
     /// Returns the `epochMilliseconds` value of this `ZonedDateTime`.
     #[must_use]
-    pub fn epoch_milliseconds(&self) -> i128 {
+    pub fn epoch_milliseconds(&self) -> i64 {
         self.instant.epoch_milliseconds()
-    }
-
-    /// Returns the `epochMicroseconds` value of this `ZonedDateTime`.
-    #[must_use]
-    pub fn epoch_microseconds(&self) -> i128 {
-        self.instant.epoch_microseconds()
     }
 
     /// Returns the `epochNanoseconds` value of this `ZonedDateTime`.
