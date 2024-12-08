@@ -730,10 +730,14 @@ mod tests {
         components::{
             calendar::Calendar, duration::DateDuration, Duration, PartialDate, PartialDateTime,
             PartialTime, PlainDateTime,
-        }, iso::{IsoDate, IsoDateTime, IsoTime}, options::{
+        },
+        iso::{IsoDate, IsoDateTime, IsoTime},
+        options::{
             DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
             TemporalUnit,
-        }, primitive::FiniteF64, TemporalResult
+        },
+        primitive::FiniteF64,
+        TemporalResult,
     };
 
     fn assert_datetime(
@@ -753,18 +757,7 @@ mod tests {
     }
 
     fn pdt_from_date(year: i32, month: i32, day: i32) -> TemporalResult<PlainDateTime> {
-        PlainDateTime::try_new(
-            year,
-            month,
-            day,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            Calendar::default(),
-        )
+        PlainDateTime::try_new(year, month, day, 0, 0, 0, 0, 0, 0, Calendar::default())
     }
 
     #[test]
@@ -777,30 +770,36 @@ mod tests {
         let positive_limit = pdt_from_date(275_760, 9, 14);
         assert!(positive_limit.is_err());
         let within_negative_limit = pdt_from_date(-271_821, 4, 20);
-        assert_eq!(within_negative_limit, Ok(PlainDateTime {
-            iso: IsoDateTime {
-                date: IsoDate {
-                    year: -271_821,
-                    month: 4,
-                    day: 20,
+        assert_eq!(
+            within_negative_limit,
+            Ok(PlainDateTime {
+                iso: IsoDateTime {
+                    date: IsoDate {
+                        year: -271_821,
+                        month: 4,
+                        day: 20,
+                    },
+                    time: IsoTime::default(),
                 },
-                time: IsoTime::default(),
-            },
-            calendar: Calendar::default(),
-        }));
+                calendar: Calendar::default(),
+            })
+        );
 
         let within_positive_limit = pdt_from_date(275_760, 9, 13);
-         assert_eq!(within_positive_limit, Ok(PlainDateTime {
-            iso: IsoDateTime {
-                date: IsoDate {
-                    year: 275_760,
-                    month: 9,
-                    day: 13,
+        assert_eq!(
+            within_positive_limit,
+            Ok(PlainDateTime {
+                iso: IsoDateTime {
+                    date: IsoDate {
+                        year: 275_760,
+                        month: 9,
+                        day: 13,
+                    },
+                    time: IsoTime::default(),
                 },
-                time: IsoTime::default(),
-            },
-            calendar: Calendar::default(),
-        }));
+                calendar: Calendar::default(),
+            })
+        );
     }
 
     #[test]

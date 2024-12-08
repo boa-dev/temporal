@@ -911,7 +911,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanosec
 }
 
 #[inline]
-fn to_unchecked_epoch_nanoseconds(date:IsoDate, time: &IsoTime) -> i128 {
+fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
     let ms = time.to_epoch_ms();
     let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
 
