@@ -724,8 +724,6 @@ impl FromStr for PlainDateTime {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
-
     use tinystr::{tinystr, TinyAsciiStr};
 
     use crate::{
@@ -733,11 +731,13 @@ mod tests {
             calendar::Calendar, duration::DateDuration, Duration, PartialDate, PartialDateTime,
             PartialTime, PlainDateTime,
         },
+        iso::{IsoDate, IsoDateTime, IsoTime},
         options::{
             DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
             TemporalUnit,
         },
         primitive::FiniteF64,
+        TemporalResult,
     };
 
     fn assert_datetime(
@@ -756,28 +756,50 @@ mod tests {
         assert_eq!(dt.nanosecond(), fields.9);
     }
 
+    fn pdt_from_date(year: i32, month: i32, day: i32) -> TemporalResult<PlainDateTime> {
+        PlainDateTime::try_new(year, month, day, 0, 0, 0, 0, 0, 0, Calendar::default())
+    }
+
     #[test]
     #[allow(clippy::float_cmp)]
     fn plain_date_time_limits() {
         // This test is primarily to assert that the `expect` in the epoch methods is
         // valid, i.e., a valid instant is within the range of an f64.
-        let negative_limit = PlainDateTime::try_new(
-            -271_821,
-            4,
-            19,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            Calendar::from_str("iso8601").unwrap(),
-        );
-        let positive_limit =
-            PlainDateTime::try_new(275_760, 9, 14, 0, 0, 0, 0, 0, 0, Calendar::default());
-
+        let negative_limit = pdt_from_date(-271_821, 4, 19);
         assert!(negative_limit.is_err());
+        let positive_limit = pdt_from_date(275_760, 9, 14);
         assert!(positive_limit.is_err());
+        let within_negative_limit = pdt_from_date(-271_821, 4, 20);
+        assert_eq!(
+            within_negative_limit,
+            Ok(PlainDateTime {
+                iso: IsoDateTime {
+                    date: IsoDate {
+                        year: -271_821,
+                        month: 4,
+                        day: 20,
+                    },
+                    time: IsoTime::default(),
+                },
+                calendar: Calendar::default(),
+            })
+        );
+
+        let within_positive_limit = pdt_from_date(275_760, 9, 13);
+        assert_eq!(
+            within_positive_limit,
+            Ok(PlainDateTime {
+                iso: IsoDateTime {
+                    date: IsoDate {
+                        year: 275_760,
+                        month: 9,
+                        day: 13,
+                    },
+                    time: IsoTime::default(),
+                },
+                calendar: Calendar::default(),
+            })
+        );
     }
 
     #[test]
