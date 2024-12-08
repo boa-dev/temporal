@@ -629,6 +629,35 @@ mod tests {
     use super::*;
 
     #[test]
+    fn new_date_limits() {
+        let err = PlainDate::try_new(-271_821, 4, 18, Calendar::default());
+        assert!(err.is_err());
+        let err = PlainDate::try_new(275_760, 9, 14, Calendar::default());
+        assert!(err.is_err());
+        let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
+        assert_eq!(ok, PlainDate {
+            iso: IsoDate {
+                year: -271_821,
+                month: 4,
+                day: 19,
+            },
+            calendar: Calendar::default(),
+        });
+
+        let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default()).unwrap();
+        assert_eq!(ok, PlainDate {
+            iso: IsoDate {
+                year: 275760,
+                month: 9,
+                day: 13,
+            },
+            calendar: Calendar::default(),
+        });
+
+
+    }
+
+    #[test]
     fn simple_date_add() {
         let base = PlainDate::from_str("1976-11-18").unwrap();
 
