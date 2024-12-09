@@ -423,7 +423,7 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `TimeZone`.
-    pub fn with_plain_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
+    pub fn with_plain_time(&self, time: PlainTime) -> TemporalResult<Self> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
@@ -710,17 +710,14 @@ impl ZonedDateTime {
     /// combined with the provided `TimeZone`.
     pub fn with_plain_time_and_provider(
         &self,
-        time: Option<PlainTime>,
+        time: PlainTime,
         provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
-        let epoch_ns = if let Some(pt) = time {
-            let result_iso = IsoDateTime::new_unchecked(iso.date, pt.iso);
+        let result_iso = IsoDateTime::new_unchecked(iso.date, time.iso);
+        let epoch_ns =
             self.tz
-                .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
-        } else {
-            self.tz.get_start_of_day(&iso.date, provider)?
-        };
+                .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
         Self::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
     }
 
