@@ -1,7 +1,7 @@
 //! Implementation of the FiniteF64 primitive
 
 use crate::{TemporalError, TemporalResult};
-use num_traits::{AsPrimitive, Bounded, FromPrimitive, PrimInt};
+use num_traits::{AsPrimitive, FromPrimitive, PrimInt};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct FiniteF64(pub(crate) f64);
@@ -61,7 +61,7 @@ impl FiniteF64 {
     }
 
     /// Truncate the current `FiniteF64` to an integer `T`
-    pub fn truncate<T: Bounded + AsPrimitive<f64>>(&self) -> T
+    pub fn truncate<T: PrimInt + AsPrimitive<f64>>(&self) -> T
     where
         f64: AsPrimitive<T>,
     {
@@ -71,9 +71,7 @@ impl FiniteF64 {
     }
 
     /// Truncate the current `FiniteF64` to an integer `T`, throwing an error if the value is not positive.
-    pub fn truncate_to_positive_integer<T: Bounded + AsPrimitive<f64> + PrimInt>(
-        &self,
-    ) -> TemporalResult<T>
+    pub fn truncate_to_positive_integer<T: PrimInt + AsPrimitive<f64>>(&self) -> TemporalResult<T>
     where
         f64: AsPrimitive<T>,
         i8: AsPrimitive<T>,
