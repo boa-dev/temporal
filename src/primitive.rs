@@ -323,11 +323,11 @@ mod tests {
 
     #[test]
     fn finitef64_integer_if_integral_returns_int() {
-        let test_value = FiniteF64::try_from(0).unwrap();
+        let test_value = FiniteF64::from(0);
         let integer = test_value.as_integer_if_integral::<u8>();
         assert_eq!(integer, Ok(0));
 
-        let test_value = FiniteF64::try_from(1).unwrap();
+        let test_value = FiniteF64::from(1);
         let integer = test_value.as_integer_if_integral::<u8>();
         assert_eq!(integer, Ok(1));
     }
