@@ -72,7 +72,7 @@ impl FiniteF64 {
     }
 
     /// Truncate the current `FiniteF64` to an integer `T`
-    pub fn truncate<T: PrimInt + AsPrimitive<f64>>(&self) -> T
+    pub fn as_integer_with_truncation<T: PrimInt + AsPrimitive<f64>>(&self) -> T
     where
         f64: AsPrimitive<T>,
     {
@@ -82,12 +82,14 @@ impl FiniteF64 {
     }
 
     /// Truncate the current `FiniteF64` to an integer `T`, throwing an error if the value is not positive.
-    pub fn truncate_as_positive<T: PrimInt + AsPrimitive<f64>>(&self) -> TemporalResult<T>
+    pub fn as_positive_integer_with_truncation<T: PrimInt + AsPrimitive<f64>>(
+        &self,
+    ) -> TemporalResult<T>
     where
         f64: AsPrimitive<T>,
         i8: AsPrimitive<T>,
     {
-        let truncated_value = self.truncate::<T>();
+        let truncated_value = self.as_integer_with_truncation::<T>();
         if truncated_value <= 0i8.as_() {
             return Err(TemporalError::range().with_message("integer must be positive."));
         }
@@ -216,89 +218,95 @@ mod tests {
         let value = 8_640_000_000_000_000i64;
         let finite = FiniteF64::try_from(value).unwrap();
 
-        let num_usize = finite.truncate::<usize>();
+        let num_usize = finite.as_integer_with_truncation::<usize>();
         #[cfg(target_pointer_width = "64")]
         assert_eq!(num_usize, 8_640_000_000_000_000);
         #[cfg(target_pointer_width = "32")]
         assert_eq!(num_usize, usize::MAX);
-        let num_u8 = finite.truncate::<u8>();
+        let num_u8 = finite.as_integer_with_truncation::<u8>();
         assert_eq!(num_u8, u8::MAX);
-        let num_u16 = finite.truncate::<u16>();
+        let num_u16 = finite.as_integer_with_truncation::<u16>();
         assert_eq!(num_u16, u16::MAX);
-        let num_u32 = finite.truncate::<u32>();
+        let num_u32 = finite.as_integer_with_truncation::<u32>();
         assert_eq!(num_u32, u32::MAX);
-        let num_u64 = finite.truncate::<u64>();
+        let num_u64 = finite.as_integer_with_truncation::<u64>();
         assert_eq!(num_u64, 8_640_000_000_000_000);
-        let num_u128 = finite.truncate::<u128>();
+        let num_u128 = finite.as_integer_with_truncation::<u128>();
         assert_eq!(num_u128, 8_640_000_000_000_000);
 
-        let num_isize = finite.truncate::<isize>();
+        let num_isize = finite.as_integer_with_truncation::<isize>();
         #[cfg(target_pointer_width = "64")]
         assert_eq!(num_isize, 8_640_000_000_000_000);
         #[cfg(target_pointer_width = "32")]
         assert_eq!(num_isize, isize::MAX);
-        let num_i8 = finite.truncate::<i8>();
+        let num_i8 = finite.as_integer_with_truncation::<i8>();
         assert_eq!(num_i8, i8::MAX);
-        let num_i16 = finite.truncate::<i16>();
+        let num_i16 = finite.as_integer_with_truncation::<i16>();
         assert_eq!(num_i16, i16::MAX);
-        let num_i32 = finite.truncate::<i32>();
+        let num_i32 = finite.as_integer_with_truncation::<i32>();
         assert_eq!(num_i32, i32::MAX);
-        let num_i64 = finite.truncate::<i64>();
+        let num_i64 = finite.as_integer_with_truncation::<i64>();
         assert_eq!(num_i64, 8_640_000_000_000_000);
-        let num_i128 = finite.truncate::<i128>();
+        let num_i128 = finite.as_integer_with_truncation::<i128>();
         assert_eq!(num_i128, 8_640_000_000_000_000);
     }
 
     #[test]
-    fn finitef64_truncate_as_positive_int() {
+    fn finitef64_as_positive_integer_with_truncation_int() {
         let positive = FiniteF64::from(5);
-        let truncated = positive.truncate_as_positive::<i32>().unwrap();
+        let truncated = positive
+            .as_positive_integer_with_truncation::<i32>()
+            .unwrap();
         assert_eq!(truncated, 5);
 
         let negative = FiniteF64::from(-4);
-        let truncated = negative.truncate_as_positive::<i32>();
+        let truncated = negative.as_positive_integer_with_truncation::<i32>();
         assert!(truncated.is_err());
     }
 
     #[test]
-    fn finitef64_truncate_as_positive_correct_floor() {
+    fn finitef64_as_positive_integer_with_truncation_correct_floor() {
         let floors_to_zero = FiniteF64::try_from(0.5).unwrap();
-        let truncated = floors_to_zero.truncate_as_positive::<i32>();
+        let truncated = floors_to_zero.as_positive_integer_with_truncation::<i32>();
         assert!(truncated.is_err());
 
         let floors_to_zero = FiniteF64::try_from(-0.5).unwrap();
-        let truncated = floors_to_zero.truncate_as_positive::<i32>();
+        let truncated = floors_to_zero.as_positive_integer_with_truncation::<i32>();
         assert!(truncated.is_err());
 
         let floors_to_zero = FiniteF64::try_from(0.9).unwrap();
-        let truncated = floors_to_zero.truncate_as_positive::<i32>();
+        let truncated = floors_to_zero.as_positive_integer_with_truncation::<i32>();
         assert!(truncated.is_err());
 
         let floors_to_one = FiniteF64::try_from(1.1).unwrap();
-        let truncated = floors_to_one.truncate_as_positive::<i32>().unwrap();
+        let truncated = floors_to_one
+            .as_positive_integer_with_truncation::<i32>()
+            .unwrap();
         assert_eq!(truncated, 1);
 
         let floors_to_one = FiniteF64::try_from(1.9).unwrap();
-        let truncated = floors_to_one.truncate_as_positive::<i32>().unwrap();
+        let truncated = floors_to_one
+            .as_positive_integer_with_truncation::<i32>()
+            .unwrap();
         assert_eq!(truncated, 1);
     }
 
     #[test]
     fn finitef64_truncate_correct_floor() {
         let floors_to_zero = FiniteF64::try_from(0.5).unwrap();
-        let truncated = floors_to_zero.truncate::<i32>();
+        let truncated = floors_to_zero.as_integer_with_truncation::<i32>();
         assert_eq!(truncated, 0);
 
         let floors_to_zero = FiniteF64::try_from(-0.5).unwrap();
-        let truncated = floors_to_zero.truncate::<i32>();
+        let truncated = floors_to_zero.as_integer_with_truncation::<i32>();
         assert_eq!(truncated, 0);
 
         let floors_to_one = FiniteF64::try_from(-1.2).unwrap();
-        let truncated = floors_to_one.truncate::<i32>();
+        let truncated = floors_to_one.as_integer_with_truncation::<i32>();
         assert_eq!(truncated, -1);
 
         let floors_to_one = FiniteF64::try_from(1.9).unwrap();
-        let truncated = floors_to_one.truncate::<i32>();
+        let truncated = floors_to_one.as_integer_with_truncation::<i32>();
         assert_eq!(truncated, 1);
     }
 
