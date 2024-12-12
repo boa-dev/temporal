@@ -60,6 +60,17 @@ impl FiniteF64 {
         Ok(self.0 as i32)
     }
 
+    /// Returns an integer of type `T` if if value is integral
+    pub fn as_integer_if_integral<T: PrimInt + AsPrimitive<f64>>(&self) -> TemporalResult<T>
+    where
+        f64: AsPrimitive<T>,
+    {
+        if self.0 != self.0.trunc() {
+            return Err(TemporalError::range().with_message("value must be integral."));
+        }
+        Ok(self.0.as_())
+    }
+
     /// Truncate the current `FiniteF64` to an integer `T`
     pub fn truncate<T: PrimInt + AsPrimitive<f64>>(&self) -> T
     where
@@ -71,7 +82,7 @@ impl FiniteF64 {
     }
 
     /// Truncate the current `FiniteF64` to an integer `T`, throwing an error if the value is not positive.
-    pub fn truncate_to_positive_integer<T: PrimInt + AsPrimitive<f64>>(&self) -> TemporalResult<T>
+    pub fn truncate_as_positive<T: PrimInt + AsPrimitive<f64>>(&self) -> TemporalResult<T>
     where
         f64: AsPrimitive<T>,
         i8: AsPrimitive<T>,
@@ -110,7 +121,7 @@ impl TryFrom<i64> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: i64) -> Result<Self, Self::Error> {
         let result = f64::from_i64(value)
-            .ok_or(TemporalError::range().with_message("days exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
         Ok(Self(result))
     }
 }
@@ -119,7 +130,7 @@ impl TryFrom<u64> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let result = f64::from_u64(value)
-            .ok_or(TemporalError::range().with_message("days exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
         Ok(Self(result))
     }
 }
@@ -128,7 +139,7 @@ impl TryFrom<i128> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: i128) -> Result<Self, Self::Error> {
         let result = f64::from_i128(value)
-            .ok_or(TemporalError::range().with_message("days exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
         if !result.is_finite() {
             return Err(TemporalError::range().with_message("number value is not a finite value."));
         }
@@ -140,7 +151,7 @@ impl TryFrom<u128> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: u128) -> Result<Self, Self::Error> {
         let result = f64::from_u128(value)
-            .ok_or(TemporalError::range().with_message("days exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
         if !result.is_finite() {
             return Err(TemporalError::range().with_message("number value is not a finite value."));
         }
@@ -241,34 +252,34 @@ mod tests {
     #[test]
     fn finitef64_truncate_as_positive_int() {
         let positive = FiniteF64::from(5);
-        let truncated = positive.truncate_to_positive_integer::<i32>().unwrap();
+        let truncated = positive.truncate_as_positive::<i32>().unwrap();
         assert_eq!(truncated, 5);
 
         let negative = FiniteF64::from(-4);
-        let truncated = negative.truncate_to_positive_integer::<i32>();
+        let truncated = negative.truncate_as_positive::<i32>();
         assert!(truncated.is_err());
     }
 
     #[test]
     fn finitef64_truncate_as_positive_correct_floor() {
         let floors_to_zero = FiniteF64::try_from(0.5).unwrap();
-        let truncated = floors_to_zero.truncate_to_positive_integer::<i32>();
+        let truncated = floors_to_zero.truncate_as_positive::<i32>();
         assert!(truncated.is_err());
 
         let floors_to_zero = FiniteF64::try_from(-0.5).unwrap();
-        let truncated = floors_to_zero.truncate_to_positive_integer::<i32>();
+        let truncated = floors_to_zero.truncate_as_positive::<i32>();
         assert!(truncated.is_err());
 
         let floors_to_zero = FiniteF64::try_from(0.9).unwrap();
-        let truncated = floors_to_zero.truncate_to_positive_integer::<i32>();
+        let truncated = floors_to_zero.truncate_as_positive::<i32>();
         assert!(truncated.is_err());
 
         let floors_to_one = FiniteF64::try_from(1.1).unwrap();
-        let truncated = floors_to_one.truncate_to_positive_integer::<i32>().unwrap();
+        let truncated = floors_to_one.truncate_as_positive::<i32>().unwrap();
         assert_eq!(truncated, 1);
 
         let floors_to_one = FiniteF64::try_from(1.9).unwrap();
-        let truncated = floors_to_one.truncate_to_positive_integer::<i32>().unwrap();
+        let truncated = floors_to_one.truncate_as_positive::<i32>().unwrap();
         assert_eq!(truncated, 1);
     }
 
@@ -289,5 +300,27 @@ mod tests {
         let floors_to_one = FiniteF64::try_from(1.9).unwrap();
         let truncated = floors_to_one.truncate::<i32>();
         assert_eq!(truncated, 1);
+    }
+
+    #[test]
+    fn finitef64_integer_if_integral_returns_err() {
+        let test_value = FiniteF64::try_from(0.999).unwrap();
+        let integer = test_value.as_integer_if_integral::<u8>();
+        assert!(integer.is_err());
+
+        let test_value = FiniteF64::try_from(1.5).unwrap();
+        let integer = test_value.as_integer_if_integral::<u8>();
+        assert!(integer.is_err());
+    }
+
+    #[test]
+    fn finitef64_integer_if_integral_returns_int() {
+        let test_value = FiniteF64::try_from(0).unwrap();
+        let integer = test_value.as_integer_if_integral::<u8>();
+        assert_eq!(integer, Ok(0));
+
+        let test_value = FiniteF64::try_from(1).unwrap();
+        let integer = test_value.as_integer_if_integral::<u8>();
+        assert_eq!(integer, Ok(1));
     }
 }
