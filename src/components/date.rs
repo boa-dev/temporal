@@ -199,7 +199,12 @@ impl PlainDate {
             overflow,
         )?;
 
-        Ok(Self::new_unchecked(result, self.calendar().clone()))
+        Self::try_new(
+            result.year,
+            result.month.into(),
+            result.day.into(),
+            self.calendar().clone(),
+        )
     }
 
     /// Returns a duration representing the difference between the dates one and two.
@@ -701,6 +706,45 @@ mod tests {
                 day: 8,
             }
         )
+    }
+
+    #[test]
+    fn date_add_limits() {
+        let max = PlainDate::try_new(275_760, 9, 13, Calendar::default()).unwrap();
+        let result = max.add(&Duration::from_str("P1D").unwrap(), None);
+        assert!(result.is_err());
+
+        let max = PlainDate::try_new(275_760, 9, 12, Calendar::default()).unwrap();
+        let result = max.add(&Duration::from_str("P1D").unwrap(), None);
+        assert_eq!(
+            result,
+            Ok(PlainDate {
+                iso: IsoDate {
+                    year: 275760,
+                    month: 9,
+                    day: 13
+                },
+                calendar: Calendar::default(),
+            })
+        );
+
+        let min = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
+        let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
+        assert!(result.is_err());
+
+        let min = PlainDate::try_new(-271_821, 4, 21, Calendar::default()).unwrap();
+        let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
+        assert_eq!(
+            result,
+            Ok(PlainDate {
+                iso: IsoDate {
+                    year: -271_821,
+                    month: 4,
+                    day: 20
+                },
+                calendar: Calendar::default(),
+            })
+        );
     }
 
     #[test]

@@ -59,25 +59,35 @@ pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
 }
 
 /// Returns the epoch day number for a given year.
-pub(crate) fn epoch_day_number_for_year(y: f64) -> f64 {
-    365.0f64.mul_add(y - 1970.0, ((y - 1969.0) / 4.0).floor()) - ((y - 1901.0) / 100.0).floor()
-        + ((y - 1601.0) / 400.0).floor()
+pub(crate) fn epoch_days_for_year(y: i32) -> i32 {
+    365 * (y - 1970) + (y - 1969).div_euclid(4) - (y - 1901).div_euclid(100)
+        + (y - 1601).div_euclid(400)
 }
 
 pub(crate) fn epoch_time_for_year(y: i32) -> f64 {
-    f64::from(MS_PER_DAY) * epoch_day_number_for_year(f64::from(y))
+    f64::from(MS_PER_DAY) * f64::from(epoch_days_for_year(y))
 }
 
 pub(crate) fn epoch_time_to_epoch_year(t: f64) -> i32 {
-    // roughly calculate the largest possible year given the time t,
+    // TODO: optimize lol.
+    // There are other alogrithms out there worth looking into
+    // for usage.
+    // NOTE: The below loop should not have too much of an impact on
+    // performance. Looping should only occur maximally at the date
+    // limits of +/- 200_000 years.
+    // Roughly calculate the largest possible year given the time t,
     // then check and refine the year.
     let day_count = epoch_time_to_day_number(t);
-    let mut year = (day_count / 365) + 1970;
+    let mut year = f64::from(day_count).div_euclid(365.2425) as i32 + 1970;
     loop {
-        if epoch_time_for_year(year) <= t {
+        let time = epoch_time_for_year(year) as f64;
+        if time <= t && epoch_time_for_year(year + 1) as f64 > t {
             break;
+        } else if time < t {
+            year += 1;
+        } else {
+            year -= 1;
         }
-        year -= 1;
     }
 
     year
@@ -155,8 +165,7 @@ pub(crate) fn epoch_time_to_date(t: f64) -> u8 {
 
 // TODO: Update to u16 (1..=365 + leap_day)
 pub(crate) fn epoch_time_to_day_in_year(t: f64) -> i32 {
-    epoch_time_to_day_number(t)
-        - (epoch_day_number_for_year(f64::from(epoch_time_to_epoch_year(t))) as i32)
+    epoch_time_to_day_number(t) - (epoch_days_for_year(epoch_time_to_epoch_year(t)))
 }
 
 #[cfg(feature = "tzdb")]
@@ -233,62 +242,62 @@ mod tests {
         // Test standard year.
         let standard_year_t = epoch_time_for_year(2015);
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(0, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(0, 2015)),
             1,
             "January is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(1, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(1, 2015)),
             1,
             "February is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(2, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(2, 2015)),
             1,
             "March is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(3, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(3, 2015)),
             1,
             "April is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(4, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(4, 2015)),
             1,
             "May is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(5, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(5, 2015)),
             1,
             "June is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(6, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(6, 2015)),
             1,
             "July is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(7, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(7, 2015)),
             1,
             "August is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(8, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(8, 2015)),
             1,
             "September is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(9, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(9, 2015)),
             1,
             "October is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(10, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(10, 2015)),
             1,
             "November is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(standard_year_t + epoch_time_for_month_given_year(11, 2015)),
+            epoch_time_to_date(standard_year_t as f64 + epoch_time_for_month_given_year(11, 2015)),
             1,
             "December is unaligned."
         );
@@ -296,64 +305,78 @@ mod tests {
         // Test leap Year
         let leap_year_t = epoch_time_for_year(2020);
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(0, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(0, 2020)),
             1,
             "January is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(1, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(1, 2020)),
             1,
             "February is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(2, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(2, 2020)),
             1,
             "March is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(3, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(3, 2020)),
             1,
             "April is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(4, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(4, 2020)),
             1,
             "May is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(5, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(5, 2020)),
             1,
             "June is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(6, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(6, 2020)),
             1,
             "July is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(7, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(7, 2020)),
             1,
             "August is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(8, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(8, 2020)),
             1,
             "September is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(9, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(9, 2020)),
             1,
             "October is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(10, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(10, 2020)),
             1,
             "November is unaligned."
         );
         assert_eq!(
-            epoch_time_to_date(leap_year_t + epoch_time_for_month_given_year(11, 2020)),
+            epoch_time_to_date(leap_year_t as f64 + epoch_time_for_month_given_year(11, 2020)),
             1,
             "December is unaligned."
         );
+    }
+
+    #[test]
+    fn epoch_time_to_epoch_year_tests() {
+        let t = -8_640_000_000_000_000.0;
+        let day_number = epoch_time_to_day_number(t);
+        assert_eq!(day_number, -100_000_000);
+
+        // Potentially 108 depending on euclidean or not. tbd
+        let day_number = epoch_days_for_year(-271_821);
+        assert_eq!(day_number, -100_000_109);
+
+        let result = epoch_time_to_epoch_year(t);
+        assert_eq!(result, -271_821);
     }
 }
