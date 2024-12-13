@@ -499,7 +499,7 @@ impl IsoDate {
 impl IsoDate {
     /// Creates `[[ISOYear]]`, `[[isoMonth]]`, `[[isoDay]]` fields from `ICU4X`'s `Date<Iso>` struct.
     pub(crate) fn as_icu4x(self) -> TemporalResult<IcuDate<Iso>> {
-        IcuDate::try_new_iso_date(self.year, self.month, self.day)
+        IcuDate::try_new_iso(self.year, self.month, self.day)
             .map_err(|e| TemporalError::range().with_message(e.to_string()))
     }
 }
