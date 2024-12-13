@@ -106,7 +106,11 @@ impl FromStr for PlainMonthDay {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let record = crate::parsers::parse_month_day(s)?;
 
-        let calendar = record.calendar.unwrap_or("iso8601");
+        let calendar = record
+            .calendar
+            .map(Calendar::from_utf8)
+            .transpose()?
+            .unwrap_or_default();
 
         let date = record.date;
 
@@ -115,7 +119,7 @@ impl FromStr for PlainMonthDay {
         Self::new_with_overflow(
             date.month.into(),
             date.day.into(),
-            Calendar::from_str(calendar)?,
+            calendar,
             ArithmeticOverflow::Reject,
             None,
         )

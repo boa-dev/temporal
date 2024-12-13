@@ -1,6 +1,7 @@
 //! Implementation of `ResolvedCalendarFields`
 
-use tinystr::{tinystr, TinyAsciiStr};
+use tinystr::tinystr;
+use tinystr::TinyAsciiStr;
 
 use alloc::format;
 

@@ -59,7 +59,7 @@ impl PartialDate {
                 None,
                 year_month
                     .era()?
-                    .map(|t| TinyAsciiStr::<19>::from_bytes(t.as_bytes()))
+                    .map(|t| TinyAsciiStr::<19>::try_from_utf8(t.as_bytes()))
                     .transpose()
                     .map_err(|e| TemporalError::general(format!("{e}")))?,
                 year_month.era_year()?,
@@ -93,7 +93,7 @@ macro_rules! impl_with_fallback_method {
             } else {
                 let era = fallback.era()?;
                 era.map(|e| {
-                    TinyAsciiStr::<19>::from_bytes(e.as_bytes())
+                    TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
                         .map_err(|e| TemporalError::general(format!("{e}")))
                 })
                 .transpose()?
@@ -617,11 +617,14 @@ impl FromStr for PlainDate {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parse_record = parse_date_time(s)?;
 
-        let calendar = parse_record.calendar.unwrap_or("iso8601");
+        let calendar = parse_record
+            .calendar
+            .map(Calendar::from_utf8)
+            .transpose()?
+            .unwrap_or_default();
 
         // Assertion: PlainDate must exist on a DateTime parse.
         let date = parse_record.date.temporal_unwrap()?;
-        let calendar = Calendar::from_str(calendar)?;
 
         Self::try_new(date.year, date.month.into(), date.day.into(), calendar)
     }

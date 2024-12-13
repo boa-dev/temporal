@@ -693,7 +693,11 @@ impl FromStr for PlainDateTime {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parse_record = parse_date_time(s)?;
 
-        let calendar = parse_record.calendar.unwrap_or("iso8601");
+        let calendar = parse_record
+            .calendar
+            .map(Calendar::from_utf8)
+            .transpose()?
+            .unwrap_or_default();
 
         let time = if let Some(time) = parse_record.time {
             IsoTime::from_components(
@@ -715,10 +719,7 @@ impl FromStr for PlainDateTime {
             ArithmeticOverflow::Reject,
         )?;
 
-        Ok(Self::new_unchecked(
-            IsoDateTime::new(date, time)?,
-            Calendar::from_str(calendar)?,
-        ))
+        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
     }
 }
 
