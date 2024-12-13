@@ -1,10 +1,10 @@
 //! This module implements `TemporalError`.
 
 use alloc::borrow::Cow;
-use alloc::string::ToString;
+use alloc::format;
 use core::fmt;
 
-use icu_calendar::CalendarError;
+use icu_calendar::DateError;
 
 /// `TemporalError`'s error type.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -128,6 +128,10 @@ impl TemporalError {
     pub fn into_message(self) -> Cow<'static, str> {
         self.msg
     }
+
+    pub fn from_icu4x(error: DateError) -> Self {
+        TemporalError::range().with_message(format!("{error}"))
+    }
 }
 
 impl fmt::Display for TemporalError {
@@ -140,11 +144,5 @@ impl fmt::Display for TemporalError {
         }
 
         Ok(())
-    }
-}
-
-impl From<CalendarError> for TemporalError {
-    fn from(value: CalendarError) -> Self {
-        TemporalError::general(value.to_string())
     }
 }

@@ -4,9 +4,10 @@
 //! Temporal compatible calendar implementations.
 
 use alloc::borrow::ToOwned;
-use alloc::string::{String, ToString};
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::str::FromStr;
+use icu_calendar::types::{Era as IcuEra, MonthCode as IcuMonthCode, MonthInfo, YearInfo};
 
 use crate::{
     components::{
@@ -20,18 +21,12 @@ use crate::{
 
 use icu_calendar::{
     any_calendar::AnyDateInner,
-    buddhist::Buddhist,
-    chinese::Chinese,
-    coptic::Coptic,
-    dangi::Dangi,
-    ethiopian::{Ethiopian, EthiopianEraStyle},
-    hebrew::Hebrew,
-    indian::Indian,
-    islamic::{IslamicCivil, IslamicObservational, IslamicTabular, IslamicUmmAlQura},
-    japanese::{Japanese, JapaneseExtended},
-    persian::Persian,
-    roc::Roc,
-    types::{DayOfMonth, DayOfYearInfo, Era, FormattableMonth, FormattableYear, MonthCode},
+    cal::{
+        Buddhist, Chinese, Coptic, Dangi, Ethiopian, EthiopianEraStyle, Hebrew, Indian,
+        IslamicCivil, IslamicObservational, IslamicTabular, IslamicUmmAlQura, Japanese,
+        JapaneseExtended, Persian, Roc,
+    },
+    types::{DayOfMonth, DayOfYearInfo},
     week::{RelativeUnit, WeekCalculator},
     AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, DateDuration as IcuDateDuration,
     DateDurationUnit as IcuDateDurationUnit, Gregorian, Iso, Ref,
@@ -70,11 +65,11 @@ impl IcuCalendar for Calendar {
 
     fn date_from_codes(
         &self,
-        era: icu_calendar::types::Era,
+        era: Option<icu_calendar::types::Era>,
         year: i32,
         month_code: icu_calendar::types::MonthCode,
         day: u8,
-    ) -> Result<Self::DateInner, icu_calendar::Error> {
+    ) -> Result<Self::DateInner, icu_calendar::DateError> {
         self.0.date_from_codes(era, year, month_code, day)
     }
 
@@ -119,7 +114,7 @@ impl IcuCalendar for Calendar {
         self.0.debug_name()
     }
 
-    fn year(&self, date: &Self::DateInner) -> FormattableYear {
+    fn year(&self, date: &Self::DateInner) -> YearInfo {
         self.0.year(date)
     }
 
@@ -127,7 +122,7 @@ impl IcuCalendar for Calendar {
         self.0.is_in_leap_year(date)
     }
 
-    fn month(&self, date: &Self::DateInner) -> FormattableMonth {
+    fn month(&self, date: &Self::DateInner) -> MonthInfo {
         self.0.month(date)
     }
 
@@ -299,15 +294,18 @@ impl Calendar {
             );
         }
 
-        let calendar_date = self.0.date_from_codes(
-            Era(fields.era_year.era.0),
-            fields.era_year.year,
-            MonthCode(fields.month_code.0),
-            fields.day as u8, // TODO: FIX
-        )?;
+        let calendar_date = self
+            .0
+            .date_from_codes(
+                Some(IcuEra(fields.era_year.era.0)),
+                fields.era_year.year,
+                IcuMonthCode(fields.month_code.0),
+                fields.day as u8, // TODO: FIX
+            )
+            .map_err(TemporalError::from_icu4x)?;
         let iso = self.0.date_to_iso(&calendar_date);
         PlainDate::new_with_overflow(
-            iso.year().number,
+            iso.year().extended_year,
             iso.month().ordinal as i32,
             iso.day_of_month().0 as i32,
             self.clone(),
@@ -355,15 +353,18 @@ impl Calendar {
         }
 
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
-        let calendar_date = self.0.date_from_codes(
-            Era(resolved_fields.era_year.era.0),
-            resolved_fields.era_year.year,
-            MonthCode(resolved_fields.month_code.0),
-            resolved_fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
-        )?;
+        let calendar_date = self
+            .0
+            .date_from_codes(
+                Some(IcuEra(resolved_fields.era_year.era.0)),
+                resolved_fields.era_year.year,
+                IcuMonthCode(resolved_fields.month_code.0),
+                resolved_fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
+            )
+            .map_err(TemporalError::from_icu4x)?;
         let iso = self.0.date_to_iso(&calendar_date);
         PlainYearMonth::new_with_overflow(
-            iso.year().number,
+            iso.year().extended_year,
             iso.month().ordinal as i32,
             Some(iso.day_of_month().0 as i32),
             self.clone(),
@@ -429,7 +430,7 @@ impl Calendar {
             return Ok(None);
         }
         let calendar_date = self.0.date_from_iso(date_like.as_iso_date().as_icu4x()?);
-        Ok(Some(self.0.year(&calendar_date).era.0))
+        Ok(self.0.year(&calendar_date).standard_era().map(|era| era.0))
     }
 
     /// `CalendarEraYear`
@@ -438,7 +439,7 @@ impl Calendar {
             return Ok(None);
         }
         let calendar_date = self.0.date_from_iso(date_like.as_iso_date().as_icu4x()?);
-        Ok(Some(self.0.year(&calendar_date).number))
+        Ok(self.0.year(&calendar_date).era_year())
     }
 
     /// `CalendarYear`
@@ -447,7 +448,7 @@ impl Calendar {
             return Ok(date_like.as_iso_date().year);
         }
         let calendar_date = self.0.date_from_iso(date_like.as_iso_date().as_icu4x()?);
-        Ok(self.0.year(&calendar_date).number)
+        Ok(self.0.year(&calendar_date).extended_year)
     }
 
     /// `CalendarMonth`
@@ -462,7 +463,7 @@ impl Calendar {
     /// `CalendarMonthCode`
     pub fn month_code(&self, date_like: &CalendarDateLike) -> TemporalResult<TinyAsciiStr<4>> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().as_icu4x()?.month().code.0);
+            return Ok(date_like.as_iso_date().as_icu4x()?.month().standard_code.0);
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
@@ -505,11 +506,9 @@ impl Calendar {
 
             let week_calculator = WeekCalculator::default();
 
-            let week_of = date
-                .week_of_year(&week_calculator)
-                .map_err(|err| TemporalError::range().with_message(err.to_string()))?;
+            let week_of = date.week_of_year(&week_calculator);
 
-            return Ok(Some(week_of.week));
+            return Ok(Some(week_of.week as u16));
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
@@ -521,14 +520,12 @@ impl Calendar {
 
             let week_calculator = WeekCalculator::default();
 
-            let week_of = date
-                .week_of_year(&week_calculator)
-                .map_err(|err| TemporalError::range().with_message(err.to_string()))?;
+            let week_of = date.week_of_year(&week_calculator);
 
             return match week_of.unit {
-                RelativeUnit::Previous => Ok(Some(date.year().number - 1)),
-                RelativeUnit::Current => Ok(Some(date.year().number)),
-                RelativeUnit::Next => Ok(Some(date.year().number + 1)),
+                RelativeUnit::Previous => Ok(Some(date.year().extended_year - 1)),
+                RelativeUnit::Current => Ok(Some(date.year().extended_year)),
+                RelativeUnit::Next => Ok(Some(date.year().extended_year + 1)),
             };
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
