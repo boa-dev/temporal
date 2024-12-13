@@ -723,7 +723,7 @@ impl FromStr for Duration {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = IsoDurationParser::new(s)
+        let parse_record = IsoDurationParser::from_str(s)
             .parse()
             .map_err(|e| TemporalError::general(format!("{e}")))?;
 

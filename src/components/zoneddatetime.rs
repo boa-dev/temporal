@@ -1,8 +1,8 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
-use alloc::{borrow::ToOwned, string::String};
-use core::{num::NonZeroU128, str::FromStr};
-use ixdtf::parsers::records::TimeZoneRecord;
+use alloc::string::String;
+use core::num::NonZeroU128;
+use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
 use crate::{
@@ -201,6 +201,7 @@ impl ZonedDateTime {
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
+            false,
             offset_nanos,
             &partial.timezone,
             disambiguation,
@@ -689,7 +690,9 @@ impl ZonedDateTime {
         };
 
         let timezone = match annotation.tz {
-            TimeZoneRecord::Name(s) => TimeZone::IanaIdentifier(s.to_owned()),
+            TimeZoneRecord::Name(s) => {
+                TimeZone::IanaIdentifier(String::from_utf8_lossy(s).into_owned())
+            }
             TimeZoneRecord::Offset(offset_record) => {
                 // NOTE: ixdtf parser restricts minute/second to 0..=60
                 let minutes = i16::from((offset_record.hour * 60) + offset_record.minute);
@@ -699,15 +702,33 @@ impl ZonedDateTime {
             _ => return Err(TemporalError::assert()),
         };
 
-        let offset_nanos = parse_result.offset.map(|record| {
-            let hours_in_ns = i64::from(record.hour) * 3_600_000_000_000_i64;
-            let minutes_in_ns = i64::from(record.minute) * 60_000_000_000_i64;
-            let seconds_in_ns = i64::from(record.minute) * 1_000_000_000_i64;
-            (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(record.nanosecond))
-                * i64::from(record.sign as i8)
-        });
+        let (offset_nanos, is_exact) = parse_result
+            .offset
+            .map(|record| {
+                let UtcOffsetRecordOrZ::Offset(offset) = record else {
+                    return (None, true);
+                };
+                let hours_in_ns = i64::from(offset.hour) * 3_600_000_000_000_i64;
+                let minutes_in_ns = i64::from(offset.minute) * 60_000_000_000_i64;
+                let seconds_in_ns = i64::from(offset.minute) * 1_000_000_000_i64;
+                (
+                    Some(
+                        (hours_in_ns
+                            + minutes_in_ns
+                            + seconds_in_ns
+                            + i64::from(offset.nanosecond))
+                            * i64::from(offset.sign as i8),
+                    ),
+                    false,
+                )
+            })
+            .unwrap_or((None, false));
 
-        let calendar = Calendar::from_str(parse_result.calendar.unwrap_or("iso8601"))?;
+        let calendar = parse_result
+            .calendar
+            .map(Calendar::from_utf8)
+            .transpose()?
+            .unwrap_or_default();
 
         let time = parse_result
             .time
@@ -737,6 +758,7 @@ impl ZonedDateTime {
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
+            is_exact,
             offset_nanos,
             &timezone,
             disambiguation,
@@ -757,6 +779,7 @@ impl ZonedDateTime {
 pub fn interpret_isodatetime_offset(
     date: IsoDate,
     time: Option<IsoTime>,
+    is_exact: bool,
     offset_nanos: Option<i64>,
     timezone: &TimeZone,
     disambiguation: Disambiguation,
@@ -775,9 +798,9 @@ pub fn interpret_isodatetime_offset(
 
     // 2. Let isoDateTime be CombineISODateAndTimeRecord(isoDate, time).
     // TODO: Deal with offsetBehavior == wall.
-    match offset_nanos {
+    match (is_exact, offset_nanos) {
         // 4. If offsetBehaviour is exact, or offsetBehaviour is option and offsetOption is use, then
-        Some(offset) if offset_option == OffsetDisambiguation::Use => {
+        (true, Some(offset)) if offset_option == OffsetDisambiguation::Use => {
             // a. Let balanced be BalanceISODateTime(isoDate.[[Year]], isoDate.[[Month]],
             // isoDate.[[Day]], time.[[Hour]], time.[[Minute]], time.[[Second]], time.[[Millisecond]],
             // time.[[Microsecond]], time.[[Nanosecond]] - offsetNanoseconds).
@@ -803,7 +826,7 @@ pub fn interpret_isodatetime_offset(
         }
         // 5. Assert: offsetBehaviour is option.
         // 6. Assert: offsetOption is prefer or reject.
-        Some(offset)
+        (_, Some(offset))
             if offset_option == OffsetDisambiguation::Prefer
                 || offset_option == OffsetDisambiguation::Reject =>
         {

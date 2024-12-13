@@ -205,11 +205,12 @@ dependencies = [
 
 [[package]]
 name = "ixdtf"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2123305f927452a9502fc05c33800280d90127c95c50eb45ec6b3c50346afbf3"
+checksum = "fb6cd1080e64f68b07c577e3c687f4a894b3d1bd6093cb36b55c7bd07675aa3a"
 dependencies = [
  "displaydoc",
+ "utf8_iter",
 ]
 
 [[package]]
@@ -392,6 +393,12 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "utf8_iter"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
 
 [[package]]
 name = "wasm-bindgen"
