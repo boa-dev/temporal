@@ -381,9 +381,9 @@ dependencies = [
 
 [[package]]
 name = "tzif"
-version = "0.2.3"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61b8eb18929606c6f3eea7ef096a91dd5c26dbbde2a20a343c4a409b851666fd"
+checksum = "5cecffbab91858408738280e7bb6aac788f59a522dda961cd6b15542f0c08559"
 dependencies = [
  "combine",
 ]
