@@ -62,7 +62,7 @@ impl TryFrom<f64> for EpochNanoseconds {
 
 /// The native Rust implementation of `Temporal.Instant`
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(EpochNanoseconds);
 
 impl From<EpochNanoseconds> for Instant {

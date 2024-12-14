@@ -26,6 +26,8 @@ use crate::components::tz::TZ_PROVIDER;
 #[cfg(feature = "experimental")]
 use std::ops::Deref;
 
+use super::PlainTime;
+
 /// A struct representing a partial `ZonedDateTime`.
 pub struct PartialZonedDateTime {
     /// The `PartialDate` portion of a `PartialZonedDateTime`
@@ -228,6 +230,24 @@ impl ZonedDateTime {
     pub fn epoch_nanoseconds(&self) -> i128 {
         self.instant.epoch_nanoseconds()
     }
+
+    /// Returns the current `ZonedDateTime` as an [`Instant`].
+    #[must_use]
+    pub fn to_instant(&self) -> Instant {
+        self.instant
+    }
+
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `TimeZone`.
+    pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
+        Self::try_new(self.epoch_nanoseconds(), self.calendar.clone(), timezone)
+    }
+
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `Calendar`.
+    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
+        Self::try_new(self.epoch_nanoseconds(), calendar, self.tz.clone())
+    }
 }
 
 // ===== Experimental TZ_PROVIDER accessor implementations =====
@@ -401,6 +421,15 @@ impl ZonedDateTime {
 
 #[cfg(feature = "experimental")]
 impl ZonedDateTime {
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `TimeZone`.
+    pub fn with_plain_time(&self, time: PlainTime) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.with_plain_time_and_provider(time, provider.deref())
+    }
+
     pub fn add(
         &self,
         duration: &Duration,
@@ -430,6 +459,34 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider.deref(),
         )
+    }
+
+    pub fn start_of_day(&self) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.start_of_day_with_provider(provider.deref())
+    }
+
+    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_plain_date_with_provider(provider.deref())
+    }
+
+    pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_plain_time_with_provider(provider.deref())
+    }
+
+    pub fn to_plain_datetime(&self) -> TemporalResult<PlainDateTime> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_plain_datetime_with_provider(provider.deref())
     }
 
     pub fn from_str(
@@ -649,6 +706,22 @@ impl ZonedDateTime {
 // ==== Core method implementations ====
 
 impl ZonedDateTime {
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `TimeZone`.
+    pub fn with_plain_time_and_provider(
+        &self,
+        time: PlainTime,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<Self> {
+        let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let result_iso = IsoDateTime::new_unchecked(iso.date, time.iso);
+        let epoch_ns =
+            self.tz
+                .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
+        Self::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
+    }
+
+    /// Add a duration to the current `ZonedDateTime`
     pub fn add_with_provider(
         &self,
         duration: &Duration,
@@ -662,6 +735,7 @@ impl ZonedDateTime {
         )
     }
 
+    /// Subtract a duration to the current `ZonedDateTime`
     pub fn subtract_with_provider(
         &self,
         duration: &Duration,
@@ -673,6 +747,44 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider,
         )
+    }
+
+    /// Return a `ZonedDateTime` representing the start of the day
+    /// for the current `ZonedDateTime`.
+    pub fn start_of_day_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<Self> {
+        let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let epoch_nanos = self.tz.get_start_of_day(&iso.date, provider)?;
+        Self::try_new(epoch_nanos.0, self.calendar.clone(), self.tz.clone())
+    }
+
+    /// Convert the current `ZonedDateTime` to a [`PlainDate`] with
+    /// a user defined time zone provider.
+    pub fn to_plain_date_with_provider(
+        &self,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<PlainDate> {
+        let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        Ok(PlainDate::new_unchecked(iso.date, self.calendar.clone()))
+    }
+
+    /// Convert the current `ZonedDateTime` to a [`PlainTime`] with
+    /// a user defined time zone provider.
+    pub fn to_plain_time_with_provider(
+        &self,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<PlainTime> {
+        let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        Ok(PlainTime::new_unchecked(iso.time))
+    }
+
+    /// Convert the current `ZonedDateTime` to a [`PlainDateTime`] with
+    /// a user defined time zone provider.
+    pub fn to_plain_datetime_with_provider(
+        &self,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<PlainDateTime> {
+        let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        Ok(PlainDateTime::new_unchecked(iso, self.calendar.clone()))
     }
 
     // TODO: Should IANA Identifier be prechecked or allow potentially invalid IANA Identifer values here?
