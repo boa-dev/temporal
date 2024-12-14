@@ -15,7 +15,7 @@ use crate::{
     },
     parsers::parse_date_time,
     primitive::FiniteF64,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use alloc::format;
@@ -24,6 +24,7 @@ use core::str::FromStr;
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
+    tz::NeverProvider,
     PlainMonthDay, PlainTime, PlainYearMonth,
 };
 
@@ -289,7 +290,12 @@ impl PlainDate {
             );
             // c. Set duration to ? RoundRelativeDuration(duration, destEpochNs, dateTime, calendarRec, unset, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
             *duration
-                .round_relative_duration(dest_epoch_ns.0, &dt, None, resolved)?
+                .round_relative_duration(
+                    dest_epoch_ns.0,
+                    &dt,
+                    Option::<(&TimeZone, &NeverProvider)>::None,
+                    resolved,
+                )?
                 .0
                 .date()
         } else {

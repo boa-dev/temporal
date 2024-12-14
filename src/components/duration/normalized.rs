@@ -5,9 +5,15 @@ use core::{num::NonZeroU128, ops::Add};
 use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
-    components::{tz::TimeZone, PlainDate, PlainDateTime},
-    iso::IsoDate,
-    options::{ResolvedRoundingOptions, TemporalRoundingMode, TemporalUnit},
+    components::{
+        tz::{TimeZone, TzProvider},
+        PlainDate, PlainDateTime,
+    },
+    iso::{IsoDate, IsoDateTime},
+    options::{
+        ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, TemporalRoundingMode,
+        TemporalUnit,
+    },
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -114,6 +120,10 @@ impl NormalizedTimeDuration {
         (self.0 % 1_000_000_000) as i32
     }
 
+    fn negate(&self) -> Self {
+        Self(-self.0)
+    }
+
     pub(crate) fn checked_sub(&self, other: &Self) -> TemporalResult<Self> {
         let result = self.0 - other.0;
         if result.abs() > MAX_TIME_DURATION {
@@ -204,6 +214,15 @@ impl NormalizedTimeDuration {
         }
         Ok(Self(rounded))
     }
+
+    pub(super) fn checked_add(&self, other: i128) -> TemporalResult<Self> {
+        let result = self.0 + other;
+        if result.abs() > MAX_TIME_DURATION {
+            return Err(TemporalError::range()
+                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+        }
+        Ok(Self(result))
+    }
 }
 
 // NOTE(nekevss): As this `Add` impl is fallible. Maybe it would be best implemented as a method.
@@ -288,7 +307,7 @@ impl NormalizedDurationRecord {
         sign: Sign,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        tz: Option<TimeZone>, // ???
+        tz: Option<(&TimeZone, &impl TzProvider)>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
         // NOTE: r2 may never be used...need to test.
@@ -488,25 +507,21 @@ impl NormalizedDurationRecord {
             None,
         )?;
 
+        // NOTE: 7-8 are inversed
+        // 8. Else,
+        let (start_epoch_ns, end_epoch_ns) = if let Some((tz, provider)) = tz {
+            // a. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
+            // b. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
+            let start_epoch_ns =
+                tz.get_epoch_nanoseconds_for(start, Disambiguation::Compatible, provider)?;
+            let end_epoch_ns =
+                tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
+            (start_epoch_ns, end_epoch_ns)
         // 7. If timeZoneRec is unset, then
-        let (start_epoch_ns, end_epoch_ns) = if tz.is_none() {
-            // TODO: Test valid range of EpochNanoseconds in order to add `expect` over `unwrap_or`
+        } else {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
             (start.as_nanoseconds()?, end.as_nanoseconds()?)
-        // 8. Else,
-        } else {
-            // a. Let startDateTime be ! CreateTemporalDateTime(start.[[Year]], start.[[Month]], start.[[Day]],
-            // start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]],
-            // start.[[Nanosecond]], calendarRec.[[Receiver]]).
-            // b. Let startInstant be ? GetInstantFor(timeZoneRec, startDateTime, "compatible").
-            // c. Let startEpochNs be startInstant.[[Nanoseconds]].
-            // d. Let endDateTime be ! CreateTemporalDateTime(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]], calendarRec.[[Receiver]]).
-            // e. Let endInstant be ? GetInstantFor(timeZoneRec, endDateTime, "compatible").
-            // f. Let endEpochNs be endInstant.[[Nanoseconds]].
-            return Err(TemporalError::general(
-                "TimeZone handling not yet implemented.",
-            ));
         };
 
         // 9. If endEpochNs = startEpochNs, throw a RangeError exception.
@@ -578,10 +593,97 @@ impl NormalizedDurationRecord {
         }
     }
 
+    // TODO: Clean up
     #[inline]
-    fn nudge_to_zoned_time(&self) -> TemporalResult<NudgeRecord> {
-        // TODO: Implement
-        Err(TemporalError::general("Not yet implemented."))
+    fn nudge_to_zoned_time(
+        &self,
+        sign: Sign,
+        iso: &PlainDateTime,
+        tz: &TimeZone,
+        options: ResolvedRoundingOptions,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<NudgeRecord> {
+        let d = Duration::from(self.date());
+        // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
+        let start = iso.calendar().date_add(
+            &PlainDate::new_unchecked(iso.iso.date, iso.calendar().clone()),
+            &d,
+            ArithmeticOverflow::Constrain,
+        )?;
+        // 2. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
+        let start_dt = IsoDateTime::new_unchecked(start.iso, iso.iso.time);
+
+        // 3. Let endDate be BalanceISODate(start.[[Year]], start.[[Month]], start.[[Day]] + sign).
+        let end_date = IsoDate::balance(
+            start.iso_year(),
+            start.iso_month().into(),
+            start.iso_day() as i32 + sign as i32,
+        );
+
+        // 4. Let endDateTime be CombineISODateAndTimeRecord(endDate, isoDateTime.[[Time]]).
+        let end_dt = IsoDateTime::new_unchecked(end_date, iso.iso.time);
+        // 5. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
+        let start_ns =
+            tz.get_epoch_nanoseconds_for(start_dt, Disambiguation::Compatible, provider)?;
+        // 6. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
+        let end_ns = tz.get_epoch_nanoseconds_for(end_dt, Disambiguation::Compatible, provider)?;
+        // 7. Let daySpan be TimeDurationFromEpochNanosecondsDifference(endEpochNs, startEpochNs).
+        let day_span = NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
+        // 8. Assert: TimeDurationSign(daySpan) = sign.
+        // 9. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
+        let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
+        // 10. Let roundedTimeDuration be ? RoundTimeDurationToIncrement(duration.[[Time]], increment × unitLength, roundingMode).
+        let rounded_time = self.norm.round_inner(
+            unsafe {
+                NonZeroU128::new_unchecked(unit_length.into())
+                    .checked_mul(options.increment.as_extended_increment())
+                    .temporal_unwrap()?
+            },
+            options.rounding_mode,
+        )?;
+        // 11. Let beyondDaySpan be ! AddTimeDuration(roundedTimeDuration, -daySpan).
+        let beyond_day_span = rounded_time.checked_add(day_span.negate().0)?;
+        // 12. If TimeDurationSign(beyondDaySpan) ≠ -sign, then
+        let (expanded, day_delta, rounded_time, nudge_ns) =
+            if beyond_day_span.sign() != sign.negate() {
+                // a. Let didRoundBeyondDay be true.
+                // b. Let dayDelta be sign.
+                // c. Set roundedTimeDuration to ? RoundTimeDurationToIncrement(beyondDaySpan, increment × unitLength, roundingMode).
+                let rounded_time = self.norm.round_inner(
+                    unsafe {
+                        NonZeroU128::new_unchecked(unit_length.into())
+                            .checked_mul(options.increment.as_extended_increment())
+                            .temporal_unwrap()?
+                    },
+                    options.rounding_mode,
+                )?;
+                // d. Let nudgedEpochNs be AddTimeDurationToEpochNanoseconds(roundedTimeDuration, endEpochNs).
+                let nudged_ns = rounded_time.checked_add(end_ns.0)?;
+                (true, sign as i8, rounded_time, nudged_ns)
+            // 13. Else,
+            } else {
+                // a. Let didRoundBeyondDay be false.
+                // b. Let dayDelta be 0.
+                // c. Let nudgedEpochNs be AddTimeDurationToEpochNanoseconds(roundedTimeDuration, startEpochNs).
+                let nudge_ns = rounded_time.checked_add(start_ns.0)?;
+                (false, 0, rounded_time, nudge_ns)
+            };
+        // 14. Let dateDuration be ! AdjustDateDurationRecord(duration.[[Date]], duration.[[Date]].[[Days]] + dayDelta).
+        let date = DateDuration::new(
+            self.date.years,
+            self.date.months,
+            self.date.weeks,
+            self.date.days.checked_add(&day_delta.into())?,
+        )?;
+        // 15. Let resultDuration be CombineDateAndTimeDuration(dateDuration, roundedTimeDuration).
+        let normalized = NormalizedDurationRecord::new(date, rounded_time)?;
+        // 16. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didRoundBeyondDay }.
+        Ok(NudgeRecord {
+            normalized,
+            nudge_epoch_ns: nudge_ns.0,
+            total: None,
+            expanded,
+        })
     }
 
     #[inline]
@@ -669,7 +771,7 @@ impl NormalizedDurationRecord {
         sign: Sign,
         nudge_epoch_ns: i128,
         date_time: &PlainDateTime,
-        tz: Option<TimeZone>,
+        tz: Option<(&TimeZone, &impl TzProvider)>,
         largest_unit: TemporalUnit,
         smallest_unit: TemporalUnit,
     ) -> TemporalResult<NormalizedDurationRecord> {
@@ -768,14 +870,14 @@ impl NormalizedDurationRecord {
             )?;
 
             // vi. If timeZoneRec is unset, then
-            let end_epoch_ns = if let Some(ref _tz) = tz {
+            let end_epoch_ns = if let Some((timezone, provider)) = tz {
                 // 1. Let endDateTime be ! CreateTemporalDateTime(end.[[Year]], end.[[Month]], end.[[Day]],
                 // end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]],
                 // end.[[Nanosecond]], calendarRec.[[Receiver]]).
                 // 2. Let endInstant be ? GetInstantFor(timeZoneRec, endDateTime, "compatible").
+                timezone.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?
                 // 3. Let endEpochNs be endInstant.[[Nanoseconds]].
-                return Err(TemporalError::general("Not yet implemented."));
-            // vii. Else,
+                // vii. Else,
             } else {
                 // 1. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]],
                 // end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
@@ -807,14 +909,14 @@ impl NormalizedDurationRecord {
         &self,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        tz: Option<TimeZone>,
+        timezone_record: Option<(&TimeZone, &impl TzProvider)>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<RelativeRoundResult> {
         // 1. Let irregularLengthUnit be false.
         // 2. If IsCalendarUnit(smallestUnit) is true, set irregularLengthUnit to true.
         // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
         let irregular_unit = options.smallest_unit.is_calendar_unit()
-            || (tz.is_some() && options.smallest_unit == TemporalUnit::Day);
+            || (timezone_record.is_some() && options.smallest_unit == TemporalUnit::Day);
 
         // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
         let sign = self.sign()?;
@@ -822,11 +924,11 @@ impl NormalizedDurationRecord {
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_unit {
             // a. Let nudgeResult be ? NudgeToCalendarUnit(sign, duration, destEpochNs, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_calendar_unit(sign, dest_epoch_ns, dt, tz.clone(), options)?
+            self.nudge_calendar_unit(sign, dest_epoch_ns, dt, timezone_record, options)?
         // 6. Else if timeZoneRec is not unset, then
-        } else if let Some(ref _tz) = tz {
+        } else if let Some((tz, provider)) = timezone_record {
             // a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_to_zoned_time()?
+            self.nudge_to_zoned_time(sign, dt, tz, options, provider)?
         // 7. Else,
         } else {
             // a. Let nudgeResult be ? NudgeToDayOrTime(duration, destEpochNs, largestUnit, increment, smallestUnit, roundingMode).
@@ -845,7 +947,7 @@ impl NormalizedDurationRecord {
                 sign,
                 nudge_result.nudge_epoch_ns,
                 dt,
-                tz,
+                timezone_record,
                 options.largest_unit,
                 start_unit,
             )?

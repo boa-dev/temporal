@@ -452,7 +452,9 @@ fn rounding_increment_non_integer() {
     let _ = options
         .increment
         .insert(RoundingIncrement::try_from(2.5).unwrap());
-    let result = test_duration.round(options, Some(relative_to.clone())).unwrap();
+    let result = test_duration
+        .round(options, Some(relative_to.clone()))
+        .unwrap();
 
     assert_eq!(
         result.fields(),

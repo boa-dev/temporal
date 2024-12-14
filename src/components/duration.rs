@@ -1,7 +1,13 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{PlainDateTime, PlainTime, tz::TzProvider}, iso::{IsoDateTime, IsoTime}, options::{ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit}, primitive::FiniteF64, temporal_assert, Sign, TemporalError, TemporalResult
+    components::{tz::TzProvider, PlainDateTime, PlainTime},
+    iso::{IsoDateTime, IsoTime},
+    options::{
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
+    },
+    primitive::FiniteF64,
+    temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
 use alloc::vec;
@@ -13,9 +19,9 @@ use num_traits::AsPrimitive;
 use self::normalized::NormalizedTimeDuration;
 
 #[cfg(feature = "experimental")]
-use core::ops::Deref;
-#[cfg(feature = "experimental")]
 use crate::components::tz::TZ_PROVIDER;
+#[cfg(feature = "experimental")]
+use core::ops::Deref;
 
 mod date;
 pub(crate) mod normalized;
@@ -448,10 +454,7 @@ impl Duration {
         let resolved_options =
             ResolvedRoundingOptions::from_duration_options(options, existing_largest_unit)?;
 
-        let is_zoned_datetime = match relative_to {
-            Some(RelativeTo::ZonedDateTime(_)) => true,
-            _=> false,
-        };
+        let is_zoned_datetime = matches!(relative_to, Some(RelativeTo::ZonedDateTime(_)));
 
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
@@ -510,11 +513,20 @@ impl Duration {
                 // a. Let relativeEpochNs be zonedRelativeTo.[[Nanoseconds]].
                 // b. Let relativeInstant be ! CreateTemporalInstant(relativeEpochNs).
                 // c. Let targetEpochNs be ? AddZonedDateTime(relativeInstant, timeZoneRec, calendarRec, duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], norm, precalculatedPlainDateTime).
-                let target_epoch_ns = zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
+                let target_epoch_ns =
+                    zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
                 // d. Let roundRecord be ? DifferenceZonedDateTimeWithRounding(relativeEpochNs, targetEpochNs, calendarRec, timeZoneRec, precalculatedPlainDateTime, emptyOptions, largestUnit, roundingIncrement, smallestUnit, roundingMode).
                 // e. Let roundResult be roundRecord.[[DurationRecord]].
-                zoned_datetime.diff_with_rounding(&ZonedDateTime::new_unchecked(target_epoch_ns, zoned_datetime.calendar().clone(), zoned_datetime.timezone().clone()), resolved_options, provider)
-            },
+                zoned_datetime.diff_with_rounding(
+                    &ZonedDateTime::new_unchecked(
+                        target_epoch_ns,
+                        zoned_datetime.calendar().clone(),
+                        zoned_datetime.timezone().clone(),
+                    ),
+                    resolved_options,
+                    provider,
+                )
+            }
             // 39. Else if plainRelativeTo is not undefined, then
             Some(RelativeTo::PlainDate(plain_date)) => {
                 // a. Let targetTime be AddTime(0, 0, 0, 0, 0, 0, norm).
@@ -554,8 +566,9 @@ impl Duration {
             None => {
                 // a. If calendarUnitsPresent is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
                 if calendar_units_present || resolved_options.largest_unit.is_calendar_unit() {
-                    return Err(TemporalError::range()
-                        .with_message("Calendar units cannot be present without a relative point."));
+                    return Err(TemporalError::range().with_message(
+                        "Calendar units cannot be present without a relative point.",
+                    ));
                 }
                 // b. Assert: IsCalendarUnit(smallestUnit) is false.
                 temporal_assert!(
@@ -583,7 +596,6 @@ impl Duration {
                 // roundResult.[[Minutes]], roundResult.[[Seconds]], roundResult.[[Milliseconds]],
                 // roundResult.[[Microseconds]], roundResult.[[Nanoseconds]]).
 
-
                 Ok(Duration::from_day_and_time(balanced_days, &balanced_time))
             }
         }
@@ -592,7 +604,11 @@ impl Duration {
 
 #[cfg(feature = "experimental")]
 impl Duration {
-    pub fn round(&self, options: RoundingOptions, relative_to: Option<RelativeTo<'_>>) -> TemporalResult<Self> {
+    pub fn round(
+        &self,
+        options: RoundingOptions,
+        relative_to: Option<RelativeTo<'_>>,
+    ) -> TemporalResult<Self> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;

@@ -7,10 +7,19 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     components::{
-        calendar::CalendarDateLike, duration::{normalized::{NormalizedDurationRecord, NormalizedTimeDuration}, TimeDuration}, tz::{parse_offset, TzProvider}, EpochNanoseconds
+        calendar::CalendarDateLike,
+        duration::{
+            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+            TimeDuration,
+        },
+        tz::{parse_offset, TzProvider},
+        EpochNanoseconds,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
-    options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation, ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit},
+    options::{
+        ArithmeticOverflow, Disambiguation, OffsetDisambiguation, ResolvedRoundingOptions,
+        RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+    },
     parsers,
     partial::{PartialDate, PartialTime},
     rounding::{IncrementRounder, Round},
@@ -137,43 +146,67 @@ impl ZonedDateTime {
     }
 
     /// Internal representation of Abstract Op 6.5.7
-    pub(crate) fn diff_with_rounding(&self, other: &Self, resolved_options: ResolvedRoundingOptions, provider: &impl TzProvider) -> TemporalResult<Duration> {
+    pub(crate) fn diff_with_rounding(
+        &self,
+        other: &Self,
+        resolved_options: ResolvedRoundingOptions,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<Duration> {
         // 1. If TemporalUnitCategory(largestUnit) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Return DifferenceInstant(ns1, ns2, roundingIncrement, smallestUnit, roundingMode).
-            return self.instant.diff_instant_internal(&other.instant, resolved_options)
+            return self
+                .instant
+                .diff_instant_internal(&other.instant, resolved_options);
         }
         // 2. let difference be ? differencezoneddatetime(ns1, ns2, timezone, calendar, largestunit).
         let diff = self.diff_zoned_datetime(other, resolved_options.largest_unit, provider)?;
         // 3. if smallestunit is nanosecond and roundingincrement = 1, return difference.
-        if resolved_options.smallest_unit == TemporalUnit::Nanosecond && resolved_options.increment == RoundingIncrement::ONE {
-            return Ok(diff)
+        if resolved_options.smallest_unit == TemporalUnit::Nanosecond
+            && resolved_options.increment == RoundingIncrement::ONE
+        {
+            return Ok(diff);
         }
         // 4. let datetime be getisodatetimefor(timezone, ns1).
-        let iso = self.timezone().get_iso_datetime_for(&self.instant, provider)?;
+        let iso = self
+            .timezone()
+            .get_iso_datetime_for(&self.instant, provider)?;
         // 5. Return ? RoundRelativeDuration(difference, ns2, dateTime, timeZone, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
-        let normalized_duration = NormalizedDurationRecord::new(*diff.date(), NormalizedTimeDuration::from_time_duration(diff.time()))?;
-        let (result, _) = normalized_duration.round_relative_duration(other.epoch_nanoseconds(), &PlainDateTime::new_unchecked(iso, self.calendar().clone()), Some(self.timezone().clone()), resolved_options)?;
+        let normalized_duration = NormalizedDurationRecord::new(
+            *diff.date(),
+            NormalizedTimeDuration::from_time_duration(diff.time()),
+        )?;
+        let (result, _) = normalized_duration.round_relative_duration(
+            other.epoch_nanoseconds(),
+            &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
+            Some((self.timezone(), provider)),
+            resolved_options,
+        )?;
         Ok(result)
     }
 
-    pub(crate) fn diff_zoned_datetime(&self, other: &Self, largest_unit: TemporalUnit, provider: &impl TzProvider) -> TemporalResult<Duration> {
+    pub(crate) fn diff_zoned_datetime(
+        &self,
+        other: &Self,
+        largest_unit: TemporalUnit,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<Duration> {
         // 1. If ns1 = ns2, return CombineDateAndTimeDuration(ZeroDateDuration(), 0).
         if self.epoch_nanoseconds() == other.epoch_nanoseconds() {
-            return Ok(Duration::default())
+            return Ok(Duration::default());
         }
         // 2. Let startDateTime be GetISODateTimeFor(timeZone, ns1).
         let start = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         // 3. Let endDateTime be GetISODateTimeFor(timeZone, ns2).
         let end = self.tz.get_iso_datetime_for(&other.instant, provider)?;
         // 4. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
-        let sign =  if other.epoch_nanoseconds() - self.epoch_nanoseconds() < 0 { Sign::Negative} else { Sign::Positive };
-        // 5. If sign = 1, let maxDayCorrection be 2; else let maxDayCorrection be 1.
-        let max_correction = if sign == Sign::Positive {
-            2
+        let sign = if other.epoch_nanoseconds() - self.epoch_nanoseconds() < 0 {
+            Sign::Negative
         } else {
-            1
+            Sign::Positive
         };
+        // 5. If sign = 1, let maxDayCorrection be 2; else let maxDayCorrection be 1.
+        let max_correction = if sign == Sign::Positive { 2 } else { 1 };
         // 6. Let dayCorrection be 0.
         // 7. Let timeDuration be DifferenceTime(startDateTime.[[Time]], endDateTime.[[Time]]).
         let time = start.time.diff(&end.time);
@@ -190,13 +223,24 @@ impl ZonedDateTime {
         // 10. Repeat, while dayCorrection ≤ maxDayCorrection and success is false,
         while day_correction <= max_correction && result_duration.is_none() {
             // a. Let intermediateDate be BalanceISODate(endDateTime.[[ISODate]].[[Year]], endDateTime.[[ISODate]].[[Month]], endDateTime.[[ISODate]].[[Day]] - dayCorrection × sign).
-            let intermediate = IsoDate::balance(end.date.year, end.date.month.into(), i32::from(end.date.day) - i32::from(day_correction * sign as i8));
+            let intermediate = IsoDate::balance(
+                end.date.year,
+                end.date.month.into(),
+                i32::from(end.date.day) - i32::from(day_correction * sign as i8),
+            );
             // b. Let intermediateDateTime be CombineISODateAndTimeRecord(intermediateDate, startDateTime.[[Time]]).
             intermediate_dt = IsoDateTime::new_unchecked(intermediate, start.time);
             // c. Let intermediateNs be ? GetEpochNanosecondsFor(timeZone, intermediateDateTime, compatible).
-            let intermediate_ns = self.tz.get_epoch_nanoseconds_for(intermediate_dt, Disambiguation::Compatible, provider)?;
+            let intermediate_ns = self.tz.get_epoch_nanoseconds_for(
+                intermediate_dt,
+                Disambiguation::Compatible,
+                provider,
+            )?;
             // d. Set timeDuration to TimeDurationFromEpochNanosecondsDifference(ns2, intermediateNs).
-            let (_, time_duration) = TimeDuration::from_normalized(NormalizedTimeDuration(intermediate_ns.0), largest_unit)?;
+            let (_, time_duration) = TimeDuration::from_normalized(
+                NormalizedTimeDuration(intermediate_ns.0),
+                largest_unit,
+            )?;
             // e. Let timeSign be TimeDurationSign(timeDuration).
             let time_sign = time_duration.sign() as i8;
             // f. If sign ≠ -timeSign, then
@@ -212,9 +256,12 @@ impl ZonedDateTime {
         let date_largest = largest_unit.max(TemporalUnit::Day);
         // 13. Let dateDifference be CalendarDateUntil(calendar, startDateTime.[[ISODate]], intermediateDateTime.[[ISODate]], dateLargestUnit).
         // 14. Return CombineDateAndTimeDuration(dateDifference, timeDuration).
-        self.calendar().date_until(&PlainDate::new_unchecked(start.date, self.calendar().clone()), &PlainDate::new_unchecked(intermediate_dt.date, self.calendar().clone()), date_largest)
+        self.calendar().date_until(
+            &PlainDate::new_unchecked(start.date, self.calendar().clone()),
+            &PlainDate::new_unchecked(intermediate_dt.date, self.calendar().clone()),
+            date_largest,
+        )
     }
-
 }
 
 // ==== Public API ====

@@ -327,8 +327,11 @@ impl TemporalUnit {
     #[inline]
     #[must_use]
     pub fn is_time_unit(&self) -> bool {
-        use TemporalUnit::{Hour, Minute, Second, Millisecond, Microsecond, Nanosecond};
-        matches!(self, Hour | Minute | Second | Millisecond | Microsecond | Nanosecond)
+        use TemporalUnit::{Hour, Microsecond, Millisecond, Minute, Nanosecond, Second};
+        matches!(
+            self,
+            Hour | Minute | Second | Millisecond | Microsecond | Nanosecond
+        )
     }
 }
 

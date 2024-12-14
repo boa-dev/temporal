@@ -165,6 +165,10 @@ impl Sign {
         }
         *self as i8
     }
+
+    pub(crate) fn negate(&self) -> Sign {
+        Sign::from(-(*self as i8))
+    }
 }
 
 // Relevant numeric constants

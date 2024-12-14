@@ -8,7 +8,7 @@ use crate::{
         RoundingOptions, TemporalUnit,
     },
     parsers::parse_date_time,
-    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use core::{cmp::Ordering, str::FromStr};
@@ -18,6 +18,7 @@ use tinystr::TinyAsciiStr;
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
+    tz::NeverProvider,
     Duration, PartialDate, PartialTime, PlainDate, PlainTime,
 };
 
@@ -217,7 +218,12 @@ impl PlainDateTime {
 
         // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
         // roundingIncrement, smallestUnit, roundingMode).
-        diff.round_relative_duration(dest_epoch_ns.0, self, None, options)
+        diff.round_relative_duration(
+            dest_epoch_ns.0,
+            self,
+            Option::<(&TimeZone, &NeverProvider)>::None,
+            options,
+        )
     }
 }
 

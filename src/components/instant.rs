@@ -90,11 +90,18 @@ impl Instant {
         Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
-    pub(crate) fn diff_instant_internal(&self, other: &Self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Duration> {
+    pub(crate) fn diff_instant_internal(
+        &self,
+        other: &Self,
+        resolved_options: ResolvedRoundingOptions,
+    ) -> TemporalResult<Duration> {
         let diff =
             NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
-        let (_, time_duration) = TimeDuration::from_normalized(round_record.normalized_time_duration(), resolved_options.largest_unit)?;
+        let (_, time_duration) = TimeDuration::from_normalized(
+            round_record.normalized_time_duration(),
+            resolved_options.largest_unit,
+        )?;
         Ok(Duration::from_day_and_time(0.into(), &time_duration))
     }
 
@@ -228,21 +235,13 @@ impl Instant {
 
     /// Returns a `TimeDuration` representing the duration since provided `Instant`
     #[inline]
-    pub fn since(
-        &self,
-        other: &Self,
-        settings: DifferenceSettings,
-    ) -> TemporalResult<Duration> {
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_instant(DifferenceOperation::Since, other, settings)
     }
 
     /// Returns a `TimeDuration` representing the duration until provided `Instant`
     #[inline]
-    pub fn until(
-        &self,
-        other: &Self,
-        settings: DifferenceSettings,
-    ) -> TemporalResult<Duration> {
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_instant(DifferenceOperation::Until, other, settings)
     }
 
@@ -401,14 +400,20 @@ mod tests {
         let negative_result = later
             .until(&earlier, init_diff_setting(TemporalUnit::Minute))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435.0, -23.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(
+            negative_result.time(),
+            (-376435.0, -23.0, 0.0, 0.0, 0.0, 0.0),
+        );
 
         // ... Skip to lower units ...
 
         let positive_result = earlier
             .until(&later, init_diff_setting(TemporalUnit::Microsecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0));
+        assert_time_duration(
+            positive_result.time(),
+            (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0),
+        );
         let negative_result = later
             .until(&earlier, init_diff_setting(TemporalUnit::Microsecond))
             .unwrap();
@@ -420,7 +425,10 @@ mod tests {
         let positive_result = earlier
             .until(&later, init_diff_setting(TemporalUnit::Nanosecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0));
+        assert_time_duration(
+            positive_result.time(),
+            (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0),
+        );
         let negative_result = later
             .until(&earlier, init_diff_setting(TemporalUnit::Nanosecond))
             .unwrap();
@@ -480,14 +488,20 @@ mod tests {
         let negative_result = earlier
             .since(&later, init_diff_setting(TemporalUnit::Minute))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435.0, -23.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(
+            negative_result.time(),
+            (-376435.0, -23.0, 0.0, 0.0, 0.0, 0.0),
+        );
 
         // ... Skip to lower units ...
 
         let positive_result = later
             .since(&earlier, init_diff_setting(TemporalUnit::Microsecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0));
+        assert_time_duration(
+            positive_result.time(),
+            (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0),
+        );
         let negative_result = earlier
             .since(&later, init_diff_setting(TemporalUnit::Microsecond))
             .unwrap();
@@ -499,7 +513,10 @@ mod tests {
         let positive_result = later
             .since(&earlier, init_diff_setting(TemporalUnit::Nanosecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0));
+        assert_time_duration(
+            positive_result.time(),
+            (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0),
+        );
         let negative_result = earlier
             .since(&later, init_diff_setting(TemporalUnit::Nanosecond))
             .unwrap();

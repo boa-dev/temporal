@@ -1,7 +1,8 @@
 //! An implementation of `TimeDuration` and it's methods.
 
 use crate::{
-    options::TemporalUnit, primitive::FiniteF64, temporal_assert, Sign, TemporalError, TemporalResult
+    options::TemporalUnit, primitive::FiniteF64, temporal_assert, Sign, TemporalError,
+    TemporalResult,
 };
 
 use super::{duration_sign, is_valid_duration, normalized::NormalizedTimeDuration};
