@@ -924,6 +924,7 @@ fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
 
 // ==== `IsoDate` specific utiltiy functions ====
 
+// TODO: Add unit tests to prove output for limits.
 /// Returns the Epoch days based off the given year, month, and day.
 ///
 /// NOTE: Month should be in a range of 0-11
@@ -933,7 +934,6 @@ fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     let resolved_year = year + month.div_euclid(12);
     // 2. Let resolvedMonth be month modulo 12.
     let resolved_month = month.rem_euclid(12);
-
     // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
     // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
     let year_t = utils::epoch_time_for_year(resolved_year);
@@ -1002,4 +1002,39 @@ fn is_valid_time(hour: i32, minute: i32, second: i32, ms: i32, mis: i32, ns: i32
 #[inline]
 fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
     (dividend.div_euclid(divisor), dividend.rem_euclid(divisor))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::iso_date_to_epoch_days;
+
+    const MAX_DAYS_BASE: i32 = 100_000_000;
+
+    #[test]
+    fn iso_date_to_epoch_days_limits() {
+        // Succeeds
+        assert_eq!(iso_date_to_epoch_days(-271_821, 3, 20).abs(), MAX_DAYS_BASE);
+        // Succeeds
+        assert_eq!(
+            iso_date_to_epoch_days(-271_821, 3, 19).abs(),
+            MAX_DAYS_BASE + 1
+        );
+        // Fails
+        assert_eq!(
+            iso_date_to_epoch_days(-271_821, 3, 18).abs(),
+            MAX_DAYS_BASE + 2
+        );
+        // Succeeds
+        assert_eq!(iso_date_to_epoch_days(275_760, 8, 13).abs(), MAX_DAYS_BASE);
+        // Succeeds
+        assert_eq!(
+            iso_date_to_epoch_days(275_760, 8, 14).abs(),
+            MAX_DAYS_BASE + 1
+        );
+        // Fails
+        assert_eq!(
+            iso_date_to_epoch_days(275_760, 8, 15).abs(),
+            MAX_DAYS_BASE + 2
+        );
+    }
 }
