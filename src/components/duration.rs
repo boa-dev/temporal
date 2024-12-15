@@ -14,6 +14,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::str::FromStr;
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use normalized::NormalizedDurationRecord;
 use num_traits::AsPrimitive;
 
 use self::normalized::NormalizedTimeDuration;
@@ -27,6 +28,7 @@ mod date;
 pub(crate) mod normalized;
 mod time;
 
+#[cfg(feature = "experimental")]
 #[cfg(test)]
 mod tests;
 
@@ -118,6 +120,24 @@ impl Duration {
     #[inline]
     pub(crate) const fn new_unchecked(date: DateDuration, time: TimeDuration) -> Self {
         Self { date, time }
+    }
+
+    #[inline]
+    pub(crate) fn from_normalized(
+        duration_record: NormalizedDurationRecord,
+        largest_unit: TemporalUnit,
+    ) -> TemporalResult<Self> {
+        let (overflow_day, time) = TimeDuration::from_normalized(
+            duration_record.normalized_time_duration(),
+            largest_unit,
+        )?;
+        let date = DateDuration::new(
+            duration_record.date().years,
+            duration_record.date().months,
+            duration_record.date().weeks,
+            duration_record.date().days.checked_add(&overflow_day)?,
+        )?;
+        Ok(Self::new_unchecked(date, time))
     }
 
     /// Returns the a `Vec` of the fields values.
@@ -517,7 +537,7 @@ impl Duration {
                     zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
                 // d. Let roundRecord be ? DifferenceZonedDateTimeWithRounding(relativeEpochNs, targetEpochNs, calendarRec, timeZoneRec, precalculatedPlainDateTime, emptyOptions, largestUnit, roundingIncrement, smallestUnit, roundingMode).
                 // e. Let roundResult be roundRecord.[[DurationRecord]].
-                zoned_datetime.diff_with_rounding(
+                let internal = zoned_datetime.diff_with_rounding(
                     &ZonedDateTime::new_unchecked(
                         target_epoch_ns,
                         zoned_datetime.calendar().clone(),
@@ -525,7 +545,8 @@ impl Duration {
                     ),
                     resolved_options,
                     provider,
-                )
+                )?;
+                Duration::from_normalized(internal, resolved_options.largest_unit)
             }
             // 39. Else if plainRelativeTo is not undefined, then
             Some(RelativeTo::PlainDate(plain_date)) => {
@@ -560,7 +581,7 @@ impl Duration {
                 // smallestUnit, roundingMode, emptyOptions).
                 let round_record = plain_dt.diff_dt_with_rounding(&target_dt, resolved_options)?;
                 // e. Let roundResult be roundRecord.[[DurationRecord]].
-                Ok(round_record.0)
+                Duration::from_normalized(round_record, resolved_options.largest_unit)
             }
             // 40. Else,
             None => {

@@ -1,6 +1,7 @@
 use crate::{
     components::{calendar::Calendar, PlainDate},
     options::{RoundingIncrement, TemporalRoundingMode},
+    TimeZone,
 };
 
 use super::*;
@@ -605,4 +606,38 @@ fn partial_duration_values() {
     let _ = partial.years.insert(FiniteF64(20.0));
     let result = Duration::from_partial_duration(partial).unwrap();
     assert_eq!(result.years(), 20.0);
+}
+
+// days-24-hours-relative-to-zoned-date-time.js
+#[test]
+fn round_relative_to_zoned_datetime() {
+    let duration = Duration::from(
+        TimeDuration::new(
+            25.into(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+            FiniteF64::default(),
+        )
+        .unwrap(),
+    );
+    let zdt = ZonedDateTime::try_new(
+        1_000_000_000_000_000_000,
+        Calendar::default(),
+        TimeZone::try_from_str("+04:30").unwrap(),
+    )
+    .unwrap();
+    let options = RoundingOptions {
+        largest_unit: Some(TemporalUnit::Day),
+        smallest_unit: None,
+        rounding_mode: None,
+        increment: None,
+    };
+    let result = duration
+        .round(options, Some(RelativeTo::ZonedDateTime(&zdt)))
+        .unwrap();
+    // Result duration should be: (0, 0, 0, 1, 1, 0, 0, 0, 0, 0)
+    assert_eq!(result.days(), 1.0);
+    assert_eq!(result.hours(), 1.0);
 }

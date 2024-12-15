@@ -275,12 +275,12 @@ impl PlainDate {
         let result = self.internal_diff_date(other, resolved.largest_unit)?;
 
         // 10. Let duration be ! CreateNormalizedDurationRecord(result.[[Years]], result.[[Months]], result.[[Weeks]], result.[[Days]], ZeroTimeDuration()).
-        let duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
         // 11. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
         let rounding_granularity_is_noop =
             resolved.smallest_unit == TemporalUnit::Day && resolved.increment.get() == 1;
         // 12. If roundingGranularityIsNoop is false, then
-        let date_duration = if !rounding_granularity_is_noop {
+        if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
             let dest_epoch_ns = other.iso.as_nanoseconds()?;
             // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
@@ -289,23 +289,18 @@ impl PlainDate {
                 self.calendar.clone(),
             );
             // c. Set duration to ? RoundRelativeDuration(duration, destEpochNs, dateTime, calendarRec, unset, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            *duration
-                .round_relative_duration(
-                    dest_epoch_ns.0,
-                    &dt,
-                    Option::<(&TimeZone, &NeverProvider)>::None,
-                    resolved,
-                )?
-                .0
-                .date()
-        } else {
-            duration.date()
-        };
-
+            duration = duration.round_relative_duration(
+                dest_epoch_ns.0,
+                &dt,
+                Option::<(&TimeZone, &NeverProvider)>::None,
+                resolved,
+            )?
+        }
+        let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
         match sign {
-            Sign::Positive | Sign::Zero => Ok(Duration::from(date_duration)),
-            Sign::Negative => Ok(Duration::from(date_duration.negated())),
+            Sign::Positive | Sign::Zero => Ok(result),
+            Sign::Negative => Ok(result.negated()),
         }
     }
 }

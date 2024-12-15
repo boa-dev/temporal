@@ -1,6 +1,7 @@
 //! This module implements the normalized `Duration` records.
 
 use core::{num::NonZeroU128, ops::Add};
+use std::println;
 
 use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
@@ -247,7 +248,7 @@ impl Add<Self> for NormalizedTimeDuration {
 
 /// A NormalizedDurationRecord is a duration record that contains
 /// a `DateDuration` and `NormalizedTimeDuration`.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct NormalizedDurationRecord {
     date: DateDuration,
     norm: NormalizedTimeDuration,
@@ -289,6 +290,7 @@ impl NormalizedDurationRecord {
 // Generally, this rounding is implemented on a NormalizedDurationRecord,
 // which is the reason the functionality lives below.
 
+#[allow(unused)]
 #[derive(Debug)]
 struct NudgeRecord {
     normalized: NormalizedDurationRecord,
@@ -296,8 +298,6 @@ struct NudgeRecord {
     nudge_epoch_ns: i128,
     expanded: bool,
 }
-
-pub(crate) type RelativeRoundResult = (Duration, Option<i128>);
 
 impl NormalizedDurationRecord {
     // TODO: Add assertion into impl.
@@ -911,7 +911,8 @@ impl NormalizedDurationRecord {
         dt: &PlainDateTime,
         timezone_record: Option<(&TimeZone, &impl TzProvider)>,
         options: ResolvedRoundingOptions,
-    ) -> TemporalResult<RelativeRoundResult> {
+    ) -> TemporalResult<NormalizedDurationRecord> {
+        println!("Round relative called");
         // 1. Let irregularLengthUnit be false.
         // 2. If IsCalendarUnit(smallestUnit) is true, set irregularLengthUnit to true.
         // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
@@ -935,6 +936,7 @@ impl NormalizedDurationRecord {
             self.nudge_to_day_or_time(dest_epoch_ns, options)?
         };
 
+        println!("nudgeresult: {nudge_result:?}");
         // 8. Set duration to nudgeResult.[[Duration]].
         let mut duration = nudge_result.normalized;
 
@@ -953,26 +955,7 @@ impl NormalizedDurationRecord {
             )?
         };
 
-        // 10. If IsCalendarUnit(largestUnit) is true or largestUnit is "day", then
-        let largest_unit = if options.largest_unit.is_calendar_unit()
-            || options.largest_unit == TemporalUnit::Day
-        {
-            // a. Set largestUnit to "hour".
-            TemporalUnit::Hour
-        } else {
-            options.largest_unit
-        };
-
-        // 11. Let balanceResult be ? BalanceTimeDuration(duration.[[NormalizedTime]], largestUnit).
-        let balance_result =
-            TimeDuration::from_normalized(duration.normalized_time_duration(), largest_unit)?;
-
-        // TODO: Need to validate the below.
-        // 12. Return the Record { [[Duration]]: CreateDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], balanceResult.[[Hours]], balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]], balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]), [[Total]]: nudgeResult.[[Total]]  }.
-        Ok((
-            Duration::new_unchecked(duration.date(), balance_result.1),
-            nudge_result.total,
-        ))
+        Ok(duration)
     }
 }
 

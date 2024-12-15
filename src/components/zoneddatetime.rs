@@ -8,10 +8,7 @@ use tinystr::TinyAsciiStr;
 use crate::{
     components::{
         calendar::CalendarDateLike,
-        duration::{
-            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-            TimeDuration,
-        },
+        duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
         tz::{parse_offset, TzProvider},
         EpochNanoseconds,
     },
@@ -151,7 +148,7 @@ impl ZonedDateTime {
         other: &Self,
         resolved_options: ResolvedRoundingOptions,
         provider: &impl TzProvider,
-    ) -> TemporalResult<Duration> {
+    ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. If TemporalUnitCategory(largestUnit) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Return DifferenceInstant(ns1, ns2, roundingIncrement, smallestUnit, roundingMode).
@@ -165,6 +162,8 @@ impl ZonedDateTime {
         if resolved_options.smallest_unit == TemporalUnit::Nanosecond
             && resolved_options.increment == RoundingIncrement::ONE
         {
+            std::println!("Nano was none");
+            std::println!("Returning diff");
             return Ok(diff);
         }
         // 4. let datetime be getisodatetimefor(timezone, ns1).
@@ -172,17 +171,12 @@ impl ZonedDateTime {
             .timezone()
             .get_iso_datetime_for(&self.instant, provider)?;
         // 5. Return ? RoundRelativeDuration(difference, ns2, dateTime, timeZone, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
-        let normalized_duration = NormalizedDurationRecord::new(
-            *diff.date(),
-            NormalizedTimeDuration::from_time_duration(diff.time()),
-        )?;
-        let (result, _) = normalized_duration.round_relative_duration(
+        diff.round_relative_duration(
             other.epoch_nanoseconds(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
             Some((self.timezone(), provider)),
             resolved_options,
-        )?;
-        Ok(result)
+        )
     }
 
     pub(crate) fn diff_zoned_datetime(
@@ -190,10 +184,10 @@ impl ZonedDateTime {
         other: &Self,
         largest_unit: TemporalUnit,
         provider: &impl TzProvider,
-    ) -> TemporalResult<Duration> {
+    ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. If ns1 = ns2, return CombineDateAndTimeDuration(ZeroDateDuration(), 0).
         if self.epoch_nanoseconds() == other.epoch_nanoseconds() {
-            return Ok(Duration::default());
+            return Ok(NormalizedDurationRecord::default());
         }
         // 2. Let startDateTime be GetISODateTimeFor(timeZone, ns1).
         let start = self.tz.get_iso_datetime_for(&self.instant, provider)?;
@@ -219,9 +213,10 @@ impl ZonedDateTime {
 
         // 9. Let success be false.
         let mut intermediate_dt = IsoDateTime::default();
-        let mut result_duration = None;
+        let mut time_duration = NormalizedTimeDuration::default();
+        let mut is_success = false;
         // 10. Repeat, while dayCorrection ≤ maxDayCorrection and success is false,
-        while day_correction <= max_correction && result_duration.is_none() {
+        while day_correction <= max_correction && !is_success {
             // a. Let intermediateDate be BalanceISODate(endDateTime.[[ISODate]].[[Year]], endDateTime.[[ISODate]].[[Month]], endDateTime.[[ISODate]].[[Day]] - dayCorrection × sign).
             let intermediate = IsoDate::balance(
                 end.date.year,
@@ -237,16 +232,16 @@ impl ZonedDateTime {
                 provider,
             )?;
             // d. Set timeDuration to TimeDurationFromEpochNanosecondsDifference(ns2, intermediateNs).
-            let (_, time_duration) = TimeDuration::from_normalized(
-                NormalizedTimeDuration(intermediate_ns.0),
-                largest_unit,
+            time_duration = NormalizedTimeDuration::from_nanosecond_difference(
+                other.epoch_nanoseconds(),
+                intermediate_ns.0,
             )?;
             // e. Let timeSign be TimeDurationSign(timeDuration).
             let time_sign = time_duration.sign() as i8;
             // f. If sign ≠ -timeSign, then
             if sign as i8 != -time_sign {
                 // i. Set success to true.
-                let _ = result_duration.insert(time_duration);
+                is_success = true;
             }
             // g. Set dayCorrection to dayCorrection + 1.
             day_correction += 1;
@@ -256,11 +251,12 @@ impl ZonedDateTime {
         let date_largest = largest_unit.max(TemporalUnit::Day);
         // 13. Let dateDifference be CalendarDateUntil(calendar, startDateTime.[[ISODate]], intermediateDateTime.[[ISODate]], dateLargestUnit).
         // 14. Return CombineDateAndTimeDuration(dateDifference, timeDuration).
-        self.calendar().date_until(
+        let date_diff = self.calendar().date_until(
             &PlainDate::new_unchecked(start.date, self.calendar().clone()),
             &PlainDate::new_unchecked(intermediate_dt.date, self.calendar().clone()),
             date_largest,
-        )
+        )?;
+        NormalizedDurationRecord::new(*date_diff.date(), time_duration)
     }
 }
 

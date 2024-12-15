@@ -18,7 +18,7 @@ use crate::{
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use num_traits::{Euclid, FromPrimitive};
 
-use super::duration::normalized::NormalizedTimeDuration;
+use super::duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
 
 const NANOSECONDS_PER_SECOND: f64 = 1e9;
 const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
@@ -94,15 +94,11 @@ impl Instant {
         &self,
         other: &Self,
         resolved_options: ResolvedRoundingOptions,
-    ) -> TemporalResult<Duration> {
+    ) -> TemporalResult<NormalizedDurationRecord> {
         let diff =
             NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
-        let (_, time_duration) = TimeDuration::from_normalized(
-            round_record.normalized_time_duration(),
-            resolved_options.largest_unit,
-        )?;
-        Ok(Duration::from_day_and_time(0.into(), &time_duration))
+        Ok(round_record)
     }
 
     // TODO: Add test for `diff_instant`.
@@ -129,7 +125,9 @@ impl Instant {
         // Below are the steps from Difference Instant.
         // 5. Let diffRecord be DifferenceInstant(instant.[[Nanoseconds]], other.[[Nanoseconds]],
         // settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-        let result = self.diff_instant_internal(other, resolved_options)?;
+        let internal_record = self.diff_instant_internal(other, resolved_options)?;
+
+        let result = Duration::from_normalized(internal_record, resolved_options.largest_unit)?;
 
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
