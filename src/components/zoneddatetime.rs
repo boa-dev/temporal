@@ -162,8 +162,6 @@ impl ZonedDateTime {
         if resolved_options.smallest_unit == TemporalUnit::Nanosecond
             && resolved_options.increment == RoundingIncrement::ONE
         {
-            std::println!("Nano was none");
-            std::println!("Returning diff");
             return Ok(diff);
         }
         // 4. let datetime be getisodatetimefor(timezone, ns1).

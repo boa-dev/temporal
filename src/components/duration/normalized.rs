@@ -1,7 +1,6 @@
 //! This module implements the normalized `Duration` records.
 
 use core::{num::NonZeroU128, ops::Add};
-use std::println;
 
 use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
@@ -912,7 +911,6 @@ impl NormalizedDurationRecord {
         timezone_record: Option<(&TimeZone, &impl TzProvider)>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
-        println!("Round relative called");
         // 1. Let irregularLengthUnit be false.
         // 2. If IsCalendarUnit(smallestUnit) is true, set irregularLengthUnit to true.
         // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
@@ -936,7 +934,6 @@ impl NormalizedDurationRecord {
             self.nudge_to_day_or_time(dest_epoch_ns, options)?
         };
 
-        println!("nudgeresult: {nudge_result:?}");
         // 8. Set duration to nudgeResult.[[Duration]].
         let mut duration = nudge_result.normalized;
 
