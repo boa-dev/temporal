@@ -142,9 +142,7 @@ impl TryFrom<i128> for FiniteF64 {
     fn try_from(value: i128) -> Result<Self, Self::Error> {
         let result = f64::from_i128(value)
             .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
-        if !result.is_finite() {
-            return Err(TemporalError::range().with_message("number value is not a finite value."));
-        }
+        debug_assert!(result.is_finite());
         Ok(Self(result))
     }
 }
@@ -154,9 +152,7 @@ impl TryFrom<u128> for FiniteF64 {
     fn try_from(value: u128) -> Result<Self, Self::Error> {
         let result = f64::from_u128(value)
             .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
-        if !result.is_finite() {
-            return Err(TemporalError::range().with_message("number value is not a finite value."));
-        }
+        debug_assert!(result.is_finite());
         Ok(Self(result))
     }
 }
@@ -212,6 +208,24 @@ impl PartialOrd<f64> for FiniteF64 {
 #[cfg(test)]
 mod tests {
     use super::FiniteF64;
+
+    use num_traits::FromPrimitive;
+
+    #[test]
+    fn finitef64_i128_limits() {
+        let max = f64::from_i128(i128::MAX).unwrap();
+        assert_eq!(max, 170_141_183_460_469_231_731_687_303_715_884_105_727.0);
+        let min = f64::from_i128(i128::MIN).unwrap();
+        assert_eq!(min, -170_141_183_460_469_231_731_687_303_715_884_105_728.0);
+    }
+
+    #[test]
+    fn finitef64_u128_limits() {
+        let max = f64::from_u128(u128::MAX).unwrap();
+        assert_eq!(max, 340_282_366_920_938_463_463_374_607_431_768_211_455.0);
+        let min = f64::from_u128(u128::MIN).unwrap();
+        assert_eq!(min, 0.0);
+    }
 
     #[test]
     fn finitef64_truncate() {
