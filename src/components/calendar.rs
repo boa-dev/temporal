@@ -184,7 +184,7 @@ impl Calendar {
     /// Returns a `Calendar`` from the a slice of UTF-8 encoded bytes.
     pub fn from_utf8(bytes: &[u8]) -> TemporalResult<Self> {
         // NOTE(nekesss): Catch the iso identifier here, as `iso8601` is not a valid ID below.
-        if &bytes.to_ascii_lowercase() == "iso8601".as_bytes() {
+        if bytes.to_ascii_lowercase() == "iso8601".as_bytes() {
             return Ok(Self::default());
         }
 
