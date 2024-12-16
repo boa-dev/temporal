@@ -184,11 +184,11 @@ impl Calendar {
     /// Returns a `Calendar`` from the a slice of UTF-8 encoded bytes.
     pub fn from_utf8(bytes: &[u8]) -> TemporalResult<Self> {
         // NOTE(nekesss): Catch the iso identifier here, as `iso8601` is not a valid ID below.
-        if bytes == "iso8601".as_bytes() {
+        if &bytes.to_ascii_lowercase() == "iso8601".as_bytes() {
             return Ok(Self::default());
         }
 
-        let Some(cal) = AnyCalendarKind::get_for_bcp47_bytes(bytes) else {
+        let Some(cal) = AnyCalendarKind::get_for_bcp47_bytes(&bytes.to_ascii_lowercase()) else {
             return Err(TemporalError::range().with_message("Not a builtin calendar."));
         };
 
@@ -754,6 +754,17 @@ mod tests {
     use crate::{components::PlainDate, iso::IsoDate, options::TemporalUnit};
 
     use super::Calendar;
+
+    #[test]
+    fn calendar_from_str_is_case_insensitive() {
+        let cal_str = "iSo8601";
+        let calendar = Calendar::from_utf8(cal_str.as_bytes()).unwrap();
+        assert_eq!(calendar, Calendar::default());
+
+        let cal_str = "iSO8601";
+        let calendar = Calendar::from_utf8(cal_str.as_bytes()).unwrap();
+        assert_eq!(calendar, Calendar::default());
+    }
 
     #[test]
     fn date_until_largest_year() {
