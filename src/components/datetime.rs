@@ -228,14 +228,14 @@ impl PlainDateTime {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         year: i32,
-        month: i32,
-        day: i32,
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
         Self::new_with_overflow(
@@ -257,14 +257,14 @@ impl PlainDateTime {
     #[allow(clippy::too_many_arguments)]
     pub fn try_new(
         year: i32,
-        month: i32,
-        day: i32,
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
         Self::new_with_overflow(
@@ -287,14 +287,14 @@ impl PlainDateTime {
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_overflow(
         year: i32,
-        month: i32,
-        day: i32,
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
@@ -428,14 +428,14 @@ impl PlainDateTime {
     pub fn with_time(&self, time: PlainTime) -> TemporalResult<Self> {
         Self::try_new(
             self.iso_year(),
-            self.iso_month().into(),
-            self.iso_day().into(),
-            time.hour().into(),
-            time.minute().into(),
-            time.second().into(),
-            time.millisecond().into(),
-            time.microsecond().into(),
-            time.nanosecond().into(),
+            self.iso_month(),
+            self.iso_day(),
+            time.hour(),
+            time.minute(),
+            time.second(),
+            time.millisecond(),
+            time.microsecond(),
+            time.nanosecond(),
             self.calendar.clone(),
         )
     }
@@ -444,14 +444,14 @@ impl PlainDateTime {
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::try_new(
             self.iso_year(),
-            self.iso_month().into(),
-            self.iso_day().into(),
-            self.hour().into(),
-            self.minute().into(),
-            self.second().into(),
-            self.millisecond().into(),
-            self.microsecond().into(),
-            self.nanosecond().into(),
+            self.iso_month(),
+            self.iso_day(),
+            self.hour(),
+            self.minute(),
+            self.second(),
+            self.millisecond(),
+            self.microsecond(),
+            self.nanosecond(),
             calendar,
         )
     }
@@ -699,23 +699,20 @@ impl FromStr for PlainDateTime {
             .transpose()?
             .unwrap_or_default();
 
-        let time = if let Some(time) = parse_record.time {
-            IsoTime::from_components(
-                i32::from(time.hour),
-                i32::from(time.minute),
-                i32::from(time.second),
-                f64::from(time.nanosecond),
-            )?
-        } else {
-            IsoTime::default()
-        };
+        let time = parse_record
+            .time
+            .map(|time| {
+                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
+            })
+            .transpose()?
+            .unwrap_or_default();
 
         let parsed_date = parse_record.date.temporal_unwrap()?;
 
         let date = IsoDate::new_with_overflow(
             parsed_date.year,
-            parsed_date.month.into(),
-            parsed_date.day.into(),
+            parsed_date.month,
+            parsed_date.day,
             ArithmeticOverflow::Reject,
         )?;
 
@@ -757,7 +754,7 @@ mod tests {
         assert_eq!(dt.nanosecond(), fields.9);
     }
 
-    fn pdt_from_date(year: i32, month: i32, day: i32) -> TemporalResult<PlainDateTime> {
+    fn pdt_from_date(year: i32, month: u8, day: u8) -> TemporalResult<PlainDateTime> {
         PlainDateTime::try_new(year, month, day, 0, 0, 0, 0, 0, 0, Calendar::default())
     }
 

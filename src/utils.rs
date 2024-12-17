@@ -117,7 +117,7 @@ pub(crate) fn epoch_time_to_month_in_year(t: f64) -> u8 {
 }
 
 // Returns the time for a month in a given year plus date(t) = 1.
-pub(crate) fn epoch_time_for_month_given_year(m: i32, y: i32) -> f64 {
+pub(crate) fn epoch_time_for_month_given_year(m: u8, y: i32) -> f64 {
     let leap_day = mathematical_days_in_year(y) - 365;
 
     // Includes day. i.e. end of month + 1
@@ -126,7 +126,7 @@ pub(crate) fn epoch_time_for_month_given_year(m: i32, y: i32) -> f64 {
     f64::from(MS_PER_DAY) * f64::from(days)
 }
 
-fn month_to_day(m: i32, leap_day: u16) -> u16 {
+fn month_to_day(m: u8, leap_day: u16) -> u16 {
     match m {
         0 => 0,
         1 => 31,
@@ -177,10 +177,7 @@ pub(crate) fn epoch_seconds_to_day_of_week(t: f64) -> u16 {
 pub(crate) fn epoch_seconds_to_day_of_month(t: f64) -> u16 {
     let leap_day = mathematical_in_leap_year(t);
     epoch_time_to_day_in_year(t * 1_000.0) as u16
-        - month_to_day(
-            epoch_time_to_month_in_year(t * 1_000.0) as i32,
-            leap_day as u16,
-        )
+        - month_to_day(epoch_time_to_month_in_year(t * 1_000.0), leap_day as u16)
 }
 
 // Trait implementations
@@ -194,11 +191,11 @@ pub(crate) fn epoch_seconds_to_day_of_month(t: f64) -> u16 {
 // NOTE: below was the iso methods in temporal::calendar -> Need to be reassessed.
 
 /// 12.2.31 `ISODaysInMonth ( year, month )`
-pub(crate) fn iso_days_in_month(year: i32, month: i32) -> i32 {
+pub(crate) fn iso_days_in_month(year: i32, month: i32) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
-        2 => 28 + mathematical_in_leap_year(epoch_time_for_year(year)),
+        2 => 28 + mathematical_in_leap_year(epoch_time_for_year(year)) as u8,
         _ => unreachable!("ISODaysInMonth panicking is an implementation error."),
     }
 }
