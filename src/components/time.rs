@@ -22,17 +22,17 @@ use core::str::FromStr;
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct PartialTime {
     // A potentially set `hour` field.
-    pub hour: Option<i32>,
+    pub hour: Option<u8>,
     // A potentially set `minute` field.
-    pub minute: Option<i32>,
+    pub minute: Option<u8>,
     // A potentially set `second` field.
-    pub second: Option<i32>,
+    pub second: Option<u8>,
     // A potentially set `millisecond` field.
-    pub millisecond: Option<i32>,
+    pub millisecond: Option<u16>,
     // A potentially set `microsecond` field.
-    pub microsecond: Option<i32>,
+    pub microsecond: Option<u16>,
     // A potentially set `nanosecond` field.
-    pub nanosecond: Option<i32>,
+    pub nanosecond: Option<u16>,
 }
 
 impl PartialTime {
@@ -173,12 +173,12 @@ impl PlainTime {
     /// assert_eq!(time, constrained_time);
     /// ```
     pub fn new(
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
     ) -> TemporalResult<Self> {
         Self::new_with_overflow(
             hour,
@@ -202,12 +202,12 @@ impl PlainTime {
     /// assert!(invalid_time.is_err());
     /// ```
     pub fn try_new(
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
     ) -> TemporalResult<Self> {
         Self::new_with_overflow(
             hour,
@@ -223,12 +223,12 @@ impl PlainTime {
     /// Creates a new `PlainTime` with the provided [`ArithmeticOverflow`] option.
     #[inline]
     pub fn new_with_overflow(
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let time = IsoTime::new(
@@ -448,18 +448,10 @@ impl FromStr for PlainTime {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let result = parse_time(s)?;
 
-        let (millisecond, rem) = (result.nanosecond / 1_000_000, result.nanosecond % 1_000_000);
-        let (microsecond, nanosecond) = (rem / 1_000, rem % 1_000);
+        let iso =
+            IsoTime::from_components(result.hour, result.minute, result.second, result.nanosecond)?;
 
-        PlainTime::new_with_overflow(
-            result.hour.into(),
-            result.minute.into(),
-            result.second.into(),
-            millisecond as i32,
-            microsecond as i32,
-            nanosecond as i32,
-            ArithmeticOverflow::Reject,
-        )
+        Ok(Self::new_unchecked(iso))
     }
 }
 

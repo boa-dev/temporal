@@ -92,7 +92,6 @@ impl NormalizedTimeDuration {
         days as f64 + (remainder as f64 / NS_PER_DAY as f64)
     }
 
-    // TODO: Potentially abstract sign into `Sign`
     /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
     #[inline]
     #[must_use]
@@ -380,8 +379,8 @@ impl NormalizedDurationRecord {
                 // calendarRec.[[Receiver]]).
                 let weeks_start = PlainDate::try_new(
                     iso_one.year,
-                    iso_one.month.into(),
-                    iso_one.day.into(),
+                    iso_one.month,
+                    iso_one.day,
                     dt.calendar().clone(),
                 )?;
 
@@ -389,8 +388,8 @@ impl NormalizedDurationRecord {
                 // calendarRec.[[Receiver]]).
                 let weeks_end = PlainDate::try_new(
                     iso_two.year,
-                    iso_two.month.into(),
-                    iso_two.day.into(),
+                    iso_two.month,
+                    iso_two.day,
                     dt.calendar().clone(),
                 )?;
 

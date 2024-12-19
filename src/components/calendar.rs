@@ -281,14 +281,14 @@ impl Calendar {
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
-        let fields = self.resolve_partial_date_fields(partial, overflow)?;
+        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
             return PlainDate::new_with_overflow(
-                fields.era_year.year,
-                fields.month_code.as_iso_month_integer()?.into(),
-                fields.day,
+                resolved_fields.era_year.year,
+                resolved_fields.month_code.as_iso_month_integer()?,
+                resolved_fields.day,
                 self.clone(),
                 overflow,
             );
@@ -297,17 +297,17 @@ impl Calendar {
         let calendar_date = self
             .0
             .date_from_codes(
-                Some(IcuEra(fields.era_year.era.0)),
-                fields.era_year.year,
-                IcuMonthCode(fields.month_code.0),
-                fields.day as u8, // TODO: FIX
+                Some(IcuEra(resolved_fields.era_year.era.0)),
+                resolved_fields.era_year.year,
+                IcuMonthCode(resolved_fields.month_code.0),
+                resolved_fields.day,
             )
             .map_err(TemporalError::from_icu4x)?;
         let iso = self.0.date_to_iso(&calendar_date);
         PlainDate::new_with_overflow(
             iso.year().extended_year,
-            iso.month().ordinal as i32,
-            iso.day_of_month().0 as i32,
+            iso.month().ordinal,
+            iso.day_of_month().0,
             self.clone(),
             overflow,
         )
@@ -322,7 +322,7 @@ impl Calendar {
         let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
         if self.is_iso() {
             return PlainMonthDay::new_with_overflow(
-                resolved_fields.month_code.as_iso_month_integer()?.into(),
+                resolved_fields.month_code.as_iso_month_integer()?,
                 resolved_fields.day,
                 self.clone(),
                 overflow,
@@ -345,7 +345,7 @@ impl Calendar {
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.year,
-                resolved_fields.month_code.as_iso_month_integer()?.into(),
+                resolved_fields.month_code.as_iso_month_integer()?,
                 Some(resolved_fields.day),
                 self.clone(),
                 overflow,
@@ -359,14 +359,14 @@ impl Calendar {
                 Some(IcuEra(resolved_fields.era_year.era.0)),
                 resolved_fields.era_year.year,
                 IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day as u8, // NOTE: Not the best idea, probably action overflow behavior prior to this.
+                resolved_fields.day,
             )
             .map_err(TemporalError::from_icu4x)?;
         let iso = self.0.date_to_iso(&calendar_date);
         PlainYearMonth::new_with_overflow(
             iso.year().extended_year,
-            iso.month().ordinal as i32,
-            Some(iso.day_of_month().0 as i32),
+            iso.month().ordinal,
+            Some(iso.day_of_month().0),
             self.clone(),
             overflow,
         )
@@ -400,8 +400,8 @@ impl Calendar {
             // 11. Return ? CreateTemporalDate(result.[[Year]], result.[[Month]], result.[[Day]], "iso8601").
             return PlainDate::try_new(
                 result.year,
-                result.month.into(),
-                result.day.into(),
+                result.month,
+                result.day,
                 date.calendar().clone(),
             );
         }
