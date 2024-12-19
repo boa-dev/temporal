@@ -1,23 +1,23 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use crate::{
-    components::{calendar::Calendar, duration::TimeDuration, Instant},
+    components::{calendar::Calendar, Instant},
     iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         RoundingOptions, TemporalUnit,
     },
     parsers::parse_date_time,
-    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use core::{cmp::Ordering, str::FromStr};
-use num_traits::AsPrimitive;
 use tinystr::TinyAsciiStr;
 
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
-    duration::normalized::{NormalizedTimeDuration, RelativeRoundResult},
+    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    tz::NeverProvider,
     Duration, PartialDate, PartialTime, PlainDate, PlainTime,
 };
 
@@ -144,7 +144,9 @@ impl PlainDateTime {
         }
 
         // Step 10-11.
-        let (result, _) = self.diff_dt_with_rounding(other, options)?;
+        let norm_record = self.diff_dt_with_rounding(other, options)?;
+
+        let result = Duration::from_normalized(norm_record, options.largest_unit)?;
 
         // Step 12
         match sign {
@@ -160,64 +162,34 @@ impl PlainDateTime {
         &self,
         other: &Self,
         options: ResolvedRoundingOptions,
-    ) -> TemporalResult<RelativeRoundResult> {
+    ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. Assert: IsValidISODate(y1, mon1, d1) is true.
         // 2. Assert: IsValidISODate(y2, mon2, d2) is true.
         // 3. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
             // a. Let durationRecord be CreateDurationRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
             // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
-            return Ok((Duration::default(), Some(0)));
+            return Ok(NormalizedDurationRecord::default());
         }
-
-        // 4. Let diff be ? DifferenceISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, resolvedOptions).
+        // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, largestUnit).
         let diff = self
             .iso
             .diff(&other.iso, &self.calendar, options.largest_unit)?;
 
-        // 5. If smallestUnit is "nanosecond" and roundingIncrement = 1, then
+        // 4. If smallestUnit is nanosecond and roundingIncrement = 1, return diff.
         if options.smallest_unit == TemporalUnit::Nanosecond && options.increment.get() == 1 {
-            // a. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(diff.[[NormalizedTime]], diff.[[Days]]).
-            let norm_with_days = diff
-                .normalized_time_duration()
-                .add_days(diff.date().days.as_())?;
-            // b. Let timeResult be ! BalanceTimeDuration(normWithDays, largestUnit).
-            let (days, time_duration) =
-                TimeDuration::from_normalized(norm_with_days, options.largest_unit)?;
-
-            // c. Let total be NormalizedTimeDurationSeconds(normWithDays) × 10**9 + NormalizedTimeDurationSubseconds(normWithDays).
-            let total =
-                norm_with_days.seconds() * 1_000_000_000 + i64::from(norm_with_days.subseconds());
-
-            // d. Let durationRecord be CreateDurationRecord(diff.[[Years]], diff.[[Months]], diff.[[Weeks]], timeResult.[[Days]],
-            // timeResult.[[Hours]], timeResult.[[Minutes]], timeResult.[[Seconds]], timeResult.[[Milliseconds]],
-            // timeResult.[[Microseconds]], timeResult.[[Nanoseconds]]).
-            let duration = Duration::new(
-                diff.date().years,
-                diff.date().months,
-                diff.date().weeks,
-                days,
-                time_duration.hours,
-                time_duration.minutes,
-                time_duration.seconds,
-                time_duration.milliseconds,
-                time_duration.microseconds,
-                time_duration.nanoseconds,
-            )?;
-
-            // e. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: total }.
-            return Ok((duration, Some(i128::from(total))));
+            return Ok(diff);
         }
 
-        // 6. Let dateTime be ISO Date-TimeRecord { [[Year]]: y1, [[Month]]: mon1,
-        // [[Day]]: d1, [[Hour]]: h1, [[Minute]]: min1, [[Second]]: s1, [[Millisecond]]:
-        // ms1, [[Microsecond]]: mus1, [[Nanosecond]]: ns1 }.
-        // 7. Let destEpochNs be GetUTCEpochNanoseconds(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2).
+        // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
         let dest_epoch_ns = other.iso.as_nanoseconds()?;
-
-        // 8. Return ? RoundRelativeDuration(diff, destEpochNs, dateTime, calendarRec, unset, largestUnit,
-        // roundingIncrement, smallestUnit, roundingMode).
-        diff.round_relative_duration(dest_epoch_ns.0, self, None, options)
+        // 6. Return ? RoundRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
+        diff.round_relative_duration(
+            dest_epoch_ns.0,
+            self,
+            Option::<(&TimeZone, &NeverProvider)>::None,
+            options,
+        )
     }
 }
 
