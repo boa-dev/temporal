@@ -1,0 +1,12 @@
+[package]
+name = "date_equations"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+exclude.workspace = true
+
+[dependencies]

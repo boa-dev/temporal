@@ -80,6 +80,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "date_equations"
+version = "0.0.4"
+
+[[package]]
 name = "displaydoc"
 version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
