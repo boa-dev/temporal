@@ -37,11 +37,11 @@ pub struct PartialDate {
     // A potentially set `year` field.
     pub year: Option<i32>,
     // A potentially set `month` field.
-    pub month: Option<i32>,
+    pub month: Option<u8>,
     // A potentially set `month_code` field.
     pub month_code: Option<TinyAsciiStr<4>>,
     // A potentially set `day` field.
-    pub day: Option<i32>,
+    pub day: Option<u8>,
     // A potentially set `era` field.
     pub era: Option<TinyAsciiStr<19>>,
     // A potentially set `era_year` field.
@@ -70,7 +70,7 @@ impl PartialDate {
         };
         Ok(Self {
             year,
-            month: Some(year_month.month()?.into()),
+            month: Some(year_month.month()?),
             month_code: Some(year_month.month_code()?),
             day: Some(1),
             era,
@@ -202,8 +202,8 @@ impl PlainDate {
 
         Self::try_new(
             result.year,
-            result.month.into(),
-            result.day.into(),
+            result.month,
+            result.day,
             self.calendar().clone(),
         )
     }
@@ -309,12 +309,12 @@ impl PlainDate {
 
 impl PlainDate {
     /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
-    pub fn new(year: i32, month: i32, day: i32, calendar: Calendar) -> TemporalResult<Self> {
+    pub fn new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
     }
 
     /// Creates a new `PlainDate` rejecting any date that may be invalid.
-    pub fn try_new(year: i32, month: i32, day: i32, calendar: Calendar) -> TemporalResult<Self> {
+    pub fn try_new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Reject)
     }
 
@@ -324,8 +324,8 @@ impl PlainDate {
     #[inline]
     pub fn new_with_overflow(
         year: i32,
-        month: i32,
-        day: i32,
+        month: u8,
+        day: u8,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
@@ -392,12 +392,7 @@ impl PlainDate {
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::try_new(
-            self.iso_year(),
-            self.iso_month().into(),
-            self.iso_day().into(),
-            calendar,
-        )
+        Self::try_new(self.iso_year(), self.iso_month(), self.iso_day(), calendar)
     }
 
     #[inline]
@@ -627,7 +622,7 @@ impl FromStr for PlainDate {
         // Assertion: PlainDate must exist on a DateTime parse.
         let date = parse_record.date.temporal_unwrap()?;
 
-        Self::try_new(date.year, date.month.into(), date.day.into(), calendar)
+        Self::try_new(date.year, date.month, date.day, calendar)
     }
 }
 

@@ -16,7 +16,7 @@ use crate::{
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
-use num_traits::{Euclid, FromPrimitive};
+use num_traits::FromPrimitive;
 
 use super::duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
 
@@ -281,22 +281,17 @@ impl FromStr for Instant {
         // Find the IsoDate
         let iso_date = IsoDate::new_with_overflow(
             ixdtf_record.date.year,
-            ixdtf_record.date.month.into(),
-            ixdtf_record.date.day.into(),
+            ixdtf_record.date.month,
+            ixdtf_record.date.day,
             ArithmeticOverflow::Reject,
         )?;
 
         // Find the IsoTime
-        let (millisecond, remainder) = ixdtf_record.time.nanosecond.div_rem_euclid(&1_000_000);
-        let (microsecond, nanosecond) = remainder.div_rem_euclid(&1_000);
-        let iso_time = IsoTime::new(
-            ixdtf_record.time.hour.into(),
-            ixdtf_record.time.minute.into(),
-            ixdtf_record.time.second.into(),
-            millisecond as i32,
-            microsecond as i32,
-            nanosecond as i32,
-            ArithmeticOverflow::Reject,
+        let iso_time = IsoTime::from_components(
+            ixdtf_record.time.hour,
+            ixdtf_record.time.minute,
+            ixdtf_record.time.second,
+            ixdtf_record.time.nanosecond,
         )?;
 
         // Find the offset

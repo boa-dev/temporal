@@ -33,7 +33,7 @@ use crate::{
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
-use num_traits::{cast::FromPrimitive, AsPrimitive, ToPrimitive};
+use num_traits::{cast::FromPrimitive, AsPrimitive, Euclid, ToPrimitive};
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
 #[non_exhaustive]
@@ -229,8 +229,8 @@ impl IsoDateTime {
         // adjustedDate.[[Day]], calendarRec.[[Receiver]]).
         let date_two = PlainDate::try_new(
             adjusted_date.year,
-            adjusted_date.month.into(),
-            adjusted_date.day.into(),
+            adjusted_date.month,
+            adjusted_date.day,
             calendar.clone(),
         )?;
 
@@ -295,8 +295,8 @@ impl IsoDate {
 
     pub(crate) fn new_with_overflow(
         year: i32,
-        month: i32,
-        day: i32,
+        month: u8,
+        day: u8,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let id = match overflow {
@@ -304,14 +304,14 @@ impl IsoDate {
                 let month = month.clamp(1, 12);
                 let day = constrain_iso_day(year, month, day);
                 // NOTE: Values are clamped in a u8 range.
-                Self::new_unchecked(year, month as u8, day)
+                Self::new_unchecked(year, month, day)
             }
             ArithmeticOverflow::Reject => {
                 if !is_valid_date(year, month, day) {
                     return Err(TemporalError::range().with_message("not a valid ISO date."));
                 }
                 // NOTE: Values have been verified to be in a u8 range.
-                Self::new_unchecked(year, month as u8, day as u8)
+                Self::new_unchecked(year, month, day)
             }
         };
 
@@ -360,7 +360,7 @@ impl IsoDate {
 
     /// Returns if the current `IsoDate` is valid.
     pub(crate) fn is_valid(self) -> bool {
-        is_valid_date(self.year, self.month.into(), self.day.into())
+        is_valid_date(self.year, self.month, self.day)
     }
 
     /// Returns the resulting `IsoDate` from adding a provided `Duration` to this `IsoDate`
@@ -378,24 +378,20 @@ impl IsoDate {
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
-        let intermediate = Self::new_with_overflow(
-            intermediate.0,
-            intermediate.1,
-            i32::from(self.day),
-            overflow,
-        )?;
+        let intermediate =
+            Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
         let additional_days =
             duration.days.as_date_value()? + (duration.weeks.as_date_value()? * 7);
         // 6. Let d be intermediate.[[Day]] + days.
-        let d = i32::from(intermediate.day) + additional_days;
+        let intermediate_days = i32::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
         Ok(Self::balance(
             intermediate.year,
             intermediate.month.into(),
-            d,
+            intermediate_days,
         ))
     }
 
@@ -455,8 +451,10 @@ impl IsoDate {
                 // ii. Set candidateMonths to candidateMonths + sign.
                 candidate_months += i32::from(sign);
                 // iii. Set intermediate to BalanceISOYearMonth(intermediate.[[Year]], intermediate.[[Month]] + sign).
-                intermediate =
-                    balance_iso_year_month(intermediate.0, intermediate.1 + i32::from(sign));
+                intermediate = balance_iso_year_month(
+                    intermediate.0,
+                    i32::from(intermediate.1) + i32::from(sign),
+                );
             }
         }
 
@@ -467,16 +465,16 @@ impl IsoDate {
         let constrained = Self::new_with_overflow(
             intermediate.0,
             intermediate.1,
-            self.day.into(),
+            self.day,
             ArithmeticOverflow::Constrain,
         )?;
 
         // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
         // 11. Let weeks be 0.
-        let days = iso_date_to_epoch_days(other.year, i32::from(other.month) - 1, other.day.into())
+        let days = iso_date_to_epoch_days(other.year, i32::from(other.month - 1), other.day.into())
             - iso_date_to_epoch_days(
                 constrained.year,
-                i32::from(constrained.month) - 1,
+                i32::from(constrained.month - 1),
                 constrained.day.into(),
             );
 
@@ -541,22 +539,22 @@ impl IsoTime {
 
     /// Creates a new regulated `IsoTime`.
     pub fn new(
-        hour: i32,
-        minute: i32,
-        second: i32,
-        millisecond: i32,
-        microsecond: i32,
-        nanosecond: i32,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<IsoTime> {
         match overflow {
             ArithmeticOverflow::Constrain => {
-                let h = hour.clamp(0, 23) as u8;
-                let min = minute.clamp(0, 59) as u8;
-                let sec = second.clamp(0, 59) as u8;
-                let milli = millisecond.clamp(0, 999) as u16;
-                let micro = microsecond.clamp(0, 999) as u16;
-                let nano = nanosecond.clamp(0, 999) as u16;
+                let h = hour.clamp(0, 23);
+                let min = minute.clamp(0, 59);
+                let sec = second.clamp(0, 59);
+                let milli = millisecond.clamp(0, 999);
+                let micro = microsecond.clamp(0, 999);
+                let nano = nanosecond.clamp(0, 999);
                 Ok(Self::new_unchecked(h, min, sec, milli, micro, nano))
             }
             ArithmeticOverflow::Reject => {
@@ -564,12 +562,12 @@ impl IsoTime {
                     return Err(TemporalError::range().with_message("IsoTime is not valid"));
                 };
                 Ok(Self::new_unchecked(
-                    hour as u8,
-                    minute as u8,
-                    second as u8,
-                    millisecond as u16,
-                    microsecond as u16,
-                    nanosecond as u16,
+                    hour,
+                    minute,
+                    second,
+                    millisecond,
+                    microsecond,
+                    nanosecond,
                 ))
             }
         }
@@ -582,12 +580,12 @@ impl IsoTime {
         partial: PartialTime,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        let hour = partial.hour.unwrap_or(self.hour.into());
-        let minute = partial.minute.unwrap_or(self.minute.into());
-        let second = partial.second.unwrap_or(self.second.into());
-        let millisecond = partial.millisecond.unwrap_or(self.millisecond.into());
-        let microsecond = partial.microsecond.unwrap_or(self.microsecond.into());
-        let nanosecond = partial.nanosecond.unwrap_or(self.nanosecond.into());
+        let hour = partial.hour.unwrap_or(self.hour);
+        let minute = partial.minute.unwrap_or(self.minute);
+        let second = partial.second.unwrap_or(self.second);
+        let millisecond = partial.millisecond.unwrap_or(self.millisecond);
+        let microsecond = partial.microsecond.unwrap_or(self.microsecond);
+        let nanosecond = partial.nanosecond.unwrap_or(self.nanosecond);
         Self::new(
             hour,
             minute,
@@ -613,22 +611,21 @@ impl IsoTime {
 
     /// Returns an `IsoTime` based off parse components.
     pub(crate) fn from_components(
-        hour: i32,
-        minute: i32,
-        second: i32,
-        fraction: f64,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        fraction: u32,
     ) -> TemporalResult<Self> {
-        let millisecond = fraction * 1000f64;
-        let micros = millisecond.rem_euclid(1f64) * 1000f64;
-        let nanos = micros.rem_euclid(1f64).mul_add(1000f64, 0.5).floor();
+        let (millisecond, rem) = fraction.div_rem_euclid(&1_000_000);
+        let (micros, nanos) = rem.div_rem_euclid(&1_000);
 
         Self::new(
             hour,
             minute,
             second,
-            millisecond as i32,
-            micros as i32,
-            nanos as i32,
+            millisecond as u16,
+            micros as u16,
+            nanos as u16,
             ArithmeticOverflow::Reject,
         )
     }
@@ -933,7 +930,7 @@ fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     // 1. Let resolvedYear be year + floor(month / 12).
     let resolved_year = year + month.div_euclid(12);
     // 2. Let resolvedMonth be month modulo 12.
-    let resolved_month = month.rem_euclid(12);
+    let resolved_month = month.rem_euclid(12) as u8;
     // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
     // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
     let year_t = utils::epoch_time_for_year(resolved_year);
@@ -945,7 +942,7 @@ fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
 
 #[inline]
 // Determines if the month and day are valid for the given year.
-fn is_valid_date(year: i32, month: i32, day: i32) -> bool {
+fn is_valid_date(year: i32, month: u8, day: u8) -> bool {
     if !(1..=12).contains(&month) {
         return false;
     }
@@ -959,32 +956,32 @@ fn iso_date_surpasses(this: &IsoDate, other: &IsoDate, sign: i8) -> bool {
 }
 
 #[inline]
-fn balance_iso_year_month(year: i32, month: i32) -> (i32, i32) {
+fn balance_iso_year_month(year: i32, month: i32) -> (i32, u8) {
     // 1. Assert: year and month are integers.
     // 2. Set year to year + floor((month - 1) / 12).
     let y = year + (month - 1).div_euclid(12);
     // 3. Set month to ((month - 1) modulo 12) + 1.
     let m = (month - 1).rem_euclid(12) + 1;
     // 4. Return the Record { [[Year]]: year, [[Month]]: month  }.
-    (y, m)
+    (y, m as u8)
 }
 
 #[inline]
-pub(crate) fn constrain_iso_day(year: i32, month: i32, day: i32) -> u8 {
-    let days_in_month = utils::iso_days_in_month(year, month);
-    day.clamp(1, days_in_month) as u8
+pub(crate) fn constrain_iso_day(year: i32, month: u8, day: u8) -> u8 {
+    let days_in_month = utils::iso_days_in_month(year, month.into());
+    day.clamp(1, days_in_month)
 }
 
 #[inline]
-pub(crate) fn is_valid_iso_day(year: i32, month: i32, day: i32) -> bool {
-    let days_in_month = utils::iso_days_in_month(year, month);
+pub(crate) fn is_valid_iso_day(year: i32, month: u8, day: u8) -> bool {
+    let days_in_month = utils::iso_days_in_month(year, month.into());
     (1..=days_in_month).contains(&day)
 }
 
 // ==== `IsoTime` specific utilities ====
 
 #[inline]
-fn is_valid_time(hour: i32, minute: i32, second: i32, ms: i32, mis: i32, ns: i32) -> bool {
+fn is_valid_time(hour: u8, minute: u8, second: u8, ms: u16, mis: u16, ns: u16) -> bool {
     if !(0..=23).contains(&hour) {
         return false;
     }

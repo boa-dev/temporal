@@ -38,8 +38,8 @@ impl PlainYearMonth {
     #[inline]
     pub fn new_with_overflow(
         year: i32,
-        month: i32,
-        reference_day: Option<i32>,
+        month: u8,
+        reference_day: Option<u8>,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
@@ -194,7 +194,7 @@ impl FromStr for PlainYearMonth {
 
         Self::new_with_overflow(
             date.year,
-            date.month.into(),
+            date.month,
             None,
             calendar,
             ArithmeticOverflow::Reject,

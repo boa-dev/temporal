@@ -963,12 +963,7 @@ impl ZonedDateTime {
         let time = parse_result
             .time
             .map(|time| {
-                IsoTime::from_components(
-                    i32::from(time.hour),
-                    i32::from(time.minute),
-                    i32::from(time.second),
-                    f64::from(time.nanosecond),
-                )
+                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
             })
             .transpose()?;
 
@@ -980,8 +975,8 @@ impl ZonedDateTime {
 
         let date = IsoDate::new_with_overflow(
             parsed_date.year,
-            parsed_date.month.into(),
-            parsed_date.day.into(),
+            parsed_date.month,
+            parsed_date.day,
             ArithmeticOverflow::Reject,
         )?;
 
