@@ -1,5 +1,6 @@
 [workspace]
 resolver = "2"
+members = ["utils/date_equations"]
 
 [workspace.package]
 edition = "2021"
