@@ -17,7 +17,7 @@ use crate::components::{calendar::Calendar, PartialDate};
 pub struct ResolvedCalendarFields {
     pub(crate) era_year: EraYear,
     pub(crate) month_code: MonthCode,
-    pub(crate) day: i32,
+    pub(crate) day: u8,
 }
 
 impl ResolvedCalendarFields {
@@ -41,17 +41,9 @@ impl ResolvedCalendarFields {
                 .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
 
             let day = if overflow == ArithmeticOverflow::Constrain {
-                i32::from(constrain_iso_day(
-                    era_year.year,
-                    ascii_four_to_integer(month_code)?.into(),
-                    day,
-                ))
+                constrain_iso_day(era_year.year, ascii_four_to_integer(month_code)?, day)
             } else {
-                if !is_valid_iso_day(
-                    era_year.year,
-                    ascii_four_to_integer(month_code)?.into(),
-                    day,
-                ) {
+                if !is_valid_iso_day(era_year.year, ascii_four_to_integer(month_code)?, day) {
                     return Err(
                         TemporalError::range().with_message("day value is not in a valid range.")
                     );
@@ -243,7 +235,7 @@ impl MonthCode {
 }
 
 // NOTE: This is a greedy function, should handle differently for all calendars.
-pub(crate) fn month_to_month_code(month: i32) -> TemporalResult<TinyAsciiStr<4>> {
+pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<TinyAsciiStr<4>> {
     match month {
         1 => Ok(MONTH_ONE),
         2 => Ok(MONTH_TWO),
@@ -262,8 +254,8 @@ pub(crate) fn month_to_month_code(month: i32) -> TemporalResult<TinyAsciiStr<4>>
     }
 }
 
-fn are_month_and_month_code_resolvable(month: i32, mc: &TinyAsciiStr<4>) -> TemporalResult<()> {
-    if month != ascii_four_to_integer(*mc)?.into() {
+fn are_month_and_month_code_resolvable(month: u8, mc: &TinyAsciiStr<4>) -> TemporalResult<()> {
+    if month != ascii_four_to_integer(*mc)? {
         return Err(TemporalError::range()
             .with_message("Month and monthCode values could not be resolved."));
     }
@@ -292,7 +284,7 @@ pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
 
 fn resolve_iso_month(
     mc: Option<TinyAsciiStr<4>>,
-    month: Option<i32>,
+    month: Option<u8>,
     overflow: ArithmeticOverflow,
 ) -> TemporalResult<TinyAsciiStr<4>> {
     match (mc, month) {
@@ -316,7 +308,7 @@ fn resolve_iso_month(
             Ok(mc)
         }
         (Some(mc), Some(month)) => {
-            let month_code_int = i32::from(ascii_four_to_integer(mc)?);
+            let month_code_int = ascii_four_to_integer(mc)?;
             if month != month_code_int {
                 return Err(TemporalError::range()
                     .with_message("month and monthCode could not be resolved."));

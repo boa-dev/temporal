@@ -32,8 +32,8 @@ impl PlainMonthDay {
     /// Creates a new valid `MonthDay`.
     #[inline]
     pub fn new_with_overflow(
-        month: i32,
-        day: i32,
+        month: u8,
+        day: u8,
         calendar: Calendar,
         overflow: ArithmeticOverflow,
         ref_year: Option<i32>,
@@ -117,8 +117,8 @@ impl FromStr for PlainMonthDay {
         let date = date.temporal_unwrap()?;
 
         Self::new_with_overflow(
-            date.month.into(),
-            date.day.into(),
+            date.month,
+            date.day,
             calendar,
             ArithmeticOverflow::Reject,
             None,
