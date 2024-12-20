@@ -42,6 +42,26 @@ pub trait TzProvider {
     ) -> TemporalResult<i128>;
 }
 
+pub struct NeverProvider;
+
+impl TzProvider for NeverProvider {
+    fn check_identifier(&self, _: &str) -> bool {
+        unimplemented!()
+    }
+
+    fn get_named_tz_epoch_nanoseconds(
+        &self,
+        _: &str,
+        _: IsoDateTime,
+    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+        unimplemented!()
+    }
+
+    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<i128> {
+        unimplemented!()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimeZone {
     IanaIdentifier(String),

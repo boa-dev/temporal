@@ -59,6 +59,7 @@ fn system_instant() -> TemporalResult<Instant> {
     Instant::try_new(i128::from_u128(nanos).temporal_unwrap()?)
 }
 
+#[cfg(feature = "tzdb")]
 #[cfg(test)]
 mod tests {
     use std::thread;
@@ -66,7 +67,6 @@ mod tests {
 
     use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider, Now};
 
-    #[cfg(feature = "tzdb")]
     #[test]
     fn now_datetime_test() {
         let provider = &FsTzdbProvider::default();

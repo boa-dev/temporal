@@ -1,10 +1,11 @@
 //! An implementation of `TimeDuration` and it's methods.
 
 use crate::{
-    options::TemporalUnit, primitive::FiniteF64, temporal_assert, TemporalError, TemporalResult,
+    options::TemporalUnit, primitive::FiniteF64, temporal_assert, Sign, TemporalError,
+    TemporalResult,
 };
 
-use super::{is_valid_duration, normalized::NormalizedTimeDuration};
+use super::{duration_sign, is_valid_duration, normalized::NormalizedTimeDuration};
 
 use alloc::vec::Vec;
 use num_traits::Euclid;
@@ -316,5 +317,10 @@ impl TimeDuration {
             && self.milliseconds.abs() < 1000f64
             && self.milliseconds.abs() < 1000f64
             && self.milliseconds.abs() < 1000f64
+    }
+
+    #[inline]
+    pub fn sign(&self) -> Sign {
+        duration_sign(&self.fields())
     }
 }
