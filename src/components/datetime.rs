@@ -306,7 +306,7 @@ impl PlainDateTime {
     ///
     /// let partial = PartialDateTime { date, time };
     ///
-    /// let date = PlainDateTime::from_partial(partial, None, None).unwrap();
+    /// let date = PlainDateTime::from_partial(partial, None).unwrap();
     ///
     /// assert_eq!(date.year().unwrap(), 2000);
     /// assert_eq!(date.month().unwrap(), 12);

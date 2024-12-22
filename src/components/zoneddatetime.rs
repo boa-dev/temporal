@@ -1259,8 +1259,7 @@ mod tests {
             timezone: TimeZone::default(),
         };
 
-        let result =
-            ZonedDateTime::from_partial_with_provider(partial, None, None, None, None, provider);
+        let result = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider);
         assert!(result.is_ok());
     }
 

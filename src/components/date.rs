@@ -350,7 +350,7 @@ impl PlainDate {
     ///     ..Default::default()
     /// };
     ///
-    /// let date = PlainDate::from_partial(partial, None, None).unwrap();
+    /// let date = PlainDate::from_partial(partial, None).unwrap();
     ///
     /// assert_eq!(date.year().unwrap(), 2000);
     /// assert_eq!(date.month().unwrap(), 12);
