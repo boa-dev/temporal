@@ -22,8 +22,7 @@ pub struct ResolvedCalendarFields {
 
 impl ResolvedCalendarFields {
     #[inline]
-    pub fn try_from_partial_and_calendar(
-        calendar: &Calendar,
+    pub fn try_from_partial(
         partial_date: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
@@ -31,9 +30,9 @@ impl ResolvedCalendarFields {
             partial_date.year,
             partial_date.era,
             partial_date.era_year,
-            calendar,
+            &partial_date.calendar,
         )?;
-        if calendar.is_iso() {
+        if partial_date.calendar.is_iso() {
             let month_code =
                 resolve_iso_month(partial_date.month_code, partial_date.month, overflow)?;
             let day = partial_date
@@ -57,7 +56,7 @@ impl ResolvedCalendarFields {
             });
         }
 
-        let month_code = MonthCode::try_from_partial_date(partial_date, calendar)?;
+        let month_code = MonthCode::try_from_partial_date(partial_date, &partial_date.calendar)?;
         let day = partial_date
             .day
             .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
@@ -356,12 +355,7 @@ mod tests {
             ..Default::default()
         };
 
-        let cal = Calendar::default();
-        let err = ResolvedCalendarFields::try_from_partial_and_calendar(
-            &cal,
-            &bad_fields,
-            ArithmeticOverflow::Reject,
-        );
+        let err = ResolvedCalendarFields::try_from_partial(&bad_fields, ArithmeticOverflow::Reject);
         assert!(err.is_err());
     }
 
@@ -373,20 +367,11 @@ mod tests {
             ..Default::default()
         };
 
-        let cal = Calendar::default();
-        let err = ResolvedCalendarFields::try_from_partial_and_calendar(
-            &cal,
-            &bad_fields,
-            ArithmeticOverflow::Reject,
-        );
+        let err = ResolvedCalendarFields::try_from_partial(&bad_fields, ArithmeticOverflow::Reject);
         assert!(err.is_err());
 
         let bad_fields = PartialDate::default();
-        let err = ResolvedCalendarFields::try_from_partial_and_calendar(
-            &cal,
-            &bad_fields,
-            ArithmeticOverflow::Reject,
-        );
+        let err = ResolvedCalendarFields::try_from_partial(&bad_fields, ArithmeticOverflow::Reject);
         assert!(err.is_err());
     }
 }

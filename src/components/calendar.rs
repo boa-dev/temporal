@@ -283,7 +283,7 @@ impl Calendar {
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
-        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
+        let resolved_fields = ResolvedCalendarFields::try_from_partial(partial, overflow)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
@@ -321,7 +321,7 @@ impl Calendar {
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainMonthDay> {
-        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
+        let resolved_fields = ResolvedCalendarFields::try_from_partial(partial, overflow)?;
         if self.is_iso() {
             return PlainMonthDay::new_with_overflow(
                 resolved_fields.month_code.as_iso_month_integer()?,
@@ -343,7 +343,7 @@ impl Calendar {
         partial: &PartialDate,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
-        let resolved_fields = self.resolve_partial_date_fields(partial, overflow)?;
+        let resolved_fields = ResolvedCalendarFields::try_from_partial(partial, overflow)?;
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.year,
@@ -587,16 +587,6 @@ impl Calendar {
 }
 
 impl Calendar {
-    /// CalendarFields equivalent.
-    #[inline]
-    pub fn resolve_partial_date_fields(
-        &self,
-        partial_date: &PartialDate,
-        overflow: ArithmeticOverflow,
-    ) -> TemporalResult<ResolvedCalendarFields> {
-        ResolvedCalendarFields::try_from_partial_and_calendar(self, partial_date, overflow)
-    }
-
     pub(crate) fn get_era_info(&self, era_alias: &TinyAsciiStr<19>) -> Option<EraInfo> {
         match self.0 .0.kind() {
             AnyCalendarKind::Buddhist if era::BUDDHIST_ERA_IDENTIFIERS.contains(era_alias) => {

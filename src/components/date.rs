@@ -370,9 +370,8 @@ impl PlainDate {
             return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."));
         }
 
-        let calendar = partial.calendar.clone();
         let overflow = overflow.unwrap_or_default();
-        calendar.date_from_partial(&partial, overflow)
+        partial.calendar.date_from_partial(&partial, overflow)
     }
 
     /// Creates a date time with values from a `PartialDate`.

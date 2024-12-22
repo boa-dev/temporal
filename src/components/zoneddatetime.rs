@@ -286,12 +286,15 @@ impl ZonedDateTime {
         offset_option: Option<OffsetDisambiguation>,
         provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
-        let calendar = partial.date.calendar.clone();
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         let disambiguation = disambiguation.unwrap_or(Disambiguation::Compatible);
         let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
 
-        let date = calendar.date_from_partial(&partial.date, overflow)?.iso;
+        let date = partial
+            .date
+            .calendar
+            .date_from_partial(&partial.date, overflow)?
+            .iso;
         let time = if !partial.time.is_empty() {
             Some(IsoTime::default().with(partial.time, overflow)?)
         } else {
@@ -327,7 +330,7 @@ impl ZonedDateTime {
 
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos),
-            calendar,
+            partial.date.calendar.clone(),
             partial.timezone,
         ))
     }
