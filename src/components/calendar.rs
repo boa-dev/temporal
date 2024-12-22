@@ -3,6 +3,8 @@
 //! The goal of the calendar module of `boa_temporal` is to provide
 //! Temporal compatible calendar implementations.
 
+// TODO: It may finally be time to clean up API to use `IsoDate` and `DateDuration` directly.
+
 use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::vec::Vec;

@@ -221,9 +221,22 @@ impl ResolvedRoundingOptions {
 
 // ==== RelativeTo Object ====
 
-pub struct RelativeTo<'a> {
-    pub date: Option<&'a PlainDate>,
-    pub zdt: Option<&'a ZonedDateTime>,
+#[derive(Debug, Clone)]
+pub enum RelativeTo<'a> {
+    PlainDate(&'a PlainDate),
+    ZonedDateTime(&'a ZonedDateTime),
+}
+
+impl<'a> From<&'a PlainDate> for RelativeTo<'a> {
+    fn from(value: &'a PlainDate) -> Self {
+        Self::PlainDate(value)
+    }
+}
+
+impl<'a> From<&'a ZonedDateTime> for RelativeTo<'a> {
+    fn from(value: &'a ZonedDateTime) -> Self {
+        Self::ZonedDateTime(value)
+    }
 }
 
 // ==== Options enums and methods ====
@@ -304,10 +317,21 @@ impl TemporalUnit {
         }
     }
 
+    #[inline]
     #[must_use]
     pub fn is_calendar_unit(&self) -> bool {
         use TemporalUnit::{Month, Week, Year};
         matches!(self, Year | Month | Week)
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn is_time_unit(&self) -> bool {
+        use TemporalUnit::{Hour, Microsecond, Millisecond, Minute, Nanosecond, Second};
+        matches!(
+            self,
+            Hour | Minute | Second | Millisecond | Microsecond | Nanosecond
+        )
     }
 }
 

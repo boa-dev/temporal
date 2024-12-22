@@ -1,9 +1,11 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{PlainDateTime, PlainTime},
+    components::{tz::TzProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
-    options::{RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
+    options::{
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
+    },
     primitive::FiniteF64,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
@@ -12,14 +14,21 @@ use alloc::vec;
 use alloc::vec::Vec;
 use core::str::FromStr;
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use normalized::NormalizedDurationRecord;
 use num_traits::AsPrimitive;
 
 use self::normalized::NormalizedTimeDuration;
+
+#[cfg(feature = "experimental")]
+use crate::components::tz::TZ_PROVIDER;
+#[cfg(feature = "experimental")]
+use core::ops::Deref;
 
 mod date;
 pub(crate) mod normalized;
 mod time;
 
+#[cfg(feature = "experimental")]
 #[cfg(test)]
 mod tests;
 
@@ -28,6 +37,8 @@ mod tests;
 pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
+
+use super::ZonedDateTime;
 
 /// A `PartialDuration` is a Duration that may have fields not set.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -109,6 +120,24 @@ impl Duration {
     #[inline]
     pub(crate) const fn new_unchecked(date: DateDuration, time: TimeDuration) -> Self {
         Self { date, time }
+    }
+
+    #[inline]
+    pub(crate) fn from_normalized(
+        duration_record: NormalizedDurationRecord,
+        largest_unit: TemporalUnit,
+    ) -> TemporalResult<Self> {
+        let (overflow_day, time) = TimeDuration::from_normalized(
+            duration_record.normalized_time_duration(),
+            largest_unit,
+        )?;
+        let date = DateDuration::new(
+            duration_record.date().years,
+            duration_record.date().months,
+            duration_record.date().weeks,
+            duration_record.date().days.checked_add(&overflow_day)?,
+        )?;
+        Ok(Self::new_unchecked(date, time))
     }
 
     /// Returns the a `Vec` of the fields values.
@@ -415,10 +444,11 @@ impl Duration {
     }
 
     #[inline]
-    pub fn round(
+    pub fn round_with_provider(
         &self,
         options: RoundingOptions,
-        relative_to: &RelativeTo,
+        relative_to: Option<RelativeTo>,
+        provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
         // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).
@@ -444,11 +474,13 @@ impl Duration {
         let resolved_options =
             ResolvedRoundingOptions::from_duration_options(options, existing_largest_unit)?;
 
+        let is_zoned_datetime = matches!(relative_to, Some(RelativeTo::ZonedDateTime(_)));
+
         // 26. Let hoursToDaysConversionMayOccur be false.
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
         // 28. Else if abs(duration.[[Hours]]) ≥ 24, set hoursToDaysConversionMayOccur to true.
         let hours_to_days_may_occur =
-            (self.days() != 0.0 && relative_to.zdt.is_some()) || self.hours().abs() >= 24.0;
+            (self.days() != 0.0 && is_zoned_datetime) || self.hours().abs() >= 24.0;
 
         // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop
         // be true; else let roundingGranularityIsNoop be false.
@@ -487,25 +519,7 @@ impl Duration {
         // 33. If roundingGranularityIsNoop is false, or IsCalendarUnit(largestUnit) is true, or largestUnit is "day",
         // or calendarUnitsPresent is true, or duration.[[Days]] ≠ 0, let plainDateTimeOrRelativeToWillBeUsed be true;
         // else let plainDateTimeOrRelativeToWillBeUsed be false.
-        let pdtr_will_be_used = !is_noop
-            || resolved_options.largest_unit.is_calendar_unit()
-            || resolved_options.largest_unit == TemporalUnit::Day
-            || calendar_units_present
-            || self.days() == 0.0;
-
         // 34. If zonedRelativeTo is not undefined and plainDateTimeOrRelativeToWillBeUsed is true, then
-        let _precalculated: Option<PlainDateTime> =
-            if relative_to.zdt.is_some() && pdtr_will_be_used {
-                return Err(TemporalError::general("Not yet implemented."));
-                // a. NOTE: The above conditions mean that the corresponding Temporal.PlainDateTime or
-                // Temporal.PlainDate for zonedRelativeTo will be used in one of the operations below.
-                // b. Let instant be ! CreateTemporalInstant(zonedRelativeTo.[[Nanoseconds]]).
-                // c. Set precalculatedPlainDateTime to ? GetPlainDateTimeFor(timeZoneRec, instant, zonedRelativeTo.[[Calendar]]).
-                // d. Set plainRelativeTo to ! CreateTemporalDate(precalculatedPlainDateTime.[[ISOYear]],
-                // precalculatedPlainDateTime.[[ISOMonth]], precalculatedPlainDateTime.[[ISODay]], zonedRelativeTo.[[Calendar]]).
-            } else {
-                None
-            };
         // 35. Let calendarRec be ? CreateCalendarMethodsRecordFromRelativeTo(plainRelativeTo, zonedRelativeTo, « DATE-ADD, DATE-UNTIL »).
 
         // 36. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
@@ -513,80 +527,113 @@ impl Duration {
         let norm = NormalizedTimeDuration::from_time_duration(self.time());
         // 37. Let emptyOptions be OrdinaryObjectCreate(null).
 
-        // 38. If zonedRelativeTo is not undefined, then
-        let round_result = if let Some(_zdt) = relative_to.zdt {
-            // a. Let relativeEpochNs be zonedRelativeTo.[[Nanoseconds]].
-            // b. Let relativeInstant be ! CreateTemporalInstant(relativeEpochNs).
-            // c. Let targetEpochNs be ? AddZonedDateTime(relativeInstant, timeZoneRec, calendarRec, duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], norm, precalculatedPlainDateTime).
-            // d. Let roundRecord be ? DifferenceZonedDateTimeWithRounding(relativeEpochNs, targetEpochNs, calendarRec, timeZoneRec, precalculatedPlainDateTime, emptyOptions, largestUnit, roundingIncrement, smallestUnit, roundingMode).
-            // e. Let roundResult be roundRecord.[[DurationRecord]].
-            return Err(TemporalError::general("Not yet implemented."));
-        // 39. Else if plainRelativeTo is not undefined, then
-        } else if let Some(plain_date) = relative_to.date {
-            // a. Let targetTime be AddTime(0, 0, 0, 0, 0, 0, norm).
-            let (balanced_days, time) = PlainTime::default().add_normalized_time_duration(norm);
-            // b. Let dateDuration be ? CreateTemporalDuration(duration.[[Years]], duration.[[Months]], duration.[[Weeks]],
-            // duration.[[Days]] + targetTime.[[Days]], 0, 0, 0, 0, 0, 0).
-            let date_duration = DateDuration::new(
-                self.years(),
-                self.months(),
-                self.weeks(),
-                self.days().checked_add(&FiniteF64::from(balanced_days))?,
-            )?;
-
-            // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
-            let target_date = plain_date.add_date(&Duration::from(date_duration), None)?;
-
-            let plain_dt = PlainDateTime::new_unchecked(
-                IsoDateTime::new(plain_date.iso, IsoTime::default())?,
-                plain_date.calendar().clone(),
-            );
-
-            let target_dt = PlainDateTime::new_unchecked(
-                IsoDateTime::new(target_date.iso, time.iso)?,
-                target_date.calendar().clone(),
-            );
-
-            // d. Let roundRecord be ? DifferencePlainDateTimeWithRounding(plainRelativeTo.[[ISOYear]], plainRelativeTo.[[ISOMonth]],
-            // plainRelativeTo.[[ISODay]], 0, 0, 0, 0, 0, 0, targetDate.[[ISOYear]], targetDate.[[ISOMonth]], targetDate.[[ISODay]],
-            // targetTime.[[Hours]], targetTime.[[Minutes]], targetTime.[[Seconds]], targetTime.[[Milliseconds]],
-            // targetTime.[[Microseconds]], targetTime.[[Nanoseconds]], calendarRec, largestUnit, roundingIncrement,
-            // smallestUnit, roundingMode, emptyOptions).
-            let round_record = plain_dt.diff_dt_with_rounding(&target_dt, resolved_options)?;
-            // e. Let roundResult be roundRecord.[[DurationRecord]].
-            round_record.0
-        // 40. Else,
-        } else {
-            // a. If calendarUnitsPresent is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
-            if calendar_units_present || resolved_options.largest_unit.is_calendar_unit() {
-                return Err(TemporalError::range()
-                    .with_message("Calendar units cannot be present without a relative point."));
+        match relative_to {
+            // 38. If zonedRelativeTo is not undefined, then
+            Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {
+                // a. Let relativeEpochNs be zonedRelativeTo.[[Nanoseconds]].
+                // b. Let relativeInstant be ! CreateTemporalInstant(relativeEpochNs).
+                // c. Let targetEpochNs be ? AddZonedDateTime(relativeInstant, timeZoneRec, calendarRec, duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], norm, precalculatedPlainDateTime).
+                let target_epoch_ns =
+                    zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
+                // d. Let roundRecord be ? DifferenceZonedDateTimeWithRounding(relativeEpochNs, targetEpochNs, calendarRec, timeZoneRec, precalculatedPlainDateTime, emptyOptions, largestUnit, roundingIncrement, smallestUnit, roundingMode).
+                // e. Let roundResult be roundRecord.[[DurationRecord]].
+                let internal = zoned_datetime.diff_with_rounding(
+                    &ZonedDateTime::new_unchecked(
+                        target_epoch_ns,
+                        zoned_datetime.calendar().clone(),
+                        zoned_datetime.timezone().clone(),
+                    ),
+                    resolved_options,
+                    provider,
+                )?;
+                Duration::from_normalized(internal, resolved_options.largest_unit)
             }
-            // b. Assert: IsCalendarUnit(smallestUnit) is false.
-            temporal_assert!(
-                !resolved_options.smallest_unit.is_calendar_unit(),
-                "Assertion failed: resolvedOptions contains a calendar unit\n{:?}",
-                resolved_options
-            );
+            // 39. Else if plainRelativeTo is not undefined, then
+            Some(RelativeTo::PlainDate(plain_date)) => {
+                // a. Let targetTime be AddTime(0, 0, 0, 0, 0, 0, norm).
+                let (balanced_days, time) = PlainTime::default().add_normalized_time_duration(norm);
+                // b. Let dateDuration be ? CreateTemporalDuration(duration.[[Years]], duration.[[Months]], duration.[[Weeks]],
+                // duration.[[Days]] + targetTime.[[Days]], 0, 0, 0, 0, 0, 0).
+                let date_duration = DateDuration::new(
+                    self.years(),
+                    self.months(),
+                    self.weeks(),
+                    self.days().checked_add(&FiniteF64::from(balanced_days))?,
+                )?;
 
-            // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
-            let (round_record, _) = norm.round(self.days(), resolved_options)?;
-            // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
-            // roundRecord.[[NormalizedDuration]].[[Days]]).
-            let norm_with_days = round_record
-                .normalized_time_duration()
-                .add_days(round_record.date().days.as_())?;
-            // e. Let balanceResult be ? BalanceTimeDuration(normWithDays, largestUnit).
-            let (balanced_days, balanced_time) =
-                TimeDuration::from_normalized(norm_with_days, resolved_options.largest_unit)?;
-            // f. Let roundResult be CreateDurationRecord(0, 0, 0, balanceResult.[[Days]], balanceResult.[[Hours]],
-            // balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]],
-            // balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]).
-            Duration::from_day_and_time(balanced_days, &balanced_time)
-        };
+                // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
+                let target_date = plain_date.add_date(&Duration::from(date_duration), None)?;
 
-        // 41. Return ? CreateTemporalDuration(roundResult.[[Years]], roundResult.[[Months]], roundResult.[[Weeks]], roundResult.[[Days]], roundResult.[[Hours]], roundResult.[[Minutes]], roundResult.[[Seconds]], roundResult.[[Milliseconds]], roundResult.[[Microseconds]], roundResult.[[Nanoseconds]]).
-        Ok(round_result)
+                let plain_dt = PlainDateTime::new_unchecked(
+                    IsoDateTime::new(plain_date.iso, IsoTime::default())?,
+                    plain_date.calendar().clone(),
+                );
+
+                let target_dt = PlainDateTime::new_unchecked(
+                    IsoDateTime::new(target_date.iso, time.iso)?,
+                    target_date.calendar().clone(),
+                );
+
+                // d. Let roundRecord be ? DifferencePlainDateTimeWithRounding(plainRelativeTo.[[ISOYear]], plainRelativeTo.[[ISOMonth]],
+                // plainRelativeTo.[[ISODay]], 0, 0, 0, 0, 0, 0, targetDate.[[ISOYear]], targetDate.[[ISOMonth]], targetDate.[[ISODay]],
+                // targetTime.[[Hours]], targetTime.[[Minutes]], targetTime.[[Seconds]], targetTime.[[Milliseconds]],
+                // targetTime.[[Microseconds]], targetTime.[[Nanoseconds]], calendarRec, largestUnit, roundingIncrement,
+                // smallestUnit, roundingMode, emptyOptions).
+                let round_record = plain_dt.diff_dt_with_rounding(&target_dt, resolved_options)?;
+                // e. Let roundResult be roundRecord.[[DurationRecord]].
+                Duration::from_normalized(round_record, resolved_options.largest_unit)
+            }
+            // 40. Else,
+            None => {
+                // a. If calendarUnitsPresent is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
+                if calendar_units_present || resolved_options.largest_unit.is_calendar_unit() {
+                    return Err(TemporalError::range().with_message(
+                        "Calendar units cannot be present without a relative point.",
+                    ));
+                }
+                // b. Assert: IsCalendarUnit(smallestUnit) is false.
+                temporal_assert!(
+                    !resolved_options.smallest_unit.is_calendar_unit(),
+                    "Assertion failed: resolvedOptions contains a calendar unit\n{:?}",
+                    resolved_options
+                );
+
+                // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
+                let (round_record, _) = norm.round(self.days(), resolved_options)?;
+                // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
+                // roundRecord.[[NormalizedDuration]].[[Days]]).
+                let norm_with_days = round_record
+                    .normalized_time_duration()
+                    .add_days(round_record.date().days.as_())?;
+                // e. Let balanceResult be ? BalanceTimeDuration(normWithDays, largestUnit).
+                let (balanced_days, balanced_time) =
+                    TimeDuration::from_normalized(norm_with_days, resolved_options.largest_unit)?;
+                // f. Let roundResult be CreateDurationRecord(0, 0, 0, balanceResult.[[Days]], balanceResult.[[Hours]],
+                // balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]],
+                // balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]).
+
+                // 41. Return ? CreateTemporalDuration(roundResult.[[Years]], roundResult.[[Months]],
+                // roundResult.[[Weeks]], roundResult.[[Days]], roundResult.[[Hours]],
+                // roundResult.[[Minutes]], roundResult.[[Seconds]], roundResult.[[Milliseconds]],
+                // roundResult.[[Microseconds]], roundResult.[[Nanoseconds]]).
+
+                Ok(Duration::from_day_and_time(balanced_days, &balanced_time))
+            }
+        }
+    }
+}
+
+#[cfg(feature = "experimental")]
+impl Duration {
+    pub fn round(
+        &self,
+        options: RoundingOptions,
+        relative_to: Option<RelativeTo<'_>>,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.round_with_provider(options, relative_to, provider.deref())
     }
 }
 
