@@ -281,13 +281,12 @@ impl ZonedDateTime {
     #[inline]
     pub fn from_partial_with_provider(
         partial: PartialZonedDateTime,
-        calendar: Option<Calendar>,
         overflow: Option<ArithmeticOverflow>,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
         provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
-        let calendar = calendar.unwrap_or_default();
+        let calendar = partial.date.calendar.clone();
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         let disambiguation = disambiguation.unwrap_or(Disambiguation::Compatible);
         let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);

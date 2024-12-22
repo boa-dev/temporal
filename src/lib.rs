@@ -10,6 +10,7 @@
 //!
 //! This library's primary source is the Temporal Proposal
 //! [specification][spec].
+//!
 //! [proposal]: https://github.com/tc39/proposal-temporal
 //! [spec]: https://tc39.es/proposal-temporal/
 #![doc(

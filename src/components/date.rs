@@ -361,7 +361,6 @@ impl PlainDate {
     #[inline]
     pub fn from_partial(
         partial: PartialDate,
-        calendar: Option<Calendar>,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         let year_check =
@@ -370,7 +369,8 @@ impl PlainDate {
         if !year_check || !month_check || partial.day.is_none() {
             return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."));
         }
-        let calendar = calendar.unwrap_or_default();
+
+        let calendar = partial.calendar.clone();
         let overflow = overflow.unwrap_or_default();
         calendar.date_from_partial(&partial, overflow)
     }

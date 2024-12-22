@@ -320,10 +320,9 @@ impl PlainDateTime {
     /// ```
     pub fn from_partial(
         partial: PartialDateTime,
-        calendar: Option<Calendar>,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        let date = PlainDate::from_partial(partial.date, calendar, overflow)?;
+        let date = PlainDate::from_partial(partial.date, overflow)?;
         let time = PlainTime::from_partial(partial.time, overflow)?;
         Self::from_date_and_time(date, time)
     }
