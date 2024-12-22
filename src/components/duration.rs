@@ -1,7 +1,7 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{tz::TzProvider, PlainDateTime, PlainTime},
+    components::{timezone::TzProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
@@ -20,7 +20,7 @@ use num_traits::AsPrimitive;
 use self::normalized::NormalizedTimeDuration;
 
 #[cfg(feature = "experimental")]
-use crate::components::tz::TZ_PROVIDER;
+use crate::components::timezone::TZ_PROVIDER;
 #[cfg(feature = "experimental")]
 use core::ops::Deref;
 

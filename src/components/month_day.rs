@@ -5,10 +5,8 @@ use core::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    components::calendar::Calendar,
-    iso::{IsoDate, IsoDateSlots},
-    options::ArithmeticOverflow,
-    TemporalError, TemporalResult, TemporalUnwrap,
+    components::calendar::Calendar, iso::IsoDate, options::ArithmeticOverflow, TemporalError,
+    TemporalResult, TemporalUnwrap,
 };
 
 use super::calendar::{CalendarDateLike, GetTemporalCalendar};
@@ -17,7 +15,7 @@ use super::calendar::{CalendarDateLike, GetTemporalCalendar};
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct PlainMonthDay {
-    iso: IsoDate,
+    pub iso: IsoDate,
     calendar: Calendar,
 }
 
@@ -89,14 +87,6 @@ impl PlainMonthDay {
 impl GetTemporalCalendar for PlainMonthDay {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
-    }
-}
-
-impl IsoDateSlots for PlainMonthDay {
-    #[inline]
-    /// Returns this structs `IsoDate`.
-    fn iso_date(&self) -> IsoDate {
-        self.iso
     }
 }
 

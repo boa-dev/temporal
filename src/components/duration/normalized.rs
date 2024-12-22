@@ -6,7 +6,7 @@ use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
     components::{
-        tz::{TimeZone, TzProvider},
+        timezone::{TimeZone, TzProvider},
         PlainDate, PlainDateTime,
     },
     iso::{IsoDate, IsoDateTime},
@@ -68,7 +68,6 @@ impl NormalizedTimeDuration {
 
     // NOTE: `days: f64` should be an integer -> `i64`.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
-    #[allow(unused)]
     pub(crate) fn add_days(&self, days: i64) -> TemporalResult<Self> {
         let result = self.0 + i128::from(days) * i128::from(NS_PER_DAY);
         if result.abs() > MAX_TIME_DURATION {
@@ -288,11 +287,10 @@ impl NormalizedDurationRecord {
 // Generally, this rounding is implemented on a NormalizedDurationRecord,
 // which is the reason the functionality lives below.
 
-#[allow(unused)]
 #[derive(Debug)]
 struct NudgeRecord {
     normalized: NormalizedDurationRecord,
-    total: Option<i128>, // TODO: adjust
+    _total: Option<i128>, // TODO: adjust
     nudge_epoch_ns: i128,
     expanded: bool,
 }
@@ -570,7 +568,7 @@ impl NormalizedDurationRecord {
                     end_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                total: Some(total as i128),
+                _total: Some(total as i128),
                 nudge_epoch_ns: end_epoch_ns.0,
                 expanded: true,
             })
@@ -584,7 +582,7 @@ impl NormalizedDurationRecord {
                     start_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                total: Some(total as i128),
+                _total: Some(total as i128),
                 nudge_epoch_ns: start_epoch_ns.0,
                 expanded: false,
             })
@@ -596,20 +594,18 @@ impl NormalizedDurationRecord {
     fn nudge_to_zoned_time(
         &self,
         sign: Sign,
-        iso: &PlainDateTime,
+        dt: &PlainDateTime,
         tz: &TimeZone,
         options: ResolvedRoundingOptions,
         provider: &impl TzProvider,
     ) -> TemporalResult<NudgeRecord> {
         let d = Duration::from(self.date());
         // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
-        let start = iso.calendar().date_add(
-            &PlainDate::new_unchecked(iso.iso.date, iso.calendar().clone()),
-            &d,
-            ArithmeticOverflow::Constrain,
-        )?;
+        let start = dt
+            .calendar()
+            .date_add(&dt.iso.date, &d, ArithmeticOverflow::Constrain)?;
         // 2. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
-        let start_dt = IsoDateTime::new_unchecked(start.iso, iso.iso.time);
+        let start_dt = IsoDateTime::new_unchecked(start.iso, dt.iso.time);
 
         // 3. Let endDate be BalanceISODate(start.[[Year]], start.[[Month]], start.[[Day]] + sign).
         let end_date = IsoDate::balance(
@@ -619,7 +615,7 @@ impl NormalizedDurationRecord {
         );
 
         // 4. Let endDateTime be CombineISODateAndTimeRecord(endDate, isoDateTime.[[Time]]).
-        let end_dt = IsoDateTime::new_unchecked(end_date, iso.iso.time);
+        let end_dt = IsoDateTime::new_unchecked(end_date, dt.iso.time);
         // 5. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
         let start_ns =
             tz.get_epoch_nanoseconds_for(start_dt, Disambiguation::Compatible, provider)?;
@@ -679,7 +675,7 @@ impl NormalizedDurationRecord {
         Ok(NudgeRecord {
             normalized,
             nudge_epoch_ns: nudge_ns.0,
-            total: None,
+            _total: None,
             expanded,
         })
     }
@@ -755,7 +751,7 @@ impl NormalizedDurationRecord {
         // [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandDays }.
         Ok(NudgeRecord {
             normalized: result_duration,
-            total: Some(total),
+            _total: Some(total),
             nudge_epoch_ns: nudged_ns,
             expanded: did_expand_days,
         })

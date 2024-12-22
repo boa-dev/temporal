@@ -2,7 +2,7 @@
 
 use crate::{
     components::{calendar::Calendar, Instant},
-    iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
+    iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         RoundingOptions, TemporalUnit,
@@ -17,12 +17,12 @@ use tinystr::TinyAsciiStr;
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    tz::NeverProvider,
+    timezone::NeverProvider,
     Duration, PartialDate, PartialTime, PlainDate, PlainTime,
 };
 
 /// A partial PlainDateTime record
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct PartialDateTime {
     /// The `PartialDate` portion of a `PartialDateTime`
     pub date: PartialDate,
@@ -61,17 +61,9 @@ impl PlainDateTime {
     }
 
     // TODO: Potentially deprecate and remove.
-    /// Utility function for validating `IsoDate`s
-    #[inline]
-    #[must_use]
-    fn validate_iso(iso: IsoDate) -> bool {
-        IsoDateTime::new_unchecked(iso, IsoTime::noon()).is_within_limits()
-    }
-
-    // TODO: Potentially deprecate and remove.
     /// Create a new `DateTime` from an `Instant`.
-    #[inline]
     #[allow(unused)]
+    #[inline]
     pub(crate) fn from_instant(
         instant: &Instant,
         offset: i64,
@@ -428,12 +420,6 @@ impl PlainDateTime {
         )
     }
 
-    /// Validates whether ISO date slots are within iso limits at noon.
-    #[inline]
-    pub fn validate<T: IsoDateSlots>(target: &T) -> bool {
-        Self::validate_iso(target.iso_date())
-    }
-
     /// Returns this `Date`'s ISO year value.
     #[inline]
     #[must_use]
@@ -641,12 +627,6 @@ impl PlainDateTime {
 impl GetTemporalCalendar for PlainDateTime {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
-    }
-}
-
-impl IsoDateSlots for PlainDateTime {
-    fn iso_date(&self) -> IsoDate {
-        self.iso.date
     }
 }
 

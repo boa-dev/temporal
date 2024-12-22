@@ -1,14 +1,24 @@
-//! This module implements the internal ISO field slots.
+//! This module implements the internal ISO field records.
 //!
-//! The three main types of slots are:
+//! While these are public structs, the records are primarily
+//! meant for internal Temporal calculations or calling `Calendar`
+//! methods. Prefer using `PlainDateTime`, `PlainDate`, or `PlainTime`
+//!
+//! The three main types of records are:
 //!   - `IsoDateTime`
 //!   - `IsoDate`
 //!   - `IsoTime`
 //!
+//! ## `IsoDate`
+//!
 //! An `IsoDate` represents the `[[ISOYear]]`, `[[ISOMonth]]`, and `[[ISODay]]` internal slots.
+//!
+//! ## `IsoTime`
 //!
 //! An `IsoTime` represents the `[[ISOHour]]`, `[[ISOMinute]]`, `[[ISOsecond]]`, `[[ISOmillisecond]]`,
 //! `[[ISOmicrosecond]]`, and `[[ISOnanosecond]]` internal slots.
+//!
+//! ## `IsoDateTime`
 //!
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
@@ -39,7 +49,9 @@ use num_traits::{cast::FromPrimitive, AsPrimitive, Euclid, ToPrimitive};
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoDateTime {
+    /// The `IsoDate` fields.
     pub date: IsoDate,
+    /// The `IsoTime` fields.
     pub time: IsoTime,
 }
 
@@ -112,7 +124,7 @@ impl IsoDateTime {
     }
 
     #[allow(clippy::too_many_arguments)]
-    pub fn balance(
+    pub(crate) fn balance(
         year: i32,
         month: i32,
         day: i32,
@@ -268,12 +280,6 @@ impl IsoDateTime {
 
 // ==== `IsoDate` section ====
 
-/// A trait for accessing the `IsoDate` across the various Temporal objects
-pub trait IsoDateSlots {
-    /// Returns the target's internal `IsoDate`.
-    fn iso_date(&self) -> IsoDate;
-}
-
 /// `IsoDate` serves as a record for the `[[ISOYear]]`, `[[ISOMonth]]`,
 /// and `[[ISODay]]` internal fields.
 ///
@@ -282,8 +288,11 @@ pub trait IsoDateSlots {
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoDate {
+    /// An ISO year within a range -271821..=275760
     pub year: i32,
+    /// An ISO month within a valid range 1..=12
     pub month: u8,
+    /// An ISO day within a valid range of 1..=31
     pub day: u8,
 }
 
@@ -509,12 +518,18 @@ impl IsoDate {
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IsoTime {
-    pub hour: u8,         // 0..=23
-    pub minute: u8,       // 0..=59
-    pub second: u8,       // 0..=59
+    /// A valid hour value between 0..=23
+    pub hour: u8, // 0..=23
+    /// A valid minute value between 0..=59
+    pub minute: u8, // 0..=59
+    /// A valid second value between 0..=59
+    pub second: u8, // 0..=59
+    /// A valid millisecond value between 0..=999
     pub millisecond: u16, // 0..=999
+    /// A valid microsecond value between 0..=999
     pub microsecond: u16, // 0..=999
-    pub nanosecond: u16,  // 0..=999
+    /// A valid nanosecond value between 0..=999
+    pub nanosecond: u16, // 0..=999
 }
 
 impl IsoTime {

@@ -9,7 +9,7 @@ use crate::{iso::IsoDateTime, TemporalUnwrap};
 
 use super::{
     calendar::Calendar,
-    tz::{TimeZone, TzProvider},
+    timezone::{TimeZone, TzProvider},
     EpochNanoseconds, Instant, PlainDateTime,
 };
 

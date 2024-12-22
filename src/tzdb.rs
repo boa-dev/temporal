@@ -48,7 +48,7 @@ use tzif::{
 };
 
 use crate::{
-    components::{tz::TzProvider, EpochNanoseconds},
+    components::{timezone::TzProvider, EpochNanoseconds},
     iso::IsoDateTime,
     utils, TemporalError, TemporalResult,
 };

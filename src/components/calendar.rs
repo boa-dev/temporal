@@ -16,7 +16,7 @@ use crate::{
         duration::{DateDuration, TimeDuration},
         Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
-    iso::{IsoDate, IsoDateSlots},
+    iso::IsoDate,
     options::{ArithmeticOverflow, TemporalUnit},
     TemporalError, TemporalResult,
 };
@@ -254,10 +254,10 @@ impl CalendarDateLike<'_> {
     #[must_use]
     pub fn as_iso_date(&self) -> IsoDate {
         match self {
-            CalendarDateLike::DateTime(dt) => dt.iso_date(),
-            CalendarDateLike::Date(d) => d.iso_date(),
-            CalendarDateLike::YearMonth(ym) => ym.iso_date(),
-            CalendarDateLike::MonthDay(md) => md.iso_date(),
+            CalendarDateLike::DateTime(dt) => dt.iso.date,
+            CalendarDateLike::Date(d) => d.iso,
+            CalendarDateLike::YearMonth(ym) => ym.iso,
+            CalendarDateLike::MonthDay(md) => md.iso,
         }
     }
 }
@@ -377,7 +377,7 @@ impl Calendar {
     /// `CalendarDateAdd`
     pub fn date_add(
         &self,
-        date: &PlainDate,
+        date: &IsoDate,
         duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
@@ -390,7 +390,7 @@ impl Calendar {
 
             // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
             // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
-            let result = date.iso.add_date_duration(
+            let result = date.add_date_duration(
                 &DateDuration::new_unchecked(
                     duration.years(),
                     duration.months(),
@@ -400,12 +400,7 @@ impl Calendar {
                 overflow,
             )?;
             // 11. Return ? CreateTemporalDate(result.[[Year]], result.[[Month]], result.[[Day]], "iso8601").
-            return PlainDate::try_new(
-                result.year,
-                result.month,
-                result.day,
-                date.calendar().clone(),
-            );
+            return PlainDate::try_new(result.year, result.month, result.day, self.clone());
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
@@ -414,12 +409,12 @@ impl Calendar {
     /// `CalendarDateUntil`
     pub fn date_until(
         &self,
-        one: &PlainDate,
-        two: &PlainDate,
+        one: &IsoDate,
+        two: &IsoDate,
         largest_unit: TemporalUnit,
     ) -> TemporalResult<Duration> {
         if self.is_iso() {
-            let date_duration = one.iso.diff_iso_date(&two.iso, largest_unit)?;
+            let date_duration = one.diff_iso_date(two, largest_unit)?;
             return Ok(Duration::from(date_duration));
         }
 
@@ -753,7 +748,7 @@ impl From<PlainYearMonth> for Calendar {
 
 #[cfg(test)]
 mod tests {
-    use crate::{components::PlainDate, iso::IsoDate, options::TemporalUnit};
+    use crate::{iso::IsoDate, options::TemporalUnit};
 
     use super::Calendar;
 
@@ -1016,14 +1011,8 @@ mod tests {
         let calendar = Calendar::default();
 
         for test in tests {
-            let first = PlainDate::new_unchecked(
-                IsoDate::new_unchecked(test.0 .0, test.0 .1, test.0 .2),
-                calendar.clone(),
-            );
-            let second = PlainDate::new_unchecked(
-                IsoDate::new_unchecked(test.1 .0, test.1 .1, test.1 .2),
-                calendar.clone(),
-            );
+            let first = IsoDate::new_unchecked(test.0 .0, test.0 .1, test.0 .2);
+            let second = IsoDate::new_unchecked(test.1 .0, test.1 .1, test.1 .2);
             let result = calendar
                 .date_until(&first, &second, TemporalUnit::Year)
                 .unwrap();
