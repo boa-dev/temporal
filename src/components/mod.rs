@@ -8,7 +8,7 @@
 
 pub mod calendar;
 pub mod duration;
-pub mod tz;
+pub mod timezone;
 
 mod date;
 mod datetime;

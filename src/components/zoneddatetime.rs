@@ -9,7 +9,7 @@ use crate::{
     components::{
         calendar::CalendarDateLike,
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        tz::{parse_offset, TzProvider},
+        timezone::{parse_offset, TzProvider},
         EpochNanoseconds,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -25,7 +25,7 @@ use crate::{
 };
 
 #[cfg(feature = "experimental")]
-use crate::components::tz::TZ_PROVIDER;
+use crate::components::timezone::TZ_PROVIDER;
 #[cfg(feature = "experimental")]
 use std::ops::Deref;
 
@@ -92,11 +92,9 @@ impl ZonedDateTime {
         // 2. Let isoDateTime be GetISODateTimeFor(timeZone, epochNanoseconds).
         let iso_datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         // 3. Let addedDate be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], overflow).
-        let added_date = self.calendar().date_add(
-            &PlainDate::new_unchecked(iso_datetime.date, self.calendar().clone()),
-            duration,
-            overflow,
-        )?;
+        let added_date = self
+            .calendar()
+            .date_add(&iso_datetime.date, duration, overflow)?;
         // 4. Let intermediateDateTime be CombineISODateAndTimeRecord(addedDate, isoDateTime.[[Time]]).
         let intermediate = IsoDateTime::new_unchecked(added_date.iso, iso_datetime.time);
         // 5. If ISODateTimeWithinLimits(intermediateDateTime) is false, throw a RangeError exception.
@@ -249,11 +247,9 @@ impl ZonedDateTime {
         let date_largest = largest_unit.max(TemporalUnit::Day);
         // 13. Let dateDifference be CalendarDateUntil(calendar, startDateTime.[[ISODate]], intermediateDateTime.[[ISODate]], dateLargestUnit).
         // 14. Return CombineDateAndTimeDuration(dateDifference, timeDuration).
-        let date_diff = self.calendar().date_until(
-            &PlainDate::new_unchecked(start.date, self.calendar().clone()),
-            &PlainDate::new_unchecked(intermediate_dt.date, self.calendar().clone()),
-            date_largest,
-        )?;
+        let date_diff =
+            self.calendar()
+                .date_until(&start.date, &intermediate_dt.date, date_largest)?;
         NormalizedDurationRecord::new(*date_diff.date(), time_duration)
     }
 }
@@ -285,18 +281,20 @@ impl ZonedDateTime {
     #[inline]
     pub fn from_partial_with_provider(
         partial: PartialZonedDateTime,
-        calendar: Option<Calendar>,
         overflow: Option<ArithmeticOverflow>,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
         provider: &impl TzProvider,
     ) -> TemporalResult<Self> {
-        let calendar = calendar.unwrap_or_default();
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         let disambiguation = disambiguation.unwrap_or(Disambiguation::Compatible);
         let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
 
-        let date = calendar.date_from_partial(&partial.date, overflow)?.iso;
+        let date = partial
+            .date
+            .calendar
+            .date_from_partial(&partial.date, overflow)?
+            .iso;
         let time = if !partial.time.is_empty() {
             Some(IsoTime::default().with(partial.time, overflow)?)
         } else {
@@ -332,7 +330,7 @@ impl ZonedDateTime {
 
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos),
-            calendar,
+            partial.date.calendar.clone(),
             partial.timezone,
         ))
     }
@@ -1264,8 +1262,7 @@ mod tests {
             timezone: TimeZone::default(),
         };
 
-        let result =
-            ZonedDateTime::from_partial_with_provider(partial, None, None, None, None, provider);
+        let result = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider);
         assert!(result.is_ok());
     }
 

@@ -1,4 +1,4 @@
-//! The `Temporal` crate is an implementation of ECMAScript's Temporal
+//! The `temporal_rs` crate is an implementation of ECMAScript's Temporal
 //! built-in objects.
 //!
 //! The crate is being designed with both engine and general use in
@@ -47,12 +47,12 @@ extern crate core;
 extern crate std;
 
 pub mod error;
+pub mod iso;
 pub mod options;
 pub mod parsers;
 pub mod primitive;
 
 pub(crate) mod components;
-pub(crate) mod iso;
 
 #[cfg(feature = "now")]
 mod sys;
@@ -94,8 +94,8 @@ pub mod time {
 }
 
 pub use crate::components::{
-    calendar::Calendar, tz::TimeZone, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay,
-    PlainTime, PlainYearMonth, ZonedDateTime,
+    calendar::Calendar, timezone::TimeZone, Duration, Instant, PlainDate, PlainDateTime,
+    PlainMonthDay, PlainTime, PlainYearMonth, ZonedDateTime,
 };
 
 #[cfg(feature = "std")]

@@ -6,10 +6,7 @@ use core::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    components::calendar::Calendar,
-    iso::{IsoDate, IsoDateSlots},
-    options::ArithmeticOverflow,
-    utils::pad_iso_year,
+    components::calendar::Calendar, iso::IsoDate, options::ArithmeticOverflow, utils::pad_iso_year,
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
@@ -22,7 +19,7 @@ use super::{
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
 pub struct PlainYearMonth {
-    iso: IsoDate,
+    pub(crate) iso: IsoDate,
     calendar: Calendar,
 }
 
@@ -167,14 +164,6 @@ impl GetTemporalCalendar for PlainYearMonth {
     /// Returns a reference to `YearMonth`'s `CalendarSlot`
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
-    }
-}
-
-impl IsoDateSlots for PlainYearMonth {
-    #[inline]
-    /// Returns this `YearMonth`'s `IsoDate`
-    fn iso_date(&self) -> IsoDate {
-        self.iso
     }
 }
 

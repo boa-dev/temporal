@@ -8,7 +8,7 @@ use crate::{
         duration::DateDuration,
         Duration, PlainDateTime,
     },
-    iso::{IsoDate, IsoDateSlots, IsoDateTime, IsoTime},
+    iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         TemporalUnit,
@@ -24,7 +24,7 @@ use core::str::FromStr;
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    tz::NeverProvider,
+    timezone::NeverProvider,
     PlainMonthDay, PlainTime, PlainYearMonth,
 };
 
@@ -32,7 +32,7 @@ use super::{
 // "ethiopic-amete-alem". TODO: PrepareTemporalFields expects a type
 // error to be thrown when all partial fields are None/undefined.
 /// A partial PlainDate that may or may not be complete.
-#[derive(Debug, Default, Clone, Copy, PartialEq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PartialDate {
     // A potentially set `year` field.
     pub year: Option<i32>,
@@ -46,6 +46,8 @@ pub struct PartialDate {
     pub era: Option<TinyAsciiStr<19>>,
     // A potentially set `era_year` field.
     pub era_year: Option<i32>,
+    /// The calendar field
+    pub calendar: Calendar,
 }
 
 impl PartialDate {
@@ -75,6 +77,7 @@ impl PartialDate {
             day: Some(1),
             era,
             era_year,
+            calendar: year_month.calendar().clone(),
         })
     }
 
@@ -120,6 +123,7 @@ macro_rules! impl_with_fallback_method {
                 day: Some(self.day.unwrap_or(fallback.day()?.into())),
                 era,
                 era_year,
+                calendar: fallback.calendar().clone(),
             })
         }
     };
@@ -175,7 +179,7 @@ impl PlainDate {
             // i. Set dateAdd to unused.
             // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
             // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
-            return self.calendar().date_add(self, duration, overflow);
+            return self.calendar().date_add(&self.iso, duration, overflow);
         }
 
         // 4. Let overflow be ? ToTemporalOverflow(options).
@@ -234,7 +238,8 @@ impl PlainDate {
             )?));
         }
 
-        self.calendar().date_until(self, other, largest_unit)
+        self.calendar()
+            .date_until(&self.iso, &other.iso, largest_unit)
     }
 
     /// Equivalent: DifferenceTemporalPlainDate
@@ -345,7 +350,7 @@ impl PlainDate {
     ///     ..Default::default()
     /// };
     ///
-    /// let date = PlainDate::from_partial(partial, None, None).unwrap();
+    /// let date = PlainDate::from_partial(partial, None).unwrap();
     ///
     /// assert_eq!(date.year().unwrap(), 2000);
     /// assert_eq!(date.month().unwrap(), 12);
@@ -356,7 +361,6 @@ impl PlainDate {
     #[inline]
     pub fn from_partial(
         partial: PartialDate,
-        calendar: Option<Calendar>,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         let year_check =
@@ -365,9 +369,9 @@ impl PlainDate {
         if !year_check || !month_check || partial.day.is_none() {
             return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."));
         }
-        let calendar = calendar.unwrap_or_default();
+
         let overflow = overflow.unwrap_or_default();
-        calendar.date_from_partial(&partial, overflow)
+        partial.calendar.date_from_partial(&partial, overflow)
     }
 
     /// Creates a date time with values from a `PartialDate`.
@@ -561,7 +565,7 @@ impl PlainDate {
     #[inline]
     pub fn to_date_time(&self, time: Option<PlainTime>) -> TemporalResult<PlainDateTime> {
         let time = time.unwrap_or_default();
-        let iso = IsoDateTime::new(self.iso_date(), time.iso)?;
+        let iso = IsoDateTime::new(self.iso, time.iso)?;
         Ok(PlainDateTime::new_unchecked(iso, self.get_calendar()))
     }
 
@@ -589,13 +593,6 @@ impl PlainDate {
 impl GetTemporalCalendar for PlainDate {
     fn get_calendar(&self) -> Calendar {
         self.calendar.clone()
-    }
-}
-
-impl IsoDateSlots for PlainDate {
-    /// Returns the structs `IsoDate`
-    fn iso_date(&self) -> IsoDate {
-        self.iso
     }
 }
 

@@ -26,6 +26,8 @@ use std::{
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
     LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
 
+// NOTE: It may be a good idea to eventually move this into it's
+// own individual crate rather than having it tied directly into `temporal_rs`
 pub trait TzProvider {
     fn check_identifier(&self, identifier: &str) -> bool;
 
