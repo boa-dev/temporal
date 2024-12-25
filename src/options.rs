@@ -3,16 +3,15 @@
 //! Temporal has various instances where user's can define options for how an
 //! operation may be completed.
 
+use crate::{Sign, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
 use core::ops::Add;
 use core::{fmt, str::FromStr};
 
-use crate::{
-    components::{PlainDate, ZonedDateTime},
-    Sign, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY,
-};
-
 mod increment;
+mod relative_to;
+
 pub use increment::RoundingIncrement;
+pub use relative_to::RelativeTo;
 
 // ==== RoundingOptions / DifferenceSettings ====
 
@@ -230,26 +229,6 @@ impl ResolvedRoundingOptions {
 
     pub(crate) fn is_noop(&self) -> bool {
         self.smallest_unit == TemporalUnit::Nanosecond && self.increment == RoundingIncrement::ONE
-    }
-}
-
-// ==== RelativeTo Object ====
-
-#[derive(Debug, Clone)]
-pub enum RelativeTo<'a> {
-    PlainDate(&'a PlainDate),
-    ZonedDateTime(&'a ZonedDateTime),
-}
-
-impl<'a> From<&'a PlainDate> for RelativeTo<'a> {
-    fn from(value: &'a PlainDate) -> Self {
-        Self::PlainDate(value)
-    }
-}
-
-impl<'a> From<&'a ZonedDateTime> for RelativeTo<'a> {
-    fn from(value: &'a ZonedDateTime) -> Self {
-        Self::ZonedDateTime(value)
     }
 }
 

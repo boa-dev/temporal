@@ -38,7 +38,7 @@ fn basic_positive_floor_rounding_v2() {
     .unwrap();
     let forward_date = PlainDate::new(2020, 4, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
 
-    let relative_forward = RelativeTo::PlainDate(&forward_date);
+    let relative_forward = RelativeTo::PlainDate(forward_date);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -107,7 +107,7 @@ fn basic_negative_floor_rounding_v2() {
     let backward_date =
         PlainDate::new(2020, 12, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
 
-    let relative_backward = RelativeTo::PlainDate(&backward_date);
+    let relative_backward = RelativeTo::PlainDate(backward_date);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -175,7 +175,7 @@ fn basic_positive_ceil_rounding() {
     .unwrap();
     let forward_date = PlainDate::new(2020, 4, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
 
-    let relative_forward = RelativeTo::PlainDate(&forward_date);
+    let relative_forward = RelativeTo::PlainDate(forward_date);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -242,7 +242,7 @@ fn basic_negative_ceil_rounding() {
     .unwrap();
     let backward_date =
         PlainDate::new(2020, 12, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
-    let relative_backward = RelativeTo::PlainDate(&backward_date);
+    let relative_backward = RelativeTo::PlainDate(backward_date);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -309,7 +309,7 @@ fn basic_positive_expand_rounding() {
     )
     .unwrap();
     let forward_date = PlainDate::new(2020, 4, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
-    let relative_forward = RelativeTo::PlainDate(&forward_date);
+    let relative_forward = RelativeTo::PlainDate(forward_date);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -378,7 +378,7 @@ fn basic_negative_expand_rounding() {
     let backward_date =
         PlainDate::new(2020, 12, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
 
-    let relative_backward = RelativeTo::PlainDate(&backward_date);
+    let relative_backward = RelativeTo::PlainDate(backward_date);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -441,7 +441,7 @@ fn rounding_increment_non_integer() {
         .unwrap(),
     );
     let binding = PlainDate::new(2000, 1, 1, Calendar::from_str("iso8601").unwrap()).unwrap();
-    let relative_to = RelativeTo::PlainDate(&binding);
+    let relative_to = RelativeTo::PlainDate(binding);
 
     let mut options = RoundingOptions {
         largest_unit: None,
@@ -635,7 +635,7 @@ fn round_relative_to_zoned_datetime() {
         increment: None,
     };
     let result = duration
-        .round(options, Some(RelativeTo::ZonedDateTime(&zdt)))
+        .round(options, Some(RelativeTo::ZonedDateTime(zdt)))
         .unwrap();
     // Result duration should be: (0, 0, 0, 1, 1, 0, 0, 0, 0, 0)
     assert_eq!(result.days(), 1.0);
