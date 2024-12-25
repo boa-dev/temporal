@@ -40,7 +40,7 @@ pub struct PartialZonedDateTime {
     /// An optional offset string
     pub offset: Option<String>,
     /// The time zone value of a partial time zone.
-    pub timezone: TimeZone,
+    pub timezone: Option<TimeZone>,
 }
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
@@ -316,12 +316,14 @@ impl ZonedDateTime {
             _ => unreachable!(),
         };
 
+        let timezone = partial.timezone.unwrap_or_default();
+
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
             false,
             offset_nanos,
-            &partial.timezone,
+            &timezone,
             disambiguation,
             offset_option,
             true,
@@ -331,7 +333,7 @@ impl ZonedDateTime {
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos),
             partial.date.calendar.clone(),
-            partial.timezone,
+            timezone,
         ))
     }
 
@@ -999,7 +1001,7 @@ impl ZonedDateTime {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn interpret_isodatetime_offset(
+pub(crate) fn interpret_isodatetime_offset(
     date: IsoDate,
     time: Option<IsoTime>,
     is_exact: bool,

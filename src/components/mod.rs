@@ -16,7 +16,7 @@ mod instant;
 mod month_day;
 mod time;
 mod year_month;
-mod zoneddatetime;
+pub(crate) mod zoneddatetime;
 
 #[cfg(feature = "now")]
 mod now;
