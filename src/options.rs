@@ -92,6 +92,20 @@ impl ResolvedRoundingOptions {
             .largest_unit
             .unwrap_or(smallest_unit.max(fallback_largest));
 
+        // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
+        // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+        // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        if largest_unit.max(smallest_unit) != largest_unit {
+            return Err(TemporalError::range().with_message(
+                "largestUnit when rounding Duration was not the largest provided unit",
+            ));
+        }
+
+        let maximum = smallest_unit.to_maximum_rounding_increment();
+        if let Some(max) = maximum {
+            increment.validate(max.into(), false)?;
+        }
+
         let resolved = ResolvedRoundingOptions {
             largest_unit,
             smallest_unit,
