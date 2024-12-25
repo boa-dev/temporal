@@ -1261,7 +1261,7 @@ mod tests {
             },
             time: PartialTime::default(),
             offset: None,
-            timezone: TimeZone::default(),
+            timezone: Some(TimeZone::default()),
         };
 
         let result = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider);
