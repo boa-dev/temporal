@@ -626,7 +626,7 @@ impl Duration {
     pub fn round(
         &self,
         options: RoundingOptions,
-        relative_to: Option<RelativeTo<'_>>,
+        relative_to: Option<RelativeTo>,
     ) -> TemporalResult<Self> {
         let provider = TZ_PROVIDER
             .lock()
