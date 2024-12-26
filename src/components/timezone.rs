@@ -17,10 +17,7 @@ use crate::{
 #[cfg(feature = "experimental")]
 use crate::tzdb::FsTzdbProvider;
 #[cfg(feature = "experimental")]
-use std::{
-    ops::Deref,
-    sync::{LazyLock, Mutex},
-};
+use std::sync::{LazyLock, Mutex};
 
 #[cfg(feature = "experimental")]
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
@@ -76,7 +73,7 @@ impl TimeZone {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Self::try_from_str_with_provider(source, provider.deref())
+        Self::try_from_str_with_provider(source, &*provider)
     }
 
     /// Parses a `TimeZone` from a provided `&str`.
