@@ -462,7 +462,7 @@ mod tests {
     use crate::{
         components::Duration,
         iso::IsoTime,
-        options::{ArithmeticOverflow, DifferenceSettings, TemporalUnit},
+        options::{ArithmeticOverflow, DifferenceSettings, RoundingIncrement, TemporalUnit},
     };
     use num_traits::FromPrimitive;
 
@@ -482,6 +482,11 @@ mod tests {
                 }
             }
         );
+    }
+
+    fn assert_duration(result: Duration, values: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {
+        let fields = result.fields().iter().map(|v| v.as_date_value().unwrap()).collect::<alloc::vec::Vec<i32>>();
+        assert_eq!(fields, &[values.0, values.1, values.2, values.3, values.4, values.5, values.6, values.7, values.8, values.9])
     }
 
     #[test]
@@ -645,6 +650,22 @@ mod tests {
         let result = three.until(&one, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), -1.0);
         assert_eq!(result.minutes(), -37.0);
+    }
+
+    #[test]
+    fn since_rounding() {
+        let earlier = PlainTime::new(3, 12, 34, 123, 456, 789).unwrap();
+        let later = PlainTime::new(13, 47, 57, 988, 655, 322).unwrap();
+
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Second);
+        settings.increment = Some(RoundingIncrement::try_new(1).unwrap());
+        assert_duration(later.since(&earlier, settings).unwrap(), (0, 0, 0, 0, 10, 35, 23, 0, 0, 0));
+
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Second);
+        settings.increment = Some(RoundingIncrement::try_new(4).unwrap());
+        assert_duration(later.since(&earlier, settings).unwrap(), (0, 0, 0, 0, 10, 35, 20, 0, 0, 0));
     }
 
     #[test]

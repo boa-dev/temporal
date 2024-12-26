@@ -660,9 +660,9 @@ impl TemporalRoundingMode {
 
         match self {
             Ceil if is_positive => TemporalUnsignedRoundingMode::Infinity,
-            Ceil => TemporalUnsignedRoundingMode::Zero,
+            Ceil | Trunc => TemporalUnsignedRoundingMode::Zero,
             Floor if is_positive => TemporalUnsignedRoundingMode::Zero,
-            Floor | Trunc | Expand => TemporalUnsignedRoundingMode::Infinity,
+            Floor | Expand => TemporalUnsignedRoundingMode::Infinity,
             HalfCeil if is_positive => TemporalUnsignedRoundingMode::HalfInfinity,
             HalfCeil | HalfTrunc => TemporalUnsignedRoundingMode::HalfZero,
             HalfFloor if is_positive => TemporalUnsignedRoundingMode::HalfZero,
