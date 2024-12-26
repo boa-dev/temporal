@@ -21,8 +21,6 @@ use self::normalized::NormalizedTimeDuration;
 
 #[cfg(feature = "experimental")]
 use crate::components::timezone::TZ_PROVIDER;
-#[cfg(feature = "experimental")]
-use core::ops::Deref;
 
 mod date;
 pub(crate) mod normalized;
@@ -633,7 +631,7 @@ impl Duration {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.round_with_provider(options, relative_to, provider.deref())
+        self.round_with_provider(options, relative_to, &*provider)
     }
 }
 
