@@ -94,7 +94,7 @@ impl ResolvedRoundingOptions {
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
         // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
-        if largest_unit.max(smallest_unit) != largest_unit {
+        if largest_unit < smallest_unit {
             return Err(TemporalError::range().with_message(
                 "largestUnit when rounding Duration was not the largest provided unit",
             ));
@@ -156,7 +156,7 @@ impl ResolvedRoundingOptions {
             Some(unit) => unit,
         };
 
-        if largest_unit.max(smallest_unit) != largest_unit {
+        if largest_unit < smallest_unit {
             return Err(TemporalError::range().with_message(
                 "largestUnit when rounding Duration was not the largest provided unit",
             ));
