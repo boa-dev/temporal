@@ -670,17 +670,21 @@ mod tests {
         let earlier = PlainTime::new(3, 12, 34, 123, 456, 789).unwrap();
         let later = PlainTime::new(13, 47, 57, 988, 655, 322).unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Second);
-        settings.increment = Some(RoundingIncrement::try_new(1).unwrap());
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Second),
+            increment: Some(RoundingIncrement::try_new(1).unwrap()),
+            ..Default::default()
+        };
         assert_duration(
             later.since(&earlier, settings).unwrap(),
             (0, 0, 0, 0, 10, 35, 23, 0, 0, 0),
         );
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Second);
-        settings.increment = Some(RoundingIncrement::try_new(4).unwrap());
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Second),
+            increment: Some(RoundingIncrement::try_new(4).unwrap()),
+            ..Default::default()
+        };
         assert_duration(
             later.since(&earlier, settings).unwrap(),
             (0, 0, 0, 0, 10, 35, 20, 0, 0, 0),
