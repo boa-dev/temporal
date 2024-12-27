@@ -484,9 +484,22 @@ mod tests {
         );
     }
 
-    fn assert_duration(result: Duration, values: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32)) {
-        let fields = result.fields().iter().map(|v| v.as_date_value().unwrap()).collect::<alloc::vec::Vec<i32>>();
-        assert_eq!(fields, &[values.0, values.1, values.2, values.3, values.4, values.5, values.6, values.7, values.8, values.9])
+    fn assert_duration(
+        result: Duration,
+        values: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32),
+    ) {
+        let fields = result
+            .fields()
+            .iter()
+            .map(|v| v.as_date_value().unwrap())
+            .collect::<alloc::vec::Vec<i32>>();
+        assert_eq!(
+            fields,
+            &[
+                values.0, values.1, values.2, values.3, values.4, values.5, values.6, values.7,
+                values.8, values.9
+            ]
+        )
     }
 
     #[test]
@@ -660,12 +673,18 @@ mod tests {
         let mut settings = DifferenceSettings::default();
         settings.smallest_unit = Some(TemporalUnit::Second);
         settings.increment = Some(RoundingIncrement::try_new(1).unwrap());
-        assert_duration(later.since(&earlier, settings).unwrap(), (0, 0, 0, 0, 10, 35, 23, 0, 0, 0));
+        assert_duration(
+            later.since(&earlier, settings).unwrap(),
+            (0, 0, 0, 0, 10, 35, 23, 0, 0, 0),
+        );
 
         let mut settings = DifferenceSettings::default();
         settings.smallest_unit = Some(TemporalUnit::Second);
         settings.increment = Some(RoundingIncrement::try_new(4).unwrap());
-        assert_duration(later.since(&earlier, settings).unwrap(), (0, 0, 0, 0, 10, 35, 20, 0, 0, 0));
+        assert_duration(
+            later.since(&earlier, settings).unwrap(),
+            (0, 0, 0, 0, 10, 35, 20, 0, 0, 0),
+        );
     }
 
     #[test]
