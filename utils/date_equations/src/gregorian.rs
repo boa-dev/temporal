@@ -17,4 +17,8 @@
 ///
 pub mod neri_schneider;
 
-pub use neri_schneider::gregorian_ymd_from_epoch_days as ymd_from_epoch_days;
+pub use neri_schneider::{
+    gregorian_day as day, gregorian_month as month, gregorian_year as year,
+    gregorian_ymd_from_epoch_days as ymd_from_epoch_days, rata_die_for_epoch_days,
+    rata_die_from_gregorian_date,
+};
