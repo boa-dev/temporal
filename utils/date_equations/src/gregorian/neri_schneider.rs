@@ -1,4 +1,3 @@
-
 // NOTE: Temporal must support the year range [-271_821, 275_760]
 //
 // This means the epoch day range must be epoch_days.abs() <= 100_000_001
@@ -20,7 +19,7 @@ const DAYS_IN_GREGORIAN_CYCLE: i32 = DAYS_IN_A_400Y_CYCLE as i32;
 
 pub fn rata_die_from_gregorian_date(year: i32, month: i32, day: i32) -> i32 {
     let (comp_year, comp_month, comp_day, century) = rata_die_first_equations(year, month, day);
-    let y_star = 1461 * comp_year / 4  - century + century / 4;
+    let y_star = 1461 * comp_year / 4 - century + century / 4;
     let m_star = (979 * comp_month - 2919) / 32;
     y_star + m_star + comp_day
 }
@@ -31,14 +30,19 @@ fn rata_die_first_equations(year: i32, month: i32, day: i32) -> (i32, i32, i32, 
     let computational_year = year - j;
     let computation_month = month + 12 * j;
     let computation_day = day - 1;
-    (computational_year, computation_month, computation_day, computational_year / 100)
+    (
+        computational_year,
+        computation_month,
+        computation_day,
+        computational_year / 100,
+    )
 }
 
 // Computational days to gregorian YMD
 
 // Determine j
 const fn j(rata_die: u32) -> u32 {
-    (days_in_century(rata_die) >= 306) as u32
+    (computational_day_of_year(rata_die) >= 306) as u32
 }
 
 const fn n_one(rata_die: u32) -> u32 {
@@ -112,22 +116,24 @@ pub const fn computational_month(rata_die: u32) -> u32 {
 }
 
 pub const fn computational_day(rata_die: u32) -> u32 {
-    n_three(rata_die).rem_euclid(TWO_POWER_SIXTEEN).div_euclid(2141)
+    n_three(rata_die)
+        .rem_euclid(TWO_POWER_SIXTEEN)
+        .div_euclid(2141)
 }
 
-pub const fn gregorian_year(rata_die: u32) -> u32 {
-    computational_year(rata_die) + j(rata_die)
+pub const fn gregorian_year(rata_die: u32, shift_constant: i32) -> i32 {
+    (computational_year(rata_die) + j(rata_die)) as i32 - shift_constant
 }
 
-pub const fn gregorian_month(rata_die: u32) -> u32 {
-    computational_month(rata_die) - 12 * j(rata_die)
+pub const fn gregorian_month(rata_die: u32) -> u8 {
+    (computational_month(rata_die) - 12 * j(rata_die)) as u8
 }
 
-pub const fn gregorian_day(rata_die: u32) -> u32 {
-    computational_day(rata_die) + 1
+pub const fn gregorian_day(rata_die: u32) -> u8 {
+    (computational_day(rata_die) + 1) as u8
 }
 
-pub const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
+const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
     let (year, month, day, day_of_year) = third_equations(rata_die);
     let j = (day_of_year >= 306) as u32;
     let year = year + j;
@@ -136,17 +142,31 @@ pub const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
     (year as i32, month as u8, day as u8)
 }
 
-const SHIFTS: i32 = 680;
+/// Get the computational Rata Die for given Epoch Days with the cycle shiftc.
+///
+/// For more on `cycle_shifts`, see [`gregorian_ymd_from_epoch_days`]
+pub const fn rata_die_for_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (u32, i32) {
+    let rata_die =
+        (epoch_days + EPOCH_COMPUTATIONAL_RATA_DIE + DAYS_IN_GREGORIAN_CYCLE * cycle_shifts) as u32; // epoch_days + K
+    (rata_die, 400 * cycle_shifts)
+}
 
-pub const fn gregorian_ymd_from_epoch_days(epoch_days: i32) -> (i32, u8, u8) {
-    let rata_die_shift_constant = EPOCH_COMPUTATIONAL_RATA_DIE + DAYS_IN_GREGORIAN_CYCLE * SHIFTS; // K
-    let year_shift_constant = 400 * SHIFTS;
+/// Calculate a Gregorian year, month, and date for the provided epoch days.
+///
+/// # Cycle shift constant
+///
+/// The `cycle_shift` variable is exposed here in order to accomodate
+/// variable ranges that may need to be supported.
+///
+/// For instance, in order to support JavaScript's Temporal date range of
+/// [-100_000_001, 100_000_000], a `cycle_shift` value of 680 is provided.
+pub const fn gregorian_ymd_from_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (i32, u8, u8) {
+    let (rata_die, year_shift_constant) = rata_die_for_epoch_days(epoch_days, cycle_shifts);
 
-    let (year, month, day) = gregorian_ymd((epoch_days + rata_die_shift_constant) as u32);
+    let (year, month, day) = gregorian_ymd(rata_die);
     // Shift the year back to the proper date
     (year - year_shift_constant, month, day)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -201,10 +221,11 @@ mod tests {
     }
 
     #[test]
-    fn epoch_days_limit_to_date() {
-        let max_date = gregorian_ymd_from_epoch_days(100_000_001);
+    fn epoch_days_temporal_limit_to_date() {
+        let temporal_shift = 680;
+        let max_date = gregorian_ymd_from_epoch_days(100_000_001, temporal_shift);
         assert_eq!(max_date, (275_760, 9, 14));
-        let min_date = gregorian_ymd_from_epoch_days(-100_000_001);
+        let min_date = gregorian_ymd_from_epoch_days(-100_000_001, temporal_shift);
         assert_eq!(min_date, (-271_821, 4, 19));
     }
 }
