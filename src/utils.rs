@@ -1,9 +1,10 @@
 //! Utility date and time equations for Temporal
 
+
 use alloc::format;
 use alloc::string::String;
 use date_equations::gregorian::neri_schneider::{
-    gregorian_month, gregorian_year, rata_die_for_epoch_days,
+    gregorian_year, rata_die_for_epoch_days,
 };
 
 use crate::MS_PER_DAY;
@@ -19,7 +20,8 @@ pub(crate) const MS_PER_MINUTE: i64 = 60_000;
 ///
 /// Functionally the same as Date's abstract operation `MakeDate`
 pub(crate) fn epoch_days_to_epoch_ms(day: i32, time: i64) -> i64 {
-    (day as i64 * MS_PER_DAY as i64) + time
+    let sign = if day.is_negative() { -1 } else { 1 };
+    (day as i64 * MS_PER_DAY as i64) + (time * sign)
 }
 
 /// 3.5.11 PadISOYear ( y )
@@ -38,7 +40,18 @@ pub(crate) fn pad_iso_year(year: i32) -> String {
 ///
 /// This equation is the equivalent to `ECMAScript`'s `Date(t)`
 pub(crate) fn epoch_time_to_day_number(t: i64) -> i32 {
-    (t / i64::from(MS_PER_DAY)) as i32
+    i64_div_floor(t, MS_PER_DAY as i64) as i32
+}
+
+// NOTE: this is pulled in from num_integer
+// TODO: Use i64::div_floor when stable.
+fn i64_div_floor(lhs: i64, rhs: i64) -> i64 {
+    let (div, rem) = (lhs / rhs, lhs % rhs);
+    if (rem > 0 && rhs < 0) || (rem < 0 && rhs > 0) {
+        div - 1
+    } else {
+        div
+    }
 }
 
 #[cfg(feature = "tzdb")]
@@ -120,12 +133,14 @@ fn month_to_day(m: u8, leap_day: u16) -> u16 {
     }
 }
 
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_ms_to_month_in_year(t: i64) -> u8 {
     let epoch_days = epoch_ms_to_epoch_days(t);
     let (rata_die, _) = rata_die_for_epoch_days(epoch_days, 680);
     gregorian_month(rata_die)
 }
 
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_time_to_day_in_year(t: i64) -> i32 {
     epoch_time_to_day_number(t) - (epoch_days_for_year(epoch_time_to_epoch_year(t)))
 }
