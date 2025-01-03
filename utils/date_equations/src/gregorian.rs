@@ -15,7 +15,6 @@
 /// | January 1, 1970 | 719,468 | 100,065,428 |
 /// | September 14, 275,760 | 100_719_469 | 200,065,429 |
 ///
-
 pub mod neri_schneider;
 
 pub use neri_schneider::gregorian_ymd_from_epoch_days as ymd_from_epoch_days;
