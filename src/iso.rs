@@ -90,9 +90,7 @@ impl IsoDateTime {
         // 3. Let epochMilliseconds be 𝔽((epochNanoseconds - remainderNs) / 10^6).
         let epoch_millis = (mathematical_nanos - remainder_nanos) / 1_000_000;
 
-        let year = utils::epoch_time_to_epoch_year(epoch_millis as f64);
-        let month = utils::epoch_time_to_month_in_year(epoch_millis as f64) + 1;
-        let day = utils::epoch_time_to_date(epoch_millis as f64);
+        let (year, month, day) = utils::ymd_from_epoch_milliseconds(epoch_millis);
 
         // 7. Let hour be ℝ(! HourFromTime(epochMilliseconds)).
         let hour = epoch_millis.div_euclid(3_600_000).rem_euclid(24);
@@ -338,12 +336,9 @@ impl IsoDate {
     /// Equivalent to `BalanceISODate`.
     pub(crate) fn balance(year: i32, month: i32, day: i32) -> Self {
         let epoch_days = iso_date_to_epoch_days(year, month - 1, day);
-        let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0f64);
-        Self::new_unchecked(
-            utils::epoch_time_to_epoch_year(ms),
-            utils::epoch_time_to_month_in_year(ms) + 1,
-            utils::epoch_time_to_date(ms),
-        )
+        let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0);
+        let (year, month, day) = utils::ymd_from_epoch_milliseconds(ms);
+        Self::new_unchecked(year, month, day)
     }
 
     pub(crate) fn is_valid_day_range(&self) -> TemporalResult<()> {
@@ -891,11 +886,11 @@ impl IsoTime {
     /// Note: This method is library specific and not in spec
     ///
     /// Functionally the same as Date's `MakeTime`
-    pub(crate) fn to_epoch_ms(self) -> f64 {
-        ((f64::from(self.hour) * utils::MS_PER_HOUR
-            + f64::from(self.minute) * utils::MS_PER_MINUTE)
-            + f64::from(self.second) * 1000f64)
-            + f64::from(self.millisecond)
+    pub(crate) fn to_epoch_ms(self) -> i64 {
+        ((i64::from(self.hour) * utils::MS_PER_HOUR
+            + i64::from(self.minute) * utils::MS_PER_MINUTE)
+            + i64::from(self.second) * 1000i64)
+            + i64::from(self.millisecond)
     }
 }
 
@@ -930,7 +925,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanosec
 fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
     let ms = time.to_epoch_ms();
     let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
-    (epoch_ms * 1_000_000.0) as i128 + time.microsecond as i128 * 1_000 + time.nanosecond as i128
+    epoch_ms as i128 * 1_000_000 + time.microsecond as i128 * 1_000 + time.nanosecond as i128
 }
 
 // ==== `IsoDate` specific utiltiy functions ====
@@ -951,7 +946,7 @@ fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     let month_t = utils::epoch_time_for_month_given_year(resolved_month, resolved_year);
 
     // 4. Return EpochTimeToDayNumber(t) + date - 1.
-    utils::epoch_time_to_day_number((year_t + month_t).copysign(year_t)) + day - 1
+    utils::epoch_time_to_day_number(year_t + month_t) + day - 1
 }
 
 #[inline]

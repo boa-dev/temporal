@@ -733,11 +733,11 @@ mod tests {
     fn plain_date_time_limits() {
         // This test is primarily to assert that the `expect` in the epoch methods is
         // valid, i.e., a valid instant is within the range of an f64.
-        let negative_limit = pdt_from_date(-271_821, 4, 19);
+        let negative_limit = pdt_from_date(-271_821, 4, 18);
         assert!(negative_limit.is_err());
         let positive_limit = pdt_from_date(275_760, 9, 14);
         assert!(positive_limit.is_err());
-        let within_negative_limit = pdt_from_date(-271_821, 4, 20);
+        let within_negative_limit = pdt_from_date(-271_821, 4, 19);
         assert_eq!(
             within_negative_limit,
             Ok(PlainDateTime {
@@ -745,7 +745,7 @@ mod tests {
                     date: IsoDate {
                         year: -271_821,
                         month: 4,
-                        day: 20,
+                        day: 19,
                     },
                     time: IsoTime::default(),
                 },

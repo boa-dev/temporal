@@ -358,7 +358,6 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     // TODO: Resolve safety issue around utils.
     //   Using f64 is a hold over from early implementation days and should
     //   be moved away from.
-    let seconds = seconds as f64;
 
     let (is_transition_day, transition) =
         cmp_seconds_to_transitions(&start.day, &end.day, seconds)?;
@@ -415,7 +414,6 @@ fn resolve_posix_tz_string(
     // TODO: Resolve safety issue around utils.
     //   Using f64 is a hold over from early implementation days and should
     //   be moved away from.
-    let seconds = seconds as f64;
 
     // NOTE:
     // STD -> DST == start
@@ -423,7 +421,7 @@ fn resolve_posix_tz_string(
     let (is_transition_day, is_dst) =
         cmp_seconds_to_transitions(&dst.start_date.day, &dst.end_date.day, seconds)?;
     if is_transition_day {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000.0) as i64 / 1_000;
+        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) as i64 / 1_000;
         let transition_time = if is_dst == TransitionType::Dst {
             dst.start_date.time.0
         } else {
@@ -460,17 +458,17 @@ fn resolve_posix_tz_string(
 fn compute_tz_for_epoch_seconds(
     is_transition_day: bool,
     transition: TransitionType,
-    seconds: f64,
+    seconds: i64,
     dst_variant: &DstTransitionInfo,
 ) -> TransitionType {
     if is_transition_day && transition == TransitionType::Dst {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000.0) / 1_000;
+        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) / 1_000;
         let transition_time = dst_variant.start_date.time.0 - dst_variant.variant_info.offset.0;
         if i64::from(time) < transition_time {
             return TransitionType::Std;
         }
     } else if is_transition_day {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000.0) / 1_000;
+        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) / 1_000;
         let transition_time = dst_variant.end_date.time.0 - dst_variant.variant_info.offset.0;
         if i64::from(time) < transition_time {
             return TransitionType::Dst;
@@ -487,8 +485,8 @@ fn compute_tz_for_epoch_seconds(
 struct Mwd(u16, u16, u16);
 
 impl Mwd {
-    fn from_seconds(seconds: f64) -> Self {
-        let month = utils::epoch_time_to_month_in_year(seconds * 1_000.0) as u16 + 1;
+    fn from_seconds(seconds: i64) -> Self {
+        let month = utils::epoch_ms_to_month_in_year(seconds * 1_000) as u16;
         let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
         let week_of_month = day_of_month / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
@@ -499,7 +497,7 @@ impl Mwd {
 fn cmp_seconds_to_transitions(
     start: &TransitionDay,
     end: &TransitionDay,
-    seconds: f64,
+    seconds: i64,
 ) -> TemporalResult<(bool, TransitionType)> {
     let cmp_result = match (start, end) {
         (
@@ -520,7 +518,7 @@ fn cmp_seconds_to_transitions(
             (is_transition, is_dst)
         }
         (TransitionDay::WithLeap(start), TransitionDay::WithLeap(end)) => {
-            let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000.0) as u16;
+            let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000) as u16;
             let is_transition = *start == day_in_year || *end == day_in_year;
             let is_dst = if start > end {
                 day_in_year < *end || *start <= day_in_year
@@ -531,7 +529,7 @@ fn cmp_seconds_to_transitions(
         }
         // TODO: do we need to modify the logic for leap years?
         (TransitionDay::NoLeap(start), TransitionDay::NoLeap(end)) => {
-            let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000.0) as u16;
+            let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000) as u16;
             let is_transition = *start == day_in_year || *end == day_in_year;
             let is_dst = if start > end {
                 day_in_year < *end || *start <= day_in_year
