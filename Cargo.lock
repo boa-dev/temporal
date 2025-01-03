@@ -403,6 +403,7 @@ version = "0.0.4"
 dependencies = [
  "bitflags",
  "combine",
+ "date_equations",
  "iana-time-zone",
  "icu_calendar",
  "ixdtf",
