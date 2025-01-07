@@ -1,8 +1,5 @@
 //! This module implements `Date` and any directly related algorithms.
 
-
-use alloc::{format, string::String};
-use core::str::FromStr;
 use crate::{
     components::{
         calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
@@ -11,13 +8,15 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions, DisplayCalendar, TemporalUnit
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
+        ResolvedRoundingOptions, TemporalUnit,
     },
     parsers::{parse_date_time, FormattableCalendar, FormattableDate, FormattableIxdtf},
     primitive::FiniteF64,
     Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
-
+use alloc::{format, string::String};
+use core::str::FromStr;
 
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
@@ -601,8 +600,8 @@ impl PlainDate {
             timezone: None,
             calendar: Some(FormattableCalendar {
                 show: display_calendar,
-                calendar: &self.calendar.identifier()
-            })
+                calendar: self.calendar.identifier(),
+            }),
         };
         ixdtf.to_string()
     }

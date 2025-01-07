@@ -1,7 +1,10 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
+use crate::{
+    options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
+    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+};
 use alloc::format;
-use crate::{options::{DisplayCalendar, DisplayOffset, DisplayTimeZone}, Sign, TemporalError, TemporalResult, TemporalUnwrap};
 use ixdtf::parsers::{
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
     IxdtfParser,
@@ -23,7 +26,7 @@ pub struct FormattableTime {
     pub second: u8,
     pub nanosecond: u32,
     pub precision: Precision,
-    pub include_sep: bool
+    pub include_sep: bool,
 }
 
 impl Writeable for FormattableTime {
@@ -34,7 +37,7 @@ impl Writeable for FormattableTime {
         }
         write_padded_u8(self.minute, sink)?;
         if self.precision == Precision::Minute {
-            return Ok(())
+            return Ok(());
         }
         if self.include_sep {
             sink.write_char(':')?;
@@ -57,7 +60,7 @@ pub struct FormattableUtcOffset {
 
 pub enum UtcOffset {
     Z,
-    Offset(FormattableOffset)
+    Offset(FormattableOffset),
 }
 
 impl Writeable for FormattableUtcOffset {
@@ -80,7 +83,11 @@ fn write_padded_u8<W: core::fmt::Write + ?Sized>(num: u8, sink: &mut W) -> core:
     num.write_to(sink)
 }
 
-fn write_nanosecond<W: core::fmt::Write + ?Sized>(nanoseconds: u32, precision: Precision, sink: &mut W) -> core::fmt::Result {
+fn write_nanosecond<W: core::fmt::Write + ?Sized>(
+    nanoseconds: u32,
+    precision: Precision,
+    sink: &mut W,
+) -> core::fmt::Result {
     if nanoseconds > 1_000_000_000 {
         return Err(core::fmt::Error);
     }
@@ -90,7 +97,10 @@ fn write_nanosecond<W: core::fmt::Write + ?Sized>(nanoseconds: u32, precision: P
     }
 }
 
-fn write_auto_nanosecond<W: core::fmt::Write + ?Sized>(mut nanoseconds: u32, sink: &mut W) -> core::fmt::Result {
+fn write_auto_nanosecond<W: core::fmt::Write + ?Sized>(
+    mut nanoseconds: u32,
+    sink: &mut W,
+) -> core::fmt::Result {
     let mut divisor = 100_000_000;
     while divisor >= 1 && nanoseconds != 0 {
         (nanoseconds / divisor).write_to(sink)?;
@@ -101,7 +111,11 @@ fn write_auto_nanosecond<W: core::fmt::Write + ?Sized>(mut nanoseconds: u32, sin
     Ok(())
 }
 
-fn write_nanosecond_to_precision<W: core::fmt::Write + ?Sized>(mut nanoseconds: u32, mut precision: u8, sink: &mut W) -> core::fmt::Result {
+fn write_nanosecond_to_precision<W: core::fmt::Write + ?Sized>(
+    mut nanoseconds: u32,
+    mut precision: u8,
+    sink: &mut W,
+) -> core::fmt::Result {
     let mut divisor = 100_000_000;
     while precision > 0 {
         (nanoseconds / divisor).write_to(sink)?;
@@ -145,7 +159,7 @@ impl Writeable for FormattableDate {
         } else if self.0.abs() <= 999_999 {
             write_extended_year(self.0, sink)?;
         } else {
-            return Err(core::fmt::Error)
+            return Err(core::fmt::Error);
         }
         sink.write_char('-')?;
         write_padded_u8(self.1, sink)?;
@@ -155,7 +169,10 @@ impl Writeable for FormattableDate {
     }
 }
 
-fn write_four_digit_year<W: core::fmt::Write + ?Sized>(mut y: i32, sink: &mut W) -> core::fmt::Result {
+fn write_four_digit_year<W: core::fmt::Write + ?Sized>(
+    mut y: i32,
+    sink: &mut W,
+) -> core::fmt::Result {
     let mut divisor = 1_000;
     while divisor >= 1 {
         (y / divisor).write_to(sink)?;
@@ -163,17 +180,12 @@ fn write_four_digit_year<W: core::fmt::Write + ?Sized>(mut y: i32, sink: &mut W)
         divisor /= 10;
     }
     Ok(())
-
 }
 
 fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> core::fmt::Result {
-    let sign = if y < 0 {
-        '-'
-    } else {
-        '+'
-    };
+    let sign = if y < 0 { '-' } else { '+' };
     sink.write_char(sign)?;
-    let mut y = y.abs() as u32;
+    let mut y = y.unsigned_abs();
     let mut divisor = 100_000;
     while divisor >= 1 {
         (y / divisor).write_to(sink)?;
@@ -185,13 +197,13 @@ fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> co
 
 pub struct FormattableTimeZone<'a> {
     pub show: DisplayTimeZone,
-    pub timezone: &'a str
+    pub timezone: &'a str,
 }
 
 impl Writeable for FormattableTimeZone<'_> {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
         if self.show == DisplayTimeZone::Never {
-            return Ok(())
+            return Ok(());
         }
         sink.write_char('[')?;
         if self.show == DisplayTimeZone::Critical {
@@ -210,8 +222,9 @@ pub struct FormattableCalendar<'a> {
 impl Writeable for FormattableCalendar<'_> {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
         if self.show == DisplayCalendar::Never
-            || self.show == DisplayCalendar::Auto && self.calendar == "iso8601" {
-            return Ok(())
+            || self.show == DisplayCalendar::Auto && self.calendar == "iso8601"
+        {
+            return Ok(());
         }
         sink.write_char('[')?;
         if self.show == DisplayCalendar::Critical {
@@ -243,9 +256,9 @@ impl Writeable for FormattableIxdtf<'_> {
             time.write_to(sink)?;
         }
         if self.date.is_none() && self.time.is_none() && self.utc_offset.is_some() {
-            return Err(core::fmt::Error)
+            return Err(core::fmt::Error);
         }
-        if let Some(offset)  = &self.utc_offset {
+        if let Some(offset) = &self.utc_offset {
             offset.write_to(sink)?;
         }
         if let Some(timezone) = &self.timezone {
@@ -256,70 +269,6 @@ impl Writeable for FormattableIxdtf<'_> {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::parsers::{FormattableTime, Precision};
-
-    use super::FormattableOffset;
-
-
-    #[test]
-    fn offset_string() {
-        let offset = FormattableOffset {
-            sign: crate::Sign::Positive,
-            time: FormattableTime {
-                hour: 4,
-                minute: 0,
-                second: 0,
-                nanosecond: 0,
-                precision: Precision::Minute,
-                include_sep: true,
-            }
-
-        };
-        assert_eq!(offset.to_string(), "+04:00");
-
-        let offset = FormattableOffset {
-            sign: crate::Sign::Negative,
-            time: FormattableTime {
-                hour: 5,
-                minute: 0,
-                second: 30,
-                nanosecond: 0,
-                precision: Precision::Minute,
-                include_sep: true,
-            }
-        };
-        assert_eq!(offset.to_string(), "-05:00");
-
-        let offset = FormattableOffset {
-            sign: crate::Sign::Negative,
-            time: FormattableTime {
-                hour: 5,
-                minute: 0,
-                second: 30,
-                nanosecond: 0,
-                precision: Precision::Auto,
-                include_sep: true,
-            }
-        };
-        assert_eq!(offset.to_string(), "-05:00:30");
-
-        let offset = FormattableOffset {
-            sign: crate::Sign::Negative,
-            time: FormattableTime {
-                hour: 5,
-                minute: 0,
-                second: 00,
-                nanosecond: 123050000,
-                precision: Precision::Auto,
-                include_sep: true,
-            }
-        };
-        assert_eq!(offset.to_string(), "-05:00:00.12305");
     }
 }
 
@@ -464,3 +413,65 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 }
 
 // TODO: ParseTimeZoneString, ParseZonedDateTimeString
+
+#[cfg(test)]
+mod tests {
+    use crate::parsers::{FormattableTime, Precision};
+
+    use super::FormattableOffset;
+
+    #[test]
+    fn offset_string() {
+        let offset = FormattableOffset {
+            sign: crate::Sign::Positive,
+            time: FormattableTime {
+                hour: 4,
+                minute: 0,
+                second: 0,
+                nanosecond: 0,
+                precision: Precision::Minute,
+                include_sep: true,
+            },
+        };
+        assert_eq!(offset.to_string(), "+04:00");
+
+        let offset = FormattableOffset {
+            sign: crate::Sign::Negative,
+            time: FormattableTime {
+                hour: 5,
+                minute: 0,
+                second: 30,
+                nanosecond: 0,
+                precision: Precision::Minute,
+                include_sep: true,
+            },
+        };
+        assert_eq!(offset.to_string(), "-05:00");
+
+        let offset = FormattableOffset {
+            sign: crate::Sign::Negative,
+            time: FormattableTime {
+                hour: 5,
+                minute: 0,
+                second: 30,
+                nanosecond: 0,
+                precision: Precision::Auto,
+                include_sep: true,
+            },
+        };
+        assert_eq!(offset.to_string(), "-05:00:30");
+
+        let offset = FormattableOffset {
+            sign: crate::Sign::Negative,
+            time: FormattableTime {
+                hour: 5,
+                minute: 0,
+                second: 00,
+                nanosecond: 123050000,
+                precision: Precision::Auto,
+                include_sep: true,
+            },
+        };
+        assert_eq!(offset.to_string(), "-05:00:00.12305");
+    }
+}
