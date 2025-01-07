@@ -710,8 +710,8 @@ impl fmt::Display for TemporalRoundingMode {
 
 /// values for `CalendarName`, whether to show the calendar in toString() methods
 /// <https://tc39.es/proposal-temporal/#sec-temporal-gettemporalshowcalendarnameoption>
-#[derive(Debug, Clone, Copy)]
-pub enum CalendarName {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DisplayCalendar {
     /// `Auto` option
     Auto,
     /// `Always` option
@@ -722,19 +722,19 @@ pub enum CalendarName {
     Critical,
 }
 
-impl fmt::Display for CalendarName {
+impl fmt::Display for DisplayCalendar {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            CalendarName::Auto => "auto",
-            CalendarName::Always => "always",
-            CalendarName::Never => "never",
-            CalendarName::Critical => "critical",
+            DisplayCalendar::Auto => "auto",
+            DisplayCalendar::Always => "always",
+            DisplayCalendar::Never => "never",
+            DisplayCalendar::Critical => "critical",
         }
         .fmt(f)
     }
 }
 
-impl FromStr for CalendarName {
+impl FromStr for DisplayCalendar {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -743,7 +743,69 @@ impl FromStr for CalendarName {
             "always" => Ok(Self::Always),
             "never" => Ok(Self::Never),
             "critical" => Ok(Self::Critical),
-            _ => Err(TemporalError::range().with_message("Invalid CalendarName provided.")),
+            _ => Err(TemporalError::range().with_message("Invalid calendarName provided.")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DisplayOffset {
+    Auto,
+    Never,
+}
+
+impl fmt::Display for DisplayOffset {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            DisplayOffset::Auto => "auto",
+            DisplayOffset::Never => "never",
+        }
+        .fmt(f)
+    }
+}
+
+impl FromStr for DisplayOffset {
+    type Err = TemporalError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(Self::Auto),
+            "never" => Ok(Self::Never),
+            _ => Err(TemporalError::range().with_message("Invalid offset option provided.")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum DisplayTimeZone {
+    /// `Auto` option
+    Auto,
+    /// `Never` option
+    Never,
+    // `Critical` option
+    Critical,
+}
+
+impl fmt::Display for DisplayTimeZone {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            DisplayTimeZone::Auto => "auto",
+            DisplayTimeZone::Never => "never",
+            DisplayTimeZone::Critical => "critical",
+        }
+        .fmt(f)
+    }
+}
+
+impl FromStr for DisplayTimeZone {
+    type Err = TemporalError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "auto" => Ok(Self::Auto),
+            "never" => Ok(Self::Never),
+            "critical" => Ok(Self::Critical),
+            _ => Err(TemporalError::range().with_message("Invalid timeZoneName option provided.")),
         }
     }
 }

@@ -1,7 +1,8 @@
 //! This module implements `Date` and any directly related algorithms.
 
-use tinystr::TinyAsciiStr;
 
+use alloc::{format, string::String};
+use core::str::FromStr;
 use crate::{
     components::{
         calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
@@ -10,16 +11,13 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        TemporalUnit,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions, DisplayCalendar, TemporalUnit
     },
-    parsers::parse_date_time,
+    parsers::{parse_date_time, FormattableCalendar, FormattableDate, FormattableIxdtf},
     primitive::FiniteF64,
     Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
-use alloc::format;
-use core::str::FromStr;
 
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
@@ -27,6 +25,7 @@ use super::{
     timezone::NeverProvider,
     PlainMonthDay, PlainTime, PlainYearMonth,
 };
+use tinystr::TinyAsciiStr;
 
 // TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate
 // "ethiopic-amete-alem". TODO: PrepareTemporalFields expects a type
@@ -135,6 +134,12 @@ macro_rules! impl_with_fallback_method {
 pub struct PlainDate {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
+}
+
+impl core::fmt::Display for PlainDate {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
+    }
 }
 
 impl Ord for PlainDate {
@@ -585,6 +590,21 @@ impl PlainDate {
             &PartialDate::default().with_fallback_date(self)?,
             ArithmeticOverflow::Constrain,
         )
+    }
+
+    #[inline]
+    pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        let ixdtf = FormattableIxdtf {
+            date: Some(FormattableDate(self.iso.year, self.iso.month, self.iso.day)),
+            time: None,
+            utc_offset: None,
+            timezone: None,
+            calendar: Some(FormattableCalendar {
+                show: display_calendar,
+                calendar: &self.calendar.identifier()
+            })
+        };
+        ixdtf.to_string()
     }
 }
 
