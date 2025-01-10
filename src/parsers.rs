@@ -9,7 +9,7 @@ use ixdtf::parsers::{
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
     IxdtfParser,
 };
-use writeable::{impl_display_with_writeable, Writeable};
+use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 
@@ -47,9 +47,22 @@ impl Writeable for FormattableTime {
             return Ok(());
         }
         sink.write_char('.')?;
-        write_nanosecond(self.nanosecond, self.precision, sink)?;
+        write_nanosecond(self.nanosecond, self.precision, sink)
+    }
 
-        Ok(())
+    fn writeable_length_hint(&self) -> LengthHint {
+        let sep = self.include_sep as usize;
+        if self.precision == Precision::Minute {
+            return LengthHint::exact(4 + sep);
+        }
+        let time_base = 6 + (sep * 2);
+        if self.nanosecond == 0 {
+            return LengthHint::exact(time_base);
+        }
+        if let Precision::Digit(d) = self.precision {
+            return LengthHint::exact(time_base + 1 + d as usize);
+        }
+        LengthHint::between(time_base + 2, time_base + 10)
     }
 }
 
@@ -71,6 +84,13 @@ impl Writeable for FormattableUtcOffset {
         match &self.offset {
             UtcOffset::Z => sink.write_char('Z'),
             UtcOffset::Offset(offset) => offset.write_to(sink),
+        }
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        match &self.offset {
+            UtcOffset::Z => LengthHint::exact(1),
+            UtcOffset::Offset(o) => o.writeable_length_hint(),
         }
     }
 }
@@ -135,6 +155,10 @@ impl Writeable for FormattableOffset {
         }
         self.time.write_to(sink)
     }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        self.time.writeable_length_hint() + 1
+    }
 }
 
 impl_display_with_writeable!(FormattableIxdtf<'_>);
@@ -157,8 +181,13 @@ impl Writeable for FormattableDate {
         sink.write_char('-')?;
         write_padded_u8(self.1, sink)?;
         sink.write_char('-')?;
-        write_padded_u8(self.2, sink)?;
-        Ok(())
+        write_padded_u8(self.2, sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let year_length = if (0..=9999).contains(&self.0) { 4 } else { 7 };
+
+        LengthHint::exact(6 + year_length)
     }
 }
 
@@ -201,6 +230,14 @@ impl Writeable for FormattableTimeZone<'_> {
         sink.write_str(self.timezone)?;
         sink.write_char(']')
     }
+
+    fn writeable_length_hint(&self) -> writeable::LengthHint {
+        if self.show == DisplayTimeZone::Never {
+            return LengthHint::exact(0);
+        }
+        let critical = (self.show == DisplayTimeZone::Critical) as usize;
+        LengthHint::exact(2 + critical + self.timezone.len())
+    }
 }
 
 pub struct FormattableCalendar<'a> {
@@ -223,6 +260,16 @@ impl Writeable for FormattableCalendar<'_> {
         sink.write_str(self.calendar)?;
         sink.write_char(']')
     }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        if self.show == DisplayCalendar::Never
+            || self.show == DisplayCalendar::Auto && self.calendar == "iso8601"
+        {
+            return LengthHint::exact(0);
+        }
+        let critical = (self.show == DisplayCalendar::Critical) as usize;
+        LengthHint::exact(7 + critical + self.calendar.len())
+    }
 }
 
 pub struct FormattableIxdtf<'a> {
@@ -244,9 +291,6 @@ impl Writeable for FormattableIxdtf<'_> {
             }
             time.write_to(sink)?;
         }
-        if self.date.is_none() && self.time.is_none() && self.utc_offset.is_some() {
-            return Err(core::fmt::Error);
-        }
         if let Some(offset) = &self.utc_offset {
             offset.write_to(sink)?;
         }
@@ -258,6 +302,39 @@ impl Writeable for FormattableIxdtf<'_> {
         }
 
         Ok(())
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let date_length = self
+            .date
+            .as_ref()
+            .map(|d| d.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+        let time_length = self
+            .time
+            .as_ref()
+            .map(|t| {
+                let t_present = self.date.is_some() as usize;
+                t.writeable_length_hint() + t_present
+            })
+            .unwrap_or(LengthHint::exact(0));
+        let utc_length = self
+            .utc_offset
+            .as_ref()
+            .map(|utc| utc.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+        let timezone_length = self
+            .timezone
+            .as_ref()
+            .map(|tz| tz.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+        let cal_length = self
+            .calendar
+            .as_ref()
+            .map(|cal| cal.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+
+        date_length + time_length + utc_length + timezone_length + cal_length
     }
 }
 
