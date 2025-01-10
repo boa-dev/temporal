@@ -1,8 +1,8 @@
 //! Utility date and time equations for Temporal
 
+use crate::neri_schneider;
 use alloc::format;
 use alloc::string::String;
-use date_equations::gregorian;
 
 use crate::MS_PER_DAY;
 
@@ -73,8 +73,8 @@ pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
 
 pub(crate) fn epoch_time_to_epoch_year(t: i64) -> i32 {
     let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, shift_constant) = gregorian::rata_die_for_epoch_days(epoch_days, 680);
-    gregorian::year(rata_die, shift_constant)
+    let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(epoch_days, 680);
+    neri_schneider::year(rata_die, shift_constant)
 }
 
 /// Returns either 1 (true) or 0 (false)
@@ -99,7 +99,7 @@ pub(crate) const fn epoch_ms_to_epoch_days(ms: i64) -> i32 {
 
 pub(crate) const fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
     let epoch_days = epoch_ms_to_epoch_days(epoch_milliseconds);
-    gregorian::ymd_from_epoch_days(epoch_days, 680)
+    neri_schneider::ymd_from_epoch_days(epoch_days, 680)
 }
 
 // Returns the time for a month in a given year plus date(t) = 1.
@@ -133,8 +133,8 @@ fn month_to_day(m: u8, leap_day: u16) -> u16 {
 #[cfg(feature = "tzdb")]
 pub(crate) fn epoch_ms_to_month_in_year(t: i64) -> u8 {
     let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, _) = gregorian::rata_die_for_epoch_days(epoch_days, 680);
-    gregorian::month(rata_die)
+    let (rata_die, _) = neri_schneider::rata_die_for_epoch_days(epoch_days, 680);
+    neri_schneider::month(rata_die)
 }
 
 #[cfg(feature = "tzdb")]

@@ -1,3 +1,20 @@
+//! Gregorian Date Calculations
+//!
+//! This module contains the logic for Gregorian Date Calculations.
+//!
+//! ## Extending Neri-Schneider shift window
+//!
+//! In there paper, Neri-Schneider calculated for a Rata Die shift
+//! of 82, but that was not sufficient in order to support `Temporal`'s
+//! date range, so below is a small addendum table on extending the date
+//! range from s = 82 to s = 680.
+//!
+//! | Significant Date | Computational Rata Die | Rata Die Shift
+//! | -----------------|------------------------|-----------------|
+//! | April 19, -271_821 | -99,280,532 | 65,429 |
+//! | January 1, 1970 | 719,468 | 100,065,428 |
+//! | September 14, 275,760 | 100_719_469 | 200,065,429 |
+
 // NOTE: Temporal must support the year range [-271_821, 275_760]
 //
 // This means the epoch day range must be epoch_days.abs() <= 100_000_001
@@ -121,15 +138,15 @@ pub const fn computational_day(rata_die: u32) -> u32 {
         .div_euclid(2141)
 }
 
-pub const fn gregorian_year(rata_die: u32, shift_constant: i32) -> i32 {
+pub const fn year(rata_die: u32, shift_constant: i32) -> i32 {
     (computational_year(rata_die) + j(rata_die)) as i32 - shift_constant
 }
 
-pub const fn gregorian_month(rata_die: u32) -> u8 {
+pub const fn month(rata_die: u32) -> u8 {
     (computational_month(rata_die) - 12 * j(rata_die)) as u8
 }
 
-pub const fn gregorian_day(rata_die: u32) -> u8 {
+pub const fn day(rata_die: u32) -> u8 {
     (computational_day(rata_die) + 1) as u8
 }
 
@@ -160,7 +177,7 @@ pub const fn rata_die_for_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (u32
 ///
 /// For instance, in order to support JavaScript's Temporal date range of
 /// [-100_000_001, 100_000_000], a `cycle_shift` value of 680 is provided.
-pub const fn gregorian_ymd_from_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (i32, u8, u8) {
+pub const fn ymd_from_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (i32, u8, u8) {
     let (rata_die, year_shift_constant) = rata_die_for_epoch_days(epoch_days, cycle_shifts);
 
     let (year, month, day) = gregorian_ymd(rata_die);
@@ -223,9 +240,9 @@ mod tests {
     #[test]
     fn epoch_days_temporal_limit_to_date() {
         let temporal_shift = 680;
-        let max_date = gregorian_ymd_from_epoch_days(100_000_001, temporal_shift);
+        let max_date = ymd_from_epoch_days(100_000_001, temporal_shift);
         assert_eq!(max_date, (275_760, 9, 14));
-        let min_date = gregorian_ymd_from_epoch_days(-100_000_001, temporal_shift);
+        let min_date = ymd_from_epoch_days(-100_000_001, temporal_shift);
         assert_eq!(min_date, (-271_821, 4, 19));
     }
 }

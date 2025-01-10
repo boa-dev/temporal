@@ -1,6 +1,5 @@
 [workspace]
 resolver = "2"
-members = ["utils/date_equations"]
 
 [workspace.package]
 edition = "2021"
@@ -20,9 +19,6 @@ exclude = [
 ]
 
 [workspace.dependencies]
-
-date_equations = { version = "~0.0.4", path = "utils/date_equations" }
-
 tinystr = "0.8.0"
 icu_calendar = { version = "2.0.0-beta1", default-features = false}
 rustc-hash = "2.1.0"
@@ -57,7 +53,6 @@ num-traits.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
 iana-time-zone.workspace = true
 writeable = "0.6.0"
-date_equations.workspace = true
 
 # log feature
 log = { workspace = true, optional = true }
