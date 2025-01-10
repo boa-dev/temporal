@@ -1,5 +1,7 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
+use std::str;
+
 use crate::{
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
@@ -88,43 +90,38 @@ fn write_nanosecond<W: core::fmt::Write + ?Sized>(
     precision: Precision,
     sink: &mut W,
 ) -> core::fmt::Result {
-    if nanoseconds > 1_000_000_000 {
-        return Err(core::fmt::Error);
-    }
-    match precision {
-        Precision::Digit(digit) => write_nanosecond_to_precision(nanoseconds, digit, sink),
-        _ => write_auto_nanosecond(nanoseconds, sink),
-    }
+    let (digits, index) = write_u32_to_ascii_digits(nanoseconds);
+    let slice = match precision {
+        Precision::Digit(digit) if digit < 9 => &digits[..digit as usize],
+        _ => &digits[..index],
+    };
+    // SAFETY: Index must be within a valid range of 0..=9 and is
+    // valid aschii digit chars.
+    sink.write_str(unsafe { core::str::from_utf8_unchecked(slice) })
 }
 
-fn write_auto_nanosecond<W: core::fmt::Write + ?Sized>(
-    mut nanoseconds: u32,
-    sink: &mut W,
-) -> core::fmt::Result {
-    let mut divisor = 100_000_000;
-    while divisor >= 1 && nanoseconds != 0 {
-        (nanoseconds / divisor).write_to(sink)?;
-        nanoseconds %= divisor;
-        divisor /= 10;
+pub fn write_u32_to_ascii_digits(mut value: u32) -> ([u8; 9], usize) {
+    let mut output = [0; 9];
+    let mut precision = 0;
+    // let mut precision_check = 0;
+    let mut i = 9;
+    while i != 0 {
+        let v = (value % 10) as u8;
+        value /= 10;
+        /*
+        if precision_check == 0 && v !=0 {
+            precision = i;
+        }
+        */
+        if precision == 0 && v != 0 {
+            precision = i;
+        }
+        // precision_check += v;
+        output[i - 1] = v + 48;
+        i -= 1;
     }
 
-    Ok(())
-}
-
-fn write_nanosecond_to_precision<W: core::fmt::Write + ?Sized>(
-    mut nanoseconds: u32,
-    mut precision: u8,
-    sink: &mut W,
-) -> core::fmt::Result {
-    let mut divisor = 100_000_000;
-    while precision > 0 {
-        (nanoseconds / divisor).write_to(sink)?;
-        nanoseconds %= divisor;
-        divisor /= 10;
-        precision -= 1;
-    }
-
-    Ok(())
+    (output, precision)
 }
 
 pub struct FormattableOffset {
@@ -156,10 +153,8 @@ impl Writeable for FormattableDate {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
         if (0..=9999).contains(&self.0) {
             write_four_digit_year(self.0, sink)?;
-        } else if self.0.abs() <= 999_999 {
-            write_extended_year(self.0, sink)?;
         } else {
-            return Err(core::fmt::Error);
+            write_extended_year(self.0, sink)?;
         }
         sink.write_char('-')?;
         write_padded_u8(self.1, sink)?;
@@ -185,14 +180,10 @@ fn write_four_digit_year<W: core::fmt::Write + ?Sized>(
 fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> core::fmt::Result {
     let sign = if y < 0 { '-' } else { '+' };
     sink.write_char(sign)?;
-    let mut y = y.unsigned_abs();
-    let mut divisor = 100_000;
-    while divisor >= 1 {
-        (y / divisor).write_to(sink)?;
-        y %= divisor;
-        divisor /= 10;
-    }
-    Ok(())
+    let (digits, _) = write_u32_to_ascii_digits(y.unsigned_abs());
+    // SAFETY: digits slice is made up up valid ASCII digits.
+    let value = unsafe { core::str::from_utf8_unchecked(&digits[3..]) };
+    sink.write_str(value)
 }
 
 pub struct FormattableTimeZone<'a> {
@@ -315,19 +306,19 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
     }
-    .map_err(|e| TemporalError::general(format!("{e}")))?;
+    .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
     if critical_duplicate_calendar {
         // TODO: Add tests for the below.
         // Parser handles non-matching calendar, so the value thrown here should only be duplicates.
-        return Err(TemporalError::syntax()
+        return Err(TemporalError::range()
             .with_message("Duplicate calendar value with critical flag found."));
     }
 
     // Validate that the DateRecord exists.
     if record.date.is_none() {
         return Err(
-            TemporalError::syntax().with_message("DateTime strings must contain a Date value.")
+            TemporalError::range().with_message("DateTime strings must contain a Date value.")
         );
     }
 
@@ -418,7 +409,7 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 mod tests {
     use crate::parsers::{FormattableTime, Precision};
 
-    use super::FormattableOffset;
+    use super::{write_u32_to_ascii_digits, FormattableDate, FormattableOffset};
 
     #[test]
     fn offset_string() {
@@ -473,5 +464,53 @@ mod tests {
             },
         };
         assert_eq!(offset.to_string(), "-05:00:00.12305");
+    }
+
+    #[test]
+    fn date_string() {
+        let date = FormattableDate(987654, 12, 8).to_string();
+        assert_eq!(&date, "+987654-12-08");
+
+        let date = FormattableDate(-987654, 12, 8).to_string();
+        assert_eq!(&date, "-987654-12-08");
+
+        let date = FormattableDate(0, 12, 8).to_string();
+        assert_eq!(&date, "0000-12-08");
+
+        let date = FormattableDate(10_000, 12, 8).to_string();
+        assert_eq!(&date, "+010000-12-08");
+
+        let date = FormattableDate(-10_000, 12, 8).to_string();
+        assert_eq!(&date, "-010000-12-08");
+    }
+
+    #[test]
+    fn write_u32_tests() {
+        let v = 123_000_000;
+        let (output, precision) = write_u32_to_ascii_digits(v);
+        assert_eq!(output, [49, 50, 51, 48, 48, 48, 48, 48, 48]);
+        assert_eq!(precision, 3);
+        assert_eq!(
+            unsafe { core::str::from_utf8_unchecked(&output[..precision]) },
+            "123"
+        );
+
+        let v = 0;
+        let (output, precision) = write_u32_to_ascii_digits(v);
+        assert_eq!(output, [48, 48, 48, 48, 48, 48, 48, 48, 48]);
+        assert_eq!(precision, 0);
+        assert_eq!(
+            unsafe { core::str::from_utf8_unchecked(&output[..precision]) },
+            ""
+        );
+
+        let v = 123_020_000;
+        let (output, precision) = write_u32_to_ascii_digits(v);
+        assert_eq!(output, [49, 50, 51, 48, 50, 48, 48, 48, 48]);
+        assert_eq!(precision, 5);
+        assert_eq!(
+            unsafe { core::str::from_utf8_unchecked(&output[..precision]) },
+            "12302"
+        );
     }
 }
