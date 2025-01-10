@@ -96,7 +96,6 @@ impl Writeable for FormattableUtcOffset {
 }
 
 fn write_padded_u8<W: core::fmt::Write + ?Sized>(num: u8, sink: &mut W) -> core::fmt::Result {
-    // NOTE:
     if num < 10 {
         sink.write_char('0')?;
     }
@@ -126,15 +125,9 @@ pub fn write_u32_to_ascii_digits(mut value: u32) -> ([u8; 9], usize) {
     while i != 0 {
         let v = (value % 10) as u8;
         value /= 10;
-        /*
-        if precision_check == 0 && v !=0 {
-            precision = i;
-        }
-        */
         if precision == 0 && v != 0 {
             precision = i;
         }
-        // precision_check += v;
         output[i - 1] = v + 48;
         i -= 1;
     }
@@ -195,13 +188,13 @@ fn write_four_digit_year<W: core::fmt::Write + ?Sized>(
     mut y: i32,
     sink: &mut W,
 ) -> core::fmt::Result {
-    let mut divisor = 1_000;
-    while divisor >= 1 {
-        (y / divisor).write_to(sink)?;
-        y %= divisor;
-        divisor /= 10;
-    }
-    Ok(())
+    (y / 1_000).write_to(sink)?;
+    y %= 1_000;
+    (y / 100).write_to(sink)?;
+    y %= 100;
+    (y / 10).write_to(sink)?;
+    y %= 10;
+    y.write_to(sink)
 }
 
 fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> core::fmt::Result {
@@ -543,6 +536,9 @@ mod tests {
 
     #[test]
     fn date_string() {
+        let date = FormattableDate(2024, 12, 8).to_string();
+        assert_eq!(&date, "2024-12-08");
+
         let date = FormattableDate(987654, 12, 8).to_string();
         assert_eq!(&date, "+987654-12-08");
 
