@@ -1,7 +1,5 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
-use std::str;
-
 use crate::{
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
