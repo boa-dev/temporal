@@ -85,7 +85,7 @@ impl TimeZone {
             return Ok(Self::OffsetMinutes(0));
         }
         let mut cursor = source.chars().peekable();
-        if cursor.peek().map_or(false, is_ascii_sign) {
+        if cursor.peek().is_some_and(is_ascii_sign) {
             return parse_offset(&mut cursor);
         } else if provider.check_identifier(source) {
             return Ok(Self::IanaIdentifier(source.to_owned()));
@@ -366,7 +366,7 @@ pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<Ti
     // First offset portion
     let hours = parse_digit_pair(chars)?;
 
-    let sep = chars.peek().map_or(false, |ch| *ch == ':');
+    let sep = chars.peek().is_some_and(|ch| *ch == ':');
     if sep {
         let _ = chars.next();
     }

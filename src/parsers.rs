@@ -1,13 +1,343 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
+use crate::{
+    options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
+    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+};
 use alloc::format;
-
-use crate::{TemporalError, TemporalResult, TemporalUnwrap};
-
 use ixdtf::parsers::{
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
     IxdtfParser,
 };
+use writeable::{impl_display_with_writeable, LengthHint, Writeable};
+
+// TODO: Move `Writeable` functionality to `ixdtf` crate
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Precision {
+    Auto,
+    Minute,
+    Digit(u8),
+}
+
+pub struct FormattableTime {
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
+    pub nanosecond: u32,
+    pub precision: Precision,
+    pub include_sep: bool,
+}
+
+impl Writeable for FormattableTime {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        write_padded_u8(self.hour, sink)?;
+        if self.include_sep {
+            sink.write_char(':')?;
+        }
+        write_padded_u8(self.minute, sink)?;
+        if self.precision == Precision::Minute {
+            return Ok(());
+        }
+        if self.include_sep {
+            sink.write_char(':')?;
+        }
+        write_padded_u8(self.second, sink)?;
+        if self.nanosecond == 0 || self.precision == Precision::Digit(0) {
+            return Ok(());
+        }
+        sink.write_char('.')?;
+        write_nanosecond(self.nanosecond, self.precision, sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let sep = self.include_sep as usize;
+        if self.precision == Precision::Minute {
+            return LengthHint::exact(4 + sep);
+        }
+        let time_base = 6 + (sep * 2);
+        if self.nanosecond == 0 || self.precision == Precision::Digit(0) {
+            return LengthHint::exact(time_base);
+        }
+        if let Precision::Digit(d) = self.precision {
+            return LengthHint::exact(time_base + 1 + d as usize);
+        }
+        LengthHint::between(time_base + 2, time_base + 10)
+    }
+}
+
+pub struct FormattableUtcOffset {
+    pub show: DisplayOffset,
+    pub offset: UtcOffset,
+}
+
+pub enum UtcOffset {
+    Z,
+    Offset(FormattableOffset),
+}
+
+impl Writeable for FormattableUtcOffset {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if self.show == DisplayOffset::Never {
+            return Ok(());
+        }
+        match &self.offset {
+            UtcOffset::Z => sink.write_char('Z'),
+            UtcOffset::Offset(offset) => offset.write_to(sink),
+        }
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        match &self.offset {
+            UtcOffset::Z => LengthHint::exact(1),
+            UtcOffset::Offset(o) => o.writeable_length_hint(),
+        }
+    }
+}
+
+fn write_padded_u8<W: core::fmt::Write + ?Sized>(num: u8, sink: &mut W) -> core::fmt::Result {
+    if num < 10 {
+        sink.write_char('0')?;
+    }
+    num.write_to(sink)
+}
+
+fn write_nanosecond<W: core::fmt::Write + ?Sized>(
+    nanoseconds: u32,
+    precision: Precision,
+    sink: &mut W,
+) -> core::fmt::Result {
+    let (digits, index) = u32_to_digits(nanoseconds);
+    let precision = match precision {
+        Precision::Digit(digit) if digit <= 9 => digit as usize,
+        _ => index,
+    };
+    write_digit_slice_to_precision(digits, 0, precision, sink)
+}
+
+pub fn u32_to_digits(mut value: u32) -> ([u8; 9], usize) {
+    let mut output = [0; 9];
+    let mut precision = 0;
+    let mut i = 9;
+    while i != 0 {
+        let v = (value % 10) as u8;
+        value /= 10;
+        if precision == 0 && v != 0 {
+            precision = i;
+        }
+        output[i - 1] = v;
+        i -= 1;
+    }
+
+    (output, precision)
+}
+
+pub fn write_digit_slice_to_precision<W: core::fmt::Write + ?Sized>(
+    digits: [u8; 9],
+    base: usize,
+    precision: usize,
+    sink: &mut W,
+) -> core::fmt::Result {
+    for digit in digits.iter().take(precision).skip(base) {
+        digit.write_to(sink)?;
+    }
+    Ok(())
+}
+
+pub struct FormattableOffset {
+    pub sign: Sign,
+    pub time: FormattableTime,
+}
+
+impl Writeable for FormattableOffset {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        match self.sign {
+            Sign::Negative => sink.write_char('-')?,
+            _ => sink.write_char('+')?,
+        }
+        self.time.write_to(sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        self.time.writeable_length_hint() + 1
+    }
+}
+
+impl_display_with_writeable!(FormattableIxdtf<'_>);
+impl_display_with_writeable!(FormattableDate);
+impl_display_with_writeable!(FormattableTime);
+impl_display_with_writeable!(FormattableUtcOffset);
+impl_display_with_writeable!(FormattableOffset);
+impl_display_with_writeable!(FormattableTimeZone<'_>);
+impl_display_with_writeable!(FormattableCalendar<'_>);
+
+pub struct FormattableDate(pub i32, pub u8, pub u8);
+
+impl Writeable for FormattableDate {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if (0..=9999).contains(&self.0) {
+            write_four_digit_year(self.0, sink)?;
+        } else {
+            write_extended_year(self.0, sink)?;
+        }
+        sink.write_char('-')?;
+        write_padded_u8(self.1, sink)?;
+        sink.write_char('-')?;
+        write_padded_u8(self.2, sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let year_length = if (0..=9999).contains(&self.0) { 4 } else { 7 };
+
+        LengthHint::exact(6 + year_length)
+    }
+}
+
+fn write_four_digit_year<W: core::fmt::Write + ?Sized>(
+    mut y: i32,
+    sink: &mut W,
+) -> core::fmt::Result {
+    (y / 1_000).write_to(sink)?;
+    y %= 1_000;
+    (y / 100).write_to(sink)?;
+    y %= 100;
+    (y / 10).write_to(sink)?;
+    y %= 10;
+    y.write_to(sink)
+}
+
+fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> core::fmt::Result {
+    let sign = if y < 0 { '-' } else { '+' };
+    sink.write_char(sign)?;
+    let (digits, _) = u32_to_digits(y.unsigned_abs());
+    // SAFETY: digits slice is made up up valid ASCII digits.
+    write_digit_slice_to_precision(digits, 3, 9, sink)
+}
+
+pub struct FormattableTimeZone<'a> {
+    pub show: DisplayTimeZone,
+    pub timezone: &'a str,
+}
+
+impl Writeable for FormattableTimeZone<'_> {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if self.show == DisplayTimeZone::Never {
+            return Ok(());
+        }
+        sink.write_char('[')?;
+        if self.show == DisplayTimeZone::Critical {
+            sink.write_char('!')?;
+        }
+        sink.write_str(self.timezone)?;
+        sink.write_char(']')
+    }
+
+    fn writeable_length_hint(&self) -> writeable::LengthHint {
+        if self.show == DisplayTimeZone::Never {
+            return LengthHint::exact(0);
+        }
+        let critical = (self.show == DisplayTimeZone::Critical) as usize;
+        LengthHint::exact(2 + critical + self.timezone.len())
+    }
+}
+
+pub struct FormattableCalendar<'a> {
+    pub show: DisplayCalendar,
+    pub calendar: &'a str,
+}
+
+impl Writeable for FormattableCalendar<'_> {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if self.show == DisplayCalendar::Never
+            || self.show == DisplayCalendar::Auto && self.calendar == "iso8601"
+        {
+            return Ok(());
+        }
+        sink.write_char('[')?;
+        if self.show == DisplayCalendar::Critical {
+            sink.write_char('!')?;
+        }
+        sink.write_str("u-ca=")?;
+        sink.write_str(self.calendar)?;
+        sink.write_char(']')
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        if self.show == DisplayCalendar::Never
+            || self.show == DisplayCalendar::Auto && self.calendar == "iso8601"
+        {
+            return LengthHint::exact(0);
+        }
+        let critical = (self.show == DisplayCalendar::Critical) as usize;
+        LengthHint::exact(7 + critical + self.calendar.len())
+    }
+}
+
+pub struct FormattableIxdtf<'a> {
+    pub date: Option<FormattableDate>,
+    pub time: Option<FormattableTime>,
+    pub utc_offset: Option<FormattableUtcOffset>,
+    pub timezone: Option<FormattableTimeZone<'a>>,
+    pub calendar: Option<FormattableCalendar<'a>>,
+}
+
+impl Writeable for FormattableIxdtf<'_> {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if let Some(date) = &self.date {
+            date.write_to(sink)?;
+        }
+        if let Some(time) = &self.time {
+            if self.date.is_some() {
+                sink.write_char('T')?;
+            }
+            time.write_to(sink)?;
+        }
+        if let Some(offset) = &self.utc_offset {
+            offset.write_to(sink)?;
+        }
+        if let Some(timezone) = &self.timezone {
+            timezone.write_to(sink)?;
+        }
+        if let Some(calendar) = &self.calendar {
+            calendar.write_to(sink)?;
+        }
+
+        Ok(())
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let date_length = self
+            .date
+            .as_ref()
+            .map(|d| d.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+        let time_length = self
+            .time
+            .as_ref()
+            .map(|t| {
+                let t_present = self.date.is_some() as usize;
+                t.writeable_length_hint() + t_present
+            })
+            .unwrap_or(LengthHint::exact(0));
+        let utc_length = self
+            .utc_offset
+            .as_ref()
+            .map(|utc| utc.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+        let timezone_length = self
+            .timezone
+            .as_ref()
+            .map(|tz| tz.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+        let cal_length = self
+            .calendar
+            .as_ref()
+            .map(|cal| cal.writeable_length_hint())
+            .unwrap_or(LengthHint::exact(0));
+
+        date_length + time_length + utc_length + timezone_length + cal_length
+    }
+}
 
 // TODO: Determine if these should be separate structs, i.e. TemporalDateTimeParser/TemporalInstantParser, or
 // maybe on global `TemporalParser` around `IxdtfParser` that handles the Temporal idiosyncracies.
@@ -52,19 +382,19 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
     }
-    .map_err(|e| TemporalError::general(format!("{e}")))?;
+    .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
     if critical_duplicate_calendar {
         // TODO: Add tests for the below.
         // Parser handles non-matching calendar, so the value thrown here should only be duplicates.
-        return Err(TemporalError::syntax()
+        return Err(TemporalError::range()
             .with_message("Duplicate calendar value with critical flag found."));
     }
 
     // Validate that the DateRecord exists.
     if record.date.is_none() {
         return Err(
-            TemporalError::syntax().with_message("DateTime strings must contain a Date value.")
+            TemporalError::range().with_message("DateTime strings must contain a Date value.")
         );
     }
 
@@ -150,3 +480,130 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 }
 
 // TODO: ParseTimeZoneString, ParseZonedDateTimeString
+
+#[cfg(test)]
+mod tests {
+    use super::{FormattableDate, FormattableOffset};
+    use crate::parsers::{FormattableTime, Precision};
+    use alloc::format;
+    use writeable::assert_writeable_eq;
+
+    #[test]
+    fn offset_string() {
+        let offset = FormattableOffset {
+            sign: crate::Sign::Positive,
+            time: FormattableTime {
+                hour: 4,
+                minute: 0,
+                second: 0,
+                nanosecond: 0,
+                precision: Precision::Minute,
+                include_sep: true,
+            },
+        };
+        assert_writeable_eq!(offset, "+04:00");
+
+        let offset = FormattableOffset {
+            sign: crate::Sign::Negative,
+            time: FormattableTime {
+                hour: 5,
+                minute: 0,
+                second: 30,
+                nanosecond: 0,
+                precision: Precision::Minute,
+                include_sep: true,
+            },
+        };
+        assert_writeable_eq!(offset, "-05:00");
+
+        let offset = FormattableOffset {
+            sign: crate::Sign::Negative,
+            time: FormattableTime {
+                hour: 5,
+                minute: 0,
+                second: 30,
+                nanosecond: 0,
+                precision: Precision::Auto,
+                include_sep: true,
+            },
+        };
+        assert_writeable_eq!(offset, "-05:00:30");
+
+        let offset = FormattableOffset {
+            sign: crate::Sign::Negative,
+            time: FormattableTime {
+                hour: 5,
+                minute: 0,
+                second: 00,
+                nanosecond: 123050000,
+                precision: Precision::Auto,
+                include_sep: true,
+            },
+        };
+        assert_writeable_eq!(offset, "-05:00:00.12305");
+    }
+
+    #[test]
+    fn time_to_precision() {
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050000,
+            precision: Precision::Digit(8),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00.12305000");
+
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050002,
+            precision: Precision::Digit(9),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00.123050002");
+
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050000,
+            precision: Precision::Digit(1),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00.1");
+
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050000,
+            precision: Precision::Digit(0),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00");
+    }
+
+    #[test]
+    fn date_string() {
+        let date = FormattableDate(2024, 12, 8);
+        assert_writeable_eq!(date, "2024-12-08");
+
+        let date = FormattableDate(987654, 12, 8);
+        assert_writeable_eq!(date, "+987654-12-08");
+
+        let date = FormattableDate(-987654, 12, 8);
+        assert_writeable_eq!(date, "-987654-12-08");
+
+        let date = FormattableDate(0, 12, 8);
+        assert_writeable_eq!(date, "0000-12-08");
+
+        let date = FormattableDate(10_000, 12, 8);
+        assert_writeable_eq!(date, "+010000-12-08");
+
+        let date = FormattableDate(-10_000, 12, 8);
+        assert_writeable_eq!(date, "-010000-12-08");
+    }
+}

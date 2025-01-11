@@ -65,6 +65,7 @@ combine = { workspace = true, optional = true }
 
 # System time feature
 web-time = { workspace = true, optional =  true }
+writeable = "0.6.0"
 
 [features]
 default = ["now"]
