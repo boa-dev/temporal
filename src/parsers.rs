@@ -43,7 +43,7 @@ impl Writeable for FormattableTime {
             sink.write_char(':')?;
         }
         write_padded_u8(self.second, sink)?;
-        if self.nanosecond == 0 {
+        if self.nanosecond == 0 || self.precision == Precision::Digit(0) {
             return Ok(());
         }
         sink.write_char('.')?;
@@ -56,7 +56,7 @@ impl Writeable for FormattableTime {
             return LengthHint::exact(4 + sep);
         }
         let time_base = 6 + (sep * 2);
-        if self.nanosecond == 0 {
+        if self.nanosecond == 0 || self.precision == Precision::Digit(0) {
             return LengthHint::exact(time_base);
         }
         if let Precision::Digit(d) = self.precision {
@@ -107,17 +107,15 @@ fn write_nanosecond<W: core::fmt::Write + ?Sized>(
     precision: Precision,
     sink: &mut W,
 ) -> core::fmt::Result {
-    let (digits, index) = write_u32_to_ascii_digits(nanoseconds);
-    let slice = match precision {
-        Precision::Digit(digit) if digit < 9 => &digits[..digit as usize],
-        _ => &digits[..index],
+    let (digits, index) = u32_to_digits(nanoseconds);
+    let precision = match precision {
+        Precision::Digit(digit) if digit < 9 => digit as usize,
+        _ => index,
     };
-    // SAFETY: Index must be within a valid range of 0..=9 and is
-    // valid aschii digit chars.
-    sink.write_str(unsafe { core::str::from_utf8_unchecked(slice) })
+    write_digit_slice_to_precision(digits, 0, precision, sink)
 }
 
-pub fn write_u32_to_ascii_digits(mut value: u32) -> ([u8; 9], usize) {
+pub fn u32_to_digits(mut value: u32) -> ([u8; 9], usize) {
     let mut output = [0; 9];
     let mut precision = 0;
     // let mut precision_check = 0;
@@ -128,11 +126,23 @@ pub fn write_u32_to_ascii_digits(mut value: u32) -> ([u8; 9], usize) {
         if precision == 0 && v != 0 {
             precision = i;
         }
-        output[i - 1] = v + 48;
+        output[i - 1] = v;
         i -= 1;
     }
 
     (output, precision)
+}
+
+pub fn write_digit_slice_to_precision<W: core::fmt::Write + ?Sized>(
+    digits: [u8; 9],
+    base: usize,
+    precision: usize,
+    sink: &mut W,
+) -> core::fmt::Result {
+    for digit in digits.iter().take(precision).skip(base) {
+        digit.write_to(sink)?;
+    }
+    Ok(())
 }
 
 pub struct FormattableOffset {
@@ -200,10 +210,9 @@ fn write_four_digit_year<W: core::fmt::Write + ?Sized>(
 fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> core::fmt::Result {
     let sign = if y < 0 { '-' } else { '+' };
     sink.write_char(sign)?;
-    let (digits, _) = write_u32_to_ascii_digits(y.unsigned_abs());
+    let (digits, _) = u32_to_digits(y.unsigned_abs());
     // SAFETY: digits slice is made up up valid ASCII digits.
-    let value = unsafe { core::str::from_utf8_unchecked(&digits[3..]) };
-    sink.write_str(value)
+    write_digit_slice_to_precision(digits, 3, 9, sink)
 }
 
 pub struct FormattableTimeZone<'a> {
@@ -475,9 +484,10 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 
 #[cfg(test)]
 mod tests {
+    use super::{FormattableDate, FormattableOffset};
     use crate::parsers::{FormattableTime, Precision};
-
-    use super::{write_u32_to_ascii_digits, FormattableDate, FormattableOffset};
+    use alloc::format;
+    use writeable::assert_writeable_eq;
 
     #[test]
     fn offset_string() {
@@ -492,7 +502,7 @@ mod tests {
                 include_sep: true,
             },
         };
-        assert_eq!(offset.to_string(), "+04:00");
+        assert_writeable_eq!(offset, "+04:00");
 
         let offset = FormattableOffset {
             sign: crate::Sign::Negative,
@@ -505,7 +515,7 @@ mod tests {
                 include_sep: true,
             },
         };
-        assert_eq!(offset.to_string(), "-05:00");
+        assert_writeable_eq!(offset, "-05:00");
 
         let offset = FormattableOffset {
             sign: crate::Sign::Negative,
@@ -518,7 +528,7 @@ mod tests {
                 include_sep: true,
             },
         };
-        assert_eq!(offset.to_string(), "-05:00:30");
+        assert_writeable_eq!(offset, "-05:00:30");
 
         let offset = FormattableOffset {
             sign: crate::Sign::Negative,
@@ -531,57 +541,60 @@ mod tests {
                 include_sep: true,
             },
         };
-        assert_eq!(offset.to_string(), "-05:00:00.12305");
+        assert_writeable_eq!(offset, "-05:00:00.12305");
+    }
+
+    #[test]
+    fn time_to_precision() {
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050000,
+            precision: Precision::Digit(8),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00.12305000");
+
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050000,
+            precision: Precision::Digit(1),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00.1");
+
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050000,
+            precision: Precision::Digit(0),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00");
     }
 
     #[test]
     fn date_string() {
-        let date = FormattableDate(2024, 12, 8).to_string();
-        assert_eq!(&date, "2024-12-08");
+        let date = FormattableDate(2024, 12, 8);
+        assert_writeable_eq!(date, "2024-12-08");
 
-        let date = FormattableDate(987654, 12, 8).to_string();
-        assert_eq!(&date, "+987654-12-08");
+        let date = FormattableDate(987654, 12, 8);
+        assert_writeable_eq!(date, "+987654-12-08");
 
-        let date = FormattableDate(-987654, 12, 8).to_string();
-        assert_eq!(&date, "-987654-12-08");
+        let date = FormattableDate(-987654, 12, 8);
+        assert_writeable_eq!(date, "-987654-12-08");
 
-        let date = FormattableDate(0, 12, 8).to_string();
-        assert_eq!(&date, "0000-12-08");
+        let date = FormattableDate(0, 12, 8);
+        assert_writeable_eq!(date, "0000-12-08");
 
-        let date = FormattableDate(10_000, 12, 8).to_string();
-        assert_eq!(&date, "+010000-12-08");
+        let date = FormattableDate(10_000, 12, 8);
+        assert_writeable_eq!(date, "+010000-12-08");
 
-        let date = FormattableDate(-10_000, 12, 8).to_string();
-        assert_eq!(&date, "-010000-12-08");
-    }
-
-    #[test]
-    fn write_u32_tests() {
-        let v = 123_000_000;
-        let (output, precision) = write_u32_to_ascii_digits(v);
-        assert_eq!(output, [49, 50, 51, 48, 48, 48, 48, 48, 48]);
-        assert_eq!(precision, 3);
-        assert_eq!(
-            unsafe { core::str::from_utf8_unchecked(&output[..precision]) },
-            "123"
-        );
-
-        let v = 0;
-        let (output, precision) = write_u32_to_ascii_digits(v);
-        assert_eq!(output, [48, 48, 48, 48, 48, 48, 48, 48, 48]);
-        assert_eq!(precision, 0);
-        assert_eq!(
-            unsafe { core::str::from_utf8_unchecked(&output[..precision]) },
-            ""
-        );
-
-        let v = 123_020_000;
-        let (output, precision) = write_u32_to_ascii_digits(v);
-        assert_eq!(output, [49, 50, 51, 48, 50, 48, 48, 48, 48]);
-        assert_eq!(precision, 5);
-        assert_eq!(
-            unsafe { core::str::from_utf8_unchecked(&output[..precision]) },
-            "12302"
-        );
+        let date = FormattableDate(-10_000, 12, 8);
+        assert_writeable_eq!(date, "-010000-12-08");
     }
 }
