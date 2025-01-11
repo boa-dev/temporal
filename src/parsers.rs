@@ -13,8 +13,9 @@ use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precision {
+    #[default]
     Auto,
     Minute,
     Digit(u8),

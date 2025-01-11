@@ -4,15 +4,16 @@ use crate::{
     components::{calendar::Calendar, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        RoundingOptions, TemporalUnit,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::parse_date_time,
+    parsers::{
+        parse_date_time, FormattableCalendar, FormattableDate, FormattableIxdtf, FormattableTime,
+    },
     temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
-
+use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
-use tinystr::TinyAsciiStr;
 
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
@@ -20,6 +21,7 @@ use super::{
     timezone::NeverProvider,
     Duration, PartialDate, PartialTime, PlainDate, PlainTime,
 };
+use tinystr::TinyAsciiStr;
 
 /// A partial PlainDateTime record
 #[derive(Debug, Default, Clone)]
@@ -36,6 +38,15 @@ pub struct PartialDateTime {
 pub struct PlainDateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
+}
+
+impl core::fmt::Display for PlainDateTime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let ixdtf_str = self
+            .to_ixdtf_string(ToStringRoundingOptions::default(), DisplayCalendar::Auto)
+            .expect("ixdtf default configuration should not fail.");
+        f.write_str(&ixdtf_str)
+    }
 }
 
 impl Ord for PlainDateTime {
@@ -618,6 +629,46 @@ impl PlainDateTime {
         let result = self.iso.round(resolved)?;
 
         Ok(Self::new_unchecked(result, self.calendar.clone()))
+    }
+
+    pub fn to_ixdtf_string(
+        &self,
+        options: ToStringRoundingOptions,
+        display_calendar: DisplayCalendar,
+    ) -> TemporalResult<String> {
+        let resolved_options = options.resolve()?;
+        let result = self
+            .iso
+            .round(ResolvedRoundingOptions::from_to_string_options(
+                &resolved_options,
+            ))?;
+        if !result.is_within_limits() {
+            return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
+        }
+        let ixdtf = FormattableIxdtf {
+            date: Some(FormattableDate(
+                result.date.year,
+                result.date.month,
+                result.date.day,
+            )),
+            time: Some(FormattableTime {
+                hour: result.time.hour,
+                minute: result.time.minute,
+                second: result.time.second,
+                nanosecond: (result.time.millisecond as u32 * 1_000_000)
+                    + (result.time.microsecond as u32 * 1000)
+                    + result.time.nanosecond as u32,
+                precision: resolved_options.precision,
+                include_sep: true,
+            }),
+            utc_offset: None,
+            timezone: None,
+            calendar: Some(FormattableCalendar {
+                show: display_calendar,
+                calendar: self.calendar.identifier(),
+            }),
+        };
+        Ok(ixdtf.to_string())
     }
 }
 
