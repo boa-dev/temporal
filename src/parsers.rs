@@ -109,7 +109,7 @@ fn write_nanosecond<W: core::fmt::Write + ?Sized>(
 ) -> core::fmt::Result {
     let (digits, index) = u32_to_digits(nanoseconds);
     let precision = match precision {
-        Precision::Digit(digit) if digit < 9 => digit as usize,
+        Precision::Digit(digit) if digit <= 9 => digit as usize,
         _ => index,
     };
     write_digit_slice_to_precision(digits, 0, precision, sink)
@@ -554,6 +554,16 @@ mod tests {
             include_sep: true,
         };
         assert_writeable_eq!(time, "05:00:00.12305000");
+
+        let time = FormattableTime {
+            hour: 5,
+            minute: 0,
+            second: 00,
+            nanosecond: 123050002,
+            precision: Precision::Digit(9),
+            include_sep: true,
+        };
+        assert_writeable_eq!(time, "05:00:00.123050002");
 
         let time = FormattableTime {
             hour: 5,
