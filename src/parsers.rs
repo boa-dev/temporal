@@ -118,7 +118,6 @@ fn write_nanosecond<W: core::fmt::Write + ?Sized>(
 pub fn u32_to_digits(mut value: u32) -> ([u8; 9], usize) {
     let mut output = [0; 9];
     let mut precision = 0;
-    // let mut precision_check = 0;
     let mut i = 9;
     while i != 0 {
         let v = (value % 10) as u8;
