@@ -119,7 +119,9 @@ impl Writeable for FormattableTime {
             sink.write_char(':')?;
         }
         write_padded_u8(self.second, sink)?;
-        if self.nanosecond == 0 || self.precision == Precision::Digit(0) {
+        if (self.nanosecond == 0 && self.precision == Precision::Auto)
+            || self.precision == Precision::Digit(0)
+        {
             return Ok(());
         }
         sink.write_char('.')?;

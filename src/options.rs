@@ -29,6 +29,7 @@ pub struct ToStringRoundingOptions {
     pub rounding_mode: Option<TemporalRoundingMode>,
 }
 
+#[derive(Debug)]
 pub(crate) struct ResolvedToStringRoundingOptions {
     pub(crate) precision: Precision,
     pub(crate) smallest_unit: TemporalUnit,
@@ -54,19 +55,19 @@ impl ToStringRoundingOptions {
             }),
             Some(TemporalUnit::Millisecond) => Ok(ResolvedToStringRoundingOptions {
                 precision: Precision::Digit(3),
-                smallest_unit: TemporalUnit::Second,
+                smallest_unit: TemporalUnit::Millisecond,
                 rounding_mode,
                 increment: RoundingIncrement::ONE,
             }),
             Some(TemporalUnit::Microsecond) => Ok(ResolvedToStringRoundingOptions {
                 precision: Precision::Digit(6),
-                smallest_unit: TemporalUnit::Second,
+                smallest_unit: TemporalUnit::Microsecond,
                 rounding_mode,
                 increment: RoundingIncrement::ONE,
             }),
             Some(TemporalUnit::Nanosecond) => Ok(ResolvedToStringRoundingOptions {
                 precision: Precision::Digit(9),
-                smallest_unit: TemporalUnit::Second,
+                smallest_unit: TemporalUnit::Nanosecond,
                 rounding_mode,
                 increment: RoundingIncrement::ONE,
             }),
@@ -89,7 +90,8 @@ impl ToStringRoundingOptions {
                             precision: Precision::Digit(d),
                             smallest_unit: TemporalUnit::Millisecond,
                             rounding_mode,
-                            increment: RoundingIncrement::ONE,
+                            increment: RoundingIncrement::try_new(10_u32.pow(3 - d as u32))
+                                .expect("a valid increment"),
                         })
                     }
                     Precision::Digit(d) if (4..=6).contains(&d) => {
@@ -97,15 +99,17 @@ impl ToStringRoundingOptions {
                             precision: Precision::Digit(d),
                             smallest_unit: TemporalUnit::Microsecond,
                             rounding_mode,
-                            increment: RoundingIncrement::ONE,
+                            increment: RoundingIncrement::try_new(10_u32.pow(6 - d as u32))
+                                .expect("a valid increment"),
                         })
                     }
                     Precision::Digit(d) if (7..=9).contains(&d) => {
                         Ok(ResolvedToStringRoundingOptions {
                             precision: Precision::Digit(d),
-                            smallest_unit: TemporalUnit::Microsecond,
+                            smallest_unit: TemporalUnit::Nanosecond,
                             rounding_mode,
-                            increment: RoundingIncrement::ONE,
+                            increment: RoundingIncrement::try_new(10_u32.pow(9 - d as u32))
+                                .expect("a valid increment"),
                         })
                     }
                     _ => Err(TemporalError::range()
