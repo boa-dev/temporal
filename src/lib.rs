@@ -140,8 +140,9 @@ macro_rules! temporal_assert {
 // types::Sign, etc.
 /// A general Sign type.
 #[repr(i8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Sign {
+    #[default]
     Positive = 1,
     Zero = 0,
     Negative = -1,

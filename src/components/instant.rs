@@ -1,24 +1,30 @@
 //! An implementation of the Temporal Instant.
 
+use alloc::string::String;
 use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
-    components::{duration::TimeDuration, Duration},
+    components::{
+        duration::TimeDuration, zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration,
+    },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        RoundingOptions, TemporalUnit,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayOffset,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::parse_instant,
+    parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, NS_MAX_INSTANT,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone, NS_MAX_INSTANT,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use num_traits::FromPrimitive;
 
-use super::duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
+use super::{
+    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    timezone::TzProvider,
+};
 
 const NANOSECONDS_PER_SECOND: f64 = 1e9;
 const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
@@ -261,6 +267,41 @@ impl Instant {
     #[must_use]
     pub fn epoch_nanoseconds(&self) -> i128 {
         self.as_i128()
+    }
+}
+
+// ==== Instant Provider API ====
+
+impl Instant {
+    pub fn to_ixdtf_string_with_provider(
+        &self,
+        timezone: Option<&TimeZone>,
+        options: ToStringRoundingOptions,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<String> {
+        let resolved_options = options.resolve()?;
+        let round = self.round_instant(ResolvedRoundingOptions::from_to_string_options(
+            &resolved_options,
+        ))?;
+        let rounded_instant = Instant::try_new(round)?;
+
+        let mut ixdtf = IxdtfStringBuilder::default();
+        let datetime = if let Some(timezone) = timezone {
+            let datetime = timezone.get_iso_datetime_for(&rounded_instant, provider)?;
+            let nanoseconds = timezone.get_offset_nanos_for(rounded_instant.as_i128(), provider)?;
+            let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(nanoseconds)?;
+            ixdtf = ixdtf.with_minute_offset(sign, hour, minute, DisplayOffset::Auto);
+            datetime
+        } else {
+            ixdtf = ixdtf.with_z(DisplayOffset::Auto);
+            TimeZone::default().get_iso_datetime_for(&rounded_instant, provider)?
+        };
+        let ixdtf_string = ixdtf
+            .with_date(datetime.date)
+            .with_time(datetime.time, resolved_options.precision)
+            .build();
+
+        Ok(ixdtf_string)
     }
 }
 

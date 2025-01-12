@@ -4,15 +4,14 @@ use crate::{
     components::{calendar::Calendar, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        RoundingOptions, TemporalUnit,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::parse_date_time,
+    parsers::{parse_date_time, IxdtfStringBuilder},
     temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
-
+use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
-use tinystr::TinyAsciiStr;
 
 use super::{
     calendar::{CalendarDateLike, GetTemporalCalendar},
@@ -20,6 +19,7 @@ use super::{
     timezone::NeverProvider,
     Duration, PartialDate, PartialTime, PlainDate, PlainTime,
 };
+use tinystr::TinyAsciiStr;
 
 /// A partial PlainDateTime record
 #[derive(Debug, Default, Clone)]
@@ -36,6 +36,15 @@ pub struct PartialDateTime {
 pub struct PlainDateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
+}
+
+impl core::fmt::Display for PlainDateTime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let ixdtf_str = self
+            .to_ixdtf_string(ToStringRoundingOptions::default(), DisplayCalendar::Auto)
+            .expect("ixdtf default configuration should not fail.");
+        f.write_str(&ixdtf_str)
+    }
 }
 
 impl Ord for PlainDateTime {
@@ -619,6 +628,28 @@ impl PlainDateTime {
 
         Ok(Self::new_unchecked(result, self.calendar.clone()))
     }
+
+    pub fn to_ixdtf_string(
+        &self,
+        options: ToStringRoundingOptions,
+        display_calendar: DisplayCalendar,
+    ) -> TemporalResult<String> {
+        let resolved_options = options.resolve()?;
+        let result = self
+            .iso
+            .round(ResolvedRoundingOptions::from_to_string_options(
+                &resolved_options,
+            ))?;
+        if !result.is_within_limits() {
+            return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
+        }
+        let ixdtf_string = IxdtfStringBuilder::default()
+            .with_date(result.date)
+            .with_time(result.time, resolved_options.precision)
+            .with_calendar(self.calendar.identifier(), display_calendar)
+            .build();
+        Ok(ixdtf_string)
+    }
 }
 
 // ==== Trait impls ====
@@ -682,9 +713,10 @@ mod tests {
         },
         iso::{IsoDate, IsoDateTime, IsoTime},
         options::{
-            DifferenceSettings, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
-            TemporalUnit,
+            DifferenceSettings, DisplayCalendar, RoundingIncrement, RoundingOptions,
+            TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions,
         },
+        parsers::Precision,
         primitive::FiniteF64,
         TemporalResult,
     };
@@ -1097,5 +1129,157 @@ mod tests {
             .round(gen_rounding_options(TemporalUnit::Nanosecond, 10))
             .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 456, 790));
+    }
+
+    // Mapped from fractionaldigits-number.js
+    #[test]
+    fn to_string_precision_digits() {
+        let few_seconds =
+            PlainDateTime::try_new(1976, 2, 4, 5, 3, 1, 0, 0, 0, Calendar::default()).unwrap();
+        let zero_seconds =
+            PlainDateTime::try_new(1976, 11, 18, 15, 23, 0, 0, 0, 0, Calendar::default()).unwrap();
+        let whole_seconds =
+            PlainDateTime::try_new(1976, 11, 18, 15, 23, 30, 0, 0, 0, Calendar::default()).unwrap();
+        let subseconds =
+            PlainDateTime::try_new(1976, 11, 18, 15, 23, 30, 123, 400, 0, Calendar::default())
+                .unwrap();
+
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(0),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &few_seconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-02-04T05:03:01",
+            "pads parts with 0"
+        );
+
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(0),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &subseconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30",
+            "truncates 4 decimal places to 0"
+        );
+
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(2),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &zero_seconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:00.00",
+            "pads zero seconds to 2 decimal places"
+        );
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(2),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+
+        assert_eq!(
+            &whole_seconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.00",
+            "pads whole seconds to 2 decimal places"
+        );
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(2),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &subseconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.12",
+            "truncates 4 decimal places to 2"
+        );
+
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(3),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &subseconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.123",
+            "truncates 4 decimal places to 3"
+        );
+
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(6),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &subseconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.123400",
+            "pads 4 decimal places to 6"
+        );
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(7),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &zero_seconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:00.0000000",
+            "pads zero seconds to 7 decimal places"
+        );
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(7),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &whole_seconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.0000000",
+            "pads whole seconds to 7 decimal places"
+        );
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(7),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &subseconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.1234000",
+            "pads 4 decimal places to 7"
+        );
+        let options = ToStringRoundingOptions {
+            precision: Precision::Digit(9),
+            smallest_unit: None,
+            rounding_mode: None,
+        };
+        assert_eq!(
+            &subseconds
+                .to_ixdtf_string(options, DisplayCalendar::Auto)
+                .unwrap(),
+            "1976-11-18T15:23:30.123400000",
+            "pads 4 decimal places to 9"
+        );
     }
 }

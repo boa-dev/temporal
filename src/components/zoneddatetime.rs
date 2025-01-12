@@ -14,20 +14,19 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, Disambiguation, OffsetDisambiguation, ResolvedRoundingOptions,
-        RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+        ArithmeticOverflow, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
+        OffsetDisambiguation, ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode,
+        TemporalUnit, ToStringRoundingOptions,
     },
-    parsers,
+    parsers::{self, IxdtfStringBuilder},
     partial::{PartialDate, PartialTime},
     rounding::{IncrementRounder, Round},
-    temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, Sign, TemporalError,
-    TemporalResult, TimeZone,
+    temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime, Sign,
+    TemporalError, TemporalResult, TimeZone,
 };
 
 #[cfg(feature = "experimental")]
 use crate::components::timezone::TZ_PROVIDER;
-
-use super::PlainTime;
 
 /// A struct representing a partial `ZonedDateTime`.
 pub struct PartialZonedDateTime {
@@ -903,6 +902,50 @@ impl ZonedDateTime {
         Ok(PlainDateTime::new_unchecked(iso, self.calendar.clone()))
     }
 
+    /// Creates a default formatted IXDTF (RFC 9557) date/time string for the provided `ZonedDateTime`.
+    pub fn to_string_with_provider(&self, provider: &impl TzProvider) -> TemporalResult<String> {
+        self.to_ixdtf_string_with_provider(
+            DisplayOffset::Auto,
+            DisplayTimeZone::Auto,
+            DisplayCalendar::Auto,
+            ToStringRoundingOptions::default(),
+            provider,
+        )
+    }
+
+    /// Creates an IXDTF (RFC 9557) date/time string for the provided `ZonedDateTime` according
+    /// to the provided display options.
+    pub fn to_ixdtf_string_with_provider(
+        &self,
+        display_offset: DisplayOffset,
+        display_timezone: DisplayTimeZone,
+        display_calendar: DisplayCalendar,
+        options: ToStringRoundingOptions,
+        provider: &impl TzProvider,
+    ) -> TemporalResult<String> {
+        let resolved_options = options.resolve()?;
+        let result =
+            self.instant
+                .round_instant(ResolvedRoundingOptions::from_to_string_options(
+                    &resolved_options,
+                ))?;
+
+        let offset = self.tz.get_offset_nanos_for(result, provider)?;
+        let datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
+        let timezone_id = self.timezone().id()?;
+
+        let ixdtf_string = IxdtfStringBuilder::default()
+            .with_date(datetime.date)
+            .with_time(datetime.time, resolved_options.precision)
+            .with_minute_offset(sign, hour, minute, display_offset)
+            .with_timezone(&timezone_id, display_timezone)
+            .with_calendar(self.calendar.identifier(), display_calendar)
+            .build();
+
+        Ok(ixdtf_string)
+    }
+
     // TODO: Should IANA Identifier be prechecked or allow potentially invalid IANA Identifer values here?
     pub fn from_str_with_provider(
         source: &str,
@@ -1106,6 +1149,28 @@ pub(crate) fn interpret_isodatetime_offset(
             timezone.get_epoch_nanoseconds_for(iso, disambiguation, provider)
         }
     }
+}
+
+// Formatting utils
+const NS_PER_MINUTE: i128 = 60_000_000_000;
+
+pub(crate) fn nanoseconds_to_formattable_offset_minutes(
+    nanoseconds: i128,
+) -> TemporalResult<(Sign, u8, u8)> {
+    // Per 11.1.7 this should be rounding
+    let nanoseconds = IncrementRounder::from_potentially_negative_parts(nanoseconds, unsafe {
+        NonZeroU128::new_unchecked(NS_PER_MINUTE as u128)
+    })?
+    .round(TemporalRoundingMode::HalfExpand);
+    let offset_minutes = (nanoseconds / NS_PER_MINUTE) as i32;
+    let sign = if offset_minutes < 0 {
+        Sign::Negative
+    } else {
+        Sign::Positive
+    };
+    let hour = offset_minutes.abs() / 60;
+    let minute = offset_minutes.abs() % 60;
+    Ok((sign, hour as u8, minute as u8))
 }
 
 #[cfg(feature = "tzdb")]

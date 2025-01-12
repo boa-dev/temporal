@@ -3,6 +3,7 @@
 //! Temporal has various instances where user's can define options for how an
 //! operation may be completed.
 
+use crate::parsers::Precision;
 use crate::{Sign, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
 use core::ops::Add;
 use core::{fmt, str::FromStr};
@@ -19,6 +20,107 @@ pub use relative_to::RelativeTo;
 pub(crate) enum DifferenceOperation {
     Until,
     Since,
+}
+
+#[derive(Debug, Default)]
+pub struct ToStringRoundingOptions {
+    pub precision: Precision,
+    pub smallest_unit: Option<TemporalUnit>,
+    pub rounding_mode: Option<TemporalRoundingMode>,
+}
+
+#[derive(Debug)]
+pub(crate) struct ResolvedToStringRoundingOptions {
+    pub(crate) precision: Precision,
+    pub(crate) smallest_unit: TemporalUnit,
+    pub(crate) rounding_mode: TemporalRoundingMode,
+    pub(crate) increment: RoundingIncrement,
+}
+
+impl ToStringRoundingOptions {
+    pub(crate) fn resolve(&self) -> TemporalResult<ResolvedToStringRoundingOptions> {
+        let rounding_mode = self.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc);
+        match self.smallest_unit {
+            Some(TemporalUnit::Minute) => Ok(ResolvedToStringRoundingOptions {
+                precision: Precision::Minute,
+                smallest_unit: TemporalUnit::Minute,
+                rounding_mode,
+                increment: RoundingIncrement::ONE,
+            }),
+            Some(TemporalUnit::Second) => Ok(ResolvedToStringRoundingOptions {
+                precision: Precision::Digit(0),
+                smallest_unit: TemporalUnit::Second,
+                rounding_mode,
+                increment: RoundingIncrement::ONE,
+            }),
+            Some(TemporalUnit::Millisecond) => Ok(ResolvedToStringRoundingOptions {
+                precision: Precision::Digit(3),
+                smallest_unit: TemporalUnit::Millisecond,
+                rounding_mode,
+                increment: RoundingIncrement::ONE,
+            }),
+            Some(TemporalUnit::Microsecond) => Ok(ResolvedToStringRoundingOptions {
+                precision: Precision::Digit(6),
+                smallest_unit: TemporalUnit::Microsecond,
+                rounding_mode,
+                increment: RoundingIncrement::ONE,
+            }),
+            Some(TemporalUnit::Nanosecond) => Ok(ResolvedToStringRoundingOptions {
+                precision: Precision::Digit(9),
+                smallest_unit: TemporalUnit::Nanosecond,
+                rounding_mode,
+                increment: RoundingIncrement::ONE,
+            }),
+            None => {
+                match self.precision {
+                    Precision::Auto => Ok(ResolvedToStringRoundingOptions {
+                        precision: Precision::Auto,
+                        smallest_unit: TemporalUnit::Nanosecond,
+                        rounding_mode,
+                        increment: RoundingIncrement::ONE,
+                    }),
+                    Precision::Digit(0) => Ok(ResolvedToStringRoundingOptions {
+                        precision: Precision::Digit(0),
+                        smallest_unit: TemporalUnit::Second,
+                        rounding_mode,
+                        increment: RoundingIncrement::ONE,
+                    }),
+                    Precision::Digit(d) if (1..=3).contains(&d) => {
+                        Ok(ResolvedToStringRoundingOptions {
+                            precision: Precision::Digit(d),
+                            smallest_unit: TemporalUnit::Millisecond,
+                            rounding_mode,
+                            increment: RoundingIncrement::try_new(10_u32.pow(3 - d as u32))
+                                .expect("a valid increment"),
+                        })
+                    }
+                    Precision::Digit(d) if (4..=6).contains(&d) => {
+                        Ok(ResolvedToStringRoundingOptions {
+                            precision: Precision::Digit(d),
+                            smallest_unit: TemporalUnit::Microsecond,
+                            rounding_mode,
+                            increment: RoundingIncrement::try_new(10_u32.pow(6 - d as u32))
+                                .expect("a valid increment"),
+                        })
+                    }
+                    Precision::Digit(d) if (7..=9).contains(&d) => {
+                        Ok(ResolvedToStringRoundingOptions {
+                            precision: Precision::Digit(d),
+                            smallest_unit: TemporalUnit::Nanosecond,
+                            rounding_mode,
+                            increment: RoundingIncrement::try_new(10_u32.pow(9 - d as u32))
+                                .expect("a valid increment"),
+                        })
+                    }
+                    _ => Err(TemporalError::range()
+                        .with_message("Invalid fractionalDigits precision value")),
+                }
+            }
+            _ => {
+                Err(TemporalError::range().with_message("smallestUnit must be a valid time unit."))
+            }
+        }
+    }
 }
 
 #[non_exhaustive]
@@ -63,6 +165,15 @@ pub(crate) struct ResolvedRoundingOptions {
 }
 
 impl ResolvedRoundingOptions {
+    pub(crate) fn from_to_string_options(options: &ResolvedToStringRoundingOptions) -> Self {
+        Self {
+            largest_unit: TemporalUnit::Auto,
+            smallest_unit: options.smallest_unit,
+            increment: options.increment,
+            rounding_mode: options.rounding_mode,
+        }
+    }
+
     pub(crate) fn from_diff_settings(
         options: DifferenceSettings,
         operation: DifferenceOperation,
@@ -710,8 +821,9 @@ impl fmt::Display for TemporalRoundingMode {
 
 /// values for `CalendarName`, whether to show the calendar in toString() methods
 /// <https://tc39.es/proposal-temporal/#sec-temporal-gettemporalshowcalendarnameoption>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DisplayCalendar {
+    #[default]
     /// `Auto` option
     Auto,
     /// `Always` option
@@ -748,8 +860,9 @@ impl FromStr for DisplayCalendar {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DisplayOffset {
+    #[default]
     Auto,
     Never,
 }
@@ -776,8 +889,9 @@ impl FromStr for DisplayOffset {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DisplayTimeZone {
+    #[default]
     /// `Auto` option
     Auto,
     /// `Never` option
