@@ -7,9 +7,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
         ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::{
-        parse_date_time, FormattableCalendar, FormattableDate, FormattableIxdtf, FormattableTime,
-    },
+    parsers::{parse_date_time, IxdtfStringBuilder},
     temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
@@ -645,30 +643,12 @@ impl PlainDateTime {
         if !result.is_within_limits() {
             return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
         }
-        let ixdtf = FormattableIxdtf {
-            date: Some(FormattableDate(
-                result.date.year,
-                result.date.month,
-                result.date.day,
-            )),
-            time: Some(FormattableTime {
-                hour: result.time.hour,
-                minute: result.time.minute,
-                second: result.time.second,
-                nanosecond: (result.time.millisecond as u32 * 1_000_000)
-                    + (result.time.microsecond as u32 * 1000)
-                    + result.time.nanosecond as u32,
-                precision: resolved_options.precision,
-                include_sep: true,
-            }),
-            utc_offset: None,
-            timezone: None,
-            calendar: Some(FormattableCalendar {
-                show: display_calendar,
-                calendar: self.calendar.identifier(),
-            }),
-        };
-        Ok(ixdtf.to_string())
+        let ixdtf_string = IxdtfStringBuilder::default()
+            .with_date(result.date)
+            .with_time(result.time, resolved_options.precision)
+            .with_calendar(self.calendar.identifier(), display_calendar)
+            .build();
+        Ok(ixdtf_string)
     }
 }
 

@@ -1,6 +1,7 @@
 //! This module implements Temporal Date/Time parsing functionality.
 
 use crate::{
+    iso::{IsoDate, IsoTime},
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
@@ -13,6 +14,79 @@ use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 
+#[derive(Debug, Default)]
+pub struct IxdtfStringBuilder<'a> {
+    inner: FormattableIxdtf<'a>,
+}
+
+impl<'a> IxdtfStringBuilder<'a> {
+    pub fn with_date(mut self, iso: IsoDate) -> Self {
+        self.inner.date = Some(FormattableDate(iso.year, iso.month, iso.day));
+        self
+    }
+
+    pub fn with_time(mut self, time: IsoTime, precision: Precision) -> Self {
+        let nanosecond = (time.millisecond as u32 * 1_000_000)
+            + (time.microsecond as u32 * 1000)
+            + time.nanosecond as u32;
+
+        self.inner.time = Some(FormattableTime {
+            hour: time.hour,
+            minute: time.minute,
+            second: time.second,
+            nanosecond,
+            precision,
+            include_sep: true,
+        });
+        self
+    }
+
+    pub fn with_minute_offset(
+        mut self,
+        sign: Sign,
+        hour: u8,
+        minute: u8,
+        show: DisplayOffset,
+    ) -> Self {
+        let time = FormattableTime {
+            hour,
+            minute,
+            second: 9,
+            nanosecond: 0,
+            precision: Precision::Minute,
+            include_sep: true,
+        };
+
+        self.inner.utc_offset = Some(FormattableUtcOffset {
+            show,
+            offset: UtcOffset::Offset(FormattableOffset { sign, time }),
+        });
+        self
+    }
+
+    pub fn with_z(mut self, show: DisplayOffset) -> Self {
+        self.inner.utc_offset = Some(FormattableUtcOffset {
+            show,
+            offset: UtcOffset::Z,
+        });
+        self
+    }
+
+    pub fn with_timezone(mut self, timezone: &'a str, show: DisplayTimeZone) -> Self {
+        self.inner.timezone = Some(FormattableTimeZone { show, timezone });
+        self
+    }
+
+    pub fn with_calendar(mut self, calendar: &'static str, show: DisplayCalendar) -> Self {
+        self.inner.calendar = Some(FormattableCalendar { show, calendar });
+        self
+    }
+
+    pub fn build(self) -> alloc::string::String {
+        self.inner.to_string()
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precision {
     #[default]
@@ -21,6 +95,7 @@ pub enum Precision {
     Digit(u8),
 }
 
+#[derive(Debug)]
 pub struct FormattableTime {
     pub hour: u8,
     pub minute: u8,
@@ -67,11 +142,13 @@ impl Writeable for FormattableTime {
     }
 }
 
+#[derive(Debug)]
 pub struct FormattableUtcOffset {
     pub show: DisplayOffset,
     pub offset: UtcOffset,
 }
 
+#[derive(Debug)]
 pub enum UtcOffset {
     Z,
     Offset(FormattableOffset),
@@ -145,6 +222,7 @@ pub fn write_digit_slice_to_precision<W: core::fmt::Write + ?Sized>(
     Ok(())
 }
 
+#[derive(Debug)]
 pub struct FormattableOffset {
     pub sign: Sign,
     pub time: FormattableTime,
@@ -172,6 +250,7 @@ impl_display_with_writeable!(FormattableOffset);
 impl_display_with_writeable!(FormattableTimeZone<'_>);
 impl_display_with_writeable!(FormattableCalendar<'_>);
 
+#[derive(Debug)]
 pub struct FormattableDate(pub i32, pub u8, pub u8);
 
 impl Writeable for FormattableDate {
@@ -215,6 +294,7 @@ fn write_extended_year<W: core::fmt::Write + ?Sized>(y: i32, sink: &mut W) -> co
     write_digit_slice_to_precision(digits, 3, 9, sink)
 }
 
+#[derive(Debug)]
 pub struct FormattableTimeZone<'a> {
     pub show: DisplayTimeZone,
     pub timezone: &'a str,
@@ -242,6 +322,7 @@ impl Writeable for FormattableTimeZone<'_> {
     }
 }
 
+#[derive(Debug)]
 pub struct FormattableCalendar<'a> {
     pub show: DisplayCalendar,
     pub calendar: &'a str,
@@ -274,6 +355,7 @@ impl Writeable for FormattableCalendar<'_> {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct FormattableIxdtf<'a> {
     pub date: Option<FormattableDate>,
     pub time: Option<FormattableTime>,

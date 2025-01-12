@@ -1,21 +1,21 @@
 //! This module implements `Time` and any directly related algorithms.
 
-use alloc::string::String;
-use core::str::FromStr;
 use crate::{
     components::{duration::TimeDuration, Duration},
     iso::IsoTime,
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
+        RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::{parse_time, FormattableIxdtf, FormattableTime},
+    parsers::{parse_time, IxdtfStringBuilder},
     primitive::FiniteF64,
     Sign, TemporalError, TemporalResult,
 };
+use alloc::string::String;
+use core::str::FromStr;
 use num_traits::AsPrimitive;
 
 use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
-
 
 /// A `PartialTime` represents partially filled `Time` fields.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -436,24 +436,13 @@ impl PlainTime {
 
     pub fn to_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         let resolved = options.resolve()?;
-        let (_, result) = self.iso.round(ResolvedRoundingOptions::from_to_string_options(&resolved))?;
-        let ixdtf = FormattableIxdtf {
-            date: None,
-            time: Some(FormattableTime {
-                hour: result.hour,
-                minute: result.minute,
-                second: result.second,
-                nanosecond: (result.millisecond as u32 * 1_000_000)
-                    + (result.microsecond as u32 * 1000)
-                    + result.nanosecond as u32,
-                precision: resolved.precision,
-                include_sep: true,
-            }),
-            utc_offset: None,
-            timezone: None,
-            calendar: None,
-        };
-        Ok(ixdtf.to_string())
+        let (_, result) = self
+            .iso
+            .round(ResolvedRoundingOptions::from_to_string_options(&resolved))?;
+        let ixdtf_string = IxdtfStringBuilder::default()
+            .with_time(result, resolved.precision)
+            .build();
+        Ok(ixdtf_string)
     }
 }
 

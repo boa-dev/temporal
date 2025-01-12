@@ -11,7 +11,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
         ResolvedRoundingOptions, TemporalUnit,
     },
-    parsers::{parse_date_time, FormattableCalendar, FormattableDate, FormattableIxdtf},
+    parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
     Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -593,17 +593,10 @@ impl PlainDate {
 
     #[inline]
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
-        let ixdtf = FormattableIxdtf {
-            date: Some(FormattableDate(self.iso.year, self.iso.month, self.iso.day)),
-            time: None,
-            utc_offset: None,
-            timezone: None,
-            calendar: Some(FormattableCalendar {
-                show: display_calendar,
-                calendar: self.calendar.identifier(),
-            }),
-        };
-        ixdtf.to_string()
+        IxdtfStringBuilder::default()
+            .with_date(self.iso)
+            .with_calendar(self.calendar.identifier(), display_calendar)
+            .build()
     }
 }
 

@@ -817,8 +817,9 @@ impl fmt::Display for TemporalRoundingMode {
 
 /// values for `CalendarName`, whether to show the calendar in toString() methods
 /// <https://tc39.es/proposal-temporal/#sec-temporal-gettemporalshowcalendarnameoption>
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DisplayCalendar {
+    #[default]
     /// `Auto` option
     Auto,
     /// `Always` option
@@ -855,8 +856,9 @@ impl FromStr for DisplayCalendar {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DisplayOffset {
+    #[default]
     Auto,
     Never,
 }
@@ -883,8 +885,9 @@ impl FromStr for DisplayOffset {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DisplayTimeZone {
+    #[default]
     /// `Auto` option
     Auto,
     /// `Never` option
