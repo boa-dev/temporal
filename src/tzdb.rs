@@ -208,10 +208,25 @@ impl Tzif {
 
     pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<TimeZoneOffset> {
         let db = self.get_data_block2()?;
+
         let result = db.transition_times.binary_search(epoch_seconds);
 
         match result {
             Ok(idx) => Ok(get_timezone_offset(db, idx - 1)),
+            // <https://datatracker.ietf.org/doc/html/rfc8536#section-3.2>
+            // If there are no transitions, local time for all timestamps is specified by the TZ
+            // string in the footer if present and nonempty; otherwise, it is
+            // specified by time type 0.
+            Err(_) if db.transition_times.is_empty() => {
+                if let Some(posix_tz_string) = self.posix_tz_string() {
+                    resolve_posix_tz_string_for_epoch_seconds(posix_tz_string, epoch_seconds.0)
+                } else {
+                    Ok(TimeZoneOffset {
+                        offset: db.local_time_type_records[0].utoff.0,
+                        transition_epoch: None,
+                    })
+                }
+            }
             Err(idx) if idx == 0 => Ok(get_timezone_offset(db, idx)),
             Err(idx) => {
                 if db.transition_times.len() <= idx {
@@ -308,12 +323,11 @@ impl Tzif {
 
 #[inline]
 fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneOffset {
-    let transition_epoch = db.transition_times[idx];
     // NOTE: Transition type can be empty. If no transition_type exists,
     // then use 0 as the default index of local_time_type_records.
     let offset = db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)];
     TimeZoneOffset {
-        transition_epoch: Some(transition_epoch.0),
+        transition_epoch: db.transition_times.get(idx).map(|s| s.0),
         offset: offset.utoff.0,
     }
 }
@@ -370,7 +384,11 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         TransitionDay::NoLeap(day) => i32::from(day) - 1,
         TransitionDay::WithLeap(day) => i32::from(day),
         TransitionDay::Mwd(_month, _week, _day) => {
-            return Err(TemporalError::general("unimplemented"));
+            // TODO: build transition epoch from month, week and day.
+            return Ok(TimeZoneOffset {
+                offset: offset.offset,
+                transition_epoch: None,
+            });
         }
     };
     let transition_epoch = i64::from(year_epoch) + i64::from(days) * 3600 + transition.time.0;
