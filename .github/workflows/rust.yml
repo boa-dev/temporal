@@ -37,6 +37,27 @@ jobs:
     - name: Check clippy (No features)
       run: cargo ws exec cargo clippy --no-default-features --all-targets
 
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Get the rust_version from the Cargo.toml
+      - name: Get rust_version
+        id: rust_version
+        run: echo "rust_version=$(grep '^rust-version' Cargo.toml -m 1 | cut -d' ' -f3 | tr -d '"')" >> $GITHUB_OUTPUT
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.rust_version.outputs.rust_version }}
+
+      - name: Check compilation
+        run: cargo check --all-features --all-targets
+
   build-test:
     name: Test (${{ matrix.rust.name }}, ${{ matrix.os }})
     strategy:
@@ -64,6 +85,7 @@ jobs:
         run: cargo build --quiet --all-features
       - name: Test --all-features
         run: cargo test --all-features
+
   docs:
     name: Documentation
     runs-on: ubuntu-latest
