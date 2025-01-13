@@ -1,19 +1,28 @@
 //! Gregorian Date Calculations
 //!
-//! This module contains the logic for Gregorian Date Calculations.
+//! This module contains the logic for Gregorian Date Calculations based
+//! off Cassio Neri and Lorenz Schneider's paper, [Euclidean affine functions
+//! and their application to calendar algorithms][eaf-calendar-algorithms].
+//!
+//! ## General Usage Note
+//!
+//! Unless specified, Rata Die refers to the computational rata die as referenced
+//! in the paper.
 //!
 //! ## Extending Neri-Schneider shift window
 //!
-//! In there paper, Neri-Schneider calculated for a Rata Die shift
-//! of 82, but that was not sufficient in order to support `Temporal`'s
-//! date range, so below is a small addendum table on extending the date
-//! range from s = 82 to s = 680.
+//! In their paper, Neri and Schneider calculated for a Rata Die cycle
+//! shift of constant of 82, but that was not sufficient in order to
+//! support `Temporal`'s date range, so below is a small addendum table
+//! on extending the date range from a cyle shift of 82 to 680.
 //!
 //! | Significant Date | Computational Rata Die | Rata Die Shift
 //! | -----------------|------------------------|-----------------|
 //! | April 19, -271_821 | -99,280,532 | 65,429 |
 //! | January 1, 1970 | 719,468 | 100,065,428 |
 //! | September 14, 275,760 | 100_719_469 | 200,065,429 |
+//!
+//! [eaf-calendar-algorithms]: https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172
 
 // NOTE: Temporal must support the year range [-271_821, 275_760]
 //
@@ -25,15 +34,14 @@
 // (-271_821 / 400).ciel() = s // 680
 //
 
-const EPOCH_COMPUTATIONAL_RATA_DIE: i32 = 719_468;
+pub const EPOCH_COMPUTATIONAL_RATA_DIE: i32 = 719_468;
+pub const DAYS_IN_A_400Y_CYCLE: u32 = 146_097;
 
-const DAYS_IN_A_400Y_CYCLE: u32 = 146_097;
 const TWO_POWER_THIRTY_NINE: u64 = 549_755_813_888; // 2^39 constant
 const TWO_POWER_SIXTEEN: u32 = 65_536; // 2^16 constant
 const DAYS_IN_GREGORIAN_CYCLE: i32 = DAYS_IN_A_400Y_CYCLE as i32;
 
-// Calculate Rata Die value from gregorian
-
+/// Calculate Rata Die value from gregorian
 pub fn rata_die_from_gregorian_date(year: i32, month: i32, day: i32) -> i32 {
     let (comp_year, comp_month, comp_day, century) = rata_die_first_equations(year, month, day);
     let y_star = 1461 * comp_year / 4 - century + century / 4;
@@ -74,7 +82,7 @@ const fn n_three(rata_die: u32) -> u32 {
     2141 * computational_day_of_year(rata_die) + 197_913
 }
 
-// Returns C, N_c
+// Returns C, N_c AKA century number and century remainder
 const fn first_equations(rata_die: u32) -> (u32, u32) {
     let n_one = n_one(rata_die);
     let century_rem = n_one.rem_euclid(146_097);
@@ -94,7 +102,7 @@ pub const fn days_in_century(rata_die: u32) -> u32 {
     century_rem(rata_die).div_euclid(4)
 }
 
-/// returns Y, N_y
+/// returns Y, N_y AKA, year and day_of_year
 const fn second_equations(rata_die: u32) -> (u32, u32) {
     let (century, rem) = first_equations(rata_die);
     let n_two = rem | 3;
@@ -104,7 +112,7 @@ const fn second_equations(rata_die: u32) -> (u32, u32) {
     (year, day_of_year)
 }
 
-// Y, M, D, N_y
+// Returns Y, M, D, N_y, AKA year, month, day, day_of_year
 const fn third_equations(rata_die: u32) -> (u32, u32, u32, u32) {
     let (year, day_of_year) = second_equations(rata_die);
     let n_three = 2141 * day_of_year + 197_913;
@@ -161,7 +169,7 @@ const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
 
 /// Get the computational Rata Die for given Epoch Days with the cycle shiftc.
 ///
-/// For more on `cycle_shifts`, see [`gregorian_ymd_from_epoch_days`]
+/// For more on `cycle_shifts`, see [`ymd_from_epoch_days`]
 pub const fn rata_die_for_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (u32, i32) {
     let rata_die =
         (epoch_days + EPOCH_COMPUTATIONAL_RATA_DIE + DAYS_IN_GREGORIAN_CYCLE * cycle_shifts) as u32; // epoch_days + K
