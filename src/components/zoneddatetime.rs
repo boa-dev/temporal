@@ -29,6 +29,7 @@ use crate::{
 use crate::components::timezone::TZ_PROVIDER;
 
 /// A struct representing a partial `ZonedDateTime`.
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PartialZonedDateTime {
     /// The `PartialDate` portion of a `PartialZonedDateTime`
     pub date: PartialDate,
@@ -1117,7 +1118,7 @@ pub(crate) fn interpret_isodatetime_offset(
                     // i. Let roundedCandidateNanoseconds be RoundNumberToIncrement(candidateOffset, 60 × 10**9, half-expand).
                     let rounded_candidate = IncrementRounder::from_potentially_negative_parts(
                         candidate_offset,
-                        unsafe { NonZeroU128::new_unchecked(60_000_000_000) },
+                        const { NonZeroU128::new(60_000_000_000).expect("cannot be zero") },
                     )?
                     .round(TemporalRoundingMode::HalfExpand);
                     // ii. If roundedCandidateNanoseconds = offsetNanoseconds, then
@@ -1173,8 +1174,7 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     Ok((sign, hour as u8, minute as u8))
 }
 
-#[cfg(feature = "tzdb")]
-#[cfg(test)]
+#[cfg(all(test, feature = "tzdb"))]
 mod tests {
     use crate::{
         options::{Disambiguation, OffsetDisambiguation},
@@ -1343,5 +1343,20 @@ mod tests {
             provider,
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
+    fn dst_skipped_cross_midnight() {
+        let provider = &FsTzdbProvider::default();
+        let midnight_disambiguated = ZonedDateTime::from_str_with_provider(
+            "1919-03-31T00[America/Toronto]",
+            Disambiguation::Compatible,
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+
+        assert_eq!(midnight_disambiguated.epoch_milliseconds(), -1601751600000);
     }
 }

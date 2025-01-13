@@ -92,7 +92,7 @@ impl From<LocalTimeTypeRecord> for LocalTimeRecord {
 
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a
-/// a for a time zone transition without the offset seconds applied to the
+/// time zone transition without the offset seconds applied to the
 /// epoch seconds.
 ///
 /// As a result of the search, it is possible for the resulting search to be either
@@ -295,7 +295,8 @@ impl Tzif {
         match offset_range.contains(&current_diff.0) {
             true if next_record.is_dst => Ok(LocalTimeRecordResult::Empty),
             true => Ok((next_record, initial_record).into()),
-            false => Ok(initial_record.into()),
+            false if current_diff <= initial_record.utoff => Ok(initial_record.into()),
+            false => Ok(next_record.into()),
         }
     }
 }
@@ -557,14 +558,14 @@ impl TzProvider for FsTzdbProvider {
             LocalTimeRecordResult::Empty => Vec::default(),
             LocalTimeRecordResult::Single(r) => {
                 let epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 + seconds_to_nanoseconds(r.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.offset))?;
                 vec![epoch_ns]
             }
             LocalTimeRecordResult::Ambiguous { std, dst } => {
                 let std_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 + seconds_to_nanoseconds(std.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.offset))?;
                 let dst_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 + seconds_to_nanoseconds(dst.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.offset))?;
                 vec![std_epoch_ns, dst_epoch_ns]
             }
         };

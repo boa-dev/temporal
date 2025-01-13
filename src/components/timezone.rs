@@ -7,6 +7,8 @@ use core::{iter::Peekable, str::Chars};
 
 use num_traits::ToPrimitive;
 
+use crate::components::duration::DateDuration;
+use crate::Calendar;
 use crate::{
     components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -23,6 +25,8 @@ use std::sync::{LazyLock, Mutex};
 pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
     LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
 
+const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
+
 // NOTE: It may be a good idea to eventually move this into it's
 // own individual crate rather than having it tied directly into `temporal_rs`
 pub trait TzProvider {
@@ -31,7 +35,7 @@ pub trait TzProvider {
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
-        iso_datetime: IsoDateTime,
+        local_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>>;
 
     fn get_named_tz_offset_nanoseconds(
@@ -258,13 +262,22 @@ impl TimeZone {
         //    which CompareISODateTime(before, isoDateTime) = -1 and !
         //    GetPossibleEpochNanoseconds(timeZone, before) is not
         //    empty.
-        let mut before = iso;
-        before.time.hour -= 3;
+        let before = iso.add_date_duration(
+            Calendar::default(),
+            &DateDuration::default(),
+            NormalizedTimeDuration(-3 * NS_IN_HOUR),
+            None,
+        )?;
+
         // 7. Let after be the earliest possible ISO Date-Time Record
         //    for which CompareISODateTime(after, isoDateTime) = 1 and !
         //    GetPossibleEpochNanoseconds(timeZone, after) is not empty.
-        let mut after = iso;
-        after.time.hour += 3;
+        let after = iso.add_date_duration(
+            Calendar::default(),
+            &DateDuration::default(),
+            NormalizedTimeDuration(3 * NS_IN_HOUR),
+            None,
+        )?;
 
         // 8. Let beforePossible be !
         //    GetPossibleEpochNanoseconds(timeZone, before).
