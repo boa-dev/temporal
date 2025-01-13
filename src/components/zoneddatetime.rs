@@ -1361,12 +1361,8 @@ mod tests {
     }
 
     #[test]
-    fn with_plain_time() {
-
-    }
+    fn with_plain_time() {}
 
     #[test]
-    fn to_plain_time() {
-
-    }
+    fn to_plain_time() {}
 }

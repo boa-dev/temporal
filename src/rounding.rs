@@ -91,7 +91,8 @@ impl<T: Roundable> Round for IncrementRounder<T> {
         let rounded =
             apply_unsigned_rounding_mode(self.dividend, self.divisor, unsigned_rounding_mode);
         // TODO: Add unit tests for the below
-        rounded * <u128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
+        rounded
+            * <u128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
     }
 }
 
