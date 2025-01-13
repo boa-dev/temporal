@@ -1177,8 +1177,9 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
 #[cfg(all(test, feature = "tzdb"))]
 mod tests {
     use crate::{
-        options::{Disambiguation, OffsetDisambiguation},
+        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, TemporalUnit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
+        primitive::FiniteF64,
         tzdb::FsTzdbProvider,
         Calendar, TimeZone, ZonedDateTime,
     };
@@ -1349,6 +1350,13 @@ mod tests {
     // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
     fn dst_skipped_cross_midnight() {
         let provider = &FsTzdbProvider::default();
+        let start_of_day = ZonedDateTime::from_str_with_provider(
+            "1919-03-31[America/Toronto]",
+            Disambiguation::Compatible,
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
         let midnight_disambiguated = ZonedDateTime::from_str_with_provider(
             "1919-03-31T00[America/Toronto]",
             Disambiguation::Compatible,
@@ -1357,6 +1365,32 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(midnight_disambiguated.epoch_milliseconds(), -1601751600000);
+        assert_eq!(start_of_day.epoch_nanoseconds(), -1601753400000000000);
+        assert_eq!(
+            midnight_disambiguated.epoch_nanoseconds(),
+            -1601751600000000000
+        );
+        let diff = start_of_day
+            .instant
+            .until(
+                &midnight_disambiguated.instant,
+                DifferenceSettings {
+                    largest_unit: Some(TemporalUnit::Year),
+                    smallest_unit: Some(TemporalUnit::Nanosecond),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        let zero = FiniteF64::from(0);
+        assert_eq!(diff.years(), zero);
+        assert_eq!(diff.months(), zero);
+        assert_eq!(diff.weeks(), zero);
+        assert_eq!(diff.days(), zero);
+        assert_eq!(diff.hours(), zero);
+        assert_eq!(diff.minutes(), FiniteF64::from(30));
+        assert_eq!(diff.seconds(), zero);
+        assert_eq!(diff.milliseconds(), zero);
+        assert_eq!(diff.microseconds(), zero);
+        assert_eq!(diff.nanoseconds(), zero);
     }
 }
