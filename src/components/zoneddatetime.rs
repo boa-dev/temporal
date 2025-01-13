@@ -1118,7 +1118,7 @@ pub(crate) fn interpret_isodatetime_offset(
                     // i. Let roundedCandidateNanoseconds be RoundNumberToIncrement(candidateOffset, 60 × 10**9, half-expand).
                     let rounded_candidate = IncrementRounder::from_potentially_negative_parts(
                         candidate_offset,
-                        const { NonZeroU128::new(60_000_000_000).expect("cannot be zero") },
+                        NonZeroU128::new(60_000_000_000).expect("cannot be zero"), // TODO: Add back const { } after MSRV can be bumped
                     )?
                     .round(TemporalRoundingMode::HalfExpand);
                     // ii. If roundedCandidateNanoseconds = offsetNanoseconds, then
