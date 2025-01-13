@@ -178,7 +178,7 @@ impl Instant {
         let rounded = IncrementRounder::<i128>::from_positive_parts(self.as_i128(), increment)?
             .round_as_positive(resolved_options.rounding_mode);
 
-        Ok(rounded.into())
+        Ok(rounded as i128)
     }
 
     // Utility for converting `Instant` to `i128`.

@@ -967,7 +967,7 @@ impl ZonedDateTime {
             }
             TimeZoneRecord::Offset(offset_record) => {
                 // NOTE: ixdtf parser restricts minute/second to 0..=60
-                let minutes = i16::from((offset_record.hour * 60) + offset_record.minute);
+                let minutes = i16::from(offset_record.hour) * 60 + offset_record.minute as i16;
                 TimeZone::OffsetMinutes(minutes * i16::from(offset_record.sign as i8))
             }
             // TimeZoneRecord is non_exhaustive, but all current branches are matching.
@@ -1358,5 +1358,15 @@ mod tests {
         .unwrap();
 
         assert_eq!(midnight_disambiguated.epoch_milliseconds(), -1601751600000);
+    }
+
+    #[test]
+    fn with_plain_time() {
+
+    }
+
+    #[test]
+    fn to_plain_time() {
+
     }
 }

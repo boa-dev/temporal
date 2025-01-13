@@ -19,18 +19,19 @@ pub(crate) trait Roundable:
     fn is_exact(dividend: Self, divisor: Self) -> bool;
     fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering>;
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool;
-    fn result_floor(dividend: Self, divisor: Self) -> u64;
-    fn result_ceil(dividend: Self, divisor: Self) -> u64;
+    fn result_floor(dividend: Self, divisor: Self) -> u128;
+    fn result_ceil(dividend: Self, divisor: Self) -> u128;
     fn quotient_abs(dividend: Self, divisor: Self) -> Self {
         // NOTE: Sanity debugs until proper unit tests to vet the below
-        debug_assert!(<i128 as NumCast>::from((dividend / divisor).abs()) < Some(u64::MAX as i128));
+        // NOTE (nekevss): quotient_abs exceeds the range of u64, so u128 must be used.
+        debug_assert!(<u128 as NumCast>::from((dividend / divisor).abs()) < Some(u128::MAX));
         (dividend / divisor).abs()
     }
 }
 
 pub(crate) trait Round {
     fn round(&self, mode: TemporalRoundingMode) -> i128;
-    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u64;
+    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u128;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -85,12 +86,12 @@ impl<T: Roundable> Round for IncrementRounder<T> {
     }
 
     #[inline]
-    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u64 {
+    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u128 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
         let rounded =
             apply_unsigned_rounding_mode(self.dividend, self.divisor, unsigned_rounding_mode);
         // TODO: Add unit tests for the below
-        rounded * <u64 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
+        rounded * <u128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
     }
 }
 
@@ -107,12 +108,12 @@ impl Roundable for i128 {
         Roundable::result_floor(dividend, divisor).rem_euclid(2) == 0
     }
 
-    fn result_floor(dividend: Self, divisor: Self) -> u64 {
-        Roundable::quotient_abs(dividend, divisor) as u64
+    fn result_floor(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor) as u128
     }
 
-    fn result_ceil(dividend: Self, divisor: Self) -> u64 {
-        Roundable::quotient_abs(dividend, divisor) as u64 + 1
+    fn result_ceil(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor) as u128 + 1
     }
 }
 
@@ -134,12 +135,12 @@ impl Roundable for f64 {
         (quotient.floor() / (quotient.ceil() - quotient.floor()) % 2.0) == 0.0
     }
 
-    fn result_floor(dividend: Self, divisor: Self) -> u64 {
-        Roundable::quotient_abs(dividend, divisor).floor() as u64
+    fn result_floor(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor).floor() as u128
     }
 
-    fn result_ceil(dividend: Self, divisor: Self) -> u64 {
-        Roundable::quotient_abs(dividend, divisor).ceil() as u64
+    fn result_ceil(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor).ceil() as u128
     }
 }
 
@@ -148,7 +149,7 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
     dividend: T,
     divisor: T,
     unsigned_rounding_mode: TemporalUnsignedRoundingMode,
-) -> u64 {
+) -> u128 {
     // is_floor
     // 1. If x is equal to r1, return r1.
     if Roundable::is_exact(dividend, divisor) {
