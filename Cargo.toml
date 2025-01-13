@@ -4,7 +4,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 version = "0.0.4"
-rust-version = "1.80"
+rust-version = "1.82.0"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/boa-dev/temporal"
