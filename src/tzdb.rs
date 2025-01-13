@@ -47,6 +47,7 @@ use tzif::{
     },
 };
 
+use crate::components::timezone::TimeZoneOffset;
 use crate::{
     components::{timezone::TzProvider, EpochNanoseconds},
     iso::IsoDateTime,
@@ -205,26 +206,45 @@ impl Tzif {
             .ok_or(TemporalError::general("Only Tzif V2+ is supported."))
     }
 
-    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<LocalTimeRecord> {
+    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<TimeZoneOffset> {
         let db = self.get_data_block2()?;
+
         let result = db.transition_times.binary_search(epoch_seconds);
 
         match result {
-            Ok(idx) => Ok(get_local_record(db, idx - 1).into()),
-            Err(idx) if idx == 0 => Ok(get_local_record(db, idx).into()),
+            Ok(idx) => Ok(get_timezone_offset(db, idx - 1)),
+            // <https://datatracker.ietf.org/doc/html/rfc8536#section-3.2>
+            // If there are no transitions, local time for all timestamps is specified by the TZ
+            // string in the footer if present and nonempty; otherwise, it is
+            // specified by time type 0.
+            Err(_) if db.transition_times.is_empty() => {
+                if let Some(posix_tz_string) = self.posix_tz_string() {
+                    resolve_posix_tz_string_for_epoch_seconds(posix_tz_string, epoch_seconds.0)
+                } else {
+                    Ok(TimeZoneOffset {
+                        offset: db.local_time_type_records[0].utoff.0,
+                        transition_epoch: None,
+                    })
+                }
+            }
+            Err(idx) if idx == 0 => Ok(get_timezone_offset(db, idx)),
             Err(idx) => {
                 if db.transition_times.len() <= idx {
                     // The transition time provided is beyond the length of
                     // the available transition time, so the time zone is
                     // resolved with the POSIX tz string.
-                    return resolve_posix_tz_string_for_epoch_seconds(
+                    let mut offset = resolve_posix_tz_string_for_epoch_seconds(
                         self.posix_tz_string().ok_or(TemporalError::general(
                             "No POSIX tz string to resolve with.",
                         ))?,
                         epoch_seconds.0,
-                    );
+                    )?;
+                    offset
+                        .transition_epoch
+                        .get_or_insert_with(|| db.transition_times[idx - 1].0);
+                    return Ok(offset);
                 }
-                Ok(get_local_record(db, idx - 1).into())
+                Ok(get_timezone_offset(db, idx - 1))
             }
         }
     }
@@ -302,6 +322,17 @@ impl Tzif {
 }
 
 #[inline]
+fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneOffset {
+    // NOTE: Transition type can be empty. If no transition_type exists,
+    // then use 0 as the default index of local_time_type_records.
+    let offset = db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)];
+    TimeZoneOffset {
+        transition_epoch: db.transition_times.get(idx).map(|s| s.0),
+        offset: offset.utoff.0,
+    }
+}
+
+#[inline]
 fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
     // NOTE: Transition type can be empty. If no transition_type exists,
     // then use 0 as the default index of local_time_type_records.
@@ -312,12 +343,13 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
 fn resolve_posix_tz_string_for_epoch_seconds(
     posix_tz_string: &PosixTzString,
     seconds: i64,
-) -> TemporalResult<LocalTimeRecord> {
+) -> TemporalResult<TimeZoneOffset> {
     let Some(dst_variant) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecord::from_standard_time(
-            &posix_tz_string.std_info,
-        ));
+        return Ok(TimeZoneOffset {
+            transition_epoch: None,
+            offset: LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).offset,
+        });
     };
 
     let start = &dst_variant.start_date;
@@ -331,14 +363,39 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     let (is_transition_day, transition) =
         cmp_seconds_to_transitions(&start.day, &end.day, seconds)?;
 
-    match compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant) {
-        TransitionType::Dst => Ok(LocalTimeRecord::from_daylight_savings_time(
-            &dst_variant.variant_info,
-        )),
-        TransitionType::Std => Ok(LocalTimeRecord::from_standard_time(
-            &posix_tz_string.std_info,
-        )),
-    }
+    let transition =
+        compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant);
+    let offset = match transition {
+        TransitionType::Dst => {
+            LocalTimeRecord::from_daylight_savings_time(&dst_variant.variant_info)
+        }
+        TransitionType::Std => LocalTimeRecord::from_standard_time(&posix_tz_string.std_info),
+    };
+    let transition = match transition {
+        TransitionType::Dst => start,
+        TransitionType::Std => end,
+    };
+    let year = utils::epoch_time_to_epoch_year(seconds);
+    let year_epoch = utils::epoch_days_for_year(year) * 86400;
+    let leap_days = utils::mathematical_days_in_year(year) - 365;
+
+    let days = match transition.day {
+        TransitionDay::NoLeap(day) if day > 59 => i32::from(day) - 1 + leap_days,
+        TransitionDay::NoLeap(day) => i32::from(day) - 1,
+        TransitionDay::WithLeap(day) => i32::from(day),
+        TransitionDay::Mwd(_month, _week, _day) => {
+            // TODO: build transition epoch from month, week and day.
+            return Ok(TimeZoneOffset {
+                offset: offset.offset,
+                transition_epoch: None,
+            });
+        }
+    };
+    let transition_epoch = i64::from(year_epoch) + i64::from(days) * 3600 + transition.time.0;
+    Ok(TimeZoneOffset {
+        offset: offset.offset,
+        transition_epoch: Some(transition_epoch),
+    })
 }
 
 /// Resolve the footer of a tzif file.
@@ -472,6 +529,7 @@ fn cmp_seconds_to_transitions(
             };
             (is_transition, is_dst)
         }
+        // TODO: do we need to modify the logic for leap years?
         (TransitionDay::NoLeap(start), TransitionDay::NoLeap(end)) => {
             let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000.0) as u16;
             let is_transition = *start == day_in_year || *end == day_in_year;
@@ -484,7 +542,11 @@ fn cmp_seconds_to_transitions(
         }
         // NOTE: The assumption here is that mismatched day types on
         // a POSIX string is an illformed string.
-        _ => return Err(TemporalError::assert()),
+        _ => {
+            return Err(
+                TemporalError::assert().with_message("Mismatched day types on a POSIX string.")
+            )
+        }
     };
 
     match cmp_result {
@@ -575,12 +637,11 @@ impl TzProvider for FsTzdbProvider {
     fn get_named_tz_offset_nanoseconds(
         &self,
         identifier: &str,
-        epoch_nanoseconds: i128,
-    ) -> TemporalResult<i128> {
+        utc_epoch: i128,
+    ) -> TemporalResult<TimeZoneOffset> {
         let tzif = self.get(identifier)?;
-        let seconds = (epoch_nanoseconds / 1_000_000_000) as i64;
-        let local_time_record_result = tzif.get(&Seconds(seconds))?;
-        Ok(local_time_record_result.offset as i128 * 1_000_000_000)
+        let seconds = (utc_epoch / 1_000_000_000) as i64;
+        tzif.get(&Seconds(seconds))
     }
 }
 

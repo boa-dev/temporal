@@ -27,6 +27,15 @@ pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
 
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 
+/// `TimeZoneOffset` represents the number of seconds to be added to UT in order to determine local time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeZoneOffset {
+    /// The transition time epoch at which the offset needs to be applied.
+    pub transition_epoch: Option<i64>,
+    /// The time zone offset in seconds.
+    pub offset: i64,
+}
+
 // NOTE: It may be a good idea to eventually move this into it's
 // own individual crate rather than having it tied directly into `temporal_rs`
 pub trait TzProvider {
@@ -41,8 +50,8 @@ pub trait TzProvider {
     fn get_named_tz_offset_nanoseconds(
         &self,
         identifier: &str,
-        epoch_nanoseconds: i128,
-    ) -> TemporalResult<i128>;
+        utc_epoch: i128,
+    ) -> TemporalResult<TimeZoneOffset>;
 }
 
 pub struct NeverProvider;
@@ -60,7 +69,7 @@ impl TzProvider for NeverProvider {
         unimplemented!()
     }
 
-    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<i128> {
+    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<TimeZoneOffset> {
         unimplemented!()
     }
 }
@@ -125,7 +134,7 @@ impl TimeZone {
     /// Get the offset for this current `TimeZoneSlot`.
     pub fn get_offset_nanos_for(
         &self,
-        epoch_ns: i128,
+        utc_epoch: i128,
         provider: &impl TzProvider,
     ) -> TemporalResult<i128> {
         // 1. Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
@@ -133,9 +142,9 @@ impl TimeZone {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, return parseResult.[[OffsetMinutes]] × (60 × 10**9).
             Self::OffsetMinutes(minutes) => Ok(i128::from(*minutes) * 60_000_000_000i128),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
-            Self::IanaIdentifier(identifier) => {
-                provider.get_named_tz_offset_nanoseconds(identifier, epoch_ns)
-            }
+            Self::IanaIdentifier(identifier) => provider
+                .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
+                .map(|offset| i128::from(offset.offset) * 1_000_000_000),
         }
     }
 
@@ -358,18 +367,52 @@ impl TimeZone {
         if !possible_nanos.is_empty() {
             return Ok(possible_nanos[0]);
         }
-        // 4. Assert: IsOffsetTimeZoneIdentifier(timeZone) is false.
+        let TimeZone::IanaIdentifier(identifier) = self else {
+            debug_assert!(
+                false,
+                "4. Assert: IsOffsetTimeZoneIdentifier(timeZone) is false."
+            );
+            return Err(
+                TemporalError::assert().with_message("Timezone was not an Iana identifier.")
+            );
+        };
         // 5. Let possibleEpochNsAfter be GetNamedTimeZoneEpochNanoseconds(timeZone, isoDateTimeAfter), where
         // isoDateTimeAfter is the ISO Date-Time Record for which ! DifferenceISODateTime(isoDateTime,
         // isoDateTimeAfter, "iso8601", hour).[[Time]] is the smallest possible value > 0 for which
         // possibleEpochNsAfter is not empty (i.e., isoDateTimeAfter represents the first local time
         // after the transition).
-        // NOTE (nekevss): The polyfill subtracts time from the epoch nanoseconds, but the specification
-        // appears to be talking about the possible nanoseconds after ... tbd.
-        let epoch_ns = iso.as_nanoseconds()?.0 + 7_200_000_000_000;
+
+        // Similar to disambiguation, we need to first get the possible epoch for the current start of day +
+        // 3 hours, then get the timestamp for the transition epoch.
+        let after = IsoDateTime::new_unchecked(
+            *iso_date,
+            IsoTime {
+                hour: 3,
+                ..Default::default()
+            },
+        );
+        let Some(after_epoch) = self
+            .get_possible_epoch_ns_for(after, provider)?
+            .into_iter()
+            .next()
+        else {
+            return Err(TemporalError::r#type()
+                .with_message("Could not determine the start of day for the provided date."));
+        };
+
+        let TimeZoneOffset {
+            transition_epoch: Some(transition_epoch),
+            ..
+        } = provider.get_named_tz_offset_nanoseconds(identifier, after_epoch.0)?
+        else {
+            return Err(TemporalError::r#type()
+                .with_message("Could not determine the start of day for the provided date."));
+        };
+
+        // let provider.
         // 6. Assert: possibleEpochNsAfter's length = 1.
         // 7. Return possibleEpochNsAfter[0].
-        EpochNanoseconds::try_from(self.get_offset_nanos_for(epoch_ns, provider)?)
+        EpochNanoseconds::try_from(i128::from(transition_epoch) * 1_000_000_000)
     }
 }
 
