@@ -70,14 +70,14 @@ impl LocalTimeRecord {
     fn from_daylight_savings_time(info: &ZoneVariantInfo) -> Self {
         Self {
             is_dst: true,
-            offset: info.offset.0,
+            offset: -info.offset.0,
         }
     }
 
     fn from_standard_time(info: &ZoneVariantInfo) -> Self {
         Self {
             is_dst: false,
-            offset: info.offset.0,
+            offset: -info.offset.0,
         }
     }
 }
