@@ -68,7 +68,7 @@ impl RelativeTo {
             }
             TimeZoneRecord::Offset(offset_record) => {
                 // NOTE: ixdtf parser restricts minute/second to 0..=60
-                let minutes = i16::from((offset_record.hour * 60) + offset_record.minute);
+                let minutes = i16::from(offset_record.hour) * 60 + offset_record.minute as i16;
                 TimeZone::OffsetMinutes(minutes * i16::from(offset_record.sign as i8))
             }
             // TimeZoneRecord is non_exhaustive, but all current branches are matching.
