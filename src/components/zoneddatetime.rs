@@ -1359,10 +1359,4 @@ mod tests {
 
         assert_eq!(midnight_disambiguated.epoch_milliseconds(), -1601751600000);
     }
-
-    #[test]
-    fn with_plain_time() {}
-
-    #[test]
-    fn to_plain_time() {}
 }
