@@ -2,7 +2,7 @@
 
 use crate::{
     options::{TemporalRoundingMode, TemporalUnsignedRoundingMode},
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap,
+    TemporalResult, TemporalUnwrap,
 };
 
 use core::{
@@ -31,7 +31,6 @@ pub(crate) trait Roundable:
 
 pub(crate) trait Round {
     fn round(&self, mode: TemporalRoundingMode) -> i128;
-    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u128;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -54,20 +53,6 @@ impl<T: Roundable> IncrementRounder<T> {
             divisor: increment,
         })
     }
-
-    #[inline]
-    #[allow(clippy::neg_cmp_op_on_partial_ord)]
-    pub(crate) fn from_positive_parts(number: T, increment: NonZeroU128) -> TemporalResult<Self> {
-        let increment = <T as NumCast>::from(increment.get()).temporal_unwrap()?;
-
-        temporal_assert!(number >= T::ZERO);
-
-        Ok(Self {
-            sign: true,
-            dividend: number,
-            divisor: increment,
-        })
-    }
 }
 
 impl<T: Roundable> Round for IncrementRounder<T> {
@@ -83,16 +68,6 @@ impl<T: Roundable> Round for IncrementRounder<T> {
         // TODO: Add unit tests for the below
         rounded
             * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
-    }
-
-    #[inline]
-    fn round_as_positive(&self, mode: TemporalRoundingMode) -> u128 {
-        let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
-        let rounded =
-            apply_unsigned_rounding_mode(self.dividend, self.divisor, unsigned_rounding_mode);
-        // TODO: Add unit tests for the below
-        rounded
-            * <u128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
     }
 }
 
@@ -204,70 +179,6 @@ mod tests {
     use core::num::NonZeroU128;
 
     use super::{IncrementRounder, Round, TemporalRoundingMode};
-
-    #[test]
-    fn basic_f64_rounding() {
-        let result =
-            IncrementRounder::<f64>::from_positive_parts(2.5, NonZeroU128::new(1).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::Floor);
-        assert_eq!(result, 2);
-
-        let result =
-            IncrementRounder::<f64>::from_positive_parts(2.5, NonZeroU128::new(1).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::Ceil);
-        assert_eq!(result, 3);
-
-        let result =
-            IncrementRounder::<f64>::from_positive_parts(7.5, NonZeroU128::new(3).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::HalfEven);
-        assert_eq!(result, 6);
-
-        let result =
-            IncrementRounder::<f64>::from_positive_parts(10.5, NonZeroU128::new(3).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::HalfEven);
-        assert_eq!(result, 12);
-    }
-
-    #[test]
-    fn basic_i128_rounding() {
-        let result = IncrementRounder::<i128>::from_positive_parts(5, NonZeroU128::new(2).unwrap())
-            .unwrap()
-            .round_as_positive(TemporalRoundingMode::Floor);
-        assert_eq!(result, 4);
-
-        let result = IncrementRounder::<i128>::from_positive_parts(5, NonZeroU128::new(2).unwrap())
-            .unwrap()
-            .round_as_positive(TemporalRoundingMode::Ceil);
-        assert_eq!(result, 6);
-
-        let result =
-            IncrementRounder::<i128>::from_positive_parts(15, NonZeroU128::new(7).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::HalfEven);
-        assert_eq!(result, 14);
-
-        let result =
-            IncrementRounder::<i128>::from_positive_parts(27, NonZeroU128::new(13).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::HalfEven);
-        assert_eq!(result, 26);
-
-        let result =
-            IncrementRounder::<i128>::from_positive_parts(20, NonZeroU128::new(7).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::HalfEven);
-        assert_eq!(result, 21);
-
-        let result =
-            IncrementRounder::<i128>::from_positive_parts(37, NonZeroU128::new(13).unwrap())
-                .unwrap()
-                .round_as_positive(TemporalRoundingMode::HalfEven);
-        assert_eq!(result, 39);
-    }
 
     #[test]
     fn neg_i128_rounding() {

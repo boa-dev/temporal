@@ -85,7 +85,7 @@ impl IsoDateTime {
         })?;
 
         // 2. Let remainderNs be epochNanoseconds modulo 10^6.
-        let remainder_nanos = mathematical_nanos % 1_000_000;
+        let remainder_nanos = mathematical_nanos.rem_euclid(1_000_000);
 
         // 3. Let epochMilliseconds be 𝔽((epochNanoseconds - remainderNs) / 10^6).
         let epoch_millis = (mathematical_nanos - remainder_nanos) / 1_000_000;
@@ -95,20 +95,20 @@ impl IsoDateTime {
         let day = utils::epoch_time_to_date(epoch_millis as f64);
 
         // 7. Let hour be ℝ(! HourFromTime(epochMilliseconds)).
-        let hour = (epoch_millis / 3_600_000) % 24;
-        // 8. Let minute be ℝ(! MinFromTime(epochMilliseconds)).
-        let minute = (epoch_millis / 60_000) % 60;
+        let hour = epoch_millis.div_euclid(3_600_000).rem_euclid(24);
+        // 8. Let minute be ℝ(! MinFromTime(epochMilliserhs)conds)).
+        let minute = epoch_millis.div_euclid(60_000).rem_euclid(60);
         // 9. Let second be ℝ(! SecFromTime(epochMilliseconds)).
-        let second = (epoch_millis / 1000) % 60;
+        let second = epoch_millis.div_euclid(1000).rem_euclid(60);
         // 10. Let millisecond be ℝ(! msFromTime(epochMilliseconds)).
-        let millis = (epoch_millis % 1000) % 1000;
+        let millis = epoch_millis.rem_euclid(1000);
 
         // 11. Let microsecond be floor(remainderNs / 1000).
-        let micros = remainder_nanos / 1000;
+        let micros = remainder_nanos.div_euclid(1000);
         // 12. Assert: microsecond < 1000.
         temporal_assert!(micros < 1000);
         // 13. Let nanosecond be remainderNs modulo 1000.
-        let nanos = remainder_nanos % 1000;
+        let nanos = remainder_nanos.rem_euclid(1000);
 
         Ok(Self::balance(
             year,
