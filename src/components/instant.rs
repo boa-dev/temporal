@@ -175,9 +175,8 @@ impl Instant {
             return Err(TemporalError::range().with_message("Increment exceeded a valid range."));
         };
 
-        let rounded =
-            IncrementRounder::<i128>::from_potentially_negative_parts(self.as_i128(), increment)?
-                .round(resolved_options.rounding_mode);
+        let rounded = IncrementRounder::<i128>::from_signed_num(self.as_i128(), increment)?
+            .round(resolved_options.rounding_mode);
 
         Ok(rounded)
     }

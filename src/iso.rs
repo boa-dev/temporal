@@ -787,10 +787,9 @@ impl IsoTime {
             .ok_or(TemporalError::range().with_message("increment exceeded valid range."))?;
 
         // 8. Let result be RoundNumberToIncrement(quantity, increment × unitLength, roundingMode) / unitLength.
-        let result =
-            IncrementRounder::<i128>::from_potentially_negative_parts(quantity, increment)?
-                .round(resolved_options.rounding_mode)
-                / length.get() as i128;
+        let result = IncrementRounder::<i128>::from_signed_num(quantity, increment)?
+            .round(resolved_options.rounding_mode)
+            / length.get() as i128;
 
         let result_i64 = i64::from_i128(result)
             .ok_or(TemporalError::range().with_message("round result valid range."))?;

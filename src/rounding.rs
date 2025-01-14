@@ -42,10 +42,7 @@ pub(crate) struct IncrementRounder<T: Roundable> {
 
 impl<T: Roundable> IncrementRounder<T> {
     #[inline]
-    pub(crate) fn from_potentially_negative_parts(
-        number: T,
-        increment: NonZeroU128,
-    ) -> TemporalResult<Self> {
+    pub(crate) fn from_signed_num(number: T, increment: NonZeroU128) -> TemporalResult<Self> {
         let increment = <T as NumCast>::from(increment.get()).temporal_unwrap()?;
         Ok(Self {
             sign: number >= T::ZERO,
@@ -182,53 +179,38 @@ mod tests {
 
     #[test]
     fn neg_i128_rounding() {
-        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
-            -9,
-            NonZeroU128::new(2).unwrap(),
-        )
-        .unwrap()
-        .round(TemporalRoundingMode::Ceil);
+        let result = IncrementRounder::<i128>::from_signed_num(-9, NonZeroU128::new(2).unwrap())
+            .unwrap()
+            .round(TemporalRoundingMode::Ceil);
         assert_eq!(result, -8);
 
-        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
-            -9,
-            NonZeroU128::new(2).unwrap(),
-        )
-        .unwrap()
-        .round(TemporalRoundingMode::Floor);
+        let result = IncrementRounder::<i128>::from_signed_num(-9, NonZeroU128::new(2).unwrap())
+            .unwrap()
+            .round(TemporalRoundingMode::Floor);
         assert_eq!(result, -10);
 
-        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
-            -14,
-            NonZeroU128::new(3).unwrap(),
-        )
-        .unwrap()
-        .round(TemporalRoundingMode::HalfExpand);
+        let result = IncrementRounder::<i128>::from_signed_num(-14, NonZeroU128::new(3).unwrap())
+            .unwrap()
+            .round(TemporalRoundingMode::HalfExpand);
         assert_eq!(result, -15);
     }
 
     #[test]
     fn neg_f64_rounding() {
-        let result = IncrementRounder::<f64>::from_potentially_negative_parts(
-            -8.5,
-            NonZeroU128::new(1).unwrap(),
-        )
-        .unwrap()
-        .round(TemporalRoundingMode::Ceil);
+        let result = IncrementRounder::<f64>::from_signed_num(-8.5, NonZeroU128::new(1).unwrap())
+            .unwrap()
+            .round(TemporalRoundingMode::Ceil);
         assert_eq!(result, -8);
 
-        let result = IncrementRounder::<f64>::from_potentially_negative_parts(
-            -8.5,
-            NonZeroU128::new(1).unwrap(),
-        )
-        .unwrap()
-        .round(TemporalRoundingMode::Floor);
+        let result = IncrementRounder::<f64>::from_signed_num(-8.5, NonZeroU128::new(1).unwrap())
+            .unwrap()
+            .round(TemporalRoundingMode::Floor);
         assert_eq!(result, -9);
     }
 
     #[test]
     fn dt_since_basic_rounding() {
-        let result = IncrementRounder::<i128>::from_potentially_negative_parts(
+        let result = IncrementRounder::<i128>::from_signed_num(
             -84082624864197532,
             NonZeroU128::new(1800000000000).unwrap(),
         )

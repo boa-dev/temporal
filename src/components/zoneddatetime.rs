@@ -1116,7 +1116,7 @@ pub(crate) fn interpret_isodatetime_offset(
                 // c. If matchBehaviour is match-minutes, then
                 if match_minutes {
                     // i. Let roundedCandidateNanoseconds be RoundNumberToIncrement(candidateOffset, 60 × 10**9, half-expand).
-                    let rounded_candidate = IncrementRounder::from_potentially_negative_parts(
+                    let rounded_candidate = IncrementRounder::from_signed_num(
                         candidate_offset,
                         NonZeroU128::new(60_000_000_000).expect("cannot be zero"), // TODO: Add back const { } after MSRV can be bumped
                     )?
@@ -1159,7 +1159,7 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     nanoseconds: i128,
 ) -> TemporalResult<(Sign, u8, u8)> {
     // Per 11.1.7 this should be rounding
-    let nanoseconds = IncrementRounder::from_potentially_negative_parts(nanoseconds, unsafe {
+    let nanoseconds = IncrementRounder::from_signed_num(nanoseconds, unsafe {
         NonZeroU128::new_unchecked(NS_PER_MINUTE as u128)
     })?
     .round(TemporalRoundingMode::HalfExpand);
