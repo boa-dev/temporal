@@ -358,14 +358,12 @@ impl FromStr for Instant {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr;
 
     use crate::{
         components::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
-        partial::PartialDuration,
         primitive::FiniteF64,
-        Duration, NS_MAX_INSTANT, NS_MIN_INSTANT,
+        NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
     #[test]
@@ -568,7 +566,11 @@ mod tests {
     #[cfg(feature = "tzdb")]
     #[test]
     fn instant_add_across_epoch() {
-        use crate::{options::ToStringRoundingOptions, tzdb::FsTzdbProvider};
+        use crate::{
+            options::ToStringRoundingOptions, partial::PartialDuration, tzdb::FsTzdbProvider,
+            Duration,
+        };
+        use core::str::FromStr;
 
         let instant = Instant::from_str("1969-12-25T12:23:45.678901234Z").unwrap();
         let one = instant
