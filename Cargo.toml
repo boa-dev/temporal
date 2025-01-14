@@ -49,11 +49,10 @@ exclude.workspace = true
 [dependencies]
 tinystr.workspace = true
 icu_calendar = { workspace = true, features = ["compiled_data"] }
-rustc-hash = { workspace = true, features = ["std"] }
-bitflags.workspace = true
 num-traits.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
 iana-time-zone.workspace = true
+writeable = "0.6.0"
 
 # log feature
 log = { workspace = true, optional = true }
@@ -65,7 +64,6 @@ combine = { workspace = true, optional = true }
 
 # System time feature
 web-time = { workspace = true, optional =  true }
-writeable = "0.6.0"
 
 [features]
 default = ["now"]
