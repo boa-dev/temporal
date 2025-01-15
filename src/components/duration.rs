@@ -4,16 +4,22 @@ use crate::{
     components::{timezone::TimeZoneProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
+    parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::FromStr;
-use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use ixdtf::parsers::{
+    records::{DateDurationRecord, DurationParseRecord, Sign as IxdtfSign, TimeDurationRecord},
+    IsoDurationParser,
+};
 use normalized::NormalizedDurationRecord;
 use num_traits::AsPrimitive;
 
@@ -26,7 +32,6 @@ mod date;
 pub(crate) mod normalized;
 mod time;
 
-#[cfg(feature = "experimental")]
 #[cfg(test)]
 mod tests;
 
@@ -80,6 +85,16 @@ impl PartialDuration {
 pub struct Duration {
     date: DateDuration,
     time: TimeDuration,
+}
+
+impl core::fmt::Display for Duration {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(
+            &self
+                .to_temporal_string(ToStringRoundingOptions::default())
+                .expect("Duration must return a valid string with default options."),
+        )
+    }
 }
 
 // NOTE(nekevss): Structure of the below is going to be a little convoluted,
@@ -618,6 +633,97 @@ impl Duration {
             }
         }
     }
+
+    pub fn to_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+        if options.smallest_unit == Some(TemporalUnit::Hour)
+            || options.smallest_unit == Some(TemporalUnit::Minute)
+        {
+            return Err(TemporalError::range().with_message(
+                "string rounding options cannot have hour or minute smallest unit.",
+            ));
+        }
+
+        let resolved_options = options.resolve()?;
+        if resolved_options.smallest_unit == TemporalUnit::Nanosecond
+            && resolved_options.increment == RoundingIncrement::ONE
+        {
+            let duration = duration_to_formattable(self, resolved_options.precision)?;
+            return Ok(duration.to_string());
+        }
+
+        let rounding_options = ResolvedRoundingOptions::from_to_string_options(&resolved_options);
+
+        // 11. Let largestUnit be DefaultTemporalLargestUnit(duration).
+        let largest = self.default_largest_unit();
+        // 12. Let internalDuration be ToInternalDurationRecord(duration).
+        let norm = NormalizedDurationRecord::new(
+            self.date,
+            NormalizedTimeDuration::from_time_duration(&self.time),
+        )?;
+        // 13. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], precision.[[Increment]], precision.[[Unit]], roundingMode).
+        let (rounded, _) = norm
+            .normalized_time_duration()
+            .round(FiniteF64::default(), rounding_options)?;
+        // 14. Set internalDuration to CombineDateAndTimeDuration(internalDuration.[[Date]], timeDuration).
+        let norm = NormalizedDurationRecord::new(norm.date(), rounded.normalized_time_duration())?;
+        // 15. Let roundedLargestUnit be LargerOfTwoTemporalUnits(largestUnit, second).
+        let rounded_largest = largest.max(TemporalUnit::Second);
+        // 16. Let roundedDuration be ? TemporalDurationFromInternal(internalDuration, roundedLargestUnit).
+        let rounded = Self::from_normalized(norm, rounded_largest)?;
+
+        // 17. Return TemporalDurationToString(roundedDuration, precision.[[Precision]]).
+        Ok(duration_to_formattable(&rounded, resolved_options.precision)?.to_string())
+    }
+}
+
+pub fn duration_to_formattable(
+    duration: &Duration,
+    precision: Precision,
+) -> TemporalResult<FormattableDuration> {
+    let sign = duration.sign();
+    let sign = if sign == Sign::Negative {
+        IxdtfSign::Negative
+    } else {
+        IxdtfSign::Positive
+    };
+    let date = duration.years().0 + duration.months().0 + duration.weeks().0 + duration.days().0;
+    let date = if date != 0.0 {
+        Some(DateDurationRecord {
+            years: duration.years().0 as u32,
+            months: duration.months().0 as u32,
+            weeks: duration.weeks().0 as u32,
+            days: duration.days().0 as u32,
+        })
+    } else {
+        None
+    };
+
+    let hours = duration.hours().abs();
+    let minutes = duration.minutes().abs();
+
+    let time = NormalizedTimeDuration::from_time_duration(&TimeDuration::new_unchecked(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        duration.seconds(),
+        duration.milliseconds(),
+        duration.microseconds(),
+        duration.nanoseconds(),
+    ));
+
+    let seconds = time.seconds().unsigned_abs() as u32;
+    let subseconds = time.subseconds().unsigned_abs();
+
+    let time = Some(TimeDurationRecord::Seconds {
+        hours: hours.0 as u32,
+        minutes: minutes.0 as u32,
+        seconds,
+        fraction: subseconds,
+    });
+
+    Ok(FormattableDuration {
+        precision,
+        duration: DurationParseRecord { sign, date, time },
+    })
 }
 
 #[cfg(feature = "experimental")]
