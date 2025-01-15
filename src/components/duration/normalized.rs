@@ -145,7 +145,7 @@ impl NormalizedTimeDuration {
                 // a. Let fractionalDays be days + DivideNormalizedTimeDuration(norm, nsPerDay).
                 let fractional_days = days.checked_add(&FiniteF64(self.as_fractional_days()))?;
                 // b. Set days to RoundNumberToIncrement(fractionalDays, increment, roundingMode).
-                let days = IncrementRounder::from_potentially_negative_parts(
+                let days = IncrementRounder::from_signed_num(
                     fractional_days.0,
                     options.increment.as_extended_increment(),
                 )?
@@ -204,8 +204,7 @@ impl NormalizedTimeDuration {
         increment: NonZeroU128,
         mode: TemporalRoundingMode,
     ) -> TemporalResult<Self> {
-        let rounded = IncrementRounder::<i128>::from_potentially_negative_parts(self.0, increment)?
-            .round(mode);
+        let rounded = IncrementRounder::<i128>::from_signed_num(self.0, increment)?.round(mode);
         if rounded.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
@@ -311,7 +310,7 @@ impl NormalizedDurationRecord {
             // 1. If unit is "year", then
             TemporalUnit::Year => {
                 // a. Let years be RoundNumberToIncrement(duration.[[Years]], increment, "trunc").
-                let years = IncrementRounder::from_potentially_negative_parts(
+                let years = IncrementRounder::from_signed_num(
                     self.date().years.0,
                     options.increment.as_extended_increment(),
                 )?
@@ -343,7 +342,7 @@ impl NormalizedDurationRecord {
             // 2. Else if unit is "month", then
             TemporalUnit::Month => {
                 // a. Let months be RoundNumberToIncrement(duration.[[Months]], increment, "trunc").
-                let months = IncrementRounder::from_potentially_negative_parts(
+                let months = IncrementRounder::from_signed_num(
                     self.date().months.0,
                     options.increment.as_extended_increment(),
                 )?
@@ -416,7 +415,7 @@ impl NormalizedDurationRecord {
                     weeks_start.internal_diff_date(&weeks_end, TemporalUnit::Week)?;
 
                 // h. Let weeks be RoundNumberToIncrement(duration.[[Weeks]] + untilResult.[[Weeks]], increment, "trunc").
-                let weeks = IncrementRounder::from_potentially_negative_parts(
+                let weeks = IncrementRounder::from_signed_num(
                     self.date().weeks.checked_add(&until_result.weeks())?.0,
                     options.increment.as_extended_increment(),
                 )?
@@ -450,7 +449,7 @@ impl NormalizedDurationRecord {
                 // 4. Else,
                 // a. Assert: unit is "day".
                 // b. Let days be RoundNumberToIncrement(duration.[[Days]], increment, "trunc").
-                let days = IncrementRounder::from_potentially_negative_parts(
+                let days = IncrementRounder::from_signed_num(
                     self.date().days.0,
                     options.increment.as_extended_increment(),
                 )?
@@ -550,11 +549,9 @@ impl NormalizedDurationRecord {
         // This division can be implemented as if constructing Normalized Time Duration Records for the denominator
         // and numerator of total and performing one division operation with a floating-point result.
         // 15. Let roundedUnit be ApplyUnsignedRoundingMode(total, r1, r2, unsignedRoundingMode).
-        let rounded_unit = IncrementRounder::from_potentially_negative_parts(
-            total,
-            options.increment.as_extended_increment(),
-        )?
-        .round(options.rounding_mode);
+        let rounded_unit =
+            IncrementRounder::from_signed_num(total, options.increment.as_extended_increment())?
+                .round(options.rounding_mode);
 
         // 16. If roundedUnit - total < 0, let roundedSign be -1; else let roundedSign be 1.
         // 19. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[Total]]: total, [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandCalendarUnit }.

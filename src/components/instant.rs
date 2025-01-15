@@ -175,10 +175,10 @@ impl Instant {
             return Err(TemporalError::range().with_message("Increment exceeded a valid range."));
         };
 
-        let rounded = IncrementRounder::<i128>::from_positive_parts(self.as_i128(), increment)?
-            .round_as_positive(resolved_options.rounding_mode);
+        let rounded = IncrementRounder::<i128>::from_signed_num(self.as_i128(), increment)?
+            .round(resolved_options.rounding_mode);
 
-        Ok(rounded as i128)
+        Ok(rounded)
     }
 
     // Utility for converting `Instant` to `i128`.
@@ -357,6 +357,7 @@ impl FromStr for Instant {
 
 #[cfg(test)]
 mod tests {
+
     use crate::{
         components::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
@@ -558,5 +559,83 @@ mod tests {
             negative_result.time(),
             (-376435.0, -23.0, -8.0, -148.0, -529.0, -500.0),
         );
+    }
+
+    // /test/built-ins/Temporal/Instant/prototype/add/cross-epoch.js
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn instant_add_across_epoch() {
+        use crate::{
+            options::ToStringRoundingOptions, partial::PartialDuration, tzdb::FsTzdbProvider,
+            Duration,
+        };
+        use core::str::FromStr;
+
+        let instant = Instant::from_str("1969-12-25T12:23:45.678901234Z").unwrap();
+        let one = instant
+            .subtract(
+                Duration::from_partial_duration(PartialDuration {
+                    hours: Some(240.into()),
+                    nanoseconds: Some(800.into()),
+                    ..Default::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        let two = instant
+            .add(
+                Duration::from_partial_duration(PartialDuration {
+                    hours: Some(240.into()),
+                    nanoseconds: Some(800.into()),
+                    ..Default::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        let three = two
+            .subtract(
+                Duration::from_partial_duration(PartialDuration {
+                    hours: Some(480.into()),
+                    nanoseconds: Some(1600.into()),
+                    ..Default::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+        let four = one
+            .add(
+                Duration::from_partial_duration(PartialDuration {
+                    hours: Some(480.into()),
+                    nanoseconds: Some(1600.into()),
+                    ..Default::default()
+                })
+                .unwrap(),
+            )
+            .unwrap();
+
+        let one_comp = Instant::from_str("1969-12-15T12:23:45.678900434Z").unwrap();
+        let two_comp = Instant::from_str("1970-01-04T12:23:45.678902034Z").unwrap();
+
+        // Assert the comparisons all hold.
+        assert_eq!(one, one_comp);
+        assert_eq!(two, two_comp);
+        assert_eq!(three, one);
+        assert_eq!(four, two);
+
+        // Assert the to_string is valid.
+        let provider = &FsTzdbProvider::default();
+        let inst_string = instant
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .unwrap();
+        let one_string = one
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .unwrap();
+        let two_string = two
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .unwrap();
+
+        assert_eq!(&inst_string, "1969-12-25T12:23:45.678901234Z");
+        assert_eq!(&one_string, "1969-12-15T12:23:45.678900434Z");
+        assert_eq!(&two_string, "1970-01-04T12:23:45.678902034Z");
     }
 }
