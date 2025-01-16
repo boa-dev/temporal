@@ -756,6 +756,7 @@ version = "0.0.4"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
+ "icu_calendar",
  "temporal_rs",
 ]
 

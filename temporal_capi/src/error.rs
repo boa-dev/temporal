@@ -1,7 +1,7 @@
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
-mod ffi {
+pub mod ffi {
 
     #[diplomat::enum_convert(temporal_rs::error::ErrorKind)]
     pub enum ErrorKind {
