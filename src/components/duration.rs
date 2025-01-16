@@ -711,7 +711,7 @@ pub fn duration_to_formattable(
         duration.nanoseconds(),
     ));
 
-    let seconds = time.seconds().unsigned_abs() as u64;
+    let seconds = time.seconds().unsigned_abs();
     let subseconds = time.subseconds().unsigned_abs();
 
     let time = Some(TimeDurationRecord::Seconds {

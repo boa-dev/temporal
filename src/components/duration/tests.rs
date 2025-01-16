@@ -691,12 +691,40 @@ fn default_duration_string() {
 
 #[test]
 fn duration_to_string_auto_precision() {
-    let duration = Duration::new(1.into(), 2.into(), 3.into(), 4.into(), 5.into(), 6.into(), 7.into(), FiniteF64::default(), FiniteF64::default(), FiniteF64::default()).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    let duration = Duration::new(
+        1.into(),
+        2.into(),
+        3.into(),
+        4.into(),
+        5.into(),
+        6.into(),
+        7.into(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+        FiniteF64::default(),
+    )
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "P1Y2M3W4DT5H6M7S");
 
-    let duration = Duration::new(1.into(), 2.into(), 3.into(), 4.into(), 5.into(), 6.into(), 7.into(), 987.into(), 650.into(), FiniteF64::default()).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    let duration = Duration::new(
+        1.into(),
+        2.into(),
+        3.into(),
+        4.into(),
+        5.into(),
+        6.into(),
+        7.into(),
+        987.into(),
+        650.into(),
+        FiniteF64::default(),
+    )
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "P1Y2M3W4DT5H6M7.98765S");
 }
 
@@ -705,8 +733,11 @@ fn empty_date_duration() {
     let duration = Duration::from_partial_duration(PartialDuration {
         hours: Some(1.into()),
         ..Default::default()
-    }).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "PT1H");
 }
 
@@ -723,36 +754,51 @@ fn negative_fields_to_string() {
         milliseconds: Some(FiniteF64::from(-1)),
         microseconds: Some(FiniteF64::from(-1)),
         nanoseconds: Some(FiniteF64::from(-1)),
-    }).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "-P1Y1M1W1DT1H1M1.001001001S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
         milliseconds: Some(FiniteF64::from(-250)),
         ..Default::default()
-    }).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "-PT0.25S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
         milliseconds: Some(FiniteF64::from(-3500)),
         ..Default::default()
-    }).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "-PT3.5S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
         milliseconds: Some(FiniteF64::from(-3500)),
         ..Default::default()
-    }).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "-PT3.5S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
         weeks: Some(FiniteF64::from(-1)),
         days: Some(FiniteF64::from(-1)),
         ..Default::default()
-    }).unwrap();
-    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
     assert_eq!(&result, "-P1W1D");
 }
