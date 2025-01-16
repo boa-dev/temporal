@@ -727,5 +727,32 @@ fn negative_fields_to_string() {
     let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
     assert_eq!(&result, "-P1Y1M1W1DT1H1M1.001001001S");
 
+    let duration = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(-250)),
+        ..Default::default()
+    }).unwrap();
+    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    assert_eq!(&result, "-PT0.25S");
 
+    let duration = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(-3500)),
+        ..Default::default()
+    }).unwrap();
+    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    assert_eq!(&result, "-PT3.5S");
+
+    let duration = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(-3500)),
+        ..Default::default()
+    }).unwrap();
+    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    assert_eq!(&result, "-PT3.5S");
+
+    let duration = Duration::from_partial_duration(PartialDuration {
+        weeks: Some(FiniteF64::from(-1)),
+        days: Some(FiniteF64::from(-1)),
+        ..Default::default()
+    }).unwrap();
+    let result = duration.to_temporal_string(ToStringRoundingOptions::default()).unwrap();
+    assert_eq!(&result, "-P1W1D");
 }

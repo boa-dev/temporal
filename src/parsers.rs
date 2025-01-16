@@ -530,9 +530,11 @@ impl Writeable for FormattableDuration {
             checked_write_u64_with_suffix(date.days, 'D', sink)?;
         }
         if let Some(time) = self.duration.time {
-            sink.write_char('T')?;
             match time {
                 TimeDurationRecord::Hours { hours, fraction } => {
+                    if hours + fraction != 0 {
+                        sink.write_char('T')?;
+                    }
                     if hours == 0 {
                         return Ok(());
                     }
@@ -548,6 +550,9 @@ impl Writeable for FormattableDuration {
                     minutes,
                     fraction,
                 } => {
+                    if hours + minutes + fraction != 0 {
+                        sink.write_char('T')?;
+                    }
                     checked_write_u64_with_suffix(hours, 'H', sink)?;
                     if minutes == 0 {
                         return Ok(());
@@ -565,14 +570,18 @@ impl Writeable for FormattableDuration {
                     seconds,
                     fraction,
                 } => {
-                    checked_write_u64_with_suffix(hours, 'H', sink)?;
-                    checked_write_u64_with_suffix(minutes, 'M', sink)?;
                     let unit_below_minute =
                         self.duration.date.is_none() && hours == 0 && minutes == 0;
-                    if seconds != 0
-                        || unit_below_minute
-                        || matches!(self.precision, Precision::Digit(_))
-                    {
+
+                    let write_second = seconds != 0 || unit_below_minute || matches!(self.precision, Precision::Digit(_));
+
+                    if hours != 0 || minutes != 0 || write_second {
+                        sink.write_char('T')?;
+                    }
+
+                    checked_write_u64_with_suffix(hours, 'H', sink)?;
+                    checked_write_u64_with_suffix(minutes, 'M', sink)?;
+                    if write_second {
                         seconds.write_to(sink)?;
                         if self.precision == Precision::Digit(0)
                             || (self.precision == Precision::Auto && fraction == 0) {
