@@ -34,6 +34,7 @@ pub mod ffi {
     }
 
     #[diplomat::opaque]
+    #[diplomat::transparent_convert]
     pub struct Calendar(pub temporal_rs::Calendar);
 
     impl Calendar {
@@ -54,5 +55,7 @@ pub mod ffi {
         pub fn identifier(&self) -> &'static str {
             self.0.identifier()
         }
+
+        // TODO the rest of calendar (needs all the date/time types)
     }
 }

@@ -16,6 +16,15 @@ pub mod ffi {
     pub struct TemporalError {
         pub kind: ErrorKind,
     }
+
+    impl TemporalError {
+        // internal
+        pub(crate) fn syntax() -> Self {
+            TemporalError {
+                kind: ErrorKind::Syntax,
+            }
+        }
+    }
 }
 
 impl From<temporal_rs::TemporalError> for ffi::TemporalError {
