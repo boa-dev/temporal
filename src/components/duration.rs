@@ -4,8 +4,7 @@ use crate::{
     components::{timezone::TimeZoneProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
-        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions, TemporalUnit, ToStringRoundingOptions
     },
     parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,
@@ -143,13 +142,18 @@ impl Duration {
             duration_record.normalized_time_duration(),
             largest_unit,
         )?;
-        let date = DateDuration::new(
+        Self::new(
             duration_record.date().years,
             duration_record.date().months,
             duration_record.date().weeks,
             duration_record.date().days.checked_add(&overflow_day)?,
-        )?;
-        Ok(Self::new_unchecked(date, time))
+            time.hours,
+            time.minutes,
+            time.seconds,
+            time.milliseconds,
+            time.microseconds,
+            time.nanoseconds,
+        )
     }
 
     /// Returns the a `Vec` of the fields values.
@@ -743,6 +747,8 @@ impl Duration {
 
 // TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.
 
+const TWO_POWER_FIFTY_THREE: i128 = 9_007_199_254_740_992;
+
 // NOTE: Can FiniteF64 optimize the duration_validation
 /// Utility function to check whether the `Duration` fields are valid.
 #[inline]
@@ -808,21 +814,13 @@ pub(crate) fn is_valid_duration(
     // in C++ with an implementation of core::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
-    let normalized_seconds = days.0.mul_add(
-        86_400.0,
-        hours.0.mul_add(3600.0, minutes.0.mul_add(60.0, seconds.0)),
-    );
+    let normalized_seconds = (days.0 as i128 * 86_400) + (hours.0 as i128) * 3600 + minutes.0 as i128 * 60 + seconds.0 as i128;
     // Subseconds part
-    let normalized_subseconds_parts = milliseconds.0.mul_add(
-        10e-3,
-        microseconds
-            .0
-            .mul_add(10e-6, nanoseconds.0.mul_add(10e-9, 0.0)),
-    );
+    let normalized_subseconds_parts = (milliseconds.0 as i128 / 1_000) + (microseconds.0 as i128 / 1_000_000) + (nanoseconds.0 as i128 / 1_000_000_000);
 
     let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
-    if normalized_seconds.abs() >= 2e53 {
+    if normalized_seconds.abs() >= TWO_POWER_FIFTY_THREE {
         return false;
     }
 
