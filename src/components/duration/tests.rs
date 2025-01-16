@@ -800,5 +800,22 @@ fn negative_fields_to_string() {
     let result = duration
         .to_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
+
     assert_eq!(&result, "-P1W1D");
+}
+
+#[test]
+fn preserve_precision_loss() {
+    const MAX_SAFE_INT: f64 = 9_007_199_254_740_991.0;
+    let duration = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::try_from(MAX_SAFE_INT).unwrap()),
+        microseconds: Some(FiniteF64::try_from(MAX_SAFE_INT).unwrap()),
+        ..Default::default()
+    })
+    .unwrap();
+    let result = duration
+        .to_temporal_string(ToStringRoundingOptions::default())
+        .unwrap();
+
+    assert_eq!(&result, "PT9016206453995.731991S");
 }
