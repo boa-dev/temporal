@@ -8,13 +8,14 @@ use core::{iter::Peekable, str::Chars};
 use num_traits::ToPrimitive;
 
 use crate::components::duration::DateDuration;
-use crate::Calendar;
+use crate::parsers::{FormattableOffset, FormattableTime, Precision};
 use crate::{
     components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
     TemporalError, TemporalResult, ZonedDateTime,
 };
+use crate::{Calendar, Sign};
 
 #[cfg(feature = "experimental")]
 use crate::tzdb::FsTzdbProvider;
@@ -74,6 +75,7 @@ impl TzProvider for NeverProvider {
     }
 }
 
+// TODO: migrate to Cow<'a, str>
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimeZone {
     IanaIdentifier(String),
@@ -216,8 +218,31 @@ impl TimeZone {
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
-    pub fn id(&self) -> TemporalResult<String> {
-        Err(TemporalError::range().with_message("Not yet implemented."))
+    pub fn identifier(&self) -> TemporalResult<String> {
+        match self {
+            TimeZone::IanaIdentifier(s) => Ok(s.clone()),
+            TimeZone::OffsetMinutes(m) => {
+                let sign = if *m < 0 {
+                    Sign::Negative
+                } else {
+                    Sign::Positive
+                };
+                let hour = (m.abs() / 60) as u8;
+                let minute = (m.abs() % 60) as u8;
+                let formattable_offset = FormattableOffset {
+                    sign,
+                    time: FormattableTime {
+                        hour,
+                        minute,
+                        second: 0,
+                        nanosecond: 0,
+                        precision: Precision::Minute,
+                        include_sep: true,
+                    },
+                };
+                Ok(formattable_offset.to_string())
+            }
+        }
     }
 }
 
@@ -474,4 +499,26 @@ fn non_ascii_digit() -> TemporalError {
 
 fn is_ascii_sign(ch: &char) -> bool {
     *ch == '+' || *ch == '-'
+}
+
+#[cfg(all(test, feature = "tzdb"))]
+mod tests {
+    use super::TimeZone;
+    use crate::tzdb::FsTzdbProvider;
+
+    #[test]
+    fn from_and_to_string() {
+        let provider = &FsTzdbProvider::default();
+        let src = "+09:30";
+        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+
+        let src = "-09:30";
+        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+
+        let src = "-12:30";
+        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+    }
 }
