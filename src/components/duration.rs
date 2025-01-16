@@ -4,7 +4,8 @@ use crate::{
     components::{timezone::TimeZoneProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions, TemporalUnit, ToStringRoundingOptions
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,
@@ -814,9 +815,14 @@ pub(crate) fn is_valid_duration(
     // in C++ with an implementation of core::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
-    let normalized_seconds = (days.0 as i128 * 86_400) + (hours.0 as i128) * 3600 + minutes.0 as i128 * 60 + seconds.0 as i128;
+    let normalized_seconds = (days.0 as i128 * 86_400)
+        + (hours.0 as i128) * 3600
+        + minutes.0 as i128 * 60
+        + seconds.0 as i128;
     // Subseconds part
-    let normalized_subseconds_parts = (milliseconds.0 as i128 / 1_000) + (microseconds.0 as i128 / 1_000_000) + (nanoseconds.0 as i128 / 1_000_000_000);
+    let normalized_subseconds_parts = (milliseconds.0 as i128 / 1_000)
+        + (microseconds.0 as i128 / 1_000_000)
+        + (nanoseconds.0 as i128 / 1_000_000_000);
 
     let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
