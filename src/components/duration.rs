@@ -686,13 +686,14 @@ pub fn duration_to_formattable(
     } else {
         IxdtfSign::Positive
     };
+    let duration = duration.abs();
     let date = duration.years().0 + duration.months().0 + duration.weeks().0 + duration.days().0;
     let date = if date != 0.0 {
         Some(DateDurationRecord {
             years: duration.years().0 as u32,
             months: duration.months().0 as u32,
             weeks: duration.weeks().0 as u32,
-            days: duration.days().0 as u32,
+            days: duration.days().0 as u64,
         })
     } else {
         None
@@ -710,12 +711,12 @@ pub fn duration_to_formattable(
         duration.nanoseconds(),
     ));
 
-    let seconds = time.seconds().unsigned_abs() as u32;
+    let seconds = time.seconds().unsigned_abs() as u64;
     let subseconds = time.subseconds().unsigned_abs();
 
     let time = Some(TimeDurationRecord::Seconds {
-        hours: hours.0 as u32,
-        minutes: minutes.0 as u32,
+        hours: hours.0 as u64,
+        minutes: minutes.0 as u64,
         seconds,
         fraction: subseconds,
     });
@@ -892,7 +893,7 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    f64::from(hours),
+                    hours as f64,
                     minutes as f64,
                     seconds as f64,
                     milliseconds as f64,
@@ -916,8 +917,8 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    f64::from(hours),
-                    f64::from(minutes),
+                    hours as f64,
+                    minutes as f64,
                     seconds as f64,
                     milliseconds as f64,
                     microseconds as f64,
@@ -938,9 +939,9 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    f64::from(hours),
-                    f64::from(minutes),
-                    f64::from(seconds),
+                    hours as f64,
+                    minutes as f64,
+                    seconds as f64,
                     milliseconds as f64,
                     microseconds as f64,
                     nanoseconds as f64,
@@ -961,7 +962,7 @@ impl FromStr for Duration {
             FiniteF64::from(years).copysign(sign),
             FiniteF64::from(months).copysign(sign),
             FiniteF64::from(weeks).copysign(sign),
-            FiniteF64::from(days).copysign(sign),
+            FiniteF64::try_from(days)?.copysign(sign),
             FiniteF64::try_from(hours)?.copysign(sign),
             FiniteF64::try_from(minutes)?.copysign(sign),
             FiniteF64::try_from(seconds)?.copysign(sign),

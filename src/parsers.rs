@@ -377,7 +377,7 @@ impl Writeable for FormattableMonthDay<'_> {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
         if self.calendar.show == DisplayCalendar::Always
             || self.calendar.show == DisplayCalendar::Critical
-            || self.calendar.calendar == "iso8601"
+            || self.calendar.calendar != "iso8601"
         {
             write_year(self.date.0, sink)?;
             sink.write_char('-')?;
@@ -392,7 +392,7 @@ impl Writeable for FormattableMonthDay<'_> {
         let base_length = self.calendar.writeable_length_hint() + LengthHint::exact(5);
         if self.calendar.show == DisplayCalendar::Always
             || self.calendar.show == DisplayCalendar::Critical
-            || self.calendar.calendar == "iso8601"
+            || self.calendar.calendar != "iso8601"
         {
             let year_length = if (0..=9999).contains(&self.date.0) {
                 4
@@ -418,7 +418,7 @@ impl Writeable for FormattableYearMonth<'_> {
         write_padded_u8(self.date.1, sink)?;
         if self.calendar.show == DisplayCalendar::Always
             || self.calendar.show == DisplayCalendar::Critical
-            || self.calendar.calendar == "iso8601"
+            || self.calendar.calendar != "iso8601"
         {
             sink.write_char('-')?;
             write_padded_u8(self.date.2, sink)?;
@@ -437,7 +437,7 @@ impl Writeable for FormattableYearMonth<'_> {
             self.calendar.writeable_length_hint() + LengthHint::exact(year_length + 3);
         if self.calendar.show == DisplayCalendar::Always
             || self.calendar.show == DisplayCalendar::Critical
-            || self.calendar.calendar == "iso8601"
+            || self.calendar.calendar != "iso8601"
         {
             return base_length + LengthHint::exact(3);
         }
@@ -524,10 +524,10 @@ impl Writeable for FormattableDuration {
         }
         sink.write_char('P')?;
         if let Some(date) = self.duration.date {
-            checked_write_with_suffix(date.years, 'Y', sink)?;
-            checked_write_with_suffix(date.months, 'M', sink)?;
-            checked_write_with_suffix(date.weeks, 'W', sink)?;
-            checked_write_with_suffix(date.days, 'D', sink)?;
+            checked_write_u32_with_suffix(date.years, 'Y', sink)?;
+            checked_write_u32_with_suffix(date.months, 'M', sink)?;
+            checked_write_u32_with_suffix(date.weeks, 'W', sink)?;
+            checked_write_u64_with_suffix(date.days, 'D', sink)?;
         }
         if let Some(time) = self.duration.time {
             sink.write_char('T')?;
@@ -548,7 +548,7 @@ impl Writeable for FormattableDuration {
                     minutes,
                     fraction,
                 } => {
-                    checked_write_with_suffix(hours, 'H', sink)?;
+                    checked_write_u64_with_suffix(hours, 'H', sink)?;
                     if minutes == 0 {
                         return Ok(());
                     }
@@ -565,18 +565,17 @@ impl Writeable for FormattableDuration {
                     seconds,
                     fraction,
                 } => {
-                    checked_write_with_suffix(hours, 'H', sink)?;
-                    checked_write_with_suffix(minutes, 'M', sink)?;
+                    checked_write_u64_with_suffix(hours, 'H', sink)?;
+                    checked_write_u64_with_suffix(minutes, 'M', sink)?;
                     let unit_below_minute =
-                        self.duration.date.is_none() || hours != 0 || minutes != 0;
+                        self.duration.date.is_none() && hours == 0 && minutes == 0;
                     if seconds != 0
                         || unit_below_minute
                         || matches!(self.precision, Precision::Digit(_))
                     {
                         seconds.write_to(sink)?;
-                        if self.precision == Precision::Auto
-                            || self.precision == Precision::Digit(0)
-                        {
+                        if self.precision == Precision::Digit(0)
+                            || (self.precision == Precision::Auto && fraction == 0) {
                             sink.write_char('S')?;
                             return Ok(());
                         }
@@ -591,8 +590,20 @@ impl Writeable for FormattableDuration {
     }
 }
 
-fn checked_write_with_suffix<W: core::fmt::Write + ?Sized>(
+fn checked_write_u32_with_suffix<W: core::fmt::Write + ?Sized>(
     val: u32,
+    suffix: char,
+    sink: &mut W,
+) -> core::fmt::Result {
+    if val == 0 {
+        return Ok(());
+    }
+    val.write_to(sink)?;
+    sink.write_char(suffix)
+}
+
+fn checked_write_u64_with_suffix<W: core::fmt::Write + ?Sized>(
+    val: u64,
     suffix: char,
     sink: &mut W,
 ) -> core::fmt::Result {
