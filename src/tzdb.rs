@@ -49,7 +49,7 @@ use tzif::{
 
 use crate::components::timezone::TimeZoneOffset;
 use crate::{
-    components::{timezone::TzProvider, EpochNanoseconds},
+    components::{timezone::TimeZoneProvider, EpochNanoseconds},
     iso::IsoDateTime,
     utils, TemporalError, TemporalResult,
 };
@@ -602,7 +602,7 @@ impl FsTzdbProvider {
     }
 }
 
-impl TzProvider for FsTzdbProvider {
+impl TimeZoneProvider for FsTzdbProvider {
     fn check_identifier(&self, identifier: &str) -> bool {
         self.get(identifier).is_ok()
     }
@@ -656,7 +656,7 @@ mod tests {
 
     use crate::{
         iso::IsoDateTime,
-        tzdb::{LocalTimeRecord, LocalTimeRecordResult, TzProvider},
+        tzdb::{LocalTimeRecord, LocalTimeRecordResult, TimeZoneProvider},
     };
 
     use super::{FsTzdbProvider, Tzif};

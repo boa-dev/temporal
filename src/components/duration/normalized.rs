@@ -6,7 +6,7 @@ use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
     components::{
-        timezone::{TimeZone, TzProvider},
+        timezone::{TimeZone, TimeZoneProvider},
         PlainDate, PlainDateTime,
     },
     iso::{IsoDate, IsoDateTime},
@@ -39,7 +39,7 @@ const NANOSECONDS_PER_HOUR: f64 = 60.0 * 60.0 * 1e9;
 
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
-pub struct NormalizedTimeDuration(pub(crate) i128);
+pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
 
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
@@ -302,7 +302,7 @@ impl NormalizedDurationRecord {
         sign: Sign,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TzProvider)>, // ???
+        tz: Option<(&TimeZone, &impl TimeZoneProvider)>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
         // NOTE: r2 may never be used...need to test.
@@ -594,7 +594,7 @@ impl NormalizedDurationRecord {
         dt: &PlainDateTime,
         tz: &TimeZone,
         options: ResolvedRoundingOptions,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NudgeRecord> {
         let d = Duration::from(self.date());
         // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
@@ -762,7 +762,7 @@ impl NormalizedDurationRecord {
         sign: Sign,
         nudge_epoch_ns: i128,
         date_time: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TzProvider)>,
+        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
         largest_unit: TemporalUnit,
         smallest_unit: TemporalUnit,
     ) -> TemporalResult<NormalizedDurationRecord> {
@@ -900,7 +900,7 @@ impl NormalizedDurationRecord {
         &self,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        timezone_record: Option<(&TimeZone, &impl TzProvider)>,
+        timezone_record: Option<(&TimeZone, &impl TimeZoneProvider)>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. Let irregularLengthUnit be false.

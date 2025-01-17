@@ -2,7 +2,7 @@
 
 use alloc::string::String;
 
-use crate::components::{timezone::TzProvider, zoneddatetime::interpret_isodatetime_offset};
+use crate::components::{timezone::TimeZoneProvider, zoneddatetime::interpret_isodatetime_offset};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation};
 use crate::parsers::parse_date_time;
@@ -40,7 +40,7 @@ impl RelativeTo {
     /// is invalid, then an error is returned.
     pub fn try_from_str_with_provider(
         source: &str,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let result = parse_date_time(source)?;
 
