@@ -425,10 +425,7 @@ impl Calendar {
     /// `CalendarDayOfYear`
     pub fn day_of_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
-            return Ok(iso_date
-                .as_icu4x()?
-                .day_of_year_info()
-                .day_of_year);
+            return Ok(iso_date.as_icu4x()?.day_of_year_info().day_of_year);
         }
         Err(TemporalError::range().with_message("Not yet implemented."))?
     }

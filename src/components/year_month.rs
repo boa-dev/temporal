@@ -10,9 +10,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{
-    Duration, PartialDate,
-};
+use super::{Duration, PartialDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -74,8 +72,7 @@ impl PlainYearMonth {
     }
 
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar()
-            .month_code(&self.iso)
+        self.calendar().month_code(&self.iso)
     }
 
     #[inline]
@@ -87,18 +84,15 @@ impl PlainYearMonth {
     }
 
     pub fn get_days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar()
-            .days_in_year(&self.iso)
+        self.calendar().days_in_year(&self.iso)
     }
 
     pub fn get_days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar()
-            .days_in_month(&self.iso)
+        self.calendar().days_in_month(&self.iso)
     }
 
     pub fn get_months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar()
-            .months_in_year(&self.iso)
+        self.calendar().months_in_year(&self.iso)
     }
 
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {

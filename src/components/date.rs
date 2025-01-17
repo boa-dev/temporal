@@ -1,11 +1,7 @@
 //! This module implements `Date` and any directly related algorithms.
 
 use crate::{
-    components::{
-        calendar::Calendar,
-        duration::DateDuration,
-        Duration, PlainDateTime,
-    },
+    components::{calendar::Calendar, duration::DateDuration, Duration, PlainDateTime},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,

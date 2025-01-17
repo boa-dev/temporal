@@ -533,44 +533,37 @@ impl PlainDateTime {
 
     /// Returns the calendar week of year value.
     pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
-        self.calendar
-            .week_of_year(&self.iso.date)
+        self.calendar.week_of_year(&self.iso.date)
     }
 
     /// Returns the calendar year of week value.
     pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
-        self.calendar
-            .year_of_week(&self.iso.date)
+        self.calendar.year_of_week(&self.iso.date)
     }
 
     /// Returns the calendar days in week value.
     pub fn days_in_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_week(&self.iso.date)
+        self.calendar.days_in_week(&self.iso.date)
     }
 
     /// Returns the calendar days in month value.
     pub fn days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_month(&self.iso.date)
+        self.calendar.days_in_month(&self.iso.date)
     }
 
     /// Returns the calendar days in year value.
     pub fn days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_year(&self.iso.date)
+        self.calendar.days_in_year(&self.iso.date)
     }
 
     /// Returns the calendar months in year value.
     pub fn months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .months_in_year(&self.iso.date)
+        self.calendar.months_in_year(&self.iso.date)
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
-        self.calendar
-            .in_leap_year(&self.iso.date)
+        self.calendar.in_leap_year(&self.iso.date)
     }
 
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
