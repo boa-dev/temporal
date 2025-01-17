@@ -39,6 +39,8 @@ pub struct TimeZoneOffset {
 
 // NOTE: It may be a good idea to eventually move this into it's
 // own individual crate rather than having it tied directly into `temporal_rs`
+/// The `TimeZoneProvider` trait provides methods required for a provider
+/// to implement in order to source time zone data from that provider.
 pub trait TimeZoneProvider {
     fn check_identifier(&self, identifier: &str) -> bool;
 
