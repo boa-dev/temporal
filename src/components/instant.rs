@@ -23,7 +23,7 @@ use num_traits::FromPrimitive;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    timezone::TzProvider,
+    timezone::TimeZoneProvider,
 };
 
 const NANOSECONDS_PER_SECOND: f64 = 1e9;
@@ -277,7 +277,7 @@ impl Instant {
         &self,
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<String> {
         let resolved_options = options.resolve()?;
         let round = self.round_instant(ResolvedRoundingOptions::from_to_string_options(

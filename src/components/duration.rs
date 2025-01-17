@@ -1,7 +1,7 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{timezone::TzProvider, PlainDateTime, PlainTime},
+    components::{timezone::TimeZoneProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
@@ -30,7 +30,6 @@ mod time;
 #[cfg(test)]
 mod tests;
 
-// TODO: Determine visibility.
 #[doc(inline)]
 pub use date::DateDuration;
 #[doc(inline)]
@@ -446,7 +445,7 @@ impl Duration {
         &self,
         options: RoundingOptions,
         relative_to: Option<RelativeTo>,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
         // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).

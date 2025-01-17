@@ -9,8 +9,6 @@ use crate::{
     TemporalResult, TemporalUnwrap,
 };
 
-use super::calendar::{CalendarDateLike, GetTemporalCalendar};
-
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone)]
@@ -80,13 +78,7 @@ impl PlainMonthDay {
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar.month_code(&CalendarDateLike::MonthDay(self))
-    }
-}
-
-impl GetTemporalCalendar for PlainMonthDay {
-    fn get_calendar(&self) -> Calendar {
-        self.calendar.clone()
+        self.calendar.month_code(&self.iso)
     }
 }
 
