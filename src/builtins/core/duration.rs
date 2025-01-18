@@ -3,16 +3,24 @@
 use crate::{
     builtins::core::{options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDateTime, IsoTime},
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
+    options::{
+        ArithmeticOverflow, ResolvedRoundingOptions, RoundingIncrement,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+    },
+    parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::str::FromStr;
-use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use ixdtf::parsers::{
+    records::{DateDurationRecord, DurationParseRecord, Sign as IxdtfSign, TimeDurationRecord},
+    IsoDurationParser,
+};
 use normalized::NormalizedDurationRecord;
 use num_traits::AsPrimitive;
 
@@ -75,6 +83,16 @@ pub struct Duration {
     time: TimeDuration,
 }
 
+impl core::fmt::Display for Duration {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(
+            &self
+                .to_temporal_string(ToStringRoundingOptions::default())
+                .expect("Duration must return a valid string with default options."),
+        )
+    }
+}
+
 // NOTE(nekevss): Structure of the below is going to be a little convoluted,
 // but intended to section everything based on the below
 //
@@ -121,13 +139,18 @@ impl Duration {
             duration_record.normalized_time_duration(),
             largest_unit,
         )?;
-        let date = DateDuration::new(
+        Self::new(
             duration_record.date().years,
             duration_record.date().months,
             duration_record.date().weeks,
             duration_record.date().days.checked_add(&overflow_day)?,
-        )?;
-        Ok(Self::new_unchecked(date, time))
+            time.hours,
+            time.minutes,
+            time.seconds,
+            time.milliseconds,
+            time.microseconds,
+            time.nanoseconds,
+        )
     }
 
     /// Returns the a `Vec` of the fields values.
@@ -611,9 +634,103 @@ impl Duration {
             }
         }
     }
+
+    pub fn to_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+        if options.smallest_unit == Some(TemporalUnit::Hour)
+            || options.smallest_unit == Some(TemporalUnit::Minute)
+        {
+            return Err(TemporalError::range().with_message(
+                "string rounding options cannot have hour or minute smallest unit.",
+            ));
+        }
+
+        let resolved_options = options.resolve()?;
+        if resolved_options.smallest_unit == TemporalUnit::Nanosecond
+            && resolved_options.increment == RoundingIncrement::ONE
+        {
+            let duration = duration_to_formattable(self, resolved_options.precision)?;
+            return Ok(duration.to_string());
+        }
+
+        let rounding_options = ResolvedRoundingOptions::from_to_string_options(&resolved_options);
+
+        // 11. Let largestUnit be DefaultTemporalLargestUnit(duration).
+        let largest = self.default_largest_unit();
+        // 12. Let internalDuration be ToInternalDurationRecord(duration).
+        let norm = NormalizedDurationRecord::new(
+            self.date,
+            NormalizedTimeDuration::from_time_duration(&self.time),
+        )?;
+        // 13. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], precision.[[Increment]], precision.[[Unit]], roundingMode).
+        let (rounded, _) = norm
+            .normalized_time_duration()
+            .round(FiniteF64::default(), rounding_options)?;
+        // 14. Set internalDuration to CombineDateAndTimeDuration(internalDuration.[[Date]], timeDuration).
+        let norm = NormalizedDurationRecord::new(norm.date(), rounded.normalized_time_duration())?;
+        // 15. Let roundedLargestUnit be LargerOfTwoTemporalUnits(largestUnit, second).
+        let rounded_largest = largest.max(TemporalUnit::Second);
+        // 16. Let roundedDuration be ? TemporalDurationFromInternal(internalDuration, roundedLargestUnit).
+        let rounded = Self::from_normalized(norm, rounded_largest)?;
+
+        // 17. Return TemporalDurationToString(roundedDuration, precision.[[Precision]]).
+        Ok(duration_to_formattable(&rounded, resolved_options.precision)?.to_string())
+    }
+}
+
+pub fn duration_to_formattable(
+    duration: &Duration,
+    precision: Precision,
+) -> TemporalResult<FormattableDuration> {
+    let sign = duration.sign();
+    let sign = if sign == Sign::Negative {
+        IxdtfSign::Negative
+    } else {
+        IxdtfSign::Positive
+    };
+    let duration = duration.abs();
+    let date = duration.years().0 + duration.months().0 + duration.weeks().0 + duration.days().0;
+    let date = if date != 0.0 {
+        Some(DateDurationRecord {
+            years: duration.years().0 as u32,
+            months: duration.months().0 as u32,
+            weeks: duration.weeks().0 as u32,
+            days: duration.days().0 as u64,
+        })
+    } else {
+        None
+    };
+
+    let hours = duration.hours().abs();
+    let minutes = duration.minutes().abs();
+
+    let time = NormalizedTimeDuration::from_time_duration(&TimeDuration::new_unchecked(
+        FiniteF64::default(),
+        FiniteF64::default(),
+        duration.seconds(),
+        duration.milliseconds(),
+        duration.microseconds(),
+        duration.nanoseconds(),
+    ));
+
+    let seconds = time.seconds().unsigned_abs();
+    let subseconds = time.subseconds().unsigned_abs();
+
+    let time = Some(TimeDurationRecord::Seconds {
+        hours: hours.0 as u64,
+        minutes: minutes.0 as u64,
+        seconds,
+        fraction: subseconds,
+    });
+
+    Ok(FormattableDuration {
+        precision,
+        duration: DurationParseRecord { sign, date, time },
+    })
 }
 
 // TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.
+
+const TWO_POWER_FIFTY_THREE: i128 = 9_007_199_254_740_992;
 
 // NOTE: Can FiniteF64 optimize the duration_validation
 /// Utility function to check whether the `Duration` fields are valid.
@@ -680,21 +797,18 @@ pub(crate) fn is_valid_duration(
     // in C++ with an implementation of core::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
-    let normalized_seconds = days.0.mul_add(
-        86_400.0,
-        hours.0.mul_add(3600.0, minutes.0.mul_add(60.0, seconds.0)),
-    );
+    let normalized_seconds = (days.0 as i128 * 86_400)
+        + (hours.0 as i128) * 3600
+        + minutes.0 as i128 * 60
+        + seconds.0 as i128;
     // Subseconds part
-    let normalized_subseconds_parts = milliseconds.0.mul_add(
-        10e-3,
-        microseconds
-            .0
-            .mul_add(10e-6, nanoseconds.0.mul_add(10e-9, 0.0)),
-    );
+    let normalized_subseconds_parts = (milliseconds.0 as i128 / 1_000)
+        + (microseconds.0 as i128 / 1_000_000)
+        + (nanoseconds.0 as i128 / 1_000_000_000);
 
     let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
-    if normalized_seconds.abs() >= 2e53 {
+    if normalized_seconds.abs() >= TWO_POWER_FIFTY_THREE {
         return false;
     }
 
@@ -765,7 +879,7 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    f64::from(hours),
+                    hours as f64,
                     minutes as f64,
                     seconds as f64,
                     milliseconds as f64,
@@ -789,8 +903,8 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    f64::from(hours),
-                    f64::from(minutes),
+                    hours as f64,
+                    minutes as f64,
                     seconds as f64,
                     milliseconds as f64,
                     microseconds as f64,
@@ -811,9 +925,9 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    f64::from(hours),
-                    f64::from(minutes),
-                    f64::from(seconds),
+                    hours as f64,
+                    minutes as f64,
+                    seconds as f64,
                     milliseconds as f64,
                     microseconds as f64,
                     nanoseconds as f64,
@@ -834,7 +948,7 @@ impl FromStr for Duration {
             FiniteF64::from(years).copysign(sign),
             FiniteF64::from(months).copysign(sign),
             FiniteF64::from(weeks).copysign(sign),
-            FiniteF64::from(days).copysign(sign),
+            FiniteF64::try_from(days)?.copysign(sign),
             FiniteF64::try_from(hours)?.copysign(sign),
             FiniteF64::try_from(minutes)?.copysign(sign),
             FiniteF64::try_from(seconds)?.copysign(sign),

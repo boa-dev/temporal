@@ -24,8 +24,8 @@ const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 // Nanoseconds constants
 
 const NS_PER_DAY_128BIT: i128 = NS_PER_DAY as i128;
-const NANOSECONDS_PER_MINUTE: f64 = 60.0 * 1e9;
-const NANOSECONDS_PER_HOUR: f64 = 60.0 * 60.0 * 1e9;
+const NANOSECONDS_PER_MINUTE: i128 = 60 * 1_000_000_000;
+const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 
 // ==== NormalizedTimeDuration ====
 //
@@ -42,12 +42,12 @@ pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
-        // TODO: Determine if there is a loss in precision from casting. If so, times by 1,000 (calculate in picoseconds) than truncate?
-        let mut nanoseconds: i128 = (time.hours.0 * NANOSECONDS_PER_HOUR) as i128;
-        nanoseconds += (time.minutes.0 * NANOSECONDS_PER_MINUTE) as i128;
-        nanoseconds += (time.seconds.0 * 1_000_000_000.0) as i128;
-        nanoseconds += (time.milliseconds.0 * 1_000_000.0) as i128;
-        nanoseconds += (time.microseconds.0 * 1_000.0) as i128;
+        // Note: Calculations must be done after casting to `i128` in order to preserve precision
+        let mut nanoseconds: i128 = time.hours.0 as i128 * NANOSECONDS_PER_HOUR;
+        nanoseconds += time.minutes.0 as i128 * NANOSECONDS_PER_MINUTE;
+        nanoseconds += time.seconds.0 as i128 * 1_000_000_000;
+        nanoseconds += time.milliseconds.0 as i128 * 1_000_000;
+        nanoseconds += time.microseconds.0 as i128 * 1_000;
         nanoseconds += time.nanoseconds.0 as i128;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);

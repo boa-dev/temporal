@@ -21,7 +21,9 @@ use crate::{Calendar, Sign};
 
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 
-// TODO: migrate to Cow<'a, str>
+// TODO: Potentially migrate to Cow<'a, str>
+// TODO: There may be an argument to have Offset minutes be a (Cow<'a, str>,, i16) to
+// prevent allocations / writing, TBD
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimeZone {
     IanaIdentifier(String),

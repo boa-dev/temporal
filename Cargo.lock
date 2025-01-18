@@ -232,8 +232,7 @@ dependencies = [
 [[package]]
 name = "ixdtf"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb6cd1080e64f68b07c577e3c687f4a894b3d1bd6093cb36b55c7bd07675aa3a"
+source = "git+https://github.com/unicode-org/icu4x.git?rev=3d187da4d3f05b7e37603c4be3f2c1ce45100e03#3d187da4d3f05b7e37603c4be3f2c1ce45100e03"
 dependencies = [
  "displaydoc",
  "utf8_iter",

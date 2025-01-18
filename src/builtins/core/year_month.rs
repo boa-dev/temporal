@@ -6,8 +6,12 @@ use core::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    builtins::core::calendar::Calendar, iso::IsoDate, options::ArithmeticOverflow,
-    utils::pad_iso_year, TemporalError, TemporalResult, TemporalUnwrap,
+    iso::IsoDate,
+    options::{ArithmeticOverflow, DisplayCalendar},
+    parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
+    utils::pad_iso_year,
+    TemporalError, TemporalResult, TemporalUnwrap,
+    Calendar,
 };
 
 use super::{Duration, PartialDate};
@@ -18,6 +22,12 @@ use super::{Duration, PartialDate};
 pub struct PlainYearMonth {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
+}
+
+impl core::fmt::Display for PlainYearMonth {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
+    }
 }
 
 impl PlainYearMonth {
@@ -150,6 +160,17 @@ impl PlainYearMonth {
 
         self.calendar()
             .year_month_from_partial(&result_fields, overflow)
+    }
+
+    pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        let ixdtf = FormattableYearMonth {
+            date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),
+            calendar: FormattableCalendar {
+                show: display_calendar,
+                calendar: self.calendar().identifier(),
+            },
+        };
+        ixdtf.to_string()
     }
 }
 

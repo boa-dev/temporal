@@ -1,12 +1,15 @@
 //! This module implements `MonthDay` and any directly related algorithms.
 
+use alloc::string::String;
 use core::str::FromStr;
 
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    builtins::core::calendar::Calendar, iso::IsoDate, options::ArithmeticOverflow, TemporalError,
-    TemporalResult, TemporalUnwrap,
+    iso::IsoDate,
+    options::{ArithmeticOverflow, DisplayCalendar},
+    parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
+    TemporalError, TemporalResult, TemporalUnwrap, Calendar
 };
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
@@ -15,6 +18,12 @@ use crate::{
 pub struct PlainMonthDay {
     pub iso: IsoDate,
     calendar: Calendar,
+}
+
+impl core::fmt::Display for PlainMonthDay {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
+    }
 }
 
 impl PlainMonthDay {
@@ -79,6 +88,17 @@ impl PlainMonthDay {
     #[inline]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.calendar.month_code(&self.iso)
+    }
+
+    pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        let ixdtf = FormattableMonthDay {
+            date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),
+            calendar: FormattableCalendar {
+                show: display_calendar,
+                calendar: self.calendar().identifier(),
+            },
+        };
+        ixdtf.to_string()
     }
 }
 
