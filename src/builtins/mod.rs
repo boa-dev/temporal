@@ -1,4 +1,4 @@
-pub(crate) mod core;
+pub mod core;
 
 #[cfg(feature = "full")]
 pub(crate) mod native;

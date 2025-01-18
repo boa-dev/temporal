@@ -96,6 +96,9 @@ pub mod time {
     pub use crate::epoch_nanoseconds::EpochNanoseconds;
 }
 
+#[cfg(feature = "full")]
+pub use crate::builtins::core as temporal_core;
+
 pub use crate::builtins::{
     calendar::Calendar, core::timezone::TimeZone, DateDuration, Duration, Instant, PlainDate,
     PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth, TimeDuration, ZonedDateTime,
