@@ -10,8 +10,7 @@ use crate::{
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
-    TemporalError, TemporalResult, TemporalUnwrap,
-    Calendar,
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{Duration, PartialDate};

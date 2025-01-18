@@ -4,8 +4,8 @@ use crate::{
     builtins::core::{options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, ResolvedRoundingOptions, RoundingIncrement,
-        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        ArithmeticOverflow, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions,
+        TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,
@@ -87,7 +87,7 @@ impl core::fmt::Display for Duration {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(
             &self
-                .to_temporal_string(ToStringRoundingOptions::default())
+                .as_temporal_string(ToStringRoundingOptions::default())
                 .expect("Duration must return a valid string with default options."),
         )
     }
@@ -635,7 +635,7 @@ impl Duration {
         }
     }
 
-    pub fn to_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+    pub fn as_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         if options.smallest_unit == Some(TemporalUnit::Hour)
             || options.smallest_unit == Some(TemporalUnit::Minute)
         {

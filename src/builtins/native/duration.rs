@@ -1,20 +1,32 @@
 use crate::builtins::core::PartialDuration;
+use crate::options::ToStringRoundingOptions;
 use crate::{
-    builtins::core,
+    builtins::core as temporal_core,
     options::{RelativeTo, RoundingOptions},
     primitive::FiniteF64,
     Sign, TemporalError, TemporalResult,
 };
+use alloc::string::String;
 
 use super::{timezone::TZ_PROVIDER, DateDuration, TimeDuration};
 
 #[cfg(test)]
 mod tests;
 
-pub struct Duration(pub(crate) core::Duration);
+pub struct Duration(pub(crate) temporal_core::Duration);
 
-impl From<core::Duration> for Duration {
-    fn from(value: core::Duration) -> Self {
+impl core::fmt::Display for Duration {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(
+            &self
+                .as_temporal_string(ToStringRoundingOptions::default())
+                .expect("Default options on a valid Duration should return a string."),
+        )
+    }
+}
+
+impl From<temporal_core::Duration> for Duration {
+    fn from(value: temporal_core::Duration) -> Self {
         Self(value)
     }
 }
@@ -46,7 +58,7 @@ impl Duration {
         microseconds: FiniteF64,
         nanoseconds: FiniteF64,
     ) -> TemporalResult<Self> {
-        core::Duration::new(
+        temporal_core::Duration::new(
             years,
             months,
             weeks,
@@ -63,7 +75,7 @@ impl Duration {
 
     /// Creates a `Duration` from a provided `PartialDuration`.
     pub fn from_partial_duration(partial: PartialDuration) -> TemporalResult<Self> {
-        core::Duration::from_partial_duration(partial).map(Into::into)
+        temporal_core::Duration::from_partial_duration(partial).map(Into::into)
     }
 }
 
@@ -217,5 +229,9 @@ impl Duration {
         self.0
             .round_with_provider(options, relative_to.map(Into::into), &*provider)
             .map(Into::into)
+    }
+
+    pub fn as_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+        self.0.as_temporal_string(options)
     }
 }

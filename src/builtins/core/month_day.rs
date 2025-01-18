@@ -9,7 +9,7 @@ use crate::{
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
-    TemporalError, TemporalResult, TemporalUnwrap, Calendar
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`

@@ -1,4 +1,7 @@
-use crate::{options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration, primitive::FiniteF64};
+use crate::{
+    options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration,
+    primitive::FiniteF64,
+};
 
 use super::Duration;
 
@@ -25,7 +28,7 @@ fn default_duration_string() {
         smallest_unit: None,
         rounding_mode: None,
     };
-    let result = duration.to_temporal_string(options).unwrap();
+    let result = duration.as_temporal_string(options).unwrap();
     assert_eq!(&result, "PT0S");
 
     let options = ToStringRoundingOptions {
@@ -33,7 +36,7 @@ fn default_duration_string() {
         smallest_unit: None,
         rounding_mode: None,
     };
-    let result = duration.to_temporal_string(options).unwrap();
+    let result = duration.as_temporal_string(options).unwrap();
     assert_eq!(&result, "PT0S");
 
     let options = ToStringRoundingOptions {
@@ -41,7 +44,7 @@ fn default_duration_string() {
         smallest_unit: None,
         rounding_mode: None,
     };
-    let result = duration.to_temporal_string(options).unwrap();
+    let result = duration.as_temporal_string(options).unwrap();
     assert_eq!(&result, "PT0.0S");
 
     let options = ToStringRoundingOptions {
@@ -49,7 +52,7 @@ fn default_duration_string() {
         smallest_unit: None,
         rounding_mode: None,
     };
-    let result = duration.to_temporal_string(options).unwrap();
+    let result = duration.as_temporal_string(options).unwrap();
     assert_eq!(&result, "PT0.000S");
 }
 
@@ -69,7 +72,7 @@ fn duration_to_string_auto_precision() {
     )
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "P1Y2M3W4DT5H6M7S");
 
@@ -87,7 +90,7 @@ fn duration_to_string_auto_precision() {
     )
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "P1Y2M3W4DT5H6M7.98765S");
 }
@@ -100,7 +103,7 @@ fn empty_date_duration() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "PT1H");
 }
@@ -121,7 +124,7 @@ fn negative_fields_to_string() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "-P1Y1M1W1DT1H1M1.001001001S");
 
@@ -131,7 +134,7 @@ fn negative_fields_to_string() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "-PT0.25S");
 
@@ -141,7 +144,7 @@ fn negative_fields_to_string() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "-PT3.5S");
 
@@ -151,7 +154,7 @@ fn negative_fields_to_string() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "-PT3.5S");
 
@@ -162,7 +165,7 @@ fn negative_fields_to_string() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
 
     assert_eq!(&result, "-P1W1D");
@@ -178,7 +181,7 @@ fn preserve_precision_loss() {
     })
     .unwrap();
     let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
+        .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
 
     assert_eq!(&result, "PT9016206453995.731991S");
