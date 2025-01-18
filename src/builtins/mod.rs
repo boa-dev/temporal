@@ -1,4 +1,6 @@
 pub(crate) mod core;
+
+#[cfg(feature = "full")]
 pub(crate) mod native;
 
 #[cfg(not(feature = "full"))]

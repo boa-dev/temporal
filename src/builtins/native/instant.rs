@@ -8,7 +8,7 @@ use alloc::string::String;
 
 use super::{duration::Duration, timezone::TZ_PROVIDER, TimeDuration};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(temporal_core::Instant);
 
 impl From<temporal_core::Instant> for Instant {

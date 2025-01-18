@@ -1,19 +1,27 @@
+
+use alloc::string::String;
 use crate::{
-    builtins::core,
+    builtins::core as temporal_core,
     options::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
         ToStringRoundingOptions,
     },
     Calendar, TemporalResult,
 };
-use alloc::string::String;
+use super::{Duration, PartialDateTime, PlainDate, PlainTime};
 use tinystr::TinyAsciiStr;
 
-use super::{Duration, PartialDateTime, PlainDate, PlainTime};
-pub struct PlainDateTime(pub(crate) core::PlainDateTime);
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PlainDateTime(pub(crate) temporal_core::PlainDateTime);
 
-impl From<core::PlainDateTime> for PlainDateTime {
-    fn from(value: core::PlainDateTime) -> Self {
+impl core::fmt::Display for PlainDateTime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<temporal_core::PlainDateTime> for PlainDateTime {
+    fn from(value: temporal_core::PlainDateTime) -> Self {
         Self(value)
     }
 }
@@ -33,7 +41,7 @@ impl PlainDateTime {
         nanosecond: u16,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
-        core::PlainDateTime::new(
+        temporal_core::PlainDateTime::new(
             year,
             month,
             day,
@@ -62,7 +70,7 @@ impl PlainDateTime {
         nanosecond: u16,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
-        core::PlainDateTime::try_new(
+        temporal_core::PlainDateTime::try_new(
             year,
             month,
             day,
@@ -79,7 +87,7 @@ impl PlainDateTime {
 
     /// Create a `DateTime` from a `Date` and a `Time`.
     pub fn from_date_and_time(date: PlainDate, time: PlainTime) -> TemporalResult<Self> {
-        core::PlainDateTime::from_date_and_time(date.0, time.0).map(Into::into)
+        temporal_core::PlainDateTime::from_date_and_time(date.0, time.0).map(Into::into)
     }
 
     /// Creates a `DateTime` from a `PartialDateTime`.
@@ -118,7 +126,7 @@ impl PlainDateTime {
         partial: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        core::PlainDateTime::from_partial(partial, overflow).map(Into::into)
+        temporal_core::PlainDateTime::from_partial(partial, overflow).map(Into::into)
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.

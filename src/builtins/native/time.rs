@@ -1,18 +1,30 @@
+
+use core::fmt::Debug;
+
+use alloc::string::String;
 use crate::{
-    builtins::core,
+    builtins::core as temporal_core,
     options::{
         ArithmeticOverflow, DifferenceSettings, TemporalRoundingMode, TemporalUnit,
         ToStringRoundingOptions,
     },
     TemporalResult,
 };
-use alloc::string::String;
-
 use super::{Duration, PartialTime, TimeDuration};
-pub struct PlainTime(pub(crate) core::PlainTime);
 
-impl From<core::PlainTime> for PlainTime {
-    fn from(value: core::PlainTime) -> Self {
+
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PlainTime(pub(crate) temporal_core::PlainTime);
+
+impl core::fmt::Display for PlainTime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<temporal_core::PlainTime> for PlainTime {
+    fn from(value: temporal_core::PlainTime) -> Self {
         Self(value)
     }
 }
@@ -36,7 +48,7 @@ impl PlainTime {
         microsecond: u16,
         nanosecond: u16,
     ) -> TemporalResult<Self> {
-        core::PlainTime::new(hour, minute, second, millisecond, microsecond, nanosecond)
+        temporal_core::PlainTime::new(hour, minute, second, millisecond, microsecond, nanosecond)
             .map(Into::into)
     }
 
@@ -58,7 +70,7 @@ impl PlainTime {
         microsecond: u16,
         nanosecond: u16,
     ) -> TemporalResult<Self> {
-        core::PlainTime::try_new(hour, minute, second, millisecond, microsecond, nanosecond)
+        temporal_core::PlainTime::try_new(hour, minute, second, millisecond, microsecond, nanosecond)
             .map(Into::into)
     }
 
@@ -86,7 +98,7 @@ impl PlainTime {
         partial: PartialTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        core::PlainTime::from_partial(partial, overflow).map(Into::into)
+        temporal_core::PlainTime::from_partial(partial, overflow).map(Into::into)
     }
 
     /// Creates a new `PlainTime` using the current `PlainTime` fields as a fallback.

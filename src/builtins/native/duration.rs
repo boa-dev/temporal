@@ -13,6 +13,7 @@ use super::{timezone::TZ_PROVIDER, DateDuration, TimeDuration};
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Clone)]
 pub struct Duration(pub(crate) temporal_core::Duration);
 
 impl core::fmt::Display for Duration {

@@ -1,6 +1,6 @@
 use crate::builtins::native::PlainTime;
 use crate::{
-    builtins::core,
+    builtins::core as temporal_core,
     options::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar},
     Calendar, TemporalResult,
 };
@@ -9,11 +9,17 @@ use alloc::string::String;
 use super::{duration::Duration, PartialDate, PlainDateTime, PlainMonthDay, PlainYearMonth};
 use tinystr::TinyAsciiStr;
 
-#[derive(Debug, Clone)]
-pub struct PlainDate(pub(crate) core::PlainDate);
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct PlainDate(pub(crate) temporal_core::PlainDate);
 
-impl From<core::PlainDate> for PlainDate {
-    fn from(value: core::PlainDate) -> Self {
+impl core::fmt::Display for PlainDate {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
+impl From<temporal_core::PlainDate> for PlainDate {
+    fn from(value: temporal_core::PlainDate) -> Self {
         Self(value)
     }
 }
@@ -21,12 +27,12 @@ impl From<core::PlainDate> for PlainDate {
 impl PlainDate {
     /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
     pub fn new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
-        core::PlainDate::new(year, month, day, calendar).map(Into::into)
+        temporal_core::PlainDate::new(year, month, day, calendar).map(Into::into)
     }
 
     /// Creates a new `PlainDate` rejecting any date that may be invalid.
     pub fn try_new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
-        core::PlainDate::try_new(year, month, day, calendar).map(Into::into)
+        temporal_core::PlainDate::try_new(year, month, day, calendar).map(Into::into)
     }
 
     /// Creates a new `PlainDate` with the specified overflow.
@@ -40,7 +46,7 @@ impl PlainDate {
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        core::PlainDate::new_with_overflow(year, month, day, calendar, overflow).map(Into::into)
+        temporal_core::PlainDate::new_with_overflow(year, month, day, calendar, overflow).map(Into::into)
     }
 
     /// Create a `PlainDate` from a `PartialDate`
@@ -68,7 +74,7 @@ impl PlainDate {
         partial: PartialDate,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        core::PlainDate::from_partial(partial, overflow).map(Into::into)
+        temporal_core::PlainDate::from_partial(partial, overflow).map(Into::into)
     }
 
     /// Creates a date time with values from a `PartialDate`.
