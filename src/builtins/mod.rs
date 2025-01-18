@@ -1,8 +1,8 @@
 pub(crate) mod core;
-pub(crate) mod std;
+pub(crate) mod native;
 
-#[cfg(not(feature = "experimental"))]
+#[cfg(not(feature = "full"))]
 pub use core::*;
 
-#[cfg(feature = "experimental")]
-pub use std::*;
+#[cfg(feature = "full")]
+pub use native::*;

@@ -1,6 +1,6 @@
+use crate::builtins::native::timezone::TZ_PROVIDER;
 use crate::TemporalError;
 use crate::{builtins::core, TemporalResult};
-use crate::builtins::std::timezone::TZ_PROVIDER;
 
 use super::{date::PlainDate, ZonedDateTime};
 
@@ -50,4 +50,3 @@ impl RelativeTo {
         core::options::RelativeTo::try_from_str_with_provider(source, &*provider).map(Into::into)
     }
 }
-

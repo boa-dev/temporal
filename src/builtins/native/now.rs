@@ -1,7 +1,6 @@
-
+use crate::builtins::native::{PlainDate, PlainDateTime, PlainTime, ZonedDateTime};
+use crate::{builtins::core, Instant, TemporalError, TemporalResult, TimeZone};
 use alloc::string::String;
-use crate::{builtins::core, TemporalError, TemporalResult, TimeZone, Instant};
-use crate::builtins::std::{ZonedDateTime, PlainDateTime, PlainDate, PlainTime};
 
 use super::timezone::TZ_PROVIDER;
 
@@ -10,12 +9,12 @@ pub struct Now;
 impl Now {
     /// Returns the current instant
     pub fn instant() -> TemporalResult<Instant> {
-        Now::instant()
+        core::Now::instant().map(Into::into)
     }
 
     /// Returns the current time zone.
     pub fn time_zone_id() -> TemporalResult<String> {
-        Now::time_zone_id()
+        core::Now::time_zone_id()
     }
 
     /// Returns the current system time as a `ZonedDateTime` with an ISO8601 calendar.
@@ -23,7 +22,7 @@ impl Now {
     /// The time zone will be set to either the `TimeZone` if a value is provided, or
     /// according to the system timezone if no value is provided.
     pub fn zoneddatetime_iso(timezone: Option<TimeZone>) -> TemporalResult<ZonedDateTime> {
-        Now::zoneddatetime_iso(timezone).map(Into::into)
+        core::Now::zoneddatetime_iso(timezone).map(Into::into)
     }
 
     pub fn plain_datetime_iso(timezone: Option<TimeZone>) -> TemporalResult<PlainDateTime> {
@@ -47,6 +46,3 @@ impl Now {
         core::Now::plain_time_iso_with_provider(timezone, &*provider).map(Into::into)
     }
 }
-
-
-

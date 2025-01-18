@@ -1,16 +1,15 @@
 //! The Temporal Now component
 
+use crate::provider::TimeZoneProvider;
+use crate::{iso::IsoDateTime, time::EpochNanoseconds, TemporalUnwrap};
 use crate::{sys, TemporalResult};
 use alloc::string::String;
 
 use num_traits::FromPrimitive;
 
-use crate::{iso::IsoDateTime, TemporalUnwrap, time::EpochNanoseconds};
-
 use super::{
-    calendar::Calendar,
-    timezone::{TimeZone, TimeZoneProvider},
-    Instant, PlainDate, PlainDateTime, PlainTime, ZonedDateTime,
+    calendar::Calendar, timezone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
+    ZonedDateTime,
 };
 
 /// The Temporal Now object.
@@ -111,8 +110,8 @@ mod tests {
     use std::thread;
     use std::time::Duration as StdDuration;
 
-    use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider};
     use crate::builtins::core::Now;
+    use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider};
 
     #[test]
     fn now_datetime_test() {

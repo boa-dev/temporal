@@ -1,7 +1,10 @@
-
+use crate::builtins::native::PlainTime;
+use crate::{
+    builtins::core,
+    options::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar},
+    Calendar, TemporalResult,
+};
 use alloc::string::String;
-use crate::{builtins::core, options::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar}, Calendar, TemporalResult};
-use crate::builtins::std::PlainTime;
 
 use super::{duration::Duration, PartialDate, PlainDateTime, PlainMonthDay, PlainYearMonth};
 use tinystr::TinyAsciiStr;
@@ -247,7 +250,7 @@ impl PlainDate {
     /// If no time is provided, then the time will default to midnight.
     #[inline]
     pub fn to_date_time(&self, time: Option<PlainTime>) -> TemporalResult<PlainDateTime> {
-        self.0.to_date_time(time.map(Into::into)).map(Into::into)
+        self.0.to_date_time(time.map(|t| t.0)).map(Into::into)
     }
 
     /// Converts the current `Date<C>` into a `PlainYearMonth`
@@ -267,4 +270,3 @@ impl PlainDate {
         self.0.to_ixdtf_string(display_calendar)
     }
 }
-

@@ -2,16 +2,13 @@
 
 use alloc::string::String;
 
-use crate::builtins::core::{
-    timezone::TimeZoneProvider, zoneddatetime::interpret_isodatetime_offset,
-};
+use crate::builtins::core::zoneddatetime::interpret_isodatetime_offset;
+use crate::builtins::core::{calendar::Calendar, timezone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation};
 use crate::parsers::parse_date_time;
-use crate::builtins::core::{ZonedDateTime, PlainDate, timezone::TimeZone, calendar::Calendar};
-use crate::{
-    TemporalError, TemporalResult, TemporalUnwrap,
-};
+use crate::provider::TimeZoneProvider;
+use crate::{TemporalError, TemporalResult, TemporalUnwrap};
 
 use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
 
@@ -136,5 +133,3 @@ impl RelativeTo {
         Ok(ZonedDateTime::try_new(epoch_ns.0, calendar, timezone)?.into())
     }
 }
-
-

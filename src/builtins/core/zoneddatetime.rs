@@ -7,8 +7,10 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     builtins::core::{
+        calendar::Calendar,
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        timezone::{parse_offset, TimeZone, TimeZoneProvider}, calendar::Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime,
+        timezone::{parse_offset, TimeZone},
+        Duration, Instant, PlainDate, PlainDateTime, PlainTime,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
@@ -18,9 +20,11 @@ use crate::{
     },
     parsers::{self, IxdtfStringBuilder},
     partial::{PartialDate, PartialTime},
+    provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
+    temporal_assert,
     time::EpochNanoseconds,
-    temporal_assert,TemporalError, TemporalResult, Sign
+    Sign, TemporalError, TemporalResult,
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -942,16 +946,16 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     Ok((sign, hour as u8, minute as u8))
 }
 
-#[cfg(all(test, feature = "tzdb"))]
+#[cfg(all(test, feature = "tzdb", not(feature = "full")))]
 mod tests {
+    use super::ZonedDateTime;
     use crate::{
         options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, TemporalUnit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
         tzdb::FsTzdbProvider,
-        Calendar, TimeZone
+        Calendar, TimeZone,
     };
-    use super::ZonedDateTime;
     use core::str::FromStr;
     use tinystr::tinystr;
 

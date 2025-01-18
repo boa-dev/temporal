@@ -14,6 +14,7 @@ use crate::{
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
+    provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
     time::EpochNanoseconds,
     Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
@@ -21,10 +22,7 @@ use crate::{
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 
-use super::{
-    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    timezone::TimeZoneProvider,
-};
+use super::duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
 
 const NANOSECONDS_PER_SECOND: f64 = 1e9;
 const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
@@ -237,7 +235,7 @@ impl Instant {
 // ==== Instant Provider API ====
 
 impl Instant {
-    pub fn to_ixdtf_string_with_provider(
+    pub fn as_ixdtf_string_with_provider(
         &self,
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
@@ -522,10 +520,10 @@ mod tests {
     #[cfg(feature = "tzdb")]
     #[test]
     fn instant_add_across_epoch() {
+        use crate::builtins::core::Duration;
         use crate::{
             options::ToStringRoundingOptions, partial::PartialDuration, tzdb::FsTzdbProvider,
         };
-        use crate::builtins::core::Duration;
         use core::str::FromStr;
 
         let instant = Instant::from_str("1969-12-25T12:23:45.678901234Z").unwrap();
@@ -582,13 +580,13 @@ mod tests {
         // Assert the to_string is valid.
         let provider = &FsTzdbProvider::default();
         let inst_string = instant
-            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
         let one_string = one
-            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
         let two_string = two
-            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
 
         assert_eq!(&inst_string, "1969-12-25T12:23:45.678901234Z");

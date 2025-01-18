@@ -5,16 +5,14 @@ use core::{num::NonZeroU128, ops::Add};
 use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
-    builtins::core::{
-        timezone::{TimeZone, TimeZoneProvider},
-        PlainDate, PlainDateTime,
-    },
+    builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
     iso::{IsoDate, IsoDateTime},
     options::{
         ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, TemporalRoundingMode,
         TemporalUnit,
     },
     primitive::FiniteF64,
+    provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
     TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };

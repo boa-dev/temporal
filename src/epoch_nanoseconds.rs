@@ -1,4 +1,3 @@
-
 use num_traits::FromPrimitive;
 
 use crate::{TemporalError, NS_MAX_INSTANT};
@@ -45,4 +44,3 @@ impl TryFrom<f64> for EpochNanoseconds {
 pub(crate) fn is_valid_epoch_nanos(nanos: &i128) -> bool {
     (crate::NS_MIN_INSTANT..=crate::NS_MAX_INSTANT).contains(nanos)
 }
-

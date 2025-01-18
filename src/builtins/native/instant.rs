@@ -1,13 +1,29 @@
+use crate::{
+    builtins::core as temporal_core,
+    options::{DifferenceSettings, RoundingOptions, ToStringRoundingOptions},
+    time::EpochNanoseconds,
+    TemporalError, TemporalResult, TimeZone,
+};
+use alloc::string::String;
 
-use crate::{builtins::core, options::{DifferenceSettings, RoundingOptions}, time::EpochNanoseconds, TemporalError, TemporalResult};
+use super::{duration::Duration, timezone::TZ_PROVIDER, TimeDuration};
 
-use super::{duration::Duration, TimeDuration};
+#[derive(Debug, Clone)]
+pub struct Instant(temporal_core::Instant);
 
-pub struct Instant(core::Instant);
-
-impl From<core::Instant> for Instant {
-    fn from(value: core::Instant) -> Self {
+impl From<temporal_core::Instant> for Instant {
+    fn from(value: temporal_core::Instant) -> Self {
         Self(value)
+    }
+}
+
+impl core::fmt::Display for Instant {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(
+            &self
+                .as_ixdtf_string(None, ToStringRoundingOptions::default())
+                .expect("A valid instant string."),
+        )
     }
 }
 
@@ -15,11 +31,11 @@ impl Instant {
     /// Create a new validated `Instant`.
     #[inline]
     pub fn try_new(nanoseconds: i128) -> TemporalResult<Self> {
-        Ok(core::Instant::from(EpochNanoseconds::try_from(nanoseconds)?).into())
+        Ok(temporal_core::Instant::from(EpochNanoseconds::try_from(nanoseconds)?).into())
     }
 
     pub fn from_epoch_milliseconds(epoch_milliseconds: i128) -> TemporalResult<Self> {
-        core::Instant::from_epoch_milliseconds(epoch_milliseconds).map(Into::into)
+        temporal_core::Instant::from_epoch_milliseconds(epoch_milliseconds).map(Into::into)
     }
 
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
@@ -75,5 +91,20 @@ impl Instant {
     #[must_use]
     pub fn epoch_nanoseconds(&self) -> i128 {
         self.0.epoch_nanoseconds()
+    }
+
+    /// Returns the RFC9557 (IXDTF) string for this `Instant` with the
+    /// provided options
+    pub fn as_ixdtf_string(
+        &self,
+        timezone: Option<&TimeZone>,
+        options: ToStringRoundingOptions,
+    ) -> TemporalResult<String> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+
+        self.0
+            .as_ixdtf_string_with_provider(timezone, options, &*provider)
     }
 }

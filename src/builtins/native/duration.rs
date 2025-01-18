@@ -1,7 +1,10 @@
-
-use crate::{builtins::core, options::{RelativeTo, RoundingOptions}, primitive::FiniteF64, Sign, TemporalError, TemporalResult};
 use crate::builtins::core::PartialDuration;
-use crate::builtins::core::options::RelativeTo as CoreRelativeTo;
+use crate::{
+    builtins::core,
+    options::{RelativeTo, RoundingOptions},
+    primitive::FiniteF64,
+    Sign, TemporalError, TemporalResult,
+};
 
 use super::{timezone::TZ_PROVIDER, DateDuration, TimeDuration};
 
@@ -43,13 +46,25 @@ impl Duration {
         microseconds: FiniteF64,
         nanoseconds: FiniteF64,
     ) -> TemporalResult<Self> {
-        core::Duration::new(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).map(Into::into)
+        core::Duration::new(
+            years,
+            months,
+            weeks,
+            days,
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
+            microseconds,
+            nanoseconds,
+        )
+        .map(Into::into)
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
     pub fn from_partial_duration(partial: PartialDuration) -> TemporalResult<Self> {
         core::Duration::from_partial_duration(partial).map(Into::into)
-   }
+    }
 }
 
 // ==== Public `Duration` Getters/Setters ====
@@ -199,8 +214,8 @@ impl Duration {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.round_with_provider(options, relative_to.map(Into::into), &*provider).map(Into::into)
+        self.0
+            .round_with_provider(options, relative_to.map(Into::into), &*provider)
+            .map(Into::into)
     }
 }
-
-

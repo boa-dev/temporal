@@ -31,7 +31,7 @@ pub use date::{PartialDate, PlainDate};
 #[doc(inline)]
 pub use datetime::{PartialDateTime, PlainDateTime};
 #[doc(inline)]
-pub use duration::{DateDuration, Duration, TimeDuration, PartialDuration};
+pub use duration::{DateDuration, Duration, PartialDuration, TimeDuration};
 #[doc(inline)]
 pub use instant::Instant;
 #[doc(inline)]

@@ -1,12 +1,11 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    builtins::core::{timezone::TimeZoneProvider, options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
+    builtins::core::{options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDateTime, IsoTime},
-    options::{
-        ArithmeticOverflow, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
-    },
+    options::{ArithmeticOverflow, ResolvedRoundingOptions, RoundingOptions, TemporalUnit},
     primitive::FiniteF64,
+    provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
@@ -30,7 +29,6 @@ mod tests;
 pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
-
 
 /// A `PartialDuration` is a Duration that may have fields not set.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]

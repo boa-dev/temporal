@@ -15,4 +15,3 @@ fn partial_duration_values() {
     let result = Duration::from_partial_duration(partial).unwrap();
     assert_eq!(result.years(), 20.0);
 }
-

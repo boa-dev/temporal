@@ -1,18 +1,36 @@
-use tinystr::TinyAsciiStr;
-
 use super::timezone::TZ_PROVIDER;
 use crate::{
-    builtins::core,
-    options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation},
+    builtins::core as temporal_core,
+    options::{
+        ArithmeticOverflow, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
+        OffsetDisambiguation, ToStringRoundingOptions,
+    },
     Calendar, Duration, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
     TimeZone,
 };
+use alloc::string::String;
+use tinystr::TinyAsciiStr;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ZonedDateTime(pub(crate) core::ZonedDateTime);
+pub struct ZonedDateTime(pub(crate) temporal_core::ZonedDateTime);
 
-impl From<core::ZonedDateTime> for ZonedDateTime {
-    fn from(value: core::ZonedDateTime) -> Self {
+impl core::fmt::Display for ZonedDateTime {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(
+            &self
+                .to_ixdtf_string(
+                    DisplayOffset::Auto,
+                    DisplayTimeZone::Auto,
+                    DisplayCalendar::Auto,
+                    ToStringRoundingOptions::default(),
+                )
+                .expect("A valid ZonedDateTime string with default options."),
+        )
+    }
+}
+
+impl From<temporal_core::ZonedDateTime> for ZonedDateTime {
+    fn from(value: temporal_core::ZonedDateTime) -> Self {
         Self(value)
     }
 }
@@ -20,7 +38,7 @@ impl From<core::ZonedDateTime> for ZonedDateTime {
 impl ZonedDateTime {
     #[inline]
     pub fn try_new(nanos: i128, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
-        core::ZonedDateTime::try_new(nanos, calendar, tz).map(Into::into)
+        temporal_core::ZonedDateTime::try_new(nanos, calendar, tz).map(Into::into)
     }
 
     pub fn calendar(&self) -> &Calendar {
@@ -109,7 +127,6 @@ impl ZonedDateTime {
 
 // ==== Experimental TZ_PROVIDER calendar method implementations ====
 
-#[cfg(feature = "experimental")]
 impl ZonedDateTime {
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
         let provider = TZ_PROVIDER
@@ -215,7 +232,7 @@ impl ZonedDateTime {
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
         self.0
-            .with_plain_time_and_provider(time.into(), &*provider)
+            .with_plain_time_and_provider(time.0, &*provider)
             .map(Into::into)
     }
 
@@ -227,7 +244,9 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.add_with_provider(&duration.0, overflow, &*provider).map(Into::into)
+        self.0
+            .add_with_provider(&duration.0, overflow, &*provider)
+            .map(Into::into)
     }
 
     pub fn subtract(
@@ -238,7 +257,9 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.subtract_with_provider(&duration.0, overflow, &*provider).map(Into::into)
+        self.0
+            .subtract_with_provider(&duration.0, overflow, &*provider)
+            .map(Into::into)
     }
 
     pub fn start_of_day(&self) -> TemporalResult<Self> {
@@ -250,25 +271,54 @@ impl ZonedDateTime {
             .map(Into::into)
     }
 
+    /// Creates a new [`PlainDate`] from this `ZonedDateTime`.
     pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.to_plain_date_with_provider(&*provider).map(Into::into)
+        self.0
+            .to_plain_date_with_provider(&*provider)
+            .map(Into::into)
     }
 
+    /// Creates a new [`PlainTime`] from this `ZonedDateTime`.
     pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.to_plain_time_with_provider(&*provider).map(Into::into)
+        self.0
+            .to_plain_time_with_provider(&*provider)
+            .map(Into::into)
     }
 
+    /// Creates a new [`PlainDateTime`] from this `ZonedDateTime`.
     pub fn to_plain_datetime(&self) -> TemporalResult<PlainDateTime> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.to_plain_datetime_with_provider(&*provider).map(Into::into)
+        self.0
+            .to_plain_datetime_with_provider(&*provider)
+            .map(Into::into)
+    }
+
+    /// Returns a RFC9557 (IXDTF) string with the provided options.
+    pub fn to_ixdtf_string(
+        &self,
+        display_offset: DisplayOffset,
+        display_timezone: DisplayTimeZone,
+        display_calendar: DisplayCalendar,
+        options: ToStringRoundingOptions,
+    ) -> TemporalResult<String> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.0.to_ixdtf_string_with_provider(
+            display_offset,
+            display_timezone,
+            display_calendar,
+            options,
+            &*provider,
+        )
     }
 
     pub fn from_str(
@@ -279,7 +329,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        core::ZonedDateTime::from_str_with_provider(
+        temporal_core::ZonedDateTime::from_str_with_provider(
             source,
             disambiguation,
             offset_option,
@@ -293,8 +343,8 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn static_tzdb_zdt_test() {
-        use crate::{Calendar, TimeZone};
         use super::ZonedDateTime;
+        use crate::{Calendar, TimeZone};
         use core::str::FromStr;
 
         let nov_30_2023_utc = 1_701_308_952_000_000_000i128;
@@ -345,8 +395,8 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn basic_zdt_add() {
-        use crate::{Calendar, Duration, TimeZone};
         use super::ZonedDateTime;
+        use crate::{Calendar, Duration, TimeZone};
 
         let zdt =
             ZonedDateTime::try_new(-560174321098766, Calendar::default(), TimeZone::default())
@@ -372,6 +422,4 @@ mod tests {
         let result = zdt.add(&d, None).unwrap();
         assert_eq!(result, expected);
     }
-
-
 }
