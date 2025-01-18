@@ -46,7 +46,8 @@ impl PlainDate {
         calendar: Calendar,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        temporal_core::PlainDate::new_with_overflow(year, month, day, calendar, overflow).map(Into::into)
+        temporal_core::PlainDate::new_with_overflow(year, month, day, calendar, overflow)
+            .map(Into::into)
     }
 
     /// Create a `PlainDate` from a `PartialDate`

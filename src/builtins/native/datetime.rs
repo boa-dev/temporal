@@ -1,5 +1,4 @@
-
-use alloc::string::String;
+use super::{Duration, PartialDateTime, PlainDate, PlainTime};
 use crate::{
     builtins::core as temporal_core,
     options::{
@@ -8,7 +7,7 @@ use crate::{
     },
     Calendar, TemporalResult,
 };
-use super::{Duration, PartialDateTime, PlainDate, PlainTime};
+use alloc::string::String;
 use tinystr::TinyAsciiStr;
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]

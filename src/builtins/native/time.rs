@@ -1,7 +1,6 @@
-
 use core::fmt::Debug;
 
-use alloc::string::String;
+use super::{Duration, PartialTime, TimeDuration};
 use crate::{
     builtins::core as temporal_core,
     options::{
@@ -10,9 +9,7 @@ use crate::{
     },
     TemporalResult,
 };
-use super::{Duration, PartialTime, TimeDuration};
-
-
+use alloc::string::String;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlainTime(pub(crate) temporal_core::PlainTime);
@@ -70,8 +67,15 @@ impl PlainTime {
         microsecond: u16,
         nanosecond: u16,
     ) -> TemporalResult<Self> {
-        temporal_core::PlainTime::try_new(hour, minute, second, millisecond, microsecond, nanosecond)
-            .map(Into::into)
+        temporal_core::PlainTime::try_new(
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+        )
+        .map(Into::into)
     }
 
     /// Creates a new `PlainTime` from a `PartialTime`.
