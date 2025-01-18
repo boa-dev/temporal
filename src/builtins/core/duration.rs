@@ -1,10 +1,10 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    components::{timezone::TimeZoneProvider, PlainDateTime, PlainTime},
+    builtins::core::{timezone::TimeZoneProvider, options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
+        ArithmeticOverflow, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
     },
     primitive::FiniteF64,
     temporal_assert, Sign, TemporalError, TemporalResult,
@@ -19,14 +19,10 @@ use num_traits::AsPrimitive;
 
 use self::normalized::NormalizedTimeDuration;
 
-#[cfg(feature = "experimental")]
-use crate::components::timezone::TZ_PROVIDER;
-
 mod date;
 pub(crate) mod normalized;
 mod time;
 
-#[cfg(feature = "experimental")]
 #[cfg(test)]
 mod tests;
 
@@ -35,7 +31,6 @@ pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
 
-use super::ZonedDateTime;
 
 /// A `PartialDuration` is a Duration that may have fields not set.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -617,20 +612,6 @@ impl Duration {
                 Ok(Duration::from_day_and_time(balanced_days, &balanced_time))
             }
         }
-    }
-}
-
-#[cfg(feature = "experimental")]
-impl Duration {
-    pub fn round(
-        &self,
-        options: RoundingOptions,
-        relative_to: Option<RelativeTo>,
-    ) -> TemporalResult<Self> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.round_with_provider(options, relative_to, &*provider)
     }
 }
 

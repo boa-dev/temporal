@@ -47,10 +47,11 @@ use tzif::{
     },
 };
 
-use crate::components::timezone::TimeZoneOffset;
+use crate::builtins::core::timezone::TimeZoneOffset;
 use crate::{
-    components::{timezone::TimeZoneProvider, EpochNanoseconds},
+    builtins::core::timezone::TimeZoneProvider,
     iso::IsoDateTime,
+    time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
 

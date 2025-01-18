@@ -1,7 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    components::{duration::TimeDuration, Duration},
+    builtins::core::{duration::TimeDuration, Duration},
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
@@ -470,7 +470,7 @@ impl FromStr for PlainTime {
 #[cfg(test)]
 mod tests {
     use crate::{
-        components::Duration,
+        builtins::core::Duration,
         iso::IsoTime,
         options::{ArithmeticOverflow, DifferenceSettings, RoundingIncrement, TemporalUnit},
     };

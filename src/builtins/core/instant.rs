@@ -4,7 +4,7 @@ use alloc::string::String;
 use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
-    components::{
+    builtins::core::{
         duration::TimeDuration, zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -15,11 +15,11 @@ use crate::{
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone, NS_MAX_INSTANT,
+    time::EpochNanoseconds,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
-use num_traits::FromPrimitive;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
@@ -29,42 +29,6 @@ use super::{
 const NANOSECONDS_PER_SECOND: f64 = 1e9;
 const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
 const NANOSECONDS_PER_HOUR: f64 = 60f64 * NANOSECONDS_PER_MINUTE;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct EpochNanoseconds(pub(crate) i128);
-
-impl TryFrom<i128> for EpochNanoseconds {
-    type Error = TemporalError;
-    fn try_from(value: i128) -> Result<Self, Self::Error> {
-        if !is_valid_epoch_nanos(&value) {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
-        }
-        Ok(Self(value))
-    }
-}
-
-impl TryFrom<u128> for EpochNanoseconds {
-    type Error = TemporalError;
-    fn try_from(value: u128) -> Result<Self, Self::Error> {
-        if (NS_MAX_INSTANT as u128) < value {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
-        }
-        Ok(Self(value as i128))
-    }
-}
-
-impl TryFrom<f64> for EpochNanoseconds {
-    type Error = TemporalError;
-    fn try_from(value: f64) -> Result<Self, Self::Error> {
-        let Some(value) = i128::from_f64(value) else {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
-        };
-        Self::try_from(value)
-    }
-}
 
 /// The native Rust implementation of `Temporal.Instant`
 #[non_exhaustive]
@@ -307,13 +271,6 @@ impl Instant {
 
 // ==== Utility Functions ====
 
-/// Utility for determining if the nanos are within a valid range.
-#[inline]
-#[must_use]
-pub(crate) fn is_valid_epoch_nanos(nanos: &i128) -> bool {
-    (crate::NS_MIN_INSTANT..=crate::NS_MAX_INSTANT).contains(nanos)
-}
-
 impl FromStr for Instant {
     type Err = TemporalError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -359,7 +316,7 @@ impl FromStr for Instant {
 mod tests {
 
     use crate::{
-        components::{duration::TimeDuration, Instant},
+        builtins::core::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
         primitive::FiniteF64,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
@@ -567,8 +524,8 @@ mod tests {
     fn instant_add_across_epoch() {
         use crate::{
             options::ToStringRoundingOptions, partial::PartialDuration, tzdb::FsTzdbProvider,
-            Duration,
         };
+        use crate::builtins::core::Duration;
         use core::str::FromStr;
 
         let instant = Instant::from_str("1969-12-25T12:23:45.678901234Z").unwrap();

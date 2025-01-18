@@ -5,7 +5,7 @@ use core::{num::NonZeroU128, ops::Add};
 use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
-    components::{
+    builtins::core::{
         timezone::{TimeZone, TimeZoneProvider},
         PlainDate, PlainDateTime,
     },

@@ -7,12 +7,13 @@ use core::{iter::Peekable, str::Chars};
 
 use num_traits::ToPrimitive;
 
-use crate::components::duration::DateDuration;
+use crate::builtins::core::duration::DateDuration;
 use crate::parsers::{FormattableOffset, FormattableTime, Precision};
 use crate::{
-    components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
+    builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
+    time::EpochNanoseconds,
     TemporalError, TemporalResult, ZonedDateTime,
 };
 use crate::{Calendar, Sign};

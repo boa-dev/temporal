@@ -1,10 +1,11 @@
+use alloc::vec::Vec;
+use core::str::FromStr;
+use crate::builtins::std::PlainDate;
 use crate::{
-    components::{calendar::Calendar, PlainDate},
-    options::{RoundingIncrement, TemporalRoundingMode},
-    TimeZone,
+    builtins::{core::calendar::Calendar, std::zoneddatetime::ZonedDateTime}, options::{RelativeTo, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit}, partial::PartialDuration, primitive::FiniteF64, DateDuration, TimeDuration, TimeZone
 };
 
-use super::*;
+use super::Duration;
 
 fn get_round_result(
     test_duration: &Duration,
@@ -14,6 +15,7 @@ fn get_round_result(
     test_duration
         .round(options, Some(relative_to))
         .unwrap()
+        .0
         .fields()
         .iter()
         .map(|f| f.as_date_value().unwrap())
@@ -458,7 +460,7 @@ fn rounding_increment_non_integer() {
         .unwrap();
 
     assert_eq!(
-        result.fields(),
+        result.0.fields(),
         &[
             FiniteF64::default(),
             FiniteF64::default(),
@@ -478,7 +480,7 @@ fn rounding_increment_non_integer() {
         .insert(RoundingIncrement::try_from(1e9 + 0.5).unwrap());
     let result = test_duration.round(options, Some(relative_to)).unwrap();
     assert_eq!(
-        result.fields(),
+        result.0.fields(),
         &[
             FiniteF64::default(),
             FiniteF64::default(),
@@ -592,20 +594,6 @@ fn basic_subtract_duration() {
     let result = base.subtract(&other).unwrap();
     assert_eq!(result.days(), 6.0);
     assert_eq!(result.minutes(), 30.0);
-}
-
-#[test]
-fn partial_duration_empty() {
-    let err = Duration::from_partial_duration(PartialDuration::default());
-    assert!(err.is_err())
-}
-
-#[test]
-fn partial_duration_values() {
-    let mut partial = PartialDuration::default();
-    let _ = partial.years.insert(FiniteF64(20.0));
-    let result = Duration::from_partial_duration(partial).unwrap();
-    assert_eq!(result.years(), 20.0);
 }
 
 // days-24-hours-relative-to-zoned-date-time.js
