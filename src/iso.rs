@@ -465,6 +465,11 @@ impl IsoDate {
                     i32::from(intermediate.1) + i32::from(sign),
                 );
             }
+
+            if largest_unit == TemporalUnit::Month {
+                months += years * 12;
+                years = 0;
+            }
         }
 
         // 9. Set intermediate to BalanceISOYearMonth(y1 + years, m1 + months).
@@ -925,12 +930,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanosec
 fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
     let ms = time.to_epoch_ms();
     let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
-
-    let epoch_nanos = epoch_ms.mul_add(
-        1_000_000f64,
-        f64::from(time.microsecond).mul_add(1_000f64, f64::from(time.nanosecond)),
-    );
-    epoch_nanos as i128
+    (epoch_ms * 1_000_000.0) as i128 + time.microsecond as i128 * 1_000 + time.nanosecond as i128
 }
 
 // ==== `IsoDate` specific utiltiy functions ====

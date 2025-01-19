@@ -13,9 +13,10 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
-        OffsetDisambiguation, ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode,
-        TemporalUnit, ToStringRoundingOptions,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
+        ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+        ToStringRoundingOptions, UnitGroup,
     },
     parsers::{self, IxdtfStringBuilder},
     partial::{PartialDate, PartialTime},
@@ -210,7 +211,8 @@ impl ZonedDateTime {
         let mut is_success = false;
         // 10. Repeat, while dayCorrection ≤ maxDayCorrection and success is false,
         while day_correction <= max_correction && !is_success {
-            // a. Let intermediateDate be BalanceISODate(endDateTime.[[ISODate]].[[Year]], endDateTime.[[ISODate]].[[Month]], endDateTime.[[ISODate]].[[Day]] - dayCorrection × sign).
+            // a. Let intermediateDate be BalanceISODate(endDateTime.[[ISODate]].[[Year]],
+            // endDateTime.[[ISODate]].[[Month]], endDateTime.[[ISODate]].[[Day]] - dayCorrection × sign).
             let intermediate = IsoDate::balance(
                 end.date.year,
                 end.date.month.into(),
@@ -248,6 +250,74 @@ impl ZonedDateTime {
             self.calendar()
                 .date_until(&start.date, &intermediate_dt.date, date_largest)?;
         NormalizedDurationRecord::new(*date_diff.date(), time_duration)
+    }
+
+    /// `temporal_rs` equivalent to `DifferenceTemporalZonedDateTime`.
+    pub(crate) fn diff_internal_with_provider(
+        &self,
+        op: DifferenceOperation,
+        other: &Self,
+        options: DifferenceSettings,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Duration> {
+        // NOTE: for order of operations, this should be asserted prior to this point
+        // by any engine implementors, but asserting out of caution.
+        if self.calendar != other.calendar {
+            return Err(TemporalError::range()
+                .with_message("Calendar must be the same when diffing two ZonedDateTimes"));
+        }
+
+        // 4. Set settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », nanosecond, hour).
+        let resolved_options = ResolvedRoundingOptions::from_diff_settings(
+            options,
+            op,
+            UnitGroup::DateTime,
+            TemporalUnit::Hour,
+            TemporalUnit::Nanosecond,
+        )?;
+
+        // 5. If TemporalUnitCategory(settings.[[LargestUnit]]) is time, then
+        if resolved_options.largest_unit.is_time_unit() {
+            // a. Let internalDuration be DifferenceInstant(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+            let internal = self
+                .instant
+                .diff_instant_internal(&other.instant, resolved_options)?;
+            // b. Let result be ! TemporalDurationFromInternal(internalDuration, settings.[[LargestUnit]]).
+            let result = Duration::from_normalized(internal, resolved_options.largest_unit)?;
+            // c. If operation is since, set result to CreateNegatedTemporalDuration(result).
+            // d. Return result.
+            match op {
+                DifferenceOperation::Since => return Ok(result.negated()),
+                DifferenceOperation::Until => return Ok(result),
+            }
+        }
+
+        // 6. NOTE: To calculate differences in two different time zones,
+        // settings.[[LargestUnit]] must be a time unit, because day lengths
+        // can vary between time zones due to DST and other UTC offset shifts.
+        // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
+        if self.tz != other.tz {
+            // a. Throw a RangeError exception.
+            return Err(TemporalError::range()
+                .with_message("Time zones cannot be different if unit is a date unit."));
+        }
+
+        // 8. If zonedDateTime.[[EpochNanoseconds]] = other.[[EpochNanoseconds]], then
+        if self.instant == other.instant {
+            // a. Return ! CreateTemporalDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
+            return Ok(Duration::default());
+        }
+
+        // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+        let internal = self.diff_with_rounding(other, resolved_options, provider)?;
+        // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
+        let result = Duration::from_normalized(internal, TemporalUnit::Hour)?;
+        // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
+        // 12. Return result.
+        match op {
+            DifferenceOperation::Since => Ok(result.negated()),
+            DifferenceOperation::Until => Ok(result),
+        }
     }
 }
 
@@ -890,6 +960,26 @@ impl ZonedDateTime {
         )
     }
 
+    /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
+    pub fn since_with_provider(
+        &self,
+        other: &Self,
+        options: DifferenceSettings,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Duration> {
+        self.diff_internal_with_provider(DifferenceOperation::Since, other, options, provider)
+    }
+
+    /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
+    pub fn until_with_provider(
+        &self,
+        other: &Self,
+        options: DifferenceSettings,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Duration> {
+        self.diff_internal_with_provider(DifferenceOperation::Until, other, options, provider)
+    }
+
     /// Return a `ZonedDateTime` representing the start of the day
     /// for the current `ZonedDateTime`.
     pub fn start_of_day_with_provider(
@@ -1406,7 +1496,7 @@ mod tests {
             .until(
                 &midnight_disambiguated.instant,
                 DifferenceSettings {
-                    largest_unit: Some(TemporalUnit::Year),
+                    largest_unit: Some(TemporalUnit::Hour),
                     smallest_unit: Some(TemporalUnit::Nanosecond),
                     ..Default::default()
                 },

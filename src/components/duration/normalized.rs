@@ -256,8 +256,9 @@ impl NormalizedDurationRecord {
     /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
     pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
         if date.sign() != Sign::Zero && norm.sign() != Sign::Zero && date.sign() != norm.sign() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration and NormalizedTimeDuration must agree."));
+            return Err(TemporalError::range().with_message(
+                "DateDuration and NormalizedTimeDuration must agree if both are not zero.",
+            ));
         }
         Ok(Self { date, norm })
     }
@@ -778,18 +779,18 @@ impl NormalizedDurationRecord {
         // 4. Let largestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains largestUnit.
         // 5. Let smallestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains smallestUnit.
         // 6. Let unitIndex be smallestUnitIndex - 1.
-        let mut unit = smallest_unit + 1;
+        let mut smallest_unit = smallest_unit + 1;
         // 7. Let done be false.
         // 8. Repeat, while unitIndex ≤ largestUnitIndex and done is false,
-        while unit != TemporalUnit::Auto && unit <= largest_unit {
+        while smallest_unit != TemporalUnit::Auto && largest_unit < smallest_unit {
             // a. Let unit be the value in the "Singular" column of Table 22 in the row whose ordinal index is unitIndex.
             // b. If unit is not "week", or largestUnit is "week", then
-            if unit == TemporalUnit::Week || largest_unit != TemporalUnit::Week {
-                unit = unit + 1;
+            if smallest_unit == TemporalUnit::Week || largest_unit != TemporalUnit::Week {
+                smallest_unit = smallest_unit + 1;
                 continue;
             }
 
-            let end_duration = match unit {
+            let end_duration = match smallest_unit {
                 // i. If unit is "year", then
                 TemporalUnit::Year => {
                     // 1. Let years be duration.[[Years]] + sign.
@@ -887,7 +888,7 @@ impl NormalizedDurationRecord {
                 break;
             }
             // c. Set unitIndex to unitIndex - 1.
-            unit = unit + 1;
+            smallest_unit = smallest_unit + 1;
         }
 
         Ok(duration)
