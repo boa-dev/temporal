@@ -10,12 +10,19 @@ use crate::{
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
         timezone::{parse_offset, TimeZoneProvider},
         EpochNanoseconds,
-    }, iso::{IsoDate, IsoDateTime, IsoTime}, options::{
+    },
+    iso::{IsoDate, IsoDateTime, IsoTime},
+    options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
         ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
         ToStringRoundingOptions, UnitGroup,
-    }, parsers::{self, IxdtfStringBuilder}, partial::{PartialDate, PartialTime}, rounding::{IncrementRounder, Round}, temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime, Sign, TemporalError, TemporalResult, TimeZone
+    },
+    parsers::{self, IxdtfStringBuilder},
+    partial::{PartialDate, PartialTime},
+    rounding::{IncrementRounder, Round},
+    temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime, Sign,
+    TemporalError, TemporalResult, TimeZone,
 };
 
 #[cfg(feature = "experimental")]
@@ -308,8 +315,8 @@ impl ZonedDateTime {
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 12. Return result.
         match op {
-            DifferenceOperation::Since => return Ok(result.negated()),
-            DifferenceOperation::Until => return Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
+            DifferenceOperation::Until => Ok(result),
         }
     }
 }

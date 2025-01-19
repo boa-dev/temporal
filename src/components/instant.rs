@@ -23,7 +23,8 @@ use num_traits::FromPrimitive;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    timezone::TimeZoneProvider, DateDuration,
+    timezone::TimeZoneProvider,
+    DateDuration,
 };
 
 const NANOSECONDS_PER_SECOND: i128 = 1_000_000_000;
@@ -99,7 +100,10 @@ impl Instant {
         let diff =
             NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
-        NormalizedDurationRecord::new(DateDuration::default(), round_record.normalized_time_duration())
+        NormalizedDurationRecord::new(
+            DateDuration::default(),
+            round_record.normalized_time_duration(),
+        )
     }
 
     // TODO: Add test for `diff_instant`.

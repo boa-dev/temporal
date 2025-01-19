@@ -256,8 +256,9 @@ impl NormalizedDurationRecord {
     /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
     pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
         if date.sign() != Sign::Zero && norm.sign() != Sign::Zero && date.sign() != norm.sign() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration and NormalizedTimeDuration must agree if both are not zero."));
+            return Err(TemporalError::range().with_message(
+                "DateDuration and NormalizedTimeDuration must agree if both are not zero.",
+            ));
         }
         Ok(Self { date, norm })
     }

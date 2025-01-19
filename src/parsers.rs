@@ -767,19 +767,18 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 }
 
 #[inline]
-pub(crate) fn parse_allowed_calendar_formats<'a>(s: &'a str) -> Option<Option<&'a [u8]>> {
-    if let Some(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar).ok() {
+pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<Option<&[u8]>> {
+    if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
         return Some(r);
-    } else if let Some(r) = IxdtfParser::from_str(s).parse_time().map(|r| r.calendar).ok() {
+    } else if let Ok(r) = IxdtfParser::from_str(s).parse_time().map(|r| r.calendar) {
         return Some(r);
-    } else if let Some(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar).ok() {
+    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar) {
         return Some(r);
-    } else if let Some(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar).ok() {
+    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
         return Some(r);
     }
     Some(None)
 }
-
 
 // TODO: ParseTimeZoneString, ParseZonedDateTimeString
 
