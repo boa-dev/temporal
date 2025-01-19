@@ -182,24 +182,24 @@ impl ResolvedRoundingOptions {
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
-        let largest_unit = options.largest_unit.map(|unit|{
-            unit.assert_unit_group(unit_group)
-        }).transpose()?;
+        let largest_unit = options
+            .largest_unit
+            .map(|unit| unit.assert_unit_group(unit_group))
+            .transpose()?;
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = match operation {
-            DifferenceOperation::Since => {
-                options
-                    .rounding_mode
-                    .unwrap_or(TemporalRoundingMode::Trunc)
-                    .negate()
+            DifferenceOperation::Since => options
+                .rounding_mode
+                .unwrap_or(TemporalRoundingMode::Trunc)
+                .negate(),
+            DifferenceOperation::Until => {
+                options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc)
             }
-            DifferenceOperation::Until => options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc),
         };
         let smallest_unit = options.smallest_unit.unwrap_or(fallback_smallest);
         // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
-        let largest_unit = largest_unit
-            .unwrap_or(smallest_unit.max(fallback_largest));
+        let largest_unit = largest_unit.unwrap_or(smallest_unit.max(fallback_largest));
 
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
@@ -446,8 +446,12 @@ impl TemporalUnit {
     #[inline]
     pub fn assert_unit_group(self, group: UnitGroup) -> TemporalResult<Self> {
         match group {
-            UnitGroup::Date if !self.is_calendar_unit() || self != TemporalUnit::Day => Err(TemporalError::range().with_message("Unit must be a date unit.")),
-            UnitGroup::Time if !self.is_time_unit() => Err(TemporalError::range().with_message("Unit must be a time unit.")),
+            UnitGroup::Date if !self.is_calendar_unit() || self != TemporalUnit::Day => {
+                Err(TemporalError::range().with_message("Unit must be a date unit."))
+            }
+            UnitGroup::Time if !self.is_time_unit() => {
+                Err(TemporalError::range().with_message("Unit must be a time unit."))
+            }
             _ => Ok(self),
         }
     }

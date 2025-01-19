@@ -56,7 +56,11 @@ impl FiniteF64 {
     }
 
     pub fn copysign(&self, other: f64) -> Self {
-        Self(self.0.copysign(other))
+        if !self.is_zero() {
+            Self(self.0.copysign(other))
+        } else {
+            *self
+        }
     }
 
     pub(crate) fn as_date_value(&self) -> TemporalResult<i32> {

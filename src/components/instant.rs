@@ -23,12 +23,12 @@ use num_traits::FromPrimitive;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    timezone::TimeZoneProvider,
+    timezone::TimeZoneProvider, DateDuration,
 };
 
-const NANOSECONDS_PER_SECOND: f64 = 1e9;
-const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
-const NANOSECONDS_PER_HOUR: f64 = 60f64 * NANOSECONDS_PER_MINUTE;
+const NANOSECONDS_PER_SECOND: i128 = 1_000_000_000;
+const NANOSECONDS_PER_MINUTE: i128 = 60 * NANOSECONDS_PER_SECOND;
+const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EpochNanoseconds(pub(crate) i128);
@@ -83,16 +83,10 @@ impl Instant {
     // TODO: Update to `i128`?
     /// Adds a `TimeDuration` to the current `Instant`.
     ///
-    /// Temporal-Proposal equivalent: `AddDurationToOrSubtractDurationFrom`.
+    /// Temporal-Proposal equivalent: `AddInstant`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
-        let current_nanos = self.epoch_nanoseconds() as f64;
-        let result = current_nanos
-            + duration.nanoseconds.0
-            + (duration.microseconds.0 * 1000f64)
-            + (duration.milliseconds.0 * 1_000_000f64)
-            + (duration.seconds.0 * NANOSECONDS_PER_SECOND)
-            + (duration.minutes.0 * NANOSECONDS_PER_MINUTE)
-            + (duration.hours.0 * NANOSECONDS_PER_HOUR);
+        let norm = NormalizedTimeDuration::from_time_duration(duration);
+        let result = self.epoch_nanoseconds() + norm.0;
         Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
@@ -105,7 +99,7 @@ impl Instant {
         let diff =
             NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
-        Ok(round_record)
+        NormalizedDurationRecord::new(DateDuration::default(), round_record.normalized_time_duration())
     }
 
     // TODO: Add test for `diff_instant`.
@@ -340,12 +334,12 @@ impl FromStr for Instant {
         // Find the offset
         let offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
-                f64::from(offset.hour) * NANOSECONDS_PER_HOUR
-                    + f64::from(offset.minute) * NANOSECONDS_PER_MINUTE
-                    + f64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + f64::from(offset.nanosecond)
+                offset.hour as i128 * NANOSECONDS_PER_HOUR
+                    + i128::from(offset.minute) * NANOSECONDS_PER_MINUTE
+                    + i128::from(offset.second) * NANOSECONDS_PER_SECOND
+                    + i128::from(offset.nanosecond)
             }
-            UtcOffsetRecordOrZ::Z => 0.0,
+            UtcOffsetRecordOrZ::Z => 0,
         };
         let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time)
             .as_nanoseconds()

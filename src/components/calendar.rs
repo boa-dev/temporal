@@ -14,10 +14,7 @@ use crate::{
     components::{
         duration::{DateDuration, TimeDuration},
         Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
-    },
-    iso::IsoDate,
-    options::{ArithmeticOverflow, TemporalUnit},
-    TemporalError, TemporalResult,
+    }, iso::IsoDate, options::{ArithmeticOverflow, TemporalUnit}, parsers::parse_allowed_calendar_formats, TemporalError, TemporalResult
 };
 
 use icu_calendar::{
@@ -200,8 +197,11 @@ impl Calendar {
 impl FromStr for Calendar {
     type Err = TemporalError;
 
-    // 13.39 ParseTemporalCalendarString ( string )
+    // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(s) = parse_allowed_calendar_formats(s) {
+            return s.map(Calendar::from_utf8).unwrap_or(Ok(Calendar::default()))
+        }
         Calendar::from_utf8(s.as_bytes())
     }
 }

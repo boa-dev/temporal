@@ -10,16 +10,12 @@ use crate::{
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
         timezone::{parse_offset, TimeZoneProvider},
         EpochNanoseconds,
-    },
-    iso::{IsoDate, IsoDateTime, IsoTime},
-    options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation, ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions, UnitGroup
-    },
-    parsers::{self, IxdtfStringBuilder},
-    partial::{PartialDate, PartialTime},
-    rounding::{IncrementRounder, Round},
-    temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime, Sign,
-    TemporalError, TemporalResult, TimeZone,
+    }, iso::{IsoDate, IsoDateTime, IsoTime}, options::{
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
+        ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
+        ToStringRoundingOptions, UnitGroup,
+    }, parsers::{self, IxdtfStringBuilder}, partial::{PartialDate, PartialTime}, rounding::{IncrementRounder, Round}, temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime, Sign, TemporalError, TemporalResult, TimeZone
 };
 
 #[cfg(feature = "experimental")]
@@ -208,7 +204,8 @@ impl ZonedDateTime {
         let mut is_success = false;
         // 10. Repeat, while dayCorrection ≤ maxDayCorrection and success is false,
         while day_correction <= max_correction && !is_success {
-            // a. Let intermediateDate be BalanceISODate(endDateTime.[[ISODate]].[[Year]], endDateTime.[[ISODate]].[[Month]], endDateTime.[[ISODate]].[[Day]] - dayCorrection × sign).
+            // a. Let intermediateDate be BalanceISODate(endDateTime.[[ISODate]].[[Year]],
+            // endDateTime.[[ISODate]].[[Month]], endDateTime.[[ISODate]].[[Day]] - dayCorrection × sign).
             let intermediate = IsoDate::balance(
                 end.date.year,
                 end.date.month.into(),
@@ -249,7 +246,13 @@ impl ZonedDateTime {
     }
 
     /// `temporal_rs` equivalent to `DifferenceTemporalZonedDateTime`.
-    pub(crate) fn diff_internal_with_provider(&self, op: DifferenceOperation, other: &Self, options: DifferenceSettings, provider: &impl TimeZoneProvider) -> TemporalResult<Duration> {
+    pub(crate) fn diff_internal_with_provider(
+        &self,
+        op: DifferenceOperation,
+        other: &Self,
+        options: DifferenceSettings,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Duration> {
         // NOTE: for order of operations, this should be asserted prior to this point
         // by implementors any engine implementors, but asserting out of caution.
         if self.calendar != other.calendar {
@@ -258,12 +261,20 @@ impl ZonedDateTime {
         }
 
         // 4. Set settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », nanosecond, hour).
-        let resolved_options = ResolvedRoundingOptions::from_diff_settings(options, op, UnitGroup::DateTime, TemporalUnit::Hour, TemporalUnit::Nanosecond)?;
+        let resolved_options = ResolvedRoundingOptions::from_diff_settings(
+            options,
+            op,
+            UnitGroup::DateTime,
+            TemporalUnit::Hour,
+            TemporalUnit::Nanosecond,
+        )?;
 
         // 5. If TemporalUnitCategory(settings.[[LargestUnit]]) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Let internalDuration be DifferenceInstant(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            let internal = self.instant.diff_instant_internal(&other.instant, resolved_options)?;
+            let internal = self
+                .instant
+                .diff_instant_internal(&other.instant, resolved_options)?;
             // b. Let result be ! TemporalDurationFromInternal(internalDuration, settings.[[LargestUnit]]).
             let result = Duration::from_normalized(internal, resolved_options.largest_unit)?;
             // c. If operation is since, set result to CreateNegatedTemporalDuration(result).
@@ -278,21 +289,22 @@ impl ZonedDateTime {
         // settings.[[LargestUnit]] must be a time unit, because day lengths
         // can vary between time zones due to DST and other UTC offset shifts.
         // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
-        if self.tz == other.tz {
+        if self.tz != other.tz {
             // a. Throw a RangeError exception.
-            return Err(TemporalError::range().with_message("Time zones cannot be different if unit is a date unit."))
+            return Err(TemporalError::range()
+                .with_message("Time zones cannot be different if unit is a date unit."));
         }
 
         // 8. If zonedDateTime.[[EpochNanoseconds]] = other.[[EpochNanoseconds]], then
         if self.instant == other.instant {
             // a. Return ! CreateTemporalDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
-            return Ok(Duration::default())
+            return Ok(Duration::default());
         }
 
         // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal = self.diff_with_rounding(other, resolved_options, provider)?;
         // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
-        let result = Duration::from_normalized(internal, resolved_options.largest_unit)?;
+        let result = Duration::from_normalized(internal, TemporalUnit::Hour)?;
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 12. Return result.
         match op {
