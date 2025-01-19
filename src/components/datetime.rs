@@ -5,10 +5,10 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
-    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
@@ -131,9 +131,10 @@ impl PlainDateTime {
         }
 
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », "nanosecond", "day").
-        let (sign, options) = ResolvedRoundingOptions::from_diff_settings(
+        let options = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::DateTime,
             TemporalUnit::Day,
             TemporalUnit::Nanosecond,
         )?;
@@ -149,9 +150,9 @@ impl PlainDateTime {
         let result = Duration::from_normalized(norm_record, options.largest_unit)?;
 
         // Step 12
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 

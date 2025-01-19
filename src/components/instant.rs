@@ -10,12 +10,12 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayOffset,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone, NS_MAX_INSTANT,
+    TemporalError, TemporalResult, TemporalUnwrap, TimeZone, NS_MAX_INSTANT,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
@@ -96,6 +96,7 @@ impl Instant {
         Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
+    /// `temporal_rs` equivalent of `DifferenceInstant`
     pub(crate) fn diff_instant_internal(
         &self,
         other: &Self,
@@ -121,9 +122,10 @@ impl Instant {
         // 2. Set other to ? ToTemporalInstant(other).
         // 3. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 4. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, time, « », "nanosecond", "second").
-        let (sign, resolved_options) = ResolvedRoundingOptions::from_diff_settings(
+        let resolved_options = ResolvedRoundingOptions::from_diff_settings(
             options,
             op,
+            UnitGroup::Time,
             TemporalUnit::Second,
             TemporalUnit::Nanosecond,
         )?;
@@ -138,9 +140,9 @@ impl Instant {
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 

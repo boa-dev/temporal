@@ -5,11 +5,11 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, TemporalUnit,
+        ResolvedRoundingOptions, TemporalUnit, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
 use core::str::FromStr;
@@ -260,9 +260,10 @@ impl PlainDate {
 
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
-        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+        let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::Date,
             TemporalUnit::Day,
             TemporalUnit::Day,
         )?;
@@ -303,9 +304,9 @@ impl PlainDate {
         }
         let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 }
