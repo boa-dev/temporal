@@ -1496,7 +1496,7 @@ mod tests {
             .until(
                 &midnight_disambiguated.instant,
                 DifferenceSettings {
-                    largest_unit: Some(TemporalUnit::Year),
+                    largest_unit: Some(TemporalUnit::Hour),
                     smallest_unit: Some(TemporalUnit::Nanosecond),
                     ..Default::default()
                 },
