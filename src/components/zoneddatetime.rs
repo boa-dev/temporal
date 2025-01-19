@@ -261,7 +261,7 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Duration> {
         // NOTE: for order of operations, this should be asserted prior to this point
-        // by implementors any engine implementors, but asserting out of caution.
+        // by any engine implementors, but asserting out of caution.
         if self.calendar != other.calendar {
             return Err(TemporalError::range()
                 .with_message("Calendar must be the same when diffing two ZonedDateTimes"));
