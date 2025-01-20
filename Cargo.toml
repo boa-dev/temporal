@@ -26,9 +26,9 @@ bitflags = "2.7.0"
 num-traits = "0.2.19"
 ixdtf = { git = "https://github.com/unicode-org/icu4x.git", rev = "3d187da4d3f05b7e37603c4be3f2c1ce45100e03" }
 iana-time-zone = "0.1.61"
-log = "0.4.0"
+log = "0.4.25"
 tzif = "0.3.0"
-jiff-tzdb = "0.1.1"
+jiff-tzdb = "0.1.2"
 combine = "4.6.7"
 web-time = "1.1.0"
 
