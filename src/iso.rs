@@ -360,11 +360,7 @@ impl IsoDate {
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
-        neri_schneider::epoch_days_from_gregorian_date(
-            self.year,
-            self.month.into(),
-            self.day.into(),
-        )
+        neri_schneider::epoch_days_from_gregorian_date(self.year, self.month, self.day)
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -907,12 +903,7 @@ const MAX_EPOCH_DAYS: i32 = 10i32.pow(8) + 1;
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if neri_schneider::epoch_days_from_gregorian_date(
-        date.year,
-        (date.month).into(),
-        date.day.into(),
-    )
-    .abs()
+    if neri_schneider::epoch_days_from_gregorian_date(date.year, date.month, date.day).abs()
         > MAX_EPOCH_DAYS
     {
         return false;
