@@ -183,17 +183,6 @@ impl Calendar {
         Self(Ref(cal))
     }
 
-    /// A less strict `from_str` implementation that will take any valid IXDTF format
-    /// or calendar identifier.
-    pub fn from_temporal_str(s: &str) -> TemporalResult<Self> {
-        if let Some(s) = parse_allowed_calendar_formats(s) {
-            return s
-                .map(Calendar::from_utf8)
-                .unwrap_or(Ok(Calendar::default()));
-        }
-        Calendar::from_utf8(s.as_bytes())
-    }
-
     /// Returns a `Calendar`` from the a slice of UTF-8 encoded bytes.
     pub fn from_utf8(bytes: &[u8]) -> TemporalResult<Self> {
         // NOTE(nekesss): Catch the iso identifier here, as `iso8601` is not a valid ID below.
@@ -214,6 +203,11 @@ impl FromStr for Calendar {
 
     // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(s) = parse_allowed_calendar_formats(s) {
+            return s
+                .map(Calendar::from_utf8)
+                .unwrap_or(Ok(Calendar::default()));
+        }
         Calendar::from_utf8(s.as_bytes())
     }
 }
