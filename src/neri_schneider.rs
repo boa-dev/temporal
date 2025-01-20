@@ -84,6 +84,11 @@ const fn n_two(rata_die: u32) -> u32 {
     century_rem(rata_die) | 3
 }
 
+#[cfg(feature = "tzdb")]
+const fn n_three(rata_die: u32) -> u32 {
+    2141 * computational_day_of_year(rata_die) + 197_913
+}
+
 // Returns C, N_c AKA century number and century remainder
 const fn first_equations(rata_die: u32) -> (u32, u32) {
     let n_one = n_one(rata_die);

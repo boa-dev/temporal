@@ -360,7 +360,11 @@ impl IsoDate {
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
-        neri_schneider::epoch_days_from_gregorian_date(self.year, self.month.into(), self.day.into())
+        neri_schneider::epoch_days_from_gregorian_date(
+            self.year,
+            self.month.into(),
+            self.day.into(),
+        )
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -481,12 +485,13 @@ impl IsoDate {
 
         // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
         // 11. Let weeks be 0.
-        let days = neri_schneider::epoch_days_from_gregorian_date(other.year, other.month, other.day)
-            - neri_schneider::epoch_days_from_gregorian_date(
-                constrained.year,
-                constrained.month,
-                constrained.day,
-            );
+        let days =
+            neri_schneider::epoch_days_from_gregorian_date(other.year, other.month, other.day)
+                - neri_schneider::epoch_days_from_gregorian_date(
+                    constrained.year,
+                    constrained.month,
+                    constrained.day,
+                );
 
         let (weeks, days) = if largest_unit == TemporalUnit::Week {
             (days / 7, days % 7)
@@ -902,7 +907,12 @@ const MAX_EPOCH_DAYS: i32 = 10i32.pow(8) + 1;
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if neri_schneider::epoch_days_from_gregorian_date(date.year, (date.month).into(), date.day.into()).abs()
+    if neri_schneider::epoch_days_from_gregorian_date(
+        date.year,
+        (date.month).into(),
+        date.day.into(),
+    )
+    .abs()
         > MAX_EPOCH_DAYS
     {
         return false;
@@ -942,7 +952,8 @@ fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     let resolved_month = month.rem_euclid(12) as u8;
     // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
     // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
-    let epoch_days = neri_schneider::epoch_days_from_gregorian_date(resolved_year, resolved_month, 1);
+    let epoch_days =
+        neri_schneider::epoch_days_from_gregorian_date(resolved_year, resolved_month, 1);
 
     // 4. Return EpochTimeToDayNumber(t) + date - 1.
     epoch_days + day - 1
