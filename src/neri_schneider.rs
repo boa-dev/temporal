@@ -10,6 +10,14 @@
 //! in the paper.
 //!
 //! ## Extending Neri-Schneider shift window
+//! Temporal must support the year range [-271_821, 275_760]
+//!
+//! This means the epoch day range must be epoch_days.abs() <= 100_000_001
+//!
+//! Neri-Schneider mention shifting for a range of 32_767, so the shift
+//! will need to be much greater.
+//!
+//! (-271_821 / 400).ciel() = s // 680
 //!
 //! In their paper, Neri and Schneider calculated for a Rata Die cycle
 //! shift of constant of 82, but that was not sufficient in order to
@@ -24,21 +32,11 @@
 //! | September 14, 275,760 | 100_719_469 | 200,065,429 |
 //!
 //! However, this shift has also been implemented by Cassio Neri, who
-//! recommends using a [shift of 3670][] which places the Epoch in the
+//! recommends using a [shift of 3670][neri-shift-context] which places the Epoch in the
 //! center of the shift
 //!
 //! [neri-shift-context]: https://hg.mozilla.org/integration/autoland/rev/54ebf8bd2e11#l3.70
 //! [eaf-calendar-algorithms]: https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172
-
-// NOTE: Temporal must support the year range [-271_821, 275_760]
-//
-// This means the epoch day range must be epoch_days.abs() <= 100_000_001
-//
-// Neri-Schneider mention shifting for a range of 32_767, so the shift
-// will need to be much greater.
-//
-// (-271_821 / 400).ciel() = s // 680
-//
 
 pub const EPOCH_COMPUTATIONAL_RATA_DIE: i32 = 719_468;
 pub const DAYS_IN_A_400Y_CYCLE: u32 = 146_097;
@@ -46,12 +44,11 @@ pub const DAYS_IN_A_400Y_CYCLE: u32 = 146_097;
 const TWO_POWER_THIRTY_NINE: u64 = 549_755_813_888; // 2^39 constant
 const TWO_POWER_THIRTY_TWO: u64 = 4_294_967_296; // 2^32 constant
 const TWO_POWER_SIXTEEN: u32 = 65_536; // 2^16 constant
-const DAYS_IN_GREGORIAN_CYCLE: i32 = DAYS_IN_A_400Y_CYCLE as i32;
 const SHIFT_CONSTANT: i32 = 3670;
 
 /// Calculate Rata Die value from gregorian
-pub fn epoch_days_from_gregorian_date(year: i32, month: i32, day: i32) -> i32 {
-    let shift = SHIFT_CONSTANT * DAYS_IN_GREGORIAN_CYCLE + EPOCH_COMPUTATIONAL_RATA_DIE;
+pub const fn epoch_days_from_gregorian_date(year: i32, month: u8, day: u8) -> i32 {
+    let shift = SHIFT_CONSTANT * DAYS_IN_A_400Y_CYCLE as i32 + EPOCH_COMPUTATIONAL_RATA_DIE;
     let (comp_year, comp_month, comp_day, century) = rata_die_first_equations(year, month, day);
     let y_star = 1461 * comp_year / 4 - century + century / 4;
     let m_star = (979 * comp_month - 2919) / 32;
@@ -59,11 +56,11 @@ pub fn epoch_days_from_gregorian_date(year: i32, month: i32, day: i32) -> i32 {
 }
 
 // Returns Y, M, D, C
-fn rata_die_first_equations(year: i32, month: i32, day: i32) -> (u32, i32, i32, u32) {
+const fn rata_die_first_equations(year: i32, month: u8, day: u8) -> (u32, i32, i32, u32) {
     let j = (month <= 2) as i32;
     let computational_year = (year + 400 * SHIFT_CONSTANT) - j;
-    let computation_month = month + 12 * j;
-    let computation_day = day - 1;
+    let computation_month = month as i32 + 12 * j;
+    let computation_day = day as i32 - 1;
     (
         computational_year as u32,
         computation_month,
@@ -87,10 +84,6 @@ const fn n_two(rata_die: u32) -> u32 {
     century_rem(rata_die) | 3
 }
 
-const fn n_three(rata_die: u32) -> u32 {
-    2141 * computational_day_of_year(rata_die) + 197_913
-}
-
 // Returns C, N_c AKA century number and century remainder
 const fn first_equations(rata_die: u32) -> (u32, u32) {
     let n_one = n_one(rata_die);
@@ -105,10 +98,6 @@ const fn century_rem(rata_die: u32) -> u32 {
 
 pub const fn century_number(rata_die: u32) -> u32 {
     n_one(rata_die).div_euclid(DAYS_IN_A_400Y_CYCLE)
-}
-
-pub const fn days_in_century(rata_die: u32) -> u32 {
-    century_rem(rata_die).div_euclid(4)
 }
 
 /// returns Y, N_y AKA, year and day_of_year
@@ -149,26 +138,18 @@ pub const fn computational_year(rata_die: u32) -> u32 {
     100 * century_number(rata_die) + computational_year_of_century(rata_die) as u32
 }
 
+#[cfg(feature = "tzdb")]
 pub const fn computational_month(rata_die: u32) -> u32 {
     n_three(rata_die).div_euclid(TWO_POWER_SIXTEEN)
-}
-
-pub const fn computational_day(rata_die: u32) -> u32 {
-    n_three(rata_die)
-        .rem_euclid(TWO_POWER_SIXTEEN)
-        .div_euclid(2141)
 }
 
 pub const fn year(computational_rata_die: u32, shift_constant: i32) -> i32 {
     (computational_year(computational_rata_die) + j(computational_rata_die)) as i32 - shift_constant
 }
 
+#[cfg(feature = "tzdb")]
 pub const fn month(compulational_rata_die: u32) -> u8 {
     (computational_month(compulational_rata_die) - 12 * j(compulational_rata_die)) as u8
-}
-
-pub const fn day(rata_die: u32) -> u8 {
-    (computational_day(rata_die) + 1) as u8
 }
 
 const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
@@ -186,7 +167,7 @@ const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
 pub const fn rata_die_for_epoch_days(epoch_days: i32) -> (u32, i32) {
     let rata_die = (epoch_days
         + EPOCH_COMPUTATIONAL_RATA_DIE
-        + DAYS_IN_GREGORIAN_CYCLE * SHIFT_CONSTANT) as u32; // epoch_days + K
+        + DAYS_IN_A_400Y_CYCLE as i32 * SHIFT_CONSTANT) as u32; // epoch_days + K
     (rata_die, 400 * SHIFT_CONSTANT)
 }
 
@@ -204,6 +185,10 @@ mod tests {
     use super::*;
 
     const EPOCH_RATA_DIE: u32 = 719_468; // This is the Rata Die for 1970-01-01
+
+    const fn days_in_century(rata_die: u32) -> u32 {
+        century_rem(rata_die).div_euclid(4)
+    }
 
     #[test]
     fn epoch_century_number() {

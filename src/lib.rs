@@ -48,12 +48,12 @@ extern crate std;
 
 pub mod error;
 pub mod iso;
-pub mod neri_schneider;
 pub mod options;
 pub mod parsers;
 pub mod primitive;
 
 pub(crate) mod components;
+pub(crate) mod neri_schneider;
 
 #[cfg(feature = "now")]
 mod sys;

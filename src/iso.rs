@@ -35,7 +35,7 @@ use crate::{
         Duration, PartialTime, PlainDate,
     },
     error::TemporalError,
-    neri_schneider::epoch_days_from_gregorian_date,
+    neri_schneider,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
@@ -360,7 +360,7 @@ impl IsoDate {
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
-        iso_date_to_epoch_days(self.year, self.month.into(), self.day.into())
+        neri_schneider::epoch_days_from_gregorian_date(self.year, self.month.into(), self.day.into())
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -481,11 +481,11 @@ impl IsoDate {
 
         // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
         // 11. Let weeks be 0.
-        let days = iso_date_to_epoch_days(other.year, i32::from(other.month), other.day.into())
-            - iso_date_to_epoch_days(
+        let days = neri_schneider::epoch_days_from_gregorian_date(other.year, other.month, other.day)
+            - neri_schneider::epoch_days_from_gregorian_date(
                 constrained.year,
-                i32::from(constrained.month),
-                constrained.day.into(),
+                constrained.month,
+                constrained.day,
             );
 
         let (weeks, days) = if largest_unit == TemporalUnit::Week {
@@ -902,7 +902,7 @@ const MAX_EPOCH_DAYS: i32 = 10i32.pow(8) + 1;
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if iso_date_to_epoch_days(date.year, (date.month).into(), date.day.into()).abs()
+    if neri_schneider::epoch_days_from_gregorian_date(date.year, (date.month).into(), date.day.into()).abs()
         > MAX_EPOCH_DAYS
     {
         return false;
@@ -931,13 +931,21 @@ fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
 
 // ==== `IsoDate` specific utiltiy functions ====
 
-// TODO: Add unit tests to prove output for limits.
 /// Returns the Epoch days based off the given year, month, and day.
 ///
 /// NOTE: Month should be in a range of 0-11
 #[inline]
 fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
-    epoch_days_from_gregorian_date(year, month, day)
+    // 1. Let resolvedYear be year + floor(month / 12).
+    let resolved_year = year + month.div_euclid(12);
+    // 2. Let resolvedMonth be month modulo 12.
+    let resolved_month = month.rem_euclid(12) as u8;
+    // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
+    // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
+    let epoch_days = neri_schneider::epoch_days_from_gregorian_date(resolved_year, resolved_month, 1);
+
+    // 4. Return EpochTimeToDayNumber(t) + date - 1.
+    epoch_days + day - 1
 }
 
 #[inline]
@@ -1033,5 +1041,11 @@ mod tests {
             iso_date_to_epoch_days(275_760, 9, 15).abs(),
             MAX_DAYS_BASE + 2
         );
+    }
+
+    #[test]
+    fn test_month_limits() {
+        assert_eq!(iso_date_to_epoch_days(1970, 1, 1), 0);
+        assert_eq!(iso_date_to_epoch_days(1969, 12, 31), -1);
     }
 }
