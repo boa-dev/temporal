@@ -730,7 +730,7 @@ mod tests {
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert!(result.is_err());
 
-        let min = PlainDate::try_new(-271_821, 4, 21, Calendar::default()).unwrap();
+        let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert_eq!(
             result,
@@ -738,7 +738,7 @@ mod tests {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
-                    day: 20
+                    day: 19
                 },
                 calendar: Calendar::default(),
             })
