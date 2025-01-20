@@ -177,15 +177,10 @@ impl ResolvedRoundingOptions {
     pub(crate) fn from_diff_settings(
         options: DifferenceSettings,
         operation: DifferenceOperation,
-        unit_group: UnitGroup,
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
-        let largest_unit = options
-            .largest_unit
-            .map(|unit| unit.assert_unit_group(unit_group))
-            .transpose()?;
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = match operation {
@@ -199,7 +194,9 @@ impl ResolvedRoundingOptions {
         };
         let smallest_unit = options.smallest_unit.unwrap_or(fallback_smallest);
         // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
-        let largest_unit = largest_unit.unwrap_or(smallest_unit.max(fallback_largest));
+        let largest_unit = options
+            .largest_unit
+            .unwrap_or(smallest_unit.max(fallback_largest));
 
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
@@ -344,12 +341,6 @@ impl ResolvedRoundingOptions {
 
 // ==== Options enums and methods ====
 
-pub enum UnitGroup {
-    Date,
-    Time,
-    DateTime,
-}
-
 /// The relevant unit that should be used for the operation that
 /// this option is provided as a value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -441,19 +432,6 @@ impl TemporalUnit {
             self,
             Hour | Minute | Second | Millisecond | Microsecond | Nanosecond
         )
-    }
-
-    #[inline]
-    pub fn assert_unit_group(self, group: UnitGroup) -> TemporalResult<Self> {
-        match group {
-            UnitGroup::Date if !self.is_calendar_unit() || self != TemporalUnit::Day => {
-                Err(TemporalError::range().with_message("Unit must be a date unit."))
-            }
-            UnitGroup::Time if !self.is_time_unit() => {
-                Err(TemporalError::range().with_message("Unit must be a time unit."))
-            }
-            _ => Ok(self),
-        }
     }
 }
 

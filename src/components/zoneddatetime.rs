@@ -16,7 +16,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
         ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
-        ToStringRoundingOptions, UnitGroup,
+        ToStringRoundingOptions,
     },
     parsers::{self, IxdtfStringBuilder},
     partial::{PartialDate, PartialTime},
@@ -271,7 +271,6 @@ impl ZonedDateTime {
         let resolved_options = ResolvedRoundingOptions::from_diff_settings(
             options,
             op,
-            UnitGroup::DateTime,
             TemporalUnit::Hour,
             TemporalUnit::Nanosecond,
         )?;
