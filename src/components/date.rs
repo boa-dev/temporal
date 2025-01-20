@@ -634,18 +634,18 @@ mod tests {
 
     #[test]
     fn new_date_limits() {
-        let err = PlainDate::try_new(-271_821, 4, 19, Calendar::default());
+        let err = PlainDate::try_new(-271_821, 4, 18, Calendar::default());
         assert!(err.is_err());
         let err = PlainDate::try_new(275_760, 9, 14, Calendar::default());
         assert!(err.is_err());
-        let ok = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
+        let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
         assert_eq!(
             ok,
             PlainDate {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
-                    day: 20,
+                    day: 19,
                 },
                 calendar: Calendar::default(),
             }
@@ -727,11 +727,11 @@ mod tests {
             })
         );
 
-        let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
+        let min = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert!(result.is_err());
 
-        let min = PlainDate::try_new(-271_821, 4, 21, Calendar::default()).unwrap();
+        let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert_eq!(
             result,
@@ -739,7 +739,7 @@ mod tests {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
-                    day: 20
+                    day: 19
                 },
                 calendar: Calendar::default(),
             })

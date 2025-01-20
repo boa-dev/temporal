@@ -35,6 +35,7 @@ use crate::{
         Duration, PartialTime, PlainDate,
     },
     error::TemporalError,
+    neri_schneider::epoch_days_from_gregorian_date,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
@@ -335,7 +336,7 @@ impl IsoDate {
     ///
     /// Equivalent to `BalanceISODate`.
     pub(crate) fn balance(year: i32, month: i32, day: i32) -> Self {
-        let epoch_days = iso_date_to_epoch_days(year, month - 1, day);
+        let epoch_days = iso_date_to_epoch_days(year, month, day);
         let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0);
         let (year, month, day) = utils::ymd_from_epoch_milliseconds(ms);
         Self::new_unchecked(year, month, day)
@@ -359,7 +360,7 @@ impl IsoDate {
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
-        iso_date_to_epoch_days(self.year, (self.month - 1).into(), self.day.into())
+        iso_date_to_epoch_days(self.year, self.month.into(), self.day.into())
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -480,10 +481,10 @@ impl IsoDate {
 
         // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
         // 11. Let weeks be 0.
-        let days = iso_date_to_epoch_days(other.year, i32::from(other.month - 1), other.day.into())
+        let days = iso_date_to_epoch_days(other.year, i32::from(other.month), other.day.into())
             - iso_date_to_epoch_days(
                 constrained.year,
-                i32::from(constrained.month - 1),
+                i32::from(constrained.month),
                 constrained.day.into(),
             );
 
@@ -901,7 +902,7 @@ const MAX_EPOCH_DAYS: i32 = 10i32.pow(8) + 1;
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if iso_date_to_epoch_days(date.year, (date.month - 1).into(), date.day.into()).abs()
+    if iso_date_to_epoch_days(date.year, (date.month).into(), date.day.into()).abs()
         > MAX_EPOCH_DAYS
     {
         return false;
@@ -911,7 +912,7 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
     let max = crate::NS_MAX_INSTANT + i128::from(NS_PER_DAY);
     let min = crate::NS_MIN_INSTANT - i128::from(NS_PER_DAY);
 
-    min <= ns && max >= ns
+    min < ns && max > ns
 }
 
 #[inline]
@@ -936,17 +937,7 @@ fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
 /// NOTE: Month should be in a range of 0-11
 #[inline]
 fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
-    // 1. Let resolvedYear be year + floor(month / 12).
-    let resolved_year = year + month.div_euclid(12);
-    // 2. Let resolvedMonth be month modulo 12.
-    let resolved_month = month.rem_euclid(12) as u8;
-    // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
-    // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
-    let year_t = utils::epoch_time_for_year(resolved_year);
-    let month_t = utils::epoch_time_for_month_given_year(resolved_month, resolved_year);
-
-    // 4. Return EpochTimeToDayNumber(t) + date - 1.
-    utils::epoch_time_to_day_number(year_t + month_t) + day - 1
+    epoch_days_from_gregorian_date(year, month, day)
 }
 
 #[inline]
@@ -1019,27 +1010,27 @@ mod tests {
     #[test]
     fn iso_date_to_epoch_days_limits() {
         // Succeeds
-        assert_eq!(iso_date_to_epoch_days(-271_821, 3, 20).abs(), MAX_DAYS_BASE);
+        assert_eq!(iso_date_to_epoch_days(-271_821, 4, 20).abs(), MAX_DAYS_BASE);
         // Succeeds
         assert_eq!(
-            iso_date_to_epoch_days(-271_821, 3, 19).abs(),
+            iso_date_to_epoch_days(-271_821, 4, 19).abs(),
             MAX_DAYS_BASE + 1
         );
         // Fails
         assert_eq!(
-            iso_date_to_epoch_days(-271_821, 3, 18).abs(),
+            iso_date_to_epoch_days(-271_821, 4, 18).abs(),
             MAX_DAYS_BASE + 2
         );
         // Succeeds
-        assert_eq!(iso_date_to_epoch_days(275_760, 8, 13).abs(), MAX_DAYS_BASE);
+        assert_eq!(iso_date_to_epoch_days(275_760, 9, 13).abs(), MAX_DAYS_BASE);
         // Succeeds
         assert_eq!(
-            iso_date_to_epoch_days(275_760, 8, 14).abs(),
+            iso_date_to_epoch_days(275_760, 9, 14).abs(),
             MAX_DAYS_BASE + 1
         );
         // Fails
         assert_eq!(
-            iso_date_to_epoch_days(275_760, 8, 15).abs(),
+            iso_date_to_epoch_days(275_760, 9, 15).abs(),
             MAX_DAYS_BASE + 2
         );
     }

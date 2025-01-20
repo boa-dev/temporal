@@ -1307,7 +1307,7 @@ mod tests {
     use core::str::FromStr;
     use tinystr::tinystr;
 
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(all(feature = "experimental", not(target_os = "windows")))]
     use crate::Duration;
 
     #[test]

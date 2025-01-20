@@ -17,8 +17,7 @@ pub(crate) const MS_PER_MINUTE: i64 = 60_000;
 ///
 /// Functionally the same as Date's abstract operation `MakeDate`
 pub(crate) fn epoch_days_to_epoch_ms(day: i32, time: i64) -> i64 {
-    let sign = if day.is_negative() { -1 } else { 1 };
-    (day as i64 * MS_PER_DAY as i64) + (time * sign)
+    (day as i64 * MS_PER_DAY as i64) + time
 }
 
 /// 3.5.11 PadISOYear ( y )
@@ -36,24 +35,14 @@ pub(crate) fn pad_iso_year(year: i32) -> String {
 /// `EpochTimeToDayNumber`
 ///
 /// This equation is the equivalent to `ECMAScript`'s `Date(t)`
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_time_to_day_number(t: i64) -> i32 {
-    i64_div_floor(t, MS_PER_DAY as i64) as i32
-}
-
-// NOTE: this is pulled in from num_integer
-// TODO: Use i64::div_floor when stable.
-fn i64_div_floor(lhs: i64, rhs: i64) -> i64 {
-    let (div, rem) = (lhs / rhs, lhs % rhs);
-    if (rem > 0 && rhs < 0) || (rem < 0 && rhs > 0) {
-        div - 1
-    } else {
-        div
-    }
+    t.div_euclid(MS_PER_DAY as i64) as i32
 }
 
 #[cfg(feature = "tzdb")]
 pub(crate) fn epoch_ms_to_ms_in_day(t: i64) -> u32 {
-    (t % i64::from(MS_PER_DAY)) as u32
+    (t.rem_euclid(i64::from(MS_PER_DAY))) as u32
 }
 
 /// Mathematically determine the days in a year.
@@ -73,7 +62,7 @@ pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
 
 pub(crate) fn epoch_time_to_epoch_year(t: i64) -> i32 {
     let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(epoch_days, 680);
+    let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(epoch_days);
     neri_schneider::year(rata_die, shift_constant)
 }
 
@@ -94,24 +83,15 @@ pub(crate) fn epoch_time_for_year(y: i32) -> i64 {
 }
 
 pub(crate) const fn epoch_ms_to_epoch_days(ms: i64) -> i32 {
-    (ms / MS_PER_DAY as i64) as i32
+    (ms.div_euclid(MS_PER_DAY as i64)) as i32
 }
 
-pub(crate) const fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
+pub(crate) fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
     let epoch_days = epoch_ms_to_epoch_days(epoch_milliseconds);
-    neri_schneider::ymd_from_epoch_days(epoch_days, 680)
+    neri_schneider::ymd_from_epoch_days(epoch_days)
 }
 
-// Returns the time for a month in a given year plus date(t) = 1.
-pub(crate) fn epoch_time_for_month_given_year(m: u8, y: i32) -> i64 {
-    let leap_day = mathematical_days_in_year(y) - 365;
-
-    // Includes day. i.e. end of month + 1
-    let days = month_to_day(m, leap_day as u16);
-
-    i64::from(MS_PER_DAY) * i64::from(days)
-}
-
+#[cfg(feature = "tzdb")]
 fn month_to_day(m: u8, leap_day: u16) -> u16 {
     match m {
         0 => 0,
@@ -133,7 +113,7 @@ fn month_to_day(m: u8, leap_day: u16) -> u16 {
 #[cfg(feature = "tzdb")]
 pub(crate) fn epoch_ms_to_month_in_year(t: i64) -> u8 {
     let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, _) = neri_schneider::rata_die_for_epoch_days(epoch_days, 680);
+    let (rata_die, _) = neri_schneider::rata_die_for_epoch_days(epoch_days);
     neri_schneider::month(rata_die)
 }
 

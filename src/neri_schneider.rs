@@ -13,8 +13,9 @@
 //!
 //! In their paper, Neri and Schneider calculated for a Rata Die cycle
 //! shift of constant of 82, but that was not sufficient in order to
-//! support `Temporal`'s date range, so below is a small addendum table
-//! on extending the date range from a cyle shift of 82 to 680.
+//! support Temporal's date range, so below is a small addendum table
+//! on extending the date range from a cyle shift of 82 to 680 in order
+//! to accomodate Temporal's range.
 //!
 //! | Significant Date | Computational Rata Die | Rata Die Shift
 //! | -----------------|------------------------|-----------------|
@@ -22,6 +23,11 @@
 //! | January 1, 1970 | 719,468 | 100,065,428 |
 //! | September 14, 275,760 | 100_719_469 | 200,065,429 |
 //!
+//! However, this shift has also been implemented by Cassio Neri, who
+//! recommends using a [shift of 3670][] which places the Epoch in the
+//! center of the shift
+//!
+//! [neri-shift-context]: https://hg.mozilla.org/integration/autoland/rev/54ebf8bd2e11#l3.70
 //! [eaf-calendar-algorithms]: https://onlinelibrary.wiley.com/doi/full/10.1002/spe.3172
 
 // NOTE: Temporal must support the year range [-271_821, 275_760]
@@ -40,26 +46,28 @@ pub const DAYS_IN_A_400Y_CYCLE: u32 = 146_097;
 const TWO_POWER_THIRTY_NINE: u64 = 549_755_813_888; // 2^39 constant
 const TWO_POWER_SIXTEEN: u32 = 65_536; // 2^16 constant
 const DAYS_IN_GREGORIAN_CYCLE: i32 = DAYS_IN_A_400Y_CYCLE as i32;
+const SHIFT_CONSTANT: i32 = 3670;
 
 /// Calculate Rata Die value from gregorian
-pub fn rata_die_from_gregorian_date(year: i32, month: i32, day: i32) -> i32 {
+pub fn epoch_days_from_gregorian_date(year: i32, month: i32, day: i32) -> i32 {
+    let shift = SHIFT_CONSTANT * DAYS_IN_GREGORIAN_CYCLE + EPOCH_COMPUTATIONAL_RATA_DIE;
     let (comp_year, comp_month, comp_day, century) = rata_die_first_equations(year, month, day);
     let y_star = 1461 * comp_year / 4 - century + century / 4;
     let m_star = (979 * comp_month - 2919) / 32;
-    y_star + m_star + comp_day
+    (y_star as i32 + m_star + comp_day) - shift
 }
 
 // Returns Y, M, D, C
-fn rata_die_first_equations(year: i32, month: i32, day: i32) -> (i32, i32, i32, i32) {
+fn rata_die_first_equations(year: i32, month: i32, day: i32) -> (u32, i32, i32, u32) {
     let j = (month <= 2) as i32;
-    let computational_year = year - j;
+    let computational_year = (year + 400 * SHIFT_CONSTANT) - j;
     let computation_month = month + 12 * j;
     let computation_day = day - 1;
     (
-        computational_year,
+        computational_year as u32,
         computation_month,
         computation_day,
-        computational_year / 100,
+        computational_year as u32 / 100,
     )
 }
 
@@ -146,12 +154,12 @@ pub const fn computational_day(rata_die: u32) -> u32 {
         .div_euclid(2141)
 }
 
-pub const fn year(rata_die: u32, shift_constant: i32) -> i32 {
-    (computational_year(rata_die) + j(rata_die)) as i32 - shift_constant
+pub const fn year(computational_rata_die: u32, shift_constant: i32) -> i32 {
+    (computational_year(computational_rata_die) + j(computational_rata_die)) as i32 - shift_constant
 }
 
-pub const fn month(rata_die: u32) -> u8 {
-    (computational_month(rata_die) - 12 * j(rata_die)) as u8
+pub const fn month(compulational_rata_die: u32) -> u8 {
+    (computational_month(compulational_rata_die) - 12 * j(compulational_rata_die)) as u8
 }
 
 pub const fn day(rata_die: u32) -> u8 {
@@ -170,23 +178,16 @@ const fn gregorian_ymd(rata_die: u32) -> (i32, u8, u8) {
 /// Get the computational Rata Die for given Epoch Days with the cycle shiftc.
 ///
 /// For more on `cycle_shifts`, see [`ymd_from_epoch_days`]
-pub const fn rata_die_for_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (u32, i32) {
-    let rata_die =
-        (epoch_days + EPOCH_COMPUTATIONAL_RATA_DIE + DAYS_IN_GREGORIAN_CYCLE * cycle_shifts) as u32; // epoch_days + K
-    (rata_die, 400 * cycle_shifts)
+pub const fn rata_die_for_epoch_days(epoch_days: i32) -> (u32, i32) {
+    let rata_die = (epoch_days
+        + EPOCH_COMPUTATIONAL_RATA_DIE
+        + DAYS_IN_GREGORIAN_CYCLE * SHIFT_CONSTANT) as u32; // epoch_days + K
+    (rata_die, 400 * SHIFT_CONSTANT)
 }
 
 /// Calculate a Gregorian year, month, and date for the provided epoch days.
-///
-/// # Cycle shift constant
-///
-/// The `cycle_shift` variable is exposed here in order to accomodate
-/// variable ranges that may need to be supported.
-///
-/// For instance, in order to support JavaScript's Temporal date range of
-/// [-100_000_001, 100_000_000], a `cycle_shift` value of 680 is provided.
-pub const fn ymd_from_epoch_days(epoch_days: i32, cycle_shifts: i32) -> (i32, u8, u8) {
-    let (rata_die, year_shift_constant) = rata_die_for_epoch_days(epoch_days, cycle_shifts);
+pub const fn ymd_from_epoch_days(epoch_days: i32) -> (i32, u8, u8) {
+    let (rata_die, year_shift_constant) = rata_die_for_epoch_days(epoch_days);
 
     let (year, month, day) = gregorian_ymd(rata_die);
     // Shift the year back to the proper date
@@ -221,8 +222,8 @@ mod tests {
 
     #[test]
     fn epoch_year() {
-        let day = computational_year(EPOCH_RATA_DIE);
-        assert_eq!(day, 1969);
+        let year = computational_year(EPOCH_RATA_DIE);
+        assert_eq!(year, 1969);
     }
 
     #[test]
@@ -233,24 +234,37 @@ mod tests {
 
     #[test]
     fn rata_die_from_date() {
-        let epoch_rata_die = rata_die_from_gregorian_date(1970, 1, 1);
-        assert_eq!(epoch_rata_die, 719_468);
-        let neri_scneider_limit_max_rata_die = rata_die_from_gregorian_date(32767, 12, 31);
-        assert_eq!(neri_scneider_limit_max_rata_die, 11_968_205);
-        let neri_schneider_limit_min_rata_die = rata_die_from_gregorian_date(-32767, 1, 1);
-        assert_eq!(neri_schneider_limit_min_rata_die, -11_967_960);
-        let js_max_rata_die = rata_die_from_gregorian_date(275_760, 9, 14);
-        assert_eq!(js_max_rata_die, 100_719_469);
-        let js_min_rata_die = rata_die_from_gregorian_date(-271_821, 4, 19);
-        assert_eq!(js_min_rata_die, -99_280_532);
+        let epoch_rata_die = epoch_days_from_gregorian_date(1970, 1, 1);
+        assert_eq!(epoch_rata_die, 0);
+        let date = ymd_from_epoch_days(epoch_rata_die);
+        assert_eq!(date, (1970, 1, 1));
+        let neri_scneider_limit_max_rata_die = epoch_days_from_gregorian_date(32767, 12, 31);
+        assert_eq!(neri_scneider_limit_max_rata_die, 11_248_737);
+        let neri_schneider_limit_min_rata_die = epoch_days_from_gregorian_date(-32767, 1, 1);
+        assert_eq!(neri_schneider_limit_min_rata_die, -12_687_428);
+        let js_max_rata_die = epoch_days_from_gregorian_date(275_760, 9, 14);
+        assert_eq!(js_max_rata_die, 100_000_001);
+        let js_min_rata_die = epoch_days_from_gregorian_date(-271_821, 4, 19);
+        assert_eq!(js_min_rata_die, -100_000_001);
     }
 
     #[test]
     fn epoch_days_temporal_limit_to_date() {
-        let temporal_shift = 680;
-        let max_date = ymd_from_epoch_days(100_000_001, temporal_shift);
+        let max_date = ymd_from_epoch_days(100_000_001);
         assert_eq!(max_date, (275_760, 9, 14));
-        let min_date = ymd_from_epoch_days(-100_000_001, temporal_shift);
+        let min_date = ymd_from_epoch_days(-100_000_001);
         assert_eq!(min_date, (-271_821, 4, 19));
+    }
+
+    #[test]
+    fn epoch_days_from() {
+        let epoch_days = epoch_days_from_gregorian_date(1970, 1, 1);
+        assert_eq!(epoch_days, 0);
+        let epoch_days = epoch_days_from_gregorian_date(275_760, 9, 14);
+        assert_eq!(epoch_days, 100_000_001);
+        let epoch_days = epoch_days_from_gregorian_date(-271_821, 4, 19);
+        let result = ymd_from_epoch_days(epoch_days);
+        assert_eq!(result, (-271_821, 4, 19));
+        assert_eq!(epoch_days, -100_000_001);
     }
 }
