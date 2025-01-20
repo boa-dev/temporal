@@ -53,7 +53,6 @@ pub mod parsers;
 pub mod primitive;
 
 pub(crate) mod components;
-pub(crate) mod neri_schneider;
 
 #[cfg(feature = "now")]
 mod sys;

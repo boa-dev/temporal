@@ -1,12 +1,15 @@
 //! Utility date and time equations for Temporal
 
-use crate::neri_schneider;
 use alloc::format;
 use alloc::string::String;
 
 use crate::MS_PER_DAY;
 
-// NOTE: Review the below for optimizations and add ALOT of tests.
+mod neri_schneider;
+
+pub(crate) use neri_schneider::epoch_days_from_gregorian_date;
+
+// NOTE: Potentially add more of tests.
 
 // ==== Begin Date Equations ====
 
