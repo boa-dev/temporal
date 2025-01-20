@@ -10,7 +10,7 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayOffset,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -123,7 +123,6 @@ impl Instant {
         let resolved_options = ResolvedRoundingOptions::from_diff_settings(
             options,
             op,
-            UnitGroup::Time,
             TemporalUnit::Second,
             TemporalUnit::Nanosecond,
         )?;
