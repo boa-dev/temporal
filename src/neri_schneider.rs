@@ -44,6 +44,7 @@ pub const EPOCH_COMPUTATIONAL_RATA_DIE: i32 = 719_468;
 pub const DAYS_IN_A_400Y_CYCLE: u32 = 146_097;
 
 const TWO_POWER_THIRTY_NINE: u64 = 549_755_813_888; // 2^39 constant
+const TWO_POWER_THIRTY_TWO: u64 = 4_294_967_296; // 2^32 constant
 const TWO_POWER_SIXTEEN: u32 = 65_536; // 2^16 constant
 const DAYS_IN_GREGORIAN_CYCLE: i32 = DAYS_IN_A_400Y_CYCLE as i32;
 const SHIFT_CONSTANT: i32 = 3670;
@@ -116,7 +117,10 @@ const fn second_equations(rata_die: u32) -> (u32, u32) {
     let n_two = rem | 3;
     let p2 = 2_939_745 * n_two as u64;
     let year_of_century = p2.div_euclid(TWO_POWER_THIRTY_TWO) as u32;
-    let day_of_year = p2.rem_euclid(TWO_POWER_THIRTY_TWO).div_euclid(2_939_745).div_euclid(4) as u32;
+    let day_of_year = p2
+        .rem_euclid(TWO_POWER_THIRTY_TWO)
+        .div_euclid(2_939_745)
+        .div_euclid(4) as u32;
     let year = 100 * century + year_of_century;
     (year, day_of_year)
 }
