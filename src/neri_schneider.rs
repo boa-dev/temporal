@@ -114,8 +114,9 @@ pub const fn days_in_century(rata_die: u32) -> u32 {
 const fn second_equations(rata_die: u32) -> (u32, u32) {
     let (century, rem) = first_equations(rata_die);
     let n_two = rem | 3;
-    let year_of_century = (376_287_347 * n_two as u64).div_euclid(TWO_POWER_THIRTY_NINE) as u32;
-    let day_of_year = (n_two - 1461 * year_of_century).div_euclid(4);
+    let p2 = 2_939_745 * n_two as u64;
+    let year_of_century = p2.div_euclid(TWO_POWER_THIRTY_TWO) as u32;
+    let day_of_year = p2.rem_euclid(TWO_POWER_THIRTY_TWO).div_euclid(2_939_745).div_euclid(4) as u32;
     let year = 100 * century + year_of_century;
     (year, day_of_year)
 }
