@@ -2,6 +2,7 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
+    use diplomat_runtime::DiplomatOption;
     use temporal_rs::options;
 
     #[diplomat::enum_convert(options::ArithmeticOverflow)]
@@ -87,5 +88,40 @@ pub mod ffi {
         HalfInfinity,
         HalfZero,
         HalfEven,
+    }
+
+    pub struct Precision {
+        /// Sets the precision to minute precision.
+        pub is_minute: bool,
+        /// Sets the number of digits. Auto when None. Has no effect if is_minute is set.
+        pub precision: DiplomatOption<u8>,
+    }
+
+    pub struct ToStringRoundingOptions {
+        pub precision: Precision,
+        pub smallest_unit: DiplomatOption<TemporalUnit>,
+        pub rounding_mode: DiplomatOption<TemporalRoundingMode>,
+    }
+}
+
+impl From<ffi::Precision> for temporal_rs::parsers::Precision {
+    fn from(other: ffi::Precision) -> Self {
+        if other.is_minute {
+            Self::Minute
+        } else if let Some(digit) = other.precision.into() {
+            Self::Digit(digit)
+        } else {
+            Self::Auto
+        }
+    }
+}
+
+impl From<ffi::ToStringRoundingOptions> for temporal_rs::options::ToStringRoundingOptions {
+    fn from(other: ffi::ToStringRoundingOptions) -> Self {
+        Self {
+            precision: other.precision.into(),
+            smallest_unit: other.smallest_unit.into_converted_option(),
+            rounding_mode: other.rounding_mode.into_converted_option(),
+        }
     }
 }
