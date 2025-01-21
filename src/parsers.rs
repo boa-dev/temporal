@@ -7,7 +7,10 @@ use crate::{
 };
 use alloc::format;
 use ixdtf::parsers::{
-    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
+    records::{
+        Annotation, DateRecord, DurationParseRecord, IxdtfParseRecord, Sign as IxdtfSign,
+        TimeDurationRecord, TimeRecord, UtcOffsetRecordOrZ,
+    },
     IxdtfParser,
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
@@ -245,6 +248,9 @@ impl Writeable for FormattableOffset {
 }
 
 impl_display_with_writeable!(FormattableIxdtf<'_>);
+impl_display_with_writeable!(FormattableMonthDay<'_>);
+impl_display_with_writeable!(FormattableYearMonth<'_>);
+impl_display_with_writeable!(FormattableDuration);
 impl_display_with_writeable!(FormattableDate);
 impl_display_with_writeable!(FormattableTime);
 impl_display_with_writeable!(FormattableUtcOffset);
@@ -257,11 +263,7 @@ pub struct FormattableDate(pub i32, pub u8, pub u8);
 
 impl Writeable for FormattableDate {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
-        if (0..=9999).contains(&self.0) {
-            write_four_digit_year(self.0, sink)?;
-        } else {
-            write_extended_year(self.0, sink)?;
-        }
+        write_year(self.0, sink)?;
         sink.write_char('-')?;
         write_padded_u8(self.1, sink)?;
         sink.write_char('-')?;
@@ -272,6 +274,14 @@ impl Writeable for FormattableDate {
         let year_length = if (0..=9999).contains(&self.0) { 4 } else { 7 };
 
         LengthHint::exact(6 + year_length)
+    }
+}
+
+fn write_year<W: core::fmt::Write + ?Sized>(year: i32, sink: &mut W) -> core::fmt::Result {
+    if (0..=9999).contains(&year) {
+        write_four_digit_year(year, sink)
+    } else {
+        write_extended_year(year, sink)
     }
 }
 
@@ -357,6 +367,84 @@ impl Writeable for FormattableCalendar<'_> {
     }
 }
 
+#[derive(Debug)]
+pub struct FormattableMonthDay<'a> {
+    pub date: FormattableDate,
+    pub calendar: FormattableCalendar<'a>,
+}
+
+impl Writeable for FormattableMonthDay<'_> {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if self.calendar.show == DisplayCalendar::Always
+            || self.calendar.show == DisplayCalendar::Critical
+            || self.calendar.calendar != "iso8601"
+        {
+            write_year(self.date.0, sink)?;
+            sink.write_char('-')?;
+        }
+        write_padded_u8(self.date.1, sink)?;
+        sink.write_char('-')?;
+        write_padded_u8(self.date.2, sink)?;
+        self.calendar.write_to(sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let base_length = self.calendar.writeable_length_hint() + LengthHint::exact(5);
+        if self.calendar.show == DisplayCalendar::Always
+            || self.calendar.show == DisplayCalendar::Critical
+            || self.calendar.calendar != "iso8601"
+        {
+            let year_length = if (0..=9999).contains(&self.date.0) {
+                4
+            } else {
+                7
+            };
+            return base_length + LengthHint::exact(year_length);
+        }
+        base_length
+    }
+}
+
+#[derive(Debug)]
+pub struct FormattableYearMonth<'a> {
+    pub date: FormattableDate,
+    pub calendar: FormattableCalendar<'a>,
+}
+
+impl Writeable for FormattableYearMonth<'_> {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        write_year(self.date.0, sink)?;
+        sink.write_char('-')?;
+        write_padded_u8(self.date.1, sink)?;
+        if self.calendar.show == DisplayCalendar::Always
+            || self.calendar.show == DisplayCalendar::Critical
+            || self.calendar.calendar != "iso8601"
+        {
+            sink.write_char('-')?;
+            write_padded_u8(self.date.2, sink)?;
+        }
+
+        self.calendar.write_to(sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        let year_length = if (0..=9999).contains(&self.date.0) {
+            4
+        } else {
+            7
+        };
+        let base_length =
+            self.calendar.writeable_length_hint() + LengthHint::exact(year_length + 3);
+        if self.calendar.show == DisplayCalendar::Always
+            || self.calendar.show == DisplayCalendar::Critical
+            || self.calendar.calendar != "iso8601"
+        {
+            return base_length + LengthHint::exact(3);
+        }
+        base_length
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct FormattableIxdtf<'a> {
     pub date: Option<FormattableDate>,
@@ -422,6 +510,120 @@ impl Writeable for FormattableIxdtf<'_> {
 
         date_length + time_length + utc_length + timezone_length + cal_length
     }
+}
+
+pub struct FormattableDuration {
+    pub precision: Precision,
+    pub duration: DurationParseRecord,
+}
+
+impl Writeable for FormattableDuration {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        if self.duration.sign == IxdtfSign::Negative {
+            sink.write_char('-')?;
+        }
+        sink.write_char('P')?;
+        if let Some(date) = self.duration.date {
+            checked_write_u32_with_suffix(date.years, 'Y', sink)?;
+            checked_write_u32_with_suffix(date.months, 'M', sink)?;
+            checked_write_u32_with_suffix(date.weeks, 'W', sink)?;
+            checked_write_u64_with_suffix(date.days, 'D', sink)?;
+        }
+        if let Some(time) = self.duration.time {
+            match time {
+                TimeDurationRecord::Hours { hours, fraction } => {
+                    if hours + fraction != 0 {
+                        sink.write_char('T')?;
+                    }
+                    if hours == 0 {
+                        return Ok(());
+                    }
+                    hours.write_to(sink)?;
+                    if fraction != 0 {
+                        sink.write_char('.')?;
+                        fraction.write_to(sink)?;
+                    }
+                    sink.write_char('H')?;
+                }
+                TimeDurationRecord::Minutes {
+                    hours,
+                    minutes,
+                    fraction,
+                } => {
+                    if hours + minutes + fraction != 0 {
+                        sink.write_char('T')?;
+                    }
+                    checked_write_u64_with_suffix(hours, 'H', sink)?;
+                    if minutes == 0 {
+                        return Ok(());
+                    }
+                    minutes.write_to(sink)?;
+                    if fraction != 0 {
+                        sink.write_char('.')?;
+                        fraction.write_to(sink)?;
+                    }
+                    sink.write_char('M')?;
+                }
+                TimeDurationRecord::Seconds {
+                    hours,
+                    minutes,
+                    seconds,
+                    fraction,
+                } => {
+                    let unit_below_minute =
+                        self.duration.date.is_none() && hours == 0 && minutes == 0;
+
+                    let write_second = seconds != 0
+                        || unit_below_minute
+                        || matches!(self.precision, Precision::Digit(_));
+
+                    if hours != 0 || minutes != 0 || write_second {
+                        sink.write_char('T')?;
+                    }
+
+                    checked_write_u64_with_suffix(hours, 'H', sink)?;
+                    checked_write_u64_with_suffix(minutes, 'M', sink)?;
+                    if write_second {
+                        seconds.write_to(sink)?;
+                        if self.precision == Precision::Digit(0)
+                            || (self.precision == Precision::Auto && fraction == 0)
+                        {
+                            sink.write_char('S')?;
+                            return Ok(());
+                        }
+                        sink.write_char('.')?;
+                        write_nanosecond(fraction, self.precision, sink)?;
+                        sink.write_char('S')?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn checked_write_u32_with_suffix<W: core::fmt::Write + ?Sized>(
+    val: u32,
+    suffix: char,
+    sink: &mut W,
+) -> core::fmt::Result {
+    if val == 0 {
+        return Ok(());
+    }
+    val.write_to(sink)?;
+    sink.write_char(suffix)
+}
+
+fn checked_write_u64_with_suffix<W: core::fmt::Write + ?Sized>(
+    val: u64,
+    suffix: char,
+    sink: &mut W,
+) -> core::fmt::Result {
+    if val == 0 {
+        return Ok(());
+    }
+    val.write_to(sink)?;
+    sink.write_char(suffix)
 }
 
 // TODO: Determine if these should be separate structs, i.e. TemporalDateTimeParser/TemporalInstantParser, or
@@ -562,6 +764,20 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
         // Format and return the error from parsing Time.
         _ => Err(time_err),
     }
+}
+
+#[inline]
+pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<Option<&[u8]>> {
+    if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
+        return Some(r);
+    } else if let Ok(r) = IxdtfParser::from_str(s).parse_time().map(|r| r.calendar) {
+        return Some(r);
+    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar) {
+        return Some(r);
+    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
+        return Some(r);
+    }
+    Some(None)
 }
 
 // TODO: ParseTimeZoneString, ParseZonedDateTimeString

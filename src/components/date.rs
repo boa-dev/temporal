@@ -1,11 +1,7 @@
 //! This module implements `Date` and any directly related algorithms.
 
 use crate::{
-    components::{
-        calendar::{Calendar, CalendarDateLike, GetTemporalCalendar},
-        duration::DateDuration,
-        Duration, PlainDateTime,
-    },
+    components::{calendar::Calendar, duration::DateDuration, Duration, PlainDateTime},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
@@ -13,7 +9,7 @@ use crate::{
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
 use core::str::FromStr;
@@ -264,7 +260,7 @@ impl PlainDate {
 
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
-        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+        let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
             TemporalUnit::Day,
@@ -307,9 +303,9 @@ impl PlainDate {
         }
         let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 }
@@ -486,75 +482,75 @@ impl PlainDate {
 impl PlainDate {
     /// Returns the calendar year value.
     pub fn year(&self) -> TemporalResult<i32> {
-        self.calendar.year(&CalendarDateLike::Date(self))
+        self.calendar.year(&self.iso)
     }
 
     /// Returns the calendar month value.
     pub fn month(&self) -> TemporalResult<u8> {
-        self.calendar.month(&CalendarDateLike::Date(self))
+        self.calendar.month(&self.iso)
     }
 
     /// Returns the calendar month code value.
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar.month_code(&CalendarDateLike::Date(self))
+        self.calendar.month_code(&self.iso)
     }
 
     /// Returns the calendar day value.
     pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar.day(&CalendarDateLike::Date(self))
+        self.calendar.day(&self.iso)
     }
 
     /// Returns the calendar day of week value.
     pub fn day_of_week(&self) -> TemporalResult<u16> {
-        self.calendar.day_of_week(&CalendarDateLike::Date(self))
+        self.calendar.day_of_week(&self.iso)
     }
 
     /// Returns the calendar day of year value.
     pub fn day_of_year(&self) -> TemporalResult<u16> {
-        self.calendar.day_of_year(&CalendarDateLike::Date(self))
+        self.calendar.day_of_year(&self.iso)
     }
 
     /// Returns the calendar week of year value.
     pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
-        self.calendar.week_of_year(&CalendarDateLike::Date(self))
+        self.calendar.week_of_year(&self.iso)
     }
 
     /// Returns the calendar year of week value.
     pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
-        self.calendar.year_of_week(&CalendarDateLike::Date(self))
+        self.calendar.year_of_week(&self.iso)
     }
 
     /// Returns the calendar days in week value.
     pub fn days_in_week(&self) -> TemporalResult<u16> {
-        self.calendar.days_in_week(&CalendarDateLike::Date(self))
+        self.calendar.days_in_week(&self.iso)
     }
 
     /// Returns the calendar days in month value.
     pub fn days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar.days_in_month(&CalendarDateLike::Date(self))
+        self.calendar.days_in_month(&self.iso)
     }
 
     /// Returns the calendar days in year value.
     pub fn days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar.days_in_year(&CalendarDateLike::Date(self))
+        self.calendar.days_in_year(&self.iso)
     }
 
     /// Returns the calendar months in year value.
     pub fn months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar.months_in_year(&CalendarDateLike::Date(self))
+        self.calendar.months_in_year(&self.iso)
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
-        self.calendar.in_leap_year(&CalendarDateLike::Date(self))
+        self.calendar.in_leap_year(&self.iso)
     }
 
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
-        self.calendar.era(&CalendarDateLike::Date(self))
+        self.calendar.era(&self.iso)
     }
 
     pub fn era_year(&self) -> TemporalResult<Option<i32>> {
-        self.calendar.era_year(&CalendarDateLike::Date(self))
+        self.calendar.era_year(&self.iso)
     }
 }
 
@@ -570,13 +566,13 @@ impl PlainDate {
     pub fn to_date_time(&self, time: Option<PlainTime>) -> TemporalResult<PlainDateTime> {
         let time = time.unwrap_or_default();
         let iso = IsoDateTime::new(self.iso, time.iso)?;
-        Ok(PlainDateTime::new_unchecked(iso, self.get_calendar()))
+        Ok(PlainDateTime::new_unchecked(iso, self.calendar().clone()))
     }
 
     /// Converts the current `Date<C>` into a `PlainYearMonth`
     #[inline]
     pub fn to_year_month(&self) -> TemporalResult<PlainYearMonth> {
-        self.get_calendar().year_month_from_partial(
+        self.calendar().year_month_from_partial(
             &PartialDate::default().with_fallback_date(self)?,
             ArithmeticOverflow::Constrain,
         )
@@ -585,7 +581,7 @@ impl PlainDate {
     /// Converts the current `Date<C>` into a `PlainMonthDay`
     #[inline]
     pub fn to_month_day(&self) -> TemporalResult<PlainMonthDay> {
-        self.get_calendar().month_day_from_partial(
+        self.calendar().month_day_from_partial(
             &PartialDate::default().with_fallback_date(self)?,
             ArithmeticOverflow::Constrain,
         )
@@ -601,12 +597,6 @@ impl PlainDate {
 }
 
 // ==== Trait impls ====
-
-impl GetTemporalCalendar for PlainDate {
-    fn get_calendar(&self) -> Calendar {
-        self.calendar.clone()
-    }
-}
 
 impl From<PlainDateTime> for PlainDate {
     fn from(value: PlainDateTime) -> Self {
@@ -740,7 +730,7 @@ mod tests {
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert!(result.is_err());
 
-        let min = PlainDate::try_new(-271_821, 4, 21, Calendar::default()).unwrap();
+        let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert_eq!(
             result,
@@ -748,7 +738,7 @@ mod tests {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
-                    day: 20
+                    day: 19
                 },
                 calendar: Calendar::default(),
             })

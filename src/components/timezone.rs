@@ -8,13 +8,14 @@ use core::{iter::Peekable, str::Chars};
 use num_traits::ToPrimitive;
 
 use crate::components::duration::DateDuration;
-use crate::Calendar;
+use crate::parsers::{FormattableOffset, FormattableTime, Precision};
 use crate::{
     components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
     TemporalError, TemporalResult, ZonedDateTime,
 };
+use crate::{Calendar, Sign};
 
 #[cfg(feature = "experimental")]
 use crate::tzdb::FsTzdbProvider;
@@ -38,7 +39,9 @@ pub struct TimeZoneOffset {
 
 // NOTE: It may be a good idea to eventually move this into it's
 // own individual crate rather than having it tied directly into `temporal_rs`
-pub trait TzProvider {
+/// The `TimeZoneProvider` trait provides methods required for a provider
+/// to implement in order to source time zone data from that provider.
+pub trait TimeZoneProvider {
     fn check_identifier(&self, identifier: &str) -> bool;
 
     fn get_named_tz_epoch_nanoseconds(
@@ -56,7 +59,7 @@ pub trait TzProvider {
 
 pub struct NeverProvider;
 
-impl TzProvider for NeverProvider {
+impl TimeZoneProvider for NeverProvider {
     fn check_identifier(&self, _: &str) -> bool {
         unimplemented!()
     }
@@ -74,6 +77,9 @@ impl TzProvider for NeverProvider {
     }
 }
 
+// TODO: Potentially migrate to Cow<'a, str>
+// TODO: There may be an argument to have Offset minutes be a (Cow<'a, str>,, i16) to
+// prevent allocations / writing, TBD
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TimeZone {
     IanaIdentifier(String),
@@ -92,7 +98,7 @@ impl TimeZone {
     /// Parses a `TimeZone` from a provided `&str`.
     pub fn try_from_str_with_provider(
         source: &str,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         if source == "Z" {
             return Ok(Self::OffsetMinutes(0));
@@ -123,7 +129,7 @@ impl TimeZone {
     pub(crate) fn get_iso_datetime_for(
         &self,
         instant: &Instant,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<IsoDateTime> {
         let nanos = self.get_offset_nanos_for(instant.as_i128(), provider)?;
         IsoDateTime::from_epoch_nanos(&instant.as_i128(), nanos.to_i64().unwrap_or(0))
@@ -135,7 +141,7 @@ impl TimeZone {
     pub fn get_offset_nanos_for(
         &self,
         utc_epoch: i128,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<i128> {
         // 1. Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         match self {
@@ -152,7 +158,7 @@ impl TimeZone {
         &self,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
         let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
@@ -164,7 +170,7 @@ impl TimeZone {
     pub fn get_possible_epoch_ns_for(
         &self,
         iso: IsoDateTime,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let possible_nanoseconds = match self {
@@ -216,8 +222,31 @@ impl TimeZone {
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
-    pub fn id(&self) -> TemporalResult<String> {
-        Err(TemporalError::range().with_message("Not yet implemented."))
+    pub fn identifier(&self) -> TemporalResult<String> {
+        match self {
+            TimeZone::IanaIdentifier(s) => Ok(s.clone()),
+            TimeZone::OffsetMinutes(m) => {
+                let sign = if *m < 0 {
+                    Sign::Negative
+                } else {
+                    Sign::Positive
+                };
+                let hour = (m.abs() / 60) as u8;
+                let minute = (m.abs() % 60) as u8;
+                let formattable_offset = FormattableOffset {
+                    sign,
+                    time: FormattableTime {
+                        hour,
+                        minute,
+                        second: 0,
+                        nanosecond: 0,
+                        precision: Precision::Minute,
+                        include_sep: true,
+                    },
+                };
+                Ok(formattable_offset.to_string())
+            }
+        }
     }
 }
 
@@ -228,7 +257,7 @@ impl TimeZone {
         nanos: Vec<EpochNanoseconds>,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let n be possibleEpochNs's length.
         let n = nanos.len();
@@ -357,7 +386,7 @@ impl TimeZone {
     pub(crate) fn get_start_of_day(
         &self,
         iso_date: &IsoDate,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let isoDateTime be CombineISODateAndTimeRecord(isoDate, MidnightTimeRecord()).
         let iso = IsoDateTime::new_unchecked(*iso_date, IsoTime::default());
@@ -474,4 +503,26 @@ fn non_ascii_digit() -> TemporalError {
 
 fn is_ascii_sign(ch: &char) -> bool {
     *ch == '+' || *ch == '-'
+}
+
+#[cfg(all(test, feature = "tzdb"))]
+mod tests {
+    use super::TimeZone;
+    use crate::tzdb::FsTzdbProvider;
+
+    #[test]
+    fn from_and_to_string() {
+        let provider = &FsTzdbProvider::default();
+        let src = "+09:30";
+        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+
+        let src = "-09:30";
+        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+
+        let src = "-12:30";
+        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+    }
 }

@@ -6,7 +6,7 @@ use num_traits::{AsPrimitive, Euclid, FromPrimitive};
 
 use crate::{
     components::{
-        timezone::{TimeZone, TzProvider},
+        timezone::{TimeZone, TimeZoneProvider},
         PlainDate, PlainDateTime,
     },
     iso::{IsoDate, IsoDateTime},
@@ -26,8 +26,8 @@ const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 // Nanoseconds constants
 
 const NS_PER_DAY_128BIT: i128 = NS_PER_DAY as i128;
-const NANOSECONDS_PER_MINUTE: f64 = 60.0 * 1e9;
-const NANOSECONDS_PER_HOUR: f64 = 60.0 * 60.0 * 1e9;
+const NANOSECONDS_PER_MINUTE: i128 = 60 * 1_000_000_000;
+const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 
 // ==== NormalizedTimeDuration ====
 //
@@ -39,17 +39,17 @@ const NANOSECONDS_PER_HOUR: f64 = 60.0 * 60.0 * 1e9;
 
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
-pub struct NormalizedTimeDuration(pub(crate) i128);
+pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
 
 impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
-        // TODO: Determine if there is a loss in precision from casting. If so, times by 1,000 (calculate in picoseconds) than truncate?
-        let mut nanoseconds: i128 = (time.hours.0 * NANOSECONDS_PER_HOUR) as i128;
-        nanoseconds += (time.minutes.0 * NANOSECONDS_PER_MINUTE) as i128;
-        nanoseconds += (time.seconds.0 * 1_000_000_000.0) as i128;
-        nanoseconds += (time.milliseconds.0 * 1_000_000.0) as i128;
-        nanoseconds += (time.microseconds.0 * 1_000.0) as i128;
+        // Note: Calculations must be done after casting to `i128` in order to preserve precision
+        let mut nanoseconds: i128 = time.hours.0 as i128 * NANOSECONDS_PER_HOUR;
+        nanoseconds += time.minutes.0 as i128 * NANOSECONDS_PER_MINUTE;
+        nanoseconds += time.seconds.0 as i128 * 1_000_000_000;
+        nanoseconds += time.milliseconds.0 as i128 * 1_000_000;
+        nanoseconds += time.microseconds.0 as i128 * 1_000;
         nanoseconds += time.nanoseconds.0 as i128;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
@@ -256,8 +256,9 @@ impl NormalizedDurationRecord {
     /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
     pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
         if date.sign() != Sign::Zero && norm.sign() != Sign::Zero && date.sign() != norm.sign() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration and NormalizedTimeDuration must agree."));
+            return Err(TemporalError::range().with_message(
+                "DateDuration and NormalizedTimeDuration must agree if both are not zero.",
+            ));
         }
         Ok(Self { date, norm })
     }
@@ -302,7 +303,7 @@ impl NormalizedDurationRecord {
         sign: Sign,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TzProvider)>, // ???
+        tz: Option<(&TimeZone, &impl TimeZoneProvider)>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
         // NOTE: r2 may never be used...need to test.
@@ -594,7 +595,7 @@ impl NormalizedDurationRecord {
         dt: &PlainDateTime,
         tz: &TimeZone,
         options: ResolvedRoundingOptions,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NudgeRecord> {
         let d = Duration::from(self.date());
         // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
@@ -762,7 +763,7 @@ impl NormalizedDurationRecord {
         sign: Sign,
         nudge_epoch_ns: i128,
         date_time: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TzProvider)>,
+        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
         largest_unit: TemporalUnit,
         smallest_unit: TemporalUnit,
     ) -> TemporalResult<NormalizedDurationRecord> {
@@ -778,18 +779,18 @@ impl NormalizedDurationRecord {
         // 4. Let largestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains largestUnit.
         // 5. Let smallestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains smallestUnit.
         // 6. Let unitIndex be smallestUnitIndex - 1.
-        let mut unit = smallest_unit + 1;
+        let mut smallest_unit = smallest_unit + 1;
         // 7. Let done be false.
         // 8. Repeat, while unitIndex ≤ largestUnitIndex and done is false,
-        while unit != TemporalUnit::Auto && unit <= largest_unit {
+        while smallest_unit != TemporalUnit::Auto && largest_unit < smallest_unit {
             // a. Let unit be the value in the "Singular" column of Table 22 in the row whose ordinal index is unitIndex.
             // b. If unit is not "week", or largestUnit is "week", then
-            if unit == TemporalUnit::Week || largest_unit != TemporalUnit::Week {
-                unit = unit + 1;
+            if smallest_unit == TemporalUnit::Week || largest_unit != TemporalUnit::Week {
+                smallest_unit = smallest_unit + 1;
                 continue;
             }
 
-            let end_duration = match unit {
+            let end_duration = match smallest_unit {
                 // i. If unit is "year", then
                 TemporalUnit::Year => {
                     // 1. Let years be duration.[[Years]] + sign.
@@ -887,7 +888,7 @@ impl NormalizedDurationRecord {
                 break;
             }
             // c. Set unitIndex to unitIndex - 1.
-            unit = unit + 1;
+            smallest_unit = smallest_unit + 1;
         }
 
         Ok(duration)
@@ -900,7 +901,7 @@ impl NormalizedDurationRecord {
         &self,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        timezone_record: Option<(&TimeZone, &impl TzProvider)>,
+        timezone_record: Option<(&TimeZone, &impl TimeZoneProvider)>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. Let irregularLengthUnit be false.

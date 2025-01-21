@@ -507,8 +507,7 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 [[package]]
 name = "ixdtf"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb6cd1080e64f68b07c577e3c687f4a894b3d1bd6093cb36b55c7bd07675aa3a"
+source = "git+https://github.com/unicode-org/icu4x.git?rev=3d187da4d3f05b7e37603c4be3f2c1ce45100e03#3d187da4d3f05b7e37603c4be3f2c1ce45100e03"
 dependencies = [
  "displaydoc",
  "utf8_iter",
@@ -516,9 +515,9 @@ dependencies = [
 
 [[package]]
 name = "jiff-tzdb"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "91335e575850c5c4c673b9bd467b0e025f164ca59d0564f69d0c2ee0ffad4653"
+checksum = "cf2cec2f5d266af45a071ece48b1fb89f3b00b2421ac3a5fe10285a6caaa60d3"
 
 [[package]]
 name = "js-sys"
@@ -555,9 +554,9 @@ checksum = "4ee93343901ab17bd981295f2cf0026d4ad018c7c31ba84549a4ddbb47a45104"
 
 [[package]]
 name = "log"
-version = "0.4.22"
+version = "0.4.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
+checksum = "04cbf5b083de1c7e0222a7a51dbfdba1cbe1c6ab0b15e29fff3f6c077fd9cd9f"
 
 [[package]]
 name = "memchr"

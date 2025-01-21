@@ -30,7 +30,7 @@ pub use date::{PartialDate, PlainDate};
 #[doc(inline)]
 pub use datetime::{PartialDateTime, PlainDateTime};
 #[doc(inline)]
-pub use duration::Duration;
+pub use duration::{DateDuration, Duration, TimeDuration};
 #[doc(inline)]
 pub use instant::{EpochNanoseconds, Instant};
 #[doc(inline)]

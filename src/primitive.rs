@@ -6,6 +6,12 @@ use num_traits::{AsPrimitive, FromPrimitive, PrimInt};
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct FiniteF64(pub(crate) f64);
 
+impl core::fmt::Display for FiniteF64 {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_fmt(format_args!("{}", self.0))
+    }
+}
+
 impl FiniteF64 {
     #[inline]
     pub fn as_inner(&self) -> f64 {
@@ -50,7 +56,11 @@ impl FiniteF64 {
     }
 
     pub fn copysign(&self, other: f64) -> Self {
-        Self(self.0.copysign(other))
+        if !self.is_zero() {
+            Self(self.0.copysign(other))
+        } else {
+            *self
+        }
     }
 
     pub(crate) fn as_date_value(&self) -> TemporalResult<i32> {

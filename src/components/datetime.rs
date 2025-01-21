@@ -8,13 +8,12 @@ use crate::{
         ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
-    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 
 use super::{
-    calendar::{CalendarDateLike, GetTemporalCalendar},
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
     timezone::NeverProvider,
     Duration, PartialDate, PartialTime, PlainDate, PlainTime,
@@ -132,7 +131,7 @@ impl PlainDateTime {
         }
 
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », "nanosecond", "day").
-        let (sign, options) = ResolvedRoundingOptions::from_diff_settings(
+        let options = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
             TemporalUnit::Day,
@@ -150,9 +149,9 @@ impl PlainDateTime {
         let result = Duration::from_normalized(norm_record, options.largest_unit)?;
 
         // Step 12
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 
@@ -504,82 +503,75 @@ impl PlainDateTime {
 impl PlainDateTime {
     /// Returns the calendar year value.
     pub fn year(&self) -> TemporalResult<i32> {
-        self.calendar.year(&CalendarDateLike::DateTime(self))
+        self.calendar.year(&self.iso.date)
     }
 
     /// Returns the calendar month value.
     pub fn month(&self) -> TemporalResult<u8> {
-        self.calendar.month(&CalendarDateLike::DateTime(self))
+        self.calendar.month(&self.iso.date)
     }
 
     /// Returns the calendar month code value.
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar.month_code(&CalendarDateLike::DateTime(self))
+        self.calendar.month_code(&self.iso.date)
     }
 
     /// Returns the calendar day value.
     pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar.day(&CalendarDateLike::DateTime(self))
+        self.calendar.day(&self.iso.date)
     }
 
     /// Returns the calendar day of week value.
     pub fn day_of_week(&self) -> TemporalResult<u16> {
-        self.calendar.day_of_week(&CalendarDateLike::DateTime(self))
+        self.calendar.day_of_week(&self.iso.date)
     }
 
     /// Returns the calendar day of year value.
     pub fn day_of_year(&self) -> TemporalResult<u16> {
-        self.calendar.day_of_year(&CalendarDateLike::DateTime(self))
+        self.calendar.day_of_year(&self.iso.date)
     }
 
     /// Returns the calendar week of year value.
     pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
-        self.calendar
-            .week_of_year(&CalendarDateLike::DateTime(self))
+        self.calendar.week_of_year(&self.iso.date)
     }
 
     /// Returns the calendar year of week value.
     pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
-        self.calendar
-            .year_of_week(&CalendarDateLike::DateTime(self))
+        self.calendar.year_of_week(&self.iso.date)
     }
 
     /// Returns the calendar days in week value.
     pub fn days_in_week(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_week(&CalendarDateLike::DateTime(self))
+        self.calendar.days_in_week(&self.iso.date)
     }
 
     /// Returns the calendar days in month value.
     pub fn days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_month(&CalendarDateLike::DateTime(self))
+        self.calendar.days_in_month(&self.iso.date)
     }
 
     /// Returns the calendar days in year value.
     pub fn days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .days_in_year(&CalendarDateLike::DateTime(self))
+        self.calendar.days_in_year(&self.iso.date)
     }
 
     /// Returns the calendar months in year value.
     pub fn months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar
-            .months_in_year(&CalendarDateLike::DateTime(self))
+        self.calendar.months_in_year(&self.iso.date)
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
-        self.calendar
-            .in_leap_year(&CalendarDateLike::DateTime(self))
+        self.calendar.in_leap_year(&self.iso.date)
     }
 
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
-        self.calendar.era(&CalendarDateLike::DateTime(self))
+        self.calendar.era(&self.iso.date)
     }
 
     pub fn era_year(&self) -> TemporalResult<Option<i32>> {
-        self.calendar.era_year(&CalendarDateLike::DateTime(self))
+        self.calendar.era_year(&self.iso.date)
     }
 }
 
@@ -653,12 +645,6 @@ impl PlainDateTime {
 }
 
 // ==== Trait impls ====
-
-impl GetTemporalCalendar for PlainDateTime {
-    fn get_calendar(&self) -> Calendar {
-        self.calendar.clone()
-    }
-}
 
 impl From<PlainDate> for PlainDateTime {
     fn from(value: PlainDate) -> Self {

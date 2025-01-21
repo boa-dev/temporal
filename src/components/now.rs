@@ -9,7 +9,7 @@ use crate::{iso::IsoDateTime, TemporalUnwrap};
 
 use super::{
     calendar::Calendar,
-    timezone::{TimeZone, TzProvider},
+    timezone::{TimeZone, TimeZoneProvider},
     EpochNanoseconds, Instant, PlainDate, PlainDateTime, PlainTime, ZonedDateTime,
 };
 
@@ -54,7 +54,7 @@ impl Now {
     /// value is provided.
     pub fn plain_datetime_iso_with_provider(
         timezone: Option<TimeZone>,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainDateTime> {
         let iso = system_datetime(timezone, provider)?;
         Ok(PlainDateTime::new_unchecked(iso, Calendar::default()))
@@ -67,7 +67,7 @@ impl Now {
     /// value is provided.
     pub fn plain_date_iso_with_provider(
         timezone: Option<TimeZone>,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainDate> {
         let iso = system_datetime(timezone, provider)?;
         Ok(PlainDate::new_unchecked(iso.date, Calendar::default()))
@@ -80,7 +80,7 @@ impl Now {
     /// value is provided.
     pub fn plain_time_iso_with_provider(
         timezone: Option<TimeZone>,
-        provider: &impl TzProvider,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainTime> {
         let iso = system_datetime(timezone, provider)?;
         Ok(PlainTime::new_unchecked(iso.time))
@@ -113,7 +113,7 @@ impl Now {
 
 fn system_datetime(
     tz: Option<TimeZone>,
-    provider: &impl TzProvider,
+    provider: &impl TimeZoneProvider,
 ) -> TemporalResult<IsoDateTime> {
     // 1. If temporalTimeZoneLike is undefined, then
     // a. Let timeZone be SystemTimeZoneIdentifier().

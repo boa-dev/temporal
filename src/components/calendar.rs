@@ -5,7 +5,6 @@
 
 // TODO: It may finally be time to clean up API to use `IsoDate` and `DateDuration` directly.
 
-use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::vec::Vec;
 use core::str::FromStr;
@@ -18,6 +17,7 @@ use crate::{
     },
     iso::IsoDate,
     options::{ArithmeticOverflow, TemporalUnit},
+    parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
 
@@ -201,71 +201,15 @@ impl Calendar {
 impl FromStr for Calendar {
     type Err = TemporalError;
 
-    // 13.39 ParseTemporalCalendarString ( string )
+    // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Some(s) = parse_allowed_calendar_formats(s) {
+            return s
+                .map(Calendar::from_utf8)
+                .unwrap_or(Ok(Calendar::default()));
+        }
         Calendar::from_utf8(s.as_bytes())
     }
-}
-
-// TODO: Potentially dead code.
-/// Designate the type of `CalendarFields` needed
-#[derive(Debug, Clone, Copy)]
-pub enum CalendarFieldsType {
-    /// Whether the Fields should return for a PlainDate.
-    Date,
-    /// Whether the Fields should return for a PlainYearMonth.
-    YearMonth,
-    /// Whether the Fields should return for a PlainMonthDay.
-    MonthDay,
-}
-
-// TODO: Optimize to TinyStr or &str.
-impl From<&[String]> for CalendarFieldsType {
-    fn from(value: &[String]) -> Self {
-        let year_present = value.contains(&"year".to_owned());
-        let day_present = value.contains(&"day".to_owned());
-
-        if year_present && day_present {
-            CalendarFieldsType::Date
-        } else if year_present {
-            CalendarFieldsType::YearMonth
-        } else {
-            CalendarFieldsType::MonthDay
-        }
-    }
-}
-
-/// The `DateLike` objects that can be provided to the `CalendarProtocol`.
-#[derive(Debug)]
-pub enum CalendarDateLike<'a> {
-    /// Represents a `PlainDateTime`.
-    DateTime(&'a PlainDateTime),
-    /// Represents a `PlainDate`.
-    Date(&'a PlainDate),
-    /// Represents a `PlainYearMonth`.
-    YearMonth(&'a PlainYearMonth),
-    /// Represents a `PlainMonthDay`.
-    MonthDay(&'a PlainMonthDay),
-}
-
-impl CalendarDateLike<'_> {
-    /// Retrieves the internal `IsoDate` field.
-    #[inline]
-    #[must_use]
-    pub fn as_iso_date(&self) -> IsoDate {
-        match self {
-            CalendarDateLike::DateTime(dt) => dt.iso.date,
-            CalendarDateLike::Date(d) => d.iso,
-            CalendarDateLike::YearMonth(ym) => ym.iso,
-            CalendarDateLike::MonthDay(md) => md.iso,
-        }
-    }
-}
-
-/// A trait for retrieving an internal calendar slice.
-pub trait GetTemporalCalendar {
-    /// Returns the `TemporalCalendar` value of the implementor.
-    fn get_calendar(&self) -> Calendar;
 }
 
 // ==== Public `CalendarSlot` methods ====
@@ -422,84 +366,80 @@ impl Calendar {
     }
 
     /// `CalendarEra`
-    pub fn era(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+    pub fn era(&self, iso_date: &IsoDate) -> TemporalResult<Option<TinyAsciiStr<16>>> {
         if self.is_iso() {
             return Ok(None);
         }
-        let calendar_date = self.0.date_from_iso(date_like.as_iso_date().as_icu4x()?);
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
         Ok(self.0.year(&calendar_date).standard_era().map(|era| era.0))
     }
 
     /// `CalendarEraYear`
-    pub fn era_year(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<i32>> {
+    pub fn era_year(&self, iso_date: &IsoDate) -> TemporalResult<Option<i32>> {
         if self.is_iso() {
             return Ok(None);
         }
-        let calendar_date = self.0.date_from_iso(date_like.as_iso_date().as_icu4x()?);
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
         Ok(self.0.year(&calendar_date).era_year())
     }
 
     /// `CalendarYear`
-    pub fn year(&self, date_like: &CalendarDateLike) -> TemporalResult<i32> {
+    pub fn year(&self, iso_date: &IsoDate) -> TemporalResult<i32> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().year);
+            return Ok(iso_date.year);
         }
-        let calendar_date = self.0.date_from_iso(date_like.as_iso_date().as_icu4x()?);
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
         Ok(self.0.year(&calendar_date).extended_year)
     }
 
     /// `CalendarMonth`
-    pub fn month(&self, date_like: &CalendarDateLike) -> TemporalResult<u8> {
+    pub fn month(&self, iso_date: &IsoDate) -> TemporalResult<u8> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().month);
+            return Ok(iso_date.month);
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarMonthCode`
-    pub fn month_code(&self, date_like: &CalendarDateLike) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self, iso_date: &IsoDate) -> TemporalResult<TinyAsciiStr<4>> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().as_icu4x()?.month().standard_code.0);
+            return Ok(iso_date.as_icu4x()?.month().standard_code.0);
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarDay`
-    pub fn day(&self, date_like: &CalendarDateLike) -> TemporalResult<u8> {
+    pub fn day(&self, iso_date: &IsoDate) -> TemporalResult<u8> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().day);
+            return Ok(iso_date.day);
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarDayOfWeek`
-    pub fn day_of_week(&self, date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn day_of_week(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().as_icu4x()?.day_of_week() as u16);
+            return Ok(iso_date.as_icu4x()?.day_of_week() as u16);
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarDayOfYear`
-    pub fn day_of_year(&self, date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn day_of_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
-            return Ok(date_like
-                .as_iso_date()
-                .as_icu4x()?
-                .day_of_year_info()
-                .day_of_year);
+            return Ok(iso_date.as_icu4x()?.day_of_year_info().day_of_year);
         }
         Err(TemporalError::range().with_message("Not yet implemented."))?
     }
 
     /// `CalendarWeekOfYear`
-    pub fn week_of_year(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<u16>> {
+    pub fn week_of_year(&self, iso_date: &IsoDate) -> TemporalResult<Option<u16>> {
         if self.is_iso() {
-            let date = date_like.as_iso_date().as_icu4x()?;
+            let date = iso_date.as_icu4x()?;
 
             let week_calculator = WeekCalculator::default();
 
@@ -511,9 +451,9 @@ impl Calendar {
     }
 
     /// `CalendarYearOfWeek`
-    pub fn year_of_week(&self, date_like: &CalendarDateLike) -> TemporalResult<Option<i32>> {
+    pub fn year_of_week(&self, iso_date: &IsoDate) -> TemporalResult<Option<i32>> {
         if self.is_iso() {
-            let date = date_like.as_iso_date().as_icu4x()?;
+            let date = iso_date.as_icu4x()?;
 
             let week_calculator = WeekCalculator::default();
 
@@ -529,7 +469,7 @@ impl Calendar {
     }
 
     /// `CalendarDaysInWeek`
-    pub fn days_in_week(&self, _date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn days_in_week(&self, _iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
             return Ok(7);
         }
@@ -537,24 +477,24 @@ impl Calendar {
     }
 
     /// `CalendarDaysInMonth`
-    pub fn days_in_month(&self, date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn days_in_month(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().as_icu4x()?.days_in_month() as u16);
+            return Ok(iso_date.as_icu4x()?.days_in_month() as u16);
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarDaysInYear`
-    pub fn days_in_year(&self, date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn days_in_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().as_icu4x()?.days_in_year());
+            return Ok(iso_date.as_icu4x()?.days_in_year());
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
     /// `CalendarMonthsInYear`
-    pub fn months_in_year(&self, _date_like: &CalendarDateLike) -> TemporalResult<u16> {
+    pub fn months_in_year(&self, _iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
             return Ok(12);
         }
@@ -562,9 +502,9 @@ impl Calendar {
     }
 
     /// `CalendarInLeapYear`
-    pub fn in_leap_year(&self, date_like: &CalendarDateLike) -> TemporalResult<bool> {
+    pub fn in_leap_year(&self, iso_date: &IsoDate) -> TemporalResult<bool> {
         if self.is_iso() {
-            return Ok(date_like.as_iso_date().as_icu4x()?.is_in_leap_year());
+            return Ok(iso_date.as_icu4x()?.is_in_leap_year());
         }
         Err(TemporalError::range().with_message("Not yet implemented."))
     }

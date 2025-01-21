@@ -4,7 +4,7 @@
 //! operation may be completed.
 
 use crate::parsers::Precision;
-use crate::{Sign, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
+use crate::{TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
 use core::ops::Add;
 use core::{fmt, str::FromStr};
 
@@ -179,22 +179,18 @@ impl ResolvedRoundingOptions {
         operation: DifferenceOperation,
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
-    ) -> TemporalResult<(Sign, Self)> {
+    ) -> TemporalResult<Self> {
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         let increment = options.increment.unwrap_or_default();
-        let (sign, rounding_mode) = match operation {
-            DifferenceOperation::Since => {
-                let mode = options
-                    .rounding_mode
-                    .unwrap_or(TemporalRoundingMode::Trunc)
-                    .negate();
-                (Sign::Negative, mode)
+        let rounding_mode = match operation {
+            DifferenceOperation::Since => options
+                .rounding_mode
+                .unwrap_or(TemporalRoundingMode::Trunc)
+                .negate(),
+            DifferenceOperation::Until => {
+                options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc)
             }
-            DifferenceOperation::Until => (
-                Sign::Positive,
-                options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc),
-            ),
         };
         let smallest_unit = options.smallest_unit.unwrap_or(fallback_smallest);
         // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
@@ -223,7 +219,7 @@ impl ResolvedRoundingOptions {
             rounding_mode,
         };
 
-        Ok((sign, resolved))
+        Ok(resolved)
     }
 
     pub(crate) fn from_duration_options(

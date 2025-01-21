@@ -94,8 +94,10 @@ pub mod time {
 }
 
 pub use crate::components::{
-    calendar::Calendar, timezone::TimeZone, Duration, Instant, PlainDate, PlainDateTime,
-    PlainMonthDay, PlainTime, PlainYearMonth, ZonedDateTime,
+    calendar::Calendar,
+    timezone::{TimeZone, TimeZoneProvider},
+    DateDuration, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    PlainYearMonth, TimeDuration, ZonedDateTime,
 };
 
 #[cfg(feature = "std")]
