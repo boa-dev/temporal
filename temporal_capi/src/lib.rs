@@ -1,4 +1,5 @@
 #![allow(unused)] // Until we add all the APIs
+#![warn(unused_imports)] // But we want to clean up imports
 #![allow(clippy::needless_lifetimes)] // Diplomat requires explicit lifetimes at times
 
 mod calendar;
