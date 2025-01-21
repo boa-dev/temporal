@@ -9,8 +9,8 @@ use crate::{
     },
     iso::IsoDateTime,
     options::{
-        DifferenceOperation, DifferenceSettings, DisplayOffset,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -283,7 +283,8 @@ impl FromStr for Instant {
                 (offset.hour as i64 * NANOSECONDS_PER_HOUR
                     + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
                     + i64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + i64::from(offset.nanosecond)) * offset.sign as i64
+                    + i64::from(offset.nanosecond))
+                    * offset.sign as i64
             }
             UtcOffsetRecordOrZ::Z => 0,
         };
@@ -302,8 +303,7 @@ impl FromStr for Instant {
             nanosecond as i64 - offset,
         );
 
-        let nanoseconds = balanced
-            .as_nanoseconds()?;
+        let nanoseconds = balanced.as_nanoseconds()?;
 
         Ok(Self(nanoseconds))
     }
