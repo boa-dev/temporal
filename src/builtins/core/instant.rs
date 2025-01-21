@@ -271,7 +271,6 @@ impl Instant {
 
 // ==== Utility Functions ====
 
-
 impl FromStr for Instant {
     type Err = TemporalError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
