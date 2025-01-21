@@ -17,7 +17,7 @@ use super::{Duration, PartialDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainYearMonth {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
@@ -26,6 +26,18 @@ pub struct PlainYearMonth {
 impl core::fmt::Display for PlainYearMonth {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
+    }
+}
+
+impl Ord for PlainYearMonth {
+    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
+        self.iso.cmp(&other.iso)
+    }
+}
+
+impl PartialOrd for PlainYearMonth {
+    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
