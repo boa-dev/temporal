@@ -8,6 +8,10 @@ pub mod ffi {
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar};
+    use crate::plain_date_time::ffi::PlainDateTime;
+    use crate::plain_month_day::ffi::PlainMonthDay;
+    use crate::plain_time::ffi::PlainTime;
+    use crate::plain_year_month::ffi::PlainYearMonth;
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
     use std::fmt::Write;
 
@@ -209,8 +213,29 @@ pub mod ffi {
             self.0.era_year().map_err(Into::into)
         }
 
-        // TODO conversions (needs other date/time types)
+        pub fn to_date_time(
+            &self,
+            time: Option<&PlainTime>,
+        ) -> Result<Box<PlainDateTime>, TemporalError> {
+            self.0
+                .to_date_time(time.map(|t| t.0))
+                .map(|x| Box::new(PlainDateTime(x)))
+                .map_err(Into::into)
+        }
 
+        pub fn to_month_day(&self) -> Result<Box<PlainMonthDay>, TemporalError> {
+            self.0
+                .to_month_day()
+                .map(|x| Box::new(PlainMonthDay(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn to_year_month(&self) -> Result<Box<PlainYearMonth>, TemporalError> {
+            self.0
+                .to_year_month()
+                .map(|x| Box::new(PlainYearMonth(x)))
+                .map_err(Into::into)
+        }
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,

@@ -250,7 +250,6 @@ pub mod ffi {
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
-        //     // TODO conversions (needs other date/time types)
 
         pub fn to_ixdtf_string(
             &self,
