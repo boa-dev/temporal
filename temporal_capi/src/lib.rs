@@ -6,4 +6,5 @@ mod error;
 mod options;
 
 mod plain_date;
+mod plain_date_time;
 mod plain_time;
