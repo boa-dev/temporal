@@ -1,3 +1,5 @@
+use crate::error::ffi::TemporalError;
+
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
@@ -97,10 +99,24 @@ pub mod ffi {
         pub precision: DiplomatOption<u8>,
     }
 
+    pub struct RoundingOptions {
+        pub largest_unit: DiplomatOption<TemporalUnit>,
+        pub smallest_unit: DiplomatOption<TemporalUnit>,
+        pub rounding_mode: DiplomatOption<TemporalRoundingMode>,
+        pub increment: DiplomatOption<u32>,
+    }
+
     pub struct ToStringRoundingOptions {
         pub precision: Precision,
         pub smallest_unit: DiplomatOption<TemporalUnit>,
         pub rounding_mode: DiplomatOption<TemporalRoundingMode>,
+    }
+
+    pub struct DifferenceSettings {
+        pub largest_unit: DiplomatOption<TemporalUnit>,
+        pub smallest_unit: DiplomatOption<TemporalUnit>,
+        pub rounding_mode: DiplomatOption<TemporalRoundingMode>,
+        pub increment: DiplomatOption<u32>,
     }
 }
 
@@ -123,5 +139,32 @@ impl From<ffi::ToStringRoundingOptions> for temporal_rs::options::ToStringRoundi
             smallest_unit: other.smallest_unit.into_converted_option(),
             rounding_mode: other.rounding_mode.into_converted_option(),
         }
+    }
+}
+
+impl TryFrom<ffi::DifferenceSettings> for temporal_rs::options::DifferenceSettings {
+    type Error = TemporalError;
+    fn try_from(other: ffi::DifferenceSettings) -> Result<Self, TemporalError> {
+        let mut ret = Self::default();
+        ret.largest_unit = other.largest_unit.into_converted_option();
+        ret.smallest_unit = other.smallest_unit.into_converted_option();
+        ret.rounding_mode = other.rounding_mode.into_converted_option();
+        if let Some(increment) = other.increment.into() {
+            ret.increment = Some(temporal_rs::options::RoundingIncrement::try_new(increment)?);
+        }
+        Ok(ret)
+    }
+}
+impl TryFrom<ffi::RoundingOptions> for temporal_rs::options::RoundingOptions {
+    type Error = TemporalError;
+    fn try_from(other: ffi::RoundingOptions) -> Result<Self, TemporalError> {
+        let mut ret = Self::default();
+        ret.largest_unit = other.largest_unit.into_converted_option();
+        ret.smallest_unit = other.smallest_unit.into_converted_option();
+        ret.rounding_mode = other.rounding_mode.into_converted_option();
+        if let Some(increment) = other.increment.into() {
+            ret.increment = Some(temporal_rs::options::RoundingIncrement::try_new(increment)?);
+        }
+        Ok(ret)
     }
 }

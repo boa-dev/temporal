@@ -5,8 +5,9 @@ use crate::error::ffi::TemporalError;
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::calendar::ffi::Calendar;
+    use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
-    use crate::options::ffi::{ArithmeticOverflow, DisplayCalendar};
+    use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar};
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
     use std::fmt::Write;
 
@@ -111,7 +112,46 @@ pub mod ffi {
             self.0.days_until(&other.0)
         }
 
-        // TODO date arithmetic (needs duration types)
+        pub fn add(
+            &self,
+            duration: &Duration,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .add(&duration.0, overflow.map(Into::into))
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn subtract(
+            &self,
+            duration: &Duration,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .subtract(&duration.0, overflow.map(Into::into))
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn until(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .until(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+        pub fn since(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .since(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
 
         pub fn year(&self) -> Result<i32, TemporalError> {
             self.0.year().map_err(Into::into)

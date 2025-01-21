@@ -3,7 +3,9 @@
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::calendar::ffi::Calendar;
+    use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+
     use crate::options::ffi::ArithmeticOverflow;
     use diplomat_runtime::DiplomatWrite;
     use std::fmt::Write;
@@ -84,10 +86,28 @@ pub mod ffi {
             self.0.era_year().map_err(Into::into)
         }
 
-        // TODO date arithmetic (needs duration types)
-
         pub fn calendar<'a>(&'a self) -> &'a Calendar {
             Calendar::transparent_convert(self.0.calendar())
+        }
+        pub fn add(
+            &self,
+            duration: &Duration,
+            overflow: ArithmeticOverflow,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .add_duration(&duration.0, overflow.into())
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn subtract(
+            &self,
+            duration: &Duration,
+            overflow: ArithmeticOverflow,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .subtract_duration(&duration.0, overflow.into())
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
         }
     }
 }

@@ -3,8 +3,12 @@
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
 
+    use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
-    use crate::options::ffi::{ArithmeticOverflow, ToStringRoundingOptions};
+    use crate::options::ffi::{
+        ArithmeticOverflow, DifferenceSettings, TemporalRoundingMode, TemporalUnit,
+        ToStringRoundingOptions,
+    };
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
     use std::fmt::Write;
 
@@ -91,8 +95,71 @@ pub mod ffi {
             self.0.nanosecond()
         }
 
-        // TODO date arithmetic (needs duration types)
-
+        pub fn add(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .add(&duration.0)
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn subtract(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .subtract(&duration.0)
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn add_time_duration(
+            &self,
+            duration: &TimeDuration,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .add_time_duration(&duration.0)
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn subtract_time_duration(
+            &self,
+            duration: &TimeDuration,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .subtract_time_duration(&duration.0)
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn until(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .until(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+        pub fn since(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .since(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+        pub fn round(
+            &self,
+            smallest_unit: TemporalUnit,
+            rounding_increment: Option<f64>,
+            rounding_mode: Option<TemporalRoundingMode>,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .round(
+                    smallest_unit.into(),
+                    rounding_increment,
+                    rounding_mode.map(Into::into),
+                )
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
         pub fn to_ixdtf_string(
             &self,
             options: ToStringRoundingOptions,
