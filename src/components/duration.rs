@@ -880,7 +880,7 @@ impl FromStr for Duration {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let parse_record = IsoDurationParser::from_str(s)
             .parse()
-            .map_err(|e| TemporalError::general(format!("{e}")))?;
+            .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
