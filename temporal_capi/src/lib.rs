@@ -3,6 +3,7 @@
 #![allow(clippy::needless_lifetimes)] // Diplomat requires explicit lifetimes at times
 
 mod calendar;
+mod duration;
 mod error;
 mod options;
 
