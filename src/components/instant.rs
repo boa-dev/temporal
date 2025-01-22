@@ -4,7 +4,7 @@ use alloc::string::String;
 use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
-    builtins::core::{
+    components::{
         duration::TimeDuration, zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -14,22 +14,58 @@ use crate::{
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
-    provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
-    time::EpochNanoseconds,
-    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    TemporalError, TemporalResult, TemporalUnwrap, TimeZone, NS_MAX_INSTANT,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
+use num_traits::FromPrimitive;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    timezone::TimeZoneProvider,
     DateDuration,
 };
 
 const NANOSECONDS_PER_SECOND: i128 = 1_000_000_000;
 const NANOSECONDS_PER_MINUTE: i128 = 60 * NANOSECONDS_PER_SECOND;
 const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct EpochNanoseconds(pub(crate) i128);
+
+impl TryFrom<i128> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: i128) -> Result<Self, Self::Error> {
+        if !is_valid_epoch_nanos(&value) {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        }
+        Ok(Self(value))
+    }
+}
+
+impl TryFrom<u128> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: u128) -> Result<Self, Self::Error> {
+        if (NS_MAX_INSTANT as u128) < value {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        }
+        Ok(Self(value as i128))
+    }
+}
+
+impl TryFrom<f64> for EpochNanoseconds {
+    type Error = TemporalError;
+    fn try_from(value: f64) -> Result<Self, Self::Error> {
+        let Some(value) = i128::from_f64(value) else {
+            return Err(TemporalError::range()
+                .with_message("Instant nanoseconds are not within a valid epoch range."));
+        };
+        Self::try_from(value)
+    }
+}
 
 /// The native Rust implementation of `Temporal.Instant`
 #[non_exhaustive]
@@ -236,7 +272,7 @@ impl Instant {
 // ==== Instant Provider API ====
 
 impl Instant {
-    pub fn as_ixdtf_string_with_provider(
+    pub fn to_ixdtf_string_with_provider(
         &self,
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
@@ -269,6 +305,13 @@ impl Instant {
 }
 
 // ==== Utility Functions ====
+
+/// Utility for determining if the nanos are within a valid range.
+#[inline]
+#[must_use]
+pub(crate) fn is_valid_epoch_nanos(nanos: &i128) -> bool {
+    (crate::NS_MIN_INSTANT..=crate::NS_MAX_INSTANT).contains(nanos)
+}
 
 impl FromStr for Instant {
     type Err = TemporalError;
@@ -315,7 +358,7 @@ impl FromStr for Instant {
 mod tests {
 
     use crate::{
-        builtins::core::{duration::TimeDuration, Instant},
+        components::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
         primitive::FiniteF64,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
@@ -521,9 +564,9 @@ mod tests {
     #[cfg(feature = "tzdb")]
     #[test]
     fn instant_add_across_epoch() {
-        use crate::builtins::core::Duration;
         use crate::{
             options::ToStringRoundingOptions, partial::PartialDuration, tzdb::FsTzdbProvider,
+            Duration,
         };
         use core::str::FromStr;
 
@@ -581,13 +624,13 @@ mod tests {
         // Assert the to_string is valid.
         let provider = &FsTzdbProvider::default();
         let inst_string = instant
-            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
         let one_string = one
-            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
         let two_string = two
-            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
 
         assert_eq!(&inst_string, "1969-12-25T12:23:45.678901234Z");

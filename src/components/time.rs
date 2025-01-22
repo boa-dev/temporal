@@ -1,7 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    builtins::core::{duration::TimeDuration, Duration},
+    components::{duration::TimeDuration, Duration},
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
@@ -434,7 +434,7 @@ impl PlainTime {
         Ok(Self::new_unchecked(result))
     }
 
-    pub fn as_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+    pub fn to_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         let resolved = options.resolve()?;
         let (_, result) = self
             .iso
@@ -470,7 +470,7 @@ impl FromStr for PlainTime {
 #[cfg(test)]
 mod tests {
     use crate::{
-        builtins::core::Duration,
+        components::Duration,
         iso::IsoTime,
         options::{ArithmeticOverflow, DifferenceSettings, RoundingIncrement, TemporalUnit},
     };

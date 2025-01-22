@@ -11,7 +11,7 @@ use core::str::FromStr;
 use icu_calendar::types::{Era as IcuEra, MonthCode as IcuMonthCode, MonthInfo, YearInfo};
 
 use crate::{
-    builtins::core::{
+    components::{
         duration::{DateDuration, TimeDuration},
         Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },

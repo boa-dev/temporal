@@ -6,11 +6,12 @@ use core::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use crate::{
+    components::calendar::Calendar,
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{Duration, PartialDate};

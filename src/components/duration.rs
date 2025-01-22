@@ -1,15 +1,14 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    builtins::core::{options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
+    components::{timezone::TimeZoneProvider, PlainDateTime, PlainTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions,
-        TemporalUnit, ToStringRoundingOptions,
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,
-    provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
@@ -26,6 +25,9 @@ use num_traits::AsPrimitive;
 
 use self::normalized::NormalizedTimeDuration;
 
+#[cfg(feature = "experimental")]
+use crate::components::timezone::TZ_PROVIDER;
+
 mod date;
 pub(crate) mod normalized;
 mod time;
@@ -37,6 +39,8 @@ mod tests;
 pub use date::DateDuration;
 #[doc(inline)]
 pub use time::TimeDuration;
+
+use super::ZonedDateTime;
 
 /// A `PartialDuration` is a Duration that may have fields not set.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -87,7 +91,7 @@ impl core::fmt::Display for Duration {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(
             &self
-                .as_temporal_string(ToStringRoundingOptions::default())
+                .to_temporal_string(ToStringRoundingOptions::default())
                 .expect("Duration must return a valid string with default options."),
         )
     }
@@ -635,7 +639,7 @@ impl Duration {
         }
     }
 
-    pub fn as_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+    pub fn to_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         if options.smallest_unit == Some(TemporalUnit::Hour)
             || options.smallest_unit == Some(TemporalUnit::Minute)
         {
@@ -726,6 +730,20 @@ pub fn duration_to_formattable(
         precision,
         duration: DurationParseRecord { sign, date, time },
     })
+}
+
+#[cfg(feature = "experimental")]
+impl Duration {
+    pub fn round(
+        &self,
+        options: RoundingOptions,
+        relative_to: Option<RelativeTo>,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.round_with_provider(options, relative_to, &*provider)
+    }
 }
 
 // TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.

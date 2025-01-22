@@ -6,10 +6,11 @@ use core::str::FromStr;
 use tinystr::TinyAsciiStr;
 
 use crate::{
+    components::calendar::Calendar,
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
+    TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`

@@ -26,7 +26,7 @@ use alloc::string::ToString;
 use core::num::NonZeroU128;
 
 use crate::{
-    builtins::core::{
+    components::{
         calendar::Calendar,
         duration::{
             normalized::{NormalizedDurationRecord, NormalizedTimeDuration},

@@ -6,11 +6,10 @@ use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    builtins::core::{
-        calendar::Calendar,
+    components::{
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        timezone::{parse_offset, TimeZone},
-        Duration, Instant, PlainDate, PlainDateTime, PlainTime,
+        timezone::{parse_offset, TimeZoneProvider},
+        EpochNanoseconds,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
@@ -21,12 +20,13 @@ use crate::{
     },
     parsers::{self, IxdtfStringBuilder},
     partial::{PartialDate, PartialTime},
-    provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
-    temporal_assert,
-    time::EpochNanoseconds,
-    Sign, TemporalError, TemporalResult,
+    temporal_assert, Calendar, Duration, Instant, PlainDate, PlainDateTime, PlainTime, Sign,
+    TemporalError, TemporalResult, TimeZone,
 };
+
+#[cfg(feature = "experimental")]
+use crate::components::timezone::TZ_PROVIDER;
 
 /// A struct representing a partial `ZonedDateTime`.
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -434,9 +434,268 @@ impl ZonedDateTime {
     }
 }
 
+// ===== Experimental TZ_PROVIDER accessor implementations =====
+
+#[cfg(feature = "experimental")]
+impl ZonedDateTime {
+    pub fn year(&self) -> TemporalResult<i32> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.year_with_provider(&*provider)
+    }
+
+    pub fn month(&self) -> TemporalResult<u8> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.month_with_provider(&*provider)
+    }
+
+    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.month_code_with_provider(&*provider)
+    }
+
+    pub fn day(&self) -> TemporalResult<u8> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.day_with_provider(&*provider)
+    }
+
+    pub fn hour(&self) -> TemporalResult<u8> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.hour_with_provider(&*provider)
+    }
+
+    pub fn minute(&self) -> TemporalResult<u8> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.minute_with_provider(&*provider)
+    }
+
+    pub fn second(&self) -> TemporalResult<u8> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.second_with_provider(&*provider)
+    }
+
+    pub fn millisecond(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.millisecond_with_provider(&*provider)
+    }
+
+    pub fn microsecond(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.millisecond_with_provider(&*provider)
+    }
+
+    pub fn nanosecond(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+
+        self.millisecond_with_provider(&*provider)
+    }
+}
+
+// ==== Experimental TZ_PROVIDER calendar method implementations ====
+
+#[cfg(feature = "experimental")]
+impl ZonedDateTime {
+    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.era_with_provider(&*provider)
+    }
+
+    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.era_year_with_provider(&*provider)
+    }
+
+    /// Returns the calendar day of week value.
+    pub fn day_of_week(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.day_of_week_with_provider(&*provider)
+    }
+
+    /// Returns the calendar day of year value.
+    pub fn day_of_year(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.day_of_year_with_provider(&*provider)
+    }
+
+    /// Returns the calendar week of year value.
+    pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.week_of_year_with_provider(&*provider)
+    }
+
+    /// Returns the calendar year of week value.
+    pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.year_of_week_with_provider(&*provider)
+    }
+
+    /// Returns the calendar days in week value.
+    pub fn days_in_week(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.days_in_week_with_provider(&*provider)
+    }
+
+    /// Returns the calendar days in month value.
+    pub fn days_in_month(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.days_in_month_with_provider(&*provider)
+    }
+
+    /// Returns the calendar days in year value.
+    pub fn days_in_year(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.days_in_year_with_provider(&*provider)
+    }
+
+    /// Returns the calendar months in year value.
+    pub fn months_in_year(&self) -> TemporalResult<u16> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.months_in_year_with_provider(&*provider)
+    }
+
+    /// Returns returns whether the date in a leap year for the given calendar.
+    pub fn in_leap_year(&self) -> TemporalResult<bool> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.in_leap_year_with_provider(&*provider)
+    }
+}
+
+// ==== Experimental TZ_PROVIDER method implementations ====
+
+#[cfg(feature = "experimental")]
+impl ZonedDateTime {
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `TimeZone`.
+    pub fn with_plain_time(&self, time: PlainTime) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.with_plain_time_and_provider(time, &*provider)
+    }
+
+    pub fn add(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+
+        self.add_internal(
+            duration,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            &*provider,
+        )
+    }
+
+    pub fn subtract(
+        &self,
+        duration: &Duration,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.add_internal(
+            &duration.negated(),
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            &*provider,
+        )
+    }
+
+    pub fn start_of_day(&self) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.start_of_day_with_provider(&*provider)
+    }
+
+    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_plain_date_with_provider(&*provider)
+    }
+
+    pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_plain_time_with_provider(&*provider)
+    }
+
+    pub fn to_plain_datetime(&self) -> TemporalResult<PlainDateTime> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_plain_datetime_with_provider(&*provider)
+    }
+
+    pub fn from_str(
+        source: &str,
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        Self::from_str_with_provider(source, disambiguation, offset_option, &*provider)
+    }
+}
+
 // ==== HoursInDay accessor method implementation ====
 
 impl ZonedDateTime {
+    #[cfg(feature = "experimental")]
+    pub fn hours_in_day(&self) -> TemporalResult<u8> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.hours_in_day_with_provider(&*provider)
+    }
+
     pub fn hours_in_day_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
@@ -1035,18 +1294,20 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     Ok((sign, hour as u8, minute as u8))
 }
 
-#[cfg(all(test, feature = "tzdb", not(feature = "full")))]
+#[cfg(all(test, feature = "tzdb"))]
 mod tests {
-    use super::ZonedDateTime;
     use crate::{
         options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, TemporalUnit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
         tzdb::FsTzdbProvider,
-        Calendar, TimeZone,
+        Calendar, TimeZone, ZonedDateTime,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
+
+    #[cfg(all(feature = "experimental", not(target_os = "windows")))]
+    use crate::Duration;
 
     #[test]
     fn basic_zdt_test() {
@@ -1094,6 +1355,82 @@ mod tests {
         assert_eq!(zdt_plus_eleven.hour_with_provider(provider).unwrap(), 12);
         assert_eq!(zdt_plus_eleven.minute_with_provider(provider).unwrap(), 49);
         assert_eq!(zdt_plus_eleven.second_with_provider(provider).unwrap(), 12);
+    }
+
+    #[cfg(all(feature = "experimental", not(target_os = "windows")))]
+    #[test]
+    fn static_tzdb_zdt_test() {
+        let nov_30_2023_utc = 1_701_308_952_000_000_000i128;
+
+        let zdt = ZonedDateTime::try_new(
+            nov_30_2023_utc,
+            Calendar::from_str("iso8601").unwrap(),
+            TimeZone::try_from_str("Z").unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(zdt.year().unwrap(), 2023);
+        assert_eq!(zdt.month().unwrap(), 11);
+        assert_eq!(zdt.day().unwrap(), 30);
+        assert_eq!(zdt.hour().unwrap(), 1);
+        assert_eq!(zdt.minute().unwrap(), 49);
+        assert_eq!(zdt.second().unwrap(), 12);
+
+        let zdt_minus_five = ZonedDateTime::try_new(
+            nov_30_2023_utc,
+            Calendar::from_str("iso8601").unwrap(),
+            TimeZone::try_from_str("America/New_York").unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(zdt_minus_five.year().unwrap(), 2023);
+        assert_eq!(zdt_minus_five.month().unwrap(), 11);
+        assert_eq!(zdt_minus_five.day().unwrap(), 29);
+        assert_eq!(zdt_minus_five.hour().unwrap(), 20);
+        assert_eq!(zdt_minus_five.minute().unwrap(), 49);
+        assert_eq!(zdt_minus_five.second().unwrap(), 12);
+
+        let zdt_plus_eleven = ZonedDateTime::try_new(
+            nov_30_2023_utc,
+            Calendar::from_str("iso8601").unwrap(),
+            TimeZone::try_from_str("Australia/Sydney").unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(zdt_plus_eleven.year().unwrap(), 2023);
+        assert_eq!(zdt_plus_eleven.month().unwrap(), 11);
+        assert_eq!(zdt_plus_eleven.day().unwrap(), 30);
+        assert_eq!(zdt_plus_eleven.hour().unwrap(), 12);
+        assert_eq!(zdt_plus_eleven.minute().unwrap(), 49);
+        assert_eq!(zdt_plus_eleven.second().unwrap(), 12);
+    }
+
+    #[cfg(all(feature = "experimental", not(target_os = "windows")))]
+    #[test]
+    fn basic_zdt_add() {
+        let zdt =
+            ZonedDateTime::try_new(-560174321098766, Calendar::default(), TimeZone::default())
+                .unwrap();
+        let d = Duration::new(
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            240.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            0.into(),
+            800.into(),
+        )
+        .unwrap();
+        // "1970-01-04T12:23:45.678902034+00:00[UTC]"
+        let expected =
+            ZonedDateTime::try_new(303825678902034, Calendar::default(), TimeZone::default())
+                .unwrap();
+
+        let result = zdt.add(&d, None).unwrap();
+        assert_eq!(result, expected);
     }
 
     #[test]

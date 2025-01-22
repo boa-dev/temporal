@@ -7,19 +7,75 @@ use core::{iter::Peekable, str::Chars};
 
 use num_traits::ToPrimitive;
 
-use crate::builtins::core::duration::DateDuration;
+use crate::components::duration::DateDuration;
 use crate::parsers::{FormattableOffset, FormattableTime, Precision};
-use crate::provider::{TimeZoneOffset, TimeZoneProvider};
 use crate::{
-    builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
+    components::{duration::normalized::NormalizedTimeDuration, EpochNanoseconds, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
-    time::EpochNanoseconds,
     TemporalError, TemporalResult, ZonedDateTime,
 };
 use crate::{Calendar, Sign};
 
+#[cfg(feature = "experimental")]
+use crate::tzdb::FsTzdbProvider;
+#[cfg(feature = "experimental")]
+use std::sync::{LazyLock, Mutex};
+
+#[cfg(feature = "experimental")]
+pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
+    LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
+
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
+
+/// `TimeZoneOffset` represents the number of seconds to be added to UT in order to determine local time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeZoneOffset {
+    /// The transition time epoch at which the offset needs to be applied.
+    pub transition_epoch: Option<i64>,
+    /// The time zone offset in seconds.
+    pub offset: i64,
+}
+
+// NOTE: It may be a good idea to eventually move this into it's
+// own individual crate rather than having it tied directly into `temporal_rs`
+/// The `TimeZoneProvider` trait provides methods required for a provider
+/// to implement in order to source time zone data from that provider.
+pub trait TimeZoneProvider {
+    fn check_identifier(&self, identifier: &str) -> bool;
+
+    fn get_named_tz_epoch_nanoseconds(
+        &self,
+        identifier: &str,
+        local_datetime: IsoDateTime,
+    ) -> TemporalResult<Vec<EpochNanoseconds>>;
+
+    fn get_named_tz_offset_nanoseconds(
+        &self,
+        identifier: &str,
+        utc_epoch: i128,
+    ) -> TemporalResult<TimeZoneOffset>;
+}
+
+pub struct NeverProvider;
+
+impl TimeZoneProvider for NeverProvider {
+    fn check_identifier(&self, _: &str) -> bool {
+        unimplemented!()
+    }
+
+    fn get_named_tz_epoch_nanoseconds(
+        &self,
+        _: &str,
+        _: IsoDateTime,
+    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+        unimplemented!()
+    }
+
+    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<TimeZoneOffset> {
+        unimplemented!()
+    }
+}
 
 // TODO: Potentially migrate to Cow<'a, str>
 // TODO: There may be an argument to have Offset minutes be a (Cow<'a, str>,, i16) to
@@ -31,68 +87,30 @@ pub enum TimeZone {
 }
 
 impl TimeZone {
-    #[cfg(feature = "full")]
+    #[cfg(feature = "experimental")]
     pub fn try_from_str(source: &str) -> TemporalResult<Self> {
-        use crate::builtins::timezone::TZ_PROVIDER;
-
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        try_timezone_from_str_with_provider(source, &*provider)
+        Self::try_from_str_with_provider(source, &*provider)
     }
 
     /// Parses a `TimeZone` from a provided `&str`.
-    #[cfg(not(feature = "full"))]
     pub fn try_from_str_with_provider(
         source: &str,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        try_timezone_from_str_with_provider(source, provider)
-    }
-
-    /// Returns the current `TimeZoneSlot`'s identifier.
-    pub fn identifier(&self) -> TemporalResult<String> {
-        match self {
-            TimeZone::IanaIdentifier(s) => Ok(s.clone()),
-            TimeZone::OffsetMinutes(m) => {
-                let sign = if *m < 0 {
-                    Sign::Negative
-                } else {
-                    Sign::Positive
-                };
-                let hour = (m.abs() / 60) as u8;
-                let minute = (m.abs() % 60) as u8;
-                let formattable_offset = FormattableOffset {
-                    sign,
-                    time: FormattableTime {
-                        hour,
-                        minute,
-                        second: 0,
-                        nanosecond: 0,
-                        precision: Precision::Minute,
-                        include_sep: true,
-                    },
-                };
-                Ok(formattable_offset.to_string())
-            }
+        if source == "Z" {
+            return Ok(Self::OffsetMinutes(0));
         }
+        let mut cursor = source.chars().peekable();
+        if cursor.peek().is_some_and(is_ascii_sign) {
+            return parse_offset(&mut cursor);
+        } else if provider.check_identifier(source) {
+            return Ok(Self::IanaIdentifier(source.to_owned()));
+        }
+        Err(TemporalError::range().with_message("Valid time zone was not provided."))
     }
-}
-
-pub fn try_timezone_from_str_with_provider(
-    source: &str,
-    provider: &impl TimeZoneProvider,
-) -> TemporalResult<TimeZone> {
-    if source == "Z" {
-        return Ok(TimeZone::OffsetMinutes(0));
-    }
-    let mut cursor = source.chars().peekable();
-    if cursor.peek().is_some_and(is_ascii_sign) {
-        return parse_offset(&mut cursor);
-    } else if provider.check_identifier(source) {
-        return Ok(TimeZone::IanaIdentifier(source.to_owned()));
-    }
-    Err(TemporalError::range().with_message("Valid time zone was not provided."))
 }
 
 impl Default for TimeZone {
@@ -116,9 +134,11 @@ impl TimeZone {
         let nanos = self.get_offset_nanos_for(instant.as_i128(), provider)?;
         IsoDateTime::from_epoch_nanos(&instant.as_i128(), nanos.to_i64().unwrap_or(0))
     }
+}
 
+impl TimeZone {
     /// Get the offset for this current `TimeZoneSlot`.
-    pub(crate) fn get_offset_nanos_for(
+    pub fn get_offset_nanos_for(
         &self,
         utc_epoch: i128,
         provider: &impl TimeZoneProvider,
@@ -134,7 +154,7 @@ impl TimeZone {
         }
     }
 
-    pub(crate) fn get_epoch_nanoseconds_for(
+    pub fn get_epoch_nanoseconds_for(
         &self,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
@@ -147,7 +167,7 @@ impl TimeZone {
     }
 
     /// Get the possible `Instant`s for this `TimeZoneSlot`.
-    pub(crate) fn get_possible_epoch_ns_for(
+    pub fn get_possible_epoch_ns_for(
         &self,
         iso: IsoDateTime,
         provider: &impl TimeZoneProvider,
@@ -199,6 +219,34 @@ impl TimeZone {
         // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
         // 5. Return possibleEpochNanoseconds.
         Ok(possible_nanoseconds)
+    }
+
+    /// Returns the current `TimeZoneSlot`'s identifier.
+    pub fn identifier(&self) -> TemporalResult<String> {
+        match self {
+            TimeZone::IanaIdentifier(s) => Ok(s.clone()),
+            TimeZone::OffsetMinutes(m) => {
+                let sign = if *m < 0 {
+                    Sign::Negative
+                } else {
+                    Sign::Positive
+                };
+                let hour = (m.abs() / 60) as u8;
+                let minute = (m.abs() % 60) as u8;
+                let formattable_offset = FormattableOffset {
+                    sign,
+                    time: FormattableTime {
+                        hour,
+                        minute,
+                        second: 0,
+                        nanosecond: 0,
+                        precision: Precision::Minute,
+                        include_sep: true,
+                    },
+                };
+                Ok(formattable_offset.to_string())
+            }
+        }
     }
 }
 
@@ -457,7 +505,7 @@ fn is_ascii_sign(ch: &char) -> bool {
     *ch == '+' || *ch == '-'
 }
 
-#[cfg(all(test, feature = "tzdb", not(feature = "full")))]
+#[cfg(all(test, feature = "tzdb"))]
 mod tests {
     use super::TimeZone;
     use crate::tzdb::FsTzdbProvider;

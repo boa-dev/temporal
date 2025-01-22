@@ -14,7 +14,6 @@ mod date;
 mod datetime;
 mod instant;
 mod month_day;
-pub(crate) mod options;
 mod time;
 mod year_month;
 pub(crate) mod zoneddatetime;
@@ -31,9 +30,9 @@ pub use date::{PartialDate, PlainDate};
 #[doc(inline)]
 pub use datetime::{PartialDateTime, PlainDateTime};
 #[doc(inline)]
-pub use duration::{DateDuration, Duration, PartialDuration, TimeDuration};
+pub use duration::{DateDuration, Duration, TimeDuration};
 #[doc(inline)]
-pub use instant::Instant;
+pub use instant::{EpochNanoseconds, Instant};
 #[doc(inline)]
 pub use month_day::PlainMonthDay;
 #[doc(inline)]

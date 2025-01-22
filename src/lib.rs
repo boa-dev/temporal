@@ -51,11 +51,8 @@ pub mod iso;
 pub mod options;
 pub mod parsers;
 pub mod primitive;
-pub mod provider;
 
-mod epoch_nanoseconds;
-
-pub(crate) mod builtins;
+pub(crate) mod components;
 
 #[cfg(feature = "now")]
 mod sys;
@@ -86,26 +83,25 @@ pub mod partial {
     //!
     //! The partial records are `temporal_rs`'s method of addressing
     //! `TemporalFields` in the specification.
-    pub use crate::builtins::{
-        core::PartialDuration, PartialDate, PartialDateTime, PartialTime, PartialZonedDateTime,
+    pub use crate::components::{
+        duration::PartialDuration, PartialDate, PartialDateTime, PartialTime, PartialZonedDateTime,
     };
 }
 
 // TODO: Potentially bikeshed how `EpochNanoseconds` should be exported.
 pub mod time {
-    pub use crate::epoch_nanoseconds::EpochNanoseconds;
+    pub use crate::components::EpochNanoseconds;
 }
 
-#[cfg(feature = "full")]
-pub use crate::builtins::core as temporal_core;
-
-pub use crate::builtins::{
-    calendar::Calendar, core::timezone::TimeZone, DateDuration, Duration, Instant, PlainDate,
-    PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth, TimeDuration, ZonedDateTime,
+pub use crate::components::{
+    calendar::Calendar,
+    timezone::{TimeZone, TimeZoneProvider},
+    DateDuration, Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    PlainYearMonth, TimeDuration, ZonedDateTime,
 };
 
 #[cfg(feature = "std")]
-pub use crate::builtins::Now;
+pub use crate::components::Now;
 
 /// A library specific trait for unwrapping assertions.
 pub(crate) trait TemporalUnwrap {
