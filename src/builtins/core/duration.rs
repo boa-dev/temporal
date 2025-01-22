@@ -175,8 +175,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub(crate) fn is_time_duration(&self) -> bool {
-        self.time().fields().iter().any(|x| x != &0.0)
-            && self.date().fields().iter().all(|x| x == &0.0)
+        self.date().fields().iter().all(|x| x == &0.0)
     }
 
     /// Returns the `TemporalUnit` corresponding to the largest non-zero field.
