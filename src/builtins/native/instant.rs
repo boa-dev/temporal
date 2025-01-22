@@ -116,4 +116,3 @@ impl core::str::FromStr for Instant {
         temporal_core::Instant::from_str(s).map(Into::into)
     }
 }
-
