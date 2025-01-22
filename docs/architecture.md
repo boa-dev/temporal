@@ -41,7 +41,7 @@ The core implementation is always publicly available, but may not be
 available to import from the `temporal_rs`'s root.
 
 The core implementation can be made available from the root by providing
-the `--no-default-feautres` flag.
+the `--no-default-features` flag.
 
 The core implementation exposes the Provider API that allows the user to
 supply a "provider", or any type that implements the `TimeZoneProvider`
@@ -49,7 +49,7 @@ trait, for time zone data that the library can use to complete it's
 calculations. This is useful from an engine / implementor perspective
 because it allows the engine to source time zone data in their preferred
 manner without locking them into a library specific implementation that
-may or may not have side affects.
+may or may not have side effects.
 
 A `TimeZoneProvider` API on a core builtin will look like the below.
 
