@@ -17,16 +17,19 @@ use crate::{
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
     time::EpochNanoseconds,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 
-use super::duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration};
+use super::{
+    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    DateDuration,
+};
 
-const NANOSECONDS_PER_SECOND: f64 = 1e9;
-const NANOSECONDS_PER_MINUTE: f64 = 60f64 * NANOSECONDS_PER_SECOND;
-const NANOSECONDS_PER_HOUR: f64 = 60f64 * NANOSECONDS_PER_MINUTE;
+const NANOSECONDS_PER_SECOND: i128 = 1_000_000_000;
+const NANOSECONDS_PER_MINUTE: i128 = 60 * NANOSECONDS_PER_SECOND;
+const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 
 /// The native Rust implementation of `Temporal.Instant`
 #[non_exhaustive]
@@ -45,19 +48,14 @@ impl Instant {
     // TODO: Update to `i128`?
     /// Adds a `TimeDuration` to the current `Instant`.
     ///
-    /// Temporal-Proposal equivalent: `AddDurationToOrSubtractDurationFrom`.
+    /// Temporal-Proposal equivalent: `AddInstant`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
-        let current_nanos = self.epoch_nanoseconds() as f64;
-        let result = current_nanos
-            + duration.nanoseconds.0
-            + (duration.microseconds.0 * 1000f64)
-            + (duration.milliseconds.0 * 1_000_000f64)
-            + (duration.seconds.0 * NANOSECONDS_PER_SECOND)
-            + (duration.minutes.0 * NANOSECONDS_PER_MINUTE)
-            + (duration.hours.0 * NANOSECONDS_PER_HOUR);
+        let norm = NormalizedTimeDuration::from_time_duration(duration);
+        let result = self.epoch_nanoseconds() + norm.0;
         Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
+    /// `temporal_rs` equivalent of `DifferenceInstant`
     pub(crate) fn diff_instant_internal(
         &self,
         other: &Self,
@@ -66,7 +64,10 @@ impl Instant {
         let diff =
             NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
-        Ok(round_record)
+        NormalizedDurationRecord::new(
+            DateDuration::default(),
+            round_record.normalized_time_duration(),
+        )
     }
 
     // TODO: Add test for `diff_instant`.
@@ -83,7 +84,7 @@ impl Instant {
         // 2. Set other to ? ToTemporalInstant(other).
         // 3. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 4. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, time, « », "nanosecond", "second").
-        let (sign, resolved_options) = ResolvedRoundingOptions::from_diff_settings(
+        let resolved_options = ResolvedRoundingOptions::from_diff_settings(
             options,
             op,
             TemporalUnit::Second,
@@ -100,9 +101,9 @@ impl Instant {
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 
@@ -293,12 +294,12 @@ impl FromStr for Instant {
         // Find the offset
         let offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
-                f64::from(offset.hour) * NANOSECONDS_PER_HOUR
-                    + f64::from(offset.minute) * NANOSECONDS_PER_MINUTE
-                    + f64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + f64::from(offset.nanosecond)
+                offset.hour as i128 * NANOSECONDS_PER_HOUR
+                    + i128::from(offset.minute) * NANOSECONDS_PER_MINUTE
+                    + i128::from(offset.second) * NANOSECONDS_PER_SECOND
+                    + i128::from(offset.nanosecond)
             }
-            UtcOffsetRecordOrZ::Z => 0.0,
+            UtcOffsetRecordOrZ::Z => 0,
         };
         let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time)
             .as_nanoseconds()

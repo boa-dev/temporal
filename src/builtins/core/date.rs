@@ -12,7 +12,7 @@ use crate::{
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
     provider::NeverProvider,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
 use core::str::FromStr;
@@ -262,7 +262,7 @@ impl PlainDate {
 
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
-        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+        let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
             TemporalUnit::Day,
@@ -305,9 +305,9 @@ impl PlainDate {
         }
         let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(result),
-            Sign::Negative => Ok(result.negated()),
+        match op {
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 }
@@ -732,7 +732,7 @@ mod tests {
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert!(result.is_err());
 
-        let min = PlainDate::try_new(-271_821, 4, 21, Calendar::default()).unwrap();
+        let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
         assert_eq!(
             result,
@@ -740,7 +740,7 @@ mod tests {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
-                    day: 20
+                    day: 19
                 },
                 calendar: Calendar::default(),
             })

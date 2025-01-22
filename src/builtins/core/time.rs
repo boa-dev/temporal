@@ -9,7 +9,7 @@ use crate::{
     },
     parsers::{parse_time, IxdtfStringBuilder},
     primitive::FiniteF64,
-    Sign, TemporalError, TemporalResult,
+    TemporalError, TemporalResult,
 };
 use alloc::string::String;
 use core::str::FromStr;
@@ -124,7 +124,7 @@ impl PlainTime {
         // 2. Set other to ? ToTemporalTime(other).
         // 3. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 4. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, TIME, « », "nanosecond", "hour").
-        let (sign, resolved) = ResolvedRoundingOptions::from_diff_settings(
+        let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
             TemporalUnit::Hour,
@@ -151,9 +151,9 @@ impl PlainTime {
         let result = TimeDuration::from_normalized(normalized_time, resolved.largest_unit)?.1;
 
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
-        match sign {
-            Sign::Positive | Sign::Zero => Ok(Duration::from(result)),
-            Sign::Negative => Ok(Duration::from(result.negated())),
+        match op {
+            DifferenceOperation::Until => Ok(Duration::from(result)),
+            DifferenceOperation::Since => Ok(Duration::from(result.negated())),
         }
     }
 }

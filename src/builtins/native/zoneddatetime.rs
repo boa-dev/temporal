@@ -2,8 +2,8 @@ use super::timezone::TZ_PROVIDER;
 use crate::{
     builtins::core as temporal_core,
     options::{
-        ArithmeticOverflow, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
-        OffsetDisambiguation, ToStringRoundingOptions,
+        ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
+        DisplayTimeZone, OffsetDisambiguation, ToStringRoundingOptions,
     },
     Calendar, Duration, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
     TimeZone,
@@ -259,6 +259,26 @@ impl ZonedDateTime {
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
         self.0
             .subtract_with_provider(&duration.0, overflow, &*provider)
+            .map(Into::into)
+    }
+
+    /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
+    pub fn since(&self, other: &Self, options: DifferenceSettings) -> TemporalResult<Duration> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.0
+            .since_with_provider(&other.0, options, &*provider)
+            .map(Into::into)
+    }
+
+    /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
+    pub fn until(&self, other: &Self, options: DifferenceSettings) -> TemporalResult<Duration> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.0
+            .until_with_provider(&other.0, options, &*provider)
             .map(Into::into)
     }
 
