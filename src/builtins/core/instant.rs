@@ -313,10 +313,13 @@ impl FromStr for Instant {
 #[cfg(test)]
 mod tests {
 
+    use core::str::FromStr;
+
     use crate::{
         builtins::core::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
         primitive::FiniteF64,
+        time::EpochNanoseconds,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
@@ -338,6 +341,51 @@ mod tests {
 
         assert!(Instant::try_new(max_plus_one).is_err());
         assert!(Instant::try_new(min_minus_one).is_err());
+    }
+
+    #[test]
+    fn instant_parsing_limits() {
+        // valid cases
+        let valid_str = "-271821-04-20T00:00Z";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(-8640000000000000000000))
+        );
+
+        let valid_str = "-271821-04-19T23:00-01:00";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(-8640000000000000000000))
+        );
+
+        let valid_str = "-271821-04-19T00:00:00.000000001-23:59:59.999999999";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(-8640000000000000000000))
+        );
+
+        let valid_str = "+275760-09-13T00:00Z";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(8640000000000000000000))
+        );
+
+        // invalid cases
+        let invalid_str = "-271821-04-19T00:00Z";
+        let instant = Instant::from_str(invalid_str);
+        assert!(instant.is_err());
+
+        let invalid_str = "-271821-04-19T23:59:59.999999999Z";
+        let instant = Instant::from_str(invalid_str);
+        assert!(instant.is_err());
+
+        let invalid_str = "-271821-04-19T23:00-00:59:59.999999999";
+        let instant = Instant::from_str(invalid_str);
+        assert!(instant.is_err());
     }
 
     #[test]
