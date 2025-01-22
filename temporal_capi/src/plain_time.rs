@@ -166,7 +166,7 @@ pub mod ffi {
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
             // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.to_ixdtf_string(options.into())?;
+            let string = self.0.as_ixdtf_string(options.into())?;
             // throw away the error, the write itself should always succeed
             let _ = write.write_str(&string);
 
