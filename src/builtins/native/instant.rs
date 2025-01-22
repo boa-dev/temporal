@@ -34,6 +34,7 @@ impl Instant {
         Ok(temporal_core::Instant::from(EpochNanoseconds::try_from(nanoseconds)?).into())
     }
 
+    /// Creates a new `Instant` from the provided Epoch Millisecond value.
     pub fn from_epoch_milliseconds(epoch_milliseconds: i128) -> TemporalResult<Self> {
         temporal_core::Instant::from_epoch_milliseconds(epoch_milliseconds).map(Into::into)
     }
@@ -108,3 +109,11 @@ impl Instant {
             .as_ixdtf_string_with_provider(timezone, options, &*provider)
     }
 }
+
+impl core::str::FromStr for Instant {
+    type Err = TemporalError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        temporal_core::Instant::from_str(s).map(Into::into)
+    }
+}
+
