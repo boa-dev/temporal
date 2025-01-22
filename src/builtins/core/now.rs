@@ -1,20 +1,16 @@
 //! The Temporal Now component
 
+use crate::provider::TimeZoneProvider;
+use crate::{iso::IsoDateTime, time::EpochNanoseconds, TemporalUnwrap};
 use crate::{sys, TemporalResult};
 use alloc::string::String;
 
 use num_traits::FromPrimitive;
 
-use crate::{iso::IsoDateTime, TemporalUnwrap};
-
 use super::{
-    calendar::Calendar,
-    timezone::{TimeZone, TimeZoneProvider},
-    EpochNanoseconds, Instant, PlainDate, PlainDateTime, PlainTime, ZonedDateTime,
+    calendar::Calendar, timezone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
+    ZonedDateTime,
 };
-
-#[cfg(feature = "experimental")]
-use crate::{components::timezone::TZ_PROVIDER, TemporalError};
 
 /// The Temporal Now object.
 pub struct Now;
@@ -87,30 +83,6 @@ impl Now {
     }
 }
 
-#[cfg(feature = "experimental")]
-impl Now {
-    pub fn plain_datetime_iso(timezone: Option<TimeZone>) -> TemporalResult<PlainDateTime> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Now::plain_datetime_iso_with_provider(timezone, &*provider)
-    }
-
-    pub fn plain_date_iso(timezone: Option<TimeZone>) -> TemporalResult<PlainDate> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Now::plain_date_iso_with_provider(timezone, &*provider)
-    }
-
-    pub fn plain_time_iso(timezone: Option<TimeZone>) -> TemporalResult<PlainTime> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Now::plain_time_iso_with_provider(timezone, &*provider)
-    }
-}
-
 fn system_datetime(
     tz: Option<TimeZone>,
     provider: &impl TimeZoneProvider,
@@ -138,7 +110,8 @@ mod tests {
     use std::thread;
     use std::time::Duration as StdDuration;
 
-    use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider, Now};
+    use crate::builtins::core::Now;
+    use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider};
 
     #[test]
     fn now_datetime_test() {

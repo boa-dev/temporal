@@ -1,23 +1,22 @@
 //! This module implements `DateTime` any directly related algorithms.
 
+use super::{
+    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    Duration, PartialDate, PartialTime, PlainDate, PlainTime,
+};
 use crate::{
-    components::{calendar::Calendar, Instant},
+    builtins::core::{calendar::Calendar, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
         ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
+    provider::NeverProvider,
     temporal_assert, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
-
-use super::{
-    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    timezone::NeverProvider,
-    Duration, PartialDate, PartialTime, PlainDate, PlainTime,
-};
 use tinystr::TinyAsciiStr;
 
 /// A partial PlainDateTime record
@@ -693,7 +692,7 @@ mod tests {
     use tinystr::{tinystr, TinyAsciiStr};
 
     use crate::{
-        components::{
+        builtins::core::{
             calendar::Calendar, duration::DateDuration, Duration, PartialDate, PartialDateTime,
             PartialTime, PlainDateTime,
         },

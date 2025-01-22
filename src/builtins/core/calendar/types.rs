@@ -9,7 +9,7 @@ use crate::iso::{constrain_iso_day, is_valid_iso_day};
 use crate::options::ArithmeticOverflow;
 use crate::{TemporalError, TemporalResult};
 
-use crate::components::{calendar::Calendar, PartialDate};
+use crate::builtins::core::{calendar::Calendar, PartialDate};
 
 /// `ResolvedCalendarFields` represents the resolved field values necessary for
 /// creating a Date from potentially partial values.
@@ -322,7 +322,7 @@ mod tests {
     use tinystr::tinystr;
 
     use crate::{
-        components::{calendar::Calendar, PartialDate},
+        builtins::core::{calendar::Calendar, PartialDate},
         options::ArithmeticOverflow,
     };
 

@@ -1,13 +1,15 @@
-#[cfg(feature = "experimental")]
+use crate::builtins::native::PlainDate;
 use crate::{
-    components::{calendar::Calendar, PlainDate},
-    options::{RoundingIncrement, TemporalRoundingMode},
-    TimeZone,
+    builtins::{core::calendar::Calendar, native::zoneddatetime::ZonedDateTime},
+    options::{RelativeTo, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit},
+    primitive::FiniteF64,
+    DateDuration, TimeDuration, TimeZone,
 };
+use alloc::vec::Vec;
+use core::str::FromStr;
 
-use super::*;
+use super::Duration;
 
-#[cfg(feature = "experimental")]
 fn get_round_result(
     test_duration: &Duration,
     relative_to: RelativeTo,
@@ -16,6 +18,7 @@ fn get_round_result(
     test_duration
         .round(options, Some(relative_to))
         .unwrap()
+        .0
         .fields()
         .iter()
         .map(|f| f.as_date_value().unwrap())
@@ -23,7 +26,6 @@ fn get_round_result(
 }
 
 // roundingmode-floor.js
-#[cfg(feature = "experimental")]
 #[test]
 fn basic_positive_floor_rounding_v2() {
     let test_duration = Duration::new(
@@ -92,7 +94,6 @@ fn basic_positive_floor_rounding_v2() {
 }
 
 #[test]
-#[cfg(feature = "experimental")]
 fn basic_negative_floor_rounding_v2() {
     // Test setup
     let test_duration = Duration::new(
@@ -162,7 +163,6 @@ fn basic_negative_floor_rounding_v2() {
 }
 
 // roundingmode-ceil.js
-#[cfg(feature = "experimental")]
 #[test]
 fn basic_positive_ceil_rounding() {
     let test_duration = Duration::new(
@@ -230,7 +230,6 @@ fn basic_positive_ceil_rounding() {
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 987, 500],);
 }
 
-#[cfg(feature = "experimental")]
 #[test]
 fn basic_negative_ceil_rounding() {
     let test_duration = Duration::new(
@@ -299,7 +298,6 @@ fn basic_negative_ceil_rounding() {
 }
 
 // roundingmode-expand.js
-#[cfg(feature = "experimental")]
 #[test]
 fn basic_positive_expand_rounding() {
     let test_duration = Duration::new(
@@ -366,7 +364,6 @@ fn basic_positive_expand_rounding() {
     assert_eq!(&result, &[5, 7, 0, 27, 16, 30, 20, 123, 987, 500],);
 }
 
-#[cfg(feature = "experimental")]
 #[test]
 fn basic_negative_expand_rounding() {
     let test_duration = Duration::new(
@@ -437,7 +434,6 @@ fn basic_negative_expand_rounding() {
 }
 
 // test262/test/built-ins/Temporal/Duration/prototype/round/roundingincrement-non-integer.js
-#[cfg(feature = "experimental")]
 #[test]
 fn rounding_increment_non_integer() {
     let test_duration = Duration::from(
@@ -467,7 +463,7 @@ fn rounding_increment_non_integer() {
         .unwrap();
 
     assert_eq!(
-        result.fields(),
+        result.0.fields(),
         &[
             FiniteF64::default(),
             FiniteF64::default(),
@@ -487,7 +483,7 @@ fn rounding_increment_non_integer() {
         .insert(RoundingIncrement::try_from(1e9 + 0.5).unwrap());
     let result = test_duration.round(options, Some(relative_to)).unwrap();
     assert_eq!(
-        result.fields(),
+        result.0.fields(),
         &[
             FiniteF64::default(),
             FiniteF64::default(),
@@ -603,22 +599,7 @@ fn basic_subtract_duration() {
     assert_eq!(result.minutes(), 30.0);
 }
 
-#[test]
-fn partial_duration_empty() {
-    let err = Duration::from_partial_duration(PartialDuration::default());
-    assert!(err.is_err())
-}
-
-#[test]
-fn partial_duration_values() {
-    let mut partial = PartialDuration::default();
-    let _ = partial.years.insert(FiniteF64(20.0));
-    let result = Duration::from_partial_duration(partial).unwrap();
-    assert_eq!(result.years(), 20.0);
-}
-
 // days-24-hours-relative-to-zoned-date-time.js
-#[cfg(feature = "experimental")]
 #[test]
 fn round_relative_to_zoned_datetime() {
     let duration = Duration::from(
@@ -650,172 +631,4 @@ fn round_relative_to_zoned_datetime() {
     // Result duration should be: (0, 0, 0, 1, 1, 0, 0, 0, 0, 0)
     assert_eq!(result.days(), 1.0);
     assert_eq!(result.hours(), 1.0);
-}
-
-#[test]
-fn default_duration_string() {
-    let duration = Duration::default();
-
-    let options = ToStringRoundingOptions {
-        precision: Precision::Auto,
-        smallest_unit: None,
-        rounding_mode: None,
-    };
-    let result = duration.to_temporal_string(options).unwrap();
-    assert_eq!(&result, "PT0S");
-
-    let options = ToStringRoundingOptions {
-        precision: Precision::Digit(0),
-        smallest_unit: None,
-        rounding_mode: None,
-    };
-    let result = duration.to_temporal_string(options).unwrap();
-    assert_eq!(&result, "PT0S");
-
-    let options = ToStringRoundingOptions {
-        precision: Precision::Digit(1),
-        smallest_unit: None,
-        rounding_mode: None,
-    };
-    let result = duration.to_temporal_string(options).unwrap();
-    assert_eq!(&result, "PT0.0S");
-
-    let options = ToStringRoundingOptions {
-        precision: Precision::Digit(3),
-        smallest_unit: None,
-        rounding_mode: None,
-    };
-    let result = duration.to_temporal_string(options).unwrap();
-    assert_eq!(&result, "PT0.000S");
-}
-
-#[test]
-fn duration_to_string_auto_precision() {
-    let duration = Duration::new(
-        1.into(),
-        2.into(),
-        3.into(),
-        4.into(),
-        5.into(),
-        6.into(),
-        7.into(),
-        FiniteF64::default(),
-        FiniteF64::default(),
-        FiniteF64::default(),
-    )
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "P1Y2M3W4DT5H6M7S");
-
-    let duration = Duration::new(
-        1.into(),
-        2.into(),
-        3.into(),
-        4.into(),
-        5.into(),
-        6.into(),
-        7.into(),
-        987.into(),
-        650.into(),
-        FiniteF64::default(),
-    )
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "P1Y2M3W4DT5H6M7.98765S");
-}
-
-#[test]
-fn empty_date_duration() {
-    let duration = Duration::from_partial_duration(PartialDuration {
-        hours: Some(1.into()),
-        ..Default::default()
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "PT1H");
-}
-
-#[test]
-fn negative_fields_to_string() {
-    let duration = Duration::from_partial_duration(PartialDuration {
-        years: Some(FiniteF64::from(-1)),
-        months: Some(FiniteF64::from(-1)),
-        weeks: Some(FiniteF64::from(-1)),
-        days: Some(FiniteF64::from(-1)),
-        hours: Some(FiniteF64::from(-1)),
-        minutes: Some(FiniteF64::from(-1)),
-        seconds: Some(FiniteF64::from(-1)),
-        milliseconds: Some(FiniteF64::from(-1)),
-        microseconds: Some(FiniteF64::from(-1)),
-        nanoseconds: Some(FiniteF64::from(-1)),
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "-P1Y1M1W1DT1H1M1.001001001S");
-
-    let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::from(-250)),
-        ..Default::default()
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "-PT0.25S");
-
-    let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::from(-3500)),
-        ..Default::default()
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "-PT3.5S");
-
-    let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::from(-3500)),
-        ..Default::default()
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-    assert_eq!(&result, "-PT3.5S");
-
-    let duration = Duration::from_partial_duration(PartialDuration {
-        weeks: Some(FiniteF64::from(-1)),
-        days: Some(FiniteF64::from(-1)),
-        ..Default::default()
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-
-    assert_eq!(&result, "-P1W1D");
-}
-
-#[test]
-fn preserve_precision_loss() {
-    const MAX_SAFE_INT: f64 = 9_007_199_254_740_991.0;
-    let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::try_from(MAX_SAFE_INT).unwrap()),
-        microseconds: Some(FiniteF64::try_from(MAX_SAFE_INT).unwrap()),
-        ..Default::default()
-    })
-    .unwrap();
-    let result = duration
-        .to_temporal_string(ToStringRoundingOptions::default())
-        .unwrap();
-
-    assert_eq!(&result, "PT9016206453995.731991S");
 }
