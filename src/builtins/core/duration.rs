@@ -1,11 +1,11 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    builtins::core::{options::RelativeTo, PlainDateTime, PlainTime, ZonedDateTime},
+    builtins::core::{PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions,
-        TemporalUnit, ToStringRoundingOptions,
+        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{FormattableDuration, Precision},
     primitive::FiniteF64,

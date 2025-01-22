@@ -31,23 +31,21 @@ pub enum TimeZone {
 }
 
 impl TimeZone {
-    #[cfg(feature = "full")]
-    pub fn try_from_str(source: &str) -> TemporalResult<Self> {
-        use crate::builtins::timezone::TZ_PROVIDER;
-
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        try_timezone_from_str_with_provider(source, &*provider)
-    }
-
     /// Parses a `TimeZone` from a provided `&str`.
-    #[cfg(not(feature = "full"))]
     pub fn try_from_str_with_provider(
         source: &str,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        try_timezone_from_str_with_provider(source, provider)
+        if source == "Z" {
+            return Ok(TimeZone::OffsetMinutes(0));
+        }
+        let mut cursor = source.chars().peekable();
+        if cursor.peek().is_some_and(is_ascii_sign) {
+            return parse_offset(&mut cursor);
+        } else if provider.check_identifier(source) {
+            return Ok(TimeZone::IanaIdentifier(source.to_owned()));
+        }
+        Err(TemporalError::range().with_message("Valid time zone was not provided."))
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
@@ -77,22 +75,6 @@ impl TimeZone {
             }
         }
     }
-}
-
-pub fn try_timezone_from_str_with_provider(
-    source: &str,
-    provider: &impl TimeZoneProvider,
-) -> TemporalResult<TimeZone> {
-    if source == "Z" {
-        return Ok(TimeZone::OffsetMinutes(0));
-    }
-    let mut cursor = source.chars().peekable();
-    if cursor.peek().is_some_and(is_ascii_sign) {
-        return parse_offset(&mut cursor);
-    } else if provider.check_identifier(source) {
-        return Ok(TimeZone::IanaIdentifier(source.to_owned()));
-    }
-    Err(TemporalError::range().with_message("Valid time zone was not provided."))
 }
 
 impl Default for TimeZone {
@@ -457,7 +439,7 @@ fn is_ascii_sign(ch: &char) -> bool {
     *ch == '+' || *ch == '-'
 }
 
-#[cfg(all(test, feature = "tzdb", not(feature = "full")))]
+#[cfg(all(test, feature = "tzdb"))]
 mod tests {
     use super::TimeZone;
     use crate::tzdb::FsTzdbProvider;

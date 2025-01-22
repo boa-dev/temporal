@@ -1,10 +1,14 @@
 pub mod core;
+#[cfg(feature = "compiled_data")]
+pub mod compiled;
 
-#[cfg(feature = "full")]
-pub(crate) mod native;
-
-#[cfg(not(feature = "full"))]
 pub use core::*;
 
-#[cfg(feature = "full")]
-pub use native::*;
+#[cfg(feature = "compiled_data")]
+use crate::tzdb::FsTzdbProvider;
+#[cfg(feature = "compiled_data")]
+use std::sync::{LazyLock, Mutex};
+
+#[cfg(feature = "compiled_data")]
+pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
+    LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));

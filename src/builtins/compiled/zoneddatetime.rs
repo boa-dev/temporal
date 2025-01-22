@@ -1,18 +1,14 @@
-use super::timezone::TZ_PROVIDER;
+use crate::builtins::TZ_PROVIDER;
+use crate::ZonedDateTime;
 use crate::{
-    builtins::core as temporal_core,
     options::{
         ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
         DisplayTimeZone, OffsetDisambiguation, ToStringRoundingOptions,
     },
-    Calendar, Duration, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
-    TimeZone,
+    Duration, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
 };
 use alloc::string::String;
 use tinystr::TinyAsciiStr;
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ZonedDateTime(pub(crate) temporal_core::ZonedDateTime);
 
 impl core::fmt::Display for ZonedDateTime {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -29,27 +25,6 @@ impl core::fmt::Display for ZonedDateTime {
     }
 }
 
-impl From<temporal_core::ZonedDateTime> for ZonedDateTime {
-    fn from(value: temporal_core::ZonedDateTime) -> Self {
-        Self(value)
-    }
-}
-
-impl ZonedDateTime {
-    #[inline]
-    pub fn try_new(nanos: i128, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
-        temporal_core::ZonedDateTime::try_new(nanos, calendar, tz).map(Into::into)
-    }
-
-    pub fn calendar(&self) -> &Calendar {
-        self.0.calendar()
-    }
-
-    pub fn timezone(&self) -> &TimeZone {
-        self.0.timezone()
-    }
-}
-
 // ===== Experimental TZ_PROVIDER accessor implementations =====
 
 impl ZonedDateTime {
@@ -57,63 +32,63 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.year_with_provider(&*provider)
+        self.year_with_provider(&*provider)
     }
 
     pub fn month(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.month_with_provider(&*provider)
+        self.month_with_provider(&*provider)
     }
 
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.month_code_with_provider(&*provider)
+        self.month_code_with_provider(&*provider)
     }
 
     pub fn day(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.day_with_provider(&*provider)
+        self.day_with_provider(&*provider)
     }
 
     pub fn hour(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.hour_with_provider(&*provider)
+        self.hour_with_provider(&*provider)
     }
 
     pub fn minute(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.minute_with_provider(&*provider)
+        self.minute_with_provider(&*provider)
     }
 
     pub fn second(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.second_with_provider(&*provider)
+        self.second_with_provider(&*provider)
     }
 
     pub fn millisecond(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.millisecond_with_provider(&*provider)
+        self.millisecond_with_provider(&*provider)
     }
 
     pub fn microsecond(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.millisecond_with_provider(&*provider)
+        self.millisecond_with_provider(&*provider)
     }
 
     pub fn nanosecond(&self) -> TemporalResult<u16> {
@@ -121,7 +96,7 @@ impl ZonedDateTime {
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
 
-        self.0.millisecond_with_provider(&*provider)
+        self.millisecond_with_provider(&*provider)
     }
 }
 
@@ -132,14 +107,14 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.era_with_provider(&*provider)
+        self.era_with_provider(&*provider)
     }
 
     pub fn era_year(&self) -> TemporalResult<Option<i32>> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.era_year_with_provider(&*provider)
+        self.era_year_with_provider(&*provider)
     }
 
     /// Returns the calendar day of week value.
@@ -147,7 +122,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.day_of_week_with_provider(&*provider)
+        self.day_of_week_with_provider(&*provider)
     }
 
     /// Returns the calendar day of year value.
@@ -155,7 +130,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.day_of_year_with_provider(&*provider)
+        self.day_of_year_with_provider(&*provider)
     }
 
     /// Returns the calendar week of year value.
@@ -163,7 +138,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.week_of_year_with_provider(&*provider)
+        self.week_of_year_with_provider(&*provider)
     }
 
     /// Returns the calendar year of week value.
@@ -171,7 +146,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.year_of_week_with_provider(&*provider)
+        self.year_of_week_with_provider(&*provider)
     }
 
     /// Returns the calendar days in week value.
@@ -179,7 +154,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.days_in_week_with_provider(&*provider)
+        self.days_in_week_with_provider(&*provider)
     }
 
     /// Returns the calendar days in month value.
@@ -187,7 +162,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.days_in_month_with_provider(&*provider)
+        self.days_in_month_with_provider(&*provider)
     }
 
     /// Returns the calendar days in year value.
@@ -195,7 +170,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.days_in_year_with_provider(&*provider)
+        self.days_in_year_with_provider(&*provider)
     }
 
     /// Returns the calendar months in year value.
@@ -203,7 +178,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.months_in_year_with_provider(&*provider)
+        self.months_in_year_with_provider(&*provider)
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
@@ -211,14 +186,14 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.in_leap_year_with_provider(&*provider)
+        self.in_leap_year_with_provider(&*provider)
     }
 
     pub fn hours_in_day(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.hours_in_day_with_provider(&*provider)
+        self.hours_in_day_with_provider(&*provider)
     }
 }
 
@@ -231,8 +206,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .with_plain_time_and_provider(time.0, &*provider)
+        self.with_plain_time_and_provider(time, &*provider)
             .map(Into::into)
     }
 
@@ -244,8 +218,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .add_with_provider(&duration.0, overflow, &*provider)
+        self.add_with_provider(duration, overflow, &*provider)
             .map(Into::into)
     }
 
@@ -257,8 +230,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .subtract_with_provider(&duration.0, overflow, &*provider)
+        self.subtract_with_provider(duration, overflow, &*provider)
             .map(Into::into)
     }
 
@@ -267,8 +239,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .since_with_provider(&other.0, options, &*provider)
+        self.since_with_provider(other, options, &*provider)
             .map(Into::into)
     }
 
@@ -277,8 +248,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .until_with_provider(&other.0, options, &*provider)
+        self.until_with_provider(other, options, &*provider)
             .map(Into::into)
     }
 
@@ -286,9 +256,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .start_of_day_with_provider(&*provider)
-            .map(Into::into)
+        self.start_of_day_with_provider(&*provider).map(Into::into)
     }
 
     /// Creates a new [`PlainDate`] from this `ZonedDateTime`.
@@ -296,9 +264,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .to_plain_date_with_provider(&*provider)
-            .map(Into::into)
+        self.to_plain_date_with_provider(&*provider).map(Into::into)
     }
 
     /// Creates a new [`PlainTime`] from this `ZonedDateTime`.
@@ -306,9 +272,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .to_plain_time_with_provider(&*provider)
-            .map(Into::into)
+        self.to_plain_time_with_provider(&*provider).map(Into::into)
     }
 
     /// Creates a new [`PlainDateTime`] from this `ZonedDateTime`.
@@ -316,8 +280,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0
-            .to_plain_datetime_with_provider(&*provider)
+        self.to_plain_datetime_with_provider(&*provider)
             .map(Into::into)
     }
 
@@ -332,7 +295,7 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.0.to_ixdtf_string_with_provider(
+        self.to_ixdtf_string_with_provider(
             display_offset,
             display_timezone,
             display_calendar,
@@ -349,13 +312,8 @@ impl ZonedDateTime {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        temporal_core::ZonedDateTime::from_str_with_provider(
-            source,
-            disambiguation,
-            offset_option,
-            &*provider,
-        )
-        .map(Into::into)
+        ZonedDateTime::from_str_with_provider(source, disambiguation, offset_option, &*provider)
+            .map(Into::into)
     }
 }
 
