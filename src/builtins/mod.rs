@@ -1,6 +1,6 @@
-pub mod core;
 #[cfg(feature = "compiled_data")]
 pub mod compiled;
+pub mod core;
 
 pub use core::*;
 
