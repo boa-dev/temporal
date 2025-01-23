@@ -160,6 +160,7 @@ impl Instant {
         Ok(Self::from(EpochNanoseconds::try_from(nanoseconds)?))
     }
 
+    /// Creates a new `Instant` from the provided Epoch millisecond value.
     pub fn from_epoch_milliseconds(epoch_milliseconds: i128) -> TemporalResult<Self> {
         let epoch_nanos = epoch_milliseconds
             .checked_mul(1_000_000)
