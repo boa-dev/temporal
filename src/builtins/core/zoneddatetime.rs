@@ -1035,7 +1035,7 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     Ok((sign, hour as u8, minute as u8))
 }
 
-#[cfg(all(test, feature = "tzdb", not(feature = "full")))]
+#[cfg(all(test, feature = "tzdb"))]
 mod tests {
     use super::ZonedDateTime;
     use crate::{
