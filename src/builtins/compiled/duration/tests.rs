@@ -1,9 +1,7 @@
-use crate::builtins::native::PlainDate;
 use crate::{
-    builtins::{core::calendar::Calendar, native::zoneddatetime::ZonedDateTime},
     options::{RelativeTo, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit},
     primitive::FiniteF64,
-    DateDuration, TimeDuration, TimeZone,
+    Calendar, DateDuration, PlainDate, TimeDuration, TimeZone, ZonedDateTime,
 };
 use alloc::vec::Vec;
 use core::str::FromStr;
@@ -18,7 +16,6 @@ fn get_round_result(
     test_duration
         .round(options, Some(relative_to))
         .unwrap()
-        .0
         .fields()
         .iter()
         .map(|f| f.as_date_value().unwrap())
@@ -463,7 +460,7 @@ fn rounding_increment_non_integer() {
         .unwrap();
 
     assert_eq!(
-        result.0.fields(),
+        result.fields(),
         &[
             FiniteF64::default(),
             FiniteF64::default(),
@@ -483,7 +480,7 @@ fn rounding_increment_non_integer() {
         .insert(RoundingIncrement::try_from(1e9 + 0.5).unwrap());
     let result = test_duration.round(options, Some(relative_to)).unwrap();
     assert_eq!(
-        result.0.fields(),
+        result.fields(),
         &[
             FiniteF64::default(),
             FiniteF64::default(),

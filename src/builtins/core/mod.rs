@@ -14,7 +14,6 @@ mod date;
 mod datetime;
 mod instant;
 mod month_day;
-pub(crate) mod options;
 mod time;
 mod year_month;
 pub(crate) mod zoneddatetime;

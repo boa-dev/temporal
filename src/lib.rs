@@ -55,7 +55,7 @@ pub mod provider;
 
 mod epoch_nanoseconds;
 
-pub(crate) mod builtins;
+mod builtins;
 
 #[cfg(feature = "now")]
 mod sys;
@@ -96,15 +96,12 @@ pub mod time {
     pub use crate::epoch_nanoseconds::EpochNanoseconds;
 }
 
-#[cfg(feature = "full")]
-pub use crate::builtins::core as temporal_core;
-
 pub use crate::builtins::{
     calendar::Calendar, core::timezone::TimeZone, DateDuration, Duration, Instant, PlainDate,
     PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth, TimeDuration, ZonedDateTime,
 };
 
-#[cfg(feature = "std")]
+#[cfg(feature = "now")]
 pub use crate::builtins::Now;
 
 /// A library specific trait for unwrapping assertions.
