@@ -10,8 +10,8 @@ you, please feel free to contact us on the `Boa` discord.
 
 ## Contributor Information
 
-`Temporal` is a new date/time API that is being developed and proposed
-for the `ECMAScript` specification. This library aims to be a `Rust`
+The Temporal proposal is a new date/time API that is being developed and proposed
+for the ECMAScript specification. This library aims to be a Rust
 implementation of that specification.
 
 Due to the current experimental nature of the material and this library,
