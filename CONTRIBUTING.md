@@ -20,5 +20,5 @@ the Temporal specification.
 
 ## Testing and debugging
 
-For more information on testing and debuggin `temporal_rs`. Please see
+For more information on testing and debugging `temporal_rs`. Please see
 the [testing overview](./docs/testing.md).
