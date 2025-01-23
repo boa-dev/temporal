@@ -55,7 +55,7 @@ pub mod provider;
 
 mod epoch_nanoseconds;
 
-pub(crate) mod builtins;
+mod builtins;
 
 #[cfg(feature = "now")]
 mod sys;

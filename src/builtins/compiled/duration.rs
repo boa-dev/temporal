@@ -8,6 +8,10 @@ use crate::{
 mod tests;
 
 impl Duration {
+    /// Rounds the current [`Duration`] according to the provided [`RoundingOptions`] and an optional
+    /// [`RelativeTo`]
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn round(
         &self,
         options: RoundingOptions,

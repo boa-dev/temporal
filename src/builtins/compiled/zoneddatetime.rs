@@ -11,6 +11,9 @@ use alloc::string::String;
 use tinystr::TinyAsciiStr;
 
 impl core::fmt::Display for ZonedDateTime {
+    /// The [`core::fmt::Display`] implementation for `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(
             &self
@@ -27,7 +30,14 @@ impl core::fmt::Display for ZonedDateTime {
 
 // ===== Experimental TZ_PROVIDER accessor implementations =====
 
+/// `ZonedDateTime` methods for accessing primary date/time unit fields.
+///
+/// The following [`ZonedDateTime`] methods are feature gated behind the
+/// `compiled_data` feature flag.
 impl ZonedDateTime {
+    /// Returns the `ZonedDateTime`'s calendar year.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn year(&self) -> TemporalResult<i32> {
         let provider = TZ_PROVIDER
             .lock()
@@ -35,6 +45,9 @@ impl ZonedDateTime {
         self.year_with_provider(&*provider)
     }
 
+    /// Returns the `ZonedDateTime`'s calendar month.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn month(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
@@ -42,6 +55,9 @@ impl ZonedDateTime {
         self.month_with_provider(&*provider)
     }
 
+    /// Returns the `ZonedDateTime`'s calendar month code.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         let provider = TZ_PROVIDER
             .lock()
@@ -49,6 +65,9 @@ impl ZonedDateTime {
         self.month_code_with_provider(&*provider)
     }
 
+    /// Returns the `ZonedDateTime`'s calendar day.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn day(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
@@ -56,6 +75,9 @@ impl ZonedDateTime {
         self.day_with_provider(&*provider)
     }
 
+    /// Returns the `ZonedDateTime`'s hour.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn hour(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
@@ -63,6 +85,7 @@ impl ZonedDateTime {
         self.hour_with_provider(&*provider)
     }
 
+    /// Enable with the `compiled_data` feature flag.
     pub fn minute(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
@@ -70,6 +93,7 @@ impl ZonedDateTime {
         self.minute_with_provider(&*provider)
     }
 
+    /// Enable with the `compiled_data` feature flag.
     pub fn second(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
@@ -77,6 +101,7 @@ impl ZonedDateTime {
         self.second_with_provider(&*provider)
     }
 
+    /// Enable with the `compiled_data` feature flag.
     pub fn millisecond(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -84,6 +109,7 @@ impl ZonedDateTime {
         self.millisecond_with_provider(&*provider)
     }
 
+    /// Enable with the `compiled_data` feature flag.
     pub fn microsecond(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -91,6 +117,7 @@ impl ZonedDateTime {
         self.millisecond_with_provider(&*provider)
     }
 
+    /// Enable with the `compiled_data` feature flag.
     pub fn nanosecond(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -102,7 +129,18 @@ impl ZonedDateTime {
 
 // ==== Experimental TZ_PROVIDER calendar method implementations ====
 
+/// Calendar method implementations for `ZonedDateTime`.
+///
+/// The following [`ZonedDateTime`] methods are feature gated behind the
+/// `compiled_data` feature flag.
 impl ZonedDateTime {
+    /// Returns the era for the current `ZonedDateTime`
+    ///
+    /// Enable with the `compiled_data` feature flag.
+    ///
+    /// # Experimental
+    ///
+    /// Please note that era support is still experimental. Use with caution.
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
         let provider = TZ_PROVIDER
             .lock()
@@ -110,6 +148,13 @@ impl ZonedDateTime {
         self.era_with_provider(&*provider)
     }
 
+    /// Return the era year for the current `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
+    ///
+    /// # Experimental
+    ///
+    /// Please note that era year support is still experimental. Use with caution.
     pub fn era_year(&self) -> TemporalResult<Option<i32>> {
         let provider = TZ_PROVIDER
             .lock()
@@ -118,6 +163,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar day of week value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn day_of_week(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -126,6 +173,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar day of year value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn day_of_year(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -134,6 +183,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar week of year value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
         let provider = TZ_PROVIDER
             .lock()
@@ -142,6 +193,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar year of week value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
         let provider = TZ_PROVIDER
             .lock()
@@ -150,6 +203,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar days in week value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn days_in_week(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -158,6 +213,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar days in month value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn days_in_month(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -166,6 +223,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar days in year value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn days_in_year(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -174,6 +233,8 @@ impl ZonedDateTime {
     }
 
     /// Returns the calendar months in year value.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn months_in_year(&self) -> TemporalResult<u16> {
         let provider = TZ_PROVIDER
             .lock()
@@ -182,6 +243,8 @@ impl ZonedDateTime {
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn in_leap_year(&self) -> TemporalResult<bool> {
         let provider = TZ_PROVIDER
             .lock()
@@ -189,6 +252,9 @@ impl ZonedDateTime {
         self.in_leap_year_with_provider(&*provider)
     }
 
+    /// Returns the hours in the day.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn hours_in_day(&self) -> TemporalResult<u8> {
         let provider = TZ_PROVIDER
             .lock()
@@ -199,8 +265,13 @@ impl ZonedDateTime {
 
 // ==== Experimental TZ_PROVIDER method implementations ====
 
+/// The primary `ZonedDateTime` method implementations.
+///
+/// The following [`ZonedDateTime`] methods are feature gated behind the
+/// `compiled_data` feature flag.
 impl ZonedDateTime {
-    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime` with the provided `PlainTime`.
+    ///
     /// combined with the provided `TimeZone`.
     pub fn with_plain_time(&self, time: PlainTime) -> TemporalResult<Self> {
         let provider = TZ_PROVIDER
@@ -210,6 +281,9 @@ impl ZonedDateTime {
             .map(Into::into)
     }
 
+    /// Adds a [`Duration`] to the current `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn add(
         &self,
         duration: &Duration,
@@ -222,6 +296,9 @@ impl ZonedDateTime {
             .map(Into::into)
     }
 
+    /// Subtracts a [`Duration`] to the current `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn subtract(
         &self,
         duration: &Duration,
@@ -235,6 +312,8 @@ impl ZonedDateTime {
     }
 
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn since(&self, other: &Self, options: DifferenceSettings) -> TemporalResult<Duration> {
         let provider = TZ_PROVIDER
             .lock()
@@ -244,6 +323,8 @@ impl ZonedDateTime {
     }
 
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn until(&self, other: &Self, options: DifferenceSettings) -> TemporalResult<Duration> {
         let provider = TZ_PROVIDER
             .lock()
@@ -252,6 +333,9 @@ impl ZonedDateTime {
             .map(Into::into)
     }
 
+    /// Returns the start of day for the current `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn start_of_day(&self) -> TemporalResult<Self> {
         let provider = TZ_PROVIDER
             .lock()
@@ -260,6 +344,8 @@ impl ZonedDateTime {
     }
 
     /// Creates a new [`PlainDate`] from this `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
         let provider = TZ_PROVIDER
             .lock()
@@ -268,6 +354,8 @@ impl ZonedDateTime {
     }
 
     /// Creates a new [`PlainTime`] from this `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
         let provider = TZ_PROVIDER
             .lock()
@@ -276,6 +364,8 @@ impl ZonedDateTime {
     }
 
     /// Creates a new [`PlainDateTime`] from this `ZonedDateTime`.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn to_plain_datetime(&self) -> TemporalResult<PlainDateTime> {
         let provider = TZ_PROVIDER
             .lock()
@@ -285,6 +375,8 @@ impl ZonedDateTime {
     }
 
     /// Returns a RFC9557 (IXDTF) string with the provided options.
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn to_ixdtf_string(
         &self,
         display_offset: DisplayOffset,
@@ -304,6 +396,9 @@ impl ZonedDateTime {
         )
     }
 
+    /// Attempts to parse and create a `ZonedDateTime` from an IXDTF formatted [`&str`].
+    ///
+    /// Enable with the `compiled_data` feature flag.
     pub fn from_str(
         source: &str,
         disambiguation: Disambiguation,

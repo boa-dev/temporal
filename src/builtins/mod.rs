@@ -1,3 +1,5 @@
+//! The builtins module contains the main implementation of the Temporal builtins
+
 #[cfg(feature = "compiled_data")]
 pub mod compiled;
 pub mod core;
