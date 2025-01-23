@@ -32,8 +32,8 @@ cargo run --bin boa_tester -- run -vv --console -s test/intl402/Temporal
 
 #### Specify method test suites
 
-The test suite can be further specified by further qualifying the path.
-In order to run the tests for `ZonedDateTime.prototype.add`, run:
+The test suite can be further specified by qualifying the path. In order
+to run the tests for `ZonedDateTime.prototype.add`, run:
 
 ```bash
 cargo run --bin boa_tester -- run -vv --console -s test/built-ins/Temporal/ZonedDateTime/prototype/add
@@ -42,22 +42,22 @@ cargo run --bin boa_tester -- run -vv --console -s test/built-ins/Temporal/Zoned
 #### Debugging single `test262` tests
 
 When debugging a specific test, the test output can be viewed by running
-the test with the following flags.
+the test in verbose mode (`-vvv`):
 
 ```bash
 cargo run --bin boa_tester -- run -vvv --console -s test/built-ins/Temporal/Instant/compare/argument-string-limits.js
 ```
 
-Running the above command will output whether the test was failed or
-passed, and the test failure output if failed.
+Running the above command will output whether the test failed or passed,
+and the test failure output if failed.
 
 ```txt
 Getting last commit on 'HEAD' branch
 Loading the test suite...
 Test loaded, starting...
-`/home/nekevss/Projects/boa/test262/test/built-ins/Temporal/Instant/compare/argument-string-limits.js`: starting
-`/home/nekevss/Projects/boa/test262/test/built-ins/Temporal/Instant/compare/argument-string-limits.js`: Failed
-`/home/nekevss/Projects/boa/test262/test/built-ins/Temporal/Instant/compare/argument-string-limits.js`: result text
+`/home/user/Projects/boa/test262/test/built-ins/Temporal/Instant/compare/argument-string-limits.js`: starting
+`/home/user/Projects/boa/test262/test/built-ins/Temporal/Instant/compare/argument-string-limits.js`: Failed
+`/home/user/Projects/boa/test262/test/built-ins/Temporal/Instant/compare/argument-string-limits.js`: result text
 Uncaught RangeError: Instant nanoseconds are not within a valid epoch range.
 ```
 

@@ -6,7 +6,7 @@ issue first beforehand to ensure the feature is not being actively
 worked on by a maintainer.
 
 If you're interested in helping out but don't see an issue that's for
-you, please feel free to contact us on the `Boa` discord.
+you, please feel free to contact us on `Boa` Matrix server.
 
 ## Contributor Information
 
