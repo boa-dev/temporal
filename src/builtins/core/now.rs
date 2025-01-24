@@ -1,11 +1,13 @@
 //! The Temporal Now component
 
+use crate::iso::IsoDateTime;
 use crate::provider::TimeZoneProvider;
-use crate::{iso::IsoDateTime, time::EpochNanoseconds, TemporalUnwrap};
-use crate::{sys, TemporalResult};
+use crate::sys::SystemHooks;
+use crate::TemporalResult;
 use alloc::string::String;
 
-use num_traits::FromPrimitive;
+#[cfg(feature = "sys")]
+use crate::sys::DefaultSystemHooks;
 
 use super::{
     calendar::Calendar, timezone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
@@ -16,29 +18,65 @@ use super::{
 pub struct Now;
 
 impl Now {
-    /// Returns the current instant
-    pub fn instant() -> TemporalResult<Instant> {
-        system_instant()
+    pub fn instant_with_hooks(system_hooks: &impl SystemHooks) -> TemporalResult<Instant> {
+        let epoch_nanoseconds = system_hooks.get_system_nanoseconds()?;
+        Ok(Instant::from(epoch_nanoseconds))
     }
 
-    /// Returns the current time zone.
-    pub fn time_zone_id() -> TemporalResult<String> {
-        sys::get_system_tz_identifier()
+    pub fn system_time_zone_identifier_with_hooks(
+        system_hooks: &impl SystemHooks,
+    ) -> TemporalResult<String> {
+        system_hooks.get_system_time_zone()
+    }
+
+    pub fn system_datetime_with_hooks_and_provider(
+        time_zone: Option<TimeZone>,
+        system_hooks: &impl SystemHooks,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<IsoDateTime> {
+        // 1. If temporalTimeZoneLike is undefined, then
+        // a. Let timeZone be SystemTimeZoneIdentifier().
+        // 2. Else,
+        // a. Let timeZone be ? ToTemporalTimeZoneIdentifier(temporalTimeZoneLike).
+        let tz = time_zone.unwrap_or(TimeZone::IanaIdentifier(
+            system_hooks.get_system_time_zone()?,
+        ));
+        // 3. Let epochNs be SystemUTCEpochNanoseconds().
+        let epoch_ns = system_hooks.get_system_nanoseconds()?;
+        // 4. Return GetISODateTimeFor(timeZone, epochNs).
+        tz.get_iso_datetime_for(&Instant::from(epoch_ns), provider)
     }
 
     /// Returns the current system time as a `ZonedDateTime` with an ISO8601 calendar.
     ///
     /// The time zone will be set to either the `TimeZone` if a value is provided, or
     /// according to the system timezone if no value is provided.
-    pub fn zoneddatetime_iso(timezone: Option<TimeZone>) -> TemporalResult<ZonedDateTime> {
-        let timezone =
-            timezone.unwrap_or(TimeZone::IanaIdentifier(sys::get_system_tz_identifier()?));
-        let instant = system_instant()?;
+    pub fn zoneddatetime_iso_with_hooks(
+        timezone: Option<TimeZone>,
+        system_hooks: &impl SystemHooks,
+    ) -> TemporalResult<ZonedDateTime> {
+        let timezone = timezone.unwrap_or(TimeZone::IanaIdentifier(
+            system_hooks.get_system_time_zone()?,
+        ));
+        let instant = Self::instant_with_hooks(system_hooks)?;
         Ok(ZonedDateTime::new_unchecked(
             instant,
             Calendar::default(),
             timezone,
         ))
+    }
+}
+
+#[cfg(feature = "sys")]
+impl Now {
+    /// Returns the current instant
+    pub fn instant() -> TemporalResult<Instant> {
+        Self::instant_with_hooks(&DefaultSystemHooks)
+    }
+
+    /// Returns the current time zone.
+    pub fn time_zone_identifier() -> TemporalResult<String> {
+        Self::system_time_zone_identifier_with_hooks(&DefaultSystemHooks)
     }
 }
 
@@ -48,11 +86,12 @@ impl Now {
     /// The time zone used to calculate the `PlainDateTime` will be set to either the
     /// `TimeZone` if a value is provided, or according to the system timezone if no
     /// value is provided.
-    pub fn plain_datetime_iso_with_provider(
+    pub fn plain_datetime_iso_with_hooks_and_provider(
         timezone: Option<TimeZone>,
+        system_hooks: &impl SystemHooks,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainDateTime> {
-        let iso = system_datetime(timezone, provider)?;
+        let iso = Self::system_datetime_with_hooks_and_provider(timezone, system_hooks, provider)?;
         Ok(PlainDateTime::new_unchecked(iso, Calendar::default()))
     }
 
@@ -61,11 +100,12 @@ impl Now {
     /// The time zone used to calculate the `PlainDate` will be set to either the
     /// `TimeZone` if a value is provided, or according to the system timezone if no
     /// value is provided.
-    pub fn plain_date_iso_with_provider(
+    pub fn plain_date_iso_with_hooks_and_provider(
         timezone: Option<TimeZone>,
+        system_hooks: &impl SystemHooks,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainDate> {
-        let iso = system_datetime(timezone, provider)?;
+        let iso = Self::system_datetime_with_hooks_and_provider(timezone, system_hooks, provider)?;
         Ok(PlainDate::new_unchecked(iso.date, Calendar::default()))
     }
 
@@ -74,53 +114,36 @@ impl Now {
     /// The time zone used to calculate the `PlainTime` will be set to either the
     /// `TimeZone` if a value is provided, or according to the system timezone if no
     /// value is provided.
-    pub fn plain_time_iso_with_provider(
+    pub fn plain_time_iso_with_hooks_and_provider(
         timezone: Option<TimeZone>,
+        system_hooks: &impl SystemHooks,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainTime> {
-        let iso = system_datetime(timezone, provider)?;
+        let iso = Self::system_datetime_with_hooks_and_provider(timezone, system_hooks, provider)?;
         Ok(PlainTime::new_unchecked(iso.time))
     }
 }
 
-fn system_datetime(
-    tz: Option<TimeZone>,
-    provider: &impl TimeZoneProvider,
-) -> TemporalResult<IsoDateTime> {
-    // 1. If temporalTimeZoneLike is undefined, then
-    // a. Let timeZone be SystemTimeZoneIdentifier().
-    // 2. Else,
-    // a. Let timeZone be ? ToTemporalTimeZoneIdentifier(temporalTimeZoneLike).
-    let tz = tz.unwrap_or(TimeZone::IanaIdentifier(sys::get_system_tz_identifier()?));
-    // 3. Let epochNs be SystemUTCEpochNanoseconds().
-    // TODO: Handle u128 -> i128 better for system nanoseconds
-    let epoch_ns = EpochNanoseconds::try_from(sys::get_system_nanoseconds()?)?;
-    // 4. Return GetISODateTimeFor(timeZone, epochNs).
-    tz.get_iso_datetime_for(&Instant::from(epoch_ns), provider)
-}
-
-fn system_instant() -> TemporalResult<Instant> {
-    let nanos = sys::get_system_nanoseconds()?;
-    Instant::try_new(i128::from_u128(nanos).temporal_unwrap()?)
-}
-
-#[cfg(feature = "tzdb")]
+#[cfg(all(feature = "tzdb", feature = "sys"))]
 #[cfg(test)]
 mod tests {
     use std::thread;
     use std::time::Duration as StdDuration;
 
     use crate::builtins::core::Now;
-    use crate::{options::DifferenceSettings, tzdb::FsTzdbProvider};
+    use crate::{options::DifferenceSettings, sys::DefaultSystemHooks, tzdb::FsTzdbProvider};
 
     #[test]
     fn now_datetime_test() {
         let provider = &FsTzdbProvider::default();
+        let system_hooks = DefaultSystemHooks;
         let sleep = 2;
 
-        let before = Now::plain_datetime_iso_with_provider(None, provider).unwrap();
+        let before =
+            Now::plain_datetime_iso_with_hooks_and_provider(None, &system_hooks, provider).unwrap();
         thread::sleep(StdDuration::from_secs(sleep));
-        let after = Now::plain_datetime_iso_with_provider(None, provider).unwrap();
+        let after =
+            Now::plain_datetime_iso_with_hooks_and_provider(None, &system_hooks, provider).unwrap();
 
         let diff = after.since(&before, DifferenceSettings::default()).unwrap();
 
