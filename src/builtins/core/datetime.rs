@@ -9,7 +9,7 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     provider::NeverProvider,
@@ -133,6 +133,7 @@ impl PlainDateTime {
         let options = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::DateTime,
             TemporalUnit::Day,
             TemporalUnit::Nanosecond,
         )?;
