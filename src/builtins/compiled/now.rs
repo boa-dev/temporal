@@ -4,6 +4,10 @@ use crate::builtins::{
 };
 use crate::{TemporalError, TemporalResult, TimeZone};
 
+#[cfg(feature = "sys")]
+use crate::sys::DefaultSystemHooks;
+
+#[cfg(feature = "sys")]
 impl Now {
     /// Returns the current system time as a [`PlainDateTime`] with an optional
     /// [`TimeZone`].
@@ -13,7 +17,8 @@ impl Now {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Now::plain_datetime_iso_with_provider(timezone, &*provider).map(Into::into)
+        Now::plain_datetime_iso_with_hooks_and_provider(timezone, &DefaultSystemHooks, &*provider)
+            .map(Into::into)
     }
 
     /// Returns the current system time as a [`PlainDate`] with an optional
@@ -24,7 +29,8 @@ impl Now {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Now::plain_date_iso_with_provider(timezone, &*provider).map(Into::into)
+        Now::plain_date_iso_with_hooks_and_provider(timezone, &DefaultSystemHooks, &*provider)
+            .map(Into::into)
     }
 
     /// Returns the current system time as a [`PlainTime`] with an optional
@@ -35,6 +41,7 @@ impl Now {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        Now::plain_time_iso_with_provider(timezone, &*provider).map(Into::into)
+        Now::plain_time_iso_with_hooks_and_provider(timezone, &DefaultSystemHooks, &*provider)
+            .map(Into::into)
     }
 }
