@@ -529,7 +529,7 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
-        Ok(iso.time.millisecond)
+        Ok(iso.time.microsecond)
     }
 
     /// Returns the `nanosecond` value for this `ZonedDateTime`.
