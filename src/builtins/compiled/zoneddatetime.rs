@@ -5,7 +5,6 @@ use crate::{
         ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
         DisplayTimeZone, OffsetDisambiguation, ToStringRoundingOptions,
     },
-    time::EpochNanoseconds,
     Duration, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
 };
 use alloc::string::String;
