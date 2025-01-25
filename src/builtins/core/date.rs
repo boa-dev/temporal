@@ -127,7 +127,7 @@ macro_rules! impl_with_fallback_method {
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PlainDate {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
@@ -139,15 +139,9 @@ impl core::fmt::Display for PlainDate {
     }
 }
 
-impl Ord for PlainDate {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.iso.cmp(&other.iso)
-    }
-}
-
 impl PartialOrd for PlainDate {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(self.iso.cmp(&other.iso))
     }
 }
 

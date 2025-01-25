@@ -43,22 +43,16 @@ pub struct PartialZonedDateTime {
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
     tz: TimeZone,
 }
 
-impl Ord for ZonedDateTime {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.instant.cmp(&other.instant)
-    }
-}
-
 impl PartialOrd for ZonedDateTime {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
+        Some(self.instant.cmp(&other.instant))
     }
 }
 

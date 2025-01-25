@@ -30,7 +30,7 @@ pub struct PartialDateTime {
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PlainDateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
@@ -45,15 +45,9 @@ impl core::fmt::Display for PlainDateTime {
     }
 }
 
-impl Ord for PlainDateTime {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.iso.cmp(&other.iso)
-    }
-}
-
 impl PartialOrd for PlainDateTime {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        Some(self.iso.cmp(&other.iso))
     }
 }
 
