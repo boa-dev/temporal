@@ -19,7 +19,7 @@ use crate::{
         ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
         ToStringRoundingOptions,
     },
-    parsers::{self, IxdtfStringBuilder},
+    parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
@@ -539,6 +539,54 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.nanosecond)
+    }
+
+    pub fn offset_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<String> {
+        let offset = self
+            .tz
+            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+        Ok(nanoseconds_to_formattable_offset(offset).to_string())
+    }
+
+    pub fn offset_nanoseconds_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<i64> {
+        let offset = self
+            .tz
+            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+        Ok(offset as i64)
+    }
+}
+
+pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: i128) -> FormattableOffset {
+    let sign = if nanoseconds >= 0 {
+        Sign::Positive
+    } else {
+        Sign::Negative
+    };
+    let nanos = nanoseconds.unsigned_abs();
+    let hour = (nanos / 3_600_000_000_000) as u8;
+    let minute = ((nanos / 60_000_000_000) % 60) as u8;
+    let second = ((nanos / 1_000_000_000) % 60) as u8;
+    let nanosecond = (nanos % 1_000_000_000) as u32;
+
+    let precision = if second == 0 && nanosecond == 0 {
+        Precision::Minute
+    } else {
+        Precision::Auto
+    };
+
+    FormattableOffset {
+        sign,
+        time: FormattableTime {
+            hour,
+            minute,
+            second,
+            nanosecond,
+            precision,
+            include_sep: true,
+        },
     }
 }
 
