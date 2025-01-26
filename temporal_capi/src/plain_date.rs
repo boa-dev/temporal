@@ -5,8 +5,13 @@ use crate::error::ffi::TemporalError;
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::calendar::ffi::Calendar;
+    use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
-    use crate::options::ffi::{ArithmeticOverflow, DisplayCalendar};
+    use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar};
+    use crate::plain_date_time::ffi::PlainDateTime;
+    use crate::plain_month_day::ffi::PlainMonthDay;
+    use crate::plain_time::ffi::PlainTime;
+    use crate::plain_year_month::ffi::PlainYearMonth;
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
     use std::fmt::Write;
 
@@ -111,7 +116,46 @@ pub mod ffi {
             self.0.days_until(&other.0)
         }
 
-        // TODO date arithmetic (needs duration types)
+        pub fn add(
+            &self,
+            duration: &Duration,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .add(&duration.0, overflow.map(Into::into))
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn subtract(
+            &self,
+            duration: &Duration,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .subtract(&duration.0, overflow.map(Into::into))
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn until(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .until(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+        pub fn since(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .since(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
 
         pub fn year(&self) -> Result<i32, TemporalError> {
             self.0.year().map_err(Into::into)
@@ -169,8 +213,29 @@ pub mod ffi {
             self.0.era_year().map_err(Into::into)
         }
 
-        // TODO conversions (needs other date/time types)
+        pub fn to_date_time(
+            &self,
+            time: Option<&PlainTime>,
+        ) -> Result<Box<PlainDateTime>, TemporalError> {
+            self.0
+                .to_date_time(time.map(|t| t.0))
+                .map(|x| Box::new(PlainDateTime(x)))
+                .map_err(Into::into)
+        }
 
+        pub fn to_month_day(&self) -> Result<Box<PlainMonthDay>, TemporalError> {
+            self.0
+                .to_month_day()
+                .map(|x| Box::new(PlainMonthDay(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn to_year_month(&self) -> Result<Box<PlainYearMonth>, TemporalError> {
+            self.0
+                .to_year_month()
+                .map(|x| Box::new(PlainYearMonth(x)))
+                .map_err(Into::into)
+        }
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,
