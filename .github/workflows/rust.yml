@@ -85,6 +85,29 @@ jobs:
         run: cargo build --quiet --all-features
       - name: Test --all-features
         run: cargo test --all-features
+  ffi:
+    name: Test FFI (${{ matrix.rust.name }}, ${{ matrix.os }})
+    strategy:
+      matrix:
+        rust:
+          - { version: stable, name: stable }
+        os: [ubuntu-latest] # Todo: potentially add more if we add cpp tests
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust.version }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ffi
+      - name: Cargo build
+        run: cargo build -p temporal_capi
+      - name: Regen
+        run: cargo run -p diplomat-gen
+      # Todo: eventually we should check in bindings and test them
+      - name: Makefile tests
+        run: cd temporal_capi/cpp_tests && make
 
   docs:
     name: Documentation

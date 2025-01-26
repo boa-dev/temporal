@@ -7,10 +7,10 @@ use crate::{
     builtins::core::{
         duration::TimeDuration, zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration,
     },
-    iso::{IsoDate, IsoDateTime, IsoTime},
+    iso::IsoDateTime,
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayOffset,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -21,15 +21,16 @@ use crate::{
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
+use num_traits::Euclid;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
     DateDuration,
 };
 
-const NANOSECONDS_PER_SECOND: i128 = 1_000_000_000;
-const NANOSECONDS_PER_MINUTE: i128 = 60 * NANOSECONDS_PER_SECOND;
-const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
+const NANOSECONDS_PER_SECOND: i64 = 1_000_000_000;
+const NANOSECONDS_PER_MINUTE: i64 = 60 * NANOSECONDS_PER_SECOND;
+const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 
 /// The native Rust implementation of `Temporal.Instant`
 #[non_exhaustive]
@@ -159,6 +160,7 @@ impl Instant {
         Ok(Self::from(EpochNanoseconds::try_from(nanoseconds)?))
     }
 
+    /// Creates a new `Instant` from the provided Epoch millisecond value.
     pub fn from_epoch_milliseconds(epoch_milliseconds: i128) -> TemporalResult<Self> {
         let epoch_nanos = epoch_milliseconds
             .checked_mul(1_000_000)
@@ -275,37 +277,35 @@ impl FromStr for Instant {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ixdtf_record = parse_instant(s)?;
 
-        // Find the IsoDate
-        let iso_date = IsoDate::new_with_overflow(
-            ixdtf_record.date.year,
-            ixdtf_record.date.month,
-            ixdtf_record.date.day,
-            ArithmeticOverflow::Reject,
-        )?;
-
-        // Find the IsoTime
-        let iso_time = IsoTime::from_components(
-            ixdtf_record.time.hour,
-            ixdtf_record.time.minute,
-            ixdtf_record.time.second,
-            ixdtf_record.time.nanosecond,
-        )?;
-
         // Find the offset
         let offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
-                offset.hour as i128 * NANOSECONDS_PER_HOUR
-                    + i128::from(offset.minute) * NANOSECONDS_PER_MINUTE
-                    + i128::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + i128::from(offset.nanosecond)
+                (offset.hour as i64 * NANOSECONDS_PER_HOUR
+                    + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
+                    + i64::from(offset.second) * NANOSECONDS_PER_SECOND
+                    + i64::from(offset.nanosecond))
+                    * offset.sign as i64
             }
             UtcOffsetRecordOrZ::Z => 0,
         };
-        let nanoseconds = IsoDateTime::new_unchecked(iso_date, iso_time)
-            .as_nanoseconds()
-            .map(|v| v.0 + offset as i128);
+        let (millisecond, rem) = ixdtf_record.time.nanosecond.div_rem_euclid(&1_000_000);
+        let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
 
-        Self::try_new(nanoseconds.unwrap_or(i128::MAX))
+        let balanced = IsoDateTime::balance(
+            ixdtf_record.date.year,
+            ixdtf_record.date.month.into(),
+            ixdtf_record.date.day.into(),
+            ixdtf_record.time.hour.into(),
+            ixdtf_record.time.minute.into(),
+            ixdtf_record.time.second.into(),
+            millisecond.into(),
+            microsecond.into(),
+            nanosecond as i64 - offset,
+        );
+
+        let nanoseconds = balanced.as_nanoseconds()?;
+
+        Ok(Self(nanoseconds))
     }
 }
 
@@ -314,10 +314,13 @@ impl FromStr for Instant {
 #[cfg(test)]
 mod tests {
 
+    use core::str::FromStr;
+
     use crate::{
         builtins::core::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
         primitive::FiniteF64,
+        time::EpochNanoseconds,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
@@ -339,6 +342,51 @@ mod tests {
 
         assert!(Instant::try_new(max_plus_one).is_err());
         assert!(Instant::try_new(min_minus_one).is_err());
+    }
+
+    #[test]
+    fn instant_parsing_limits() {
+        // valid cases
+        let valid_str = "-271821-04-20T00:00Z";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(-8640000000000000000000))
+        );
+
+        let valid_str = "-271821-04-19T23:00-01:00";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(-8640000000000000000000))
+        );
+
+        let valid_str = "-271821-04-19T00:00:00.000000001-23:59:59.999999999";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(-8640000000000000000000))
+        );
+
+        let valid_str = "+275760-09-13T00:00Z";
+        let instant = Instant::from_str(valid_str).unwrap();
+        assert_eq!(
+            instant,
+            Instant::from(EpochNanoseconds(8640000000000000000000))
+        );
+
+        // invalid cases
+        let invalid_str = "-271821-04-19T00:00Z";
+        let instant = Instant::from_str(invalid_str);
+        assert!(instant.is_err());
+
+        let invalid_str = "-271821-04-19T23:59:59.999999999Z";
+        let instant = Instant::from_str(invalid_str);
+        assert!(instant.is_err());
+
+        let invalid_str = "-271821-04-19T23:00-00:59:59.999999999";
+        let instant = Instant::from_str(invalid_str);
+        assert!(instant.is_err());
     }
 
     #[test]
