@@ -64,13 +64,13 @@ pub mod ffi {
             self.0.in_leap_year()
         }
         pub fn days_in_month(&self) -> Result<u16, TemporalError> {
-            self.0.get_days_in_month().map_err(Into::into)
+            self.0.days_in_month().map_err(Into::into)
         }
         pub fn days_in_year(&self) -> Result<u16, TemporalError> {
-            self.0.get_days_in_year().map_err(Into::into)
+            self.0.days_in_year().map_err(Into::into)
         }
         pub fn months_in_year(&self) -> Result<u16, TemporalError> {
-            self.0.get_months_in_year().map_err(Into::into)
+            self.0.months_in_year().map_err(Into::into)
         }
         // Writes an empty string for no era
         pub fn era(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
