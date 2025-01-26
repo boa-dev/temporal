@@ -15,7 +15,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
-use core::str::FromStr;
+use core::{cmp::Ordering, str::FromStr};
 
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
@@ -127,7 +127,7 @@ macro_rules! impl_with_fallback_method {
 
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone)]
 pub struct PlainDate {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
@@ -136,12 +136,6 @@ pub struct PlainDate {
 impl core::fmt::Display for PlainDate {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
-    }
-}
-
-impl PartialOrd for PlainDate {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.iso.cmp(&other.iso))
     }
 }
 
@@ -431,6 +425,7 @@ impl PlainDate {
         self.iso.is_valid()
     }
 
+    // TODO: make private
     /// `DaysUntil`
     ///
     /// Calculates the epoch days between two `Date`s
@@ -438,6 +433,18 @@ impl PlainDate {
     #[must_use]
     pub fn days_until(&self, other: &Self) -> i32 {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn equals(&self, other: &Self) -> bool {
+        self.compare(other) == Ordering::Equal && self.calendar == other.calendar
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn compare(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
     }
 
     #[inline]
@@ -634,29 +641,29 @@ mod tests {
         let err = PlainDate::try_new(275_760, 9, 14, Calendar::default());
         assert!(err.is_err());
         let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
-        assert_eq!(
-            ok,
-            PlainDate {
+        assert!(
+            ok.equals(
+            &PlainDate {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
                     day: 19,
                 },
                 calendar: Calendar::default(),
-            }
+            })
         );
 
         let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default()).unwrap();
-        assert_eq!(
-            ok,
-            PlainDate {
+        assert!(
+            ok.equals(
+            &PlainDate {
                 iso: IsoDate {
                     year: 275760,
                     month: 9,
                     day: 13,
                 },
                 calendar: Calendar::default(),
-            }
+            })
         );
     }
 
@@ -709,10 +716,10 @@ mod tests {
         assert!(result.is_err());
 
         let max = PlainDate::try_new(275_760, 9, 12, Calendar::default()).unwrap();
-        let result = max.add(&Duration::from_str("P1D").unwrap(), None);
-        assert_eq!(
-            result,
-            Ok(PlainDate {
+        let result = max.add(&Duration::from_str("P1D").unwrap(), None).unwrap();
+        assert!(
+            result.equals(
+            &PlainDate {
                 iso: IsoDate {
                     year: 275760,
                     month: 9,
@@ -727,10 +734,10 @@ mod tests {
         assert!(result.is_err());
 
         let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
-        let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
-        assert_eq!(
-            result,
-            Ok(PlainDate {
+        let result = min.add(&Duration::from_str("-P1D").unwrap(), None).unwrap();
+        assert!(
+            result.equals(
+            &PlainDate {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,

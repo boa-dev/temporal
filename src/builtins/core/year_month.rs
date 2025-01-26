@@ -1,7 +1,7 @@
 //! This module implements `YearMonth` and any directly related algorithms.
 
 use alloc::string::String;
-use core::str::FromStr;
+use core::{cmp::Ordering, str::FromStr};
 
 use tinystr::TinyAsciiStr;
 
@@ -17,7 +17,7 @@ use super::{Duration, PartialDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone)]
 pub struct PlainYearMonth {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
@@ -26,12 +26,6 @@ pub struct PlainYearMonth {
 impl core::fmt::Display for PlainYearMonth {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
-    }
-}
-
-impl PartialOrd for PlainYearMonth {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.iso.cmp(&other.iso))
     }
 }
 
@@ -78,44 +72,53 @@ impl PlainYearMonth {
         self.iso.month
     }
 
-    pub fn year(&self) -> TemporalResult<i32> {
-        self.calendar().year(&self.iso)
-    }
-
-    pub fn month(&self) -> TemporalResult<u8> {
-        self.calendar().month(&self.iso)
-    }
-
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
-        self.calendar().month_code(&self.iso)
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn in_leap_year(&self) -> bool {
-        self.calendar()
-            .in_leap_year(&self.iso)
-            .is_ok_and(|is_leap_year| is_leap_year)
-    }
-
-    pub fn get_days_in_year(&self) -> TemporalResult<u16> {
-        self.calendar().days_in_year(&self.iso)
-    }
-
-    pub fn get_days_in_month(&self) -> TemporalResult<u16> {
-        self.calendar().days_in_month(&self.iso)
-    }
-
-    pub fn get_months_in_year(&self) -> TemporalResult<u16> {
-        self.calendar().months_in_year(&self.iso)
-    }
-
+    /// Returns the calendar era of the current `PlainYearMonth`
     pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
         self.calendar().era(&self.iso)
     }
 
+    /// Returns the calendar era year of the current `PlainYearMonth`
     pub fn era_year(&self) -> TemporalResult<Option<i32>> {
         self.calendar().era_year(&self.iso)
+    }
+
+    /// Returns the calendar year of the current `PlainYearMonth`
+    pub fn year(&self) -> TemporalResult<i32> {
+        self.calendar().year(&self.iso)
+    }
+
+    /// Returns the calendar month of the current `PlainYearMonth`
+    pub fn month(&self) -> TemporalResult<u8> {
+        self.calendar().month(&self.iso)
+    }
+
+    /// Returns the calendar month code of the current `PlainYearMonth`
+    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+        self.calendar().month_code(&self.iso)
+    }
+
+    /// Returns the days in the calendar year of the current `PlainYearMonth`.
+    pub fn days_in_year(&self) -> TemporalResult<u16> {
+        self.calendar().days_in_year(&self.iso)
+    }
+
+    /// Returns the days in the calendar month of the current `PlainYearMonth`.
+    pub fn days_in_month(&self) -> TemporalResult<u16> {
+        self.calendar().days_in_month(&self.iso)
+    }
+
+    /// Returns the months in the calendar year of the current `PlainYearMonth`.
+    pub fn months_in_year(&self) -> TemporalResult<u16> {
+        self.calendar().months_in_year(&self.iso)
+    }
+
+    #[inline]
+    #[must_use]
+    /// Returns a boolean representing whether the current `PlainYearMonth` is in a leap year.
+    pub fn in_leap_year(&self) -> bool {
+        self.calendar()
+            .in_leap_year(&self.iso)
+            .is_ok_and(|is_leap_year| is_leap_year)
     }
 }
 
@@ -132,6 +135,18 @@ impl PlainYearMonth {
     #[must_use]
     pub fn calendar_id(&self) -> &'static str {
         self.calendar.identifier()
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn equals(&self, other: &Self) -> bool {
+        self.compare(other) == Ordering::Equal && self.calendar == other.calendar
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn compare(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
     }
 
     pub fn add_duration(

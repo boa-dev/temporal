@@ -30,7 +30,7 @@ pub struct PartialDateTime {
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone)]
 pub struct PlainDateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
@@ -42,12 +42,6 @@ impl core::fmt::Display for PlainDateTime {
             .to_ixdtf_string(ToStringRoundingOptions::default(), DisplayCalendar::Auto)
             .expect("ixdtf default configuration should not fail.");
         f.write_str(&ixdtf_str)
-    }
-}
-
-impl PartialOrd for PlainDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.iso.cmp(&other.iso))
     }
 }
 
@@ -570,6 +564,18 @@ impl PlainDateTime {
 
 impl PlainDateTime {
     #[inline]
+    #[must_use]
+    pub fn equals(&self, other: &Self) -> bool {
+        self.compare(other) == Ordering::Equal && self.calendar == other.calendar
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn compare(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
+    }
+
+    #[inline]
     /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
         &self,
@@ -729,10 +735,10 @@ mod tests {
         assert!(negative_limit.is_err());
         let positive_limit = pdt_from_date(275_760, 9, 14);
         assert!(positive_limit.is_err());
-        let within_negative_limit = pdt_from_date(-271_821, 4, 20);
-        assert_eq!(
-            within_negative_limit,
-            Ok(PlainDateTime {
+        let within_negative_limit = pdt_from_date(-271_821, 4, 20).unwrap();
+        assert!(
+            within_negative_limit.equals(
+            &PlainDateTime {
                 iso: IsoDateTime {
                     date: IsoDate {
                         year: -271_821,
@@ -745,10 +751,10 @@ mod tests {
             })
         );
 
-        let within_positive_limit = pdt_from_date(275_760, 9, 13);
-        assert_eq!(
-            within_positive_limit,
-            Ok(PlainDateTime {
+        let within_positive_limit = pdt_from_date(275_760, 9, 13).unwrap();
+        assert!(
+            within_positive_limit.equals(
+            &PlainDateTime {
                 iso: IsoDateTime {
                     date: IsoDate {
                         year: 275_760,

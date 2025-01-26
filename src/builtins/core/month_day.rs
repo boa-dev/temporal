@@ -1,7 +1,7 @@
 //! This module implements `MonthDay` and any directly related algorithms.
 
 use alloc::string::String;
-use core::str::FromStr;
+use core::{cmp::Ordering, str::FromStr};
 
 use tinystr::TinyAsciiStr;
 
@@ -14,7 +14,7 @@ use crate::{
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone)]
 pub struct PlainMonthDay {
     pub iso: IsoDate,
     calendar: Calendar,
@@ -88,6 +88,11 @@ impl PlainMonthDay {
     #[inline]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.calendar.month_code(&self.iso)
+    }
+
+    #[inline]
+    pub fn equals(&self, other: &Self) -> bool {
+        self.iso.cmp(&other.iso) == Ordering::Equal && self.calendar == other.calendar
     }
 
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {

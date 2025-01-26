@@ -1,7 +1,7 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
 use alloc::string::String;
-use core::num::NonZeroU128;
+use core::{cmp::Ordering, num::NonZeroU128};
 use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
@@ -29,7 +29,7 @@ use crate::{
 };
 
 /// A struct representing a partial `ZonedDateTime`.
-#[derive(Debug, Default, Clone, PartialEq)]
+#[derive(Debug, Default, Clone)]
 pub struct PartialZonedDateTime {
     /// The `PartialDate` portion of a `PartialZonedDateTime`
     pub date: PartialDate,
@@ -48,12 +48,6 @@ pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
     tz: TimeZone,
-}
-
-impl PartialOrd for ZonedDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.instant.cmp(&other.instant))
-    }
 }
 
 // ==== Private API ====
@@ -425,6 +419,20 @@ impl ZonedDateTime {
     /// combined with the provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::try_new(self.epoch_nanoseconds(), calendar, self.tz.clone())
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn equals(&self, other: &Self) -> bool {
+        self.compare(other) == Ordering::Equal
+            && self.tz == other.tz
+            && self.calendar == other.calendar
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn compare(&self, other: &Self) -> Ordering {
+        self.instant.cmp(&other.instant)
     }
 }
 
