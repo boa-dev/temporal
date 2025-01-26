@@ -641,30 +641,24 @@ mod tests {
         let err = PlainDate::try_new(275_760, 9, 14, Calendar::default());
         assert!(err.is_err());
         let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
-        assert!(
-            ok.equals(
-            &PlainDate {
-                iso: IsoDate {
-                    year: -271_821,
-                    month: 4,
-                    day: 19,
-                },
-                calendar: Calendar::default(),
-            })
-        );
+        assert!(ok.equals(&PlainDate {
+            iso: IsoDate {
+                year: -271_821,
+                month: 4,
+                day: 19,
+            },
+            calendar: Calendar::default(),
+        }));
 
         let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default()).unwrap();
-        assert!(
-            ok.equals(
-            &PlainDate {
-                iso: IsoDate {
-                    year: 275760,
-                    month: 9,
-                    day: 13,
-                },
-                calendar: Calendar::default(),
-            })
-        );
+        assert!(ok.equals(&PlainDate {
+            iso: IsoDate {
+                year: 275760,
+                month: 9,
+                day: 13,
+            },
+            calendar: Calendar::default(),
+        }));
     }
 
     #[test]
@@ -717,17 +711,14 @@ mod tests {
 
         let max = PlainDate::try_new(275_760, 9, 12, Calendar::default()).unwrap();
         let result = max.add(&Duration::from_str("P1D").unwrap(), None).unwrap();
-        assert!(
-            result.equals(
-            &PlainDate {
-                iso: IsoDate {
-                    year: 275760,
-                    month: 9,
-                    day: 13
-                },
-                calendar: Calendar::default(),
-            })
-        );
+        assert!(result.equals(&PlainDate {
+            iso: IsoDate {
+                year: 275760,
+                month: 9,
+                day: 13
+            },
+            calendar: Calendar::default(),
+        }));
 
         let min = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None);
@@ -735,17 +726,14 @@ mod tests {
 
         let min = PlainDate::try_new(-271_821, 4, 20, Calendar::default()).unwrap();
         let result = min.add(&Duration::from_str("-P1D").unwrap(), None).unwrap();
-        assert!(
-            result.equals(
-            &PlainDate {
-                iso: IsoDate {
-                    year: -271_821,
-                    month: 4,
-                    day: 19
-                },
-                calendar: Calendar::default(),
-            })
-        );
+        assert!(result.equals(&PlainDate {
+            iso: IsoDate {
+                year: -271_821,
+                month: 4,
+                day: 19
+            },
+            calendar: Calendar::default(),
+        }));
     }
 
     #[test]

@@ -736,36 +736,30 @@ mod tests {
         let positive_limit = pdt_from_date(275_760, 9, 14);
         assert!(positive_limit.is_err());
         let within_negative_limit = pdt_from_date(-271_821, 4, 20).unwrap();
-        assert!(
-            within_negative_limit.equals(
-            &PlainDateTime {
-                iso: IsoDateTime {
-                    date: IsoDate {
-                        year: -271_821,
-                        month: 4,
-                        day: 20,
-                    },
-                    time: IsoTime::default(),
+        assert!(within_negative_limit.equals(&PlainDateTime {
+            iso: IsoDateTime {
+                date: IsoDate {
+                    year: -271_821,
+                    month: 4,
+                    day: 20,
                 },
-                calendar: Calendar::default(),
-            })
-        );
+                time: IsoTime::default(),
+            },
+            calendar: Calendar::default(),
+        }));
 
         let within_positive_limit = pdt_from_date(275_760, 9, 13).unwrap();
-        assert!(
-            within_positive_limit.equals(
-            &PlainDateTime {
-                iso: IsoDateTime {
-                    date: IsoDate {
-                        year: 275_760,
-                        month: 9,
-                        day: 13,
-                    },
-                    time: IsoTime::default(),
+        assert!(within_positive_limit.equals(&PlainDateTime {
+            iso: IsoDateTime {
+                date: IsoDate {
+                    year: 275_760,
+                    month: 9,
+                    day: 13,
                 },
-                calendar: Calendar::default(),
-            })
-        );
+                time: IsoTime::default(),
+            },
+            calendar: Calendar::default(),
+        }));
     }
 
     #[test]
