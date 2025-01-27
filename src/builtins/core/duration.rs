@@ -382,7 +382,7 @@ impl Duration {
         self.date.weeks
     }
 
-    /// Returns the `weeks` field of duration.
+    /// Returns the `days` field of duration.
     #[inline]
     #[must_use]
     pub const fn days(&self) -> FiniteF64 {
