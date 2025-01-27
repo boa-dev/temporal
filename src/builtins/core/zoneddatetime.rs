@@ -1,7 +1,7 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
 use alloc::string::String;
-use core::num::NonZeroU128;
+use core::{cmp::Ordering, num::NonZeroU128};
 use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
@@ -48,18 +48,6 @@ pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
     tz: TimeZone,
-}
-
-impl Ord for ZonedDateTime {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.instant.cmp(&other.instant)
-    }
-}
-
-impl PartialOrd for ZonedDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 // ==== Private API ====
@@ -431,6 +419,20 @@ impl ZonedDateTime {
     /// combined with the provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::try_new(self.epoch_nanoseconds(), calendar, self.tz.clone())
+    }
+
+    /// Compares one `ZonedDateTime` to another `ZonedDateTime` using their
+    /// `Instant` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `ZonedDateTime` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
+    #[inline]
+    #[must_use]
+    pub fn compare_instant(&self, other: &Self) -> Ordering {
+        self.instant.cmp(&other.instant)
     }
 }
 
