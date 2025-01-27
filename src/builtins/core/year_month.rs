@@ -17,7 +17,7 @@ use super::{Duration, PartialDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainYearMonth {
     pub(crate) iso: IsoDate,
     calendar: Calendar,
@@ -137,15 +137,17 @@ impl PlainYearMonth {
         self.calendar.identifier()
     }
 
+    /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
+    /// `IsoDate` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainYearMonth` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
     #[inline]
     #[must_use]
-    pub fn equals(&self, other: &Self) -> bool {
-        self.compare(other) == Ordering::Equal && self.calendar == other.calendar
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn compare(&self, other: &Self) -> Ordering {
+    pub fn compare_iso(&self, other: &Self) -> Ordering {
         self.iso.cmp(&other.iso)
     }
 

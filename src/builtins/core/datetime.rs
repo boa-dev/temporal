@@ -30,7 +30,7 @@ pub struct PartialDateTime {
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainDateTime {
     pub(crate) iso: IsoDateTime,
     calendar: Calendar,
@@ -563,15 +563,17 @@ impl PlainDateTime {
 }
 
 impl PlainDateTime {
+    /// Compares one `PlainDateTime` to another `PlainDateTime` using their
+    /// `IsoDate` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainDateTime` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
     #[inline]
     #[must_use]
-    pub fn equals(&self, other: &Self) -> bool {
-        self.compare(other) == Ordering::Equal && self.calendar == other.calendar
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn compare(&self, other: &Self) -> Ordering {
+    pub fn compare_iso(&self, other: &Self) -> Ordering {
         self.iso.cmp(&other.iso)
     }
 
@@ -735,31 +737,37 @@ mod tests {
         assert!(negative_limit.is_err());
         let positive_limit = pdt_from_date(275_760, 9, 14);
         assert!(positive_limit.is_err());
-        let within_negative_limit = pdt_from_date(-271_821, 4, 20).unwrap();
-        assert!(within_negative_limit.equals(&PlainDateTime {
-            iso: IsoDateTime {
-                date: IsoDate {
-                    year: -271_821,
-                    month: 4,
-                    day: 20,
+        let within_negative_limit = pdt_from_date(-271_821, 4, 20);
+        assert_eq!(
+            within_negative_limit,
+            Ok(PlainDateTime {
+                iso: IsoDateTime {
+                    date: IsoDate {
+                        year: -271_821,
+                        month: 4,
+                        day: 20,
+                    },
+                    time: IsoTime::default(),
                 },
-                time: IsoTime::default(),
-            },
-            calendar: Calendar::default(),
-        }));
+                calendar: Calendar::default(),
+            })
+        );
 
-        let within_positive_limit = pdt_from_date(275_760, 9, 13).unwrap();
-        assert!(within_positive_limit.equals(&PlainDateTime {
-            iso: IsoDateTime {
-                date: IsoDate {
-                    year: 275_760,
-                    month: 9,
-                    day: 13,
+        let within_positive_limit = pdt_from_date(275_760, 9, 13);
+        assert_eq!(
+            within_positive_limit,
+            Ok(PlainDateTime {
+                iso: IsoDateTime {
+                    date: IsoDate {
+                        year: 275_760,
+                        month: 9,
+                        day: 13,
+                    },
+                    time: IsoTime::default(),
                 },
-                time: IsoTime::default(),
-            },
-            calendar: Calendar::default(),
-        }));
+                calendar: Calendar::default(),
+            })
+        );
     }
 
     #[test]

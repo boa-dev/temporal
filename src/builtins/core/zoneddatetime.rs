@@ -29,7 +29,7 @@ use crate::{
 };
 
 /// A struct representing a partial `ZonedDateTime`.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq)]
 pub struct PartialZonedDateTime {
     /// The `PartialDate` portion of a `PartialZonedDateTime`
     pub date: PartialDate,
@@ -43,7 +43,7 @@ pub struct PartialZonedDateTime {
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
@@ -421,17 +421,17 @@ impl ZonedDateTime {
         Self::try_new(self.epoch_nanoseconds(), calendar, self.tz.clone())
     }
 
+    /// Compares one `ZonedDateTime` to another `ZonedDateTime` using their
+    /// `Instant` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `ZonedDateTime` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
     #[inline]
     #[must_use]
-    pub fn equals(&self, other: &Self) -> bool {
-        self.compare(other) == Ordering::Equal
-            && self.tz == other.tz
-            && self.calendar == other.calendar
-    }
-
-    #[inline]
-    #[must_use]
-    pub fn compare(&self, other: &Self) -> Ordering {
+    pub fn compare_instant(&self, other: &Self) -> Ordering {
         self.instant.cmp(&other.instant)
     }
 }
