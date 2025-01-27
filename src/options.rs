@@ -426,6 +426,13 @@ impl TemporalUnit {
 
     #[inline]
     #[must_use]
+    pub fn is_date_unit(&self) -> bool {
+        use TemporalUnit::{Day, Month, Week, Year};
+        matches!(self, Day | Year | Month | Week)
+    }
+
+    #[inline]
+    #[must_use]
     pub fn is_time_unit(&self) -> bool {
         use TemporalUnit::{Hour, Microsecond, Millisecond, Minute, Nanosecond, Second};
         matches!(
@@ -597,9 +604,12 @@ impl fmt::Display for DurationOverflow {
 }
 
 /// The disambiguation options for an instant.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Disambiguation {
     /// Compatible option
+    ///
+    /// This is the default according to GetTemporalDisambiguationOption
+    #[default]
     Compatible,
     /// Earlier option
     Earlier,

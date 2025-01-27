@@ -36,7 +36,7 @@ const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 // nanoseconds.abs() <= MAX_TIME_DURATION
 
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord)]
 pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
 
 impl NormalizedTimeDuration {
@@ -66,6 +66,7 @@ impl NormalizedTimeDuration {
 
     // NOTE: `days: f64` should be an integer -> `i64`.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
+    /// Add24HourDaysToTimeDuration??
     pub(crate) fn add_days(&self, days: i64) -> TemporalResult<Self> {
         let result = self.0 + i128::from(days) * i128::from(NS_PER_DAY);
         if result.abs() > MAX_TIME_DURATION {
