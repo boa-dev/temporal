@@ -177,11 +177,13 @@ impl ResolvedRoundingOptions {
     pub(crate) fn from_diff_settings(
         options: DifferenceSettings,
         operation: DifferenceOperation,
+        unit_group: UnitGroup,
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
+        unit_group.validate_unit(options.largest_unit)?;
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = match operation {
             DifferenceOperation::Since => options
@@ -340,6 +342,33 @@ impl ResolvedRoundingOptions {
 }
 
 // ==== Options enums and methods ====
+
+pub enum UnitGroup {
+    Date,
+    Time,
+    DateTime,
+}
+
+impl UnitGroup {
+    pub fn validate_unit(self, unit: Option<TemporalUnit>) -> TemporalResult<()> {
+        // TODO: Determine proper handling of Auto.
+        match self {
+            UnitGroup::Date => match unit {
+                Some(unit) if !unit.is_time_unit() => Ok(()),
+                None => Ok(()),
+                _ => Err(TemporalError::range()
+                    .with_message("Unit was not part of the date unit group.")),
+            },
+            UnitGroup::Time => match unit {
+                Some(unit) if unit.is_time_unit() => Ok(()),
+                None => Ok(()),
+                _ => Err(TemporalError::range()
+                    .with_message("Unit was not part of the time unit group.")),
+            },
+            UnitGroup::DateTime => Ok(()),
+        }
+    }
+}
 
 /// The relevant unit that should be used for the operation that
 /// this option is provided as a value.

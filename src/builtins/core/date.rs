@@ -7,7 +7,7 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, TemporalUnit,
+        ResolvedRoundingOptions, TemporalUnit, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -253,6 +253,7 @@ impl PlainDate {
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::Date,
             TemporalUnit::Day,
             TemporalUnit::Day,
         )?;
