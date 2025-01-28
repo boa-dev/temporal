@@ -1,3 +1,5 @@
+use std::string::ToString;
+
 use crate::{
     options::{OffsetDisambiguation, RelativeTo, ToStringRoundingOptions},
     parsers::Precision,
@@ -215,7 +217,7 @@ fn test_duration_compare() {
 
     let mut arr = [&one, &two, &three];
     arr.sort_by(|a, b| Duration::compare(a, b, None).unwrap());
-    assert_eq!(arr, [&three, &one, &two]);
+    assert_eq!(arr.map(ToString::to_string), [&three, &one, &two].map(ToString::to_string));
 
     // Sorting relative to a date, taking DST changes into account:
     let zdt = ZonedDateTime::from_str(
@@ -227,5 +229,5 @@ fn test_duration_compare() {
     arr.sort_by(|a, b| {
         Duration::compare(a, b, Some(RelativeTo::ZonedDateTime(zdt.clone()))).unwrap()
     });
-    assert_eq!(arr, [&one, &three, &two])
+    assert_eq!(arr.map(ToString::to_string), [&one, &three, &two].map(ToString::to_string))
 }

@@ -77,7 +77,7 @@ impl PartialDuration {
 /// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
 /// defined by Abtract Operation 7.5.1-5.
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Duration {
     date: DateDuration,
     time: TimeDuration,
@@ -278,6 +278,16 @@ impl Duration {
         self.time.is_within_range()
     }
 
+    /// Compares self with other on a field by field basis.
+    fn cmp_raw(&self, other: &Self) -> Option<Ordering> {
+        let date_ordering = self.date.partial_cmp(&other.date)?;
+        if date_ordering != Ordering::Equal {
+            return Some(date_ordering);
+        }
+        let time_ordering = self.time.partial_cmp(&other.time)?;
+        Some(time_ordering)
+    }
+
     /// Returns the ordering between the two durations.
     /// 
     /// `7.2.3 Temporal.Duration.compare ( one, two [ , options ] )`
@@ -287,7 +297,7 @@ impl Duration {
         two: &Duration,
         relative_to: Option<RelativeTo>,
     ) -> TemporalResult<Ordering> {
-        if one == two {
+        if let Some(Ordering::Equal) = one.cmp_raw(two) {
             return Ok(Ordering::Equal);
         }
         // 8. Let largestUnit1 be DefaultTemporalLargestUnit(one).
