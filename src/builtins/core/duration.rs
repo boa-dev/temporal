@@ -289,7 +289,7 @@ impl Duration {
     }
 
     /// Returns the ordering between the two durations.
-    /// 
+    ///
     /// `7.2.3 Temporal.Duration.compare ( one, two [ , options ] )`
     #[must_use]
     pub fn compare(

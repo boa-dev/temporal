@@ -111,7 +111,7 @@ impl DateDuration {
 
     /// DateDurationDays
     /// TODO(review): Question: what the correct return type?
-    pub fn days(&self, relative_to: &PlainDate) -> TemporalResult<i64> {
+    pub(crate) fn days(&self, relative_to: &PlainDate) -> TemporalResult<i64> {
         // 1. Let yearsMonthsWeeksDuration be ! AdjustDateDurationRecord(dateDuration, 0).
         let ymw_duration = self.adjust(FiniteF64(0.0), None, None)?;
         // 2. If DateDurationSign(yearsMonthsWeeksDuration) = 0, return dateDuration.[[Days]].
@@ -129,7 +129,7 @@ impl DateDuration {
         // 4. Let epochDays1 be ISODateToEpochDays(plainRelativeTo.[[ISODate]].[[Year]], plainRelativeTo.[[ISODate]].[[Month]] - 1, plainRelativeTo.[[ISODate]].[[Day]]).
         let epoch_days_1 = iso_date_to_epoch_days(
             relative_to.iso_year(),
-            i32::from(relative_to.iso_month()),  // this function takes 1 based month number
+            i32::from(relative_to.iso_month()), // this function takes 1 based month number
             i32::from(relative_to.iso_day()),
         );
         // 5. Let epochDays2 be ISODateToEpochDays(later.[[Year]], later.[[Month]] - 1, later.[[Day]]).
@@ -146,7 +146,7 @@ impl DateDuration {
     }
 
     /// AdjustDateDurationRecord
-    pub fn adjust(
+    pub(crate) fn adjust(
         &self,
         days: FiniteF64,
         weeks: Option<FiniteF64>,
