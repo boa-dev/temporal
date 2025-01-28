@@ -930,6 +930,7 @@ fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
 // ==== `IsoDate` specific utiltiy functions ====
 
 /// Returns the Epoch days based off the given year, month, and day.
+/// Note: Month should be 1 indexed
 #[inline]
 pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     // 1. Let resolvedYear be year + floor(month / 12).

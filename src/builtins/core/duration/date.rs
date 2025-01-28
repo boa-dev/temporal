@@ -129,13 +129,13 @@ impl DateDuration {
         // 4. Let epochDays1 be ISODateToEpochDays(plainRelativeTo.[[ISODate]].[[Year]], plainRelativeTo.[[ISODate]].[[Month]] - 1, plainRelativeTo.[[ISODate]].[[Day]]).
         let epoch_days_1 = iso_date_to_epoch_days(
             relative_to.iso_year(),
-            i32::from(relative_to.iso_month()) - 1,
+            i32::from(relative_to.iso_month()),  // this function takes 1 based month number
             i32::from(relative_to.iso_day()),
         );
         // 5. Let epochDays2 be ISODateToEpochDays(later.[[Year]], later.[[Month]] - 1, later.[[Day]]).
         let epoch_days_2 = iso_date_to_epoch_days(
             later.iso_year(),
-            i32::from(later.iso_month()) - 1,
+            i32::from(later.iso_month()), // this function takes 1 based month number
             i32::from(later.iso_day()),
         );
         // 6. Let yearsMonthsWeeksInDays be epochDays2 - epochDays1.
