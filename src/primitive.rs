@@ -227,7 +227,7 @@ impl Ord for FiniteF64 {
         match self.0.partial_cmp(&other.0) {
             Some(ordering) => ordering,
             None => {
-                debug_assert!(false, "could not compare fininte f64: {self} {other}");
+                debug_assert!(false, "could not compare finite f64: {self} {other}");
                 Ordering::Equal
             }
         }
