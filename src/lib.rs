@@ -52,11 +52,12 @@ pub mod options;
 pub mod parsers;
 pub mod primitive;
 pub mod provider;
-pub mod sys;
 
-mod epoch_nanoseconds;
+#[cfg(feature = "sys")]
+pub(crate) mod sys;
 
 mod builtins;
+mod epoch_nanoseconds;
 
 #[cfg(feature = "tzdb")]
 pub mod tzdb;
