@@ -109,7 +109,7 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_date_time_iso`]
+    /// For an example implementation see [`Self::plain_datetime_iso`]
     pub fn plain_datetime_iso_with_provider(
         epoch_nanos: EpochNanoseconds,
         timezone: TimeZone,
