@@ -9,7 +9,7 @@ impl Instant {
     /// provided options
     ///
     /// Enable with the `compiled_data` feature flag.
-    pub fn as_ixdtf_string(
+    pub fn to_ixdtf_string(
         &self,
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
@@ -18,6 +18,6 @@ impl Instant {
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
 
-        self.as_ixdtf_string_with_provider(timezone, options, &*provider)
+        self.to_ixdtf_string_with_provider(timezone, options, &*provider)
     }
 }
