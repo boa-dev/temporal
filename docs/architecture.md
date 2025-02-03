@@ -31,8 +31,8 @@ These builtins are then reexported from `lib.rs` to be available from
 `temporal_rs`'s builtins are split in two distinct directories `core`
 and `compiled`. The core implementation contains the core implementation
 of the Temporal builtins; meanwhile, the `compiled` implementation provides
-method wrappers the `core` methods that simplifies some "lower" level
-date/time API that may not be necessary for a general use case.
+method wrappers around the `core` methods that simplify some "lower" level
+date/time APIs that may not be necessary for a general use case.
 
 ### Core implementation
 
