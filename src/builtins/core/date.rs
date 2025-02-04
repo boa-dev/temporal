@@ -15,7 +15,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
-use core::str::FromStr;
+use core::{cmp::Ordering, str::FromStr};
 
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
@@ -136,18 +136,6 @@ pub struct PlainDate {
 impl core::fmt::Display for PlainDate {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str(&self.to_ixdtf_string(DisplayCalendar::Auto))
-    }
-}
-
-impl Ord for PlainDate {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.iso.cmp(&other.iso)
-    }
-}
-
-impl PartialOrd for PlainDate {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -437,6 +425,7 @@ impl PlainDate {
         self.iso.is_valid()
     }
 
+    // TODO: make private
     /// `DaysUntil`
     ///
     /// Calculates the epoch days between two `Date`s
@@ -444,6 +433,20 @@ impl PlainDate {
     #[must_use]
     pub fn days_until(&self, other: &Self) -> i32 {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
+    }
+
+    /// Compares one `PlainDate` to another `PlainDate` using their
+    /// `IsoDate` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainDate` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
+    #[inline]
+    #[must_use]
+    pub fn compare_iso(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
     }
 
     #[inline]
@@ -639,30 +642,30 @@ mod tests {
         assert!(err.is_err());
         let err = PlainDate::try_new(275_760, 9, 14, Calendar::default());
         assert!(err.is_err());
-        let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
+        let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default());
         assert_eq!(
             ok,
-            PlainDate {
+            Ok(PlainDate {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
                     day: 19,
                 },
                 calendar: Calendar::default(),
-            }
+            })
         );
 
-        let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default()).unwrap();
+        let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default());
         assert_eq!(
             ok,
-            PlainDate {
+            Ok(PlainDate {
                 iso: IsoDate {
                     year: 275760,
                     month: 9,
                     day: 13,
                 },
                 calendar: Calendar::default(),
-            }
+            })
         );
     }
 

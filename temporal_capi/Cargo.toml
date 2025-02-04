@@ -12,5 +12,5 @@ exclude.workspace = true
 [dependencies]
 diplomat = "0.9.0"
 diplomat-runtime = "0.9.0"
-temporal_rs = { version = "0.0.4", path = ".." }
+temporal_rs = { version = "0.0.4", path = "..", default-features = false }
 icu_calendar = { version = "2.0.0-beta1", default-features = false}

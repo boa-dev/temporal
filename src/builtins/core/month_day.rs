@@ -14,7 +14,7 @@ use crate::{
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainMonthDay {
     pub iso: IsoDate,
     calendar: Calendar,
