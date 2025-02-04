@@ -435,7 +435,7 @@ impl PlainTime {
         Ok(Self::new_unchecked(result))
     }
 
-    pub fn as_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+    pub fn to_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         let resolved = options.resolve()?;
         let (_, result) = self
             .iso

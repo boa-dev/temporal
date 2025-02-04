@@ -45,18 +45,6 @@ impl core::fmt::Display for PlainDateTime {
     }
 }
 
-impl Ord for PlainDateTime {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.iso.cmp(&other.iso)
-    }
-}
-
-impl PartialOrd for PlainDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 // ==== Private PlainDateTime API ====
 
 impl PlainDateTime {
@@ -576,6 +564,20 @@ impl PlainDateTime {
 }
 
 impl PlainDateTime {
+    /// Compares one `PlainDateTime` to another `PlainDateTime` using their
+    /// `IsoDate` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainDateTime` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
+    #[inline]
+    #[must_use]
+    pub fn compare_iso(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
+    }
+
     #[inline]
     /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
