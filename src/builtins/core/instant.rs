@@ -161,10 +161,10 @@ impl Instant {
     }
 
     /// Creates a new `Instant` from the provided Epoch millisecond value.
-    pub fn from_epoch_milliseconds(epoch_milliseconds: i128) -> TemporalResult<Self> {
-        let epoch_nanos = epoch_milliseconds
-            .checked_mul(1_000_000)
-            .unwrap_or(i128::MAX);
+    pub fn from_epoch_milliseconds(epoch_milliseconds: i64) -> TemporalResult<Self> {
+        // Input at most is `i64::MAX`. This means guarantees that the
+        // transition into nanoseconds MUST be in range of `i128`
+        let epoch_nanos = (epoch_milliseconds as i128) * 1_000_000;
         Self::try_new(epoch_nanos)
     }
 
@@ -238,7 +238,7 @@ impl Instant {
 // ==== Instant Provider API ====
 
 impl Instant {
-    pub fn as_ixdtf_string_with_provider(
+    pub fn to_ixdtf_string_with_provider(
         &self,
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
@@ -629,13 +629,13 @@ mod tests {
         // Assert the to_string is valid.
         let provider = &FsTzdbProvider::default();
         let inst_string = instant
-            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
         let one_string = one
-            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
         let two_string = two
-            .as_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
+            .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
 
         assert_eq!(&inst_string, "1969-12-25T12:23:45.678901234Z");
