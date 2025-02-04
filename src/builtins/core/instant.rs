@@ -10,7 +10,7 @@ use crate::{
     iso::IsoDateTime,
     options::{
         DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
-        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -88,6 +88,7 @@ impl Instant {
         let resolved_options = ResolvedRoundingOptions::from_diff_settings(
             options,
             op,
+            UnitGroup::Time,
             TemporalUnit::Second,
             TemporalUnit::Nanosecond,
         )?;

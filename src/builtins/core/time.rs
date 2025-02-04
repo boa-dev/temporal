@@ -5,7 +5,7 @@ use crate::{
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions,
+        RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -127,6 +127,7 @@ impl PlainTime {
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::Time,
             TemporalUnit::Hour,
             TemporalUnit::Nanosecond,
         )?;
