@@ -53,12 +53,11 @@ pub mod parsers;
 pub mod primitive;
 pub mod provider;
 
-mod epoch_nanoseconds;
+#[cfg(feature = "sys")]
+pub(crate) mod sys;
 
 mod builtins;
-
-#[cfg(feature = "now")]
-mod sys;
+mod epoch_nanoseconds;
 
 #[cfg(feature = "tzdb")]
 pub mod tzdb;
@@ -97,12 +96,9 @@ pub mod time {
 }
 
 pub use crate::builtins::{
-    calendar::Calendar, core::timezone::TimeZone, DateDuration, Duration, Instant, PlainDate,
+    calendar::Calendar, core::timezone::TimeZone, DateDuration, Duration, Instant, Now, PlainDate,
     PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth, TimeDuration, ZonedDateTime,
 };
-
-#[cfg(feature = "now")]
-pub use crate::builtins::Now;
 
 /// A library specific trait for unwrapping assertions.
 pub(crate) trait TemporalUnwrap {
