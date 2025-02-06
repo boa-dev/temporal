@@ -5,7 +5,7 @@ use crate::{
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions,
+        RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -127,6 +127,7 @@ impl PlainTime {
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::Time,
             TemporalUnit::Hour,
             TemporalUnit::Nanosecond,
         )?;
@@ -434,7 +435,7 @@ impl PlainTime {
         Ok(Self::new_unchecked(result))
     }
 
-    pub fn as_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+    pub fn to_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         let resolved = options.resolve()?;
         let (_, result) = self
             .iso
