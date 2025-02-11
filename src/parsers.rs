@@ -777,7 +777,7 @@ pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<Option<&[u8]>> {
     } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
         return Some(r);
     }
-    Some(None)
+    None
 }
 
 // TODO: ParseTimeZoneString, ParseZonedDateTimeString

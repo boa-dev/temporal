@@ -679,6 +679,7 @@ impl From<PlainYearMonth> for Calendar {
 #[cfg(test)]
 mod tests {
     use crate::{iso::IsoDate, options::TemporalUnit};
+    use core::str::FromStr;
 
     use super::Calendar;
 
@@ -691,6 +692,15 @@ mod tests {
         let cal_str = "iSO8601";
         let calendar = Calendar::from_utf8(cal_str.as_bytes()).unwrap();
         assert_eq!(calendar, Calendar::default());
+    }
+
+    #[test]
+    fn calendar_invalid_ascii_value() {
+        let cal_str = "İSO8601";
+        let _err = Calendar::from_str(cal_str).unwrap_err();
+
+        let cal_str = "\u{0130}SO8601";
+        let _err = Calendar::from_str(cal_str).unwrap_err();
     }
 
     #[test]
