@@ -17,10 +17,6 @@ use super::{
 pub struct Now;
 
 impl Now {
-    pub fn instant_with_epoch_nanoseconds(epoch_nanoseconds: EpochNanoseconds) -> Instant {
-        Instant::from(epoch_nanoseconds)
-    }
-
     /// Returns the current system `DateTime` based off the provided system args
     ///
     /// ## Order of operations
@@ -71,7 +67,7 @@ impl Now {
         epoch_nanos: EpochNanoseconds,
         timezone: TimeZone,
     ) -> TemporalResult<ZonedDateTime> {
-        let instant = Self::instant_with_epoch_nanoseconds(epoch_nanos);
+        let instant = Instant::from(epoch_nanos);
         Ok(ZonedDateTime::new_unchecked(
             instant,
             Calendar::default(),
@@ -83,15 +79,31 @@ impl Now {
 #[cfg(feature = "sys")]
 impl Now {
     /// Returns the current instant
+    ///
+    /// Enable with the `sys` feature flag.
     pub fn instant() -> TemporalResult<Instant> {
         let system_nanos = crate::sys::get_system_nanoseconds()?;
         let epoch_nanos = EpochNanoseconds::try_from(system_nanos)?;
-        Ok(Self::instant_with_epoch_nanoseconds(epoch_nanos))
+        Ok(Instant::from(epoch_nanos))
     }
 
     /// Returns the current time zone.
+    ///
+    /// Enable with the `sys` feature flag.
     pub fn time_zone_identifier() -> TemporalResult<String> {
         crate::sys::get_system_timezone()
+    }
+
+    /// Returns the current system time as a [`PlainDateTime`] with an optional
+    /// [`TimeZone`].
+    ///
+    /// Enable with the `sys` feature flag.
+    pub fn zoneddatetime_iso(timezone: Option<TimeZone>) -> TemporalResult<ZonedDateTime> {
+        let timezone =
+            timezone.unwrap_or(TimeZone::IanaIdentifier(crate::sys::get_system_timezone()?));
+        let system_nanos = crate::sys::get_system_nanoseconds()?;
+        let epoch_nanos = EpochNanoseconds::try_from(system_nanos)?;
+        Now::zoneddatetime_iso_with_system_values(epoch_nanos, timezone)
     }
 }
 
