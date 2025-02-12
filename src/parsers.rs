@@ -767,15 +767,15 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 }
 
 #[inline]
-pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<Option<&[u8]>> {
+pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<&[u8]> {
     if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     } else if let Ok(r) = IxdtfParser::from_str(s).parse_time().map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     } else if let Ok(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     }
     None
 }

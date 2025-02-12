@@ -203,12 +203,11 @@ impl FromStr for Calendar {
 
     // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(s) = parse_allowed_calendar_formats(s) {
-            return s
-                .map(Calendar::from_utf8)
-                .unwrap_or(Ok(Calendar::default()));
+        match parse_allowed_calendar_formats(s) {
+            Some([]) => Ok(Calendar::default()),
+            Some(result) => Calendar::from_utf8(result),
+            None => Calendar::from_utf8(s.as_bytes()),
         }
-        Calendar::from_utf8(s.as_bytes())
     }
 }
 
@@ -700,6 +699,10 @@ mod tests {
         let _err = Calendar::from_str(cal_str).unwrap_err();
 
         let cal_str = "\u{0130}SO8601";
+        let _err = Calendar::from_str(cal_str).unwrap_err();
+
+        // Verify that an empty calendar is an error.
+        let cal_str = "2025-02-07T01:24:00-06:00[u-ca=]";
         let _err = Calendar::from_str(cal_str).unwrap_err();
     }
 
