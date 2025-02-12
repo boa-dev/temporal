@@ -299,6 +299,8 @@ impl PlainDate {
             DifferenceOperation::Since => Ok(result.negated()),
         }
     }
+
+    
 }
 
 // ==== Public API ====
@@ -481,6 +483,7 @@ impl PlainDate {
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_date(DifferenceOperation::Since, other, settings)
     }
+
 }
 
 // ==== Calendar-derived Public API ====
@@ -600,7 +603,72 @@ impl PlainDate {
             .with_calendar(self.calendar.identifier(), display_calendar)
             .build()
     }
+
+    #[inline]
+    pub fn to_zoned_date_time(
+        &self, 
+        item: &Value , 
+        provider: &impl TimeZoneProvider
+    ) -> TemporalResult<ZonedDateTime> {
+        
+
+        //3. If item is an Object, then
+        //a. Let timeZoneLike be ? Get(item, "timeZone").
+        //b. If timeZoneLike is undefined, then
+        //   i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+        //    ii. Let temporalTime be undefined.
+        // c. Else,
+        //    i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
+        //    ii. Let temporalTime be ? Get(item, "plainTime").
+        
+        if item.is_object() { 
+            let time_zone_like = item.get("timeZone")?;
+
+            let time_zone, temporal_time;
+
+            if time_zone_like === undefined {
+                time_zone = TimeZone::from(item);
+                temporal_time = undefined;
+            } else {
+                time_zone = TimeZone::from(time_zone_like);
+                temporal_time = item.get("plainTime")?;
+            }
+            
+        // 4. Else,
+        //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+        //     b. Let temporalTime be undefined.
+        
+        } else {
+            let time_zone = TimeZone::from(item);
+            let temporal_time = undefined;
+        }
+        
+        //  5. If temporalTime is undefined, then
+        //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
+        //  6. Else,
+        //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
+        //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
+        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
+        //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
+        
+        let epoch_ns;
+        
+        if temporal_time === undefined {
+            epoch_ns = time_zone.get_start_of_day(&self.iso.date, provider);
+        } else {
+            let temporal_time = Time::from(temporal_time);
+            let iso_date_time = IsoDateTime::new(self.iso.date, temporal_time);
+            epoch_ns = time_zone.get_epoch_nanoseconds_for(iso_date_time, compatible, provider);
+        }
+        
+        return Ok(ZonedDateTime::new_unchecked(epoch_ns, time_zone, self.calendar().clone()));
+
+        
+
+        
 }
+
 
 // ==== Trait impls ====
 
