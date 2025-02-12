@@ -299,8 +299,6 @@ impl PlainDate {
             DifferenceOperation::Since => Ok(result.negated()),
         }
     }
-
-    
 }
 
 // ==== Public API ====
@@ -483,7 +481,6 @@ impl PlainDate {
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_date(DifferenceOperation::Since, other, settings)
     }
-
 }
 
 // ==== Calendar-derived Public API ====
@@ -623,7 +620,6 @@ impl PlainDate {
         
         if item.is_object() { 
             let time_zone_like = item.get("timeZone")?;
-
             let time_zone, temporal_time;
 
             if time_zone_like === undefined {
@@ -661,12 +657,7 @@ impl PlainDate {
             let iso_date_time = IsoDateTime::new(self.iso.date, temporal_time);
             epoch_ns = time_zone.get_epoch_nanoseconds_for(iso_date_time, compatible, provider);
         }
-        
         return Ok(ZonedDateTime::new_unchecked(epoch_ns, time_zone, self.calendar().clone()));
-
-        
-
-        
 }
 
 
