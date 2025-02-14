@@ -1,8 +1,16 @@
+use std::string::ToString;
+
+
 use crate::{
-    options::{RelativeTo, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit},
+    options::{
+        OffsetDisambiguation, RelativeTo, RoundingIncrement, RoundingOptions, TemporalRoundingMode,
+        TemporalUnit,
+    },
+    partial::PartialDuration,
     primitive::FiniteF64,
     Calendar, DateDuration, PlainDate, TimeDuration, TimeZone, ZonedDateTime,
 };
+
 use alloc::vec::Vec;
 use core::str::FromStr;
 
@@ -628,4 +636,50 @@ fn round_relative_to_zoned_datetime() {
     // Result duration should be: (0, 0, 0, 1, 1, 0, 0, 0, 0, 0)
     assert_eq!(result.days(), 1.0);
     assert_eq!(result.hours(), 1.0);
+}
+
+#[test]
+fn test_duration_compare() {
+    let one = Duration::from_partial_duration(PartialDuration {
+        hours: Some(FiniteF64::try_from(79).unwrap()),
+        minutes: Some(FiniteF64::try_from(10).unwrap()),
+        ..Default::default()
+    })
+    .unwrap();
+    let two = Duration::from_partial_duration(PartialDuration {
+        days: Some(FiniteF64::try_from(3).unwrap()),
+        hours: Some(FiniteF64::try_from(7).unwrap()),
+        seconds: Some(FiniteF64::try_from(630).unwrap()),
+        ..Default::default()
+    })
+    .unwrap();
+    let three = Duration::from_partial_duration(PartialDuration {
+        days: Some(FiniteF64::try_from(3).unwrap()),
+        hours: Some(FiniteF64::try_from(6).unwrap()),
+        minutes: Some(FiniteF64::try_from(50).unwrap()),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let mut arr = [&one, &two, &three];
+    arr.sort_by(|a, b| Duration::compare(a, b, None).unwrap());
+    assert_eq!(
+        arr.map(ToString::to_string),
+        [&three, &one, &two].map(ToString::to_string)
+    );
+
+    // Sorting relative to a date, taking DST changes into account:
+    let zdt = ZonedDateTime::from_str(
+        "2020-11-01T00:00-07:00[America/Los_Angeles]",
+        Default::default(),
+        OffsetDisambiguation::Reject,
+    )
+    .unwrap();
+    arr.sort_by(|a, b| {
+        Duration::compare(a, b, Some(RelativeTo::ZonedDateTime(zdt.clone()))).unwrap()
+    });
+    assert_eq!(
+        arr.map(ToString::to_string),
+        [&one, &three, &two].map(ToString::to_string)
+    )
 }
