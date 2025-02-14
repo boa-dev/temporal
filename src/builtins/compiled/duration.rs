@@ -38,7 +38,7 @@ impl Duration {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.compare_with_provider(&two, relative_to, &*provider)
+        self.compare_with_provider(two, relative_to, &*provider)
             .map(Into::into)
     }
 }

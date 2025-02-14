@@ -288,7 +288,7 @@ impl Duration {
         Some(time_ordering)
     }
 
-    #[must_use]
+    #[inline]
     pub fn compare_with_provider(
         &self,
         two: &Duration,

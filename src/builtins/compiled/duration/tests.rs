@@ -640,22 +640,22 @@ fn round_relative_to_zoned_datetime() {
 #[test]
 fn test_duration_compare() {
     let one = Duration::from_partial_duration(PartialDuration {
-        hours: Some(FiniteF64::try_from(79).unwrap()),
-        minutes: Some(FiniteF64::try_from(10).unwrap()),
+        hours: Some(FiniteF64::from(79)),
+        minutes: Some(FiniteF64::from(10)),
         ..Default::default()
     })
     .unwrap();
     let two = Duration::from_partial_duration(PartialDuration {
-        days: Some(FiniteF64::try_from(3).unwrap()),
-        hours: Some(FiniteF64::try_from(7).unwrap()),
-        seconds: Some(FiniteF64::try_from(630).unwrap()),
+        days: Some(FiniteF64::from(3)),
+        hours: Some(FiniteF64::from(7)),
+        seconds: Some(FiniteF64::from(630)),
         ..Default::default()
     })
     .unwrap();
     let three = Duration::from_partial_duration(PartialDuration {
-        days: Some(FiniteF64::try_from(3).unwrap()),
-        hours: Some(FiniteF64::try_from(6).unwrap()),
-        minutes: Some(FiniteF64::try_from(50).unwrap()),
+        days: Some(FiniteF64::from(3)),
+        hours: Some(FiniteF64::from(6)),
+        minutes: Some(FiniteF64::from(50)),
         ..Default::default()
     })
     .unwrap();

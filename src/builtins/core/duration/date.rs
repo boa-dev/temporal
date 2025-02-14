@@ -141,8 +141,7 @@ impl DateDuration {
         // 6. Let yearsMonthsWeeksInDays be epochDays2 - epochDays1.
         let ymd_in_days = epoch_days_2 - epoch_days_1;
         // 7. Return dateDuration.[[Days]] + yearsMonthsWeeksInDays.
-        Ok(self.days.as_integer_if_integral::<i64>()?
-            + i64::try_from(ymd_in_days).map_err(|_| TemporalError::range())?)
+        Ok(self.days.as_integer_if_integral::<i64>()? + i64::from(ymd_in_days))
     }
 
     /// AdjustDateDurationRecord
