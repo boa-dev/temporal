@@ -278,30 +278,20 @@ impl Duration {
         self.time.is_within_range()
     }
 
-    /// Compares self with other on a field by field basis.
-    fn cmp_raw(&self, other: &Self) -> Option<Ordering> {
-        let date_ordering = self.date.partial_cmp(&other.date)?;
-        if date_ordering != Ordering::Equal {
-            return Some(date_ordering);
-        }
-        let time_ordering = self.time.partial_cmp(&other.time)?;
-        Some(time_ordering)
-    }
-
     #[inline]
     pub fn compare_with_provider(
         &self,
-        two: &Duration,
+        other: &Duration,
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Ordering> {
-        if let Some(Ordering::Equal) = self.cmp_raw(two) {
+        if self.date == other.date && self.time == other.time {
             return Ok(Ordering::Equal);
         }
         // 8. Let largestUnit1 be DefaultTemporalLargestUnit(one).
         // 9. Let largestUnit2 be DefaultTemporalLargestUnit(two).
         let largest_unit_1 = self.default_largest_unit();
-        let largest_unit_2 = two.default_largest_unit();
+        let largest_unit_2 = other.default_largest_unit();
         // 10. Let duration1 be ToInternalDurationRecord(one).
         // 11. Let duration2 be ToInternalDurationRecord(two).
         // 12. If zonedRelativeTo is not undefined, and either TemporalUnitCategory(largestUnit1) or TemporalUnitCategory(largestUnit2) is date, then
@@ -312,7 +302,7 @@ impl Duration {
                 // c. Let after1 be ? AddZonedDateTime(zonedRelativeTo.[[EpochNanoseconds]], timeZone, calendar, duration1, constrain).
                 // d. Let after2 be ? AddZonedDateTime(zonedRelativeTo.[[EpochNanoseconds]], timeZone, calendar, duration2, constrain).
                 let after1 = zdt.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
-                let after2 = zdt.add_as_instant(two, ArithmeticOverflow::Constrain, provider)?;
+                let after2 = zdt.add_as_instant(other, ArithmeticOverflow::Constrain, provider)?;
                 // e. If after1 > after2, return 1𝔽.
                 // f. If after1 < after2, return -1𝔽.
                 // g. Return +0𝔽.
@@ -329,18 +319,18 @@ impl Duration {
                     return Err(TemporalError::range());
                 };
                 let days1 = self.date.days(pdt)?;
-                let days2 = two.date.days(pdt)?;
+                let days2 = other.date.days(pdt)?;
                 (days1, days2)
             } else {
                 (
                     self.date.days.as_integer_if_integral()?,
-                    two.date.days.as_integer_if_integral()?,
+                    other.date.days.as_integer_if_integral()?,
                 )
             };
         // 15. Let timeDuration1 be ? Add24HourDaysToTimeDuration(duration1.[[Time]], days1).
         let time_duration_1 = self.time.to_normalized().add_days(days1)?;
         // 16. Let timeDuration2 be ? Add24HourDaysToTimeDuration(duration2.[[Time]], days2).
-        let time_duration_2 = two.time.to_normalized().add_days(days2)?;
+        let time_duration_2 = other.time.to_normalized().add_days(days2)?;
         // 17. Return 𝔽(CompareTimeDuration(timeDuration1, timeDuration2)).
         Ok(time_duration_1.cmp(&time_duration_2))
     }
