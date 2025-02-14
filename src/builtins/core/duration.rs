@@ -288,21 +288,19 @@ impl Duration {
         Some(time_ordering)
     }
 
-    /// Returns the ordering between the two durations.
-    ///
-    /// `7.2.3 Temporal.Duration.compare ( one, two [ , options ] )`
     #[must_use]
-    pub fn compare(
-        one: &Duration,
+    pub fn compare_with_provider(
+        &self,
         two: &Duration,
         relative_to: Option<RelativeTo>,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Ordering> {
-        if let Some(Ordering::Equal) = one.cmp_raw(two) {
+        if let Some(Ordering::Equal) = self.cmp_raw(two) {
             return Ok(Ordering::Equal);
         }
         // 8. Let largestUnit1 be DefaultTemporalLargestUnit(one).
         // 9. Let largestUnit2 be DefaultTemporalLargestUnit(two).
-        let largest_unit_1 = one.default_largest_unit();
+        let largest_unit_1 = self.default_largest_unit();
         let largest_unit_2 = two.default_largest_unit();
         // 10. Let duration1 be ToInternalDurationRecord(one).
         // 11. Let duration2 be ToInternalDurationRecord(two).
@@ -313,8 +311,8 @@ impl Duration {
                 // b. Let calendar be zonedRelativeTo.[[Calendar]].
                 // c. Let after1 be ? AddZonedDateTime(zonedRelativeTo.[[EpochNanoseconds]], timeZone, calendar, duration1, constrain).
                 // d. Let after2 be ? AddZonedDateTime(zonedRelativeTo.[[EpochNanoseconds]], timeZone, calendar, duration2, constrain).
-                let after1 = zdt.add(one, Some(ArithmeticOverflow::Constrain))?;
-                let after2 = zdt.add(two, Some(ArithmeticOverflow::Constrain))?;
+                let after1 = zdt.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
+                let after2 = zdt.add_as_instant(two, ArithmeticOverflow::Constrain, provider)?;
                 // e. If after1 > after2, return 1𝔽.
                 // f. If after1 < after2, return -1𝔽.
                 // g. Return +0𝔽.
@@ -330,17 +328,17 @@ impl Duration {
                 let Some(RelativeTo::PlainDate(pdt)) = relative_to.as_ref() else {
                     return Err(TemporalError::range());
                 };
-                let days1 = one.date.days(pdt)?;
+                let days1 = self.date.days(pdt)?;
                 let days2 = two.date.days(pdt)?;
                 (days1, days2)
             } else {
                 (
-                    one.date.days.as_integer_if_integral()?,
+                    self.date.days.as_integer_if_integral()?,
                     two.date.days.as_integer_if_integral()?,
                 )
             };
         // 15. Let timeDuration1 be ? Add24HourDaysToTimeDuration(duration1.[[Time]], days1).
-        let time_duration_1 = one.time.to_normalized().add_days(days1)?;
+        let time_duration_1 = self.time.to_normalized().add_days(days1)?;
         // 16. Let timeDuration2 be ? Add24HourDaysToTimeDuration(duration2.[[Time]], days2).
         let time_duration_2 = two.time.to_normalized().add_days(days2)?;
         // 17. Return 𝔽(CompareTimeDuration(timeDuration1, timeDuration2)).

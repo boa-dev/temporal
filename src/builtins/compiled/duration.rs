@@ -23,4 +23,20 @@ impl Duration {
         self.round_with_provider(options, relative_to, &*provider)
             .map(Into::into)
     }
+
+    /// Returns the ordering between two [`Duration`], takes an optional
+    /// [`RelativeTo`]
+    ///
+    /// Enable with the `compiled_data` feature flag.
+    pub fn compare(
+        &self,
+        two: &Duration,
+        relative_to: Option<RelativeTo>,
+    ) -> TemporalResult<Ordering> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.compare_with_provider(&self, two, relative_to, provider)
+            .map(Into::into)
+    }
 }
