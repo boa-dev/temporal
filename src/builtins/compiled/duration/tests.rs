@@ -1,6 +1,5 @@
 use std::string::ToString;
 
-
 use crate::{
     options::{
         OffsetDisambiguation, RelativeTo, RoundingIncrement, RoundingOptions, TemporalRoundingMode,

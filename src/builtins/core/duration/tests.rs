@@ -1,8 +1,5 @@
-
 use crate::{
-    options::ToStringRoundingOptions,
-    parsers::Precision,
-    partial::PartialDuration,
+    options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration,
     primitive::FiniteF64,
 };
 
