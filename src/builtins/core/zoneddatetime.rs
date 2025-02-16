@@ -9,7 +9,7 @@ use crate::{
     builtins::core::{
         calendar::Calendar,
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        timezone::{parse_offset, TimeZone},
+        timezone::TimeZone,
         Duration, Instant, PlainDate, PlainDateTime, PlainTime,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -19,7 +19,9 @@ use crate::{
         ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
         ToStringRoundingOptions, UnitGroup,
     },
-    parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
+    parsers::{
+        self, parse_offset, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision,
+    },
     partial::{PartialDate, PartialTime},
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
@@ -365,11 +367,7 @@ impl ZonedDateTime {
             })
             .transpose()?;
 
-        let offset_nanos = match offset {
-            Some(TimeZone::OffsetMinutes(minutes)) => Some(i64::from(minutes) * 60_000_000_000),
-            None => None,
-            _ => unreachable!(),
-        };
+        let offset_nanos = offset.map(|minutes| i64::from(minutes) * 60_000_000_000);
 
         let timezone = partial.timezone.unwrap_or_default();
 
@@ -1107,7 +1105,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str_with_provider("Z", provider).unwrap(),
+            TimeZone::try_from_str("Z").unwrap(),
         )
         .unwrap();
 
@@ -1121,7 +1119,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
+            TimeZone::try_from_str("America/New_York").unwrap(),
         )
         .unwrap();
 
@@ -1135,7 +1133,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
+            TimeZone::try_from_str("Australia/Sydney").unwrap(),
         )
         .unwrap();
 
