@@ -3,7 +3,6 @@
 mod duration;
 mod instant;
 mod now;
-mod timezone;
 mod zoneddatetime;
 
 mod options {
