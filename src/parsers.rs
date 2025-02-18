@@ -632,10 +632,12 @@ fn checked_write_u64_with_suffix<W: core::fmt::Write + ?Sized>(
 
 // TODO: Determine if these should be separate structs, i.e. TemporalDateTimeParser/TemporalInstantParser, or
 // maybe on global `TemporalParser` around `IxdtfParser` that handles the Temporal idiosyncracies.
+#[derive(PartialEq)]
 enum ParseVariant {
     YearMonth,
     MonthDay,
     DateTime,
+    Time,
 }
 
 #[inline]
@@ -672,6 +674,7 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
         ParseVariant::YearMonth => parser.parse_year_month_with_annotation_handler(handler),
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
+        ParseVariant::Time => parser.parse_time_with_annotation_handler(handler),
     }
     .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
@@ -683,7 +686,7 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
     }
 
     // Validate that the DateRecord exists.
-    if record.date.is_none() {
+    if variant != ParseVariant::Time && record.date.is_none() {
         return Err(
             TemporalError::range().with_message("DateTime strings must contain a Date value.")
         );
@@ -754,7 +757,7 @@ pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> 
 
 #[inline]
 pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
-    let time_record = IxdtfParser::from_str(source).parse_time();
+    let time_record = parse_ixdtf(source, ParseVariant::Time);
 
     let time_err = match time_record {
         Ok(time) => return time.time.temporal_unwrap(),
