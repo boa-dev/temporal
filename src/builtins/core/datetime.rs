@@ -612,7 +612,7 @@ impl PlainDateTime {
 
     /// Rounds the current datetime based on provided options.
     pub fn round(&self, options: RoundingOptions) -> TemporalResult<Self> {
-        let resolved = ResolvedRoundingOptions::from_dt_options(options)?;
+        let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
 
         if resolved.is_noop() {
             return Ok(self.clone());
