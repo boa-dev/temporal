@@ -914,9 +914,7 @@ impl ZonedDateTime {
 
         let time = parse_result
             .time
-            .map(|time| {
-                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
-            })
+            .map(IsoTime::from_time_record)
             .transpose()?;
 
         let Some(parsed_date) = parse_result.date else {

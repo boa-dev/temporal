@@ -298,7 +298,7 @@ impl FromStr for Instant {
             ixdtf_record.date.day.into(),
             ixdtf_record.time.hour.into(),
             ixdtf_record.time.minute.into(),
-            ixdtf_record.time.second.into(),
+            ixdtf_record.time.second.clamp(0, 59).into(),
             millisecond.into(),
             microsecond.into(),
             nanosecond as i64 - offset,

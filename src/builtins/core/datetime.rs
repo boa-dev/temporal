@@ -671,9 +671,7 @@ impl FromStr for PlainDateTime {
 
         let time = parse_record
             .time
-            .map(|time| {
-                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
-            })
+            .map(IsoTime::from_time_record)
             .transpose()?
             .unwrap_or_default();
 

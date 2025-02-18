@@ -458,10 +458,7 @@ impl FromStr for PlainTime {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let result = parse_time(s)?;
-
-        let iso =
-            IsoTime::from_components(result.hour, result.minute, result.second, result.nanosecond)?;
-
+        let iso = IsoTime::from_time_record(result)?;
         Ok(Self::new_unchecked(iso))
     }
 }
