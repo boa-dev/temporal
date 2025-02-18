@@ -1117,6 +1117,26 @@ mod tests {
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 456, 790));
     }
 
+    #[test]
+    fn datetime_round_options() {
+        let dt =
+            PlainDateTime::try_new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default())
+                .unwrap();
+
+        let bad_options = RoundingOptions {
+            largest_unit: None,
+            smallest_unit: None,
+            rounding_mode: Some(TemporalRoundingMode::Ceil),
+            increment: Some(RoundingIncrement::ONE),
+        };
+
+        let err = dt.round(bad_options);
+        assert!(err.is_err());
+
+        let err = dt.round(RoundingOptions::default());
+        assert!(err.is_err());
+    }
+
     // Mapped from fractionaldigits-number.js
     #[test]
     fn to_string_precision_digits() {
