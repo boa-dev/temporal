@@ -23,8 +23,8 @@
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
 use alloc::string::ToString;
-use ixdtf::parsers::records::TimeRecord;
 use core::num::NonZeroU128;
+use ixdtf::parsers::records::TimeRecord;
 
 use crate::{
     builtins::core::{
@@ -626,9 +626,7 @@ impl IsoTime {
     }
 
     /// Returns an `IsoTime` based off parse components.
-    pub(crate) fn from_time_record(
-        time_record: TimeRecord,
-    ) -> TemporalResult<Self> {
+    pub(crate) fn from_time_record(time_record: TimeRecord) -> TemporalResult<Self> {
         let second = time_record.second.clamp(0, 59);
         let (millisecond, rem) = time_record.nanosecond.div_rem_euclid(&1_000_000);
         let (micros, nanos) = rem.div_rem_euclid(&1_000);
