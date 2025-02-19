@@ -27,7 +27,7 @@ use crate::{
     rounding::{IncrementRounder, Round},
     temporal_assert,
     time::EpochNanoseconds,
-    Sign, TemporalError, TemporalResult,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -864,12 +864,10 @@ impl ZonedDateTime {
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let parse_result = parsers::parse_date_time(source)?;
+        let parse_result = parsers::parse_zoned_date_time(source)?;
 
-        let Some(annotation) = parse_result.tz else {
-            return Err(TemporalError::r#type()
-                .with_message("Time zone annotation is required for ZonedDateTime string."));
-        };
+        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
+        let annotation = parse_result.tz.temporal_unwrap()?;
 
         let timezone = match annotation.tz {
             TimeZoneRecord::Name(s) => {
