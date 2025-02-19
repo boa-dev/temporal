@@ -810,7 +810,7 @@ mod tests {
             "09:00:00Z",
         ];
         for invalid_str in invalid_cases {
-            let err = PlainTime::from_str(&invalid_str);
+            let err = PlainTime::from_str(invalid_str);
             assert!(err.is_err());
         }
     }
