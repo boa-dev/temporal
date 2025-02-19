@@ -137,6 +137,29 @@ impl PlainYearMonth {
         self.calendar.identifier()
     }
 
+    pub fn with(
+        &self,
+        partial_year_month: PlainYearMonth,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        // 1. Let yearMonth be the this value.
+        // 2. Perform ? RequireInternalSlot(yearMonth, [[InitializedTemporalYearMonth]]).
+        // 3. If ? IsPartialTemporalObject(temporalYearMonthLike) is false, throw a TypeError exception.
+        // 4. Let calendar be yearMonth.[[Calendar]].
+        // 5. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
+        let partial_fields = PartialDate::try_from_year_month(&partial_year_month)?;
+        // 6. Let partialYearMonth be ? PrepareCalendarFields(calendar, temporalYearMonthLike, « year, month, month-code », « », partial).
+        // 7. Set fields to CalendarMergeFields(calendar, fields, partialYearMonth).
+        // 8. Let resolvedOptions be ? GetOptionsObject(options).
+        // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
+        // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
+        // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        self.calendar.year_month_from_partial(
+            &partial_fields,
+            overflow.unwrap_or(ArithmeticOverflow::Reject),
+        )
+    }
+
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
     /// `IsoDate` representation.
     ///
