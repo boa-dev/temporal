@@ -467,6 +467,8 @@ impl FromStr for PlainTime {
 
 #[cfg(test)]
 mod tests {
+    use core::str::FromStr;
+
     use crate::{
         builtins::core::Duration,
         iso::IsoTime,
@@ -796,5 +798,20 @@ mod tests {
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 500, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
+    }
+
+    #[test]
+    fn invalid_time_from_strs() {
+        // UTC designator case
+        let invalid_cases = [
+            "2019-10-01T09:00:00Z",
+            "2019-10-01T09:00:00Z[UTC]",
+            "09:00:00Z[UTC]",
+            "09:00:00Z",
+        ];
+        for invalid_str in invalid_cases {
+            let err = PlainTime::from_str(&invalid_str);
+            assert!(err.is_err());
+        }
     }
 }

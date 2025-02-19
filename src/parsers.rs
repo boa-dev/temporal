@@ -697,7 +697,27 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
 /// A utility function for parsing a `DateTime` string
 #[inline]
 pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
-    parse_ixdtf(source, ParseVariant::DateTime)
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+
+    if record.offset == Some(UtcOffsetRecordOrZ::Z) {
+        return Err(TemporalError::range()
+            .with_message("UTC designator is not valid for DateTime parsing."));
+    }
+
+    Ok(record)
+}
+
+#[inline]
+pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+
+    // TODO: Support rejecting subminute precision in time zone annootations
+    if record.tz.is_none() {
+        return Err(TemporalError::range()
+            .with_message("Time zone annotation is required for parsing a zoned date time."));
+    }
+
+    Ok(record)
 }
 
 pub(crate) struct IxdtfParseInstantRecord {
@@ -757,11 +777,17 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
     let time_record = IxdtfParser::from_str(source).parse_time();
 
     let time_err = match time_record {
-        Ok(time) => return time.time.temporal_unwrap(),
+        Ok(time) => {
+            if time.offset == Some(UtcOffsetRecordOrZ::Z) {
+                return Err(TemporalError::range()
+                    .with_message("UTC designator is not valid for DateTime parsing."));
+            }
+            return time.time.temporal_unwrap();
+        }
         Err(e) => TemporalError::range().with_message(format!("{e}")),
     };
 
-    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
+    let dt_parse = parse_date_time(source);
 
     match dt_parse {
         Ok(dt) if dt.time.is_some() => Ok(dt.time.temporal_unwrap()?),
