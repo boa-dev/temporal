@@ -4,13 +4,15 @@
 #![allow(clippy::too_many_arguments)] // We're mapping APIs with the same argument size
 #![allow(clippy::wrong_self_convention)] // Diplomat forces self conventions that may not always be ideal
 
-mod calendar;
-mod duration;
-mod error;
-mod options;
+pub mod calendar;
+pub mod duration;
+pub mod error;
+pub mod instant;
+pub mod iso;
+pub mod options;
 
-mod plain_date;
-mod plain_date_time;
-mod plain_month_day;
-mod plain_time;
-mod plain_year_month;
+pub mod plain_date;
+pub mod plain_date_time;
+pub mod plain_month_day;
+pub mod plain_time;
+pub mod plain_year_month;
