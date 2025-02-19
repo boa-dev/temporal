@@ -22,9 +22,9 @@ pub mod ffi {
     impl Instant {
         pub fn try_new(ns: I128Nanoseconds) -> Result<Box<Self>, TemporalError> {
             let is_neg = ns.high < 0;
-            let ns_high_abs = ns.high.abs() as u128;
+            let ns_high_abs = ns.high.unsigned_abs() as u128;
             // Stick them together
-            let total = (ns_high_abs << 64 + ns.low as u128) as i128;
+            let total = (ns_high_abs << (64 + ns.low as u128)) as i128;
             // Reintroduce the sign
             let instant = if is_neg { -total } else { total };
             temporal_rs::Instant::try_new(instant)
@@ -104,7 +104,7 @@ pub mod ffi {
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
             let ns = self.0.epoch_nanoseconds();
             let is_neg = ns < 0;
-            let ns = ns.abs() as u128;
+            let ns = ns.unsigned_abs();
 
             let high = (ns >> 64) as i64;
             let low = (ns & u64::MAX as u128) as u64;
