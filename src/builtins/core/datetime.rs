@@ -319,7 +319,7 @@ impl PlainDateTime {
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         if partial.date.is_empty() && partial.time.is_empty() {
-            return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."))
+            return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
         }
         let date = PlainDate::from_partial(partial.date, overflow)?;
         let iso_time = IsoTime::default().with(partial.time, overflow.unwrap_or_default())?;
