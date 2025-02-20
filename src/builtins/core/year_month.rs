@@ -250,7 +250,6 @@ impl FromStr for PlainYearMonth {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::partial;
@@ -268,11 +267,11 @@ mod tests {
             ..Default::default()
         };
 
-        let result = base.with(partial, None).unwrap();
-        assert_eq!(result.iso_year(), 2001); // year is changed
-        assert_eq!(result.iso_month(), 3); // month is not changed
+        let with_year = base.with(partial, None).unwrap();
+        assert_eq!(with_year.iso_year(), 2001); // year is changed
+        assert_eq!(with_year.iso_month(), 3); // month is not changed
         assert_eq!(
-            result.month_code().unwrap(),
+            with_year.month_code().unwrap(),
             TinyAsciiStr::<4>::from_str("M03").unwrap()
         ); // assert month code has been initialized correctly
 
@@ -281,11 +280,11 @@ mod tests {
             month: Some(2),
             ..Default::default()
         };
-        let result = base.with(partial, None).unwrap();
-        assert_eq!(result.iso_year(), 2025); // year is not changed
-        assert_eq!(result.iso_month(), 2); // month is changed
+        let with_month = base.with(partial, None).unwrap();
+        assert_eq!(with_month.iso_year(), 2025); // year is not changed
+        assert_eq!(with_month.iso_month(), 2); // month is changed
         assert_eq!(
-            result.month_code().unwrap(),
+            with_month.month_code().unwrap(),
             TinyAsciiStr::<4>::from_str("M02").unwrap()
         ); // assert month code has changed as well as month
 
@@ -294,12 +293,22 @@ mod tests {
             month_code: Some(tinystr!(4,"M05")), // change month to May (5)
             ..Default::default()
         };
-        let result = base.with(partial, None).unwrap();
-        assert_eq!(result.iso_year(), 2025); // year is not changed
+        let with_month_code = base.with(partial, None).unwrap();
+        assert_eq!(with_month_code.iso_year(), 2025); // year is not changed
         assert_eq!(
-            result.month_code().unwrap(),
+            with_month_code.month_code().unwrap(),
             TinyAsciiStr::<4>::from_str("M05").unwrap()
         ); // assert month code has changed
-        assert_eq!(result.iso_month(), 5); // month is changed as well 
+        assert_eq!(with_month_code.iso_month(), 5); // month is changed as well 
+
+        // Day
+        let partial = PartialDate {
+            day: Some(15),
+            ..Default::default()
+        };
+        let with_day = base.with(partial, None).unwrap();
+        assert_eq!(with_day.iso_year(), 2025); // year is not changed
+        assert_eq!(with_day.iso_month(), 3); // month is not changed
+        assert_eq!(with_day.iso.day, 15); // day is changed
     }
 }
