@@ -177,11 +177,13 @@ impl ResolvedRoundingOptions {
     pub(crate) fn from_diff_settings(
         options: DifferenceSettings,
         operation: DifferenceOperation,
+        unit_group: UnitGroup,
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
+        unit_group.validate_unit(options.largest_unit, None)?;
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = match operation {
             DifferenceOperation::Since => options
@@ -238,6 +240,8 @@ impl ResolvedRoundingOptions {
         // 15. Let roundingMode be ? ToTemporalRoundingMode(roundTo, "halfExpand").
         let rounding_mode = options.rounding_mode.unwrap_or_default();
         // 16. Let smallestUnit be ? GetTemporalUnit(roundTo, "smallestUnit", DATETIME, undefined).
+        UnitGroup::DateTime.validate_unit(options.largest_unit, Some(TemporalUnit::Auto))?;
+        UnitGroup::DateTime.validate_unit(options.smallest_unit, None)?;
         // 17. If smallestUnit is undefined, then
         // a. Set smallestUnitPresent to false.
         // b. Set smallestUnit to "nanosecond".
@@ -284,10 +288,11 @@ impl ResolvedRoundingOptions {
     }
 
     // NOTE: Should the GetTemporalUnitValuedOption check be integrated into these validations.
-    pub(crate) fn from_dt_options(options: RoundingOptions) -> TemporalResult<Self> {
+    pub(crate) fn from_datetime_options(options: RoundingOptions) -> TemporalResult<Self> {
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = options.rounding_mode.unwrap_or_default();
-        let smallest_unit = options.smallest_unit.unwrap_or(TemporalUnit::Day);
+        let smallest_unit = UnitGroup::Time
+            .validate_required_unit(options.smallest_unit, Some(TemporalUnit::Day))?;
         let (maximum, inclusive) = if smallest_unit == TemporalUnit::Day {
             (1, true)
         } else {
@@ -310,10 +315,7 @@ impl ResolvedRoundingOptions {
     pub(crate) fn from_instant_options(options: RoundingOptions) -> TemporalResult<Self> {
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = options.rounding_mode.unwrap_or_default();
-        let Some(smallest_unit) = options.smallest_unit else {
-            return Err(TemporalError::range()
-                .with_message("smallestUnit is required for an Instant.round operation."));
-        };
+        let smallest_unit = UnitGroup::Time.validate_required_unit(options.smallest_unit, None)?;
         let maximum = match smallest_unit {
             TemporalUnit::Hour => 24u64,
             TemporalUnit::Minute => 24 * 60,
@@ -340,6 +342,51 @@ impl ResolvedRoundingOptions {
 }
 
 // ==== Options enums and methods ====
+
+pub enum UnitGroup {
+    Date,
+    Time,
+    DateTime,
+}
+
+impl UnitGroup {
+    pub fn validate_required_unit(
+        self,
+        unit: Option<TemporalUnit>,
+        extra_unit: Option<TemporalUnit>,
+    ) -> TemporalResult<TemporalUnit> {
+        let Some(unit) = unit else {
+            return Err(TemporalError::range().with_message("Unit is required."));
+        };
+        self.validate_unit(Some(unit), extra_unit)?;
+        Ok(unit)
+    }
+
+    pub fn validate_unit(
+        self,
+        unit: Option<TemporalUnit>,
+        extra_unit: Option<TemporalUnit>,
+    ) -> TemporalResult<()> {
+        // TODO: Determine proper handling of Auto.
+        match self {
+            UnitGroup::Date => match unit {
+                Some(unit) if !unit.is_time_unit() => Ok(()),
+                None => Ok(()),
+                _ if unit == extra_unit => Ok(()),
+                _ => Err(TemporalError::range()
+                    .with_message("Unit was not part of the date unit group.")),
+            },
+            UnitGroup::Time => match unit {
+                Some(unit) if unit.is_time_unit() => Ok(()),
+                None => Ok(()),
+                _ if unit == extra_unit => Ok(()),
+                _ => Err(TemporalError::range()
+                    .with_message("Unit was not part of the time unit group.")),
+            },
+            UnitGroup::DateTime => Ok(()),
+        }
+    }
+}
 
 /// The relevant unit that should be used for the operation that
 /// this option is provided as a value.

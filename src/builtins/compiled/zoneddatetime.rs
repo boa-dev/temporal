@@ -125,6 +125,22 @@ impl ZonedDateTime {
 
         self.millisecond_with_provider(&*provider)
     }
+
+    /// Returns the current offset as a formatted offset string.
+    pub fn offset(&self) -> TemporalResult<String> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.offset_with_provider(&*provider)
+    }
+
+    /// Returns the current offset in nanoseconds
+    pub fn offset_nanoseconds(&self) -> TemporalResult<i64> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.offset_nanoseconds_with_provider(&*provider)
+    }
 }
 
 // ==== Experimental TZ_PROVIDER calendar method implementations ====

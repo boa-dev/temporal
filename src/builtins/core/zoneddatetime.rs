@@ -1,7 +1,7 @@
 //! This module implements `ZonedDateTime` and any directly related algorithms.
 
 use alloc::string::String;
-use core::num::NonZeroU128;
+use core::{cmp::Ordering, num::NonZeroU128};
 use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
@@ -9,7 +9,7 @@ use crate::{
     builtins::core::{
         calendar::Calendar,
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        timezone::{parse_offset, TimeZone},
+        timezone::TimeZone,
         Duration, Instant, PlainDate, PlainDateTime, PlainTime,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -17,15 +17,17 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
         ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
-        ToStringRoundingOptions,
+        ToStringRoundingOptions, UnitGroup,
     },
-    parsers::{self, IxdtfStringBuilder},
+    parsers::{
+        self, parse_offset, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision,
+    },
     partial::{PartialDate, PartialTime},
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
     temporal_assert,
     time::EpochNanoseconds,
-    Sign, TemporalError, TemporalResult,
+    Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -48,18 +50,6 @@ pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
     tz: TimeZone,
-}
-
-impl Ord for ZonedDateTime {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.instant.cmp(&other.instant)
-    }
-}
-
-impl PartialOrd for ZonedDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
 }
 
 // ==== Private API ====
@@ -271,6 +261,7 @@ impl ZonedDateTime {
         let resolved_options = ResolvedRoundingOptions::from_diff_settings(
             options,
             op,
+            UnitGroup::DateTime,
             TemporalUnit::Hour,
             TemporalUnit::Nanosecond,
         )?;
@@ -376,11 +367,7 @@ impl ZonedDateTime {
             })
             .transpose()?;
 
-        let offset_nanos = match offset {
-            Some(TimeZone::OffsetMinutes(minutes)) => Some(i64::from(minutes) * 60_000_000_000),
-            None => None,
-            _ => unreachable!(),
-        };
+        let offset_nanos = offset.map(|minutes| i64::from(minutes) * 60_000_000_000);
 
         let timezone = partial.timezone.unwrap_or_default();
 
@@ -431,6 +418,20 @@ impl ZonedDateTime {
     /// combined with the provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::try_new(self.epoch_nanoseconds(), calendar, self.tz.clone())
+    }
+
+    /// Compares one `ZonedDateTime` to another `ZonedDateTime` using their
+    /// `Instant` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `ZonedDateTime` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
+    #[inline]
+    #[must_use]
+    pub fn compare_instant(&self, other: &Self) -> Ordering {
+        self.instant.cmp(&other.instant)
     }
 }
 
@@ -539,6 +540,54 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         Ok(iso.time.nanosecond)
+    }
+
+    pub fn offset_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<String> {
+        let offset = self
+            .tz
+            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+        Ok(nanoseconds_to_formattable_offset(offset).to_string())
+    }
+
+    pub fn offset_nanoseconds_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<i64> {
+        let offset = self
+            .tz
+            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+        Ok(offset as i64)
+    }
+}
+
+pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: i128) -> FormattableOffset {
+    let sign = if nanoseconds >= 0 {
+        Sign::Positive
+    } else {
+        Sign::Negative
+    };
+    let nanos = nanoseconds.unsigned_abs();
+    let hour = (nanos / 3_600_000_000_000) as u8;
+    let minute = ((nanos / 60_000_000_000) % 60) as u8;
+    let second = ((nanos / 1_000_000_000) % 60) as u8;
+    let nanosecond = (nanos % 1_000_000_000) as u32;
+
+    let precision = if second == 0 && nanosecond == 0 {
+        Precision::Minute
+    } else {
+        Precision::Auto
+    };
+
+    FormattableOffset {
+        sign,
+        time: FormattableTime {
+            hour,
+            minute,
+            second,
+            nanosecond,
+            precision,
+            include_sep: true,
+        },
     }
 }
 
@@ -815,12 +864,10 @@ impl ZonedDateTime {
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let parse_result = parsers::parse_date_time(source)?;
+        let parse_result = parsers::parse_zoned_date_time(source)?;
 
-        let Some(annotation) = parse_result.tz else {
-            return Err(TemporalError::r#type()
-                .with_message("Time zone annotation is required for ZonedDateTime string."));
-        };
+        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
+        let annotation = parse_result.tz.temporal_unwrap()?;
 
         let timezone = match annotation.tz {
             TimeZoneRecord::Name(s) => {
@@ -865,9 +912,7 @@ impl ZonedDateTime {
 
         let time = parse_result
             .time
-            .map(|time| {
-                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
-            })
+            .map(IsoTime::from_time_record)
             .transpose()?;
 
         let Some(parsed_date) = parse_result.date else {
@@ -1056,7 +1101,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str_with_provider("Z", provider).unwrap(),
+            TimeZone::try_from_str("Z").unwrap(),
         )
         .unwrap();
 
@@ -1070,7 +1115,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
+            TimeZone::try_from_str("America/New_York").unwrap(),
         )
         .unwrap();
 
@@ -1084,7 +1129,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
+            TimeZone::try_from_str("Australia/Sydney").unwrap(),
         )
         .unwrap();
 

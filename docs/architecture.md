@@ -26,22 +26,18 @@ The primary date & time builtins/components are located in the
 These builtins are then reexported from `lib.rs` to be available from
 `temporal_rs`'s root module.
 
-### Core vs. Native
+### Core vs. Compiled
 
 `temporal_rs`'s builtins are split in two distinct directories `core`
-and `native`. The core implementation contains the core implementation
-of the Temporal builtins; meanwhile, the `native` implementation is a
-Rust wrapper around the `core` implementation that simplifies some
-"lower" level date/time API that may not be necessary for a general use
-case.
+and `compiled`. The core implementation contains the core implementation
+of the Temporal builtins; meanwhile, the `compiled` implementation provides
+method wrappers around the `core` methods that simplify some "lower" level
+date/time APIs that may not be necessary for a general use case.
 
 ### Core implementation
 
 The core implementation is always publicly available, but may not be
 available to import from the `temporal_rs`'s root.
-
-The core implementation can be made available from the root by providing
-the `--no-default-features` flag.
 
 The core implementation exposes the Provider API that allows the user to
 supply a "provider", or any type that implements the `TimeZoneProvider`
@@ -61,9 +57,9 @@ impl ZonedDateTime {
 }
 ```
 
-### Native implementation
+### Compiled  implementation
 
-The native implementation is only available via the "full" default
+The native implementation is only available via the "compiled" default
 feature flag.
 
 For the same reason that the Provider API is useful for language

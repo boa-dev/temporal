@@ -9,7 +9,7 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     provider::NeverProvider,
@@ -42,18 +42,6 @@ impl core::fmt::Display for PlainDateTime {
             .to_ixdtf_string(ToStringRoundingOptions::default(), DisplayCalendar::Auto)
             .expect("ixdtf default configuration should not fail.");
         f.write_str(&ixdtf_str)
-    }
-}
-
-impl Ord for PlainDateTime {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.iso.cmp(&other.iso)
-    }
-}
-
-impl PartialOrd for PlainDateTime {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 
@@ -133,6 +121,7 @@ impl PlainDateTime {
         let options = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::DateTime,
             TemporalUnit::Day,
             TemporalUnit::Nanosecond,
         )?;
@@ -329,9 +318,12 @@ impl PlainDateTime {
         partial: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        if partial.date.is_empty() && partial.time.is_empty() {
+            return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
+        }
         let date = PlainDate::from_partial(partial.date, overflow)?;
-        let time = PlainTime::from_partial(partial.time, overflow)?;
-        Self::from_date_and_time(date, time)
+        let iso_time = IsoTime::default().with(partial.time, overflow.unwrap_or_default())?;
+        Self::from_date_and_time(date, PlainTime::new_unchecked(iso_time))
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
@@ -575,6 +567,20 @@ impl PlainDateTime {
 }
 
 impl PlainDateTime {
+    /// Compares one `PlainDateTime` to another `PlainDateTime` using their
+    /// `IsoDate` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainDateTime` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
+    #[inline]
+    #[must_use]
+    pub fn compare_iso(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
+    }
+
     #[inline]
     /// Adds a `Duration` to the current `DateTime`.
     pub fn add(
@@ -609,7 +615,7 @@ impl PlainDateTime {
 
     /// Rounds the current datetime based on provided options.
     pub fn round(&self, options: RoundingOptions) -> TemporalResult<Self> {
-        let resolved = ResolvedRoundingOptions::from_dt_options(options)?;
+        let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
 
         if resolved.is_noop() {
             return Ok(self.clone());
@@ -668,9 +674,7 @@ impl FromStr for PlainDateTime {
 
         let time = parse_record
             .time
-            .map(|time| {
-                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
-            })
+            .map(IsoTime::from_time_record)
             .transpose()?
             .unwrap_or_default();
 
@@ -1114,6 +1118,26 @@ mod tests {
             .round(gen_rounding_options(TemporalUnit::Nanosecond, 10))
             .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 456, 790));
+    }
+
+    #[test]
+    fn datetime_round_options() {
+        let dt =
+            PlainDateTime::try_new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default())
+                .unwrap();
+
+        let bad_options = RoundingOptions {
+            largest_unit: None,
+            smallest_unit: None,
+            rounding_mode: Some(TemporalRoundingMode::Ceil),
+            increment: Some(RoundingIncrement::ONE),
+        };
+
+        let err = dt.round(bad_options);
+        assert!(err.is_err());
+
+        let err = dt.round(RoundingOptions::default());
+        assert!(err.is_err());
     }
 
     // Mapped from fractionaldigits-number.js

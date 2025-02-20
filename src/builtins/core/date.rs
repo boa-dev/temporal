@@ -7,7 +7,7 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, TemporalUnit,
+        ResolvedRoundingOptions, TemporalUnit, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -15,7 +15,7 @@ use crate::{
     TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
-use core::str::FromStr;
+use core::{cmp::Ordering, str::FromStr};
 
 use super::{
     calendar::{ascii_four_to_integer, month_to_month_code},
@@ -139,18 +139,6 @@ impl core::fmt::Display for PlainDate {
     }
 }
 
-impl Ord for PlainDate {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.iso.cmp(&other.iso)
-    }
-}
-
-impl PartialOrd for PlainDate {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 // ==== Private API ====
 
 impl PlainDate {
@@ -265,6 +253,7 @@ impl PlainDate {
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
+            UnitGroup::Date,
             TemporalUnit::Day,
             TemporalUnit::Day,
         )?;
@@ -369,7 +358,7 @@ impl PlainDate {
             partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some());
         let month_check = partial.month.is_some() || partial.month_code.is_some();
         if !year_check || !month_check || partial.day.is_none() {
-            return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."));
+            return Err(TemporalError::r#type().with_message("Invalid PlainDate fields provided."));
         }
 
         let overflow = overflow.unwrap_or_default();
@@ -437,6 +426,7 @@ impl PlainDate {
         self.iso.is_valid()
     }
 
+    // TODO: make private
     /// `DaysUntil`
     ///
     /// Calculates the epoch days between two `Date`s
@@ -444,6 +434,20 @@ impl PlainDate {
     #[must_use]
     pub fn days_until(&self, other: &Self) -> i32 {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
+    }
+
+    /// Compares one `PlainDate` to another `PlainDate` using their
+    /// `IsoDate` representation.
+    ///
+    /// # Note on Ordering.
+    ///
+    /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainDate` does
+    /// not fulfill all the conditions required to implement the traits. However,
+    /// it is possible to compare `PlainDate`'s as their `IsoDate` representation.
+    #[inline]
+    #[must_use]
+    pub fn compare_iso(&self, other: &Self) -> Ordering {
+        self.iso.cmp(&other.iso)
     }
 
     #[inline]
@@ -639,30 +643,30 @@ mod tests {
         assert!(err.is_err());
         let err = PlainDate::try_new(275_760, 9, 14, Calendar::default());
         assert!(err.is_err());
-        let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default()).unwrap();
+        let ok = PlainDate::try_new(-271_821, 4, 19, Calendar::default());
         assert_eq!(
             ok,
-            PlainDate {
+            Ok(PlainDate {
                 iso: IsoDate {
                     year: -271_821,
                     month: 4,
                     day: 19,
                 },
                 calendar: Calendar::default(),
-            }
+            })
         );
 
-        let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default()).unwrap();
+        let ok = PlainDate::try_new(275_760, 9, 13, Calendar::default());
         assert_eq!(
             ok,
-            PlainDate {
+            Ok(PlainDate {
                 iso: IsoDate {
                     year: 275760,
                     month: 9,
                     day: 13,
                 },
                 calendar: Calendar::default(),
-            }
+            })
         );
     }
 
