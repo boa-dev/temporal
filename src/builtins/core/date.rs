@@ -76,7 +76,7 @@ impl PartialDate {
             calendar: year_month.calendar().clone(),
         })
     }
-
+    crate::impl_with_fallback_method!(with_fallback_year_month, PlainYearMonth);
     crate::impl_with_fallback_method!(with_fallback_date, PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, PlainDateTime);
     // TODO: ZonedDateTime
@@ -124,7 +124,41 @@ macro_rules! impl_with_fallback_method {
         }
     };
 }
+/*
+impl PartialDate {
+    /// Merges a PartialDate with a PlainYearMonth, filling missing values.
+    pub(crate) fn with_fallback_year_month(&self, fallback: &PlainYearMonth) -> TemporalResult<Self> {
+        let era = if let Some(era) = self.era {
+            Some(era)
+        } else {
+            fallback.era()?.map(|e| {
+                TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
+                    .map_err(|e| TemporalError::general(format!("{e}")))
+            }).transpose()?
+        };
 
+        let era_year = self.era_year.or(fallback.era_year()?);
+
+        // Resolve month and monthCode together
+        let (resolved_month, resolved_month_code) = match (self.month, self.month_code) {
+            (Some(month), Some(month_code)) => (Some(month), Some(month_code)), // Both provided
+            (Some(month), None) => (Some(month), Some(month_to_month_code(month)?)), // Infer month_code
+            (None, Some(month_code)) => (Some(ascii_four_to_integer(month_code)?), Some(month_code)), // Infer month
+            (None, None) => (Some(fallback.month()?), Some(fallback.month_code()?)), // Keep existing values
+        };
+
+        Ok(Self {
+            year: self.year.or(Some(fallback.iso_year())),
+            month: resolved_month,
+            month_code: resolved_month_code,
+            day: Some(1), // Use day=1 since YearMonth doesn't store a specific day
+            era,
+            era_year,
+            calendar: fallback.calendar().clone(),
+        })
+    }
+} // TODO Preferably have this integrated into the 'impl_with_fallback_method' macro
+*/
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
