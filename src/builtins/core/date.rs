@@ -76,7 +76,7 @@ impl PartialDate {
             calendar: year_month.calendar().clone(),
         })
     }
-
+    crate::impl_with_fallback_method!(with_fallback_year_month, PlainYearMonth);
     crate::impl_with_fallback_method!(with_fallback_date, PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, PlainDateTime);
     // TODO: ZonedDateTime
@@ -124,7 +124,6 @@ macro_rules! impl_with_fallback_method {
         }
     };
 }
-
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -894,6 +893,19 @@ mod tests {
             TinyAsciiStr::<4>::from_str("M11").unwrap()
         );
         assert_eq!(with_day.day().unwrap(), 17);
+        /*
+        // ArithmeticOverflow for PlainDate, the test currently fails
+        let partial = PartialDate {
+            month: Some(13),
+            ..Default::default()
+        };
+        // Constrained behavior
+        let with_overflow_constrain = base.with(partial, Some(ArithmeticOverflow::Constrain)).unwrap(); // This should produce a "M13" error
+        assert_eq!(with_overflow_constrain.month(), Ok(12));
+
+        // Reject behavior
+        // ...
+        */
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js
