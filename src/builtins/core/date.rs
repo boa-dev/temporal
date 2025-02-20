@@ -604,7 +604,8 @@ impl PlainDate {
     #[inline]
     pub fn to_zoned_date_time(
         &self, 
-        item: &Value , 
+        tz: TimeZone,
+        pt: Option<PlainTime>, 
         provider: &impl TimeZoneProvider
     ) -> TemporalResult<ZonedDateTime> {
         
@@ -617,27 +618,24 @@ impl PlainDate {
         // c. Else,
         //    i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
         //    ii. Let temporalTime be ? Get(item, "plainTime").
+        let time_zone, temporal_time;
         
-        if item.is_object() { 
-            let time_zone_like = item.get("timeZone")?;
-            let time_zone, temporal_time;
-
-            if time_zone_like === undefined {
-                time_zone = TimeZone::from(item);
+        let time_zone_like = match tz{
+            Some(tz) => tz,
+            None => {
+                tz = TimeZone::try_from_str_with_provider(item, provider)?;
                 temporal_time = undefined;
-            } else {
-                time_zone = TimeZone::from(time_zone_like);
-                temporal_time = item.get("plainTime")?;
             }
+        };
+        temporal_time.0.clone();
             
         // 4. Else,
         //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
         //     b. Let temporalTime be undefined.
         
-        } else {
-            let time_zone = TimeZone::from(item);
-            let temporal_time = undefined;
-        }
+        
+        let time_zone = TimeZone::from(item);
+        let temporal_time = undefined;
         
         //  5. If temporalTime is undefined, then
         //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
@@ -655,9 +653,9 @@ impl PlainDate {
         } else {
             let temporal_time = Time::from(temporal_time);
             let iso_date_time = IsoDateTime::new(self.iso.date, temporal_time);
-            epoch_ns = time_zone.get_epoch_nanoseconds_for(iso_date_time, compatible, provider);
+            epoch_ns = self.tz.get_epoch_nanoseconds_for(iso_date_time, Disambiguation::Compatible, provider)?;
         }
-        return Ok(ZonedDateTime::new_unchecked(epoch_ns, time_zone, self.calendar().clone()));
+        return Ok(ZonedDateTime::try_new(epoch_ns.0, time_zone, self.calendar().clone()));
 }
 
 
