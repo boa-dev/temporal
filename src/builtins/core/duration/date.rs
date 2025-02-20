@@ -110,7 +110,6 @@ impl DateDuration {
     }
 
     /// DateDurationDays
-    /// TODO(review): Question: what the correct return type?
     pub(crate) fn days(&self, relative_to: &PlainDate) -> TemporalResult<i64> {
         // 1. Let yearsMonthsWeeksDuration be ! AdjustDateDurationRecord(dateDuration, 0).
         let ymw_duration = self.adjust(FiniteF64(0.0), None, None)?;
