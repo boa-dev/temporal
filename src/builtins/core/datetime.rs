@@ -318,9 +318,12 @@ impl PlainDateTime {
         partial: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
+        if partial.date.is_empty() && partial.time.is_empty() {
+            return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
+        }
         let date = PlainDate::from_partial(partial.date, overflow)?;
-        let time = PlainTime::from_partial(partial.time, overflow)?;
-        Self::from_date_and_time(date, time)
+        let iso_time = IsoTime::default().with(partial.time, overflow.unwrap_or_default())?;
+        Self::from_date_and_time(date, PlainTime::new_unchecked(iso_time))
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
