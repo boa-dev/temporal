@@ -1,14 +1,14 @@
 //! This module implements the Temporal `TimeZone` and components.
 
-use alloc::borrow::ToOwned;
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
-use core::{iter::Peekable, str::Chars};
 
 use num_traits::ToPrimitive;
 
 use crate::builtins::core::duration::DateDuration;
-use crate::parsers::{FormattableOffset, FormattableTime, Precision};
+use crate::parsers::{
+    parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
+};
 use crate::provider::{TimeZoneOffset, TimeZoneProvider};
 use crate::{
     builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
@@ -32,20 +32,20 @@ pub enum TimeZone {
 
 impl TimeZone {
     /// Parses a `TimeZone` from a provided `&str`.
-    pub fn try_from_str_with_provider(
-        source: &str,
-        provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Self> {
-        if source == "Z" {
+    pub fn try_from_identifier_str(identifier: &str) -> TemporalResult<Self> {
+        if identifier == "Z" {
             return Ok(TimeZone::OffsetMinutes(0));
         }
-        let mut cursor = source.chars().peekable();
-        if cursor.peek().is_some_and(is_ascii_sign) {
-            return parse_offset(&mut cursor);
-        } else if provider.check_identifier(source) {
-            return Ok(TimeZone::IanaIdentifier(source.to_owned()));
+        parse_identifier(identifier)
+    }
+
+    pub fn try_from_str(src: &str) -> TemporalResult<Self> {
+        if let Ok(timezone) = Self::try_from_identifier_str(src) {
+            return Ok(timezone);
         }
-        Err(TemporalError::range().with_message("Valid time zone was not provided."))
+
+        parse_allowed_timezone_formats(src)
+            .ok_or_else(|| TemporalError::range().with_message("Not a valid time zone string"))
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
@@ -379,84 +379,26 @@ impl TimeZone {
     }
 }
 
-#[inline]
-pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<TimeZone> {
-    let sign = chars.next().map_or(1, |c| if c == '+' { 1 } else { -1 });
-    // First offset portion
-    let hours = parse_digit_pair(chars)?;
-
-    let sep = chars.peek().is_some_and(|ch| *ch == ':');
-    if sep {
-        let _ = chars.next();
-    }
-
-    let digit_peek = chars.peek().map(|ch| ch.is_ascii_digit());
-
-    let minutes = match digit_peek {
-        Some(true) => parse_digit_pair(chars)?,
-        Some(false) => return Err(non_ascii_digit()),
-        None => 0,
-    };
-
-    Ok(TimeZone::OffsetMinutes((hours * 60 + minutes) * sign))
-}
-
-fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
-    let valid = chars
-        .peek()
-        .map_or(Err(abrupt_end()), |ch| Ok(ch.is_ascii_digit()))?;
-    let first = if valid {
-        chars.next().expect("validated.")
-    } else {
-        return Err(non_ascii_digit());
-    };
-    let valid = chars
-        .peek()
-        .map_or(Err(abrupt_end()), |ch| Ok(ch.is_ascii_digit()))?;
-    let second = if valid {
-        chars.next().expect("validated.")
-    } else {
-        return Err(non_ascii_digit());
-    };
-
-    let tens = (first.to_digit(10).expect("validated") * 10) as i16;
-    let ones = second.to_digit(10).expect("validated") as i16;
-
-    Ok(tens + ones)
-}
-
-// NOTE: Spec calls for throwing a RangeError when parse node is a list of errors for timezone.
-
-fn abrupt_end() -> TemporalError {
-    TemporalError::range().with_message("Abrupt end while parsing offset string")
-}
-
-fn non_ascii_digit() -> TemporalError {
-    TemporalError::range().with_message("Non ascii digit found while parsing offset string")
-}
-
-fn is_ascii_sign(ch: &char) -> bool {
-    *ch == '+' || *ch == '-'
-}
-
-#[cfg(all(test, feature = "tzdb"))]
+#[cfg(test)]
 mod tests {
     use super::TimeZone;
-    use crate::tzdb::FsTzdbProvider;
 
     #[test]
     fn from_and_to_string() {
-        let provider = &FsTzdbProvider::default();
         let src = "+09:30";
-        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        let tz = TimeZone::try_from_identifier_str(src).unwrap();
         assert_eq!(tz.identifier().unwrap(), src);
 
         let src = "-09:30";
-        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        let tz = TimeZone::try_from_identifier_str(src).unwrap();
         assert_eq!(tz.identifier().unwrap(), src);
 
         let src = "-12:30";
-        let tz = TimeZone::try_from_str_with_provider(src, provider).unwrap();
+        let tz = TimeZone::try_from_identifier_str(src).unwrap();
+        assert_eq!(tz.identifier().unwrap(), src);
+
+        let src = "America/New_York";
+        let tz = TimeZone::try_from_identifier_str(src).unwrap();
         assert_eq!(tz.identifier().unwrap(), src);
     }
 }
