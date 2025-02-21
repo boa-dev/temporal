@@ -24,6 +24,7 @@
 
 use alloc::string::ToString;
 use core::num::NonZeroU128;
+use ixdtf::parsers::records::TimeRecord;
 
 use crate::{
     builtins::core::{
@@ -625,18 +626,14 @@ impl IsoTime {
     }
 
     /// Returns an `IsoTime` based off parse components.
-    pub(crate) fn from_components(
-        hour: u8,
-        minute: u8,
-        second: u8,
-        fraction: u32,
-    ) -> TemporalResult<Self> {
-        let (millisecond, rem) = fraction.div_rem_euclid(&1_000_000);
+    pub(crate) fn from_time_record(time_record: TimeRecord) -> TemporalResult<Self> {
+        let second = time_record.second.clamp(0, 59);
+        let (millisecond, rem) = time_record.nanosecond.div_rem_euclid(&1_000_000);
         let (micros, nanos) = rem.div_rem_euclid(&1_000);
 
         Self::new(
-            hour,
-            minute,
+            time_record.hour,
+            time_record.minute,
             second,
             millisecond as u16,
             micros as u16,
@@ -930,8 +927,9 @@ fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
 // ==== `IsoDate` specific utiltiy functions ====
 
 /// Returns the Epoch days based off the given year, month, and day.
+/// Note: Month should be 1 indexed
 #[inline]
-fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
+pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     // 1. Let resolvedYear be year + floor(month / 12).
     let resolved_year = year + month.div_euclid(12);
     // 2. Let resolvedMonth be month modulo 12.

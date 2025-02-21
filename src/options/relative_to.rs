@@ -103,12 +103,7 @@ impl RelativeTo {
             .transpose()?
             .unwrap_or_default();
 
-        let time = result
-            .time
-            .map(|time| {
-                IsoTime::from_components(time.hour, time.minute, time.second, time.nanosecond)
-            })
-            .transpose()?;
+        let time = result.time.map(IsoTime::from_time_record).transpose()?;
 
         let date = result.date.temporal_unwrap()?;
         let iso = IsoDate::new_with_overflow(

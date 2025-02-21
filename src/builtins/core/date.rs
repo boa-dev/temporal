@@ -358,7 +358,7 @@ impl PlainDate {
             partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some());
         let month_check = partial.month.is_some() || partial.month_code.is_some();
         if !year_check || !month_check || partial.day.is_none() {
-            return Err(TemporalError::range().with_message("Invalid PlainDate fields provided."));
+            return Err(TemporalError::r#type().with_message("Invalid PlainDate fields provided."));
         }
 
         let overflow = overflow.unwrap_or_default();

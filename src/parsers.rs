@@ -15,6 +15,10 @@ use ixdtf::parsers::{
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
+mod timezone;
+
+pub(crate) use timezone::{parse_allowed_timezone_formats, parse_identifier, parse_offset};
+
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 
 #[derive(Debug, Default)]
@@ -628,10 +632,12 @@ fn checked_write_u64_with_suffix<W: core::fmt::Write + ?Sized>(
 
 // TODO: Determine if these should be separate structs, i.e. TemporalDateTimeParser/TemporalInstantParser, or
 // maybe on global `TemporalParser` around `IxdtfParser` that handles the Temporal idiosyncracies.
+#[derive(PartialEq)]
 enum ParseVariant {
     YearMonth,
     MonthDay,
     DateTime,
+    Time,
 }
 
 #[inline]
@@ -668,6 +674,7 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
         ParseVariant::YearMonth => parser.parse_year_month_with_annotation_handler(handler),
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
+        ParseVariant::Time => parser.parse_time_with_annotation_handler(handler),
     }
     .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
@@ -679,7 +686,7 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
     }
 
     // Validate that the DateRecord exists.
-    if record.date.is_none() {
+    if variant != ParseVariant::Time && record.date.is_none() {
         return Err(
             TemporalError::range().with_message("DateTime strings must contain a Date value.")
         );
@@ -693,7 +700,27 @@ fn parse_ixdtf(source: &str, variant: ParseVariant) -> TemporalResult<IxdtfParse
 /// A utility function for parsing a `DateTime` string
 #[inline]
 pub(crate) fn parse_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
-    parse_ixdtf(source, ParseVariant::DateTime)
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+
+    if record.offset == Some(UtcOffsetRecordOrZ::Z) {
+        return Err(TemporalError::range()
+            .with_message("UTC designator is not valid for DateTime parsing."));
+    }
+
+    Ok(record)
+}
+
+#[inline]
+pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+
+    // TODO: Support rejecting subminute precision in time zone annootations
+    if record.tz.is_none() {
+        return Err(TemporalError::range()
+            .with_message("Time zone annotation is required for parsing a zoned date time."));
+    }
+
+    Ok(record)
 }
 
 pub(crate) struct IxdtfParseInstantRecord {
@@ -750,14 +777,20 @@ pub(crate) fn parse_month_day(source: &str) -> TemporalResult<IxdtfParseRecord> 
 
 #[inline]
 pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
-    let time_record = IxdtfParser::from_str(source).parse_time();
+    let time_record = parse_ixdtf(source, ParseVariant::Time);
 
     let time_err = match time_record {
-        Ok(time) => return time.time.temporal_unwrap(),
+        Ok(time) => {
+            if time.offset == Some(UtcOffsetRecordOrZ::Z) {
+                return Err(TemporalError::range()
+                    .with_message("UTC designator is not valid for DateTime parsing."));
+            }
+            return time.time.temporal_unwrap();
+        }
         Err(e) => TemporalError::range().with_message(format!("{e}")),
     };
 
-    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
+    let dt_parse = parse_date_time(source);
 
     match dt_parse {
         Ok(dt) if dt.time.is_some() => Ok(dt.time.temporal_unwrap()?),
@@ -767,17 +800,17 @@ pub(crate) fn parse_time(source: &str) -> TemporalResult<TimeRecord> {
 }
 
 #[inline]
-pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<Option<&[u8]>> {
+pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<&[u8]> {
     if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     } else if let Ok(r) = IxdtfParser::from_str(s).parse_time().map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     } else if let Ok(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
-        return Some(r);
+        return Some(r.unwrap_or(&[]));
     }
-    Some(None)
+    None
 }
 
 // TODO: ParseTimeZoneString, ParseZonedDateTimeString
