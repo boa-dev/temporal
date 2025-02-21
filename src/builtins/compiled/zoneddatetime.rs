@@ -268,6 +268,14 @@ impl ZonedDateTime {
         self.in_leap_year_with_provider(&*provider)
     }
 
+    // TODO: Update direction to correct option
+    pub fn get_time_zone_transition(&self, direction: bool) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.get_time_zone_transition_with_provider(direction, &*provider)
+    }
+
     /// Returns the hours in the day.
     ///
     /// Enable with the `compiled_data` feature flag.

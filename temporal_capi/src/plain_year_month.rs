@@ -6,7 +6,8 @@ pub mod ffi {
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
 
-    use crate::options::ffi::ArithmeticOverflow;
+    use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings};
+    use crate::plain_date::ffi::{PartialDate, PlainDate};
     use diplomat_runtime::DiplomatWrite;
     use std::fmt::Write;
 
@@ -30,6 +31,17 @@ pub mod ffi {
             )
             .map(|x| Box::new(PlainYearMonth(x)))
             .map_err(Into::into)
+        }
+
+        pub fn with(
+            &self,
+            partial: PartialDate,
+            overflow: ArithmeticOverflow,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .with(partial.try_into()?, overflow.into())
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
         }
 
         pub fn iso_year(&self) -> i32 {
@@ -95,7 +107,7 @@ pub mod ffi {
             overflow: ArithmeticOverflow,
         ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .add_duration(&duration.0, overflow.into())
+                .add(&duration.0, overflow.into())
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
@@ -105,8 +117,34 @@ pub mod ffi {
             overflow: ArithmeticOverflow,
         ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .subtract_duration(&duration.0, overflow.into())
+                .subtract(&duration.0, overflow.into())
                 .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+        pub fn until(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .until(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+        pub fn since(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+        ) -> Result<Box<Duration>, TemporalError> {
+            self.0
+                .since(&other.0, settings.try_into()?)
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
+            self.0
+                .to_plain_date()
+                .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }
     }

@@ -692,6 +692,17 @@ impl Duration {
         }
     }
 
+    /// Returns the total of the `Duration`
+    pub fn total_with_provider(
+        &self,
+        _unit: TemporalUnit,
+        _relative_to: Option<RelativeTo>,
+        _provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<i64> {
+        Err(TemporalError::general("Not yet implemented"))
+    }
+
+    /// Returns the `Duration` as a formatted string
     pub fn as_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
         if options.smallest_unit == Some(TemporalUnit::Hour)
             || options.smallest_unit == Some(TemporalUnit::Minute)

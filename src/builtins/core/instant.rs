@@ -25,7 +25,7 @@ use num_traits::Euclid;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    DateDuration,
+    DateDuration, ZonedDateTime,
 };
 
 const NANOSECONDS_PER_SECOND: i64 = 1_000_000_000;
@@ -233,6 +233,11 @@ impl Instant {
     #[must_use]
     pub fn epoch_nanoseconds(&self) -> i128 {
         self.as_i128()
+    }
+
+    // TODO: May need to be moved from a provider API during impl
+    pub fn to_zoned_date_time_iso(&self, _time_zone: TimeZone) -> TemporalResult<ZonedDateTime> {
+        Err(TemporalError::general("Not yet implemented"))
     }
 }
 

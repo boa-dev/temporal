@@ -251,6 +251,13 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        pub fn to_plain_time(&self) -> Result<Box<PlainTime>, TemporalError> {
+            self.0
+                .to_plain_time()
+                .map(|x| Box::new(PlainTime(x)))
+                .map_err(Into::into)
+        }
+
         pub fn to_ixdtf_string(
             &self,
             options: ToStringRoundingOptions,
