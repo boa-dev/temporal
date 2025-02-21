@@ -626,6 +626,10 @@ impl PlainDateTime {
         Ok(Self::new_unchecked(result, self.calendar.clone()))
     }
 
+    pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
+        Err(TemporalError::general("Not yet implemented."))
+    }
+
     pub fn to_ixdtf_string(
         &self,
         options: ToStringRoundingOptions,

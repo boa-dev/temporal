@@ -228,6 +228,7 @@ pub mod ffi {
         }
 
         // TODO round_with_provider (needs time zone stuff)
+        // TODO total_with_provider (needs time zone stuff)
     }
 }
 

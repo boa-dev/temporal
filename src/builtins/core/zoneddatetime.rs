@@ -408,6 +408,10 @@ impl ZonedDateTime {
         self.instant
     }
 
+    pub fn with(&self, _partial: PartialZonedDateTime) -> TemporalResult<Self> {
+        Err(TemporalError::general("Not yet implemented"))
+    }
+
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `TimeZone`.
     pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
@@ -438,6 +442,15 @@ impl ZonedDateTime {
 // ==== HoursInDay accessor method implementation ====
 
 impl ZonedDateTime {
+    // TODO: Add direction parameter to either zoneddatetime.rs or option.rs
+    pub fn get_time_zone_transition_with_provider(
+        &self,
+        _direction: bool,
+        _provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Err(TemporalError::general("Not yet implemented"))
+    }
+
     pub fn hours_in_day_with_provider(
         &self,
         provider: &impl TimeZoneProvider,

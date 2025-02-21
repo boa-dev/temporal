@@ -7,13 +7,13 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     iso::IsoDate,
-    options::{ArithmeticOverflow, DisplayCalendar},
+    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
     Calendar, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{Duration, PartialDate};
+use super::{Duration, PartialDate, PlainDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -37,6 +37,40 @@ impl PlainYearMonth {
         Self { iso, calendar }
     }
 
+    /// Internal addition method for adding `Duration` to a `PlainYearMonth`
+    pub(crate) fn add_or_subtract_duration(
+        &self,
+        duration: &Duration,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        // Potential TODO: update to current Temporal specification
+        let partial = PartialDate::try_from_year_month(self)?;
+
+        let mut intermediate_date = self.calendar().date_from_partial(&partial, overflow)?;
+
+        intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
+
+        let result_fields = PartialDate::default().with_fallback_date(&intermediate_date)?;
+
+        self.calendar()
+            .year_month_from_partial(&result_fields, overflow)
+    }
+
+    /// The internal difference operation of `PlainYearMonth`.
+    pub(crate) fn diff(
+        &self,
+        _op: DifferenceOperation,
+        _other: &Self,
+        _settings: DifferenceSettings,
+    ) -> TemporalResult<Duration> {
+        // TODO: implement
+        Err(TemporalError::general("Not yet implemented"))
+    }
+}
+
+// ==== Public method implementations ====
+
+impl PlainYearMonth {
     /// Creates a new valid `YearMonth`.
     #[inline]
     pub fn new_with_overflow(
@@ -137,6 +171,15 @@ impl PlainYearMonth {
         self.calendar.identifier()
     }
 
+    /// Creates a `PlainYearMonth` using the fields provided from a [`PartialDate`]
+    pub fn with(
+        &self,
+        _partial: PartialDate,
+        _overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        Err(TemporalError::general("Not yet implemented."))
+    }
+
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
     /// `IsoDate` representation.
     ///
@@ -151,15 +194,15 @@ impl PlainYearMonth {
         self.iso.cmp(&other.iso)
     }
 
-    pub fn add_duration(
-        &self,
-        duration: &Duration,
-        overflow: ArithmeticOverflow,
-    ) -> TemporalResult<Self> {
+    /// Adds a [`Duration`] from the current `PlainYearMonth`.
+    #[inline]
+    pub fn add(&self, duration: &Duration, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
         self.add_or_subtract_duration(duration, overflow)
     }
 
-    pub fn subtract_duration(
+    /// Subtracts a [`Duration`] from the current `PlainYearMonth`.
+    #[inline]
+    pub fn subtract(
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
@@ -167,23 +210,24 @@ impl PlainYearMonth {
         self.add_or_subtract_duration(&duration.negated(), overflow)
     }
 
-    pub(crate) fn add_or_subtract_duration(
-        &self,
-        duration: &Duration,
-        overflow: ArithmeticOverflow,
-    ) -> TemporalResult<Self> {
-        let partial = PartialDate::try_from_year_month(self)?;
-
-        let mut intermediate_date = self.calendar().date_from_partial(&partial, overflow)?;
-
-        intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
-
-        let result_fields = PartialDate::default().with_fallback_date(&intermediate_date)?;
-
-        self.calendar()
-            .year_month_from_partial(&result_fields, overflow)
+    /// Returns a `Duration` representing the period of time from this `PlainYearMonth` until the other `PlainYearMonth`.
+    #[inline]
+    pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff(DifferenceOperation::Until, other, settings)
     }
 
+    /// Returns a `Duration` representing the period of time from this `PlainYearMonth` since the other `PlainYearMonth`.
+    #[inline]
+    pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
+        self.diff(DifferenceOperation::Since, other, settings)
+    }
+
+    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+        Err(TemporalError::general("Not yet iimplemented."))
+    }
+
+    /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
+    #[inline]
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
         let ixdtf = FormattableYearMonth {
             date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),

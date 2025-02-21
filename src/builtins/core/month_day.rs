@@ -12,6 +12,8 @@ use crate::{
     Calendar, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
+use super::{PartialDate, PlainDate};
+
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -47,6 +49,14 @@ impl PlainMonthDay {
         // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
         let iso = IsoDate::new_with_overflow(ry, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
+    }
+
+    pub fn with(
+        &self,
+        _partial: PartialDate,
+        _overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        Err(TemporalError::general("Not yet implemented."))
     }
 
     /// Returns the iso day value of `MonthDay`.
@@ -88,6 +98,10 @@ impl PlainMonthDay {
     #[inline]
     pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
         self.calendar.month_code(&self.iso)
+    }
+
+    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+        Err(TemporalError::general("Not yet implemented"))
     }
 
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
