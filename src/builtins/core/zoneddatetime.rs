@@ -23,7 +23,7 @@ use crate::{
         self, parse_offset, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision,
     },
     partial::{PartialDate, PartialTime},
-    provider::TimeZoneProvider,
+    provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
     temporal_assert,
     time::EpochNanoseconds,
@@ -442,13 +442,34 @@ impl ZonedDateTime {
 // ==== HoursInDay accessor method implementation ====
 
 impl ZonedDateTime {
-    // TODO: Add direction parameter to either zoneddatetime.rs or option.rs
+    // TODO: implement and stabalize
     pub fn get_time_zone_transition_with_provider(
         &self,
-        _direction: bool,
-        _provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented"))
+        direction: TransitionDirection,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Option<Self>> {
+        // 8. If IsOffsetTimeZoneIdentifier(timeZone) is true, return null.
+        let TimeZone::IanaIdentifier(identifier) = &self.tz else {
+            return Ok(None);
+        };
+        // 9. If direction is next, then
+        // a. Let transition be GetNamedTimeZoneNextTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
+        // 10. Else,
+        // a. Assert: direction is previous.
+        // b. Let transition be GetNamedTimeZonePreviousTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
+        let transition = provider.get_named_time_zone_transition(
+            identifier,
+            self.epoch_nanoseconds(),
+            direction,
+        )?;
+
+        // 11. If transition is null, return null.
+        // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
+        let result = transition
+            .map(|t| ZonedDateTime::try_new(t.0, self.calendar().clone(), self.tz.clone()))
+            .transpose()?;
+
+        Ok(result)
     }
 
     pub fn hours_in_day_with_provider(
