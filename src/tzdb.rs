@@ -642,7 +642,7 @@ impl TimeZoneProvider for FsTzdbProvider {
         tzif.get(&Seconds(seconds))
     }
 
-    fn get_named_time_zone_transition(
+    fn get_named_tz_transition(
         &self,
         _identifier: &str,
         _epoch_nanoseconds: i128,

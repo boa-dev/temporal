@@ -70,7 +70,7 @@ pub trait TimeZoneProvider {
     ) -> TemporalResult<TimeZoneOffset>;
 
     // TODO: implement and stabalize
-    fn get_named_time_zone_transition(
+    fn get_named_tz_transition(
         &self,
         identifier: &str,
         epoch_nanoseconds: i128,
@@ -97,7 +97,7 @@ impl TimeZoneProvider for NeverProvider {
         unimplemented!()
     }
 
-    fn get_named_time_zone_transition(
+    fn get_named_tz_transition(
         &self,
         _: &str,
         _: i128,
