@@ -755,6 +755,10 @@ pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord>
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
     if let Ok(ym) = ym_record {
+        if ym.offset == Some(UtcOffsetRecordOrZ::Z) {
+            return Err(TemporalError::range()
+                .with_message("UTC designator is not valid for DateTime parsing."));
+        }
         return Ok(ym);
     }
 

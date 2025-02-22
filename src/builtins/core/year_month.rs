@@ -6,7 +6,7 @@ use core::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    iso::IsoDate,
+    iso::{year_month_within_limits, IsoDate},
     options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
@@ -81,8 +81,19 @@ impl PlainYearMonth {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         let day = reference_day.unwrap_or(1);
-        let iso = IsoDate::new_with_overflow(year, month, day, overflow)?;
+        let iso = IsoDate::regulate(year, month, day, overflow)?;
+        if !year_month_within_limits(iso.year, iso.month) {
+            return Err(TemporalError::range().with_message("Exceeded valid range."));
+        }
         Ok(Self::new_unchecked(iso, calendar))
+    }
+
+    /// Create a `PlainYearMonth` from a `PartialDate`
+    pub fn from_partial(
+        partial: PartialDate,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        partial.calendar.year_month_from_partial(&partial, overflow)
     }
 
     /// Returns the iso year value for this `YearMonth`.
@@ -245,7 +256,6 @@ impl FromStr for PlainYearMonth {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let record = crate::parsers::parse_year_month(s)?;
-
         let calendar = record
             .calendar
             .map(Calendar::from_utf8)
@@ -254,12 +264,63 @@ impl FromStr for PlainYearMonth {
 
         let date = record.date.temporal_unwrap()?;
 
-        Self::new_with_overflow(
-            date.year,
-            date.month,
-            None,
-            calendar,
-            ArithmeticOverflow::Reject,
-        )
+        // The below steps are from `ToTemporalYearMonth`
+        // 10. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
+        let iso = IsoDate::new_unchecked(date.year, date.month, date.day);
+
+        // 11. If ISOYearMonthWithinLimits(isoDate) is false, throw a RangeError exception.
+        if !year_month_within_limits(iso.year, iso.month) {
+            return Err(TemporalError::range().with_message("Exceeded valid range."));
+        }
+
+        let intermediate = Self::new_unchecked(iso, calendar);
+        // 12. Set result to ISODateToFields(calendar, isoDate, year-month).
+        let partial = PartialDate::try_from_year_month(&intermediate)?;
+        // 13. NOTE: The following operation is called with constrain regardless of the
+        // value of overflow, in order for the calendar to store a canonical value in the
+        // [[Day]] field of the [[ISODate]] internal slot of the result.
+        // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
+        // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        PlainYearMonth::from_partial(partial, ArithmeticOverflow::Constrain)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::str::FromStr;
+
+    use super::PlainYearMonth;
+
+    #[test]
+    fn basic_from_str() {
+        let valid_strings = [
+            "-271821-04",
+            "-271821-04-01",
+            "-271821-04-01T00:00",
+            "+275760-09",
+            "+275760-09-30",
+            "+275760-09-30T23:59:59.999999999",
+        ];
+
+        for valid_case in valid_strings {
+            let ym = PlainYearMonth::from_str(valid_case);
+            assert!(ym.is_ok());
+        }
+    }
+
+    #[test]
+    fn invalid_from_str() {
+        let invalid_strings = [
+            "-271821-03-31",
+            "-271821-03-31T23:59:59.999999999",
+            "+275760-10",
+            "+275760-10-01",
+            "+275760-10-01T00:00",
+        ];
+
+        for invalid_case in invalid_strings {
+            let err = PlainYearMonth::from_str(invalid_case);
+            assert!(err.is_err());
+        }
     }
 }
