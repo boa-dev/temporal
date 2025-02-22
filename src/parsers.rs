@@ -762,7 +762,7 @@ pub(crate) fn parse_year_month(source: &str) -> TemporalResult<IxdtfParseRecord>
         return Ok(ym);
     }
 
-    let dt_parse = parse_ixdtf(source, ParseVariant::DateTime);
+    let dt_parse = parse_date_time(source);
 
     match dt_parse {
         Ok(dt) => Ok(dt),

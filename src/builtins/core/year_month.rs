@@ -322,5 +322,12 @@ mod tests {
             let err = PlainYearMonth::from_str(invalid_case);
             assert!(err.is_err());
         }
+
+        let invalid_strings = ["2019-10-01T09:00:00Z", "2019-10-01T09:00:00Z[UTC]"];
+
+        for invalid_case in invalid_strings {
+            let err = PlainYearMonth::from_str(invalid_case);
+            assert!(err.is_err());
+        }
     }
 }
