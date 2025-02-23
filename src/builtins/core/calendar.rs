@@ -3,14 +3,6 @@
 //! The goal of the calendar module of `boa_temporal` is to provide
 //! Temporal compatible calendar implementations.
 
-// TODO: It may finally be time to clean up API to use `IsoDate` and `DateDuration` directly.
-
-use alloc::string::String;
-use alloc::vec::Vec;
-use core::str::FromStr;
-use icu_calendar::types::{Era as IcuEra, MonthCode as IcuMonthCode, MonthInfo, YearInfo};
-use types::ResolutionType;
-
 use crate::{
     builtins::core::{
         duration::{DateDuration, TimeDuration},
@@ -21,7 +13,9 @@ use crate::{
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
+use core::str::FromStr;
 
+use icu_calendar::types::{Era as IcuEra, MonthCode as IcuMonthCode, MonthInfo, YearInfo};
 use icu_calendar::{
     any_calendar::AnyDateInner,
     cal::{
@@ -41,7 +35,7 @@ use super::{PartialDate, ZonedDateTime};
 mod era;
 mod types;
 
-pub(crate) use types::month_to_month_code;
+pub(crate) use types::{month_to_month_code, ResolutionType};
 pub use types::{MonthCode, ResolvedCalendarFields};
 
 use era::EraInfo;
@@ -364,7 +358,6 @@ impl Calendar {
             let date_duration = one.diff_iso_date(two, largest_unit)?;
             return Ok(Duration::from(date_duration));
         }
-
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
@@ -400,8 +393,8 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.month);
         }
-
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.month(&calendar_date).month_number())
     }
 
     /// `CalendarMonthCode`
@@ -410,8 +403,8 @@ impl Calendar {
             let mc = iso_date.as_icu4x()?.month().standard_code.0;
             return Ok(MonthCode(mc));
         }
-
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(MonthCode(self.0.month(&calendar_date).standard_code.0))
     }
 
     /// `CalendarDay`
@@ -419,8 +412,8 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.day);
         }
-
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.day_of_month(&calendar_date).0)
     }
 
     /// `CalendarDayOfWeek`
@@ -428,8 +421,9 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.as_icu4x()?.day_of_week() as u16);
         }
-
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        // TODO: Understand ICU4X's decision for `IsoWeekDay` to be `i8`
+        Ok(self.0.day_of_week(&calendar_date) as u16)
     }
 
     /// `CalendarDayOfYear`
@@ -437,20 +431,19 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.as_icu4x()?.day_of_year_info().day_of_year);
         }
-        Err(TemporalError::range().with_message("Not yet implemented."))?
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.day_of_year_info(&calendar_date).day_of_year)
     }
 
     /// `CalendarWeekOfYear`
     pub fn week_of_year(&self, iso_date: &IsoDate) -> TemporalResult<Option<u16>> {
         if self.is_iso() {
             let date = iso_date.as_icu4x()?;
-
             let week_calculator = WeekCalculator::default();
-
             let week_of = date.week_of_year(&week_calculator);
-
             return Ok(Some(week_of.week as u16));
         }
+        // TODO: Research in ICU4X and determine best approach.
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
@@ -469,6 +462,7 @@ impl Calendar {
                 RelativeUnit::Next => Ok(Some(date.year().extended_year + 1)),
             };
         }
+        // TODO: Research in ICU4X and determine best approach.
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
@@ -477,6 +471,7 @@ impl Calendar {
         if self.is_iso() {
             return Ok(7);
         }
+        // TODO: Research in ICU4X and determine best approach.
         Err(TemporalError::range().with_message("Not yet implemented."))
     }
 
@@ -485,7 +480,8 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.as_icu4x()?.days_in_month() as u16);
         }
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.days_in_month(&calendar_date) as u16)
     }
 
     /// `CalendarDaysInYear`
@@ -493,16 +489,17 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.as_icu4x()?.days_in_year());
         }
-
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.days_in_year(&calendar_date))
     }
 
     /// `CalendarMonthsInYear`
-    pub fn months_in_year(&self, _iso_date: &IsoDate) -> TemporalResult<u16> {
+    pub fn months_in_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
         if self.is_iso() {
             return Ok(12);
         }
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.months_in_year(&calendar_date) as u16)
     }
 
     /// `CalendarInLeapYear`
@@ -510,15 +507,8 @@ impl Calendar {
         if self.is_iso() {
             return Ok(iso_date.as_icu4x()?.is_in_leap_year());
         }
-        Err(TemporalError::range().with_message("Not yet implemented."))
-    }
-
-    /// `CalendarFields`
-    pub fn fields(&self, fields: Vec<String>) -> TemporalResult<Vec<String>> {
-        if self.is_iso() {
-            return Ok(fields);
-        }
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        Ok(self.0.is_in_leap_year(&calendar_date))
     }
 
     /// Returns the identifier of this calendar slot.
