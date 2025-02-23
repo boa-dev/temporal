@@ -301,35 +301,42 @@ impl IsoDate {
         Self { year, month, day }
     }
 
-    pub(crate) fn new_with_overflow(
+    pub(crate) fn regulate(
         year: i32,
         month: u8,
         day: u8,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        let id = match overflow {
+        match overflow {
             ArithmeticOverflow::Constrain => {
                 let month = month.clamp(1, 12);
                 let day = constrain_iso_day(year, month, day);
                 // NOTE: Values are clamped in a u8 range.
-                Self::new_unchecked(year, month, day)
+                Ok(Self::new_unchecked(year, month, day))
             }
             ArithmeticOverflow::Reject => {
                 if !is_valid_date(year, month, day) {
                     return Err(TemporalError::range().with_message("not a valid ISO date."));
                 }
                 // NOTE: Values have been verified to be in a u8 range.
-                Self::new_unchecked(year, month, day)
+                Ok(Self::new_unchecked(year, month, day))
             }
-        };
+        }
+    }
 
-        if !iso_dt_within_valid_limits(id, &IsoTime::noon()) {
+    pub(crate) fn new_with_overflow(
+        year: i32,
+        month: u8,
+        day: u8,
+        overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        let date = Self::regulate(year, month, day, overflow)?;
+        if !iso_dt_within_valid_limits(date, &IsoTime::noon()) {
             return Err(
                 TemporalError::range().with_message("Date is not within ISO date time limits.")
             );
         }
-
-        Ok(id)
+        Ok(date)
     }
 
     /// Create a balanced `IsoDate`
@@ -955,6 +962,25 @@ fn is_valid_date(year: i32, month: u8, day: u8) -> bool {
 /// Returns with the `this` surpasses `other`.
 fn iso_date_surpasses(this: &IsoDate, other: &IsoDate, sign: i8) -> bool {
     this.cmp(other) as i8 * sign == 1
+}
+
+#[inline]
+pub(crate) fn year_month_within_limits(year: i32, month: u8) -> bool {
+    // 1. If isoDate.[[Year]] < -271821 or isoDate.[[Year]] > 275760, then
+    if !(-271821..=275760).contains(&year) {
+        // a. Return false.
+        return false;
+    // 2. If isoDate.[[Year]] = -271821 and isoDate.[[Month]] < 4, then
+    } else if year == -271821 && month < 4 {
+        // a. Return false.
+        return false;
+    // 3. If isoDate.[[Year]] = 275760 and isoDate.[[Month]] > 9, then
+    } else if year == 275760 && month > 9 {
+        // a. Return false.
+        return false;
+    }
+    // 4. Return true.
+    true
 }
 
 #[inline]

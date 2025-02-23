@@ -11,6 +11,13 @@ use crate::{TemporalError, TemporalResult};
 
 use crate::builtins::core::{calendar::Calendar, PartialDate};
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ResolveType {
+    Date,
+    YearMonth,
+    MonthDay,
+}
+
 /// `ResolvedCalendarFields` represents the resolved field values necessary for
 /// creating a Date from potentially partial values.
 #[derive(Debug)]
@@ -25,6 +32,7 @@ impl ResolvedCalendarFields {
     pub fn try_from_partial(
         partial_date: &PartialDate,
         overflow: ArithmeticOverflow,
+        resolve_type: ResolveType,
     ) -> TemporalResult<Self> {
         let era_year = EraYear::try_from_partial_values_and_calendar(
             partial_date.year,
@@ -35,9 +43,13 @@ impl ResolvedCalendarFields {
         if partial_date.calendar.is_iso() {
             let month_code =
                 resolve_iso_month(partial_date.month_code, partial_date.month, overflow)?;
-            let day = partial_date
-                .day
-                .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
+            let day = if resolve_type != ResolveType::YearMonth {
+                partial_date
+                    .day
+                    .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?
+            } else {
+                partial_date.day.unwrap_or(1)
+            };
 
             let day = if overflow == ArithmeticOverflow::Constrain {
                 constrain_iso_day(era_year.year, ascii_four_to_integer(month_code)?, day)
@@ -57,9 +69,13 @@ impl ResolvedCalendarFields {
         }
 
         let month_code = MonthCode::try_from_partial_date(partial_date, &partial_date.calendar)?;
-        let day = partial_date
-            .day
-            .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
+        let day = if resolve_type != ResolveType::YearMonth {
+            partial_date
+                .day
+                .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?
+        } else {
+            partial_date.day.unwrap_or(1)
+        };
 
         Ok(Self {
             era_year,
@@ -322,7 +338,10 @@ mod tests {
     use tinystr::tinystr;
 
     use crate::{
-        builtins::core::{calendar::Calendar, PartialDate},
+        builtins::{
+            calendar::types::ResolveType,
+            core::{calendar::Calendar, PartialDate},
+        },
         options::ArithmeticOverflow,
     };
 
@@ -355,7 +374,11 @@ mod tests {
             ..Default::default()
         };
 
-        let err = ResolvedCalendarFields::try_from_partial(&bad_fields, ArithmeticOverflow::Reject);
+        let err = ResolvedCalendarFields::try_from_partial(
+            &bad_fields,
+            ArithmeticOverflow::Reject,
+            ResolveType::Date,
+        );
         assert!(err.is_err());
     }
 
@@ -367,11 +390,19 @@ mod tests {
             ..Default::default()
         };
 
-        let err = ResolvedCalendarFields::try_from_partial(&bad_fields, ArithmeticOverflow::Reject);
+        let err = ResolvedCalendarFields::try_from_partial(
+            &bad_fields,
+            ArithmeticOverflow::Reject,
+            ResolveType::Date,
+        );
         assert!(err.is_err());
 
         let bad_fields = PartialDate::default();
-        let err = ResolvedCalendarFields::try_from_partial(&bad_fields, ArithmeticOverflow::Reject);
+        let err = ResolvedCalendarFields::try_from_partial(
+            &bad_fields,
+            ArithmeticOverflow::Reject,
+            ResolveType::Date,
+        );
         assert!(err.is_err());
     }
 }
