@@ -148,6 +148,8 @@ pub(crate) fn epoch_seconds_to_day_of_month(t: i64) -> u16 {
 // NOTE: below was the iso methods in temporal::calendar -> Need to be reassessed.
 
 /// 12.2.31 `ISODaysInMonth ( year, month )`
+///
+/// NOTE: month is 1 based
 pub(crate) fn iso_days_in_month(year: i32, month: i32) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,

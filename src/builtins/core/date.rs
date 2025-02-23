@@ -12,13 +12,13 @@ use crate::{
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
     provider::NeverProvider,
-    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 
 use super::{
-    calendar::{ascii_four_to_integer, month_to_month_code},
+    calendar::month_to_month_code,
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
     PlainMonthDay, PlainYearMonth,
 };
@@ -35,7 +35,7 @@ pub struct PartialDate {
     // A potentially set `month` field.
     pub month: Option<u8>,
     // A potentially set `month_code` field.
-    pub month_code: Option<TinyAsciiStr<4>>,
+    pub month_code: Option<MonthCode>,
     // A potentially set `day` field.
     pub day: Option<u8>,
     // A potentially set `era` field.
@@ -105,7 +105,7 @@ macro_rules! impl_with_fallback_method {
             let (month, month_code) = match (self.month, self.month_code) {
                 (Some(month), Some(mc)) => (Some(month), Some(mc)),
                 (Some(month), None) => (Some(month), Some(month_to_month_code(month)?)),
-                (None, Some(mc)) => (Some(ascii_four_to_integer(mc)?).map(Into::into), Some(mc)),
+                (None, Some(mc)) => (Some(mc.to_month_integer()).map(Into::into), Some(mc)),
                 (None, None) => (
                     Some(fallback.month()?).map(Into::into),
                     Some(fallback.month_code()?),
@@ -497,7 +497,7 @@ impl PlainDate {
     }
 
     /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar.month_code(&self.iso)
     }
 
@@ -849,7 +849,7 @@ mod tests {
         assert_eq!(with_year.month().unwrap(), 11);
         assert_eq!(
             with_year.month_code().unwrap(),
-            TinyAsciiStr::<4>::from_str("M11").unwrap()
+            MonthCode::from_str("M11").unwrap()
         );
         assert_eq!(with_year.day().unwrap(), 18);
 
@@ -863,13 +863,13 @@ mod tests {
         assert_eq!(with_month.month().unwrap(), 5);
         assert_eq!(
             with_month.month_code().unwrap(),
-            TinyAsciiStr::<4>::from_str("M05").unwrap()
+            MonthCode::from_str("M05").unwrap()
         );
         assert_eq!(with_month.day().unwrap(), 18);
 
         // Month Code
         let partial = PartialDate {
-            month_code: Some(tinystr!(4, "M05")),
+            month_code: Some(MonthCode(tinystr!(4, "M05"))),
             ..Default::default()
         };
         let with_mc = base.with(partial, None).unwrap();
@@ -877,7 +877,7 @@ mod tests {
         assert_eq!(with_mc.month().unwrap(), 5);
         assert_eq!(
             with_mc.month_code().unwrap(),
-            TinyAsciiStr::<4>::from_str("M05").unwrap()
+            MonthCode::from_str("M05").unwrap()
         );
         assert_eq!(with_mc.day().unwrap(), 18);
 
@@ -891,7 +891,7 @@ mod tests {
         assert_eq!(with_day.month().unwrap(), 11);
         assert_eq!(
             with_day.month_code().unwrap(),
-            TinyAsciiStr::<4>::from_str("M11").unwrap()
+            MonthCode::from_str("M11").unwrap()
         );
         assert_eq!(with_day.day().unwrap(), 17);
     }

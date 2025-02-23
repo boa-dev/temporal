@@ -61,7 +61,7 @@ pub mod ffi {
         pub fn month_code(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
             let code = self.0.month_code().map_err(Into::<TemporalError>::into)?;
             // throw away the error, this should always succeed
-            let _ = write.write_str(&code);
+            let _ = write.write_str(code.as_str());
             Ok(())
         }
 

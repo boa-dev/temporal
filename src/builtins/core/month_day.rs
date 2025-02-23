@@ -3,13 +3,11 @@
 use alloc::string::String;
 use core::str::FromStr;
 
-use tinystr::TinyAsciiStr;
-
 use crate::{
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
+    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{PartialDate, PlainDate};
@@ -96,7 +94,7 @@ impl PlainMonthDay {
 
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar.month_code(&self.iso)
     }
 

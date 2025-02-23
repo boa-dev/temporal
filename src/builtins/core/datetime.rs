@@ -13,7 +13,7 @@ use crate::{
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     provider::NeverProvider,
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
@@ -503,7 +503,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar.month_code(&self.iso.date)
     }
 
@@ -711,7 +711,7 @@ mod tests {
         },
         parsers::Precision,
         primitive::FiniteF64,
-        TemporalResult,
+        MonthCode, TemporalResult,
     };
 
     fn assert_datetime(
@@ -720,7 +720,7 @@ mod tests {
     ) {
         assert_eq!(dt.year().unwrap(), fields.0);
         assert_eq!(dt.month().unwrap(), fields.1);
-        assert_eq!(dt.month_code().unwrap(), fields.2);
+        assert_eq!(dt.month_code().unwrap(), MonthCode(fields.2));
         assert_eq!(dt.day().unwrap(), fields.3);
         assert_eq!(dt.hour(), fields.4);
         assert_eq!(dt.minute(), fields.5);
@@ -813,7 +813,7 @@ mod tests {
         // Test monthCode
         let partial = PartialDateTime {
             date: PartialDate {
-                month_code: Some(tinystr!(4, "M05")),
+                month_code: Some(MonthCode(tinystr!(4, "M05"))),
                 ..Default::default()
             },
             time: PartialTime::default(),

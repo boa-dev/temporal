@@ -9,7 +9,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::str::FromStr;
 use icu_calendar::types::{Era as IcuEra, MonthCode as IcuMonthCode, MonthInfo, YearInfo};
-use types::ResolveType;
+use types::ResolutionType;
 
 use crate::{
     builtins::core::{
@@ -41,8 +41,8 @@ use super::{PartialDate, ZonedDateTime};
 mod era;
 mod types;
 
-pub use types::ResolvedCalendarFields;
-pub(crate) use types::{ascii_four_to_integer, month_to_month_code};
+pub(crate) use types::month_to_month_code;
+pub use types::{MonthCode, ResolvedCalendarFields};
 
 use era::EraInfo;
 
@@ -228,13 +228,13 @@ impl Calendar {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolveType::Date)?;
+            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::Date)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
             return PlainDate::new_with_overflow(
                 resolved_fields.era_year.year,
-                resolved_fields.month_code.as_iso_month_integer()?,
+                resolved_fields.month_code.to_month_integer(),
                 resolved_fields.day,
                 self.clone(),
                 overflow,
@@ -267,10 +267,10 @@ impl Calendar {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainMonthDay> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolveType::MonthDay)?;
+            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::MonthDay)?;
         if self.is_iso() {
             return PlainMonthDay::new_with_overflow(
-                resolved_fields.month_code.as_iso_month_integer()?,
+                resolved_fields.month_code.to_month_integer(),
                 resolved_fields.day,
                 self.clone(),
                 overflow,
@@ -290,11 +290,11 @@ impl Calendar {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolveType::YearMonth)?;
+            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::YearMonth)?;
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.year,
-                resolved_fields.month_code.as_iso_month_integer()?,
+                resolved_fields.month_code.to_month_integer(),
                 Some(resolved_fields.day),
                 self.clone(),
                 overflow,
@@ -405,9 +405,10 @@ impl Calendar {
     }
 
     /// `CalendarMonthCode`
-    pub fn month_code(&self, iso_date: &IsoDate) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self, iso_date: &IsoDate) -> TemporalResult<MonthCode> {
         if self.is_iso() {
-            return Ok(iso_date.as_icu4x()?.month().standard_code.0);
+            let mc = iso_date.as_icu4x()?.month().standard_code.0;
+            return Ok(MonthCode(mc));
         }
 
         Err(TemporalError::range().with_message("Not yet implemented."))

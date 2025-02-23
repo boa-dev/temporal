@@ -1,3 +1,5 @@
+use temporal_rs::MonthCode;
+
 use crate::error::ffi::TemporalError;
 
 #[diplomat::bridge]
@@ -166,7 +168,7 @@ pub mod ffi {
         pub fn month_code(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
             let code = self.0.month_code().map_err(Into::<TemporalError>::into)?;
             // throw away the error, this should always succeed
-            let _ = write.write_str(&code);
+            let _ = write.write_str(code.as_str());
             Ok(())
         }
         pub fn day(&self) -> Result<u8, TemporalError> {
@@ -258,7 +260,7 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
             None
         } else {
             Some(
-                TinyAsciiStr::try_from_utf8(other.month_code.into())
+                MonthCode::try_from_utf8(other.month_code.into())
                     .map_err(|_| TemporalError::syntax())?,
             )
         };
