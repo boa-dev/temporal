@@ -43,6 +43,35 @@ pub struct PartialZonedDateTime {
     pub timezone: Option<TimeZone>,
 }
 
+impl PartialZonedDateTime {
+    pub fn is_empty(&self) -> bool {
+        self.date.is_empty()
+            && self.time.is_empty()
+            && self.offset.is_none()
+            && self.timezone.is_none()
+    }
+
+    pub const fn with_date(mut self, partial_date: PartialDate) -> Self {
+        self.date = partial_date;
+        self
+    }
+
+    pub const fn with_time(mut self, partial_time: PartialTime) -> Self {
+        self.time = partial_time;
+        self
+    }
+
+    pub fn with_offset(mut self, offset: Option<String>) -> Self {
+        self.offset = offset;
+        self
+    }
+
+    pub fn with_timezone(mut self, timezone: Option<TimeZone>) -> Self {
+        self.timezone = timezone;
+        self
+    }
+}
+
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]

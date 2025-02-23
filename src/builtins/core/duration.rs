@@ -353,12 +353,6 @@ impl Duration {
         &self.date
     }
 
-    /// Set this `DurationRecord`'s `TimeDuration`.
-    #[inline]
-    pub fn set_time_duration(&mut self, time: TimeDuration) {
-        self.time = time;
-    }
-
     /// Returns the `years` field of duration.
     #[inline]
     #[must_use]

@@ -28,6 +28,22 @@ pub struct PartialDateTime {
     pub time: PartialTime,
 }
 
+impl PartialDateTime {
+    pub fn is_empty(&self) -> bool {
+        self.date.is_empty() && self.time.is_empty()
+    }
+
+    pub const fn with_partial_date(mut self, partial_date: PartialDate) -> Self {
+        self.date = partial_date;
+        self
+    }
+
+    pub const fn with_partial_time(mut self, partial_time: PartialTime) -> Self {
+        self.time = partial_time;
+        self
+    }
+}
+
 /// The native Rust implementation of `Temporal.PlainDateTime`
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -318,7 +334,7 @@ impl PlainDateTime {
         partial: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        if partial.date.is_empty() && partial.time.is_empty() {
+        if partial.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
         }
         let date = PlainDate::from_partial(partial.date, overflow)?;
