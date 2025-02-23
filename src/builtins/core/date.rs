@@ -600,7 +600,51 @@ impl PlainDate {
             .with_calendar(self.calendar.identifier(), display_calendar)
             .build()
     }
+
+    #[inline]
+    pub fn to_zoned_date_time(
+        &self, 
+        tz: TimeZone,
+        pt: Option<PlainTime>, 
+        provider: &impl TimeZoneProvider
+    ) -> TemporalResult<ZonedDateTime> {
+        //3. If item is an Object, then
+            //a. Let timeZoneLike be ? Get(item, "timeZone").
+            //b. If timeZoneLike is undefined, then
+            //   i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+            //    ii. Let temporalTime be undefined.
+            // c. Else,
+            //    i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
+            //    ii. Let temporalTime be ? Get(item, "plainTime").
+        // 4. Else,
+        //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+        //     b. Let temporalTime be undefined.
+
+        //  5. If temporalTime is undefined, then
+        //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
+
+        //  6. Else,
+        //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
+        //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
+        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
+        //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
+
+        let result_iso = if let Some(time) = pt {
+            let temporal_time = Time::new_unchecked(time)?;
+            IsoDateTime::new_unchecked(&self.iso, temporal_time.iso);
+        } else {
+            IsoDateTime::new_unchecked(&self.iso, IsoTime::default());
+        };
+
+        let epoch_ns = tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
+
+
+        Self::try_new(epoch_ns.0, self.calendar.clone(), tz)
+
+
 }
+
 
 // ==== Trait impls ====
 
