@@ -12,7 +12,7 @@ use crate::{TemporalError, TemporalResult};
 use crate::builtins::core::{calendar::Calendar, PartialDate};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ResolveType {
+pub enum ResolutionType {
     Date,
     YearMonth,
     MonthDay,
@@ -32,25 +32,13 @@ impl ResolvedCalendarFields {
     pub fn try_from_partial(
         partial_date: &PartialDate,
         overflow: ArithmeticOverflow,
-        resolve_type: ResolveType,
+        resolve_type: ResolutionType,
     ) -> TemporalResult<Self> {
-        let era_year = EraYear::try_from_partial_values_and_calendar(
-            partial_date.year,
-            partial_date.era,
-            partial_date.era_year,
-            &partial_date.calendar,
-        )?;
+        let era_year = EraYear::try_from_partial_date(partial_date)?;
         if partial_date.calendar.is_iso() {
             let month_code =
                 resolve_iso_month(partial_date.month_code, partial_date.month, overflow)?;
-            let day = if resolve_type != ResolveType::YearMonth {
-                partial_date
-                    .day
-                    .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?
-            } else {
-                partial_date.day.unwrap_or(1)
-            };
-
+            let day = resolve_day(partial_date.day, resolve_type == ResolutionType::YearMonth)?;
             let day = if overflow == ArithmeticOverflow::Constrain {
                 constrain_iso_day(era_year.year, month_code.to_month_integer(), day)
             } else {
@@ -69,19 +57,22 @@ impl ResolvedCalendarFields {
         }
 
         let month_code = MonthCode::try_from_partial_date(partial_date)?;
-        let day = if resolve_type != ResolveType::YearMonth {
-            partial_date
-                .day
-                .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?
-        } else {
-            partial_date.day.unwrap_or(1)
-        };
+        let day = resolve_day(partial_date.day, resolve_type == ResolutionType::YearMonth)?;
+        // TODO: Constrain day to calendar range for month?
 
         Ok(Self {
             era_year,
             month_code,
             day,
         })
+    }
+}
+
+fn resolve_day(day: Option<u8>, is_year_month: bool) -> TemporalResult<u8> {
+    if is_year_month {
+        Ok(day.unwrap_or(1))
+    } else {
+        day.ok_or(TemporalError::r#type().with_message("Required day field is empty."))
     }
 }
 
@@ -95,15 +86,10 @@ pub struct EraYear {
 }
 
 impl EraYear {
-    pub(crate) fn try_from_partial_values_and_calendar(
-        year: Option<i32>,
-        era: Option<TinyAsciiStr<19>>,
-        era_year: Option<i32>,
-        calendar: &Calendar,
-    ) -> TemporalResult<Self> {
-        match (year, era, era_year) {
+    pub(crate) fn try_from_partial_date(partial: &PartialDate) -> TemporalResult<Self> {
+        match (partial.year, partial.era, partial.era_year) {
             (Some(year), None, None) => {
-                let Some(era) = calendar.get_calendar_default_era() else {
+                let Some(era) = partial.calendar.get_calendar_default_era() else {
                     return Err(TemporalError::r#type()
                         .with_message("Era is required for the provided calendar."));
                 };
@@ -113,7 +99,7 @@ impl EraYear {
                 })
             }
             (None, Some(era), Some(era_year)) => {
-                let Some(era_info) = calendar.get_era_info(&era) else {
+                let Some(era_info) = partial.calendar.get_era_info(&era) else {
                     return Err(TemporalError::range().with_message("Invalid era provided."));
                 };
                 if !era_info.range.contains(&era_year) {
@@ -299,6 +285,7 @@ impl core::str::FromStr for MonthCode {
 }
 
 // NOTE: This is a greedy function, should handle differently for all calendars.
+#[inline]
 pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
     if !(1..=13).contains(&month) {
         return Err(TemporalError::range().with_message("Month not in a valid range."));
@@ -310,6 +297,7 @@ pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
     Ok(MonthCode(tinystr))
 }
 
+#[inline]
 fn are_month_and_month_code_resolvable(month: u8, mc: &MonthCode) -> TemporalResult<()> {
     if month != mc.to_month_integer() {
         return Err(TemporalError::range()
@@ -321,6 +309,7 @@ fn are_month_and_month_code_resolvable(month: u8, mc: &MonthCode) -> TemporalRes
 // Potentially greedy. Need to verify for all calendars that
 // the month code integer aligns with the month integer, which
 // may require calendar info
+#[inline]
 pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> u8 {
     let bytes = mc.all_bytes();
     // Invariant: second and third character (index 1 and 2) are ascii digits.
@@ -330,6 +319,7 @@ pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> u8 {
     first + ascii_digit_to_int(bytes[2])
 }
 
+#[inline]
 const fn ascii_digit_to_int(ascii_digit: u8) -> u8 {
     ascii_digit - 48
 }
@@ -376,7 +366,7 @@ mod tests {
 
     use crate::{
         builtins::{
-            calendar::types::ResolveType,
+            calendar::types::ResolutionType,
             core::{calendar::Calendar, PartialDate},
         },
         options::ArithmeticOverflow,
@@ -450,7 +440,7 @@ mod tests {
         let err = ResolvedCalendarFields::try_from_partial(
             &bad_fields,
             ArithmeticOverflow::Reject,
-            ResolveType::Date,
+            ResolutionType::Date,
         );
         assert!(err.is_err());
     }
@@ -466,7 +456,7 @@ mod tests {
         let err = ResolvedCalendarFields::try_from_partial(
             &bad_fields,
             ArithmeticOverflow::Reject,
-            ResolveType::Date,
+            ResolutionType::Date,
         );
         assert!(err.is_err());
 
@@ -474,7 +464,7 @@ mod tests {
         let err = ResolvedCalendarFields::try_from_partial(
             &bad_fields,
             ArithmeticOverflow::Reject,
-            ResolveType::Date,
+            ResolutionType::Date,
         );
         assert!(err.is_err());
     }

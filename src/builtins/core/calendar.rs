@@ -9,7 +9,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::str::FromStr;
 use icu_calendar::types::{Era as IcuEra, MonthCode as IcuMonthCode, MonthInfo, YearInfo};
-use types::ResolveType;
+use types::ResolutionType;
 
 use crate::{
     builtins::core::{
@@ -228,7 +228,7 @@ impl Calendar {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolveType::Date)?;
+            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::Date)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
@@ -267,7 +267,7 @@ impl Calendar {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainMonthDay> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolveType::MonthDay)?;
+            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::MonthDay)?;
         if self.is_iso() {
             return PlainMonthDay::new_with_overflow(
                 resolved_fields.month_code.to_month_integer(),
@@ -290,7 +290,7 @@ impl Calendar {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolveType::YearMonth)?;
+            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::YearMonth)?;
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.year,
