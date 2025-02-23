@@ -96,8 +96,10 @@ pub mod time {
 }
 
 pub use crate::builtins::{
-    calendar::Calendar, core::timezone::TimeZone, DateDuration, Duration, Instant, Now, PlainDate,
-    PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth, TimeDuration, ZonedDateTime,
+    calendar::Calendar,
+    core::timezone::{TimeZone, UtcOffset},
+    DateDuration, Duration, Instant, Now, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
+    PlainYearMonth, TimeDuration, ZonedDateTime,
 };
 
 /// A library specific trait for unwrapping assertions.
