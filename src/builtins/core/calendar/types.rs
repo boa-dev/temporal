@@ -303,11 +303,11 @@ fn are_month_and_month_code_resolvable(month: u8, mc: &MonthCode) -> TemporalRes
 }
 
 // Potentially greedy. Need to verify for all calendars that
-// the code interger aligns with the month integer, which
+// the month code integer aligns with the month integer, which
 // may require calendar info
 pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> u8 {
     let bytes = mc.all_bytes();
-    // Invariant: first and second character are ascii digits.
+    // Invariant: second and third character (index 1 and 2) are ascii digits.
     debug_assert!(bytes[1].is_ascii_digit());
     debug_assert!(bytes[2].is_ascii_digit());
     let first = ascii_digit_to_int(bytes[1]) * 10;
