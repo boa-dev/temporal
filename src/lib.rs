@@ -96,7 +96,7 @@ pub mod time {
 }
 
 pub use crate::builtins::{
-    calendar::Calendar,
+    calendar::{Calendar, MonthCode},
     core::timezone::{TimeZone, UtcOffset},
     DateDuration, Duration, Instant, Now, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
     PlainYearMonth, TimeDuration, ZonedDateTime,

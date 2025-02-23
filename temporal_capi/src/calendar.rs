@@ -150,7 +150,7 @@ pub mod ffi {
                 .month_code(&date.into())
                 .map_err(Into::<TemporalError>::into)?;
             // throw away the error, this should always succeed
-            let _ = write.write_str(&code);
+            let _ = write.write_str(code.as_str());
             Ok(())
         }
         pub fn day(&self, date: IsoDate) -> Result<u8, TemporalError> {
