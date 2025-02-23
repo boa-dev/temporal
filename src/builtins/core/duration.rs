@@ -696,10 +696,32 @@ impl Duration {
     pub fn total_with_provider(
         &self,
         _unit: TemporalUnit,
-        _relative_to: Option<RelativeTo>,
-        _provider: &impl TimeZoneProvider,
+        relative_to: Option<RelativeTo>,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<i64> {
-        Err(TemporalError::general("Not yet implemented"))
+        match relative_to {
+            // 11. If zonedRelativeTo is not undefined, then
+            Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {
+                // a. Let internalDuration be ToInternalDurationRecord(duration).
+                let norm = NormalizedDurationRecord::new(
+                    self.date,
+                    NormalizedTimeDuration::from_time_duration(&self.time),
+                )?;
+                // b. Let timeZone be zonedRelativeTo.[[TimeZone]].
+                // c. Let calendar be zonedRelativeTo.[[Calendar]].
+                // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
+                // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar,
+                let relative_epoch_ns = zoned_datetime.epoch_nanoseconds();
+                let target_epcoh_ns =
+                    zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
+                todo!()
+            }
+            // 12. Else if plainRelativeTo is not undefined, then
+            Some(RelativeTo::PlainDate(plain_date)) => {
+                todo!()
+            }
+            None => todo!(),
+        }
     }
 
     /// Returns the `Duration` as a formatted string

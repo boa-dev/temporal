@@ -163,6 +163,14 @@ impl ZonedDateTime {
         )
     }
 
+    pub(crate) fn diff_with_total(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<NormalizedTimeDuration> {
+        todo!()
+    }
+
     pub(crate) fn diff_zoned_datetime(
         &self,
         other: &Self,
