@@ -3,11 +3,13 @@
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
 
+use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecord};
 use num_traits::ToPrimitive;
 
 use crate::builtins::core::duration::DateDuration;
 use crate::parsers::{
-    parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
+    parse_allowed_timezone_formats, parse_identifier, parse_offset, FormattableOffset,
+    FormattableTime, Precision,
 };
 use crate::provider::{TimeZoneOffset, TimeZoneProvider};
 use crate::{
@@ -21,20 +23,85 @@ use crate::{Calendar, Sign};
 
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 
+/// A UTC time zone offset stored in minutes
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UtcOffset(pub(crate) i16);
+
+impl UtcOffset {
+    pub(crate) fn from_ixdtf_record(record: UtcOffsetRecord) -> Self {
+        // NOTE: ixdtf parser restricts minute/second to 0..=60
+        debug_assert!(record.hour <= 60);
+        debug_assert!(record.minute <= 60);
+        let minutes = i16::from(record.hour) * 60 + record.minute as i16;
+        Self(minutes * i16::from(record.sign as i8))
+    }
+
+    pub fn to_string(&self) -> TemporalResult<String> {
+        let sign = if self.0 < 0 {
+            Sign::Negative
+        } else {
+            Sign::Positive
+        };
+        let hour = (self.0.abs() / 60) as u8;
+        let minute = (self.0.abs() % 60) as u8;
+        let formattable_offset = FormattableOffset {
+            sign,
+            time: FormattableTime {
+                hour,
+                minute,
+                second: 0,
+                nanosecond: 0,
+                precision: Precision::Minute,
+                include_sep: true,
+            },
+        };
+        Ok(formattable_offset.to_string())
+    }
+}
+
+impl core::str::FromStr for UtcOffset {
+    type Err = TemporalError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut cursor = s.chars().peekable();
+        match parse_offset(&mut cursor)? {
+            Some(offset) => Ok(Self(offset)),
+            None => Err(TemporalError::range().with_message("Invalid offset")),
+        }
+    }
+}
+
 // TODO: Potentially migrate to Cow<'a, str>
 // TODO: There may be an argument to have Offset minutes be a (Cow<'a, str>,, i16) to
 // prevent allocations / writing, TBD
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TimeZone {
     IanaIdentifier(String),
-    OffsetMinutes(i16),
+    UtcOffset(UtcOffset),
 }
 
 impl TimeZone {
+    // Create a `TimeZone` from an ixdtf `TimeZoneRecord`.
+    #[inline]
+    pub(crate) fn from_time_zone_record(record: TimeZoneRecord) -> TemporalResult<Self> {
+        let timezone = match record {
+            TimeZoneRecord::Name(s) => {
+                TimeZone::IanaIdentifier(String::from_utf8_lossy(s).into_owned())
+            }
+            TimeZoneRecord::Offset(offset_record) => {
+                let offset = UtcOffset::from_ixdtf_record(offset_record);
+                TimeZone::UtcOffset(offset)
+            }
+            // TimeZoneRecord is non_exhaustive, but all current branches are matching.
+            _ => return Err(TemporalError::assert()),
+        };
+
+        Ok(timezone)
+    }
+
     /// Parses a `TimeZone` from a provided `&str`.
     pub fn try_from_identifier_str(identifier: &str) -> TemporalResult<Self> {
         if identifier == "Z" {
-            return Ok(TimeZone::OffsetMinutes(0));
+            return Ok(TimeZone::UtcOffset(UtcOffset(0)));
         }
         parse_identifier(identifier)
     }
@@ -52,27 +119,7 @@ impl TimeZone {
     pub fn identifier(&self) -> TemporalResult<String> {
         match self {
             TimeZone::IanaIdentifier(s) => Ok(s.clone()),
-            TimeZone::OffsetMinutes(m) => {
-                let sign = if *m < 0 {
-                    Sign::Negative
-                } else {
-                    Sign::Positive
-                };
-                let hour = (m.abs() / 60) as u8;
-                let minute = (m.abs() % 60) as u8;
-                let formattable_offset = FormattableOffset {
-                    sign,
-                    time: FormattableTime {
-                        hour,
-                        minute,
-                        second: 0,
-                        nanosecond: 0,
-                        precision: Precision::Minute,
-                        include_sep: true,
-                    },
-                };
-                Ok(formattable_offset.to_string())
-            }
+            TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
 }
@@ -108,7 +155,7 @@ impl TimeZone {
         // 1. Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, return parseResult.[[OffsetMinutes]] × (60 × 10**9).
-            Self::OffsetMinutes(minutes) => Ok(i128::from(*minutes) * 60_000_000_000i128),
+            Self::UtcOffset(offset) => Ok(i128::from(offset.0) * 60_000_000_000i128),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => provider
                 .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
@@ -137,7 +184,7 @@ impl TimeZone {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let possible_nanoseconds = match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, then
-            Self::OffsetMinutes(minutes) => {
+            Self::UtcOffset(UtcOffset(minutes)) => {
                 // a. Let balanced be
                 // BalanceISODateTime(isoDateTime.[[ISODate]].[[Year]],
                 // isoDateTime.[[ISODate]].[[Month]],
