@@ -125,6 +125,44 @@ macro_rules! impl_with_fallback_method {
     };
 }
 
+/// Convenience methods for building a `PartialDate`
+impl PartialDate {
+    pub const fn with_era(mut self, era: Option<TinyAsciiStr<19>>) -> Self {
+        self.era = era;
+        self
+    }
+
+    pub const fn with_era_year(mut self, era_year: Option<i32>) -> Self {
+        self.era_year = era_year;
+        self
+    }
+
+    pub const fn with_year(mut self, year: Option<i32>) -> Self {
+        self.year = year;
+        self
+    }
+
+    pub const fn with_month(mut self, month: Option<u8>) -> Self {
+        self.month = month;
+        self
+    }
+
+    pub const fn with_month_code(mut self, month_code: Option<TinyAsciiStr<4>>) -> Self {
+        self.month_code = month_code;
+        self
+    }
+
+    pub const fn with_day(mut self, day: Option<u8>) -> Self {
+        self.day = day;
+        self
+    }
+
+    pub const fn with_calendar(mut self, calendar: Calendar) -> Self {
+        self.calendar = calendar;
+        self
+    }
+}
+
 /// The native Rust implementation of `Temporal.PlainDate`.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
