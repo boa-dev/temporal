@@ -40,9 +40,9 @@ impl ResolvedCalendarFields {
                 .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
 
             let day = if overflow == ArithmeticOverflow::Constrain {
-                constrain_iso_day(era_year.year, ascii_four_to_integer(month_code)?, day)
+                constrain_iso_day(era_year.year, month_code.to_month_integer(), day)
             } else {
-                if !is_valid_iso_day(era_year.year, ascii_four_to_integer(month_code)?, day) {
+                if !is_valid_iso_day(era_year.year, month_code.to_month_integer(), day) {
                     return Err(
                         TemporalError::range().with_message("day value is not in a valid range.")
                     );
@@ -51,12 +51,12 @@ impl ResolvedCalendarFields {
             };
             return Ok(Self {
                 era_year,
-                month_code: MonthCode(month_code),
+                month_code,
                 day,
             });
         }
 
-        let month_code = MonthCode::try_from_partial_date(partial_date, &partial_date.calendar)?;
+        let month_code = MonthCode::try_from_partial_date(partial_date)?;
         let day = partial_date
             .day
             .ok_or(TemporalError::r#type().with_message("Required day field is empty."))?;
@@ -148,11 +148,11 @@ const MONTH_THIRTEEN: TinyAsciiStr<4> = tinystr!(4, "M13");
 // bounds. In other words, it is totally possible for a value to be
 // passed in that is { month: 300 } with overflow::constrain.
 /// MonthCode struct v2
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MonthCode(pub(crate) TinyAsciiStr<4>);
 
 impl MonthCode {
-    pub fn try_new(month_code: &TinyAsciiStr<4>, calendar: &Calendar) -> TemporalResult<Self> {
+    pub(crate) fn validate(&self, calendar: &Calendar) -> TemporalResult<()> {
         const COMMON_MONTH_CODES: [TinyAsciiStr<4>; 12] = [
             MONTH_ONE,
             MONTH_TWO,
@@ -183,109 +183,146 @@ impl MonthCode {
             MONTH_TWELVE_LEAP,
         ];
 
-        if COMMON_MONTH_CODES.contains(month_code) {
-            return Ok(MonthCode(*month_code));
+        if COMMON_MONTH_CODES.contains(&self.0) {
+            return Ok(());
         }
 
         match calendar.identifier() {
-            "chinese" | "dangi" if LUNAR_LEAP_MONTHS.contains(month_code) => {
-                Ok(MonthCode(*month_code))
-            }
-            "coptic" | "ethiopic" | "ethiopicaa" if MONTH_THIRTEEN == *month_code => {
-                Ok(MonthCode(*month_code))
-            }
-            "hebrew" if MONTH_FIVE_LEAP == *month_code => Ok(MonthCode(*month_code)),
+            "chinese" | "dangi" if LUNAR_LEAP_MONTHS.contains(&self.0) => Ok(()),
+            "coptic" | "ethiopic" | "ethiopicaa" if MONTH_THIRTEEN == self.0 => Ok(()),
+            "hebrew" if MONTH_FIVE_LEAP == self.0 => Ok(()),
             _ => Err(TemporalError::range()
                 .with_message("MonthCode was not valid for the current calendar.")),
         }
     }
 
-    pub(crate) fn try_from_partial_date(
-        partial_date: &PartialDate,
-        calendar: &Calendar,
-    ) -> TemporalResult<Self> {
+    pub(crate) fn try_from_partial_date(partial_date: &PartialDate) -> TemporalResult<Self> {
         match partial_date {
             PartialDate {
                 month: Some(month),
                 month_code: None,
+                calendar,
                 ..
-            } => Self::try_new(&month_to_month_code(*month)?, calendar),
+            } => {
+                let month_code = month_to_month_code(*month)?;
+                month_code.validate(calendar)?;
+                Ok(month_code)
+            }
             PartialDate {
                 month_code: Some(month_code),
                 month: None,
+                calendar,
                 ..
-            } => Self::try_new(month_code, calendar),
+            } => {
+                month_code.validate(calendar)?;
+                Ok(*month_code)
+            }
             PartialDate {
                 month: Some(month),
                 month_code: Some(month_code),
+                calendar,
                 ..
             } => {
                 are_month_and_month_code_resolvable(*month, month_code)?;
-                Self::try_new(month_code, calendar)
+                month_code.validate(calendar)?;
+                Ok(*month_code)
             }
             _ => Err(TemporalError::r#type()
                 .with_message("Month or monthCode is required to determine date.")),
         }
     }
 
-    pub fn as_iso_month_integer(&self) -> TemporalResult<u8> {
+    /// Returns the `MonthCode` as an integer
+    pub fn to_month_integer(&self) -> u8 {
         ascii_four_to_integer(self.0)
+    }
+
+    /// Returns whether the `MonthCode` is a leap month.
+    pub fn is_leap_month(&self) -> bool {
+        let bytes = self.0.all_bytes();
+        bytes[3] == b'L'
+    }
+
+    pub fn as_str(&self) -> &str {
+        self.0.as_str()
+    }
+
+    pub fn as_tinystr(&self) -> TinyAsciiStr<4> {
+        self.0
+    }
+
+    pub fn try_from_utf8(src: &[u8]) -> TemporalResult<Self> {
+        if !(3..=4).contains(&src.len()) {
+            return Err(TemporalError::range());
+        }
+
+        let inner = TinyAsciiStr::<4>::try_from_utf8(src).map_err(|_e| TemporalError::range())?;
+
+        let bytes = inner.all_bytes();
+        if bytes[0] != b'M' {
+            return Err(
+                TemporalError::range().with_message("First month code character must be 'M'")
+            );
+        }
+        if !bytes[1].is_ascii_digit() || !bytes[2].is_ascii_digit() {
+            return Err(TemporalError::range().with_message("Invalid month code digit"));
+        }
+        if src.len() == 4 && bytes[3] != b'L' {
+            return Err(TemporalError::range().with_message("Leap month code must end with 'L'"));
+        }
+
+        Ok(Self(inner))
+    }
+}
+
+impl core::str::FromStr for MonthCode {
+    type Err = TemporalError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from_utf8(s.as_bytes())
     }
 }
 
 // NOTE: This is a greedy function, should handle differently for all calendars.
-pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<TinyAsciiStr<4>> {
-    match month {
-        1 => Ok(MONTH_ONE),
-        2 => Ok(MONTH_TWO),
-        3 => Ok(MONTH_THREE),
-        4 => Ok(MONTH_FOUR),
-        5 => Ok(MONTH_FIVE),
-        6 => Ok(MONTH_SIX),
-        7 => Ok(MONTH_SEVEN),
-        8 => Ok(MONTH_EIGHT),
-        9 => Ok(MONTH_NINE),
-        10 => Ok(MONTH_TEN),
-        11 => Ok(MONTH_ELEVEN),
-        12 => Ok(MONTH_TWELVE),
-        13 => Ok(MONTH_THIRTEEN),
-        _ => Err(TemporalError::range().with_message("Month not in a valid range.")),
+pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
+    if !(1..=13).contains(&month) {
+        return Err(TemporalError::range().with_message("Month not in a valid range."));
     }
+    let first = month / 10;
+    let second = month % 10;
+    let tinystr = TinyAsciiStr::<4>::try_from_raw([b'M', first + 48, second + 48, b'\0'])
+        .map_err(|e| TemporalError::range().with_message(format!("tinystr error {e}")))?;
+    Ok(MonthCode(tinystr))
 }
 
-fn are_month_and_month_code_resolvable(month: u8, mc: &TinyAsciiStr<4>) -> TemporalResult<()> {
-    if month != ascii_four_to_integer(*mc)? {
+fn are_month_and_month_code_resolvable(month: u8, mc: &MonthCode) -> TemporalResult<()> {
+    if month != mc.to_month_integer() {
         return Err(TemporalError::range()
             .with_message("Month and monthCode values could not be resolved."));
     }
     Ok(())
 }
 
-// NOTE: This is a greedy function, should handle differently for all calendars.
-pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> TemporalResult<u8> {
-    match mc {
-        MONTH_ONE => Ok(1),
-        MONTH_TWO => Ok(2),
-        MONTH_THREE => Ok(3),
-        MONTH_FOUR => Ok(4),
-        MONTH_FIVE => Ok(5),
-        MONTH_SIX => Ok(6),
-        MONTH_SEVEN => Ok(7),
-        MONTH_EIGHT => Ok(8),
-        MONTH_NINE => Ok(9),
-        MONTH_TEN => Ok(10),
-        MONTH_ELEVEN => Ok(11),
-        MONTH_TWELVE => Ok(12),
-        _ => Err(TemporalError::range()
-            .with_message(format!("MonthCode is not supported: {}", mc.as_str()))),
-    }
+// Potentially greedy. Need to verify for all calendars that
+// the code interger aligns with the month integer, which
+// may require calendar info
+pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> u8 {
+    let bytes = mc.all_bytes();
+    // Invariant: first and second character are ascii digits.
+    debug_assert!(bytes[1].is_ascii_digit());
+    debug_assert!(bytes[2].is_ascii_digit());
+    let first = ascii_digit_to_int(bytes[1]) * 10;
+    first + ascii_digit_to_int(bytes[2])
+}
+
+const fn ascii_digit_to_int(ascii_digit: u8) -> u8 {
+    ascii_digit - 48
 }
 
 fn resolve_iso_month(
-    mc: Option<TinyAsciiStr<4>>,
+    mc: Option<MonthCode>,
     month: Option<u8>,
     overflow: ArithmeticOverflow,
-) -> TemporalResult<TinyAsciiStr<4>> {
+) -> TemporalResult<MonthCode> {
     match (mc, month) {
         (None, None) => {
             Err(TemporalError::r#type().with_message("Month or monthCode must be provided."))
@@ -303,12 +340,10 @@ fn resolve_iso_month(
         }
         (Some(mc), None) => {
             // Check that monthCode is parsable.
-            let _ = ascii_four_to_integer(mc)?;
             Ok(mc)
         }
         (Some(mc), Some(month)) => {
-            let month_code_int = ascii_four_to_integer(mc)?;
-            if month != month_code_int {
+            if month != mc.to_month_integer() {
                 return Err(TemporalError::range()
                     .with_message("month and monthCode could not be resolved."));
             }
@@ -319,6 +354,8 @@ fn resolve_iso_month(
 
 #[cfg(test)]
 mod tests {
+    use core::str::FromStr;
+
     use tinystr::tinystr;
 
     use crate::{
@@ -326,7 +363,43 @@ mod tests {
         options::ArithmeticOverflow,
     };
 
-    use super::ResolvedCalendarFields;
+    use super::{month_to_month_code, MonthCode, ResolvedCalendarFields};
+
+    #[test]
+    fn valid_month_code() {
+        let month_code = MonthCode::from_str("M01").unwrap();
+        assert!(!month_code.is_leap_month());
+        assert_eq!(month_code.to_month_integer(), 1);
+
+        let month_code = MonthCode::from_str("M12").unwrap();
+        assert!(!month_code.is_leap_month());
+        assert_eq!(month_code.to_month_integer(), 12);
+
+        let month_code = MonthCode::from_str("M13L").unwrap();
+        assert!(month_code.is_leap_month());
+        assert_eq!(month_code.to_month_integer(), 13);
+    }
+
+    #[test]
+    fn invalid_month_code() {
+        let _ = MonthCode::from_str("01").unwrap_err();
+        let _ = MonthCode::from_str("N01").unwrap_err();
+        let _ = MonthCode::from_str("M01R").unwrap_err();
+        let _ = MonthCode::from_str("M1").unwrap_err();
+        let _ = MonthCode::from_str("M1L").unwrap_err();
+    }
+
+    #[test]
+    fn month_to_mc() {
+        let mc = month_to_month_code(1).unwrap();
+        assert_eq!(mc.as_str(), "M01");
+
+        let mc = month_to_month_code(13).unwrap();
+        assert_eq!(mc.as_str(), "M13");
+
+        let _ = month_to_month_code(0).unwrap_err();
+        let _ = month_to_month_code(14).unwrap_err();
+    }
 
     #[test]
     fn day_overflow_test() {
@@ -350,7 +423,7 @@ mod tests {
         let bad_fields = PartialDate {
             year: Some(1976),
             month: Some(11),
-            month_code: Some(tinystr!(4, "M12")),
+            month_code: Some(MonthCode(tinystr!(4, "M12"))),
             day: Some(18),
             ..Default::default()
         };

@@ -10,7 +10,7 @@ use crate::{
     options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
+    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{Duration, PartialDate, PlainDate};
@@ -127,7 +127,7 @@ impl PlainYearMonth {
     }
 
     /// Returns the calendar month code of the current `PlainYearMonth`
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar().month_code(&self.iso)
     }
 
