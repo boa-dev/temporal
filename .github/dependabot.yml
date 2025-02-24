@@ -12,8 +12,8 @@ updates:
         applies-to: version-updates
         patterns: ["*"]
         update-types:
-        - "minor"
-        - "patch"
+          - "minor"
+          - "patch"
   - package-ecosystem: cargo
     directory: /
     schedule:
@@ -26,5 +26,5 @@ updates:
         applies-to: version-updates
         patterns: ["*"]
         update-types:
-        - "minor"
-        - "patch"
+          - "minor"
+          - "patch"

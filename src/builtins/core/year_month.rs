@@ -262,6 +262,15 @@ impl FromStr for PlainYearMonth {
             .transpose()?
             .unwrap_or_default();
 
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
+
         let date = record.date.temporal_unwrap()?;
 
         // The below steps are from `ToTemporalYearMonth`
@@ -316,6 +325,7 @@ mod tests {
             "+275760-10",
             "+275760-10-01",
             "+275760-10-01T00:00",
+            "1976-11[u-ca=hebrew]",
         ];
 
         for invalid_case in invalid_strings {

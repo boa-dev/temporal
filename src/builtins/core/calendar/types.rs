@@ -36,8 +36,7 @@ impl ResolvedCalendarFields {
     ) -> TemporalResult<Self> {
         let era_year = EraYear::try_from_partial_date(partial_date)?;
         if partial_date.calendar.is_iso() {
-            let month_code =
-                resolve_iso_month(partial_date.month_code, partial_date.month, overflow)?;
+            let month_code = resolve_iso_month(partial_date, overflow)?;
             let day = resolve_day(partial_date.day, resolve_type == ResolutionType::YearMonth)?;
             let day = if overflow == ArithmeticOverflow::Constrain {
                 constrain_iso_day(era_year.year, month_code.to_month_integer(), day)
@@ -325,13 +324,12 @@ const fn ascii_digit_to_int(ascii_digit: u8) -> u8 {
 }
 
 fn resolve_iso_month(
-    mc: Option<MonthCode>,
-    month: Option<u8>,
+    partial_date: &PartialDate,
     overflow: ArithmeticOverflow,
 ) -> TemporalResult<MonthCode> {
-    match (mc, month) {
+    let month_code = match (partial_date.month_code, partial_date.month) {
         (None, None) => {
-            Err(TemporalError::r#type().with_message("Month or monthCode must be provided."))
+            return Err(TemporalError::r#type().with_message("Month or monthCode must be provided."))
         }
         (None, Some(month)) => {
             if overflow == ArithmeticOverflow::Constrain {
@@ -342,20 +340,19 @@ fn resolve_iso_month(
                     TemporalError::range().with_message("month value is not in a valid range.")
                 );
             }
-            month_to_month_code(month)
+            month_to_month_code(month)?
         }
-        (Some(mc), None) => {
-            // Check that monthCode is parsable.
-            Ok(mc)
-        }
-        (Some(mc), Some(month)) => {
-            if month != mc.to_month_integer() {
+        (Some(month_code), None) => month_code,
+        (Some(month_code), Some(month)) => {
+            if month != month_code.to_month_integer() {
                 return Err(TemporalError::range()
                     .with_message("month and monthCode could not be resolved."));
             }
-            Ok(mc)
+            month_code
         }
-    }
+    };
+    month_code.validate(&partial_date.calendar)?;
+    Ok(month_code)
 }
 
 #[cfg(test)]

@@ -178,8 +178,7 @@ impl Now {
     }
 }
 
-#[cfg(all(feature = "tzdb", feature = "sys"))]
-#[cfg(test)]
+#[cfg(all(test, feature = "tzdb", feature = "sys", feature = "compiled_data"))]
 mod tests {
     use crate::builtins::core::Now;
     use std::thread;

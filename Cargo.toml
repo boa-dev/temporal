@@ -73,3 +73,7 @@ compiled_data = ["tzdb"]
 sys = ["std", "dep:web-time"]
 tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine"]
 std = []
+
+[package.metadata.cargo-all-features]
+denylist = ["default"]
+max_combination_size = 4
