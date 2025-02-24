@@ -3,13 +3,11 @@
 use alloc::string::String;
 use core::str::FromStr;
 
-use tinystr::TinyAsciiStr;
-
 use crate::{
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
+    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 use super::{PartialDate, PlainDate};
@@ -96,7 +94,7 @@ impl PlainMonthDay {
 
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar.month_code(&self.iso)
     }
 
@@ -127,6 +125,15 @@ impl FromStr for PlainMonthDay {
             .map(Calendar::from_utf8)
             .transpose()?
             .unwrap_or_default();
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
 
         let date = record.date;
 
