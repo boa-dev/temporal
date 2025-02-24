@@ -126,6 +126,15 @@ impl FromStr for PlainMonthDay {
             .transpose()?
             .unwrap_or_default();
 
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
+
         let date = record.date;
 
         let date = date.temporal_unwrap()?;
