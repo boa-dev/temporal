@@ -30,8 +30,6 @@ pub struct UtcOffset(pub(crate) i16);
 impl UtcOffset {
     pub(crate) fn from_ixdtf_record(record: UtcOffsetRecord) -> Self {
         // NOTE: ixdtf parser restricts minute/second to 0..=60
-        debug_assert!(record.hour <= 60);
-        debug_assert!(record.minute <= 60);
         let minutes = i16::from(record.hour) * 60 + record.minute as i16;
         Self(minutes * i16::from(record.sign as i8))
     }
