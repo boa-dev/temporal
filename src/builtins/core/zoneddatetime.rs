@@ -27,7 +27,7 @@ use crate::{
     rounding::{IncrementRounder, Round},
     temporal_assert,
     time::EpochNanoseconds,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -515,7 +515,7 @@ impl ZonedDateTime {
     pub fn month_code_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<TinyAsciiStr<4>> {
+    ) -> TemporalResult<MonthCode> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
         self.calendar.month_code(&dt.iso.date)
@@ -1119,7 +1119,7 @@ mod tests {
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
         tzdb::FsTzdbProvider,
-        Calendar, TimeZone,
+        Calendar, MonthCode, TimeZone,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
@@ -1178,7 +1178,7 @@ mod tests {
         let partial = PartialZonedDateTime {
             date: PartialDate {
                 year: Some(1970),
-                month_code: Some(tinystr!(4, "M01")),
+                month_code: Some(MonthCode(tinystr!(4, "M01"))),
                 day: Some(1),
                 ..Default::default()
             },

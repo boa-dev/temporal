@@ -27,7 +27,7 @@ bitflags = "2.7.0"
 num-traits = "0.2.19"
 ixdtf = { git = "https://github.com/unicode-org/icu4x.git", rev = "3d187da4d3f05b7e37603c4be3f2c1ce45100e03" }
 iana-time-zone = "0.1.61"
-log = "0.4.25"
+log = "0.4.26"
 tzif = "0.3.0"
 jiff-tzdb = "0.1.2"
 combine = "4.6.7"
@@ -73,3 +73,7 @@ compiled_data = ["tzdb"]
 sys = ["std", "dep:web-time"]
 tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine"]
 std = []
+
+[package.metadata.cargo-all-features]
+denylist = ["default"]
+max_combination_size = 4
