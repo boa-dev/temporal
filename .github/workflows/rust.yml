@@ -2,15 +2,14 @@ name: Rust - Continuous integration
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 concurrency:
   # Allow one run at a time for PRs, but multiple for other invocations
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
-
 
 env:
   RUSTFLAGS: -Dwarnings
@@ -21,21 +20,21 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - uses: dtolnay/rust-toolchain@stable
-      with:
-        components: clippy, rustfmt
-    - uses: Swatinem/rust-cache@v2
-      with:
-        key: lint
-    - name: Install cargo-workspaces
-      run: cargo install cargo-workspaces
-    - name: Check rustfmt
-      run: cargo fmt --all -- --check
-    - name: Check clippy
-      run: cargo ws exec cargo clippy --all-features --all-targets
-    - name: Check clippy (No features)
-      run: cargo ws exec cargo clippy --no-default-features --all-targets
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lint
+      - name: Install cargo-workspaces
+        run: cargo install cargo-workspaces
+      - name: Check rustfmt
+        run: cargo fmt --all -- --check
+      - name: Check clippy
+        run: cargo ws exec cargo clippy --all-features --all-targets
+      - name: Check clippy (No features)
+        run: cargo ws exec cargo clippy --no-default-features --all-targets
 
   msrv:
     name: MSRV
@@ -76,15 +75,30 @@ jobs:
         with:
           key: build-test
 
-      - name: Cargo build
-        run: cargo build --quiet
-      - name: Test
-        run: cargo test
-
       - name: Cargo build --all-features
         run: cargo build --quiet --all-features
       - name: Test --all-features
         run: cargo test --all-features
+
+  feature-test:
+    name: Test feature matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: features-test
+      - name: Install cargo-all-features
+        uses: baptiste0928/cargo-install@v3.3.0
+        with:
+          crate: cargo-all-features
+
+      - name: Test all features
+        run: cargo test-all-features
+
   ffi:
     name: Test FFI (${{ matrix.rust.name }}, ${{ matrix.os }})
     strategy:
@@ -122,4 +136,3 @@ jobs:
           key: docs
       - name: Generate documentation
         run: cargo doc -v --document-private-items --all-features
-
