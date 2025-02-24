@@ -51,6 +51,15 @@ impl PartialZonedDateTime {
             && self.timezone.is_none()
     }
 
+    pub const fn new() -> Self {
+        Self {
+            date: PartialDate::new(),
+            time: PartialTime::new(),
+            offset: None,
+            timezone: None,
+        }
+    }
+
     pub const fn with_date(mut self, partial_date: PartialDate) -> Self {
         self.date = partial_date;
         self

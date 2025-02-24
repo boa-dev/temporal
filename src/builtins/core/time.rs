@@ -42,6 +42,17 @@ impl PartialTime {
 
 /// Convenience methods for building a `PartialTime`
 impl PartialTime {
+    pub const fn new() -> Self {
+        Self {
+            hour: None,
+            minute: None,
+            second: None,
+            millisecond: None,
+            microsecond: None,
+            nanosecond: None,
+        }
+    }
+
     pub const fn with_hour(mut self, hour: Option<u8>) -> Self {
         self.hour = hour;
         self

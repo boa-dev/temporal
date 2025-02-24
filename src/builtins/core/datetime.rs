@@ -33,6 +33,13 @@ impl PartialDateTime {
         self.date.is_empty() && self.time.is_empty()
     }
 
+    pub const fn new() -> Self {
+        Self {
+            date: PartialDate::new(),
+            time: PartialTime::new(),
+        }
+    }
+
     pub const fn with_partial_date(mut self, partial_date: PartialDate) -> Self {
         self.date = partial_date;
         self
