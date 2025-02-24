@@ -16,6 +16,7 @@ use crate::{
 };
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
+use icu_calendar::AnyCalendarKind;
 
 use super::{
     calendar::month_to_month_code,
@@ -127,6 +128,18 @@ macro_rules! impl_with_fallback_method {
 
 /// Convenience methods for building a `PartialDate`
 impl PartialDate {
+    pub const fn new() -> Self {
+        Self {
+            year: None,
+            month: None,
+            month_code: None,
+            day: None,
+            era: None,
+            era_year: None,
+            calendar: Calendar::new(AnyCalendarKind::Iso),
+        }
+    }
+
     pub const fn with_era(mut self, era: Option<TinyAsciiStr<19>>) -> Self {
         self.era = era;
         self
@@ -147,7 +160,7 @@ impl PartialDate {
         self
     }
 
-    pub const fn with_month_code(mut self, month_code: Option<TinyAsciiStr<4>>) -> Self {
+    pub const fn with_month_code(mut self, month_code: Option<MonthCode>) -> Self {
         self.month_code = month_code;
         self
     }
