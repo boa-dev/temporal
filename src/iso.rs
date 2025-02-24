@@ -997,13 +997,13 @@ fn balance_iso_year_month(year: i32, month: i32) -> (i32, u8) {
 /// Note: month is 1 based.
 #[inline]
 pub(crate) fn constrain_iso_day(year: i32, month: u8, day: u8) -> u8 {
-    let days_in_month = utils::iso_days_in_month(year, month.into());
+    let days_in_month = utils::iso_days_in_month(year, month);
     day.clamp(1, days_in_month)
 }
 
 #[inline]
 pub(crate) fn is_valid_iso_day(year: i32, month: u8, day: u8) -> bool {
-    let days_in_month = utils::iso_days_in_month(year, month.into());
+    let days_in_month = utils::iso_days_in_month(year, month);
     (1..=days_in_month).contains(&day)
 }
 
