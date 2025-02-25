@@ -7,13 +7,13 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     iso::{year_month_within_limits, IsoDate},
-    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
+    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar, ResolvedRoundingOptions, TemporalUnit, UnitGroup},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{Duration, PartialDate, PlainDate};
+use super::{calendar, Duration, PartialDate, PlainDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -59,12 +59,51 @@ impl PlainYearMonth {
     /// The internal difference operation of `PlainYearMonth`.
     pub(crate) fn diff(
         &self,
-        _op: DifferenceOperation,
-        _other: &Self,
-        _settings: DifferenceSettings,
+        op: DifferenceOperation,
+        other: &Self,
+        settings: DifferenceSettings,
     ) -> TemporalResult<Duration> {
-        // TODO: implement
-        Err(TemporalError::general("Not yet implemented"))
+        // 1. Set other to ? ToTemporalYearMonth(other).
+        // 2. Let calendar be yearMonth.[[Calendar]].
+        let calendar = self.calendar();
+        // 3. If CalendarEquals(calendar, other.[[Calendar]]) is false, throw a RangeError exception.
+        if self.calendar().identifier() != other.calendar().identifier() {
+            return Err(TemporalError::range()
+                .with_message("Calendars are for difference operation are not the same."));
+        }
+        // 4. Let resolvedOptions be ? GetOptionsObject(options).
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, date, « week, day », month, year).
+        // TODO: Is this correct?
+        let resolved = ResolvedRoundingOptions::from_diff_settings(
+            settings,
+            op,
+            UnitGroup::Date,
+            TemporalUnit::Month,
+            TemporalUnit::Year,
+        )?;
+        // 6. If CompareISODate(yearMonth.[[ISODate]], other.[[ISODate]]) = 0, then
+        if self.iso == other.iso {
+            // a. Return ! CreateTemporalDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
+            return Ok(Duration::default());
+        }
+        // 7. Let thisFields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
+        // 8. Set thisFields.[[Day]] to 1.
+        // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
+        // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
+        // 11. Set otherFields.[[Day]] to 1.
+        // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
+        // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
+        // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
+        // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
+        // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
+        // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
+        // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
+        // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
+        // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+        // 17. Let result be ! TemporalDurationFromInternal(duration, day).
+        // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
+        // 19. Return result.
+        todo!()
     }
 }
 
