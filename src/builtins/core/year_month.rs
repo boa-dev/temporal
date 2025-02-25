@@ -327,24 +327,5 @@ mod tests {
         assert_eq!(with_all.iso_year(), 2001); // year is changed
         assert_eq!(with_all.iso_month(), 2); // month is changed
         assert_eq!(with_all.iso.day, 15); // day is changed
-
-        /*
-        // ArithmeticOverflow for PlainYearMonth, the test currently fails
-        let partial = PartialDate {
-            month: Some(13), // invalid month
-            ..Default::default()
-        };
-        // Constrained behavior
-        let with_overflow_constrain = base
-            .with(partial.clone(), Some(ArithmeticOverflow::Constrain))
-            .unwrap();
-        assert_eq!(with_overflow_constrain.iso_year(), 2025); // year is not changed
-        assert_eq!(with_overflow_constrain.iso_month(), 12); // month is constrained to December
-
-        // Reject behavior
-        let with_overflow_reject = base
-            .with(partial.clone(), Some(ArithmeticOverflow::Reject))
-            .unwrap();
-        */
     }
 }
