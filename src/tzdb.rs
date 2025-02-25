@@ -364,35 +364,73 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 
     let transition =
         compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant);
-    let offset = match transition {
-        TransitionType::Dst => {
-            LocalTimeRecord::from_daylight_savings_time(&dst_variant.variant_info)
-        }
-        TransitionType::Std => LocalTimeRecord::from_standard_time(&posix_tz_string.std_info),
+    let std_offset = LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).offset;
+    let dst_offset = LocalTimeRecord::from_daylight_savings_time(&dst_variant.variant_info).offset;
+    let (old_offset, new_offset) = match transition {
+        TransitionType::Dst => (std_offset, dst_offset),
+        TransitionType::Std => (dst_offset, std_offset),
     };
     let transition = match transition {
         TransitionType::Dst => start,
         TransitionType::Std => end,
     };
-    let year = utils::epoch_time_to_epoch_year(seconds);
+    let year = utils::epoch_time_to_epoch_year(seconds * 1000);
     let year_epoch = utils::epoch_days_for_year(year) * 86400;
-    let leap_days = utils::mathematical_days_in_year(year) - 365;
+    let leap_day = utils::mathematical_in_leap_year(seconds * 1000) as u16;
 
     let days = match transition.day {
-        TransitionDay::NoLeap(day) if day > 59 => i32::from(day) - 1 + leap_days,
-        TransitionDay::NoLeap(day) => i32::from(day) - 1,
-        TransitionDay::WithLeap(day) => i32::from(day),
-        TransitionDay::Mwd(_month, _week, _day) => {
-            // TODO: build transition epoch from month, week and day.
-            return Ok(TimeZoneOffset {
-                offset: offset.offset,
-                transition_epoch: None,
-            });
+        TransitionDay::NoLeap(day) if day > 59 => day - 1 + leap_day,
+        TransitionDay::NoLeap(day) => day - 1,
+        TransitionDay::WithLeap(day) => day,
+        TransitionDay::Mwd(month, week, day) => {
+            let days_to_month = utils::month_to_day((month - 1) as u8, leap_day);
+            let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8) - 1);
+
+            // Month starts in the day...
+            let day_offset =
+                (u16::from(utils::epoch_seconds_to_day_of_week(i64::from(year_epoch)))
+                    + days_to_month)
+                    .rem_euclid(7);
+
+            // EXAMPLE:
+            //
+            // 0   1   2   3   4   5   6
+            // sun mon tue wed thu fri sat
+            // -   -   -   0   1   2   3
+            // 4   5   6   7   8   9   10
+            // 11  12  13  14  15  16  17
+            // 18  19  20  21  22  23  24
+            // 25  26  27  28  29  30  -
+            //
+            // The day_offset = 3, since the month starts on a wednesday.
+            //
+            // We're looking for the second friday of the month. Thus, since the month started before
+            // a friday, we need to start counting from week 0:
+            //
+            // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (2 - 1) * 7 + 5 - 3 = 9
+            //
+            // This works if the month started on a day before the day we want (day_offset <= day). However, if that's not the
+            // case, we need to start counting on week 1. For example, calculate the day of the month for the third monday
+            // of the month:
+            //
+            // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (3 - 0) * 7 + 1 - 3 = 19
+            let mut day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset;
+
+            // If we're on week 5, we need to clamp to the last valid day.
+            if day_of_month > days_in_month - 1 {
+                day_of_month -= 7
+            }
+
+            days_to_month + day_of_month
         }
     };
-    let transition_epoch = i64::from(year_epoch) + i64::from(days) * 3600 + transition.time.0;
+
+    // Transition time is on local time, so we need to add the UTC offset to get the correct UTC timestamp
+    // for the transition.
+    let transition_epoch =
+        i64::from(year_epoch) + i64::from(days) * 86400 + transition.time.0 - old_offset;
     Ok(TimeZoneOffset {
-        offset: offset.offset,
+        offset: new_offset,
         transition_epoch: Some(transition_epoch),
     })
 }
@@ -490,7 +528,7 @@ impl Mwd {
         let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
         let week_of_month = day_of_month / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
-        Self(month, week_of_month, day_of_week)
+        Self(month, week_of_month, u16::from(day_of_week))
     }
 }
 
@@ -1041,5 +1079,61 @@ mod tests {
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
         assert!(matches!(locals, LocalTimeRecordResult::Single(_)));
+    }
+
+    #[test]
+    fn mwd_transition_epoch() {
+        #[cfg(not(target_os = "windows"))]
+        let tzif = Tzif::read_tzif("Europe/Berlin").unwrap();
+        #[cfg(target_os = "windows")]
+        let tzif = Tzif::from_bytes(jiff_tzdb::get("Europe/Berlin").unwrap().1).unwrap();
+
+        let start_date = crate::iso::IsoDate {
+            year: 2028,
+            month: 3,
+            day: 30,
+        };
+        let start_time = crate::iso::IsoTime {
+            hour: 6,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+            nanosecond: 0,
+        };
+        let start_dt = IsoDateTime::new(start_date, start_time).unwrap();
+        let start_dt_secs = (start_dt.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+
+        let start_seconds = &Seconds(start_dt_secs);
+
+        assert_eq!(
+            tzif.get(start_seconds).unwrap().transition_epoch.unwrap(),
+            // Sun, Mar 26 at 2:00 am
+            1837645200
+        );
+
+        let end_date = crate::iso::IsoDate {
+            year: 2028,
+            month: 10,
+            day: 29,
+        };
+        let end_time = crate::iso::IsoTime {
+            hour: 6,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+            nanosecond: 0,
+        };
+        let end_dt = IsoDateTime::new(end_date, end_time).unwrap();
+        let end_dt_secs = (end_dt.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+
+        let end_seconds = &Seconds(end_dt_secs);
+
+        assert_eq!(
+            tzif.get(end_seconds).unwrap().transition_epoch.unwrap(),
+            // Sun, Oct 29 at 3:00 am
+            1856394000
+        );
     }
 }

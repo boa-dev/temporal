@@ -35,8 +35,52 @@ pub struct PartialTime {
 }
 
 impl PartialTime {
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         *self == Self::default()
+    }
+}
+
+/// Convenience methods for building a `PartialTime`
+impl PartialTime {
+    pub const fn new() -> Self {
+        Self {
+            hour: None,
+            minute: None,
+            second: None,
+            millisecond: None,
+            microsecond: None,
+            nanosecond: None,
+        }
+    }
+
+    pub const fn with_hour(mut self, hour: Option<u8>) -> Self {
+        self.hour = hour;
+        self
+    }
+
+    pub const fn with_minute(mut self, minute: Option<u8>) -> Self {
+        self.minute = minute;
+        self
+    }
+
+    pub const fn with_second(mut self, second: Option<u8>) -> Self {
+        self.second = second;
+        self
+    }
+
+    pub const fn with_millisecond(mut self, millisecond: Option<u16>) -> Self {
+        self.millisecond = millisecond;
+        self
+    }
+
+    pub const fn with_microsecond(mut self, microsecond: Option<u16>) -> Self {
+        self.microsecond = microsecond;
+        self
+    }
+
+    pub const fn with_nanosecond(mut self, nanosecond: Option<u16>) -> Self {
+        self.nanosecond = nanosecond;
+        self
     }
 }
 
