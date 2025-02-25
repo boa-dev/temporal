@@ -134,7 +134,7 @@ impl IcuCalendar for Calendar {
 
 impl Calendar {
     #[warn(clippy::wildcard_enum_match_arm)] // Warns if the calendar kind gets out of sync.
-    pub fn new(kind: AnyCalendarKind) -> Self {
+    pub const fn new(kind: AnyCalendarKind) -> Self {
         let cal = match kind {
             AnyCalendarKind::Buddhist => &AnyCalendar::Buddhist(Buddhist),
             AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(Chinese::new()) },
@@ -172,7 +172,8 @@ impl Calendar {
             }
             AnyCalendarKind::Persian => &AnyCalendar::Persian(Persian),
             AnyCalendarKind::Roc => &AnyCalendar::Roc(Roc),
-            _ => unreachable!("match must handle all variants of `AnyCalendarKind`"),
+            // NOTE: `unreachable!` is not const, but panic is.
+            _ => panic!("Unreachable: match must handle all variants of `AnyCalendarKind`"),
         };
 
         Self(Ref(cal))
