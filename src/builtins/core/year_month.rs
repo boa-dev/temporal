@@ -7,13 +7,13 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     iso::{year_month_within_limits, IsoDate},
-    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar, ResolvedRoundingOptions, TemporalUnit, UnitGroup},
+    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{calendar, Duration, PartialDate, PlainDate};
+use super::{Duration, PartialDate, PlainDate};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -73,7 +73,7 @@ impl PlainYearMonth {
         }
         // 4. Let resolvedOptions be ? GetOptionsObject(options).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, date, « week, day », month, year).
-        // TODO: Is this correct?
+        // TODO: This part needs fixing
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
