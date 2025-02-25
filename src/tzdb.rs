@@ -49,7 +49,7 @@ use tzif::{
 
 use crate::{
     iso::IsoDateTime,
-    provider::{TimeZoneOffset, TimeZoneProvider},
+    provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
     time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
@@ -678,6 +678,15 @@ impl TimeZoneProvider for FsTzdbProvider {
         let tzif = self.get(identifier)?;
         let seconds = (utc_epoch / 1_000_000_000) as i64;
         tzif.get(&Seconds(seconds))
+    }
+
+    fn get_named_tz_transition(
+        &self,
+        _identifier: &str,
+        _epoch_nanoseconds: i128,
+        _direction: TransitionDirection,
+    ) -> TemporalResult<Option<EpochNanoseconds>> {
+        Err(TemporalError::general("Not yet implemented."))
     }
 }
 
