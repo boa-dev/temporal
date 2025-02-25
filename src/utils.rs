@@ -1,168 +1,217 @@
-//! Utility date and time equations for Temporal
+#![allow(
+    unused,
+    reason = "prefer to have unused methods instead of having to gate everything behind features"
+)]
 
-use alloc::format;
-use alloc::string::String;
+//! Utility date and time equations for Temporal
+// NOTE: Potentially add more tests.
 
 use crate::MS_PER_DAY;
-
-mod neri_schneider;
-
-pub(crate) use neri_schneider::epoch_days_from_gregorian_date;
-
-// NOTE: Potentially add more of tests.
-
-// ==== Begin Date Equations ====
-
 pub(crate) const MS_PER_HOUR: i64 = 3_600_000;
 pub(crate) const MS_PER_MINUTE: i64 = 60_000;
 
-/// `EpochDaysToEpochMS`
-///
-/// Functionally the same as Date's abstract operation `MakeDate`
-pub(crate) fn epoch_days_to_epoch_ms(day: i32, time: i64) -> i64 {
-    (day as i64 * MS_PER_DAY as i64) + time
+mod neri_schneider;
+
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct Epoch {
+    millis: i64,
 }
 
-/// 3.5.11 PadISOYear ( y )
-///
-/// returns a String representation of y suitable for inclusion in an ISO 8601 string
-pub(crate) fn pad_iso_year(year: i32) -> String {
-    if (0..9999).contains(&year) {
-        return format!("{:04}", year);
+impl Epoch {
+    /// Creates a new epoch.
+    pub(crate) fn new(millis: i64) -> Self {
+        Self { millis }
     }
-    let year_sign = if year > 0 { "+" } else { "-" };
-    let year_string = format!("{:06}", year.abs());
-    format!("{year_sign}{year_string}",)
-}
 
-/// `EpochTimeToDayNumber`
-///
-/// This equation is the equivalent to `ECMAScript`'s `Date(t)`
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_time_to_day_number(t: i64) -> i32 {
-    t.div_euclid(MS_PER_DAY as i64) as i32
-}
+    /// Creates a new epoch from a given epoch second.
+    pub(crate) fn from_seconds(secs: i64) -> Self {
+        Self {
+            millis: secs * 1000,
+        }
+    }
 
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_ms_to_ms_in_day(t: i64) -> u32 {
-    (t.rem_euclid(i64::from(MS_PER_DAY))) as u32
-}
+    /// Creates a new epoch from a year.
+    pub(crate) fn from_year(year: i32) -> Self {
+        Self::from_days(epoch_days_for_year(year))
+    }
 
-/// Mathematically determine the days in a year.
-pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
-    if y % 4 != 0 {
-        365
-    } else if y % 4 == 0 && y % 100 != 0 {
-        366
-    } else if y % 100 == 0 && y % 400 != 0 {
-        365
-    } else {
-        // Assert that y is divisble by 400 to ensure we are returning the correct result.
-        assert_eq!(y % 400, 0);
-        366
+    /// `EpochDaysToEpochMS`
+    /// Creates a new epoch from a given epoch day.
+    ///
+    /// Functionally the same as Date's abstract operation `MakeDate`
+    pub(crate) fn from_days(days: i32) -> Self {
+        Self::new(i64::from(days) * i64::from(MS_PER_DAY))
+    }
+
+    /// Creates a new epoch from a year and a day of year (1-based).
+    pub(crate) fn from_year_and_day_of_year(year: i32, day: u16) -> Self {
+        Self::from_days(epoch_days_for_year(year) + i32::from(day) - 1)
+    }
+
+    /// Creates a new epoch from a gregorian date
+    pub(crate) fn from_gregorian_date(year: i32, month: u8, day: u8) -> Self {
+        Self::from_days(neri_schneider::epoch_days_from_gregorian_date(
+            year, month, day,
+        ))
+    }
+
+    /// Creates a new epoch from a POSIX date.
+    pub(crate) fn from_posix_date(year: i32, month: u8, week: u8, day: u8) -> Self {
+        let leap_year = in_leap_year(year);
+        let days_in_month = days_in_month(month, in_leap_year(year)) - 1;
+        let days_to_year = epoch_days_for_year(year);
+
+        let days_to_month =
+            days_to_year + i32::from(day_of_year_until_start_of_month(month, leap_year));
+
+        // Month starts in the day...
+        let day_offset = self::day_of_week(days_to_month);
+
+        // EXAMPLE:
+        //
+        // 0   1   2   3   4   5   6
+        // sun mon tue wed thu fri sat
+        // -   -   -   0   1   2   3
+        // 4   5   6   7   8   9   10
+        // 11  12  13  14  15  16  17
+        // 18  19  20  21  22  23  24
+        // 25  26  27  28  29  30  -
+        //
+        // The day_offset = 3, since the month starts on a wednesday.
+        //
+        // We're looking for the second friday of the month. Thus, since the month started before
+        // a friday, we need to start counting from week 0:
+        //
+        // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (2 - 1) * 7 + 5 - 3 = 9
+        //
+        // This works if the month started on a day before the day we want (day_offset <= day). However, if that's not the
+        // case, we need to start counting on week 1. For example, calculate the day of the month for the third monday
+        // of the month:
+        //
+        // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (3 - 0) * 7 + 1 - 3 = 19
+        let mut day_of_month = (week - u8::from(day_offset <= day)) * 7 + day - day_offset;
+
+        // If we're on week 5, we need to clamp to the last valid day.
+        if day_of_month > days_in_month {
+            day_of_month -= 7
+        }
+
+        Self::from_days(days_to_month + i32::from(day_of_month))
+    }
+
+    /// Gets the total elapsed milliseconds of this epoch.
+    pub(crate) fn millis(self) -> i64 {
+        self.millis
+    }
+
+    /// Gets the total elapsed seconds of this epoch.
+    pub(crate) fn seconds(self) -> i64 {
+        self.millis / 1000
+    }
+
+    /// `EpochTimeToDayNumber`
+    /// Gets the total elapsed days of this epoch.
+    ///
+    /// This equation is the equivalent to `ECMAScript`'s `Date(t)`
+    pub(crate) fn days(self) -> i32 {
+        self.millis.div_euclid(i64::from(MS_PER_DAY)) as i32
+    }
+
+    /// Gets the total elapsed years of this epoch.
+    pub(crate) fn year(self) -> i32 {
+        let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(self.days());
+        neri_schneider::year(rata_die, shift_constant)
+    }
+
+    /// Returns the year, month and day of the month for a given millisecond epoch.
+    pub(crate) fn ymd(self) -> (i32, u8, u8) {
+        neri_schneider::ymd_from_epoch_days(self.days())
+    }
+
+    /// Returns the total elapsed milliseconds since the last start of day.
+    pub(crate) fn millis_since_start_of_day(self) -> u32 {
+        (self.millis.rem_euclid(i64::from(MS_PER_DAY))) as u32
+    }
+
+    /// Returns `true` if the epoch is within a leap year.
+    pub(crate) fn in_leap_year(self) -> bool {
+        in_leap_year(self.year())
+    }
+
+    /// Returns the month of the year of this epoch (1-based).
+    pub(crate) fn month_in_year(self) -> u8 {
+        let epoch_days = self.days();
+        let (rata_die, _) = neri_schneider::rata_die_for_epoch_days(epoch_days);
+        neri_schneider::month(rata_die)
+    }
+
+    /// 12.2.31 `ISODaysInMonth ( year, month )`
+    ///
+    /// Returns the number of days of the current month (1-based).
+    pub(crate) fn days_in_month(self) -> u8 {
+        days_in_month(self.month_in_year(), self.in_leap_year())
     }
 }
 
-pub(crate) fn epoch_time_to_epoch_year(t: i64) -> i32 {
-    let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(epoch_days);
-    neri_schneider::year(rata_die, shift_constant)
-}
-
-/// Returns either 1 (true) or 0 (false)
-pub(crate) fn mathematical_in_leap_year(t: i64) -> i32 {
-    mathematical_days_in_year(epoch_time_to_epoch_year(t)) - 365
-}
-
-/// Returns the epoch day number for a given year.
-pub(crate) fn epoch_days_for_year(y: i32) -> i32 {
-    365 * (y - 1970) + (y - 1969).div_euclid(4) - (y - 1901).div_euclid(100)
-        + (y - 1601).div_euclid(400)
-}
-
-// TODO: test limits
-pub(crate) fn epoch_time_for_year(y: i32) -> i64 {
-    i64::from(MS_PER_DAY) * i64::from(epoch_days_for_year(y))
-}
-
-pub(crate) const fn epoch_ms_to_epoch_days(ms: i64) -> i32 {
-    (ms.div_euclid(MS_PER_DAY as i64)) as i32
-}
-
-pub(crate) fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
-    let epoch_days = epoch_ms_to_epoch_days(epoch_milliseconds);
-    neri_schneider::ymd_from_epoch_days(epoch_days)
-}
-
-#[cfg(feature = "tzdb")]
-pub(crate) fn month_to_day(m: u8, leap_day: u16) -> u16 {
-    match m {
-        0 => 0,
-        1 => 31,
-        2 => 59 + leap_day,
-        3 => 90 + leap_day,
-        4 => 120 + leap_day,
-        5 => 151 + leap_day,
-        6 => 181 + leap_day,
-        7 => 212 + leap_day,
-        8 => 243 + leap_day,
-        9 => 273 + leap_day,
-        10 => 304 + leap_day,
-        11 => 334 + leap_day,
+/// Returns the elapsed days until the start of the current month (0-based).
+fn day_of_year_until_start_of_month(month: u8, leap_year: bool) -> u16 {
+    let leap_day = u16::from(leap_year);
+    match month {
+        1 => 0,
+        2 => 31,
+        3 => 59 + leap_day,
+        4 => 90 + leap_day,
+        5 => 120 + leap_day,
+        6 => 151 + leap_day,
+        7 => 181 + leap_day,
+        8 => 212 + leap_day,
+        9 => 243 + leap_day,
+        10 => 273 + leap_day,
+        11 => 304 + leap_day,
+        12 => 334 + leap_day,
         _ => unreachable!(),
     }
 }
 
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_ms_to_month_in_year(t: i64) -> u8 {
-    let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, _) = neri_schneider::rata_die_for_epoch_days(epoch_days);
-    neri_schneider::month(rata_die)
+/// Returns the day of the week of the given epoch day.
+pub(crate) fn day_of_week(day: i32) -> u8 {
+    (day + 4).rem_euclid(7) as u8
 }
 
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_time_to_day_in_year(t: i64) -> i32 {
-    epoch_time_to_day_number(t) - (epoch_days_for_year(epoch_time_to_epoch_year(t)))
+/// Returns `true` if the year is a leap year.
+fn in_leap_year(year: i32) -> bool {
+    days_in_year(year) > 365
 }
 
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_seconds_to_day_of_week(t: i64) -> u8 {
-    ((t / 86_400) + 4).rem_euclid(7) as u8
+/// Returns the number of days the given year has.
+fn days_in_year(year: i32) -> u16 {
+    if year % 4 != 0 {
+        365
+    } else if year % 4 == 0 && year % 100 != 0 {
+        366
+    } else if year % 100 == 0 && year % 400 != 0 {
+        365
+    } else {
+        // Assert that y is divisble by 400 to ensure we are returning the correct result.
+        assert_eq!(year % 400, 0);
+        366
+    }
 }
-
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_seconds_to_day_of_month(t: i64) -> u16 {
-    let leap_day = mathematical_in_leap_year(t);
-    epoch_time_to_day_in_year(t * 1_000) as u16
-        - month_to_day(epoch_ms_to_month_in_year(t * 1_000) - 1, leap_day as u16)
-}
-
-// Trait implementations
-
-// EpochTimeTOWeekDay -> REMOVED
-
-// ==== End Date Equations ====
-
-// ==== Begin Calendar Equations ====
-
-// NOTE: below was the iso methods in temporal::calendar -> Need to be reassessed.
 
 /// 12.2.31 `ISODaysInMonth ( year, month )`
 ///
-/// NOTE: month is 1 based
-pub(crate) fn iso_days_in_month(year: i32, month: u8) -> u8 {
+/// Returns the number of days the current month has (1-based).
+fn days_in_month(month: u8, leap_year: bool) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
-        2 => 28 + mathematical_in_leap_year(epoch_time_for_year(year)) as u8,
+        2 => 28 + u8::from(leap_year),
         _ => unreachable!("ISODaysInMonth panicking is an implementation error."),
     }
 }
 
-// The below calendar abstract equations/utilities were removed for being unused.
-// 12.2.32 `ToISOWeekOfYear ( year, month, day )`
-// 12.2.33 `ISOMonthCode ( month )`
-// 12.2.39 `ToISODayOfYear ( year, month, day )`
-// 12.2.40 `ToISODayOfWeek ( year, month, day )`
-
-// ==== End Calendar Equations ====
+/// Returns the number of days since the epoch for a given year.
+fn epoch_days_for_year(year: i32) -> i32 {
+    365 * (year - 1970) + (year - 1969).div_euclid(4) - (year - 1901).div_euclid(100)
+        + (year - 1601).div_euclid(400)
+}

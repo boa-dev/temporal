@@ -1,6 +1,6 @@
 //! This module implements `YearMonth` and any directly related algorithms.
 
-use alloc::string::String;
+use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 
 use tinystr::TinyAsciiStr;
@@ -9,7 +9,6 @@ use crate::{
     iso::{year_month_within_limits, IsoDate},
     options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
-    utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
@@ -103,11 +102,19 @@ impl PlainYearMonth {
         self.iso.year
     }
 
-    /// Returns the padded ISO year string
+    /// 3.5.11 PadISOYear ( y )
+    ///
+    /// Returns a String representation of y suitable for inclusion in an ISO 8601 string.
     #[inline]
     #[must_use]
     pub fn padded_iso_year_string(&self) -> String {
-        pad_iso_year(self.iso.year)
+        let year = self.iso.year;
+        if (0..9999).contains(&year) {
+            return format!("{:04}", year);
+        }
+        let year_sign = if year > 0 { "+" } else { "-" };
+        let year_string = format!("{:06}", year.abs());
+        format!("{year_sign}{year_string}",)
     }
 
     /// Returns the iso month value for this `YearMonth`.
