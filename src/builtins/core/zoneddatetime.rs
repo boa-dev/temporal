@@ -68,7 +68,7 @@ impl PartialZonedDateTime {
         self
     }
 
-    pub fn with_offset(mut self, offset: Option<String>) -> Self {
+    pub const fn with_offset(mut self, offset: Option<UtcOffset>) -> Self {
         self.offset = offset;
         self
     }
