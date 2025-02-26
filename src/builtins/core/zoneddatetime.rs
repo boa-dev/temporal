@@ -23,11 +23,11 @@ use crate::{
         self, parse_offset, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision,
     },
     partial::{PartialDate, PartialTime},
-    provider::TimeZoneProvider,
+    provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
     temporal_assert,
     time::EpochNanoseconds,
-    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -41,6 +41,44 @@ pub struct PartialZonedDateTime {
     pub offset: Option<String>,
     /// The time zone value of a partial time zone.
     pub timezone: Option<TimeZone>,
+}
+
+impl PartialZonedDateTime {
+    pub fn is_empty(&self) -> bool {
+        self.date.is_empty()
+            && self.time.is_empty()
+            && self.offset.is_none()
+            && self.timezone.is_none()
+    }
+
+    pub const fn new() -> Self {
+        Self {
+            date: PartialDate::new(),
+            time: PartialTime::new(),
+            offset: None,
+            timezone: None,
+        }
+    }
+
+    pub const fn with_date(mut self, partial_date: PartialDate) -> Self {
+        self.date = partial_date;
+        self
+    }
+
+    pub const fn with_time(mut self, partial_time: PartialTime) -> Self {
+        self.time = partial_time;
+        self
+    }
+
+    pub fn with_offset(mut self, offset: Option<String>) -> Self {
+        self.offset = offset;
+        self
+    }
+
+    pub fn with_timezone(mut self, timezone: Option<TimeZone>) -> Self {
+        self.timezone = timezone;
+        self
+    }
 }
 
 /// The native Rust implementation of `Temporal.ZonedDateTime`.
@@ -450,13 +488,31 @@ impl ZonedDateTime {
 // ==== HoursInDay accessor method implementation ====
 
 impl ZonedDateTime {
-    // TODO: Add direction parameter to either zoneddatetime.rs or option.rs
+    // TODO: implement and stabalize
     pub fn get_time_zone_transition_with_provider(
         &self,
-        _direction: bool,
-        _provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented"))
+        direction: TransitionDirection,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Option<Self>> {
+        // 8. If IsOffsetTimeZoneIdentifier(timeZone) is true, return null.
+        let TimeZone::IanaIdentifier(identifier) = &self.tz else {
+            return Ok(None);
+        };
+        // 9. If direction is next, then
+        // a. Let transition be GetNamedTimeZoneNextTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
+        // 10. Else,
+        // a. Assert: direction is previous.
+        // b. Let transition be GetNamedTimeZonePreviousTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
+        let transition =
+            provider.get_named_tz_transition(identifier, self.epoch_nanoseconds(), direction)?;
+
+        // 11. If transition is null, return null.
+        // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
+        let result = transition
+            .map(|t| ZonedDateTime::try_new(t.0, self.calendar().clone(), self.tz.clone()))
+            .transpose()?;
+
+        Ok(result)
     }
 
     pub fn hours_in_day_with_provider(
@@ -505,7 +561,7 @@ impl ZonedDateTime {
     pub fn month_code_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<TinyAsciiStr<4>> {
+    ) -> TemporalResult<MonthCode> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
         self.calendar.month_code(&dt.iso.date)
@@ -1109,7 +1165,7 @@ mod tests {
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
         tzdb::FsTzdbProvider,
-        Calendar, TimeZone,
+        Calendar, MonthCode, TimeZone,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
@@ -1168,7 +1224,7 @@ mod tests {
         let partial = PartialZonedDateTime {
             date: PartialDate {
                 year: Some(1970),
-                month_code: Some(tinystr!(4, "M01")),
+                month_code: Some(MonthCode(tinystr!(4, "M01"))),
                 day: Some(1),
                 ..Default::default()
             },

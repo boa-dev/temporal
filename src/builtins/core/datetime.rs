@@ -13,7 +13,7 @@ use crate::{
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     provider::NeverProvider,
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
@@ -26,6 +26,29 @@ pub struct PartialDateTime {
     pub date: PartialDate,
     /// The `PartialTime` portion of a `PartialDateTime`
     pub time: PartialTime,
+}
+
+impl PartialDateTime {
+    pub fn is_empty(&self) -> bool {
+        self.date.is_empty() && self.time.is_empty()
+    }
+
+    pub const fn new() -> Self {
+        Self {
+            date: PartialDate::new(),
+            time: PartialTime::new(),
+        }
+    }
+
+    pub const fn with_partial_date(mut self, partial_date: PartialDate) -> Self {
+        self.date = partial_date;
+        self
+    }
+
+    pub const fn with_partial_time(mut self, partial_time: PartialTime) -> Self {
+        self.time = partial_time;
+        self
+    }
 }
 
 /// The native Rust implementation of `Temporal.PlainDateTime`
@@ -318,7 +341,7 @@ impl PlainDateTime {
         partial: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        if partial.date.is_empty() && partial.time.is_empty() {
+        if partial.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
         }
         let date = PlainDate::from_partial(partial.date, overflow)?;
@@ -503,7 +526,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar.month_code(&self.iso.date)
     }
 
@@ -711,7 +734,7 @@ mod tests {
         },
         parsers::Precision,
         primitive::FiniteF64,
-        TemporalResult,
+        MonthCode, TemporalResult,
     };
 
     fn assert_datetime(
@@ -720,7 +743,7 @@ mod tests {
     ) {
         assert_eq!(dt.year().unwrap(), fields.0);
         assert_eq!(dt.month().unwrap(), fields.1);
-        assert_eq!(dt.month_code().unwrap(), fields.2);
+        assert_eq!(dt.month_code().unwrap(), MonthCode(fields.2));
         assert_eq!(dt.day().unwrap(), fields.3);
         assert_eq!(dt.hour(), fields.4);
         assert_eq!(dt.minute(), fields.5);
@@ -813,7 +836,7 @@ mod tests {
         // Test monthCode
         let partial = PartialDateTime {
             date: PartialDate {
-                month_code: Some(tinystr!(4, "M05")),
+                month_code: Some(MonthCode(tinystr!(4, "M05"))),
                 ..Default::default()
             },
             time: PartialTime::default(),

@@ -1,3 +1,5 @@
+#![cfg(feature = "sys")]
+
 use crate::builtins::{
     core::{Now, PlainDate, PlainDateTime, PlainTime},
     TZ_PROVIDER,
@@ -5,7 +7,6 @@ use crate::builtins::{
 use crate::sys;
 use crate::{time::EpochNanoseconds, TemporalError, TemporalResult, TimeZone};
 
-#[cfg(feature = "sys")]
 impl Now {
     /// Returns the current system time as a [`PlainDateTime`] with an optional
     /// [`TimeZone`].
