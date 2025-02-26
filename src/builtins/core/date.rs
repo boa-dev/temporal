@@ -602,12 +602,14 @@ impl PlainDate {
     }
 
     #[inline]
-    pub fn to_zoned_date_time(
+    pub fn to_zoned_date_time_with_provider(
         &self, 
         tz: TimeZone,
-        pt: Option<PlainTime>, 
+        plain_time: Option<PlainTime>, 
         provider: &impl TimeZoneProvider
     ) -> TemporalResult<ZonedDateTime> {
+        // 1. Let temporalDate be the this value.
+        // 2. Perform ? RequireInternalSlot(temporalDate, [[InitializedTemporalDate]]).
         //3. If item is an Object, then
             //a. Let timeZoneLike be ? Get(item, "timeZone").
             //b. If timeZoneLike is undefined, then
@@ -622,29 +624,22 @@ impl PlainDate {
 
         //  5. If temporalTime is undefined, then
         //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
-
         //  6. Else,
         //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
         //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
-        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
+        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.        
         //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
-        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
-
-        let result_iso = if let Some(time) = pt {
+        let epoch_ns = if let Some(time) = plain_time {    
             let temporal_time = Time::new_unchecked(time)?;
-            IsoDateTime::new_unchecked(&self.iso, temporal_time.iso);
+            IsoDateTime::new(&self.iso, temporal_time.iso);
+            tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
         } else {
-            IsoDateTime::new_unchecked(&self.iso, IsoTime::default());
+            tz.get_start_of_day(self.iso, provider)?;
         };
-
-        let epoch_ns = tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
-
-
+        
+        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
         Self::try_new(epoch_ns.0, self.calendar.clone(), tz)
-
-
 }
-
 
 // ==== Trait impls ====
 

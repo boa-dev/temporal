@@ -164,5 +164,3 @@ pub(crate) fn iso_days_in_month(year: i32, month: i32) -> u8 {
 // 12.2.40 `ToISODayOfWeek ( year, month, day )`
 
 // ==== End Calendar Equations ====
-
-pub(crate) fn IsTemporalObject
