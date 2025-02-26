@@ -156,7 +156,7 @@ pub mod ffi {
         pub fn month_code(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
             let code = self.0.month_code().map_err(Into::<TemporalError>::into)?;
             // throw away the error, this should always succeed
-            let _ = write.write_str(&code);
+            let _ = write.write_str(code.as_str());
             Ok(())
         }
         pub fn day(&self) -> Result<u8, TemporalError> {
@@ -248,6 +248,13 @@ pub mod ffi {
             self.0
                 .round(options.try_into()?)
                 .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn to_plain_time(&self) -> Result<Box<PlainTime>, TemporalError> {
+            self.0
+                .to_plain_time()
+                .map(|x| Box::new(PlainTime(x)))
                 .map_err(Into::into)
         }
 

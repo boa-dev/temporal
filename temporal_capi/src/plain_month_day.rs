@@ -6,6 +6,7 @@ pub mod ffi {
     use crate::error::ffi::TemporalError;
 
     use crate::options::ffi::ArithmeticOverflow;
+    use crate::plain_date::ffi::{PartialDate, PlainDate};
 
     use diplomat_runtime::DiplomatWrite;
     use std::fmt::Write;
@@ -32,6 +33,17 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
+        pub fn with(
+            &self,
+            partial: PartialDate,
+            overflow: ArithmeticOverflow,
+        ) -> Result<Box<PlainMonthDay>, TemporalError> {
+            self.0
+                .with(partial.try_into()?, overflow.into())
+                .map(|x| Box::new(PlainMonthDay(x)))
+                .map_err(Into::into)
+        }
+
         pub fn iso_year(&self) -> i32 {
             self.0.iso_year()
         }
@@ -49,8 +61,15 @@ pub mod ffi {
         pub fn month_code(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
             let code = self.0.month_code().map_err(Into::<TemporalError>::into)?;
             // throw away the error, this should always succeed
-            let _ = write.write_str(&code);
+            let _ = write.write_str(code.as_str());
             Ok(())
+        }
+
+        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
+            self.0
+                .to_plain_date()
+                .map(|x| Box::new(PlainDate(x)))
+                .map_err(Into::into)
         }
     }
 }

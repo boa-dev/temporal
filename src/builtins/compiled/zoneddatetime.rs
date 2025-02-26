@@ -1,11 +1,12 @@
 use crate::builtins::TZ_PROVIDER;
+use crate::provider::TransitionDirection;
 use crate::ZonedDateTime;
 use crate::{
     options::{
         ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
         DisplayTimeZone, OffsetDisambiguation, ToStringRoundingOptions,
     },
-    Duration, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
+    Duration, MonthCode, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
 };
 use alloc::string::String;
 use tinystr::TinyAsciiStr;
@@ -58,7 +59,7 @@ impl ZonedDateTime {
     /// Returns the `ZonedDateTime`'s calendar month code.
     ///
     /// Enable with the `compiled_data` feature flag.
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
@@ -266,6 +267,17 @@ impl ZonedDateTime {
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
         self.in_leap_year_with_provider(&*provider)
+    }
+
+    // TODO: Update direction to correct option
+    pub fn get_time_zone_transition(
+        &self,
+        direction: TransitionDirection,
+    ) -> TemporalResult<Option<Self>> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.get_time_zone_transition_with_provider(direction, &*provider)
     }
 
     /// Returns the hours in the day.

@@ -95,7 +95,7 @@ pub(crate) fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, 
 }
 
 #[cfg(feature = "tzdb")]
-fn month_to_day(m: u8, leap_day: u16) -> u16 {
+pub(crate) fn month_to_day(m: u8, leap_day: u16) -> u16 {
     match m {
         0 => 0,
         1 => 31,
@@ -126,8 +126,8 @@ pub(crate) fn epoch_time_to_day_in_year(t: i64) -> i32 {
 }
 
 #[cfg(feature = "tzdb")]
-pub(crate) fn epoch_seconds_to_day_of_week(t: i64) -> u16 {
-    (((t / 86_400) + 4) % 7) as u16
+pub(crate) fn epoch_seconds_to_day_of_week(t: i64) -> u8 {
+    ((t / 86_400) + 4).rem_euclid(7) as u8
 }
 
 #[cfg(feature = "tzdb")]
@@ -148,7 +148,9 @@ pub(crate) fn epoch_seconds_to_day_of_month(t: i64) -> u16 {
 // NOTE: below was the iso methods in temporal::calendar -> Need to be reassessed.
 
 /// 12.2.31 `ISODaysInMonth ( year, month )`
-pub(crate) fn iso_days_in_month(year: i32, month: i32) -> u8 {
+///
+/// NOTE: month is 1 based
+pub(crate) fn iso_days_in_month(year: i32, month: u8) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,
