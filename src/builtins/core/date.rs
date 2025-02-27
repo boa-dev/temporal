@@ -2,16 +2,16 @@
 
 use crate::{
     builtins::core::{
-        calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime,
+        calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime, ZonedDateTime,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, TemporalUnit, UnitGroup,
+        ResolvedRoundingOptions, TemporalUnit, UnitGroup, Disambiguation,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
-    provider::NeverProvider,
+    provider::{NeverProvider, TimeZoneProvider},
     TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
@@ -603,21 +603,21 @@ impl PlainDate {
 
     #[inline]
     pub fn to_zoned_date_time_with_provider(
-        &self, 
+        &self,
         tz: TimeZone,
-        plain_time: Option<PlainTime>, 
-        provider: &impl TimeZoneProvider
+        plain_time: Option<PlainTime>,
+        provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
         // 1. Let temporalDate be the this value.
         // 2. Perform ? RequireInternalSlot(temporalDate, [[InitializedTemporalDate]]).
         //3. If item is an Object, then
-            //a. Let timeZoneLike be ? Get(item, "timeZone").
-            //b. If timeZoneLike is undefined, then
-            //   i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
-            //    ii. Let temporalTime be undefined.
-            // c. Else,
-            //    i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
-            //    ii. Let temporalTime be ? Get(item, "plainTime").
+        //a. Let timeZoneLike be ? Get(item, "timeZone").
+        //b. If timeZoneLike is undefined, then
+        //   i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+        //    ii. Let temporalTime be undefined.
+        // c. Else,
+        //    i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
+        //    ii. Let temporalTime be ? Get(item, "plainTime").
         // 4. Else,
         //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
         //     b. Let temporalTime be undefined.
@@ -627,20 +627,19 @@ impl PlainDate {
         //  6. Else,
         //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
         //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
-        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.        
+        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
         //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
-        let epoch_ns = if let Some(time) = plain_time {    
-            let temporal_time = Time::new_unchecked(time)?;
-            IsoDateTime::new(&self.iso, temporal_time.iso);
-            tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
+        let epoch_ns = if let Some(time) = plain_time {
+            let result_iso = IsoDateTime::new(self.iso, time.iso);
+            tz.get_epoch_nanoseconds_for(result_iso.unwrap(), Disambiguation::Compatible, provider)?;
         } else {
-            tz.get_start_of_day(self.iso, provider)?;
+            tz.get_start_of_day(&self.iso, provider)?;
         };
-        
-        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
-        Self::try_new(epoch_ns.0, self.calendar.clone(), tz)
-}
 
+        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
+        ZonedDateTime::try_new(epoch_ns, self.calendar.clone(), tz)
+    }
+}
 // ==== Trait impls ====
 
 impl From<PlainDateTime> for PlainDate {
