@@ -928,8 +928,9 @@ impl FromStr for Duration {
 
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let minutes = fraction.div_euclid(60 * 1_000_000_000);
-                let rem = fraction.rem_euclid(60 * 1_000_000_000);
+                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let minutes = ns.div_euclid(60 * 1_000_000_000);
+                let rem = ns.rem_euclid(60 * 1_000_000_000);
 
                 let seconds = rem.div_euclid(1_000_000_000);
                 let rem = rem.rem_euclid(1_000_000_000);
@@ -955,8 +956,9 @@ impl FromStr for Duration {
                 minutes,
                 fraction,
             }) => {
-                let seconds = fraction.div_euclid(1_000_000_000);
-                let rem = fraction.rem_euclid(1_000_000_000);
+                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let seconds = ns.div_euclid(1_000_000_000);
+                let rem = ns.rem_euclid(1_000_000_000);
 
                 let milliseconds = rem.div_euclid(1_000_000);
                 let rem = rem.rem_euclid(1_000_000);
@@ -980,8 +982,9 @@ impl FromStr for Duration {
                 seconds,
                 fraction,
             }) => {
-                let milliseconds = fraction.div_euclid(1_000_000);
-                let rem = fraction.rem_euclid(1_000_000);
+                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let milliseconds = ns.div_euclid(1_000_000);
+                let rem = ns.rem_euclid(1_000_000);
 
                 let microseconds = rem.div_euclid(1_000);
                 let nanoseconds = rem.rem_euclid(1_000);

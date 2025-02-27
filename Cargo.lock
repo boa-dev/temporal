@@ -495,8 +495,9 @@ checksum = "7943c866cc5cd64cbc25b2e01621d07fa8eb2a1a23160ee81ce38704e97b8ecf"
 
 [[package]]
 name = "ixdtf"
-version = "0.3.0"
-source = "git+https://github.com/unicode-org/icu4x.git?rev=3d187da4d3f05b7e37603c4be3f2c1ce45100e03#3d187da4d3f05b7e37603c4be3f2c1ce45100e03"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b3be3d801e2817c5311a3be4f1e1b2148dcd2b10baadb3a5eade0544a0521ac9"
 dependencies = [
  "displaydoc",
  "utf8_iter",
