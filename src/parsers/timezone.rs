@@ -1,12 +1,8 @@
 use alloc::borrow::ToOwned;
-use alloc::string::String;
 use core::{iter::Peekable, str::Chars};
-use ixdtf::parsers::{
-    records::{TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ},
-    IxdtfParser,
-};
+use ixdtf::parsers::{records::UtcOffsetRecordOrZ, IxdtfParser};
 
-use crate::{TemporalError, TemporalResult, TimeZone};
+use crate::{builtins::timezone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
 use super::{parse_ixdtf, ParseVariant};
 
@@ -34,37 +30,26 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
     };
 
     if let Some(annotation) = annotation {
-        match annotation.tz {
-            TimeZoneRecord::Name(s) => {
-                let identifier = String::from_utf8_lossy(s).into_owned();
-                return Some(TimeZone::IanaIdentifier(identifier));
-            }
-            TimeZoneRecord::Offset(offset) => return Some(timezone_from_offset_record(offset)),
-            _ => {}
-        }
+        return TimeZone::from_time_zone_record(annotation.tz).ok();
     };
 
     if let Some(offset) = offset {
         match offset {
             UtcOffsetRecordOrZ::Z => return Some(TimeZone::default()),
-            UtcOffsetRecordOrZ::Offset(offset) => return Some(timezone_from_offset_record(offset)),
+            UtcOffsetRecordOrZ::Offset(offset) => {
+                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_record(offset)))
+            }
         }
     }
 
     None
 }
 
-fn timezone_from_offset_record(record: UtcOffsetRecord) -> TimeZone {
-    let minutes = (record.hour as i16 * 60) + record.minute as i16 + (record.second as i16 / 60);
-    TimeZone::OffsetMinutes(minutes * record.sign as i16)
-}
-
 #[inline]
 pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZone> {
     let mut cursor = source.chars().peekable();
-    if cursor.peek().is_some_and(is_ascii_sign) {
-        let offset_minutes = parse_offset(&mut cursor)?;
-        return Ok(TimeZone::OffsetMinutes(offset_minutes));
+    if let Some(offset) = parse_offset(&mut cursor)? {
+        return Ok(TimeZone::UtcOffset(UtcOffset(offset)));
     } else if parse_iana_component(&mut cursor) {
         return Ok(TimeZone::IanaIdentifier(source.to_owned()));
     }
@@ -72,7 +57,11 @@ pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZone> {
 }
 
 #[inline]
-pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
+pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<Option<i16>> {
+    if chars.peek().is_none() || !chars.peek().is_some_and(is_ascii_sign) {
+        return Ok(None);
+    }
+
     let sign = chars.next().map_or(1, |c| if c == '+' { 1 } else { -1 });
     // First offset portion
     let hours = parse_digit_pair(chars)?;
@@ -90,7 +79,7 @@ pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i1
         None => 0,
     };
 
-    Ok((hours * 60 + minutes) * sign)
+    Ok(Some((hours * 60 + minutes) * sign))
 }
 
 fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
