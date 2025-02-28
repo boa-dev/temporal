@@ -8,8 +8,8 @@ use crate::{
     builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
     iso::{IsoDate, IsoDateTime},
     options::{
-        ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, TemporalRoundingMode,
-        TemporalUnit,
+        ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, RoundingIncrement,
+        TemporalRoundingMode, TemporalUnit,
     },
     primitive::FiniteF64,
     provider::TimeZoneProvider,
@@ -945,6 +945,45 @@ impl NormalizedDurationRecord {
         };
 
         Ok(duration)
+    }
+
+    // 7.5.38 TotalRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone, calendar, unit )
+    pub(crate) fn total_relative_duration(
+        &self,
+        dest_epoch_ns: i128,
+        dt: &PlainDateTime,
+        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        unit: TemporalUnit,
+    ) -> TemporalResult<i128> {
+        // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
+        if unit.is_calendar_unit() || (tz.is_some() && unit == TemporalUnit::Day) {
+            // a. Let sign be InternalDurationSign(duration).
+            let sign = self.sign()?;
+            // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
+            let record = self.nudge_calendar_unit(
+                sign,
+                dest_epoch_ns,
+                dt,
+                tz,
+                ResolvedRoundingOptions {
+                    largest_unit: unit,
+                    smallest_unit: unit,
+                    increment: RoundingIncrement::default(),
+                    rounding_mode: TemporalRoundingMode::Trunc,
+                },
+            )?;
+
+            // c. Return record.[[Total]].
+            return record._total.ok_or_else(|| {
+                TemporalError::range().with_message("TotalRelativeDuration: _total is None")
+            });
+        }
+        // 2. Let timeDuration be ! Add24HourDaysToTimeDuration(duration.[[Time]], duration.[[Date]].[[Days]]).
+
+        let time_duration = self
+            .normalized_time_duration()
+            .add_days(PlainDate::new_unchecked(dt.iso, dt.calendar()));
+        todo!()
     }
 }
 

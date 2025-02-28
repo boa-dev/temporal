@@ -689,7 +689,7 @@ impl Duration {
     /// Returns the total of the `Duration`
     pub fn total_with_provider(
         &self,
-        _unit: TemporalUnit,
+        unit: TemporalUnit,
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<i64> {
@@ -697,7 +697,7 @@ impl Duration {
             // 11. If zonedRelativeTo is not undefined, then
             Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {
                 // a. Let internalDuration be ToInternalDurationRecord(duration).
-                let norm = NormalizedDurationRecord::new(
+                let internal = NormalizedDurationRecord::new(
                     self.date,
                     NormalizedTimeDuration::from_time_duration(&self.time),
                 )?;
@@ -705,16 +705,34 @@ impl Duration {
                 // c. Let calendar be zonedRelativeTo.[[Calendar]].
                 // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
                 // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar,
-                let relative_epoch_ns = zoned_datetime.epoch_nanoseconds();
                 let target_epcoh_ns =
                     zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
-                todo!()
+                // f. Let total be ? DifferenceZonedDateTimeWithTotal(relativeEpochNs, targetEpochNs, timeZone, calendar, unit).
+                let total = zoned_datetime.diff_with_total(
+                    &ZonedDateTime::new_unchecked(
+                        target_epcoh_ns,
+                        zoned_datetime.calendar().clone(),
+                        zoned_datetime.timezone().clone(),
+                    ),
+                    unit,
+                    provider,
+                )?;
+                Ok(total as i64)
             }
             // 12. Else if plainRelativeTo is not undefined, then
             Some(RelativeTo::PlainDate(plain_date)) => {
                 todo!()
             }
-            None => todo!(),
+            None => {
+                // a. Let largestUnit be DefaultTemporalLargestUnit(duration).
+                let largest_unit = self.default_largest_unit();
+                // b. If IsCalendarUnit(largestUnit) is true, or IsCalendarUnit(unit) is true, throw a RangeError exception.
+                if largest_unit.is_calendar_unit() || unit.is_calendar_unit() {
+                    return Err(TemporalError::range());
+                }
+                // c. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                todo!()
+            }
         }
     }
 
