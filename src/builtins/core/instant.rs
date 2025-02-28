@@ -299,7 +299,12 @@ impl FromStr for Instant {
             UtcOffsetRecordOrZ::Z => 0,
         };
 
-        let (millisecond, rem) = ns_offset.div_rem_euclid(&1_000_000);
+        let time_nanoseconds = ixdtf_record
+            .time
+            .fraction
+            .and_then(|x| x.to_nanoseconds())
+            .unwrap_or(0);
+        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
         let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
 
         let balanced = IsoDateTime::balance(

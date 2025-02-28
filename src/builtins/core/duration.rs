@@ -7,7 +7,7 @@ use crate::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
         RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::{FormattableDuration, Precision},
+    parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult,
@@ -17,10 +17,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::{cmp::Ordering, str::FromStr};
-use ixdtf::parsers::{
-    records::{DateDurationRecord, DurationParseRecord, Sign as IxdtfSign, TimeDurationRecord},
-    IsoDurationParser,
-};
+use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use normalized::NormalizedDurationRecord;
 use num_traits::AsPrimitive;
 
@@ -744,15 +741,10 @@ pub fn duration_to_formattable(
     precision: Precision,
 ) -> TemporalResult<FormattableDuration> {
     let sign = duration.sign();
-    let sign = if sign == Sign::Negative {
-        IxdtfSign::Negative
-    } else {
-        IxdtfSign::Positive
-    };
     let duration = duration.abs();
     let date = duration.years().0 + duration.months().0 + duration.weeks().0 + duration.days().0;
     let date = if date != 0.0 {
-        Some(DateDurationRecord {
+        Some(FormattableDateDuration {
             years: duration.years().0 as u32,
             months: duration.months().0 as u32,
             weeks: duration.weeks().0 as u32,
@@ -777,16 +769,18 @@ pub fn duration_to_formattable(
     let seconds = time.seconds().unsigned_abs();
     let subseconds = time.subseconds().unsigned_abs();
 
-    let time = Some(TimeDurationRecord::Seconds {
-        hours: hours.0 as u64,
-        minutes: minutes.0 as u64,
+    let time = Some(FormattableTimeDuration::Seconds(
+        hours.0 as u64,
+        minutes.0 as u64,
         seconds,
-        fraction: subseconds,
-    });
+        Some(subseconds),
+    ));
 
     Ok(FormattableDuration {
         precision,
-        duration: DurationParseRecord { sign, date, time },
+        sign,
+        date,
+        time,
     })
 }
 
@@ -928,7 +922,7 @@ impl FromStr for Duration {
 
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
                 let minutes = ns.div_euclid(60 * 1_000_000_000);
                 let rem = ns.rem_euclid(60 * 1_000_000_000);
 
