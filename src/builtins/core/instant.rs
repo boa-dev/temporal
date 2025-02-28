@@ -284,17 +284,27 @@ impl FromStr for Instant {
         let ixdtf_record = parse_instant(s)?;
 
         // Find the offset
-        let offset = match ixdtf_record.offset {
+        let ns_offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
+                let ns = offset
+                    .fraction
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
                 (offset.hour as i64 * NANOSECONDS_PER_HOUR
                     + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
                     + i64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + i64::from(offset.nanosecond))
+                    + i64::from(ns))
                     * offset.sign as i64
             }
             UtcOffsetRecordOrZ::Z => 0,
         };
-        let (millisecond, rem) = ixdtf_record.time.nanosecond.div_rem_euclid(&1_000_000);
+
+        let time_nanoseconds = ixdtf_record
+            .time
+            .fraction
+            .and_then(|x| x.to_nanoseconds())
+            .unwrap_or(0);
+        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
         let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
 
         let balanced = IsoDateTime::balance(
@@ -306,7 +316,7 @@ impl FromStr for Instant {
             ixdtf_record.time.second.clamp(0, 59).into(),
             millisecond.into(),
             microsecond.into(),
-            nanosecond as i64 - offset,
+            nanosecond as i64 - ns_offset,
         );
 
         let nanoseconds = balanced.as_nanoseconds()?;
