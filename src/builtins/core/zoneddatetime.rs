@@ -2,14 +2,14 @@
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
-use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
+use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use tinystr::TinyAsciiStr;
 
 use crate::{
     builtins::core::{
         calendar::Calendar,
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        timezone::TimeZone,
+        timezone::{TimeZone, UtcOffset},
         Duration, Instant, PlainDate, PlainDateTime, PlainTime,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -19,9 +19,7 @@ use crate::{
         ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
         ToStringRoundingOptions, UnitGroup,
     },
-    parsers::{
-        self, parse_offset, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision,
-    },
+    parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
     provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
@@ -38,7 +36,7 @@ pub struct PartialZonedDateTime {
     /// The `PartialTime` portion of a `PartialZonedDateTime`
     pub time: PartialTime,
     /// An optional offset string
-    pub offset: Option<String>,
+    pub offset: Option<UtcOffset>,
     /// The time zone value of a partial time zone.
     pub timezone: Option<TimeZone>,
 }
@@ -70,7 +68,7 @@ impl PartialZonedDateTime {
         self
     }
 
-    pub fn with_offset(mut self, offset: Option<String>) -> Self {
+    pub const fn with_offset(mut self, offset: Option<UtcOffset>) -> Self {
         self.offset = offset;
         self
     }
@@ -430,15 +428,9 @@ impl ZonedDateTime {
         };
 
         // Handle time zones
-        let offset = partial
+        let offset_nanos = partial
             .offset
-            .map(|offset| {
-                let mut cursor = offset.chars().peekable();
-                parse_offset(&mut cursor)
-            })
-            .transpose()?;
-
-        let offset_nanos = offset.map(|minutes| i64::from(minutes) * 60_000_000_000);
+            .map(|offset| i64::from(offset.0) * 60_000_000_000);
 
         let timezone = partial.timezone.unwrap_or_default();
 
@@ -971,18 +963,7 @@ impl ZonedDateTime {
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
-        let timezone = match annotation.tz {
-            TimeZoneRecord::Name(s) => {
-                TimeZone::IanaIdentifier(String::from_utf8_lossy(s).into_owned())
-            }
-            TimeZoneRecord::Offset(offset_record) => {
-                // NOTE: ixdtf parser restricts minute/second to 0..=60
-                let minutes = i16::from(offset_record.hour) * 60 + offset_record.minute as i16;
-                TimeZone::OffsetMinutes(minutes * i16::from(offset_record.sign as i8))
-            }
-            // TimeZoneRecord is non_exhaustive, but all current branches are matching.
-            _ => return Err(TemporalError::assert()),
-        };
+        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
 
         let (offset_nanos, is_exact) = parse_result
             .offset
@@ -993,12 +974,14 @@ impl ZonedDateTime {
                 let hours_in_ns = i64::from(offset.hour) * 3_600_000_000_000_i64;
                 let minutes_in_ns = i64::from(offset.minute) * 60_000_000_000_i64;
                 let seconds_in_ns = i64::from(offset.minute) * 1_000_000_000_i64;
+                let ns = offset
+                    .fraction
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
+
                 (
                     Some(
-                        (hours_in_ns
-                            + minutes_in_ns
-                            + seconds_in_ns
-                            + i64::from(offset.nanosecond))
+                        (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
                             * i64::from(offset.sign as i8),
                     ),
                     false,

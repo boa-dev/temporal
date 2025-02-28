@@ -1,16 +1,14 @@
 //! RelativeTo rounding option
 
-use alloc::string::String;
-
 use crate::builtins::core::zoneddatetime::interpret_isodatetime_offset;
 use crate::builtins::core::{calendar::Calendar, timezone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation};
 use crate::parsers::parse_date_time;
 use crate::provider::TimeZoneProvider;
-use crate::{TemporalError, TemporalResult, TemporalUnwrap};
+use crate::{TemporalResult, TemporalUnwrap};
 
-use ixdtf::parsers::records::{TimeZoneRecord, UtcOffsetRecordOrZ};
+use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 
 // ==== RelativeTo Object ====
 
@@ -62,18 +60,7 @@ impl RelativeTo {
             .into());
         };
 
-        let timezone = match annotation.tz {
-            TimeZoneRecord::Name(s) => {
-                TimeZone::IanaIdentifier(String::from_utf8_lossy(s).into_owned())
-            }
-            TimeZoneRecord::Offset(offset_record) => {
-                // NOTE: ixdtf parser restricts minute/second to 0..=60
-                let minutes = i16::from(offset_record.hour) * 60 + offset_record.minute as i16;
-                TimeZone::OffsetMinutes(minutes * i16::from(offset_record.sign as i8))
-            }
-            // TimeZoneRecord is non_exhaustive, but all current branches are matching.
-            _ => return Err(TemporalError::assert()),
-        };
+        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
 
         let (offset_nanos, is_exact) = result
             .offset
@@ -84,12 +71,13 @@ impl RelativeTo {
                 let hours_in_ns = i64::from(offset.hour) * 3_600_000_000_000_i64;
                 let minutes_in_ns = i64::from(offset.minute) * 60_000_000_000_i64;
                 let seconds_in_ns = i64::from(offset.minute) * 1_000_000_000_i64;
+                let ns = offset
+                    .fraction
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
                 (
                     Some(
-                        (hours_in_ns
-                            + minutes_in_ns
-                            + seconds_in_ns
-                            + i64::from(offset.nanosecond))
+                        (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
                             * i64::from(offset.sign as i8),
                     ),
                     false,
