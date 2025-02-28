@@ -361,6 +361,28 @@ mod tests {
     }
 
     #[test]
+    fn max_min_epoch_millseconds() {
+        // Assert the casting is valid.
+        let max = NS_MAX_INSTANT;
+        let min = NS_MIN_INSTANT;
+        let max_instant = Instant::try_new(max).unwrap();
+        let min_instant = Instant::try_new(min).unwrap();
+
+        // Assert max and min are valid for casting.
+        assert_eq!(
+            max_instant.epoch_milliseconds(),
+            max.div_euclid(1_000_000) as i64
+        );
+        assert_eq!(
+            min_instant.epoch_milliseconds(),
+            min.div_euclid(1_000_000) as i64
+        );
+        // Assert the max and min are not being truncated.
+        assert_ne!(max_instant.epoch_milliseconds(), i64::MAX);
+        assert_ne!(max_instant.epoch_milliseconds(), i64::MIN);
+    }
+
+    #[test]
     fn instant_parsing_limits() {
         // valid cases
         let valid_str = "-271821-04-20T00:00Z";
