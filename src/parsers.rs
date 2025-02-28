@@ -7,10 +7,7 @@ use crate::{
 };
 use alloc::format;
 use ixdtf::parsers::{
-    records::{
-        Annotation, DateRecord, DurationParseRecord, IxdtfParseRecord, Sign as IxdtfSign,
-        TimeDurationRecord, TimeRecord, UtcOffsetRecordOrZ,
-    },
+    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
     IxdtfParser,
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
@@ -516,45 +513,60 @@ impl Writeable for FormattableIxdtf<'_> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct FormattableDateDuration {
+    pub years: u32,
+    pub months: u32,
+    pub weeks: u32,
+    pub days: u64,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum FormattableTimeDuration {
+    Hours(u64, Option<u32>),
+    Minutes(u64, u64, Option<u32>),
+    Seconds(u64, u64, u64, Option<u32>),
+}
+
 pub struct FormattableDuration {
     pub precision: Precision,
-    pub duration: DurationParseRecord,
+    pub sign: Sign,
+    pub date: Option<FormattableDateDuration>,
+    pub time: Option<FormattableTimeDuration>,
 }
 
 impl Writeable for FormattableDuration {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
-        if self.duration.sign == IxdtfSign::Negative {
+        if self.sign == Sign::Negative {
             sink.write_char('-')?;
         }
         sink.write_char('P')?;
-        if let Some(date) = self.duration.date {
+        if let Some(date) = self.date {
             checked_write_u32_with_suffix(date.years, 'Y', sink)?;
             checked_write_u32_with_suffix(date.months, 'M', sink)?;
             checked_write_u32_with_suffix(date.weeks, 'W', sink)?;
             checked_write_u64_with_suffix(date.days, 'D', sink)?;
         }
-        if let Some(time) = self.duration.time {
+        if let Some(time) = self.time {
             match time {
-                TimeDurationRecord::Hours { hours, fraction } => {
-                    if hours + fraction != 0 {
+                FormattableTimeDuration::Hours(hours, fraction) => {
+                    let ns = fraction.unwrap_or(0);
+                    if hours + u64::from(ns) != 0 {
                         sink.write_char('T')?;
                     }
                     if hours == 0 {
                         return Ok(());
                     }
                     hours.write_to(sink)?;
-                    if fraction != 0 {
+                    if ns != 0 {
                         sink.write_char('.')?;
-                        fraction.write_to(sink)?;
+                        ns.write_to(sink)?;
                     }
                     sink.write_char('H')?;
                 }
-                TimeDurationRecord::Minutes {
-                    hours,
-                    minutes,
-                    fraction,
-                } => {
-                    if hours + minutes + fraction != 0 {
+                FormattableTimeDuration::Minutes(hours, minutes, fraction) => {
+                    let ns = fraction.unwrap_or(0);
+                    if hours + minutes + u64::from(ns) != 0 {
                         sink.write_char('T')?;
                     }
                     checked_write_u64_with_suffix(hours, 'H', sink)?;
@@ -562,20 +574,15 @@ impl Writeable for FormattableDuration {
                         return Ok(());
                     }
                     minutes.write_to(sink)?;
-                    if fraction != 0 {
+                    if ns != 0 {
                         sink.write_char('.')?;
-                        fraction.write_to(sink)?;
+                        ns.write_to(sink)?;
                     }
                     sink.write_char('M')?;
                 }
-                TimeDurationRecord::Seconds {
-                    hours,
-                    minutes,
-                    seconds,
-                    fraction,
-                } => {
-                    let unit_below_minute =
-                        self.duration.date.is_none() && hours == 0 && minutes == 0;
+                FormattableTimeDuration::Seconds(hours, minutes, seconds, fraction) => {
+                    let ns = fraction.unwrap_or(0);
+                    let unit_below_minute = self.date.is_none() && hours == 0 && minutes == 0;
 
                     let write_second = seconds != 0
                         || unit_below_minute
@@ -590,13 +597,13 @@ impl Writeable for FormattableDuration {
                     if write_second {
                         seconds.write_to(sink)?;
                         if self.precision == Precision::Digit(0)
-                            || (self.precision == Precision::Auto && fraction == 0)
+                            || (self.precision == Precision::Auto && ns == 0)
                         {
                             sink.write_char('S')?;
                             return Ok(());
                         }
                         sink.write_char('.')?;
-                        write_nanosecond(fraction, self.precision, sink)?;
+                        write_nanosecond(ns, self.precision, sink)?;
                         sink.write_char('S')?;
                     }
                 }

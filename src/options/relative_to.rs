@@ -71,12 +71,13 @@ impl RelativeTo {
                 let hours_in_ns = i64::from(offset.hour) * 3_600_000_000_000_i64;
                 let minutes_in_ns = i64::from(offset.minute) * 60_000_000_000_i64;
                 let seconds_in_ns = i64::from(offset.minute) * 1_000_000_000_i64;
+                let ns = offset
+                    .fraction
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
                 (
                     Some(
-                        (hours_in_ns
-                            + minutes_in_ns
-                            + seconds_in_ns
-                            + i64::from(offset.nanosecond))
+                        (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
                             * i64::from(offset.sign as i8),
                     ),
                     false,
