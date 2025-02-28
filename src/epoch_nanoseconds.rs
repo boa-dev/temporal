@@ -38,6 +38,13 @@ impl TryFrom<f64> for EpochNanoseconds {
     }
 }
 
+// Potential TODO: Build out primitive arthmetic methods if needed.
+impl EpochNanoseconds {
+    pub fn as_i128(&self) -> i128 {
+        self.0
+    }
+}
+
 /// Utility for determining if the nanos are within a valid range.
 #[inline]
 #[must_use]
