@@ -226,7 +226,7 @@ impl Instant {
     /// Returns the `epochMilliseconds` value for this `Instant`.
     #[must_use]
     pub fn epoch_milliseconds(&self) -> i64 {
-        (self.as_i128() / 1_000_000) as i64
+        self.as_i128().div_euclid(1_000_000) as i64
     }
 
     /// Returns the `epochNanoseconds` value for this `Instant`.
