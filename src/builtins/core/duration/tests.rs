@@ -1,3 +1,5 @@
+use core::str::FromStr;
+
 use crate::{
     options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration,
     primitive::FiniteF64,
@@ -185,4 +187,27 @@ fn preserve_precision_loss() {
         .unwrap();
 
     assert_eq!(&result, "PT9016206453995.731991S");
+}
+
+#[test]
+fn duration_from_str() {
+    let duration = Duration::from_str("PT0.999999999H").unwrap();
+    assert_eq!(duration.minutes(), FiniteF64(59.0));
+    assert_eq!(duration.seconds(), FiniteF64(59.0));
+    assert_eq!(duration.milliseconds(), FiniteF64(999.0));
+    assert_eq!(duration.microseconds(), FiniteF64(996.0));
+    assert_eq!(duration.nanoseconds(), FiniteF64(400.0));
+
+    let duration = Duration::from_str("PT0.000000011H").unwrap();
+    assert_eq!(duration.minutes(), FiniteF64(0.0));
+    assert_eq!(duration.seconds(), FiniteF64(0.0));
+    assert_eq!(duration.milliseconds(), FiniteF64(0.0));
+    assert_eq!(duration.microseconds(), FiniteF64(39.0));
+    assert_eq!(duration.nanoseconds(), FiniteF64(600.0));
+
+    let duration = Duration::from_str("PT0.999999999M").unwrap();
+    assert_eq!(duration.seconds(), FiniteF64(59.0));
+    assert_eq!(duration.milliseconds(), FiniteF64(999.0));
+    assert_eq!(duration.microseconds(), FiniteF64(999.0));
+    assert_eq!(duration.nanoseconds(), FiniteF64(940.0));
 }

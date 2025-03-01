@@ -922,15 +922,17 @@ impl FromStr for Duration {
 
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
-                let minutes = ns.div_euclid(60 * 1_000_000_000);
-                let rem = ns.rem_euclid(60 * 1_000_000_000);
+                let unadjusted_fraction =
+                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let fractional_hours_ns = unadjusted_fraction * 3600;
+                let minutes = fractional_hours_ns.div_euclid(60 * 1_000_000_000);
+                let fractional_minutes_ns = fractional_hours_ns.rem_euclid(60 * 1_000_000_000);
 
-                let seconds = rem.div_euclid(1_000_000_000);
-                let rem = rem.rem_euclid(1_000_000_000);
+                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
+                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
 
-                let milliseconds = rem.div_euclid(1_000_000);
-                let rem = rem.rem_euclid(1_000_000);
+                let milliseconds = fractional_seconds.div_euclid(1_000_000);
+                let rem = fractional_seconds.rem_euclid(1_000_000);
 
                 let microseconds = rem.div_euclid(1_000);
                 let nanoseconds = rem.rem_euclid(1_000);
@@ -950,12 +952,14 @@ impl FromStr for Duration {
                 minutes,
                 fraction,
             }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
-                let seconds = ns.div_euclid(1_000_000_000);
-                let rem = ns.rem_euclid(1_000_000_000);
+                let unadjusted_fraction =
+                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let fractional_minutes_ns = unadjusted_fraction * 60;
+                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
+                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
 
-                let milliseconds = rem.div_euclid(1_000_000);
-                let rem = rem.rem_euclid(1_000_000);
+                let milliseconds = fractional_seconds.div_euclid(1_000_000);
+                let rem = fractional_seconds.rem_euclid(1_000_000);
 
                 let microseconds = rem.div_euclid(1_000);
                 let nanoseconds = rem.rem_euclid(1_000);
