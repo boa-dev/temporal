@@ -635,13 +635,17 @@ impl IsoTime {
     /// Returns an `IsoTime` based off parse components.
     pub(crate) fn from_time_record(time_record: TimeRecord) -> TemporalResult<Self> {
         let second = time_record.second.clamp(0, 59);
-        let (millisecond, rem) = time_record
+        let fractional_seconds = time_record
             .fraction
-            .and_then(|x| x.to_nanoseconds())
-            .map(|x| x.div_rem_euclid(&1_000_000))
-            .ok_or(
-                TemporalError::range().with_message("fractional seconds exceeds nine digits."),
-            )?;
+            .map(|x| {
+                x.to_nanoseconds().ok_or(
+                    TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+                )
+            })
+            .transpose()?
+            .unwrap_or(0);
+
+        let (millisecond, rem) = fractional_seconds.div_rem_euclid(&1_000_000);
         let (micros, nanos) = rem.div_rem_euclid(&1_000);
 
         Self::new(
