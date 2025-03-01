@@ -192,7 +192,7 @@ impl ZonedDateTime {
             .get_iso_datetime_for(&self.instant, provider)?;
         // 5. Return ? RoundRelativeDuration(difference, ns2, dateTime, timeZone, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
         diff.round_relative_duration(
-            other.epoch_nanoseconds(),
+            other.epoch_nanoseconds().as_i128(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
             Some((self.timezone(), provider)),
             resolved_options,
@@ -214,7 +214,7 @@ impl ZonedDateTime {
         // 3. Let endDateTime be GetISODateTimeFor(timeZone, ns2).
         let end = self.tz.get_iso_datetime_for(&other.instant, provider)?;
         // 4. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
-        let sign = if other.epoch_nanoseconds() - self.epoch_nanoseconds() < 0 {
+        let sign = if other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128() < 0 {
             Sign::Negative
         } else {
             Sign::Positive
@@ -254,7 +254,7 @@ impl ZonedDateTime {
             )?;
             // d. Set timeDuration to TimeDurationFromEpochNanosecondsDifference(ns2, intermediateNs).
             time_duration = NormalizedTimeDuration::from_nanosecond_difference(
-                other.epoch_nanoseconds(),
+                other.epoch_nanoseconds().as_i128(),
                 intermediate_ns.0,
             )?;
             // e. Let timeSign be TimeDurationSign(timeDuration).
@@ -428,7 +428,7 @@ impl ZonedDateTime {
 
     /// Returns the `epochNanoseconds` value of this `ZonedDateTime`.
     #[must_use]
-    pub fn epoch_nanoseconds(&self) -> i128 {
+    pub fn epoch_nanoseconds(&self) -> &EpochNanoseconds {
         self.instant.epoch_nanoseconds()
     }
 
@@ -445,13 +445,21 @@ impl ZonedDateTime {
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `TimeZone`.
     pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
-        Self::try_new(self.epoch_nanoseconds(), self.calendar.clone(), timezone)
+        Self::try_new(
+            self.epoch_nanoseconds().as_i128(),
+            self.calendar.clone(),
+            timezone,
+        )
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::try_new(self.epoch_nanoseconds(), calendar, self.tz.clone())
+        Self::try_new(
+            self.epoch_nanoseconds().as_i128(),
+            calendar,
+            self.tz.clone(),
+        )
     }
 
     /// Compares one `ZonedDateTime` to another `ZonedDateTime` using their
@@ -487,8 +495,11 @@ impl ZonedDateTime {
         // 10. Else,
         // a. Assert: direction is previous.
         // b. Let transition be GetNamedTimeZonePreviousTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
-        let transition =
-            provider.get_named_tz_transition(identifier, self.epoch_nanoseconds(), direction)?;
+        let transition = provider.get_named_tz_transition(
+            identifier,
+            self.epoch_nanoseconds().as_i128(),
+            direction,
+        )?;
 
         // 11. If transition is null, return null.
         // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
@@ -606,7 +617,7 @@ impl ZonedDateTime {
     pub fn offset_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<String> {
         let offset = self
             .tz
-            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+            .get_offset_nanos_for(self.epoch_nanoseconds().as_i128(), provider)?;
         Ok(nanoseconds_to_formattable_offset(offset).to_string())
     }
 
@@ -616,7 +627,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<i64> {
         let offset = self
             .tz
-            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+            .get_offset_nanos_for(self.epoch_nanoseconds().as_i128(), provider)?;
         Ok(offset as i64)
     }
 }
@@ -1139,6 +1150,7 @@ mod tests {
         options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, TemporalUnit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
+        time::EpochNanoseconds,
         tzdb::FsTzdbProvider,
         Calendar, MonthCode, TimeZone,
     };
@@ -1245,10 +1257,13 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(start_of_day.epoch_nanoseconds(), -1601753400000000000);
+        assert_eq!(
+            start_of_day.epoch_nanoseconds(),
+            &EpochNanoseconds(-1601753400000000000)
+        );
         assert_eq!(
             midnight_disambiguated.epoch_nanoseconds(),
-            -1601751600000000000
+            &EpochNanoseconds(-1601751600000000000)
         );
         let diff = start_of_day
             .instant
