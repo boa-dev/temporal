@@ -209,7 +209,7 @@ impl ResolvedRoundingOptions {
             .largest_unit
             .unwrap_unit_or(smallest_unit.max(fallback_largest));
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
-        if smallest_unit.max(largest_unit) != largest_unit {
+        if largest_unit < smallest_unit {
             return Err(TemporalError::range()
                 .with_message("smallestUnit was larger than largestunit in DifferenceeSettings"));
         }
