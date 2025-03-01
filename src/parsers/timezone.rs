@@ -154,7 +154,15 @@ fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
     let tens = (first.to_digit(10).expect("validated") * 10) as i16;
     let ones = second.to_digit(10).expect("validated") as i16;
 
-    Ok(tens + ones)
+    let result = tens + ones;
+
+    if !(0..=59).contains(&result) {
+        return Err(
+            TemporalError::range().with_message("digit pair not in a valid range of [0..59]")
+        );
+    }
+
+    Ok(result)
 }
 
 fn parse_iana_component(chars: &mut Peekable<Chars<'_>>) -> bool {
