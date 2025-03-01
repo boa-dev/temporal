@@ -639,7 +639,9 @@ impl IsoTime {
             .fraction
             .and_then(|x| x.to_nanoseconds())
             .map(|x| x.div_rem_euclid(&1_000_000))
-            .unwrap_or((0, 0));
+            .ok_or(
+                TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+            )?;
         let (micros, nanos) = rem.div_rem_euclid(&1_000);
 
         Self::new(
