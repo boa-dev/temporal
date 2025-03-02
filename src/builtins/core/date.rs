@@ -78,6 +78,7 @@ impl PartialDate {
         })
     }
 
+    crate::impl_with_fallback_method!(with_fallback_year_month, PlainYearMonth);
     crate::impl_with_fallback_method!(with_fallback_date, PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, PlainDateTime);
     // TODO: ZonedDateTime

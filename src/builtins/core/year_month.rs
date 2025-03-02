@@ -182,13 +182,35 @@ impl PlainYearMonth {
         self.calendar.identifier()
     }
 
+    /// Returns the calendar day value.
+    pub fn day(&self) -> TemporalResult<u8> {
+        self.calendar.day(&self.iso)
+    }
+
     /// Creates a `PlainYearMonth` using the fields provided from a [`PartialDate`]
     pub fn with(
         &self,
-        _partial: PartialDate,
-        _overflow: ArithmeticOverflow,
+        partial: PartialDate,
+        overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented."))
+        // 1. Let yearMonth be the this value.
+        // 2. Perform ? RequireInternalSlot(yearMonth, [[InitializedTemporalYearMonth]]).
+        // 3. If ? IsPartialTemporalObject(temporalYearMonthLike) is false, throw a TypeError exception.
+        if partial.is_empty() {
+            return Err(TemporalError::r#type().with_message("A PartialDate must have a field."));
+        };
+        // 4. Let calendar be yearMonth.[[Calendar]].
+        // 5. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
+        // 6. Let partialYearMonth be ? PrepareCalendarFields(calendar, temporalYearMonthLike, « year, month, month-code », « », partial).
+        // 7. Set fields to CalendarMergeFields(calendar, fields, partialYearMonth).
+        // 8. Let resolvedOptions be ? GetOptionsObject(options).
+        // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
+        // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
+        // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        self.calendar.year_month_from_partial(
+            &partial.with_fallback_year_month(self)?,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )
     }
 
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
