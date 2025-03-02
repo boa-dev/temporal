@@ -322,6 +322,84 @@ mod tests {
 
     use super::PlainYearMonth;
 
+    use tinystr::tinystr;
+
+    use super::*;
+
+    #[test]
+    fn test_plain_year_month_with() {
+        let base = PlainYearMonth::new_with_overflow(
+            2025,
+            3,
+            None,
+            Calendar::default(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+
+        // Year
+        let partial = PartialDate {
+            year: Some(2001),
+            ..Default::default()
+        };
+
+        let with_year = base.with(partial, None).unwrap();
+        assert_eq!(with_year.iso_year(), 2001); // year is changed
+        assert_eq!(with_year.iso_month(), 3); // month is not changed
+        assert_eq!(
+            with_year.month_code().unwrap(),
+            MonthCode::from_str("M03").unwrap()
+        ); // assert month code has been initialized correctly
+
+        // Month
+        let partial = PartialDate {
+            month: Some(2),
+            ..Default::default()
+        };
+        let with_month = base.with(partial, None).unwrap();
+        assert_eq!(with_month.iso_year(), 2025); // year is not changed
+        assert_eq!(with_month.iso_month(), 2); // month is changed
+        assert_eq!(
+            with_month.month_code().unwrap(),
+            MonthCode::from_str("M02").unwrap()
+        ); // assert month code has changed as well as month
+
+        // Month Code
+        let partial = PartialDate {
+            month_code: Some(MonthCode(tinystr!(4, "M05"))), // change month to May (5)
+            ..Default::default()
+        };
+        let with_month_code = base.with(partial, None).unwrap();
+        assert_eq!(with_month_code.iso_year(), 2025); // year is not changed
+        assert_eq!(
+            with_month_code.month_code().unwrap(),
+            MonthCode::from_str("M05").unwrap()
+        ); // assert month code has changed
+        assert_eq!(with_month_code.iso_month(), 5); // month is changed as well
+
+        // Day
+        let partial = PartialDate {
+            day: Some(15),
+            ..Default::default()
+        };
+        let with_day = base.with(partial, None).unwrap();
+        assert_eq!(with_day.iso_year(), 2025); // year is not changed
+        assert_eq!(with_day.iso_month(), 3); // month is not changed
+        assert_eq!(with_day.iso.day, 15); // day is changed
+
+        // All
+        let partial = PartialDate {
+            year: Some(2001),
+            month: Some(2),
+            day: Some(15),
+            ..Default::default()
+        };
+        let with_all = base.with(partial, None).unwrap();
+        assert_eq!(with_all.iso_year(), 2001); // year is changed
+        assert_eq!(with_all.iso_month(), 2); // month is changed
+        assert_eq!(with_all.iso.day, 15); // day is changed
+    }
+
     #[test]
     fn basic_from_str() {
         let valid_strings = [
