@@ -542,14 +542,14 @@ impl ZonedDateTime {
     pub fn year_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<i32> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.year(&dt.iso.date)
+        Ok(self.calendar.year(&dt.iso.date))
     }
 
     /// Returns the `month` value for this `ZonedDateTime`.
     pub fn month_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.month(&dt.iso.date)
+        Ok(self.calendar.month(&dt.iso.date))
     }
 
     /// Returns the `monthCode` value for this `ZonedDateTime`.
@@ -559,14 +559,14 @@ impl ZonedDateTime {
     ) -> TemporalResult<MonthCode> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.month_code(&dt.iso.date)
+        Ok(self.calendar.month_code(&dt.iso.date))
     }
 
     /// Returns the `day` value for this `ZonedDateTime`.
     pub fn day_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<u8> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.day(&dt.iso.date)
+        Ok(self.calendar.day(&dt.iso.date))
     }
 
     /// Returns the `hour` value for this `ZonedDateTime`.
@@ -672,7 +672,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Option<TinyAsciiStr<16>>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.era(&pdt.iso.date)
+        Ok(self.calendar.era(&pdt.iso.date))
     }
 
     pub fn era_year_with_provider(
@@ -681,7 +681,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Option<i32>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.era_year(&pdt.iso.date)
+        Ok(self.calendar.era_year(&pdt.iso.date))
     }
 
     /// Returns the calendar day of week value.
@@ -691,7 +691,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.day_of_week(&pdt.iso.date)
+        Ok(self.calendar.day_of_week(&pdt.iso.date))
     }
 
     /// Returns the calendar day of year value.
@@ -701,7 +701,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.day_of_year(&pdt.iso.date)
+        Ok(self.calendar.day_of_year(&pdt.iso.date))
     }
 
     /// Returns the calendar week of year value.
@@ -741,7 +741,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.days_in_month(&pdt.iso.date)
+        Ok(self.calendar.days_in_month(&pdt.iso.date))
     }
 
     /// Returns the calendar days in year value.
@@ -751,7 +751,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.days_in_year(&pdt.iso.date)
+        Ok(self.calendar.days_in_year(&pdt.iso.date))
     }
 
     /// Returns the calendar months in year value.
@@ -761,7 +761,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.months_in_year(&pdt.iso.date)
+        Ok(self.calendar.months_in_year(&pdt.iso.date))
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
@@ -771,7 +771,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<bool> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.in_leap_year(&pdt.iso.date)
+        Ok(self.calendar.in_leap_year(&pdt.iso.date))
     }
 }
 

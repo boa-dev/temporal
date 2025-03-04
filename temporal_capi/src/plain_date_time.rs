@@ -147,26 +147,25 @@ pub mod ffi {
             Calendar::transparent_convert(self.0.calendar())
         }
 
-        pub fn year(&self) -> Result<i32, TemporalError> {
-            self.0.year().map_err(Into::into)
+        pub fn year(&self) -> i32 {
+            self.0.year()
         }
-        pub fn month(&self) -> Result<u8, TemporalError> {
-            self.0.month().map_err(Into::into)
+        pub fn month(&self) -> u8 {
+            self.0.month()
         }
-        pub fn month_code(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
-            let code = self.0.month_code().map_err(Into::<TemporalError>::into)?;
+        pub fn month_code(&self, write: &mut DiplomatWrite) {
+            let code = self.0.month_code();
             // throw away the error, this should always succeed
             let _ = write.write_str(code.as_str());
-            Ok(())
         }
-        pub fn day(&self) -> Result<u8, TemporalError> {
-            self.0.day().map_err(Into::into)
+        pub fn day(&self) -> u8 {
+            self.0.day()
         }
-        pub fn day_of_week(&self) -> Result<u16, TemporalError> {
-            self.0.day_of_week().map_err(Into::into)
+        pub fn day_of_week(&self) -> u16 {
+            self.0.day_of_week()
         }
-        pub fn day_of_year(&self) -> Result<u16, TemporalError> {
-            self.0.day_of_year().map_err(Into::into)
+        pub fn day_of_year(&self) -> u16 {
+            self.0.day_of_year()
         }
         pub fn week_of_year(&self) -> Result<Option<u16>, TemporalError> {
             self.0.week_of_year().map_err(Into::into)
@@ -177,30 +176,29 @@ pub mod ffi {
         pub fn days_in_week(&self) -> Result<u16, TemporalError> {
             self.0.days_in_week().map_err(Into::into)
         }
-        pub fn days_in_month(&self) -> Result<u16, TemporalError> {
-            self.0.days_in_month().map_err(Into::into)
+        pub fn days_in_month(&self) -> u16 {
+            self.0.days_in_month()
         }
-        pub fn days_in_year(&self) -> Result<u16, TemporalError> {
-            self.0.days_in_year().map_err(Into::into)
+        pub fn days_in_year(&self) -> u16 {
+            self.0.days_in_year()
         }
-        pub fn months_in_year(&self) -> Result<u16, TemporalError> {
-            self.0.months_in_year().map_err(Into::into)
+        pub fn months_in_year(&self) -> u16 {
+            self.0.months_in_year()
         }
-        pub fn in_leap_year(&self) -> Result<bool, TemporalError> {
-            self.0.in_leap_year().map_err(Into::into)
+        pub fn in_leap_year(&self) -> bool {
+            self.0.in_leap_year()
         }
         // Writes an empty string for no era
-        pub fn era(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
-            let era = self.0.era().map_err(Into::<TemporalError>::into)?;
+        pub fn era(&self, write: &mut DiplomatWrite) {
+            let era = self.0.era();
             if let Some(era) = era {
                 // throw away the error, this should always succeed
                 let _ = write.write_str(&era);
             }
-            Ok(())
         }
 
-        pub fn era_year(&self) -> Result<Option<i32>, TemporalError> {
-            self.0.era_year().map_err(Into::into)
+        pub fn era_year(&self) -> Option<i32> {
+            self.0.era_year()
         }
 
         pub fn add(

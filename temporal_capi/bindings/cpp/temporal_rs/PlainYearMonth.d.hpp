@@ -45,23 +45,23 @@ public:
 
   inline uint8_t iso_month() const;
 
-  inline diplomat::result<int32_t, temporal_rs::TemporalError> year() const;
+  inline int32_t year() const;
 
-  inline diplomat::result<uint8_t, temporal_rs::TemporalError> month() const;
+  inline uint8_t month() const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> month_code() const;
+  inline std::string month_code() const;
 
   inline bool in_leap_year() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_month() const;
+  inline uint16_t days_in_month() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_year() const;
+  inline uint16_t days_in_year() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> months_in_year() const;
+  inline uint16_t months_in_year() const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> era() const;
+  inline std::string era() const;
 
-  inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> era_year() const;
+  inline std::optional<int32_t> era_year() const;
 
   inline const temporal_rs::Calendar& calendar() const;
 
