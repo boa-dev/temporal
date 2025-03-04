@@ -57,7 +57,7 @@ impl ZonedDateTime {
 }
 ```
 
-### Compiled  implementation
+### Compiled implementation
 
 The native implementation is only available via the "compiled" default
 feature flag.

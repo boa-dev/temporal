@@ -29,9 +29,6 @@ impl Now {
     ///
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
-    ///
-    /// For an example implementation see [`Self::zoneddatetime_iso`]
-    ///
     pub(crate) fn system_datetime_with_provider(
         epoch_nanoseconds: EpochNanoseconds,
         timezone: TimeZone,
@@ -62,7 +59,8 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::zoneddatetime_iso`]
+    /// For an example implementation, see `Now::zoneddatetime_iso`; available with
+    /// the `compiled_data` feature flag.
     pub fn zoneddatetime_iso_with_system_values(
         epoch_nanos: EpochNanoseconds,
         timezone: TimeZone,
@@ -121,7 +119,8 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_datetime_iso`]
+    /// For an example implementation, see `Now::plain_datetime_iso`; available with the
+    /// `compiled_data` feature flag.
     pub fn plain_datetime_iso_with_provider(
         epoch_nanos: EpochNanoseconds,
         timezone: TimeZone,
@@ -144,7 +143,8 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_date_iso`]
+    /// For an example implementation, see `Now::plain_date_iso`; available
+    /// with the `compiled_data` feature flag.
     pub fn plain_date_iso_with_provider(
         epoch_nanos: EpochNanoseconds,
         timezone: TimeZone,
@@ -167,7 +167,8 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_time_iso`]
+    /// For an example implementation, see `Now::plain_time_iso`; available with the
+    /// `compiled_data` feature flag.
     pub fn plain_time_iso_with_provider(
         epoch_nanos: EpochNanoseconds,
         timezone: TimeZone,
