@@ -23,7 +23,6 @@ exclude = [
 tinystr = "0.8.1"
 icu_calendar = { version = "2.0.0-beta2", default-features = false}
 rustc-hash = "2.1.0"
-bitflags = "2.9.0"
 num-traits = "0.2.19"
 ixdtf = "0.4.0"
 iana-time-zone = "0.1.61"
