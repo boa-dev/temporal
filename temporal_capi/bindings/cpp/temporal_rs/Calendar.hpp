@@ -54,26 +54,21 @@ namespace capi {
     typedef struct temporal_rs_Calendar_era_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_era_result;
     temporal_rs_Calendar_era_result temporal_rs_Calendar_era(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, diplomat::capi::DiplomatWrite* write);
     
-    typedef struct temporal_rs_Calendar_era_year_result {union {diplomat::capi::OptionI32 ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_era_year_result;
+    typedef struct temporal_rs_Calendar_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_Calendar_era_year_result;
     temporal_rs_Calendar_era_year_result temporal_rs_Calendar_era_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_year_result {union {int32_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_year_result;
-    temporal_rs_Calendar_year_result temporal_rs_Calendar_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    int32_t temporal_rs_Calendar_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_month_result {union {uint8_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_month_result;
-    temporal_rs_Calendar_month_result temporal_rs_Calendar_month(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint8_t temporal_rs_Calendar_month(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
     typedef struct temporal_rs_Calendar_month_code_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_month_code_result;
     temporal_rs_Calendar_month_code_result temporal_rs_Calendar_month_code(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, diplomat::capi::DiplomatWrite* write);
     
-    typedef struct temporal_rs_Calendar_day_result {union {uint8_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_day_result;
-    temporal_rs_Calendar_day_result temporal_rs_Calendar_day(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint8_t temporal_rs_Calendar_day(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_day_of_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_day_of_week_result;
-    temporal_rs_Calendar_day_of_week_result temporal_rs_Calendar_day_of_week(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint16_t temporal_rs_Calendar_day_of_week(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_day_of_year_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_day_of_year_result;
-    temporal_rs_Calendar_day_of_year_result temporal_rs_Calendar_day_of_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint16_t temporal_rs_Calendar_day_of_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
     typedef struct temporal_rs_Calendar_week_of_year_result {union {diplomat::capi::OptionU16 ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_week_of_year_result;
     temporal_rs_Calendar_week_of_year_result temporal_rs_Calendar_week_of_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
@@ -84,17 +79,13 @@ namespace capi {
     typedef struct temporal_rs_Calendar_days_in_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_days_in_week_result;
     temporal_rs_Calendar_days_in_week_result temporal_rs_Calendar_days_in_week(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_days_in_month_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_days_in_month_result;
-    temporal_rs_Calendar_days_in_month_result temporal_rs_Calendar_days_in_month(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint16_t temporal_rs_Calendar_days_in_month(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_days_in_year_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_days_in_year_result;
-    temporal_rs_Calendar_days_in_year_result temporal_rs_Calendar_days_in_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint16_t temporal_rs_Calendar_days_in_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_months_in_year_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_months_in_year_result;
-    temporal_rs_Calendar_months_in_year_result temporal_rs_Calendar_months_in_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    uint16_t temporal_rs_Calendar_months_in_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
-    typedef struct temporal_rs_Calendar_in_leap_year_result {union {bool ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_in_leap_year_result;
-    temporal_rs_Calendar_in_leap_year_result temporal_rs_Calendar_in_leap_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
+    bool temporal_rs_Calendar_in_leap_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
     
     
     void temporal_rs_Calendar_destroy(Calendar* self);
@@ -169,22 +160,22 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Ca
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> temporal_rs::Calendar::era_year(temporal_rs::IsoDate date) const {
+inline std::optional<int32_t> temporal_rs::Calendar::era_year(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_era_year(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError>(diplomat::Ok<std::optional<int32_t>>(result.ok.is_ok ? std::optional(result.ok.ok) : std::nullopt)) : diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result.is_ok ? std::optional<int32_t>(result.ok) : std::nullopt;
 }
 
-inline diplomat::result<int32_t, temporal_rs::TemporalError> temporal_rs::Calendar::year(temporal_rs::IsoDate date) const {
+inline int32_t temporal_rs::Calendar::year(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_year(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<int32_t, temporal_rs::TemporalError>(diplomat::Ok<int32_t>(result.ok)) : diplomat::result<int32_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint8_t, temporal_rs::TemporalError> temporal_rs::Calendar::month(temporal_rs::IsoDate date) const {
+inline uint8_t temporal_rs::Calendar::month(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_month(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Ok<uint8_t>(result.ok)) : diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
 inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Calendar::month_code(temporal_rs::IsoDate date) const {
@@ -196,22 +187,22 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Ca
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<uint8_t, temporal_rs::TemporalError> temporal_rs::Calendar::day(temporal_rs::IsoDate date) const {
+inline uint8_t temporal_rs::Calendar::day(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_day(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Ok<uint8_t>(result.ok)) : diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::Calendar::day_of_week(temporal_rs::IsoDate date) const {
+inline uint16_t temporal_rs::Calendar::day_of_week(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_day_of_week(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::Calendar::day_of_year(temporal_rs::IsoDate date) const {
+inline uint16_t temporal_rs::Calendar::day_of_year(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_day_of_year(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
 inline diplomat::result<std::optional<uint16_t>, temporal_rs::TemporalError> temporal_rs::Calendar::week_of_year(temporal_rs::IsoDate date) const {
@@ -232,28 +223,28 @@ inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::Calen
   return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::Calendar::days_in_month(temporal_rs::IsoDate date) const {
+inline uint16_t temporal_rs::Calendar::days_in_month(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_days_in_month(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::Calendar::days_in_year(temporal_rs::IsoDate date) const {
+inline uint16_t temporal_rs::Calendar::days_in_year(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_days_in_year(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::Calendar::months_in_year(temporal_rs::IsoDate date) const {
+inline uint16_t temporal_rs::Calendar::months_in_year(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_months_in_year(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<bool, temporal_rs::TemporalError> temporal_rs::Calendar::in_leap_year(temporal_rs::IsoDate date) const {
+inline bool temporal_rs::Calendar::in_leap_year(temporal_rs::IsoDate date) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_in_leap_year(this->AsFFI(),
     date.AsFFI());
-  return result.is_ok ? diplomat::result<bool, temporal_rs::TemporalError>(diplomat::Ok<bool>(result.ok)) : diplomat::result<bool, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
 inline const temporal_rs::capi::Calendar* temporal_rs::Calendar::AsFFI() const {

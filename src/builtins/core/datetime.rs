@@ -327,9 +327,9 @@ impl PlainDateTime {
     ///
     /// let date = PlainDateTime::from_partial(partial, None).unwrap();
     ///
-    /// assert_eq!(date.year().unwrap(), 2000);
-    /// assert_eq!(date.month().unwrap(), 12);
-    /// assert_eq!(date.day().unwrap(), 2);
+    /// assert_eq!(date.year(), 2000);
+    /// assert_eq!(date.month(), 12);
+    /// assert_eq!(date.day(), 2);
     /// assert_eq!(date.calendar().identifier(), "iso8601");
     /// assert_eq!(date.hour(), 4);
     /// assert_eq!(date.minute(), 25);
@@ -371,9 +371,9 @@ impl PlainDateTime {
     ///
     /// let date = initial.with(partial, None).unwrap();
     ///
-    /// assert_eq!(date.year().unwrap(), 2000);
-    /// assert_eq!(date.month().unwrap(), 5);
-    /// assert_eq!(date.day().unwrap(), 2);
+    /// assert_eq!(date.year(), 2000);
+    /// assert_eq!(date.month(), 5);
+    /// assert_eq!(date.day(), 2);
     /// assert_eq!(date.calendar().identifier(), "iso8601");
     /// assert_eq!(date.hour(), 4);
     /// assert_eq!(date.minute(), 0);
@@ -516,32 +516,32 @@ impl PlainDateTime {
 
 impl PlainDateTime {
     /// Returns the calendar year value.
-    pub fn year(&self) -> TemporalResult<i32> {
+    pub fn year(&self) -> i32 {
         self.calendar.year(&self.iso.date)
     }
 
     /// Returns the calendar month value.
-    pub fn month(&self) -> TemporalResult<u8> {
+    pub fn month(&self) -> u8 {
         self.calendar.month(&self.iso.date)
     }
 
     /// Returns the calendar month code value.
-    pub fn month_code(&self) -> TemporalResult<MonthCode> {
+    pub fn month_code(&self) -> MonthCode {
         self.calendar.month_code(&self.iso.date)
     }
 
     /// Returns the calendar day value.
-    pub fn day(&self) -> TemporalResult<u8> {
+    pub fn day(&self) -> u8 {
         self.calendar.day(&self.iso.date)
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
+    pub fn day_of_week(&self) -> u16 {
         self.calendar.day_of_week(&self.iso.date)
     }
 
     /// Returns the calendar day of year value.
-    pub fn day_of_year(&self) -> TemporalResult<u16> {
+    pub fn day_of_year(&self) -> u16 {
         self.calendar.day_of_year(&self.iso.date)
     }
 
@@ -561,30 +561,30 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar days in month value.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
+    pub fn days_in_month(&self) -> u16 {
         self.calendar.days_in_month(&self.iso.date)
     }
 
     /// Returns the calendar days in year value.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
+    pub fn days_in_year(&self) -> u16 {
         self.calendar.days_in_year(&self.iso.date)
     }
 
     /// Returns the calendar months in year value.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
+    pub fn months_in_year(&self) -> u16 {
         self.calendar.months_in_year(&self.iso.date)
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
-    pub fn in_leap_year(&self) -> TemporalResult<bool> {
+    pub fn in_leap_year(&self) -> bool {
         self.calendar.in_leap_year(&self.iso.date)
     }
 
-    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+    pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar.era(&self.iso.date)
     }
 
-    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+    pub fn era_year(&self) -> Option<i32> {
         self.calendar.era_year(&self.iso.date)
     }
 }
@@ -741,10 +741,10 @@ mod tests {
         dt: PlainDateTime,
         fields: (i32, u8, TinyAsciiStr<4>, u8, u8, u8, u8, u16, u16, u16),
     ) {
-        assert_eq!(dt.year().unwrap(), fields.0);
-        assert_eq!(dt.month().unwrap(), fields.1);
-        assert_eq!(dt.month_code().unwrap(), MonthCode(fields.2));
-        assert_eq!(dt.day().unwrap(), fields.3);
+        assert_eq!(dt.year(), fields.0);
+        assert_eq!(dt.month(), fields.1);
+        assert_eq!(dt.month_code(), MonthCode(fields.2));
+        assert_eq!(dt.day(), fields.3);
         assert_eq!(dt.hour(), fields.4);
         assert_eq!(dt.minute(), fields.5);
         assert_eq!(dt.second(), fields.6);
@@ -978,8 +978,8 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(result.month(), Ok(2));
-        assert_eq!(result.day(), Ok(29));
+        assert_eq!(result.month(), 2);
+        assert_eq!(result.day(), 29);
     }
 
     // options-undefined.js
@@ -1004,8 +1004,8 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(result.month(), Ok(2));
-        assert_eq!(result.day(), Ok(29));
+        assert_eq!(result.month(), 2);
+        assert_eq!(result.day(), 29);
     }
 
     // subtract/hour-overflow.js

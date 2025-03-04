@@ -75,17 +75,17 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainDate& other, temporal_rs::DifferenceSettings settings) const;
 
-  inline diplomat::result<int32_t, temporal_rs::TemporalError> year() const;
+  inline int32_t year() const;
 
-  inline diplomat::result<uint8_t, temporal_rs::TemporalError> month() const;
+  inline uint8_t month() const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> month_code() const;
+  inline std::string month_code() const;
 
-  inline diplomat::result<uint8_t, temporal_rs::TemporalError> day() const;
+  inline uint8_t day() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week() const;
+  inline uint16_t day_of_week() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_year() const;
+  inline uint16_t day_of_year() const;
 
   inline diplomat::result<std::optional<uint16_t>, temporal_rs::TemporalError> week_of_year() const;
 
@@ -93,17 +93,17 @@ public:
 
   inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_month() const;
+  inline uint16_t days_in_month() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_year() const;
+  inline uint16_t days_in_year() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> months_in_year() const;
+  inline uint16_t months_in_year() const;
 
-  inline diplomat::result<bool, temporal_rs::TemporalError> in_leap_year() const;
+  inline bool in_leap_year() const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> era() const;
+  inline std::string era() const;
 
-  inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> era_year() const;
+  inline std::optional<int32_t> era_year() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> to_date_time(const temporal_rs::PlainTime* time) const;
 

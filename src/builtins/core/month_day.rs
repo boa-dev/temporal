@@ -94,7 +94,7 @@ impl PlainMonthDay {
 
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
-    pub fn month_code(&self) -> TemporalResult<MonthCode> {
+    pub fn month_code(&self) -> MonthCode {
         self.calendar.month_code(&self.iso)
     }
 

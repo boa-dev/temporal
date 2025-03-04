@@ -11,10 +11,9 @@
 //!
 //! // Create a new date with the japanese calendar
 //! let japanese_date = iso8601_date.with_calendar(Calendar::from_str("japanese").unwrap()).unwrap();
-//! let current_era = japanese_date.era().expect("current date converts between calendars");
-//! assert_eq!(current_era, Some(tinystr!(16, "reiwa")));
-//! assert_eq!(japanese_date.era_year().unwrap(), Some(7));
-//! assert_eq!(japanese_date.month().unwrap(), 3)
+//! assert_eq!(japanese_date.era(), Some(tinystr!(16, "reiwa")));
+//! assert_eq!(japanese_date.era_year(), Some(7));
+//! assert_eq!(japanese_date.month(), 3)
 //! ```
 //!
 //! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that

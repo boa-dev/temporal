@@ -36,30 +36,23 @@ namespace capi {
     
     uint8_t temporal_rs_PlainYearMonth_iso_month(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_year_result {union {int32_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_year_result;
-    temporal_rs_PlainYearMonth_year_result temporal_rs_PlainYearMonth_year(const temporal_rs::capi::PlainYearMonth* self);
+    int32_t temporal_rs_PlainYearMonth_year(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_month_result {union {uint8_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_month_result;
-    temporal_rs_PlainYearMonth_month_result temporal_rs_PlainYearMonth_month(const temporal_rs::capi::PlainYearMonth* self);
+    uint8_t temporal_rs_PlainYearMonth_month(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_month_code_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_month_code_result;
-    temporal_rs_PlainYearMonth_month_code_result temporal_rs_PlainYearMonth_month_code(const temporal_rs::capi::PlainYearMonth* self, diplomat::capi::DiplomatWrite* write);
+    void temporal_rs_PlainYearMonth_month_code(const temporal_rs::capi::PlainYearMonth* self, diplomat::capi::DiplomatWrite* write);
     
     bool temporal_rs_PlainYearMonth_in_leap_year(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_days_in_month_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_days_in_month_result;
-    temporal_rs_PlainYearMonth_days_in_month_result temporal_rs_PlainYearMonth_days_in_month(const temporal_rs::capi::PlainYearMonth* self);
+    uint16_t temporal_rs_PlainYearMonth_days_in_month(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_days_in_year_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_days_in_year_result;
-    temporal_rs_PlainYearMonth_days_in_year_result temporal_rs_PlainYearMonth_days_in_year(const temporal_rs::capi::PlainYearMonth* self);
+    uint16_t temporal_rs_PlainYearMonth_days_in_year(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_months_in_year_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_months_in_year_result;
-    temporal_rs_PlainYearMonth_months_in_year_result temporal_rs_PlainYearMonth_months_in_year(const temporal_rs::capi::PlainYearMonth* self);
+    uint16_t temporal_rs_PlainYearMonth_months_in_year(const temporal_rs::capi::PlainYearMonth* self);
     
-    typedef struct temporal_rs_PlainYearMonth_era_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_era_result;
-    temporal_rs_PlainYearMonth_era_result temporal_rs_PlainYearMonth_era(const temporal_rs::capi::PlainYearMonth* self, diplomat::capi::DiplomatWrite* write);
+    void temporal_rs_PlainYearMonth_era(const temporal_rs::capi::PlainYearMonth* self, diplomat::capi::DiplomatWrite* write);
     
-    typedef struct temporal_rs_PlainYearMonth_era_year_result {union {diplomat::capi::OptionI32 ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_era_year_result;
+    typedef struct temporal_rs_PlainYearMonth_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainYearMonth_era_year_result;
     temporal_rs_PlainYearMonth_era_year_result temporal_rs_PlainYearMonth_era_year(const temporal_rs::capi::PlainYearMonth* self);
     
     const temporal_rs::capi::Calendar* temporal_rs_PlainYearMonth_calendar(const temporal_rs::capi::PlainYearMonth* self);
@@ -120,22 +113,22 @@ inline uint8_t temporal_rs::PlainYearMonth::iso_month() const {
   return result;
 }
 
-inline diplomat::result<int32_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::year() const {
+inline int32_t temporal_rs::PlainYearMonth::year() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_year(this->AsFFI());
-  return result.is_ok ? diplomat::result<int32_t, temporal_rs::TemporalError>(diplomat::Ok<int32_t>(result.ok)) : diplomat::result<int32_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint8_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::month() const {
+inline uint8_t temporal_rs::PlainYearMonth::month() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_month(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Ok<uint8_t>(result.ok)) : diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::month_code() const {
+inline std::string temporal_rs::PlainYearMonth::month_code() const {
   std::string output;
   diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_month_code(this->AsFFI(),
+  temporal_rs::capi::temporal_rs_PlainYearMonth_month_code(this->AsFFI(),
     &write);
-  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return output;
 }
 
 inline bool temporal_rs::PlainYearMonth::in_leap_year() const {
@@ -143,32 +136,32 @@ inline bool temporal_rs::PlainYearMonth::in_leap_year() const {
   return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::days_in_month() const {
+inline uint16_t temporal_rs::PlainYearMonth::days_in_month() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_days_in_month(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::days_in_year() const {
+inline uint16_t temporal_rs::PlainYearMonth::days_in_year() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_days_in_year(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::months_in_year() const {
+inline uint16_t temporal_rs::PlainYearMonth::months_in_year() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_months_in_year(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
-inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::era() const {
+inline std::string temporal_rs::PlainYearMonth::era() const {
   std::string output;
   diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_era(this->AsFFI(),
+  temporal_rs::capi::temporal_rs_PlainYearMonth_era(this->AsFFI(),
     &write);
-  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return output;
 }
 
-inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::era_year() const {
+inline std::optional<int32_t> temporal_rs::PlainYearMonth::era_year() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_era_year(this->AsFFI());
-  return result.is_ok ? diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError>(diplomat::Ok<std::optional<int32_t>>(result.ok.is_ok ? std::optional(result.ok.ok) : std::nullopt)) : diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result.is_ok ? std::optional<int32_t>(result.ok) : std::nullopt;
 }
 
 inline const temporal_rs::Calendar& temporal_rs::PlainYearMonth::calendar() const {

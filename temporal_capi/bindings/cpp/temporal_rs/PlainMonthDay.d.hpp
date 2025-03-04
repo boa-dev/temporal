@@ -45,7 +45,7 @@ public:
 
   inline const temporal_rs::Calendar& calendar() const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> month_code() const;
+  inline std::string month_code() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
 

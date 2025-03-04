@@ -118,42 +118,42 @@ impl PlainYearMonth {
     }
 
     /// Returns the calendar era of the current `PlainYearMonth`
-    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+    pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar().era(&self.iso)
     }
 
     /// Returns the calendar era year of the current `PlainYearMonth`
-    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+    pub fn era_year(&self) -> Option<i32> {
         self.calendar().era_year(&self.iso)
     }
 
     /// Returns the calendar year of the current `PlainYearMonth`
-    pub fn year(&self) -> TemporalResult<i32> {
+    pub fn year(&self) -> i32 {
         self.calendar().year(&self.iso)
     }
 
     /// Returns the calendar month of the current `PlainYearMonth`
-    pub fn month(&self) -> TemporalResult<u8> {
+    pub fn month(&self) -> u8 {
         self.calendar().month(&self.iso)
     }
 
     /// Returns the calendar month code of the current `PlainYearMonth`
-    pub fn month_code(&self) -> TemporalResult<MonthCode> {
+    pub fn month_code(&self) -> MonthCode {
         self.calendar().month_code(&self.iso)
     }
 
     /// Returns the days in the calendar year of the current `PlainYearMonth`.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
+    pub fn days_in_year(&self) -> u16 {
         self.calendar().days_in_year(&self.iso)
     }
 
     /// Returns the days in the calendar month of the current `PlainYearMonth`.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
+    pub fn days_in_month(&self) -> u16 {
         self.calendar().days_in_month(&self.iso)
     }
 
     /// Returns the months in the calendar year of the current `PlainYearMonth`.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
+    pub fn months_in_year(&self) -> u16 {
         self.calendar().months_in_year(&self.iso)
     }
 
@@ -161,9 +161,7 @@ impl PlainYearMonth {
     #[must_use]
     /// Returns a boolean representing whether the current `PlainYearMonth` is in a leap year.
     pub fn in_leap_year(&self) -> bool {
-        self.calendar()
-            .in_leap_year(&self.iso)
-            .is_ok_and(|is_leap_year| is_leap_year)
+        self.calendar().in_leap_year(&self.iso)
     }
 }
 
