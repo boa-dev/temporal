@@ -1,8 +1,21 @@
 //! The `temporal_rs` crate is an implementation of ECMAScript's Temporal
-//! built-in objects.
+//! built-in objects in Rust.
 //!
-//! The crate is being designed with both engine and general use in
-//! mind.
+//! ```rust
+//! use temporal_rs::{PlainDate, Calendar};
+//! use tinystr::tinystr;
+//! use core::str::FromStr;
+//!
+//! // Create a date with an ISO calendar
+//! let iso8601_date = PlainDate::try_new(2025, 3, 3, Calendar::default()).unwrap();
+//!
+//! // Create a new date with the japanese calendar
+//! let japanese_date = iso8601_date.with_calendar(Calendar::from_str("japanese").unwrap()).unwrap();
+//! let current_era = japanese_date.era().expect("current date converts between calendars");
+//! assert_eq!(current_era, Some(tinystr!(16, "reiwa")));
+//! assert_eq!(japanese_date.era_year().unwrap(), Some(7));
+//! assert_eq!(japanese_date.month().unwrap(), 3)
+//! ```
 //!
 //! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that
 //! provides new JS objects and functions for working with dates and
