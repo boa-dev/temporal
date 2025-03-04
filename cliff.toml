@@ -67,7 +67,7 @@ commit_preprocessors = [
   # remove issue numbers from commits
   { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" },
 ]
-# Commit grouping 
+# Commit grouping
 commit_parsers = [
   { message = "^chore(release):", skip = true},
   { message = "^chore(dependabot):", skip = true},

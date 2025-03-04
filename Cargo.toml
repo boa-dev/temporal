@@ -20,6 +20,7 @@ exclude = [
 ]
 
 [workspace.dependencies]
+temporal_rs = { version = "~0.0.4", path = ".", default-features = false }
 tinystr = "0.8.1"
 icu_calendar = { version = "2.0.0-beta2", default-features = false}
 rustc-hash = "2.1.0"
