@@ -22,3 +22,14 @@ the Temporal specification.
 
 For more information on testing and debugging `temporal_rs`. Please see
 the [testing overview](./docs/testing.md).
+
+## Diplomat and `temporal_capi`
+
+If changes are made to `temporal_capi` that affect the public API, the
+FFI bindings will need to be regenerated / updated.
+
+To update the bindings, run:
+
+```bash
+cargo run -p diplomat-gen
+```
