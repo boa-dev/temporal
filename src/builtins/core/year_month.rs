@@ -7,7 +7,7 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     iso::{year_month_within_limits, IsoDate},
-    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
+    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar, ResolvedRoundingOptions, TemporalUnit, UnitGroup},
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
@@ -78,6 +78,7 @@ impl PlainYearMonth {
             settings,
             op,
             UnitGroup::Date,
+            true,
             TemporalUnit::Month,
             TemporalUnit::Year,
         )?;

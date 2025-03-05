@@ -15,7 +15,7 @@ use crate::{
     MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
-use core::{cmp::Ordering, str::FromStr};
+use core::{cmp::Ordering, mem::discriminant, str::FromStr};
 use icu_calendar::AnyCalendarKind;
 
 use super::{
@@ -305,6 +305,7 @@ impl PlainDate {
             settings,
             op,
             UnitGroup::Date,
+            false,
             TemporalUnit::Day,
             TemporalUnit::Day,
         )?;
