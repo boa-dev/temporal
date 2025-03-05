@@ -147,6 +147,7 @@ impl PlainDateTime {
             settings,
             op,
             UnitGroup::DateTime,
+            false,
             TemporalUnit::Day,
             TemporalUnit::Nanosecond,
         )?;

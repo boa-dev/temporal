@@ -178,11 +178,19 @@ impl ResolvedRoundingOptions {
         options: DifferenceSettings,
         operation: DifferenceOperation,
         unit_group: UnitGroup,
+        dissallow_week_and_day: bool,
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
         // 1. NOTE: The following steps read options and perform independent validation in alphabetical order.
         // 2. Let largestUnit be ? GetTemporalUnitValuedOption(options, "largestUnit", unitGroup, auto).
+        if dissallow_week_and_day == true {
+            return Err(TemporalError::range().with_message(
+                "Weeks and days are not allowed in this operation.",
+            ));
+        };
+        // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         unit_group.validate_unit(options.largest_unit, None)?;
         // 3. If disallowedUnits contains largestUnit, throw a RangeError exception.
         // 4. Let roundingIncrement be ? GetRoundingIncrementOption(options).
