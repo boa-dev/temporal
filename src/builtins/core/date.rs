@@ -350,6 +350,15 @@ impl PlainDate {
             DifferenceOperation::Since => Ok(result.negated()),
         }
     }
+
+    ///  Abstract operation `DaysUntil`
+    ///
+    /// Calculates the epoch days between two `Date`s
+    #[inline]
+    #[must_use]
+    fn days_until(&self, other: &Self) -> i32 {
+        other.iso.to_epoch_days() - self.iso.to_epoch_days()
+    }
 }
 
 // ==== Public API ====
@@ -475,16 +484,6 @@ impl PlainDate {
     #[must_use]
     pub fn is_valid(&self) -> bool {
         self.iso.is_valid()
-    }
-
-    // TODO: make private
-    /// `DaysUntil`
-    ///
-    /// Calculates the epoch days between two `Date`s
-    #[inline]
-    #[must_use]
-    pub fn days_until(&self, other: &Self) -> i32 {
-        other.iso.to_epoch_days() - self.iso.to_epoch_days()
     }
 
     /// Compares one `PlainDate` to another `PlainDate` using their
@@ -620,24 +619,36 @@ impl PlainDate {
     ///
     /// If no time is provided, then the time will default to midnight.
     #[inline]
-    pub fn to_date_time(&self, time: Option<PlainTime>) -> TemporalResult<PlainDateTime> {
+    pub fn to_plain_date_time(&self, time: Option<PlainTime>) -> TemporalResult<PlainDateTime> {
         let time = time.unwrap_or_default();
         let iso = IsoDateTime::new(self.iso, time.iso)?;
         Ok(PlainDateTime::new_unchecked(iso, self.calendar().clone()))
     }
 
-    /// Converts the current `Date<C>` into a `PlainYearMonth`
+    /// Converts the current `Date` into a `PlainYearMonth`
     #[inline]
-    pub fn to_year_month(&self) -> TemporalResult<PlainYearMonth> {
-        self.calendar().year_month_from_partial(
-            &PartialDate::default().with_fallback_date(self)?,
-            ArithmeticOverflow::Constrain,
-        )
+    pub fn to_plain_year_month(&self) -> TemporalResult<PlainYearMonth> {
+        // TODO: Migrate to `PartialYearMonth`
+        let era = self
+            .era()
+            .map(|e| {
+                TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
+                    .map_err(|e| TemporalError::general(format!("{e}")))
+            })
+            .transpose()?;
+        let partial = PartialDate::new()
+            .with_year(Some(self.year()))
+            .with_era(era)
+            .with_era_year(self.era_year())
+            .with_month(Some(self.month()))
+            .with_month_code(Some(self.month_code()));
+        self.calendar()
+            .year_month_from_partial(&partial, ArithmeticOverflow::Constrain)
     }
 
-    /// Converts the current `Date<C>` into a `PlainMonthDay`
+    /// Converts the current `Date` into a `PlainMonthDay`
     #[inline]
-    pub fn to_month_day(&self) -> TemporalResult<PlainMonthDay> {
+    pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         self.calendar().month_day_from_partial(
             &PartialDate::default().with_fallback_date(self)?,
             ArithmeticOverflow::Constrain,

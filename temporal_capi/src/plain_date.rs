@@ -114,10 +114,6 @@ pub mod ffi {
             self.0.is_valid()
         }
 
-        pub fn days_until(&self, other: &Self) -> i32 {
-            self.0.days_until(&other.0)
-        }
-
         pub fn add(
             &self,
             duration: &Duration,
@@ -213,26 +209,26 @@ pub mod ffi {
             self.0.era_year()
         }
 
-        pub fn to_date_time(
+        pub fn to_plain_date_time(
             &self,
             time: Option<&PlainTime>,
         ) -> Result<Box<PlainDateTime>, TemporalError> {
             self.0
-                .to_date_time(time.map(|t| t.0))
+                .to_plain_date_time(time.map(|t| t.0))
                 .map(|x| Box::new(PlainDateTime(x)))
                 .map_err(Into::into)
         }
 
-        pub fn to_month_day(&self) -> Result<Box<PlainMonthDay>, TemporalError> {
+        pub fn to_plain_month_day(&self) -> Result<Box<PlainMonthDay>, TemporalError> {
             self.0
-                .to_month_day()
+                .to_plain_month_day()
                 .map(|x| Box::new(PlainMonthDay(x)))
                 .map_err(Into::into)
         }
 
-        pub fn to_year_month(&self) -> Result<Box<PlainYearMonth>, TemporalError> {
+        pub fn to_plain_year_month(&self) -> Result<Box<PlainYearMonth>, TemporalError> {
             self.0
-                .to_year_month()
+                .to_plain_year_month()
                 .map(|x| Box::new(PlainYearMonth(x)))
                 .map_err(Into::into)
         }
