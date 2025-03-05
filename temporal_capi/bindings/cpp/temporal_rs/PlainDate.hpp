@@ -56,8 +56,6 @@ namespace capi {
     
     bool temporal_rs_PlainDate_is_valid(const temporal_rs::capi::PlainDate* self);
     
-    int32_t temporal_rs_PlainDate_days_until(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other);
-    
     typedef struct temporal_rs_PlainDate_add_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_add_result;
     temporal_rs_PlainDate_add_result temporal_rs_PlainDate_add(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::Duration* duration, temporal_rs::capi::ArithmeticOverflow_option overflow);
     
@@ -104,14 +102,14 @@ namespace capi {
     typedef struct temporal_rs_PlainDate_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainDate_era_year_result;
     temporal_rs_PlainDate_era_year_result temporal_rs_PlainDate_era_year(const temporal_rs::capi::PlainDate* self);
     
-    typedef struct temporal_rs_PlainDate_to_date_time_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_date_time_result;
-    temporal_rs_PlainDate_to_date_time_result temporal_rs_PlainDate_to_date_time(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainTime* time);
+    typedef struct temporal_rs_PlainDate_to_plain_date_time_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_date_time_result;
+    temporal_rs_PlainDate_to_plain_date_time_result temporal_rs_PlainDate_to_plain_date_time(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainTime* time);
     
-    typedef struct temporal_rs_PlainDate_to_month_day_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_month_day_result;
-    temporal_rs_PlainDate_to_month_day_result temporal_rs_PlainDate_to_month_day(const temporal_rs::capi::PlainDate* self);
+    typedef struct temporal_rs_PlainDate_to_plain_month_day_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_month_day_result;
+    temporal_rs_PlainDate_to_plain_month_day_result temporal_rs_PlainDate_to_plain_month_day(const temporal_rs::capi::PlainDate* self);
     
-    typedef struct temporal_rs_PlainDate_to_year_month_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_year_month_result;
-    temporal_rs_PlainDate_to_year_month_result temporal_rs_PlainDate_to_year_month(const temporal_rs::capi::PlainDate* self);
+    typedef struct temporal_rs_PlainDate_to_plain_year_month_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_year_month_result;
+    temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_year_month(const temporal_rs::capi::PlainDate* self);
     
     void temporal_rs_PlainDate_to_ixdtf_string(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
     
@@ -188,12 +186,6 @@ inline const temporal_rs::Calendar& temporal_rs::PlainDate::calendar() const {
 
 inline bool temporal_rs::PlainDate::is_valid() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_is_valid(this->AsFFI());
-  return result;
-}
-
-inline int32_t temporal_rs::PlainDate::days_until(const temporal_rs::PlainDate& other) const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_days_until(this->AsFFI(),
-    other.AsFFI());
   return result;
 }
 
@@ -306,19 +298,19 @@ inline std::optional<int32_t> temporal_rs::PlainDate::era_year() const {
   return result.is_ok ? std::optional<int32_t>(result.ok) : std::nullopt;
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_date_time(const temporal_rs::PlainTime* time) const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_date_time(this->AsFFI(),
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_plain_date_time(const temporal_rs::PlainTime* time) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_plain_date_time(this->AsFFI(),
     time ? time->AsFFI() : nullptr);
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_month_day() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_month_day(this->AsFFI());
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_plain_month_day() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_plain_month_day(this->AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainMonthDay>>(std::unique_ptr<temporal_rs::PlainMonthDay>(temporal_rs::PlainMonthDay::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_year_month() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_year_month(this->AsFFI());
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_plain_year_month() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_plain_year_month(this->AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
