@@ -90,6 +90,7 @@
 * @sebastianjacmatt made their first contribution in [#186](https://github.com/boa-dev/temporal/pull/186)
 * @Magnus-Fjeldstad made their first contribution in [#186](https://github.com/boa-dev/temporal/pull/186)
 * @HenrikTennebekk made their first contribution in [#186](https://github.com/boa-dev/temporal/pull/186)
+* @cassioneri made their first contribution in [#147](https://github.com/boa-dev/temporal/pull/147)
 
 **Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.4...0.0.5
 
