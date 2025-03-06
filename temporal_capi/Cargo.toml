@@ -1,5 +1,6 @@
 [package]
 name = "temporal_capi"
+description = "C interface to temporal_rs"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
