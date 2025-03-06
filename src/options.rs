@@ -182,13 +182,15 @@ impl ResolvedRoundingOptions {
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
-        // 1. NOTE: The following steps read options and perform independent validation in alphabetical order.
-        // 2. Let largestUnit be ? GetTemporalUnitValuedOption(options, "largestUnit", unitGroup, auto).
-        if dissallow_week_and_day == true {
-            return Err(TemporalError::range().with_message(
-                "Weeks and days are not allowed in this operation.",
-            ));
-        };
+        // Week and day is the only use case where any of the units are not allowed.
+        if dissallow_week_and_day {
+            if matches!(options.largest_unit, Some(TemporalUnit::Week) | Some(TemporalUnit::Day))
+                || matches!(options.smallest_unit, Some(TemporalUnit::Week) | Some(TemporalUnit::Day))
+            {
+                return Err(TemporalError::range()
+                    .with_message("Weeks and days are not allowed in this operation."));
+            }
+        }
         // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         unit_group.validate_unit(options.largest_unit, None)?;
