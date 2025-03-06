@@ -3,14 +3,14 @@
 use alloc::string::String;
 use core::str::FromStr;
 
-use tinystr::TinyAsciiStr;
-
 use crate::{
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
     parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap,
+    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
+
+use super::{PartialDate, PlainDate};
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
@@ -47,6 +47,14 @@ impl PlainMonthDay {
         // 1972 is the first leap year in the Unix epoch (needed to cover all dates)
         let iso = IsoDate::new_with_overflow(ry, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
+    }
+
+    pub fn with(
+        &self,
+        _partial: PartialDate,
+        _overflow: ArithmeticOverflow,
+    ) -> TemporalResult<Self> {
+        Err(TemporalError::general("Not yet implemented."))
     }
 
     /// Returns the iso day value of `MonthDay`.
@@ -86,8 +94,12 @@ impl PlainMonthDay {
 
     /// Returns the `monthCode` value of `MonthDay`.
     #[inline]
-    pub fn month_code(&self) -> TemporalResult<TinyAsciiStr<4>> {
+    pub fn month_code(&self) -> TemporalResult<MonthCode> {
         self.calendar.month_code(&self.iso)
+    }
+
+    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+        Err(TemporalError::general("Not yet implemented"))
     }
 
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
@@ -113,6 +125,15 @@ impl FromStr for PlainMonthDay {
             .map(Calendar::from_utf8)
             .transpose()?
             .unwrap_or_default();
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
 
         let date = record.date;
 
