@@ -210,8 +210,8 @@ impl ZonedDateTime {
         if unit.is_time_unit() {
             // a. Let difference be TimeDurationFromEpochNanosecondsDifference(ns2, ns1).
             let diff = NormalizedTimeDuration::from_nanosecond_difference(
-                other.epoch_nanoseconds(),
-                self.epoch_nanoseconds(),
+                other.epoch_nanoseconds().as_i128(),
+                self.epoch_nanoseconds().as_i128(),
             )?;
             // b. Return TotalTimeDuration(difference, unit).
             return Ok(diff.total(unit))?;
@@ -225,7 +225,7 @@ impl ZonedDateTime {
             .get_iso_datetime_for(&self.instant, provider)?;
         // 4. Return ? TotalRelativeDuration(difference, ns2, dateTime, timeZone, calendar, unit).
         diff.total_relative_duration(
-            other.epoch_nanoseconds(),
+            other.epoch_nanoseconds().as_i128(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
             Some((self.timezone(), provider)),
             unit,
