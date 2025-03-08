@@ -740,10 +740,8 @@ impl Duration {
                 // g. Let targetDateTime be CombineISODateAndTimeRecord(targetDate, targetTime).
                 let target_date_time = IsoDateTime::new_unchecked(target_date.iso, time.iso);
                 // h. Let total be ? DifferencePlainDateTimeWithTotal(isoDateTime, targetDateTime, calendar, unit).
-                let plain_dt = PlainDateTime::new_unchecked(
-                    iso_date_time,
-                    plain_date.calendar().clone(),
-                );
+                let plain_dt =
+                    PlainDateTime::new_unchecked(iso_date_time, plain_date.calendar().clone());
                 let total = plain_dt.diff_dt_with_total(
                     &PlainDateTime::new_unchecked(target_date_time, calendar.clone()),
                     unit,
