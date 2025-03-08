@@ -197,6 +197,15 @@ impl NormalizedTimeDuration {
         ))
     }
 
+    /// Equivalent: 7.5.31 TotalTimeDuration ( timeDuration, unit )
+    pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<i128> {
+        // 1. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
+        let divisor = unit.as_nanoseconds().temporal_unwrap()?;
+        // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer. The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
+        // 3. Return timeDuration / divisor.
+        Ok(self.0 / i128::from(divisor))
+    }
+
     /// Round the current `NormalizedTimeDuration`.
     pub(super) fn round_inner(
         &self,
@@ -979,11 +988,11 @@ impl NormalizedDurationRecord {
             });
         }
         // 2. Let timeDuration be ! Add24HourDaysToTimeDuration(duration.[[Time]], duration.[[Date]].[[Days]]).
-
         let time_duration = self
             .normalized_time_duration()
-            .add_days(PlainDate::new_unchecked(dt.iso, dt.calendar()));
-        todo!()
+            .add_days(self.date().days.as_())?;
+        // Return TotalTimeDuration(timeDuration, unit).
+        return Ok(time_duration.total(unit))?;
     }
 }
 
