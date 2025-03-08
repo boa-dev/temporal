@@ -685,3 +685,118 @@ fn test_duration_compare() {
         )
     }
 }
+
+#[test]
+fn test_duration_total() {
+    let d1 = Duration::from_partial_duration(PartialDuration {
+        hours: Some(FiniteF64::from(130)),
+        minutes: Some(FiniteF64::from(20)),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(d1.total(TemporalUnit::Second, None).unwrap(), 469200.0);
+
+    // How many 24-hour days is 123456789 seconds?
+    let d2 = Duration::from_str("PT123456789S").unwrap();
+    assert_eq!(
+        d2.total(TemporalUnit::Day, None).unwrap(),
+        1428.8980208333332
+    );
+
+    // Find totals in months, with and without taking DST into account
+    let d3 = Duration::from_partial_duration(PartialDuration {
+        hours: Some(FiniteF64::from(2756)),
+        ..Default::default()
+    })
+    .unwrap();
+    let relative_to = ZonedDateTime::from_str(
+        "2020-01-01T00:00+01:00[Europe/Rome]",
+        Default::default(),
+        OffsetDisambiguation::Reject,
+    )
+    .unwrap();
+    assert_eq!(
+        d3.total(
+            TemporalUnit::Month,
+            Some(RelativeTo::ZonedDateTime(relative_to))
+        )
+        .unwrap(),
+        3.7958333333333334
+    );
+    assert_eq!(
+        d3.total(
+            TemporalUnit::Month,
+            Some(RelativeTo::PlainDate(
+                PlainDate::new(2020, 1, 1, Calendar::default()).unwrap()
+            ))
+        )
+        .unwrap(),
+        3.7944444444444443
+    );
+}
+
+// balance-subseconds.js
+#[test]
+fn balance_subseconds() {
+    // Test positive
+    let pos = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(999)),
+        microseconds: Some(FiniteF64::from(999999)),
+        nanoseconds: Some(FiniteF64::from(999999999)),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(pos.total(TemporalUnit::Second, None).unwrap(), 2.998998999);
+
+    // Test negative
+    let neg = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(-999)),
+        microseconds: Some(FiniteF64::from(-999999)),
+        nanoseconds: Some(FiniteF64::from(-999999999)),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(neg.total(TemporalUnit::Second, None).unwrap(), -2.998998999);
+}
+
+// balances-days-up-to-both-years-and-months.js
+#[test]
+fn balance_days_up_to_both_years_and_months() {
+    // Test positive
+    let two_years = Duration::from_partial_duration(PartialDuration {
+        months: Some(FiniteF64::from(11)),
+        days: Some(FiniteF64::from(396)),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let relative_to = PlainDate::new(2017, 1, 1, Calendar::default()).unwrap();
+
+    assert_eq!(
+        two_years
+            .total(
+                TemporalUnit::Year,
+                Some(RelativeTo::PlainDate(relative_to.clone()))
+            )
+            .unwrap(),
+        2.0
+    );
+
+    // Test negative
+    let two_years_negative = Duration::from_partial_duration(PartialDuration {
+        months: Some(FiniteF64::from(-11)),
+        days: Some(FiniteF64::from(-396)),
+        ..Default::default()
+    })
+    .unwrap();
+
+    assert_eq!(
+        two_years_negative
+            .total(
+                TemporalUnit::Year,
+                Some(RelativeTo::PlainDate(relative_to.clone()))
+            )
+            .unwrap(),
+        -2.0
+    );
+}

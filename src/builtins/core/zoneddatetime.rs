@@ -199,6 +199,39 @@ impl ZonedDateTime {
         )
     }
 
+    /// Internal representation of Abstract Op 6.5.8
+    pub(crate) fn diff_with_total(
+        &self,
+        other: &Self,
+        unit: TemporalUnit,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<f64> {
+        // 1. If TemporalUnitCategory(unit) is time, then
+        if unit.is_time_unit() {
+            // a. Let difference be TimeDurationFromEpochNanosecondsDifference(ns2, ns1).
+            let diff = NormalizedTimeDuration::from_nanosecond_difference(
+                other.epoch_nanoseconds().as_i128(),
+                self.epoch_nanoseconds().as_i128(),
+            )?;
+            // b. Return TotalTimeDuration(difference, unit).
+            return Ok(diff.total(unit))?;
+        }
+
+        // 2. Let difference be ? DifferenceZonedDateTime(ns1, ns2, timeZone, calendar, unit).
+        let diff = self.diff_zoned_datetime(other, unit, provider)?;
+        // 3. Let dateTime be GetISODateTimeFor(timeZone, ns1).
+        let iso = self
+            .timezone()
+            .get_iso_datetime_for(&self.instant, provider)?;
+        // 4. Return ? TotalRelativeDuration(difference, ns2, dateTime, timeZone, calendar, unit).
+        diff.total_relative_duration(
+            other.epoch_nanoseconds().as_i128(),
+            &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
+            Some((self.timezone(), provider)),
+            unit,
+        )
+    }
+
     pub(crate) fn diff_zoned_datetime(
         &self,
         other: &Self,
