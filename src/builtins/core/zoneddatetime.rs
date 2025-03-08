@@ -205,7 +205,7 @@ impl ZonedDateTime {
         other: &Self,
         unit: TemporalUnit,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<i128> {
+    ) -> TemporalResult<f64> {
         // 1. If TemporalUnitCategory(unit) is time, then
         if unit.is_time_unit() {
             // a. Let difference be TimeDurationFromEpochNanosecondsDifference(ns2, ns1).

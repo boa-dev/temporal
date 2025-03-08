@@ -1,4 +1,4 @@
-use std::string::ToString;
+use std::{dbg, string::ToString};
 
 use crate::{
     options::{
@@ -684,4 +684,55 @@ fn test_duration_compare() {
             [&one, &three, &two].map(ToString::to_string)
         )
     }
+}
+
+#[test]
+fn test_duration_total() {
+    let d1 = Duration::from_partial_duration(PartialDuration {
+        hours: Some(FiniteF64::from(130)),
+        minutes: Some(FiniteF64::from(20)),
+        ..Default::default()
+    })
+    .unwrap();
+    let d1_actual = d1.total(TemporalUnit::Second, None).unwrap();
+    dbg!(d1_actual);
+    assert_eq!(d1_actual, 469200.0);
+
+    // How many 24-hour days is 123456789 seconds?
+    let d2 = Duration::from_str("PT123456789S").unwrap();
+    let d2_actual = d2.total(TemporalUnit::Day, None).unwrap();
+    dbg!(d2_actual);
+    assert_eq!(d2_actual, 1428.8980208333332);
+
+    // Find totals in months, with and without taking DST into account
+    let d3 = Duration::from_partial_duration(PartialDuration {
+        hours: Some(FiniteF64::from(2756)),
+        ..Default::default()
+    })
+    .unwrap();
+    let relative_to = ZonedDateTime::from_str(
+        "2020-01-01T00:00+01:00[Europe/Rome]",
+        Default::default(),
+        OffsetDisambiguation::Reject,
+    )
+    .unwrap();
+    let d3_zoned_actual = d3
+        .total(
+            TemporalUnit::Month,
+            Some(RelativeTo::ZonedDateTime(relative_to)),
+        )
+        .unwrap();
+    dbg!(d3_zoned_actual);
+    assert_eq!(d3_zoned_actual, 3.7958333333333334);
+
+    let d3_plain_actual = d3
+        .total(
+            TemporalUnit::Month,
+            Some(RelativeTo::PlainDate(
+                PlainDate::new(2020, 1, 1, Calendar::default()).unwrap(),
+            )),
+        )
+        .unwrap();
+    dbg!(d3_plain_actual);
+    assert_eq!(d3_plain_actual, 3.7944444444444443);
 }

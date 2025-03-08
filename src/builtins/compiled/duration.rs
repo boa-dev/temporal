@@ -44,7 +44,7 @@ impl Duration {
         &self,
         unit: TemporalUnit,
         relative_to: Option<RelativeTo>,
-    ) -> TemporalResult<i64> {
+    ) -> TemporalResult<f64> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;

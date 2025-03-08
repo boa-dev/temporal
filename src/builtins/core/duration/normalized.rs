@@ -198,12 +198,12 @@ impl NormalizedTimeDuration {
     }
 
     /// Equivalent: 7.5.31 TotalTimeDuration ( timeDuration, unit )
-    pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<i128> {
+    pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<f64> {
         // 1. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
         let divisor = unit.as_nanoseconds().temporal_unwrap()?;
         // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer. The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
         // 3. Return timeDuration / divisor.
-        Ok(self.0 / i128::from(divisor))
+        Ok(self.0 as f64 / divisor as f64)
     }
 
     /// Round the current `NormalizedTimeDuration`.
@@ -963,7 +963,7 @@ impl NormalizedDurationRecord {
         dt: &PlainDateTime,
         tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
         unit: TemporalUnit,
-    ) -> TemporalResult<i128> {
+    ) -> TemporalResult<f64> {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
         if unit.is_calendar_unit() || (tz.is_some() && unit == TemporalUnit::Day) {
             // a. Let sign be InternalDurationSign(duration).
@@ -983,9 +983,7 @@ impl NormalizedDurationRecord {
             )?;
 
             // c. Return record.[[Total]].
-            return record._total.ok_or_else(|| {
-                TemporalError::range().with_message("TotalRelativeDuration: _total is None")
-            });
+            return Ok(record._total.map(|t| t as f64).unwrap_or(0.0));
         }
         // 2. Let timeDuration be ! Add24HourDaysToTimeDuration(duration.[[Time]], duration.[[Date]].[[Days]]).
         let time_duration = self

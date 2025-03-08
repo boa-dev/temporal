@@ -689,7 +689,7 @@ impl Duration {
         unit: TemporalUnit,
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<i64> {
+    ) -> TemporalResult<f64> {
         match relative_to {
             // 11. If zonedRelativeTo is not undefined, then
             Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {
@@ -711,8 +711,9 @@ impl Duration {
                     provider,
                 )?;
                 // Review question what is the return type of total?
-                // Might overflow lol, should i change this function's signature to return i128?
-                Ok(total as i64)
+                // total seems to return floating point numbers, but the signature was orignally
+                // returning a TemporalResult<i64>?? I changed this, but I'm not sure if this is correct.
+                Ok(total)
             }
             // 12. Else if plainRelativeTo is not undefined, then
             Some(RelativeTo::PlainDate(plain_date)) => {
@@ -746,7 +747,7 @@ impl Duration {
                     &PlainDateTime::new_unchecked(target_date_time, calendar.clone()),
                     unit,
                 )?;
-                Ok(total as i64)
+                Ok(total)
             }
             None => {
                 // a. Let largestUnit be DefaultTemporalLargestUnit(duration).
@@ -758,7 +759,7 @@ impl Duration {
                 // c. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
                 // d. Let total be TotalTimeDuration(internalDuration.[[Time]], unit).
                 let total = self.time.to_normalized().total(unit)?;
-                Ok(total as i64)
+                Ok(total)
             }
         }
     }
