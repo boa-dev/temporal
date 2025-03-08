@@ -52,7 +52,7 @@ impl Instant {
     /// Temporal-Proposal equivalent: `AddInstant`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         let norm = NormalizedTimeDuration::from_time_duration(duration);
-        let result = self.epoch_nanoseconds() + norm.0;
+        let result = self.epoch_nanoseconds().0 + norm.0;
         Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
@@ -231,8 +231,8 @@ impl Instant {
 
     /// Returns the `epochNanoseconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_nanoseconds(&self) -> i128 {
-        self.as_i128()
+    pub fn epoch_nanoseconds(&self) -> &EpochNanoseconds {
+        &self.0
     }
 
     // TODO: May end up needing a provider API during impl
@@ -350,8 +350,8 @@ mod tests {
         let max_instant = Instant::try_new(max).unwrap();
         let min_instant = Instant::try_new(min).unwrap();
 
-        assert_eq!(max_instant.epoch_nanoseconds(), max);
-        assert_eq!(min_instant.epoch_nanoseconds(), min);
+        assert_eq!(max_instant.epoch_nanoseconds().0, max);
+        assert_eq!(min_instant.epoch_nanoseconds().0, min);
 
         let max_plus_one = NS_MAX_INSTANT + 1;
         let min_minus_one = NS_MIN_INSTANT - 1;

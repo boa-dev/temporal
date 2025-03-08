@@ -22,7 +22,6 @@
 //!
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
-use alloc::string::ToString;
 use core::num::NonZeroU128;
 use ixdtf::parsers::records::TimeRecord;
 
@@ -44,7 +43,7 @@ use crate::{
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
-use num_traits::{cast::FromPrimitive, AsPrimitive, Euclid, ToPrimitive};
+use num_traits::{cast::FromPrimitive, AsPrimitive, Euclid};
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
 #[non_exhaustive]
@@ -77,19 +76,19 @@ impl IsoDateTime {
     // TODO: Move away from offset use of f64
     /// Creates an `IsoDateTime` from a `BigInt` of epochNanoseconds.
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
-    pub(crate) fn from_epoch_nanos(nanos: &i128, offset: i64) -> TemporalResult<Self> {
+    pub(crate) fn from_epoch_nanos(
+        epoch_nanoseconds: &EpochNanoseconds,
+        offset: i64,
+    ) -> TemporalResult<Self> {
         // Skip the assert as nanos should be validated by Instant.
         // TODO: Determine whether value needs to be validated as integral.
         // Get the component ISO parts
-        let mathematical_nanos = nanos.to_i64().ok_or_else(|| {
-            TemporalError::range().with_message("nanos was not within a valid range.")
-        })?;
 
         // 2. Let remainderNs be epochNanoseconds modulo 10^6.
-        let remainder_nanos = mathematical_nanos.rem_euclid(1_000_000);
+        let remainder_nanos = epoch_nanoseconds.0.rem_euclid(1_000_000);
 
         // 3. Let epochMilliseconds be 𝔽((epochNanoseconds - remainderNs) / 10^6).
-        let epoch_millis = (mathematical_nanos - remainder_nanos) / 1_000_000;
+        let epoch_millis = (epoch_nanoseconds.0 - remainder_nanos).div_euclid(1_000_000) as i64;
 
         let (year, month, day) = utils::ymd_from_epoch_milliseconds(epoch_millis);
 
@@ -103,11 +102,11 @@ impl IsoDateTime {
         let millis = epoch_millis.rem_euclid(1000);
 
         // 11. Let microsecond be floor(remainderNs / 1000).
-        let micros = remainder_nanos.div_euclid(1000);
+        let micros = remainder_nanos.div_euclid(1_000) as i64;
         // 12. Assert: microsecond < 1000.
         temporal_assert!(micros < 1000);
         // 13. Let nanosecond be remainderNs modulo 1000.
-        let nanos = remainder_nanos.rem_euclid(1000);
+        let nanos = remainder_nanos.rem_euclid(1000) as i64;
 
         Ok(Self::balance(
             year,
@@ -513,9 +512,8 @@ impl IsoDate {
 
 impl IsoDate {
     /// Creates `[[ISOYear]]`, `[[isoMonth]]`, `[[isoDay]]` fields from `ICU4X`'s `Date<Iso>` struct.
-    pub(crate) fn as_icu4x(self) -> TemporalResult<IcuDate<Iso>> {
-        IcuDate::try_new_iso(self.year, self.month, self.day)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))
+    pub(crate) fn to_icu4x(self) -> IcuDate<Iso> {
+        IcuDate::try_new_iso(self.year, self.month, self.day).expect("must not fail.")
     }
 }
 
@@ -635,11 +633,17 @@ impl IsoTime {
     /// Returns an `IsoTime` based off parse components.
     pub(crate) fn from_time_record(time_record: TimeRecord) -> TemporalResult<Self> {
         let second = time_record.second.clamp(0, 59);
-        let (millisecond, rem) = time_record
+        let fractional_seconds = time_record
             .fraction
-            .and_then(|x| x.to_nanoseconds())
-            .map(|x| x.div_rem_euclid(&1_000_000))
-            .unwrap_or((0, 0));
+            .map(|x| {
+                x.to_nanoseconds().ok_or(
+                    TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+                )
+            })
+            .transpose()?
+            .unwrap_or(0);
+
+        let (millisecond, rem) = fractional_seconds.div_rem_euclid(&1_000_000);
         let (micros, nanos) = rem.div_rem_euclid(&1_000);
 
         Self::new(
@@ -1036,9 +1040,17 @@ fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
 
 #[cfg(test)]
 mod tests {
-    use super::iso_date_to_epoch_days;
+    use super::{iso_date_to_epoch_days, IsoDate};
 
     const MAX_DAYS_BASE: i32 = 100_000_000;
+
+    #[test]
+    fn icu4x_max_conversion_test() {
+        // Test that the max ISO date does not panic on conversion
+        let _ = IsoDate::new_unchecked(275_760, 9, 13).to_icu4x();
+        // Test that the min ISO date does not panic on conversion
+        let _ = IsoDate::new_unchecked(-271_821, 4, 20).to_icu4x();
+    }
 
     #[test]
     fn iso_date_to_epoch_days_limits() {

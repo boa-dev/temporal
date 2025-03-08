@@ -102,7 +102,7 @@ pub mod ffi {
         }
 
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
-            let ns = self.0.epoch_nanoseconds();
+            let ns = self.0.epoch_nanoseconds().as_i128();
             let is_neg = ns < 0;
             let ns = ns.unsigned_abs();
 

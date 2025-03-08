@@ -363,83 +363,83 @@ impl Calendar {
     }
 
     /// `CalendarEra`
-    pub fn era(&self, iso_date: &IsoDate) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+    pub fn era(&self, iso_date: &IsoDate) -> Option<TinyAsciiStr<16>> {
         if self.is_iso() {
-            return Ok(None);
+            return None;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.year(&calendar_date).standard_era().map(|era| era.0))
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.year(&calendar_date).standard_era().map(|era| era.0)
     }
 
     /// `CalendarEraYear`
-    pub fn era_year(&self, iso_date: &IsoDate) -> TemporalResult<Option<i32>> {
+    pub fn era_year(&self, iso_date: &IsoDate) -> Option<i32> {
         if self.is_iso() {
-            return Ok(None);
+            return None;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.year(&calendar_date).era_year())
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.year(&calendar_date).era_year()
     }
 
     /// `CalendarYear`
-    pub fn year(&self, iso_date: &IsoDate) -> TemporalResult<i32> {
+    pub fn year(&self, iso_date: &IsoDate) -> i32 {
         if self.is_iso() {
-            return Ok(iso_date.year);
+            return iso_date.year;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.year(&calendar_date).extended_year)
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.year(&calendar_date).extended_year
     }
 
     /// `CalendarMonth`
-    pub fn month(&self, iso_date: &IsoDate) -> TemporalResult<u8> {
+    pub fn month(&self, iso_date: &IsoDate) -> u8 {
         if self.is_iso() {
-            return Ok(iso_date.month);
+            return iso_date.month;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.month(&calendar_date).month_number())
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.month(&calendar_date).month_number()
     }
 
     /// `CalendarMonthCode`
-    pub fn month_code(&self, iso_date: &IsoDate) -> TemporalResult<MonthCode> {
+    pub fn month_code(&self, iso_date: &IsoDate) -> MonthCode {
         if self.is_iso() {
-            let mc = iso_date.as_icu4x()?.month().standard_code.0;
-            return Ok(MonthCode(mc));
+            let mc = iso_date.to_icu4x().month().standard_code.0;
+            return MonthCode(mc);
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(MonthCode(self.0.month(&calendar_date).standard_code.0))
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        MonthCode(self.0.month(&calendar_date).standard_code.0)
     }
 
     /// `CalendarDay`
-    pub fn day(&self, iso_date: &IsoDate) -> TemporalResult<u8> {
+    pub fn day(&self, iso_date: &IsoDate) -> u8 {
         if self.is_iso() {
-            return Ok(iso_date.day);
+            return iso_date.day;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.day_of_month(&calendar_date).0)
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.day_of_month(&calendar_date).0
     }
 
     /// `CalendarDayOfWeek`
-    pub fn day_of_week(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
+    pub fn day_of_week(&self, iso_date: &IsoDate) -> u16 {
         if self.is_iso() {
-            return Ok(iso_date.as_icu4x()?.day_of_week() as u16);
+            return iso_date.to_icu4x().day_of_week() as u16;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
         // TODO: Understand ICU4X's decision for `IsoWeekDay` to be `i8`
-        Ok(self.0.day_of_week(&calendar_date) as u16)
+        self.0.day_of_week(&calendar_date) as u16
     }
 
     /// `CalendarDayOfYear`
-    pub fn day_of_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
+    pub fn day_of_year(&self, iso_date: &IsoDate) -> u16 {
         if self.is_iso() {
-            return Ok(iso_date.as_icu4x()?.day_of_year_info().day_of_year);
+            return iso_date.to_icu4x().day_of_year_info().day_of_year;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.day_of_year_info(&calendar_date).day_of_year)
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.day_of_year_info(&calendar_date).day_of_year
     }
 
     /// `CalendarWeekOfYear`
     pub fn week_of_year(&self, iso_date: &IsoDate) -> TemporalResult<Option<u16>> {
         if self.is_iso() {
-            let date = iso_date.as_icu4x()?;
+            let date = iso_date.to_icu4x();
             let week_calculator = WeekCalculator::default();
             let week_of = date.week_of_year(&week_calculator);
             return Ok(Some(week_of.week as u16));
@@ -451,7 +451,7 @@ impl Calendar {
     /// `CalendarYearOfWeek`
     pub fn year_of_week(&self, iso_date: &IsoDate) -> TemporalResult<Option<i32>> {
         if self.is_iso() {
-            let date = iso_date.as_icu4x()?;
+            let date = iso_date.to_icu4x();
 
             let week_calculator = WeekCalculator::default();
 
@@ -477,39 +477,39 @@ impl Calendar {
     }
 
     /// `CalendarDaysInMonth`
-    pub fn days_in_month(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
+    pub fn days_in_month(&self, iso_date: &IsoDate) -> u16 {
         if self.is_iso() {
-            return Ok(iso_date.as_icu4x()?.days_in_month() as u16);
+            return iso_date.to_icu4x().days_in_month() as u16;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.days_in_month(&calendar_date) as u16)
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.days_in_month(&calendar_date) as u16
     }
 
     /// `CalendarDaysInYear`
-    pub fn days_in_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
+    pub fn days_in_year(&self, iso_date: &IsoDate) -> u16 {
         if self.is_iso() {
-            return Ok(iso_date.as_icu4x()?.days_in_year());
+            return iso_date.to_icu4x().days_in_year();
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.days_in_year(&calendar_date))
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.days_in_year(&calendar_date)
     }
 
     /// `CalendarMonthsInYear`
-    pub fn months_in_year(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
+    pub fn months_in_year(&self, iso_date: &IsoDate) -> u16 {
         if self.is_iso() {
-            return Ok(12);
+            return 12;
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.months_in_year(&calendar_date) as u16)
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.months_in_year(&calendar_date) as u16
     }
 
     /// `CalendarInLeapYear`
-    pub fn in_leap_year(&self, iso_date: &IsoDate) -> TemporalResult<bool> {
+    pub fn in_leap_year(&self, iso_date: &IsoDate) -> bool {
         if self.is_iso() {
-            return Ok(iso_date.as_icu4x()?.is_in_leap_year());
+            return iso_date.to_icu4x().is_in_leap_year();
         }
-        let calendar_date = self.0.date_from_iso(iso_date.as_icu4x()?);
-        Ok(self.0.is_in_leap_year(&calendar_date))
+        let calendar_date = self.0.date_from_iso(iso_date.to_icu4x());
+        self.0.is_in_leap_year(&calendar_date)
     }
 
     /// Returns the identifier of this calendar slot.

@@ -8,6 +8,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <memory>
+#include <functional>
 #include <optional>
 #include "../diplomat_runtime.hpp"
 #include "ArithmeticOverflow.hpp"
@@ -35,8 +36,7 @@ namespace capi {
     
     const temporal_rs::capi::Calendar* temporal_rs_PlainMonthDay_calendar(const temporal_rs::capi::PlainMonthDay* self);
     
-    typedef struct temporal_rs_PlainMonthDay_month_code_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_month_code_result;
-    temporal_rs_PlainMonthDay_month_code_result temporal_rs_PlainMonthDay_month_code(const temporal_rs::capi::PlainMonthDay* self, diplomat::capi::DiplomatWrite* write);
+    void temporal_rs_PlainMonthDay_month_code(const temporal_rs::capi::PlainMonthDay* self, diplomat::capi::DiplomatWrite* write);
     
     typedef struct temporal_rs_PlainMonthDay_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_to_plain_date_result;
     temporal_rs_PlainMonthDay_to_plain_date_result temporal_rs_PlainMonthDay_to_plain_date(const temporal_rs::capi::PlainMonthDay* self);
@@ -84,12 +84,12 @@ inline const temporal_rs::Calendar& temporal_rs::PlainMonthDay::calendar() const
   return *temporal_rs::Calendar::FromFFI(result);
 }
 
-inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::PlainMonthDay::month_code() const {
+inline std::string temporal_rs::PlainMonthDay::month_code() const {
   std::string output;
   diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
-  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_month_code(this->AsFFI(),
+  temporal_rs::capi::temporal_rs_PlainMonthDay_month_code(this->AsFFI(),
     &write);
-  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return output;
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainMonthDay::to_plain_date() const {

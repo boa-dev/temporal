@@ -58,11 +58,10 @@ pub mod ffi {
             Calendar::transparent_convert(self.0.calendar())
         }
 
-        pub fn month_code(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
-            let code = self.0.month_code().map_err(Into::<TemporalError>::into)?;
+        pub fn month_code(&self, write: &mut DiplomatWrite) {
+            let code = self.0.month_code();
             // throw away the error, this should always succeed
             let _ = write.write_str(code.as_str());
-            Ok(())
         }
 
         pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {

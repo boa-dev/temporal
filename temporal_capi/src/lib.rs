@@ -4,6 +4,15 @@
 #![allow(clippy::too_many_arguments)] // We're mapping APIs with the same argument size
 #![allow(clippy::wrong_self_convention)] // Diplomat forces self conventions that may not always be ideal
 
+//! This crate contains the original definitions of [`temporal_rs`] APIs consumed by [Diplomat](https://github.com/rust-diplomat/diplomat)
+//! to generate FFI bindings. We currently generate bindings for C++ and `extern "C"` APIs.
+//!
+//! The APIs exposed by this crate are *not intended to be used from Rust* and as such this crate may change its Rust API
+//! across compatible semver versions. In contrast, the `extern "C"` APIs and all the language bindings are stable within
+//! the same major semver version.
+//!
+//! [`temporal_rs`]: http://crates.io/crates/temporal_rs
+
 pub mod calendar;
 pub mod duration;
 pub mod error;

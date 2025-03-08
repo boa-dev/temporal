@@ -66,6 +66,10 @@ pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<Op
     // First offset portion
     let hours = parse_digit_pair(chars)?;
 
+    if !(0..24).contains(&hours) {
+        return Err(TemporalError::range().with_message("Invalid offset hour value."));
+    }
+
     let sep = chars.peek().is_some_and(|ch| *ch == ':');
     if sep {
         let _ = chars.next();
@@ -79,7 +83,54 @@ pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<Op
         None => 0,
     };
 
-    Ok(Some((hours * 60 + minutes) * sign))
+    if !(0..60).contains(&minutes) {
+        return Err(TemporalError::range().with_message("Invalid offset hour value."));
+    }
+
+    let result = Some((hours * 60 + minutes) * sign);
+
+    // We continue parsing for correctness, but we only care about
+    // minute precision
+
+    let next_peek = chars.peek();
+    match next_peek {
+        Some(&':') if sep => _ = chars.next(),
+        Some(&':') => {
+            return Err(TemporalError::range().with_message("offset separators do not align."))
+        }
+        Some(_) => _ = parse_digit_pair(chars),
+        None => return Ok(result),
+    }
+
+    let potential_fraction = chars.next();
+    match potential_fraction {
+        Some(ch) if ch == '.' || ch == ',' => {
+            if !chars.peek().is_some_and(|ch| ch.is_ascii_digit()) {
+                return Err(
+                    TemporalError::range().with_message("fraction separator must have digit after")
+                );
+            }
+        }
+        Some(_) => return Err(TemporalError::range().with_message("Invalid offset")),
+        None => return Ok(result),
+    }
+
+    for _ in 0..9 {
+        let digit_or_end = chars.next().map(|ch| ch.is_ascii_digit());
+        match digit_or_end {
+            Some(true) => {}
+            Some(false) => {
+                return Err(TemporalError::range().with_message("Not a valid fractional second"))
+            }
+            None => break,
+        }
+    }
+
+    if chars.peek().is_some() {
+        return Err(TemporalError::range().with_message("Invalid offset"));
+    }
+
+    Ok(result)
 }
 
 fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
@@ -103,7 +154,15 @@ fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
     let tens = (first.to_digit(10).expect("validated") * 10) as i16;
     let ones = second.to_digit(10).expect("validated") as i16;
 
-    Ok(tens + ones)
+    let result = tens + ones;
+
+    if !(0..=59).contains(&result) {
+        return Err(
+            TemporalError::range().with_message("digit pair not in a valid range of [0..59]")
+        );
+    }
+
+    Ok(result)
 }
 
 fn parse_iana_component(chars: &mut Peekable<Chars<'_>>) -> bool {

@@ -5,6 +5,8 @@
 #include <string>
 #include <type_traits>
 #include <variant>
+#include <cstdint>
+#include <functional>
 
 #if __cplusplus >= 202002L
 #include <span>
@@ -49,7 +51,10 @@ bool diplomat_is_str(const char* buf, size_t len);
 
 #define MAKE_SLICES_AND_OPTIONS(name, c_ty) \
     MAKE_SLICES(name, c_ty) \
-    typedef struct Option##name {union { c_ty ok; }; bool is_ok; } Option##name;
+    typedef struct Option##name {union { c_ty ok; }; bool is_ok; } Option##name; \
+    typedef struct Option##name##View {union { Diplomat##name##View ok; }; bool is_ok; } Option##name##View; \
+    typedef struct Option##name##ViewMut {union { Diplomat##name##ViewMut ok; }; bool is_ok; } Option##name##ViewMut; \
+    typedef struct Option##name##Array {union { Diplomat##name##Array ok; }; bool is_ok; } Option##name##Array; \
 
 MAKE_SLICES_AND_OPTIONS(I8, int8_t)
 MAKE_SLICES_AND_OPTIONS(U8, uint8_t)
@@ -65,10 +70,10 @@ MAKE_SLICES_AND_OPTIONS(F32, float)
 MAKE_SLICES_AND_OPTIONS(F64, double)
 MAKE_SLICES_AND_OPTIONS(Bool, bool)
 MAKE_SLICES_AND_OPTIONS(Char, char32_t)
-MAKE_SLICES(String, char)
-MAKE_SLICES(String16, char16_t)
-MAKE_SLICES(Strings, DiplomatStringView)
-MAKE_SLICES(Strings16, DiplomatString16View)
+MAKE_SLICES_AND_OPTIONS(String, char)
+MAKE_SLICES_AND_OPTIONS(String16, char16_t)
+MAKE_SLICES_AND_OPTIONS(Strings, DiplomatStringView)
+MAKE_SLICES_AND_OPTIONS(Strings16, DiplomatString16View)
 
 } // extern "C"
 } // namespace capi
@@ -76,7 +81,7 @@ MAKE_SLICES(Strings16, DiplomatString16View)
 extern "C" inline void _flush(capi::DiplomatWrite* w) {
   std::string* string = reinterpret_cast<std::string*>(w->context);
   string->resize(w->len);
-};
+}
 
 extern "C" inline bool _grow(capi::DiplomatWrite* w, uintptr_t requested) {
   std::string* string = reinterpret_cast<std::string*>(w->context);
@@ -84,7 +89,7 @@ extern "C" inline bool _grow(capi::DiplomatWrite* w, uintptr_t requested) {
   w->cap = string->length();
   w->buf = &(*string)[0];
   return true;
-};
+}
 
 inline capi::DiplomatWrite WriteFromString(std::string& string) {
   capi::DiplomatWrite w;
@@ -97,11 +102,11 @@ inline capi::DiplomatWrite WriteFromString(std::string& string) {
   w.flush = _flush;
   w.grow = _grow;
   return w;
-};
+}
 
 template<class T> struct Ok {
   T inner;
-  Ok(T&& i): inner(std::move(i)) {}
+  Ok(T&& i): inner(std::forward<T>(i)) {}
   // We don't want to expose an lvalue-capable constructor in general
   // however there is no problem doing this for trivially copyable types
   template<typename X = T, typename = typename std::enable_if<std::is_trivially_copyable<X>::value>::type>
@@ -115,7 +120,7 @@ template<class T> struct Ok {
 
 template<class T> struct Err {
   T inner;
-  Err(T&& i): inner(std::move(i)) {}
+  Err(T&& i): inner(std::forward<T>(i)) {}
   // We don't want to expose an lvalue-capable constructor in general
   // however there is no problem doing this for trivially copyable types
   template<typename X = T, typename = typename std::enable_if<std::is_trivially_copyable<X>::value>::type>
@@ -142,17 +147,17 @@ public:
   ~result() = default;
   bool is_ok() const {
     return std::holds_alternative<Ok<T>>(this->val);
-  };
+  }
   bool is_err() const {
     return std::holds_alternative<Err<E>>(this->val);
-  };
+  }
 
   std::optional<T> ok() && {
     if (!this->is_ok()) {
       return std::nullopt;
     }
     return std::make_optional(std::move(std::get<Ok<T>>(std::move(this->val)).inner));
-  };
+  }
   std::optional<E> err() && {
     if (!this->is_err()) {
       return std::nullopt;
@@ -209,6 +214,61 @@ private:
 };
 
 #endif // __cplusplus >= 202002L
+
+// Interop between std::function & our C Callback wrapper type
+
+template <typename T> struct fn_traits;
+template <typename Ret, typename... Args> struct fn_traits<std::function<Ret(Args...)>> {
+    using fn_ptr_t = Ret(Args...);
+    using function_t = std::function<fn_ptr_t>;
+    using ret = Ret;
+
+    template <typename T, typename = void>
+    struct as_ffi {
+      using type = T;
+    };
+
+    template <typename T>
+    struct as_ffi<T, std::void_t<decltype(&T::AsFFI)>> {
+      using type = decltype(std::declval<T>().AsFFI());
+    };
+
+    template<typename T>
+    using as_ffi_t = typename as_ffi<T>::type;
+
+    template<typename T>
+    using replace_string_view_t = std::conditional_t<std::is_same_v<T, std::string_view>, capi::DiplomatStringView, T>;
+
+    template<typename T>
+    using replace_fn_t = replace_string_view_t<as_ffi_t<T>>;
+
+    // For a given T, creates a function that take in the C ABI version & return the C++ type.
+    template<typename T>
+    static T replace(replace_fn_t<T> val) {
+        if constexpr(std::is_same_v<T, std::string_view>)   {
+            return std::string_view{val.data, val.len};
+        } else if constexpr(!std::is_same_v<T, as_ffi_t<T>>) {
+            return T::FromFFI(val);
+        }
+        else {
+            return val;
+        }
+    }
+
+    static Ret c_run_callback(const void *cb, replace_fn_t<Args>... args) {
+        return (*reinterpret_cast<const function_t *>(cb))(replace<Args>(args)...);
+    }
+
+    static void c_delete(const void *cb) {
+        delete reinterpret_cast<const function_t *>(cb);
+    }
+
+    fn_traits(function_t) {} // Allows less clunky construction (avoids decltype)
+};
+
+// additional deduction guide required
+template<class T>
+fn_traits(T) -> fn_traits<T>;
 
 } // namespace diplomat
 
