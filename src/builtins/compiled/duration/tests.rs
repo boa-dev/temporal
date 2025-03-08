@@ -762,19 +762,6 @@ fn balance_subseconds() {
 // balances-days-up-to-both-years-and-months.js
 #[test]
 fn balance_days_up_to_both_years_and_months() {
-    // const twoYears = new Temporal.Duration(0, 11, 0, 396, 0, 0, 0, 0, 0, 0);
-    // assert.sameValue(twoYears.total({
-    //   unit: "years",
-    //   relativeTo: new Temporal.PlainDate(2017, 1, 1)
-    // }), 2);
-    //
-    // // (Negative)
-    // const twoYearsNegative = new Temporal.Duration(0, -11, 0, -396, 0, 0, 0, 0, 0, 0);
-    // assert.sameValue(twoYearsNegative.total({
-    //   unit: "years",
-    //   relativeTo: new Temporal.PlainDate(2017, 1, 1)
-    // }), -2);
-
     // Test positive
     let two_years = Duration::from_partial_duration(PartialDuration {
         months: Some(FiniteF64::from(11)),
@@ -796,7 +783,6 @@ fn balance_days_up_to_both_years_and_months() {
     );
 
     // Test negative
-
     let two_years_negative = Duration::from_partial_duration(PartialDuration {
         months: Some(FiniteF64::from(-11)),
         days: Some(FiniteF64::from(-396)),
