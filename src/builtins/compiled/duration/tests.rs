@@ -734,3 +734,27 @@ fn test_duration_total() {
         3.7944444444444443
     );
 }
+
+// balance-subseconds.js
+#[test]
+fn balance_subseconds() {
+    // Test positive
+    let pos = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(999)),
+        microseconds: Some(FiniteF64::from(999999)),
+        nanoseconds: Some(FiniteF64::from(999999999)),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(pos.total(TemporalUnit::Second, None).unwrap(), 2.998998999);
+
+    // Test negative
+    let neg = Duration::from_partial_duration(PartialDuration {
+        milliseconds: Some(FiniteF64::from(-999)),
+        microseconds: Some(FiniteF64::from(-999999)),
+        nanoseconds: Some(FiniteF64::from(-999999999)),
+        ..Default::default()
+    })
+    .unwrap();
+    assert_eq!(neg.total(TemporalUnit::Second, None).unwrap(), -2.998998999);
+}
