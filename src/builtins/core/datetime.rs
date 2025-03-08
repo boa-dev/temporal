@@ -227,12 +227,12 @@ impl PlainDateTime {
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
         let dest_epcch_ns = other.iso.as_nanoseconds()?;
         // 6. Return ? TotalRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, unit).
-        return diff.total_relative_duration(
+        diff.total_relative_duration(
             dest_epcch_ns.0,
             self,
             Option::<(&TimeZone, &NeverProvider)>::None,
             unit,
-        );
+        )
     }
 }
 
