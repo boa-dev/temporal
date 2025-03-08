@@ -1,4 +1,4 @@
-use std::{dbg, string::ToString};
+use std::string::ToString;
 
 use crate::{
     options::{
@@ -694,15 +694,14 @@ fn test_duration_total() {
         ..Default::default()
     })
     .unwrap();
-    let d1_actual = d1.total(TemporalUnit::Second, None).unwrap();
-    dbg!(d1_actual);
-    assert_eq!(d1_actual, 469200.0);
+    assert_eq!(d1.total(TemporalUnit::Second, None).unwrap(), 469200.0);
 
     // How many 24-hour days is 123456789 seconds?
     let d2 = Duration::from_str("PT123456789S").unwrap();
-    let d2_actual = d2.total(TemporalUnit::Day, None).unwrap();
-    dbg!(d2_actual);
-    assert_eq!(d2_actual, 1428.8980208333332);
+    assert_eq!(
+        d2.total(TemporalUnit::Day, None).unwrap(),
+        1428.8980208333332
+    );
 
     // Find totals in months, with and without taking DST into account
     let d3 = Duration::from_partial_duration(PartialDuration {
@@ -716,23 +715,22 @@ fn test_duration_total() {
         OffsetDisambiguation::Reject,
     )
     .unwrap();
-    let d3_zoned_actual = d3
-        .total(
+    assert_eq!(
+        d3.total(
             TemporalUnit::Month,
-            Some(RelativeTo::ZonedDateTime(relative_to)),
+            Some(RelativeTo::ZonedDateTime(relative_to))
         )
-        .unwrap();
-    dbg!(d3_zoned_actual);
-    assert_eq!(d3_zoned_actual, 3.7958333333333334);
-
-    let d3_plain_actual = d3
-        .total(
+        .unwrap(),
+        3.7958333333333334
+    );
+    assert_eq!(
+        d3.total(
             TemporalUnit::Month,
             Some(RelativeTo::PlainDate(
-                PlainDate::new(2020, 1, 1, Calendar::default()).unwrap(),
-            )),
+                PlainDate::new(2020, 1, 1, Calendar::default()).unwrap()
+            ))
         )
-        .unwrap();
-    dbg!(d3_plain_actual);
-    assert_eq!(d3_plain_actual, 3.7944444444444443);
+        .unwrap(),
+        3.7944444444444443
+    );
 }
