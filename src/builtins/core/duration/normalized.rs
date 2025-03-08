@@ -303,10 +303,7 @@ struct NudgeRecord {
     expanded: bool,
 }
 
-// TODO: Review question:
-// had to create a new nudgerecord that doesn't convert and store to i128 in nudge_calendar_unit(),
-// as well as a duplicate function to nudge_calendar_unit_f64() to make it work :/
-// Any suggestions on how to make it better?
+// TODO: Review question: Code needs to be refactored
 #[allow(dead_code)]
 struct NudgeRecordF64 {
     normalized: NormalizedDurationRecord,

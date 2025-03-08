@@ -690,8 +690,6 @@ impl Duration {
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
         // Review question what is the return type of duration.prototye.total?
-        // total seems to return floating point numbers, but the signature was orignally
-        // returning a TemporalResult<i64>?? I changed this, but I'm not sure if this is correct.
     ) -> TemporalResult<f64> {
         match relative_to {
             // 11. If zonedRelativeTo is not undefined, then
