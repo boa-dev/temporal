@@ -28,7 +28,7 @@ namespace capi {
     temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, const temporal_rs::capi::Calendar* calendar, temporal_rs::capi::ArithmeticOverflow overflow);
     
     typedef struct temporal_rs_PlainYearMonth_with_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
-    temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow overflow);
+    temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
     
     int32_t temporal_rs_PlainYearMonth_iso_year(const temporal_rs::capi::PlainYearMonth* self);
     
@@ -88,10 +88,10 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_r
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::with(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const {
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_with(this->AsFFI(),
     partial.AsFFI(),
-    overflow.AsFFI());
+    overflow.has_value() ? (temporal_rs::capi::ArithmeticOverflow_option{ { overflow.value().AsFFI() }, true }) : (temporal_rs::capi::ArithmeticOverflow_option{ {}, false }));
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
