@@ -180,11 +180,6 @@ impl PlainYearMonth {
         self.calendar.identifier()
     }
 
-    /// Returns the calendar day value.
-    pub fn day(&self) -> TemporalResult<u8> {
-        self.calendar.day(&self.iso)
-    }
-
     /// Creates a `PlainYearMonth` using the fields provided from a [`PartialDate`]
     pub fn with(
         &self,
@@ -194,9 +189,6 @@ impl PlainYearMonth {
         // 1. Let yearMonth be the this value.
         // 2. Perform ? RequireInternalSlot(yearMonth, [[InitializedTemporalYearMonth]]).
         // 3. If ? IsPartialTemporalObject(temporalYearMonthLike) is false, throw a TypeError exception.
-        if partial.is_empty() {
-            return Err(TemporalError::r#type().with_message("A PartialDate must have a field."));
-        };
         // 4. Let calendar be yearMonth.[[Calendar]].
         // 5. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
         // 6. Let partialYearMonth be ? PrepareCalendarFields(calendar, temporalYearMonthLike, « year, month, month-code », « », partial).
@@ -345,7 +337,7 @@ mod tests {
         assert_eq!(with_year.iso_year(), 2001); // year is changed
         assert_eq!(with_year.iso_month(), 3); // month is not changed
         assert_eq!(
-            with_year.month_code().unwrap(),
+            with_year.month_code(),
             MonthCode::from_str("M03").unwrap()
         ); // assert month code has been initialized correctly
 
@@ -358,7 +350,7 @@ mod tests {
         assert_eq!(with_month.iso_year(), 2025); // year is not changed
         assert_eq!(with_month.iso_month(), 2); // month is changed
         assert_eq!(
-            with_month.month_code().unwrap(),
+            with_month.month_code(),
             MonthCode::from_str("M02").unwrap()
         ); // assert month code has changed as well as month
 
@@ -370,7 +362,7 @@ mod tests {
         let with_month_code = base.with(partial, None).unwrap();
         assert_eq!(with_month_code.iso_year(), 2025); // year is not changed
         assert_eq!(
-            with_month_code.month_code().unwrap(),
+            with_month_code.month_code(),
             MonthCode::from_str("M05").unwrap()
         ); // assert month code has changed
         assert_eq!(with_month_code.iso_month(), 5); // month is changed as well
@@ -383,7 +375,7 @@ mod tests {
         let with_day = base.with(partial, None).unwrap();
         assert_eq!(with_day.iso_year(), 2025); // year is not changed
         assert_eq!(with_day.iso_month(), 3); // month is not changed
-        assert_eq!(with_day.iso.day, 15); // day is changed
+        assert_eq!(with_day.iso.day, 1); // day is ignored
 
         // All
         let partial = PartialDate {
@@ -395,7 +387,7 @@ mod tests {
         let with_all = base.with(partial, None).unwrap();
         assert_eq!(with_all.iso_year(), 2001); // year is changed
         assert_eq!(with_all.iso_month(), 2); // month is changed
-        assert_eq!(with_all.iso.day, 15); // day is changed
+        assert_eq!(with_all.iso.day, 1); // day is ignored
     }
 
     #[test]
