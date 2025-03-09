@@ -22,7 +22,6 @@
 //!
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
-use alloc::string::ToString;
 use core::num::NonZeroU128;
 use ixdtf::parsers::records::TimeRecord;
 
@@ -513,9 +512,8 @@ impl IsoDate {
 
 impl IsoDate {
     /// Creates `[[ISOYear]]`, `[[isoMonth]]`, `[[isoDay]]` fields from `ICU4X`'s `Date<Iso>` struct.
-    pub(crate) fn as_icu4x(self) -> TemporalResult<IcuDate<Iso>> {
-        IcuDate::try_new_iso(self.year, self.month, self.day)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))
+    pub(crate) fn to_icu4x(self) -> IcuDate<Iso> {
+        IcuDate::try_new_iso(self.year, self.month, self.day).expect("must not fail.")
     }
 }
 
@@ -1042,9 +1040,17 @@ fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
 
 #[cfg(test)]
 mod tests {
-    use super::iso_date_to_epoch_days;
+    use super::{iso_date_to_epoch_days, IsoDate};
 
     const MAX_DAYS_BASE: i32 = 100_000_000;
+
+    #[test]
+    fn icu4x_max_conversion_test() {
+        // Test that the max ISO date does not panic on conversion
+        let _ = IsoDate::new_unchecked(275_760, 9, 13).to_icu4x();
+        // Test that the min ISO date does not panic on conversion
+        let _ = IsoDate::new_unchecked(-271_821, 4, 20).to_icu4x();
+    }
 
     #[test]
     fn iso_date_to_epoch_days_limits() {

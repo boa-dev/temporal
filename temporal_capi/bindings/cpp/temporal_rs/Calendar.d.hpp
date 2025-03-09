@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <memory>
+#include <functional>
 #include <optional>
 #include "../diplomat_runtime.hpp"
 
@@ -59,19 +60,19 @@ public:
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> era(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> era_year(temporal_rs::IsoDate date) const;
+  inline std::optional<int32_t> era_year(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<int32_t, temporal_rs::TemporalError> year(temporal_rs::IsoDate date) const;
+  inline int32_t year(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint8_t, temporal_rs::TemporalError> month(temporal_rs::IsoDate date) const;
+  inline uint8_t month(temporal_rs::IsoDate date) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> month_code(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint8_t, temporal_rs::TemporalError> day(temporal_rs::IsoDate date) const;
+  inline uint8_t day(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week(temporal_rs::IsoDate date) const;
+  inline uint16_t day_of_week(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_year(temporal_rs::IsoDate date) const;
+  inline uint16_t day_of_year(temporal_rs::IsoDate date) const;
 
   inline diplomat::result<std::optional<uint16_t>, temporal_rs::TemporalError> week_of_year(temporal_rs::IsoDate date) const;
 
@@ -79,13 +80,13 @@ public:
 
   inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_month(temporal_rs::IsoDate date) const;
+  inline uint16_t days_in_month(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_year(temporal_rs::IsoDate date) const;
+  inline uint16_t days_in_year(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> months_in_year(temporal_rs::IsoDate date) const;
+  inline uint16_t months_in_year(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<bool, temporal_rs::TemporalError> in_leap_year(temporal_rs::IsoDate date) const;
+  inline bool in_leap_year(temporal_rs::IsoDate date) const;
 
   inline const temporal_rs::capi::Calendar* AsFFI() const;
   inline temporal_rs::capi::Calendar* AsFFI();
