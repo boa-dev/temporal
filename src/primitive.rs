@@ -55,6 +55,15 @@ impl FiniteF64 {
         Ok(result)
     }
 
+    #[inline]
+    pub fn checked_div(&self, other: &Self) -> TemporalResult<Self> {
+        let result = Self(self.0 / other.0);
+        if !result.0.is_finite() {
+            return Err(TemporalError::range().with_message("number value is not a finite value."));
+        }
+        Ok(result)
+    }
+
     pub fn copysign(&self, other: f64) -> Self {
         if !self.is_zero() {
             Self(self.0.copysign(other))

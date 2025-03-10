@@ -690,7 +690,7 @@ impl Duration {
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
         // Review question what is the return type of duration.prototye.total?
-    ) -> TemporalResult<f64> {
+    ) -> TemporalResult<FiniteF64> {
         match relative_to {
             // 11. If zonedRelativeTo is not undefined, then
             Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {

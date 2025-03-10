@@ -12,6 +12,7 @@ use crate::{
         ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
+    primitive::FiniteF64,
     provider::NeverProvider,
     temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -208,11 +209,11 @@ impl PlainDateTime {
         &self,
         other: &Self,
         unit: TemporalUnit,
-    ) -> TemporalResult<f64> {
+    ) -> TemporalResult<FiniteF64> {
         // 1. If CompareISODateTime(isoDateTime1, isoDateTime2) = 0, then
         //    a. Return 0.
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
-            return Ok(0.0);
+            return FiniteF64::try_from(0.0);
         }
         // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
         if !self.iso.is_within_limits() || !other.iso.is_within_limits() {
@@ -222,7 +223,7 @@ impl PlainDateTime {
         let diff = self.iso.diff(&other.iso, &self.calendar, unit)?;
         // 4. If unit is nanosecond, return diff.[[Time]].
         if unit == TemporalUnit::Nanosecond {
-            return Ok(diff.normalized_time_duration().0 as f64);
+            return FiniteF64::try_from(diff.normalized_time_duration().0);
         }
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
         let dest_epcch_ns = other.iso.as_nanoseconds()?;

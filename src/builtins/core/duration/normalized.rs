@@ -198,12 +198,16 @@ impl NormalizedTimeDuration {
     }
 
     /// Equivalent: 7.5.31 TotalTimeDuration ( timeDuration, unit )
-    pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<f64> {
+    /// TODO Fix: Arithemtic on floating point numbers is not safe. According to NOTE 2 in the spec
+    pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<FiniteF64> {
+        let time_duration = FiniteF64::try_from(self.0)?;
         // 1. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
-        let divisor = unit.as_nanoseconds().temporal_unwrap()?;
-        // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer. The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
+        let unit_nanoseconds = unit.as_nanoseconds().temporal_unwrap()?;
+        let divisor = FiniteF64::try_from(unit_nanoseconds)?;
+        // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer.
+        // The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
         // 3. Return timeDuration / divisor.
-        Ok(self.0 as f64 / divisor as f64)
+        time_duration.checked_div(&divisor)
     }
 
     /// Round the current `NormalizedTimeDuration`.
@@ -298,16 +302,7 @@ impl NormalizedDurationRecord {
 #[derive(Debug)]
 struct NudgeRecord {
     normalized: NormalizedDurationRecord,
-    _total: Option<i128>, // TODO: adjust
-    nudge_epoch_ns: i128,
-    expanded: bool,
-}
-
-// TODO: Review question: Code needs to be refactored
-#[allow(dead_code)]
-struct NudgeRecordF64 {
-    normalized: NormalizedDurationRecord,
-    _total: Option<f64>, // Adjusted to f64
+    _total: Option<FiniteF64>,
     nudge_epoch_ns: i128,
     expanded: bool,
 }
@@ -583,7 +578,7 @@ impl NormalizedDurationRecord {
                     end_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                _total: Some(total as i128),
+                _total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: end_epoch_ns.0,
                 expanded: true,
             })
@@ -597,215 +592,7 @@ impl NormalizedDurationRecord {
                     start_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                _total: Some(total as i128),
-                nudge_epoch_ns: start_epoch_ns.0,
-                expanded: false,
-            })
-        }
-    }
-
-    fn nudge_calendar_unit_f64(
-        &self,
-        sign: Sign,
-        dest_epoch_ns: i128,
-        dt: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
-        options: ResolvedRoundingOptions,
-    ) -> TemporalResult<NudgeRecordF64> {
-        let (r1, r2, start_duration, end_duration) = match options.smallest_unit {
-            TemporalUnit::Year => {
-                let years = IncrementRounder::from_signed_num(
-                    self.date().years.0,
-                    options.increment.as_extended_increment(),
-                )?
-                .round(TemporalRoundingMode::Trunc);
-                let r1 = years;
-                let r2 = years
-                    + i128::from(options.increment.get()) * i128::from(sign.as_sign_multiplier());
-                (
-                    r1,
-                    r2,
-                    DateDuration::new(
-                        FiniteF64::try_from(r1)?,
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                    )?,
-                    DateDuration::new(
-                        FiniteF64::try_from(r2)?,
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                    )?,
-                )
-            }
-            TemporalUnit::Month => {
-                let months = IncrementRounder::from_signed_num(
-                    self.date().months.0,
-                    options.increment.as_extended_increment(),
-                )?
-                .round(TemporalRoundingMode::Trunc);
-                let r1 = months;
-                let r2 = months
-                    + i128::from(options.increment.get()) * i128::from(sign.as_sign_multiplier());
-                (
-                    r1,
-                    r2,
-                    DateDuration::new(
-                        self.date().years,
-                        FiniteF64::try_from(r1)?,
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                    )?,
-                    DateDuration::new(
-                        self.date().years,
-                        FiniteF64::try_from(r2)?,
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                    )?,
-                )
-            }
-            TemporalUnit::Week => {
-                let iso_one = IsoDate::balance(
-                    dt.iso_year() + self.date().years.as_date_value()?,
-                    i32::from(dt.iso_month()) + self.date().months.as_date_value()?,
-                    i32::from(dt.iso_day()),
-                );
-
-                let iso_two = IsoDate::balance(
-                    dt.iso_year() + self.date().years.as_date_value()?,
-                    i32::from(dt.iso_month()) + self.date().months.as_date_value()?,
-                    i32::from(dt.iso_day()) + self.date().days.as_date_value()?,
-                );
-
-                let weeks_start = PlainDate::try_new(
-                    iso_one.year,
-                    iso_one.month,
-                    iso_one.day,
-                    dt.calendar().clone(),
-                )?;
-
-                let weeks_end = PlainDate::try_new(
-                    iso_two.year,
-                    iso_two.month,
-                    iso_two.day,
-                    dt.calendar().clone(),
-                )?;
-
-                let until_result =
-                    weeks_start.internal_diff_date(&weeks_end, TemporalUnit::Week)?;
-
-                let weeks = IncrementRounder::from_signed_num(
-                    self.date().weeks.checked_add(&until_result.weeks())?.0,
-                    options.increment.as_extended_increment(),
-                )?
-                .round(TemporalRoundingMode::Trunc);
-
-                let r1 = weeks;
-                let r2 = weeks
-                    + i128::from(options.increment.get()) * i128::from(sign.as_sign_multiplier());
-                (
-                    r1,
-                    r2,
-                    DateDuration::new(
-                        self.date().years,
-                        self.date().months,
-                        FiniteF64::try_from(r1)?,
-                        FiniteF64::default(),
-                    )?,
-                    DateDuration::new(
-                        self.date().years,
-                        self.date().months,
-                        FiniteF64::try_from(r2)?,
-                        FiniteF64::default(),
-                    )?,
-                )
-            }
-            TemporalUnit::Day => {
-                let days = IncrementRounder::from_signed_num(
-                    self.date().days.0,
-                    options.increment.as_extended_increment(),
-                )?
-                .round(TemporalRoundingMode::Trunc);
-                let r1 = days;
-                let r2 = days
-                    + i128::from(options.increment.get()) * i128::from(sign.as_sign_multiplier());
-                (
-                    r1,
-                    r2,
-                    DateDuration::new(
-                        self.date().years,
-                        self.date().months,
-                        self.date().weeks,
-                        FiniteF64::try_from(r1)?,
-                    )?,
-                    DateDuration::new(
-                        self.date().years,
-                        self.date().months,
-                        self.date().weeks,
-                        FiniteF64::try_from(r2)?,
-                    )?,
-                )
-            }
-            _ => unreachable!(),
-        };
-
-        let start = dt.iso.add_date_duration(
-            dt.calendar().clone(),
-            &start_duration,
-            NormalizedTimeDuration::default(),
-            None,
-        )?;
-
-        let end = dt.iso.add_date_duration(
-            dt.calendar().clone(),
-            &end_duration,
-            NormalizedTimeDuration::default(),
-            None,
-        )?;
-
-        let (start_epoch_ns, end_epoch_ns) = if let Some((tz, provider)) = tz {
-            let start_epoch_ns =
-                tz.get_epoch_nanoseconds_for(start, Disambiguation::Compatible, provider)?;
-            let end_epoch_ns =
-                tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
-            (start_epoch_ns, end_epoch_ns)
-        } else {
-            (start.as_nanoseconds()?, end.as_nanoseconds()?)
-        };
-
-        if end_epoch_ns == start_epoch_ns {
-            return Err(
-                TemporalError::range().with_message("endEpochNs cannot be equal to startEpochNs")
-            );
-        }
-
-        let progress =
-            (dest_epoch_ns - start_epoch_ns.0) as f64 / (end_epoch_ns.0 - start_epoch_ns.0) as f64;
-        let total = r1 as f64
-            + progress * options.increment.get() as f64 * f64::from(sign.as_sign_multiplier());
-
-        let rounded_unit =
-            IncrementRounder::from_signed_num(total, options.increment.as_extended_increment())?
-                .round(options.rounding_mode);
-
-        if rounded_unit == r2 {
-            Ok(NudgeRecordF64 {
-                normalized: NormalizedDurationRecord::new(
-                    end_duration,
-                    NormalizedTimeDuration::default(),
-                )?,
-                _total: Some(total),
-                nudge_epoch_ns: end_epoch_ns.0,
-                expanded: true,
-            })
-        } else {
-            Ok(NudgeRecordF64 {
-                normalized: NormalizedDurationRecord::new(
-                    start_duration,
-                    NormalizedTimeDuration::default(),
-                )?,
-                _total: Some(total),
+                _total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: start_epoch_ns.0,
                 expanded: false,
             })
@@ -974,7 +761,7 @@ impl NormalizedDurationRecord {
         // [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandDays }.
         Ok(NudgeRecord {
             normalized: result_duration,
-            _total: Some(total),
+            _total: Some(FiniteF64::try_from(total)?),
             nudge_epoch_ns: nudged_ns,
             expanded: did_expand_days,
         })
@@ -1180,13 +967,13 @@ impl NormalizedDurationRecord {
         dt: &PlainDateTime,
         tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
         unit: TemporalUnit,
-    ) -> TemporalResult<f64> {
+    ) -> TemporalResult<FiniteF64> {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
         if unit.is_calendar_unit() || (tz.is_some() && unit == TemporalUnit::Day) {
             // a. Let sign be InternalDurationSign(duration).
             let sign = self.sign()?;
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
-            let record = self.nudge_calendar_unit_f64(
+            let record = self.nudge_calendar_unit(
                 sign,
                 dest_epoch_ns,
                 dt,

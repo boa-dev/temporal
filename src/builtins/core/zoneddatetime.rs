@@ -21,6 +21,7 @@ use crate::{
     },
     parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
+    primitive::FiniteF64,
     provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
     temporal_assert,
@@ -205,7 +206,7 @@ impl ZonedDateTime {
         other: &Self,
         unit: TemporalUnit,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<f64> {
+    ) -> TemporalResult<FiniteF64> {
         // 1. If TemporalUnitCategory(unit) is time, then
         if unit.is_time_unit() {
             // a. Let difference be TimeDurationFromEpochNanosecondsDifference(ns2, ns1).
