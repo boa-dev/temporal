@@ -336,10 +336,7 @@ mod tests {
         let with_year = base.with(partial, None).unwrap();
         assert_eq!(with_year.iso_year(), 2001); // year is changed
         assert_eq!(with_year.iso_month(), 3); // month is not changed
-        assert_eq!(
-            with_year.month_code(),
-            MonthCode::from_str("M03").unwrap()
-        ); // assert month code has been initialized correctly
+        assert_eq!(with_year.month_code(), MonthCode::from_str("M03").unwrap()); // assert month code has been initialized correctly
 
         // Month
         let partial = PartialDate {
@@ -349,10 +346,7 @@ mod tests {
         let with_month = base.with(partial, None).unwrap();
         assert_eq!(with_month.iso_year(), 2025); // year is not changed
         assert_eq!(with_month.iso_month(), 2); // month is changed
-        assert_eq!(
-            with_month.month_code(),
-            MonthCode::from_str("M02").unwrap()
-        ); // assert month code has changed as well as month
+        assert_eq!(with_month.month_code(), MonthCode::from_str("M02").unwrap()); // assert month code has changed as well as month
 
         // Month Code
         let partial = PartialDate {

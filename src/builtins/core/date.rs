@@ -78,7 +78,7 @@ impl PartialDate {
         })
     }
 
-    crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth);
+    crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth); // excludes day
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
 
