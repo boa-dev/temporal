@@ -226,10 +226,10 @@ impl PlainDateTime {
             return FiniteF64::try_from(diff.normalized_time_duration().0);
         }
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
-        let dest_epcch_ns = other.iso.as_nanoseconds()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds()?;
         // 6. Return ? TotalRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, unit).
         diff.total_relative_duration(
-            dest_epcch_ns.0,
+            dest_epoch_ns.0,
             self,
             Option::<(&TimeZone, &NeverProvider)>::None,
             unit,

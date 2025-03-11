@@ -720,7 +720,6 @@ impl Duration {
                 let (balanced_days, time) =
                     PlainTime::default().add_normalized_time_duration(self.time.to_normalized());
                 // c. Let calendar be plainRelativeTo.[[Calendar]].
-                let calendar = plain_date.calendar();
                 // d. Let dateDuration be ! AdjustDateDurationRecord(internalDuration.[[Date]], targetTime.[[Days]]).
                 let date_duration = DateDuration::new(
                     self.years(),
@@ -729,7 +728,7 @@ impl Duration {
                     self.days().checked_add(&FiniteF64::from(balanced_days))?,
                 )?;
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
-                let target_date = calendar.date_add(
+                let target_date = plain_date.calendar().date_add(
                     &plain_date.iso,
                     &Duration::from(date_duration),
                     ArithmeticOverflow::Constrain,
@@ -742,7 +741,7 @@ impl Duration {
                 let plain_dt =
                     PlainDateTime::new_unchecked(iso_date_time, plain_date.calendar().clone());
                 let total = plain_dt.diff_dt_with_total(
-                    &PlainDateTime::new_unchecked(target_date_time, calendar.clone()),
+                    &PlainDateTime::new_unchecked(target_date_time, plain_date.calendar().clone()),
                     unit,
                 )?;
                 Ok(total)

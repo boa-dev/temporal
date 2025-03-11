@@ -302,7 +302,7 @@ impl NormalizedDurationRecord {
 #[derive(Debug)]
 struct NudgeRecord {
     normalized: NormalizedDurationRecord,
-    _total: Option<FiniteF64>,
+    total: Option<FiniteF64>,
     nudge_epoch_ns: i128,
     expanded: bool,
 }
@@ -578,7 +578,7 @@ impl NormalizedDurationRecord {
                     end_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                _total: Some(FiniteF64::try_from(total)?),
+                total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: end_epoch_ns.0,
                 expanded: true,
             })
@@ -592,7 +592,7 @@ impl NormalizedDurationRecord {
                     start_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                _total: Some(FiniteF64::try_from(total)?),
+                total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: start_epoch_ns.0,
                 expanded: false,
             })
@@ -685,7 +685,7 @@ impl NormalizedDurationRecord {
         Ok(NudgeRecord {
             normalized,
             nudge_epoch_ns: nudge_ns.0,
-            _total: None,
+            total: None,
             expanded,
         })
     }
@@ -761,7 +761,7 @@ impl NormalizedDurationRecord {
         // [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandDays }.
         Ok(NudgeRecord {
             normalized: result_duration,
-            _total: Some(FiniteF64::try_from(total)?),
+            total: Some(FiniteF64::try_from(total)?),
             nudge_epoch_ns: nudged_ns,
             expanded: did_expand_days,
         })
@@ -987,7 +987,7 @@ impl NormalizedDurationRecord {
             )?;
 
             // c. Return record.[[Total]].
-            return record._total.temporal_unwrap();
+            return record.total.temporal_unwrap();
         }
         // 2. Let timeDuration be ! Add24HourDaysToTimeDuration(duration.[[Time]], duration.[[Date]].[[Days]]).
         let time_duration = self
