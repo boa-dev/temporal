@@ -29,7 +29,7 @@ ixdtf = "0.4.0"
 iana-time-zone = "0.1.61"
 log = "0.4.26"
 tzif = "0.3.0"
-jiff-tzdb = "0.1.2"
+jiff-tzdb = "0.1.3"
 combine = "4.6.7"
 web-time = "1.1.0"
 
