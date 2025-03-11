@@ -200,14 +200,13 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.31 TotalTimeDuration ( timeDuration, unit )
     /// TODO Fix: Arithemtic on floating point numbers is not safe. According to NOTE 2 in the spec
     pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<FiniteF64> {
-        let time_duration = FiniteF64::try_from(self.0)?;
+        let time_duration = self.0;
         // 1. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
         let unit_nanoseconds = unit.as_nanoseconds().temporal_unwrap()?;
-        let divisor = FiniteF64::try_from(unit_nanoseconds)?;
         // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer.
         // The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
         // 3. Return timeDuration / divisor.
-        time_duration.checked_div(&divisor)
+        DurationTotal::new(time_duration, unit_nanoseconds).to_fractional_total()
     }
 
     /// Round the current `NormalizedTimeDuration`.
@@ -246,6 +245,32 @@ impl Add<Self> for NormalizedTimeDuration {
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
         }
         Ok(Self(result))
+    }
+}
+
+// Struct to handle division steps in `TotalTimeDuration`
+struct DurationTotal {
+    quotient: i128,
+    remainder: i128,
+    unit_nanoseconds: u64,
+}
+
+impl DurationTotal {
+    pub fn new(time_duration: i128, unit_nanoseconds: u64) -> Self {
+        let quotient = time_duration.div_euclid(unit_nanoseconds as i128);
+        let remainder = time_duration.rem_euclid(unit_nanoseconds as i128);
+
+        Self {
+            quotient,
+            remainder,
+            unit_nanoseconds,
+        }
+    }
+
+    pub(crate) fn to_fractional_total(&self) -> TemporalResult<FiniteF64> {
+        let fractional = FiniteF64::try_from(self.remainder)?
+            .checked_div(&FiniteF64::try_from(self.unit_nanoseconds)?)?;
+        FiniteF64::try_from(self.quotient)?.checked_add(&fractional)
     }
 }
 
