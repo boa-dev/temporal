@@ -686,11 +686,79 @@ impl Duration {
     /// Returns the total of the `Duration`
     pub fn total_with_provider(
         &self,
-        _unit: TemporalUnit,
-        _relative_to: Option<RelativeTo>,
-        _provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<i64> {
-        Err(TemporalError::general("Not yet implemented"))
+        unit: TemporalUnit,
+        relative_to: Option<RelativeTo>,
+        provider: &impl TimeZoneProvider,
+        // Review question what is the return type of duration.prototye.total?
+    ) -> TemporalResult<FiniteF64> {
+        match relative_to {
+            // 11. If zonedRelativeTo is not undefined, then
+            Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {
+                // a. Let internalDuration be ToInternalDurationRecord(duration).
+                // b. Let timeZone be zonedRelativeTo.[[TimeZone]].
+                // c. Let calendar be zonedRelativeTo.[[Calendar]].
+                // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
+                // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar, internalDuration, constrain).
+                let target_epcoh_ns =
+                    zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
+                // f. Let total be ? DifferenceZonedDateTimeWithTotal(relativeEpochNs, targetEpochNs, timeZone, calendar, unit).
+                let total = zoned_datetime.diff_with_total(
+                    &ZonedDateTime::new_unchecked(
+                        target_epcoh_ns,
+                        zoned_datetime.calendar().clone(),
+                        zoned_datetime.timezone().clone(),
+                    ),
+                    unit,
+                    provider,
+                )?;
+                Ok(total)
+            }
+            // 12. Else if plainRelativeTo is not undefined, then
+            Some(RelativeTo::PlainDate(plain_date)) => {
+                // a. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                // b. Let targetTime be AddTime(MidnightTimeRecord(), internalDuration.[[Time]]).
+                let (balanced_days, time) =
+                    PlainTime::default().add_normalized_time_duration(self.time.to_normalized());
+                // c. Let calendar be plainRelativeTo.[[Calendar]].
+                // d. Let dateDuration be ! AdjustDateDurationRecord(internalDuration.[[Date]], targetTime.[[Days]]).
+                let date_duration = DateDuration::new(
+                    self.years(),
+                    self.months(),
+                    self.weeks(),
+                    self.days().checked_add(&FiniteF64::from(balanced_days))?,
+                )?;
+                // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
+                let target_date = plain_date.calendar().date_add(
+                    &plain_date.iso,
+                    &Duration::from(date_duration),
+                    ArithmeticOverflow::Constrain,
+                )?;
+                // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
+                let iso_date_time = IsoDateTime::new_unchecked(plain_date.iso, IsoTime::default());
+                // g. Let targetDateTime be CombineISODateAndTimeRecord(targetDate, targetTime).
+                let target_date_time = IsoDateTime::new_unchecked(target_date.iso, time.iso);
+                // h. Let total be ? DifferencePlainDateTimeWithTotal(isoDateTime, targetDateTime, calendar, unit).
+                let plain_dt =
+                    PlainDateTime::new_unchecked(iso_date_time, plain_date.calendar().clone());
+                let total = plain_dt.diff_dt_with_total(
+                    &PlainDateTime::new_unchecked(target_date_time, plain_date.calendar().clone()),
+                    unit,
+                )?;
+                Ok(total)
+            }
+            None => {
+                // a. Let largestUnit be DefaultTemporalLargestUnit(duration).
+                let largest_unit = self.default_largest_unit();
+                // b. If IsCalendarUnit(largestUnit) is true, or IsCalendarUnit(unit) is true, throw a RangeError exception.
+                if largest_unit.is_calendar_unit() || unit.is_calendar_unit() {
+                    return Err(TemporalError::range());
+                }
+                // c. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                // d. Let total be TotalTimeDuration(internalDuration.[[Time]], unit).
+                let total = self.time.to_normalized().total(unit)?;
+                Ok(total)
+            }
+        }
     }
 
     /// Returns the `Duration` as a formatted string

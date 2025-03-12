@@ -8,8 +8,8 @@ use crate::{
     builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
     iso::{IsoDate, IsoDateTime},
     options::{
-        ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, TemporalRoundingMode,
-        TemporalUnit,
+        ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, RoundingIncrement,
+        TemporalRoundingMode, TemporalUnit,
     },
     primitive::FiniteF64,
     provider::TimeZoneProvider,
@@ -197,6 +197,18 @@ impl NormalizedTimeDuration {
         ))
     }
 
+    /// Equivalent: 7.5.31 TotalTimeDuration ( timeDuration, unit )
+    /// TODO Fix: Arithemtic on floating point numbers is not safe. According to NOTE 2 in the spec
+    pub(crate) fn total(&self, unit: TemporalUnit) -> TemporalResult<FiniteF64> {
+        let time_duration = self.0;
+        // 1. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
+        let unit_nanoseconds = unit.as_nanoseconds().temporal_unwrap()?;
+        // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer.
+        // The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
+        // 3. Return timeDuration / divisor.
+        DurationTotal::new(time_duration, unit_nanoseconds).to_fractional_total()
+    }
+
     /// Round the current `NormalizedTimeDuration`.
     pub(super) fn round_inner(
         &self,
@@ -233,6 +245,32 @@ impl Add<Self> for NormalizedTimeDuration {
                 .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
         }
         Ok(Self(result))
+    }
+}
+
+// Struct to handle division steps in `TotalTimeDuration`
+struct DurationTotal {
+    quotient: i128,
+    remainder: i128,
+    unit_nanoseconds: u64,
+}
+
+impl DurationTotal {
+    pub fn new(time_duration: i128, unit_nanoseconds: u64) -> Self {
+        let quotient = time_duration.div_euclid(unit_nanoseconds as i128);
+        let remainder = time_duration.rem_euclid(unit_nanoseconds as i128);
+
+        Self {
+            quotient,
+            remainder,
+            unit_nanoseconds,
+        }
+    }
+
+    pub(crate) fn to_fractional_total(&self) -> TemporalResult<FiniteF64> {
+        let fractional = FiniteF64::try_from(self.remainder)?
+            .checked_div(&FiniteF64::try_from(self.unit_nanoseconds)?)?;
+        FiniteF64::try_from(self.quotient)?.checked_add(&fractional)
     }
 }
 
@@ -289,7 +327,7 @@ impl NormalizedDurationRecord {
 #[derive(Debug)]
 struct NudgeRecord {
     normalized: NormalizedDurationRecord,
-    _total: Option<i128>, // TODO: adjust
+    total: Option<FiniteF64>,
     nudge_epoch_ns: i128,
     expanded: bool,
 }
@@ -565,7 +603,7 @@ impl NormalizedDurationRecord {
                     end_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                _total: Some(total as i128),
+                total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: end_epoch_ns.0,
                 expanded: true,
             })
@@ -579,7 +617,7 @@ impl NormalizedDurationRecord {
                     start_duration,
                     NormalizedTimeDuration::default(),
                 )?,
-                _total: Some(total as i128),
+                total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: start_epoch_ns.0,
                 expanded: false,
             })
@@ -672,7 +710,7 @@ impl NormalizedDurationRecord {
         Ok(NudgeRecord {
             normalized,
             nudge_epoch_ns: nudge_ns.0,
-            _total: None,
+            total: None,
             expanded,
         })
     }
@@ -748,7 +786,7 @@ impl NormalizedDurationRecord {
         // [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandDays }.
         Ok(NudgeRecord {
             normalized: result_duration,
-            _total: Some(total),
+            total: Some(FiniteF64::try_from(total)?),
             nudge_epoch_ns: nudged_ns,
             expanded: did_expand_days,
         })
@@ -945,6 +983,43 @@ impl NormalizedDurationRecord {
         };
 
         Ok(duration)
+    }
+
+    // 7.5.38 TotalRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone, calendar, unit )
+    pub(crate) fn total_relative_duration(
+        &self,
+        dest_epoch_ns: i128,
+        dt: &PlainDateTime,
+        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        unit: TemporalUnit,
+    ) -> TemporalResult<FiniteF64> {
+        // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
+        if unit.is_calendar_unit() || (tz.is_some() && unit == TemporalUnit::Day) {
+            // a. Let sign be InternalDurationSign(duration).
+            let sign = self.sign()?;
+            // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
+            let record = self.nudge_calendar_unit(
+                sign,
+                dest_epoch_ns,
+                dt,
+                tz,
+                ResolvedRoundingOptions {
+                    largest_unit: unit,
+                    smallest_unit: unit,
+                    increment: RoundingIncrement::default(),
+                    rounding_mode: TemporalRoundingMode::Trunc,
+                },
+            )?;
+
+            // c. Return record.[[Total]].
+            return record.total.temporal_unwrap();
+        }
+        // 2. Let timeDuration be ! Add24HourDaysToTimeDuration(duration.[[Time]], duration.[[Date]].[[Days]]).
+        let time_duration = self
+            .normalized_time_duration()
+            .add_days(self.date().days.as_())?;
+        // Return TotalTimeDuration(timeDuration, unit).
+        Ok(time_duration.total(unit))?
     }
 }
 
