@@ -12,6 +12,7 @@ use crate::{
         ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
+    primitive::FiniteF64,
     provider::NeverProvider,
     temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -200,6 +201,38 @@ impl PlainDateTime {
             self,
             Option::<(&TimeZone, &NeverProvider)>::None,
             options,
+        )
+    }
+
+    // 5.5.14 DifferencePlainDateTimeWithTotal ( isoDateTime1, isoDateTime2, calendar, unit )
+    pub(crate) fn diff_dt_with_total(
+        &self,
+        other: &Self,
+        unit: TemporalUnit,
+    ) -> TemporalResult<FiniteF64> {
+        // 1. If CompareISODateTime(isoDateTime1, isoDateTime2) = 0, then
+        //    a. Return 0.
+        if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
+            return FiniteF64::try_from(0.0);
+        }
+        // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
+        if !self.iso.is_within_limits() || !other.iso.is_within_limits() {
+            return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
+        }
+        // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, unit).
+        let diff = self.iso.diff(&other.iso, &self.calendar, unit)?;
+        // 4. If unit is nanosecond, return diff.[[Time]].
+        if unit == TemporalUnit::Nanosecond {
+            return FiniteF64::try_from(diff.normalized_time_duration().0);
+        }
+        // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
+        let dest_epoch_ns = other.iso.as_nanoseconds()?;
+        // 6. Return ? TotalRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, unit).
+        diff.total_relative_duration(
+            dest_epoch_ns.0,
+            self,
+            Option::<(&TimeZone, &NeverProvider)>::None,
+            unit,
         )
     }
 }
