@@ -702,14 +702,14 @@ impl PlainDateTime {
     pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
         // 3. Return ! CreateTemporalDate(dateTime.[[ISODateTime]].[[ISODate]], dateTime.[[Calendar]]).
         Ok(PlainDate::new_unchecked(
-            self.iso.date.clone(),
+            self.iso.date,
             self.calendar.clone(),
         ))
     }
 
     pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
         // 3. Return ! CreateTemporalTime(dateTime.[[ISODateTime]].[[Time]]).
-        Ok(PlainTime::new_unchecked(self.iso.time.clone()))
+        Ok(PlainTime::new_unchecked(self.iso.time))
     }
 
     pub fn to_ixdtf_string(
