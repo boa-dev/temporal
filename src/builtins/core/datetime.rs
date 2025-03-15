@@ -2,18 +2,19 @@
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    Duration, PartialDate, PartialTime, PlainDate, PlainTime,
+    Duration, PartialDate, PartialTime, PlainDate, PlainTime, ZonedDateTime,
 };
 use crate::{
     builtins::core::{calendar::Calendar, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
+        ToStringRoundingOptions, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
-    provider::NeverProvider,
+    provider::{NeverProvider, TimeZoneProvider},
     temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::string::String;
@@ -682,8 +683,33 @@ impl PlainDateTime {
         Ok(Self::new_unchecked(result, self.calendar.clone()))
     }
 
+    pub fn to_zoned_date_time_with_provider(
+        &self,
+        time_zone: &TimeZone,
+        disambiguation: Disambiguation,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<ZonedDateTime> {
+        // 6. Let epochNs be ? GetEpochNanosecondsFor(timeZone, dateTime.[[ISODateTime]], disambiguation).
+        let epoch_ns = time_zone.get_epoch_nanoseconds_for(self.iso, disambiguation, provider)?;
+        // 7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, dateTime.[[Calendar]]).
+        Ok(ZonedDateTime::new_unchecked(
+            Instant::from(epoch_ns),
+            self.calendar.clone(),
+            time_zone.clone(),
+        ))
+    }
+
+    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+        // 3. Return ! CreateTemporalDate(dateTime.[[ISODateTime]].[[ISODate]], dateTime.[[Calendar]]).
+        Ok(PlainDate::new_unchecked(
+            self.iso.date.clone(),
+            self.calendar.clone(),
+        ))
+    }
+
     pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
-        Err(TemporalError::general("Not yet implemented."))
+        // 3. Return ! CreateTemporalTime(dateTime.[[ISODateTime]].[[Time]]).
+        Ok(PlainTime::new_unchecked(self.iso.time.clone()))
     }
 
     pub fn to_ixdtf_string(
