@@ -15,6 +15,8 @@ namespace capi { struct Calendar; }
 class Calendar;
 namespace capi { struct Duration; }
 class Duration;
+namespace capi { struct PlainDate; }
+class PlainDate;
 namespace capi { struct PlainDateTime; }
 class PlainDateTime;
 namespace capi { struct PlainTime; }
@@ -110,6 +112,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainDateTime& other, temporal_rs::DifferenceSettings settings) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options) const;
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> to_plain_time() const;
 
