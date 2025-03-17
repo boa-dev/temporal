@@ -12,7 +12,7 @@ pub mod ffi {
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
         ToStringRoundingOptions,
     };
-    use crate::plain_date::ffi::PartialDate;
+    use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
     use diplomat_runtime::DiplomatWrite;
     use std::fmt::Write;
@@ -246,6 +246,13 @@ pub mod ffi {
             self.0
                 .round(options.try_into()?)
                 .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
+            self.0
+                .to_plain_date()
+                .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }
 
