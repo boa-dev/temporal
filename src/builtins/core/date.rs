@@ -114,17 +114,18 @@ macro_rules! impl_with_fallback_method {
                     Some(fallback.month_code()),
                 ),
             };
-
-            Ok(Self {
-                year: Some(self.year.unwrap_or(fallback.year())),
-                month,
-                month_code,
-                $($day: Some(self.day.unwrap_or(fallback.day().into())),)?
-                era,
-                era_year,
-                calendar: fallback.calendar().clone(),
-                ..Default::default()
-            })
+            #[allow(clippy::needless_update)] {
+                Ok(Self {
+                    year: Some(self.year.unwrap_or(fallback.year())),
+                    month,
+                    month_code,
+                    $($day: Some(self.day.unwrap_or(fallback.day().into())),)?
+                    era,
+                    era_year,
+                    calendar: fallback.calendar().clone(),
+                    ..Default::default()
+                })
+            }
         }
     };
 }
