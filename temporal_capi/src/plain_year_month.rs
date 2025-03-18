@@ -36,10 +36,10 @@ pub mod ffi {
         pub fn with(
             &self,
             partial: PartialDate,
-            overflow: ArithmeticOverflow,
+            overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with(partial.try_into()?, overflow.into())
+                .with(partial.try_into()?, overflow.map(Into::into))
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
