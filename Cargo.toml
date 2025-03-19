@@ -14,7 +14,6 @@ exclude = [
     "docs/*",
     ".github/*",
     ".gitignore",
-    "LICENSE*",
     "CONTRIBUTING.md",
     "cliff.toml",
 ]
