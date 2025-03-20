@@ -12,6 +12,8 @@ include = [
     "src/**/*",
     "tests/**/*",
     "Cargo.toml",
+    "LICENSE-Apache",
+    "LICENSE-MIT",
     "README.md"
 ]
 
