@@ -258,7 +258,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "diplomat-tool",
 ]
@@ -759,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -769,7 +769,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.5"
+version = "0.0.6"
 dependencies = [
  "combine",
  "iana-time-zone",
