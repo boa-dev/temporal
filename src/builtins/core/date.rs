@@ -78,8 +78,10 @@ impl PartialDate {
         })
     }
 
-    crate::impl_with_fallback_method!(with_fallback_date, PlainDate);
-    crate::impl_with_fallback_method!(with_fallback_datetime, PlainDateTime);
+    crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth); // excludes day
+    crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
+    crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
+
     // TODO: ZonedDateTime
 }
 
@@ -87,7 +89,7 @@ impl PartialDate {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_with_fallback_method {
-    ($method_name:ident, $component_type:ty) => {
+    ($method_name:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
         pub(crate) fn $method_name(&self, fallback: &$component_type) -> TemporalResult<Self> {
             let era = if let Some(era) = self.era {
                 Some(era)
@@ -112,16 +114,18 @@ macro_rules! impl_with_fallback_method {
                     Some(fallback.month_code()),
                 ),
             };
-
-            Ok(Self {
-                year: Some(self.year.unwrap_or(fallback.year())),
-                month,
-                month_code,
-                day: Some(self.day.unwrap_or(fallback.day().into())),
-                era,
-                era_year,
-                calendar: fallback.calendar().clone(),
-            })
+            #[allow(clippy::needless_update)] {
+                Ok(Self {
+                    year: Some(self.year.unwrap_or(fallback.year())),
+                    month,
+                    month_code,
+                    $($day: Some(self.day.unwrap_or(fallback.day().into())),)?
+                    era,
+                    era_year,
+                    calendar: fallback.calendar().clone(),
+                    ..Default::default()
+                })
+            }
         }
     };
 }
