@@ -1,3 +1,12 @@
+## What's Changed in 0.0.6
+* Rename methods on `Now` and add a test by @nekevss in [#243](https://github.com/boa-dev/temporal/pull/243)
+* Add licenses to `temporal_capi` and `temporal_rs` for publish by @nekevss in [#247](https://github.com/boa-dev/temporal/pull/247)
+* Add with to PlainYearMonth by @sebastianjacmatt in [#231](https://github.com/boa-dev/temporal/pull/231)
+* initial implementation of ToZonedDateTime, ToPlainDate, ToPlainTime by @lockels in [#244](https://github.com/boa-dev/temporal/pull/244)
+* Initial implementation of Duration.prototype.total by @lockels in [#241](https://github.com/boa-dev/temporal/pull/241)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.5...0.0.6
+
 ## What's Changed in 0.0.5
 * Prepare temporal_capi for publish by @jedel1043 in [#238](https://github.com/boa-dev/temporal/pull/238)
 * Adjustments to `toPlainYearMonth` and `toPlainMonthDay` methods on PlainDate by @nekevss in [#237](https://github.com/boa-dev/temporal/pull/237)
