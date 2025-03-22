@@ -38,6 +38,8 @@ use core::cell::RefCell;
 
 use combine::Parser;
 
+use temporal_provider::prelude::*;
+
 use tzif::{
     self,
     data::{
@@ -53,6 +55,8 @@ use crate::{
     time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
+
+temporal_provider::iana_normalizer_singleton_2025a!();
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
@@ -640,7 +644,16 @@ impl FsTzdbProvider {
 
 impl TimeZoneProvider for FsTzdbProvider {
     fn check_identifier(&self, identifier: &str) -> bool {
-        self.get(identifier).is_ok()
+        if let Some(index) = SINGLETON_IANA_NORMALIZER_2025A
+            .available_id_index
+            .get(identifier)
+        {
+            return SINGLETON_IANA_NORMALIZER_2025A
+                .normalized_identifiers
+                .get(index)
+                .is_some();
+        }
+        false
     }
 
     fn get_named_tz_epoch_nanoseconds(
@@ -705,6 +718,14 @@ mod tests {
     };
 
     use super::{FsTzdbProvider, Tzif};
+
+    #[test]
+    fn available_ids() {
+        let provider = FsTzdbProvider::default();
+        assert!(provider.check_identifier("uTC"));
+        assert!(provider.check_identifier("Etc/uTc"));
+        assert!(provider.check_identifier("AMERIca/CHIcago"));
+    }
 
     #[test]
     fn exactly_transition_time_after_empty_edge_case() {

@@ -14,45 +14,36 @@
 // a different crate. This may need to be moved into `temporal_rs`,
 // but that remains to be determined.
 
-use std::{collections::{BTreeMap, BTreeSet}, fs, io};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs, io,
+};
 
-use icu_provider::prelude::*;
-use parse_zoneinfo::{line::{Line, LineParser}, table::{Table, TableBuilder}};
-use zerotrie::ZeroAsciiIgnoreCaseTrie;
+use parse_zoneinfo::{
+    line::{Line, LineParser},
+    table::{Table, TableBuilder},
+};
+use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{VarZeroVec, ZeroVec};
 
-icu_provider::data_marker!(
-    IanaIdentifierNormalizerV1,
-    "temporal/zone/iana/v1",
-    IanaIdentifierNormalizer<'static>,
-    is_singleton = true,
-);
-
 // TODO: Potentially update; may require further cfg attributes
-#[derive(PartialEq, Debug, Clone, yoke::Yokeable)]
-#[derive(serde::Serialize, databake::Bake)]
-#[databake(path = icu_time::provider::windows)]
+#[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
+#[databake(path = temporal_provider)]
 #[derive(serde::Deserialize)]
 pub struct IanaIdentifierNormalizer<'data> {
     // Q: Can ZeroAsciiIgnoreCaseTrie have an inner store that is `VarZeroVec`
     /// An index to the location of the normal identifier.
     #[serde(borrow)]
-    index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
+    pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
     /// The normalized IANA identifier
     #[serde(borrow)]
-    iana: VarZeroVec<'data, str>,
+    pub normalized_identifiers: VarZeroVec<'data, str>,
 }
-
-// TODO: Potentially update; allows cfg attributes
-icu_provider::data_struct!(
-    IanaIdentifierNormalizer<'_>,
-);
 
 // ==== End Data marker implementation ====
 
-
-const ZONE_INFO_FILES: [&str; 9] =  [
+const ZONE_INFO_FILES: [&str; 9] = [
     "africa",
     "antarctica",
     "asia",
@@ -64,24 +55,9 @@ const ZONE_INFO_FILES: [&str; 9] =  [
     "southamerica",
 ];
 
-trait IterableDataProviderMarker<M: DataMarker>: DataProvider<M> {
-    fn iter_ids(&self) -> Result<alloc::collections::BTreeSet<DataIdentifierCow>, DataError>;
-}
-
 pub struct TzdbDataProvider {
-    data: Table
+    data: Table,
 }
-
-impl<M: DataMarker> IterableDataProvider<M> for TzdbDataProvider
-where
-    TzdbDataProvider: IterableDataProviderMarker<M>
-{
-    fn iter_ids(&self) -> Result<alloc::collections::BTreeSet<DataIdentifierCow>, DataError> {
-        Ok([Default::default()].into_iter().collect())
-    }
-}
-
-icu_provider::export::make_exportable_provider!(TzdbDataProvider, [IanaIdentifierNormalizerV1,]);
 
 impl TzdbDataProvider {
     pub fn new() -> Result<Self, io::Error> {
@@ -103,25 +79,31 @@ impl TzdbDataProvider {
                     Err(e) => eprintln!("{e}"),
                 }
             }
-
         }
 
-        Ok(Self { data: builder.build() })
+        Ok(Self {
+            data: builder.build(),
+        })
     }
 }
 
-
-
 // ==== Begin DataProvider impl ====
 
-impl DataProvider<IanaIdentifierNormalizerV1> for TzdbDataProvider {
-    fn load(&self, _: DataRequest) -> Result<DataResponse<IanaIdentifierNormalizerV1>, DataError> {
+#[derive(Debug)]
+pub enum IanaDataError {
+    Io(io::Error),
+    Build(ZeroTrieBuildError),
+}
+
+impl IanaIdentifierNormalizer<'_> {
+    pub fn build() -> Result<Self, IanaDataError> {
+        let provider = TzdbDataProvider::new().unwrap();
         let mut identifiers = BTreeSet::default();
-        for zoneset_id in self.data.zonesets.keys() {
+        for zoneset_id in provider.data.zonesets.keys() {
             // Add canonical identifiers.
             let _ = identifiers.insert(zoneset_id.clone());
         }
-        for links in self.data.links.keys() {
+        for links in provider.data.links.keys() {
             // Add link / non-canonical identifiers
             let _ = identifiers.insert(links.clone());
         }
@@ -130,29 +112,22 @@ impl DataProvider<IanaIdentifierNormalizerV1> for TzdbDataProvider {
         let norm_vec: Vec<String> = identifiers.iter().cloned().collect();
         let norm_zerovec: VarZeroVec<'static, str> = norm_vec.as_slice().into();
 
-        let identier_map: BTreeMap<Vec<u8>, usize> = identifiers.iter().map(|id| {
-            (id.to_ascii_lowercase().as_bytes().to_vec(), norm_vec.binary_search(id).unwrap())
-        }).collect();
+        let identier_map: BTreeMap<Vec<u8>, usize> = identifiers
+            .iter()
+            .map(|id| {
+                (
+                    id.to_ascii_lowercase().as_bytes().to_vec(),
+                    norm_vec.binary_search(id).unwrap(),
+                )
+            })
+            .collect();
 
-        let response = IanaIdentifierNormalizer {
-            index: ZeroAsciiIgnoreCaseTrie::try_from(&identier_map).map_err(|e| {
-                println!("{e}");
-                DataError::custom("IanaIdentifier mapping could not be completed")
-        })?.convert_store(),
-            iana: norm_zerovec,
-
-        };
-
-        Ok(DataResponse {
-            metadata: Default::default(),
-            payload: DataPayload::from_owned(response)
+        Ok(IanaIdentifierNormalizer {
+            available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identier_map)
+                .map_err(IanaDataError::Build)?
+                .convert_store(),
+            normalized_identifiers: norm_zerovec,
         })
-    }
-}
-
-impl IterableDataProviderMarker<IanaIdentifierNormalizerV1> for TzdbDataProvider {
-    fn iter_ids(&self) -> Result<alloc::collections::BTreeSet<DataIdentifierCow>, DataError> {
-        Ok([Default::default()].into_iter().collect())
     }
 }
 

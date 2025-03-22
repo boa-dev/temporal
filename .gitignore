@@ -10,3 +10,6 @@ target/
 *.pdb
 
 .vscode/
+
+# Ignore log files
+*.log

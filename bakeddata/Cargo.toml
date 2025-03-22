@@ -1,5 +1,5 @@
 [package]
-name = "iana-datagen"
+name = "bakedata"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,9 @@ license.workspace = true
 repository.workspace = true
 readme.workspace = true
 exclude.workspace = true
+publish = false
 
 [dependencies]
-parse-zoneinfo = "0.3.1"
+databake = "0.2.0"
+serde_json = "1.0.140"
+temporal_provider = { path = "../provider" }
