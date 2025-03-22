@@ -26,7 +26,6 @@ temporal_provider = { version = "~0.0.6", path = "provider" }
 # Dependencies
 tinystr = "0.8.1"
 icu_calendar = { version = "2.0.0-beta2", default-features = false }
-icu_provider = { version = "2.0.0-beta2", default-features = false }
 rustc-hash = "2.1.0"
 num-traits = "0.2.19"
 ixdtf = "0.4.0"

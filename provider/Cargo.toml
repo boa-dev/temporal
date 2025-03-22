@@ -12,13 +12,8 @@ exclude.workspace = true
 [dependencies]
 
 # Provider dependency
-icu_provider = { workspace = true, features = ["export", "serde"]}
-icu_provider_export = { version = "2.0.0-beta2", default-features = false, features = ["baked_exporter"] }
-icu_provider_registry = { version = "2.0.0-beta2", default-features = false }
-icu_provider_adapters = { version = "2.0.0-beta2", default-features = false }
-icu_provider_source = { version = "2.0.0-beta2", default-features = false }
-zerotrie = { version = "0.2.1", features = ["serde"] }
-zerovec = { version = "0.11.1", features = ["serde"] }
+zerotrie = { version = "0.2.1", features = ["serde", "databake"] }
+zerovec = { version = "0.11.1", features = ["serde", "databake"] }
 
 # IANA dependency
 parse-zoneinfo = "0.3.1"
