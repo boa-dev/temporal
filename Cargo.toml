@@ -13,6 +13,7 @@ readme = "./README.md"
 exclude = [
     "docs/*",
     ".github/*",
+    "debug/",
     ".gitignore",
     "CONTRIBUTING.md",
     "cliff.toml",
