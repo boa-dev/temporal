@@ -32,13 +32,19 @@ mod tests {
             Some("America/Chicago")
         );
 
-        let index = SINGLETON_IANA_NORMALIZER.available_id_index.get("uTc").unwrap();
+        let index = SINGLETON_IANA_NORMALIZER
+            .available_id_index
+            .get("uTc")
+            .unwrap();
         assert_eq!(
             SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
             Some("UTC")
         );
 
-        let index = SINGLETON_IANA_NORMALIZER.available_id_index.get("eTC/uTc").unwrap();
+        let index = SINGLETON_IANA_NORMALIZER
+            .available_id_index
+            .get("eTC/uTc")
+            .unwrap();
         assert_eq!(
             SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
             Some("Etc/UTC")

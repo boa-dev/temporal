@@ -54,7 +54,6 @@ fn main() -> io::Result<()> {
     let tzdata_path = Path::new(&tzdata_input);
     let tzdata_dir = manifest_dir.parent().unwrap().join(tzdata_path);
 
-
     let provider = Path::new(manifest_dir)
         .parent()
         .unwrap()
