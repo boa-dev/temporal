@@ -56,7 +56,7 @@ use crate::{
     utils, TemporalError, TemporalResult,
 };
 
-temporal_provider::iana_normalizer_singleton_2025a!();
+temporal_provider::iana_normalizer_singleton!();
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
@@ -644,11 +644,8 @@ impl FsTzdbProvider {
 
 impl TimeZoneProvider for FsTzdbProvider {
     fn check_identifier(&self, identifier: &str) -> bool {
-        if let Some(index) = SINGLETON_IANA_NORMALIZER_2025A
-            .available_id_index
-            .get(identifier)
-        {
-            return SINGLETON_IANA_NORMALIZER_2025A
+        if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
+            return SINGLETON_IANA_NORMALIZER
                 .normalized_identifiers
                 .get(index)
                 .is_some();
@@ -717,7 +714,20 @@ mod tests {
         tzdb::{LocalTimeRecord, LocalTimeRecordResult, TimeZoneProvider},
     };
 
-    use super::{FsTzdbProvider, Tzif};
+    use super::{FsTzdbProvider, Tzif, SINGLETON_IANA_NORMALIZER};
+
+    fn get_singleton_identifier(id: &str) -> Option<&'static str> {
+        let index = SINGLETON_IANA_NORMALIZER.available_id_index.get(id)?;
+        SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index)
+    }
+
+    #[test]
+    fn test_singleton() {
+        let id = get_singleton_identifier("uTc");
+        assert_eq!(id, Some("UTC"));
+        let id = get_singleton_identifier("EURope/BeRlIn").unwrap();
+        assert_eq!(id, "Europe/Berlin");
+    }
 
     #[test]
     fn available_ids() {

@@ -20,9 +20,9 @@ impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
 
         let baked_macro = quote! {
             #[macro_export]
-            macro_rules! iana_normalizer_singleton_2025a {
+            macro_rules! iana_normalizer_singleton {
                 () => {
-                    pub const SINGLETON_IANA_NORMALIZER_2025A: &'static temporal_provider::IanaIdentifierNormalizer = &#baked;
+                    pub const SINGLETON_IANA_NORMALIZER: &'static temporal_provider::IanaIdentifierNormalizer = &#baked;
                 }
             }
         };

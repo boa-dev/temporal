@@ -15,8 +15,10 @@
 // but that remains to be determined.
 
 use std::{
+    borrow::Cow,
     collections::{BTreeMap, BTreeSet},
     fs, io,
+    path::Path,
 };
 
 use parse_zoneinfo::{
@@ -31,7 +33,8 @@ use zerovec::{VarZeroVec, ZeroVec};
 #[databake(path = temporal_provider)]
 #[derive(serde::Deserialize)]
 pub struct IanaIdentifierNormalizer<'data> {
-    // Q: Can ZeroAsciiIgnoreCaseTrie have an inner store that is `VarZeroVec`
+    /// TZDB version
+    pub version: Cow<'data, str>,
     /// An index to the location of the normal identifier.
     #[serde(borrow)]
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
@@ -56,6 +59,7 @@ const ZONE_INFO_FILES: [&str; 9] = [
 ];
 
 pub struct TzdbDataProvider {
+    version: String,
     data: Table,
 }
 
@@ -64,9 +68,14 @@ impl TzdbDataProvider {
         let parser = LineParser::default();
         let mut builder = TableBuilder::default();
 
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let tzdata_dir = manifest_dir.join("tzdata");
+
+        let version_file = tzdata_dir.join("version");
+        let version = fs::read_to_string(version_file)?.trim().into();
+
         for filename in ZONE_INFO_FILES {
-            let manifest_dir = env!("CARGO_MANIFEST_DIR");
-            let file_path = format!("{manifest_dir}/tzdata/{filename}");
+            let file_path = tzdata_dir.join(filename);
             let file = fs::read_to_string(file_path)?;
 
             for line in file.lines() {
@@ -82,6 +91,7 @@ impl TzdbDataProvider {
         }
 
         Ok(Self {
+            version,
             data: builder.build(),
         })
     }
@@ -123,6 +133,7 @@ impl IanaIdentifierNormalizer<'_> {
             .collect();
 
         Ok(IanaIdentifierNormalizer {
+            version: provider.version.into(),
             available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identier_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
