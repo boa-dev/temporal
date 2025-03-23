@@ -20,7 +20,7 @@ namespace capi {
       UnsignedRoundingMode_HalfZero = 3,
       UnsignedRoundingMode_HalfEven = 4,
     };
-
+    
     typedef struct UnsignedRoundingMode_option {union { UnsignedRoundingMode ok; }; bool is_ok; } UnsignedRoundingMode_option;
 } // namespace capi
 } // namespace

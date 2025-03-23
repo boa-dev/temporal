@@ -26,7 +26,7 @@ namespace capi {
       Unit_Month = 9,
       Unit_Year = 10,
     };
-
+    
     typedef struct Unit_option {union { Unit ok; }; bool is_ok; } Unit_option;
 } // namespace capi
 } // namespace

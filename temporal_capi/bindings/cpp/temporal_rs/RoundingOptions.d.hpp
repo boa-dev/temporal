@@ -26,7 +26,7 @@ namespace capi {
       temporal_rs::capi::RoundingMode_option rounding_mode;
       diplomat::capi::OptionU32 increment;
     };
-
+    
     typedef struct RoundingOptions_option {union { RoundingOptions ok; }; bool is_ok; } RoundingOptions_option;
 } // namespace capi
 } // namespace

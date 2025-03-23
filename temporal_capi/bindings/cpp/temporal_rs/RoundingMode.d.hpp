@@ -24,7 +24,7 @@ namespace capi {
       RoundingMode_HalfTrunc = 7,
       RoundingMode_HalfEven = 8,
     };
-
+    
     typedef struct RoundingMode_option {union { RoundingMode ok; }; bool is_ok; } RoundingMode_option;
 } // namespace capi
 } // namespace
