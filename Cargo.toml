@@ -21,7 +21,7 @@ exclude = [
 [workspace.dependencies]
 # Self
 temporal_rs = { version = "~0.0.6", path = ".", default-features = false }
-temporal_provider = { version = "~0.0.6", path = "provider" }
+temporal_provider = { version = "~0.0.6", path = "./provider" }
 
 # Dependencies
 tinystr = "0.8.1"
