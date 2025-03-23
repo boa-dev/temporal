@@ -28,7 +28,8 @@ use parse_zoneinfo::{
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{VarZeroVec, ZeroVec};
 
-// TODO: Potentially update; may require further cfg attributes
+/// A data struct for IANA identifier normalization. This
+/// normalizer works.
 #[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
 #[databake(path = temporal_provider)]
 #[derive(serde::Deserialize)]
@@ -64,18 +65,15 @@ pub struct TzdbDataProvider {
 }
 
 impl TzdbDataProvider {
-    pub fn new() -> Result<Self, io::Error> {
+    pub fn new(tzdata: &Path) -> Result<Self, io::Error> {
         let parser = LineParser::default();
         let mut builder = TableBuilder::default();
 
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let tzdata_dir = manifest_dir.join("tzdata");
-
-        let version_file = tzdata_dir.join("version");
+        let version_file = tzdata.join("version");
         let version = fs::read_to_string(version_file)?.trim().into();
 
         for filename in ZONE_INFO_FILES {
-            let file_path = tzdata_dir.join(filename);
+            let file_path = tzdata.join(filename);
             let file = fs::read_to_string(file_path)?;
 
             for line in file.lines() {
@@ -106,8 +104,8 @@ pub enum IanaDataError {
 }
 
 impl IanaIdentifierNormalizer<'_> {
-    pub fn build() -> Result<Self, IanaDataError> {
-        let provider = TzdbDataProvider::new().unwrap();
+    pub fn build(tzdata: &Path) -> Result<Self, IanaDataError> {
+        let provider = TzdbDataProvider::new(tzdata).unwrap();
         let mut identifiers = BTreeSet::default();
         for zoneset_id in provider.data.zonesets.keys() {
             // Add canonical identifiers.

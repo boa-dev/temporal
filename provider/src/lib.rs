@@ -1,7 +1,12 @@
+//! `temporal_provider` is a crate designed for data providers
+//! intended for `temporal_rs`
+//!
+
 mod tzdb;
 
 pub use tzdb::{IanaDataError, IanaIdentifierNormalizer};
 
+/// A prelude of needed types for interacting with `temporal_provider` data.
 pub mod prelude {
     pub use zerotrie;
     pub use zerovec;
@@ -11,29 +16,31 @@ include!("./data/mod.rs");
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate as temporal_provider;
+    extern crate alloc;
+
+    iana_normalizer_singleton!();
 
     #[test]
     fn basic_normalization() {
-        let iana_normalizer = IanaIdentifierNormalizer::build().unwrap();
-        let index = iana_normalizer
+        let index = SINGLETON_IANA_NORMALIZER
             .available_id_index
             .get("America/CHICAGO")
             .unwrap();
         assert_eq!(
-            iana_normalizer.normalized_identifiers.get(index),
+            SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
             Some("America/Chicago")
         );
 
-        let index = iana_normalizer.available_id_index.get("uTc").unwrap();
+        let index = SINGLETON_IANA_NORMALIZER.available_id_index.get("uTc").unwrap();
         assert_eq!(
-            iana_normalizer.normalized_identifiers.get(index),
+            SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
             Some("UTC")
         );
 
-        let index = iana_normalizer.available_id_index.get("eTC/uTc").unwrap();
+        let index = SINGLETON_IANA_NORMALIZER.available_id_index.get("eTC/uTc").unwrap();
         assert_eq!(
-            iana_normalizer.normalized_identifiers.get(index),
+            SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
             Some("Etc/UTC")
         );
     }

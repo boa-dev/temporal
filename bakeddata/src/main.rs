@@ -49,13 +49,18 @@ fn write_data_file_with_debug(
 }
 
 fn main() -> io::Result<()> {
-    let manifest_dir = env!("CARGO_MANIFEST_DIR");
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let tzdata_input = std::env::var("TZDATA_DIR").unwrap_or("tzdata".into());
+    let tzdata_path = Path::new(&tzdata_input);
+    let tzdata_dir = manifest_dir.parent().unwrap().join(tzdata_path);
+
+
     let provider = Path::new(manifest_dir)
         .parent()
         .unwrap()
         .join("provider/src");
     write_data_file_with_debug(
         &provider.join("data"),
-        &IanaIdentifierNormalizer::build().unwrap(),
+        &IanaIdentifierNormalizer::build(&tzdata_dir).unwrap(),
     )
 }
