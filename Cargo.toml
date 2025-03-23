@@ -72,7 +72,7 @@ combine = { workspace = true, optional = true }
 web-time = { workspace = true, optional =  true }
 
 [features]
-default = ["sys", "compiled_data"]
+default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
 sys = ["std", "dep:web-time"]
