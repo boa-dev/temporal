@@ -1,18 +1,12 @@
 //! `temporal_provider` is the core data provider implementations for `temporal_rs`
 
-// TODO: What are we even doing here?
+// What are we even doing here? Why are providers needed?
 //
 // Two core data sources need to be accounted for:
 //
 //   - IANA identifier normalization (hopefully, semi easy)
 //   - IANA TZif data (much harder)
 //
-
-// ==== Data Marker implementation ====
-
-// NOTE: A data_struct and data_marker would typically be in
-// a different crate. This may need to be moved into `temporal_rs`,
-// but that remains to be determined.
 
 use std::{
     borrow::Cow,
@@ -28,8 +22,7 @@ use parse_zoneinfo::{
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{VarZeroVec, ZeroVec};
 
-/// A data struct for IANA identifier normalization. This
-/// normalizer works.
+/// A data struct for IANA identifier normalization
 #[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
 #[databake(path = temporal_provider)]
 #[derive(serde::Deserialize)]
