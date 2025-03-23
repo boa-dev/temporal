@@ -1,5 +1,5 @@
-#ifndef temporal_rs_TemporalUnit_D_HPP
-#define temporal_rs_TemporalUnit_D_HPP
+#ifndef temporal_rs_Unit_D_HPP
+#define temporal_rs_Unit_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -13,26 +13,26 @@
 
 namespace temporal_rs {
 namespace capi {
-    enum TemporalUnit {
-      TemporalUnit_Auto = 0,
-      TemporalUnit_Nanosecond = 1,
-      TemporalUnit_Microsecond = 2,
-      TemporalUnit_Millisecond = 3,
-      TemporalUnit_Second = 4,
-      TemporalUnit_Minute = 5,
-      TemporalUnit_Hour = 6,
-      TemporalUnit_Day = 7,
-      TemporalUnit_Week = 8,
-      TemporalUnit_Month = 9,
-      TemporalUnit_Year = 10,
+    enum Unit {
+      Unit_Auto = 0,
+      Unit_Nanosecond = 1,
+      Unit_Microsecond = 2,
+      Unit_Millisecond = 3,
+      Unit_Second = 4,
+      Unit_Minute = 5,
+      Unit_Hour = 6,
+      Unit_Day = 7,
+      Unit_Week = 8,
+      Unit_Month = 9,
+      Unit_Year = 10,
     };
-    
-    typedef struct TemporalUnit_option {union { TemporalUnit ok; }; bool is_ok; } TemporalUnit_option;
+
+    typedef struct Unit_option {union { Unit ok; }; bool is_ok; } Unit_option;
 } // namespace capi
 } // namespace
 
 namespace temporal_rs {
-class TemporalUnit {
+class Unit {
 public:
   enum Value {
     Auto = 0,
@@ -48,18 +48,18 @@ public:
     Year = 10,
   };
 
-  TemporalUnit() = default;
+  Unit() = default;
   // Implicit conversions between enum and ::Value
-  constexpr TemporalUnit(Value v) : value(v) {}
+  constexpr Unit(Value v) : value(v) {}
   constexpr operator Value() const { return value; }
   // Prevent usage as boolean value
   explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::TemporalUnit AsFFI() const;
-  inline static temporal_rs::TemporalUnit FromFFI(temporal_rs::capi::TemporalUnit c_enum);
+  inline temporal_rs::capi::Unit AsFFI() const;
+  inline static temporal_rs::Unit FromFFI(temporal_rs::capi::Unit c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_TemporalUnit_D_HPP
+#endif // temporal_rs_Unit_D_HPP

@@ -1,7 +1,7 @@
-#ifndef temporal_rs_TemporalRoundingMode_HPP
-#define temporal_rs_TemporalRoundingMode_HPP
+#ifndef temporal_rs_RoundingMode_HPP
+#define temporal_rs_RoundingMode_HPP
 
-#include "TemporalRoundingMode.d.hpp"
+#include "RoundingMode.d.hpp"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -16,30 +16,30 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
-    
+
+
     } // extern "C"
 } // namespace capi
 } // namespace
 
-inline temporal_rs::capi::TemporalRoundingMode temporal_rs::TemporalRoundingMode::AsFFI() const {
-  return static_cast<temporal_rs::capi::TemporalRoundingMode>(value);
+inline temporal_rs::capi::RoundingMode temporal_rs::RoundingMode::AsFFI() const {
+  return static_cast<temporal_rs::capi::RoundingMode>(value);
 }
 
-inline temporal_rs::TemporalRoundingMode temporal_rs::TemporalRoundingMode::FromFFI(temporal_rs::capi::TemporalRoundingMode c_enum) {
+inline temporal_rs::RoundingMode temporal_rs::RoundingMode::FromFFI(temporal_rs::capi::RoundingMode c_enum) {
   switch (c_enum) {
-    case temporal_rs::capi::TemporalRoundingMode_Ceil:
-    case temporal_rs::capi::TemporalRoundingMode_Floor:
-    case temporal_rs::capi::TemporalRoundingMode_Expand:
-    case temporal_rs::capi::TemporalRoundingMode_Trunc:
-    case temporal_rs::capi::TemporalRoundingMode_HalfCeil:
-    case temporal_rs::capi::TemporalRoundingMode_HalfFloor:
-    case temporal_rs::capi::TemporalRoundingMode_HalfExpand:
-    case temporal_rs::capi::TemporalRoundingMode_HalfTrunc:
-    case temporal_rs::capi::TemporalRoundingMode_HalfEven:
-      return static_cast<temporal_rs::TemporalRoundingMode::Value>(c_enum);
+    case temporal_rs::capi::RoundingMode_Ceil:
+    case temporal_rs::capi::RoundingMode_Floor:
+    case temporal_rs::capi::RoundingMode_Expand:
+    case temporal_rs::capi::RoundingMode_Trunc:
+    case temporal_rs::capi::RoundingMode_HalfCeil:
+    case temporal_rs::capi::RoundingMode_HalfFloor:
+    case temporal_rs::capi::RoundingMode_HalfExpand:
+    case temporal_rs::capi::RoundingMode_HalfTrunc:
+    case temporal_rs::capi::RoundingMode_HalfEven:
+      return static_cast<temporal_rs::RoundingMode::Value>(c_enum);
     default:
       abort();
   }
 }
-#endif // temporal_rs_TemporalRoundingMode_HPP
+#endif // temporal_rs_RoundingMode_HPP

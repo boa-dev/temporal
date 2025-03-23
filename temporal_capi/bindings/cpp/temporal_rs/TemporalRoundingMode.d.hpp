@@ -1,5 +1,5 @@
-#ifndef temporal_rs_TemporalRoundingMode_D_HPP
-#define temporal_rs_TemporalRoundingMode_D_HPP
+#ifndef temporal_rs_RoundingMode_D_HPP
+#define temporal_rs_RoundingMode_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -13,24 +13,24 @@
 
 namespace temporal_rs {
 namespace capi {
-    enum TemporalRoundingMode {
-      TemporalRoundingMode_Ceil = 0,
-      TemporalRoundingMode_Floor = 1,
-      TemporalRoundingMode_Expand = 2,
-      TemporalRoundingMode_Trunc = 3,
-      TemporalRoundingMode_HalfCeil = 4,
-      TemporalRoundingMode_HalfFloor = 5,
-      TemporalRoundingMode_HalfExpand = 6,
-      TemporalRoundingMode_HalfTrunc = 7,
-      TemporalRoundingMode_HalfEven = 8,
+    enum RoundingMode {
+      RoundingMode_Ceil = 0,
+      RoundingMode_Floor = 1,
+      RoundingMode_Expand = 2,
+      RoundingMode_Trunc = 3,
+      RoundingMode_HalfCeil = 4,
+      RoundingMode_HalfFloor = 5,
+      RoundingMode_HalfExpand = 6,
+      RoundingMode_HalfTrunc = 7,
+      RoundingMode_HalfEven = 8,
     };
-    
-    typedef struct TemporalRoundingMode_option {union { TemporalRoundingMode ok; }; bool is_ok; } TemporalRoundingMode_option;
+
+    typedef struct RoundingMode_option {union { RoundingMode ok; }; bool is_ok; } RoundingMode_option;
 } // namespace capi
 } // namespace
 
 namespace temporal_rs {
-class TemporalRoundingMode {
+class RoundingMode {
 public:
   enum Value {
     Ceil = 0,
@@ -44,18 +44,18 @@ public:
     HalfEven = 8,
   };
 
-  TemporalRoundingMode() = default;
+  RoundingMode() = default;
   // Implicit conversions between enum and ::Value
-  constexpr TemporalRoundingMode(Value v) : value(v) {}
+  constexpr RoundingMode(Value v) : value(v) {}
   constexpr operator Value() const { return value; }
   // Prevent usage as boolean value
   explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::TemporalRoundingMode AsFFI() const;
-  inline static temporal_rs::TemporalRoundingMode FromFFI(temporal_rs::capi::TemporalRoundingMode c_enum);
+  inline temporal_rs::capi::RoundingMode AsFFI() const;
+  inline static temporal_rs::RoundingMode FromFFI(temporal_rs::capi::RoundingMode c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_TemporalRoundingMode_D_HPP
+#endif // temporal_rs_RoundingMode_D_HPP

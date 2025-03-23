@@ -10,7 +10,7 @@ use crate::{
     iso::IsoDateTime,
     options::{
         DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
-        RoundingOptions, TemporalUnit, ToStringRoundingOptions, UnitGroup,
+        RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -89,8 +89,8 @@ impl Instant {
             options,
             op,
             UnitGroup::Time,
-            TemporalUnit::Second,
-            TemporalUnit::Nanosecond,
+            Unit::Second,
+            Unit::Nanosecond,
         )?;
 
         // Below are the steps from Difference Instant.
@@ -116,19 +116,17 @@ impl Instant {
     ) -> TemporalResult<i128> {
         let increment = resolved_options.increment.as_extended_increment();
         let increment = match resolved_options.smallest_unit {
-            TemporalUnit::Hour => increment
+            Unit::Hour => increment
                 .checked_mul(NonZeroU128::new(NANOSECONDS_PER_HOUR as u128).temporal_unwrap()?),
-            TemporalUnit::Minute => increment
+            Unit::Minute => increment
                 .checked_mul(NonZeroU128::new(NANOSECONDS_PER_MINUTE as u128).temporal_unwrap()?),
-            TemporalUnit::Second => increment
+            Unit::Second => increment
                 .checked_mul(NonZeroU128::new(NANOSECONDS_PER_SECOND as u128).temporal_unwrap()?),
-            TemporalUnit::Millisecond => {
+            Unit::Millisecond => {
                 increment.checked_mul(NonZeroU128::new(1_000_000).temporal_unwrap()?)
             }
-            TemporalUnit::Microsecond => {
-                increment.checked_mul(NonZeroU128::new(1_000).temporal_unwrap()?)
-            }
-            TemporalUnit::Nanosecond => Some(increment),
+            Unit::Microsecond => increment.checked_mul(NonZeroU128::new(1_000).temporal_unwrap()?),
+            Unit::Nanosecond => Some(increment),
             _ => {
                 return Err(TemporalError::range()
                     .with_message("Invalid unit provided for Instant::round."))
@@ -334,7 +332,7 @@ mod tests {
 
     use crate::{
         builtins::core::{duration::TimeDuration, Instant},
-        options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
+        options::{DifferenceSettings, RoundingMode, Unit},
         primitive::FiniteF64,
         time::EpochNanoseconds,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
@@ -429,10 +427,10 @@ mod tests {
 
     #[test]
     fn basic_instant_until() {
-        let init_diff_setting = |unit: TemporalUnit| -> DifferenceSettings {
+        let init_diff_setting = |unit: Unit| -> DifferenceSettings {
             DifferenceSettings {
-                largest_unit: Some(TemporalUnit::Hour),
-                rounding_mode: Some(TemporalRoundingMode::Ceil),
+                largest_unit: Some(Unit::Hour),
+                rounding_mode: Some(RoundingMode::Ceil),
                 increment: None,
                 smallest_unit: Some(unit),
             }
@@ -462,20 +460,20 @@ mod tests {
         .unwrap();
 
         let positive_result = earlier
-            .until(&later, init_diff_setting(TemporalUnit::Hour))
+            .until(&later, init_diff_setting(Unit::Hour))
             .unwrap();
         assert_time_duration(positive_result.time(), (376436.0, 0.0, 0.0, 0.0, 0.0, 0.0));
         let negative_result = later
-            .until(&earlier, init_diff_setting(TemporalUnit::Hour))
+            .until(&earlier, init_diff_setting(Unit::Hour))
             .unwrap();
         assert_time_duration(negative_result.time(), (-376435.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
         let positive_result = earlier
-            .until(&later, init_diff_setting(TemporalUnit::Minute))
+            .until(&later, init_diff_setting(Unit::Minute))
             .unwrap();
         assert_time_duration(positive_result.time(), (376435.0, 24.0, 0.0, 0.0, 0.0, 0.0));
         let negative_result = later
-            .until(&earlier, init_diff_setting(TemporalUnit::Minute))
+            .until(&earlier, init_diff_setting(Unit::Minute))
             .unwrap();
         assert_time_duration(
             negative_result.time(),
@@ -485,14 +483,14 @@ mod tests {
         // ... Skip to lower units ...
 
         let positive_result = earlier
-            .until(&later, init_diff_setting(TemporalUnit::Microsecond))
+            .until(&later, init_diff_setting(Unit::Microsecond))
             .unwrap();
         assert_time_duration(
             positive_result.time(),
             (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0),
         );
         let negative_result = later
-            .until(&earlier, init_diff_setting(TemporalUnit::Microsecond))
+            .until(&earlier, init_diff_setting(Unit::Microsecond))
             .unwrap();
         assert_time_duration(
             negative_result.time(),
@@ -500,14 +498,14 @@ mod tests {
         );
 
         let positive_result = earlier
-            .until(&later, init_diff_setting(TemporalUnit::Nanosecond))
+            .until(&later, init_diff_setting(Unit::Nanosecond))
             .unwrap();
         assert_time_duration(
             positive_result.time(),
             (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0),
         );
         let negative_result = later
-            .until(&earlier, init_diff_setting(TemporalUnit::Nanosecond))
+            .until(&earlier, init_diff_setting(Unit::Nanosecond))
             .unwrap();
         assert_time_duration(
             negative_result.time(),
@@ -517,10 +515,10 @@ mod tests {
 
     #[test]
     fn basic_instant_since() {
-        let init_diff_setting = |unit: TemporalUnit| -> DifferenceSettings {
+        let init_diff_setting = |unit: Unit| -> DifferenceSettings {
             DifferenceSettings {
-                largest_unit: Some(TemporalUnit::Hour),
-                rounding_mode: Some(TemporalRoundingMode::Ceil),
+                largest_unit: Some(Unit::Hour),
+                rounding_mode: Some(RoundingMode::Ceil),
                 increment: None,
                 smallest_unit: Some(unit),
             }
@@ -550,20 +548,20 @@ mod tests {
         .unwrap();
 
         let positive_result = later
-            .since(&earlier, init_diff_setting(TemporalUnit::Hour))
+            .since(&earlier, init_diff_setting(Unit::Hour))
             .unwrap();
         assert_time_duration(positive_result.time(), (376436.0, 0.0, 0.0, 0.0, 0.0, 0.0));
         let negative_result = earlier
-            .since(&later, init_diff_setting(TemporalUnit::Hour))
+            .since(&later, init_diff_setting(Unit::Hour))
             .unwrap();
         assert_time_duration(negative_result.time(), (-376435.0, 0.0, 0.0, 0.0, 0.0, 0.0));
 
         let positive_result = later
-            .since(&earlier, init_diff_setting(TemporalUnit::Minute))
+            .since(&earlier, init_diff_setting(Unit::Minute))
             .unwrap();
         assert_time_duration(positive_result.time(), (376435.0, 24.0, 0.0, 0.0, 0.0, 0.0));
         let negative_result = earlier
-            .since(&later, init_diff_setting(TemporalUnit::Minute))
+            .since(&later, init_diff_setting(Unit::Minute))
             .unwrap();
         assert_time_duration(
             negative_result.time(),
@@ -573,14 +571,14 @@ mod tests {
         // ... Skip to lower units ...
 
         let positive_result = later
-            .since(&earlier, init_diff_setting(TemporalUnit::Microsecond))
+            .since(&earlier, init_diff_setting(Unit::Microsecond))
             .unwrap();
         assert_time_duration(
             positive_result.time(),
             (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0),
         );
         let negative_result = earlier
-            .since(&later, init_diff_setting(TemporalUnit::Microsecond))
+            .since(&later, init_diff_setting(Unit::Microsecond))
             .unwrap();
         assert_time_duration(
             negative_result.time(),
@@ -588,14 +586,14 @@ mod tests {
         );
 
         let positive_result = later
-            .since(&earlier, init_diff_setting(TemporalUnit::Nanosecond))
+            .since(&earlier, init_diff_setting(Unit::Nanosecond))
             .unwrap();
         assert_time_duration(
             positive_result.time(),
             (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0),
         );
         let negative_result = earlier
-            .since(&later, init_diff_setting(TemporalUnit::Nanosecond))
+            .since(&later, init_diff_setting(Unit::Nanosecond))
             .unwrap();
         assert_time_duration(
             negative_result.time(),

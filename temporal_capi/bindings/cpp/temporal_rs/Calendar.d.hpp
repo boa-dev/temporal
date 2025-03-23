@@ -26,7 +26,7 @@ struct PartialDate;
 struct TemporalError;
 class AnyCalendarKind;
 class ArithmeticOverflow;
-class TemporalUnit;
+class Unit;
 }
 
 
@@ -56,7 +56,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> date_add(temporal_rs::IsoDate date, const temporal_rs::Duration& duration, temporal_rs::ArithmeticOverflow overflow) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> date_until(temporal_rs::IsoDate one, temporal_rs::IsoDate two, temporal_rs::TemporalUnit largest_unit) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> date_until(temporal_rs::IsoDate one, temporal_rs::IsoDate two, temporal_rs::Unit largest_unit) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> era(temporal_rs::IsoDate date) const;
 
