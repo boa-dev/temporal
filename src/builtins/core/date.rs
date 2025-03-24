@@ -683,6 +683,7 @@ impl PlainDate {
         //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
         let epoch_ns = if let Some(time) = plain_time {
             let result_iso = IsoDateTime::new(self.iso, time.iso);
+
             tz.get_epoch_nanoseconds_for(
                 result_iso.unwrap_or_default(),
                 Disambiguation::Compatible,
@@ -724,9 +725,11 @@ impl FromStr for PlainDate {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "tzdb"))]
 mod tests {
     use tinystr::tinystr;
+    use crate::tzdb::FsTzdbProvider;
+
 
     use super::*;
 
@@ -987,6 +990,26 @@ mod tests {
             MonthCode::from_str("M11").unwrap()
         );
         assert_eq!(with_day.day().unwrap(), 17);
+    }
+
+    // test toZonedDateTime
+    #[test]
+    fn to_zoned_date_time() {
+        let date = PlainDate::from_str("2020-01-01").unwrap();
+        let tz = TimeZone::try_from_str("UTC").unwrap();
+        let provider = &FsTzdbProvider::default();
+        let zdt = date
+            .to_zoned_date_time_with_provider(tz, None, provider)
+            .unwrap();
+        assert_eq!(zdt.year_with_provider(provider).unwrap(), 2020);
+        assert_eq!(zdt.month_with_provider(provider).unwrap(), 1);
+        assert_eq!(zdt.day_with_provider(provider).unwrap(), 1);
+        assert_eq!(zdt.hour_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.minute_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.second_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.millisecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.microsecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.nanosecond_with_provider(provider).unwrap(), 0);
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js
