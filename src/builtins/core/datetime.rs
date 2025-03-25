@@ -53,7 +53,18 @@ impl PartialDateTime {
     }
 }
 
-/// The native Rust implementation of `Temporal.PlainDateTime`
+// TODO: Example doctest
+/// The native Rust implementation of a Temporal `PlainDateTime`.
+///
+/// The `PlainDateTime` represents a date and time without a
+/// time zone. The fundemental represenation of a `PlainDateTime`
+/// is it's internal ISO date and time fields and a calendar.
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-datetime].
+///
+/// [mdn-datetime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainDateTime
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainDateTime {
