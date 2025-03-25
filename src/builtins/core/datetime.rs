@@ -9,8 +9,8 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, ResolvedRoundingOptions, RoundingOptions, TemporalUnit,
-        ToStringRoundingOptions, UnitGroup,
+        DisplayCalendar, ResolvedRoundingOptions, RoundingOptions, ToStringRoundingOptions, Unit,
+        UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -147,8 +147,8 @@ impl PlainDateTime {
             settings,
             op,
             UnitGroup::DateTime,
-            TemporalUnit::Day,
-            TemporalUnit::Nanosecond,
+            Unit::Day,
+            Unit::Nanosecond,
         )?;
 
         // Step 7-8 combined.
@@ -190,7 +190,7 @@ impl PlainDateTime {
             .diff(&other.iso, &self.calendar, options.largest_unit)?;
 
         // 4. If smallestUnit is nanosecond and roundingIncrement = 1, return diff.
-        if options.smallest_unit == TemporalUnit::Nanosecond && options.increment.get() == 1 {
+        if options.smallest_unit == Unit::Nanosecond && options.increment.get() == 1 {
             return Ok(diff);
         }
 
@@ -206,11 +206,7 @@ impl PlainDateTime {
     }
 
     // 5.5.14 DifferencePlainDateTimeWithTotal ( isoDateTime1, isoDateTime2, calendar, unit )
-    pub(crate) fn diff_dt_with_total(
-        &self,
-        other: &Self,
-        unit: TemporalUnit,
-    ) -> TemporalResult<FiniteF64> {
+    pub(crate) fn diff_dt_with_total(&self, other: &Self, unit: Unit) -> TemporalResult<FiniteF64> {
         // 1. If CompareISODateTime(isoDateTime1, isoDateTime2) = 0, then
         //    a. Return 0.
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
@@ -223,7 +219,7 @@ impl PlainDateTime {
         // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, unit).
         let diff = self.iso.diff(&other.iso, &self.calendar, unit)?;
         // 4. If unit is nanosecond, return diff.[[Time]].
-        if unit == TemporalUnit::Nanosecond {
+        if unit == Unit::Nanosecond {
             return FiniteF64::try_from(diff.normalized_time_duration().0);
         }
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
@@ -788,8 +784,8 @@ mod tests {
         },
         iso::{IsoDate, IsoDateTime, IsoTime},
         options::{
-            DifferenceSettings, DisplayCalendar, RoundingIncrement, RoundingOptions,
-            TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions,
+            DifferenceSettings, DisplayCalendar, RoundingIncrement, RoundingMode, RoundingOptions,
+            ToStringRoundingOptions, Unit,
         },
         parsers::Precision,
         primitive::FiniteF64,
@@ -1088,9 +1084,9 @@ mod tests {
     }
 
     fn create_diff_setting(
-        smallest: TemporalUnit,
+        smallest: Unit,
         increment: u32,
-        rounding_mode: TemporalRoundingMode,
+        rounding_mode: RoundingMode,
     ) -> DifferenceSettings {
         DifferenceSettings {
             largest_unit: None,
@@ -1109,14 +1105,13 @@ mod tests {
             PlainDateTime::try_new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default())
                 .unwrap();
 
-        let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
+        let settings = create_diff_setting(Unit::Hour, 3, RoundingMode::HalfExpand);
         let result = earlier.until(&later, settings).unwrap();
 
         assert_eq!(result.days(), 973.0);
         assert_eq!(result.hours(), 3.0);
 
-        let settings =
-            create_diff_setting(TemporalUnit::Minute, 30, TemporalRoundingMode::HalfExpand);
+        let settings = create_diff_setting(Unit::Minute, 30, RoundingMode::HalfExpand);
         let result = earlier.until(&later, settings).unwrap();
 
         assert_eq!(result.days(), 973.0);
@@ -1133,14 +1128,13 @@ mod tests {
             PlainDateTime::try_new(2021, 9, 7, 12, 39, 40, 987, 654, 321, Calendar::default())
                 .unwrap();
 
-        let settings = create_diff_setting(TemporalUnit::Hour, 3, TemporalRoundingMode::HalfExpand);
+        let settings = create_diff_setting(Unit::Hour, 3, RoundingMode::HalfExpand);
         let result = later.since(&earlier, settings).unwrap();
 
         assert_eq!(result.days(), 973.0);
         assert_eq!(result.hours(), 3.0);
 
-        let settings =
-            create_diff_setting(TemporalUnit::Minute, 30, TemporalRoundingMode::HalfExpand);
+        let settings = create_diff_setting(Unit::Minute, 30, RoundingMode::HalfExpand);
         let result = later.since(&earlier, settings).unwrap();
 
         assert_eq!(result.days(), 973.0);
@@ -1163,7 +1157,7 @@ mod tests {
                 assert_eq!(dt.nanosecond(), expected.8);
             };
 
-        let gen_rounding_options = |smallest: TemporalUnit, increment: u32| -> RoundingOptions {
+        let gen_rounding_options = |smallest: Unit, increment: u32| -> RoundingOptions {
             RoundingOptions {
                 largest_unit: None,
                 smallest_unit: Some(smallest),
@@ -1175,33 +1169,27 @@ mod tests {
             PlainDateTime::try_new(1976, 11, 18, 14, 23, 30, 123, 456, 789, Calendar::default())
                 .unwrap();
 
-        let result = dt
-            .round(gen_rounding_options(TemporalUnit::Hour, 4))
-            .unwrap();
+        let result = dt.round(gen_rounding_options(Unit::Hour, 4)).unwrap();
         assert_datetime(result, (1976, 11, 18, 16, 0, 0, 0, 0, 0));
 
-        let result = dt
-            .round(gen_rounding_options(TemporalUnit::Minute, 15))
-            .unwrap();
+        let result = dt.round(gen_rounding_options(Unit::Minute, 15)).unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 30, 0, 0, 0, 0));
 
-        let result = dt
-            .round(gen_rounding_options(TemporalUnit::Second, 30))
-            .unwrap();
+        let result = dt.round(gen_rounding_options(Unit::Second, 30)).unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 0, 0, 0));
 
         let result = dt
-            .round(gen_rounding_options(TemporalUnit::Millisecond, 10))
+            .round(gen_rounding_options(Unit::Millisecond, 10))
             .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 120, 0, 0));
 
         let result = dt
-            .round(gen_rounding_options(TemporalUnit::Microsecond, 10))
+            .round(gen_rounding_options(Unit::Microsecond, 10))
             .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 460, 0));
 
         let result = dt
-            .round(gen_rounding_options(TemporalUnit::Nanosecond, 10))
+            .round(gen_rounding_options(Unit::Nanosecond, 10))
             .unwrap();
         assert_datetime(result, (1976, 11, 18, 14, 23, 30, 123, 456, 790));
     }
@@ -1215,7 +1203,7 @@ mod tests {
         let bad_options = RoundingOptions {
             largest_unit: None,
             smallest_unit: None,
-            rounding_mode: Some(TemporalRoundingMode::Ceil),
+            rounding_mode: Some(RoundingMode::Ceil),
             increment: Some(RoundingIncrement::ONE),
         };
 

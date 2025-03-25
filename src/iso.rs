@@ -35,7 +35,7 @@ use crate::{
         Duration, PartialTime, PlainDate,
     },
     error::TemporalError,
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, TemporalUnit},
+    options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
     primitive::FiniteF64,
     rounding::{IncrementRounder, Round},
     temporal_assert,
@@ -202,11 +202,11 @@ impl IsoDateTime {
         &self,
         other: &Self,
         calendar: &Calendar,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
     ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. Assert: ISODateTimeWithinLimits(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1) is true.
         // 2. Assert: ISODateTimeWithinLimits(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) is true.
-        // 3. Assert: If y1 ≠ y2, and mon1 ≠ mon2, and d1 ≠ d2, and LargerOfTwoTemporalUnits(largestUnit, "day")
+        // 3. Assert: If y1 ≠ y2, and mon1 ≠ mon2, and d1 ≠ d2, and LargerOfTwoUnits(largestUnit, "day")
         // is not "day", CalendarMethodsRecordHasLookedUp(calendarRec, date-until) is true.
 
         // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
@@ -244,9 +244,9 @@ impl IsoDateTime {
             calendar.clone(),
         )?;
 
-        // 11. Let dateLargestUnit be LargerOfTwoTemporalUnits("day", largestUnit).
+        // 11. Let dateLargestUnit be LargerOfTwoUnits("day", largestUnit).
         // 12. Let untilOptions be ! SnapshotOwnProperties(options, null).
-        let date_largest_unit = largest_unit.max(TemporalUnit::Day);
+        let date_largest_unit = largest_unit.max(Unit::Day);
 
         // 13. Perform ! CreateDataPropertyOrThrow(untilOptions, "largestUnit", dateLargestUnit).
         // 14. Let dateDifference be ? DifferenceDate(calendarRec, date1, date2, untilOptions).
@@ -409,7 +409,7 @@ impl IsoDate {
     pub(crate) fn diff_iso_date(
         &self,
         other: &Self,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
     ) -> TemporalResult<DateDuration> {
         // 1. Assert: IsValidISODate(y1, m1, d1) is true.
         // 2. Assert: IsValidISODate(y2, m2, d2) is true.
@@ -424,7 +424,7 @@ impl IsoDate {
         let mut years = 0;
         let mut months = 0;
         // 6. If largestUnit is "year", then
-        if largest_unit == TemporalUnit::Year || largest_unit == TemporalUnit::Month {
+        if largest_unit == Unit::Year || largest_unit == Unit::Month {
             // others.year - self.year is adopted from temporal-proposal/polyfill as it saves iterations.
             // a. Let candidateYears be sign.
             let mut candidate_years: i32 = other.year - self.year;
@@ -468,7 +468,7 @@ impl IsoDate {
                 );
             }
 
-            if largest_unit == TemporalUnit::Month {
+            if largest_unit == Unit::Month {
                 months += years * 12;
                 years = 0;
             }
@@ -494,7 +494,7 @@ impl IsoDate {
                 constrained.day,
             );
 
-        let (weeks, days) = if largest_unit == TemporalUnit::Week {
+        let (weeks, days) = if largest_unit == Unit::Week {
             (days / 7, days % 7)
         } else {
             (0, days)
@@ -736,7 +736,7 @@ impl IsoTime {
     ) -> TemporalResult<(i32, Self)> {
         // 1. If unit is "day" or "hour", then
         let quantity = match resolved_options.smallest_unit {
-            TemporalUnit::Day | TemporalUnit::Hour => {
+            Unit::Day | Unit::Hour => {
                 // a. Let quantity be ((((hour × 60 + minute) × 60 + second) × 1000 + millisecond)
                 // × 1000 + microsecond) × 1000 + nanosecond.
                 let minutes = i128::from(self.hour) * 60 + i128::from(self.minute);
@@ -746,7 +746,7 @@ impl IsoTime {
                 micros * 1000 + i128::from(self.nanosecond)
             }
             // 2. Else if unit is "minute", then
-            TemporalUnit::Minute => {
+            Unit::Minute => {
                 // a. Let quantity be (((minute × 60 + second) × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond.
                 let seconds = i128::from(self.minute) * 60 + i128::from(self.second);
                 let millis = seconds * 1000 + i128::from(self.millisecond);
@@ -754,25 +754,25 @@ impl IsoTime {
                 micros * 1000 + i128::from(self.nanosecond)
             }
             // 3. Else if unit is "second", then
-            TemporalUnit::Second => {
+            Unit::Second => {
                 // a. Let quantity be ((second × 1000 + millisecond) × 1000 + microsecond) × 1000 + nanosecond.
                 let millis = i128::from(self.second) * 1000 + i128::from(self.millisecond);
                 let micros = millis * 1000 + i128::from(self.microsecond);
                 micros * 1000 + i128::from(self.nanosecond)
             }
             // 4. Else if unit is "millisecond", then
-            TemporalUnit::Millisecond => {
+            Unit::Millisecond => {
                 // a. Let quantity be (millisecond × 1000 + microsecond) × 1000 + nanosecond.
                 let micros = i128::from(self.millisecond) * 1000 + i128::from(self.microsecond);
                 micros * 1000 + i128::from(self.nanosecond)
             }
             // 5. Else if unit is "microsecond", then
-            TemporalUnit::Microsecond => {
+            Unit::Microsecond => {
                 // a. Let quantity be microsecond × 1000 + nanosecond.
                 i128::from(self.microsecond) * 1000 + i128::from(self.nanosecond)
             }
             // 6. Else,
-            TemporalUnit::Nanosecond => {
+            Unit::Nanosecond => {
                 // a. Assert: unit is "nanosecond".
                 // b. Let quantity be nanosecond.
                 i128::from(self.nanosecond)
@@ -809,16 +809,16 @@ impl IsoTime {
         match resolved_options.smallest_unit {
             // 9. If unit is "day", then
             // a. Return Time Record { [[Days]]: result, [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0  }.
-            TemporalUnit::Day => Ok((result_i64 as i32, Self::default())),
+            Unit::Day => Ok((result_i64 as i32, Self::default())),
             // 10. If unit is "hour", then
             // a. Return BalanceTime(result, 0, 0, 0, 0, 0).
-            TemporalUnit::Hour => Ok(Self::balance(result_i64, 0, 0, 0, 0, 0)),
+            Unit::Hour => Ok(Self::balance(result_i64, 0, 0, 0, 0, 0)),
             // 11. If unit is "minute", then
             // a. Return BalanceTime(hour, result, 0.0, 0.0, 0.0, 0).
-            TemporalUnit::Minute => Ok(Self::balance(self.hour.into(), result_i64, 0, 0, 0, 0)),
+            Unit::Minute => Ok(Self::balance(self.hour.into(), result_i64, 0, 0, 0, 0)),
             // 12. If unit is "second", then
             // a. Return BalanceTime(hour, minute, result, 0.0, 0.0, 0).
-            TemporalUnit::Second => Ok(Self::balance(
+            Unit::Second => Ok(Self::balance(
                 self.hour.into(),
                 self.minute.into(),
                 result_i64,
@@ -828,7 +828,7 @@ impl IsoTime {
             )),
             // 13. If unit is "millisecond", then
             // a. Return BalanceTime(hour, minute, second, result, 0.0, 0).
-            TemporalUnit::Millisecond => Ok(Self::balance(
+            Unit::Millisecond => Ok(Self::balance(
                 self.hour.into(),
                 self.minute.into(),
                 self.second.into(),
@@ -838,7 +838,7 @@ impl IsoTime {
             )),
             // 14. If unit is "microsecond", then
             // a. Return BalanceTime(hour, minute, second, millisecond, result, 0).
-            TemporalUnit::Microsecond => Ok(Self::balance(
+            Unit::Microsecond => Ok(Self::balance(
                 self.hour.into(),
                 self.minute.into(),
                 self.second.into(),
@@ -848,7 +848,7 @@ impl IsoTime {
             )),
             // 15. Assert: unit is "nanosecond".
             // 16. Return BalanceTime(hour, minute, second, millisecond, microsecond, result).
-            TemporalUnit::Nanosecond => Ok(Self::balance(
+            Unit::Nanosecond => Ok(Self::balance(
                 self.hour.into(),
                 self.minute.into(),
                 self.second.into(),
