@@ -4,7 +4,7 @@ members = ["diplomat-gen", "temporal_capi"]
 
 [workspace.package]
 edition = "2021"
-version = "0.0.4"
+version = "0.0.6"
 rust-version = "1.82.0"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
@@ -14,22 +14,21 @@ exclude = [
     "docs/*",
     ".github/*",
     ".gitignore",
-    "LICENSE*",
     "CONTRIBUTING.md",
     "cliff.toml",
 ]
 
 [workspace.dependencies]
-tinystr = "0.8.0"
-icu_calendar = { version = "2.0.0-beta1", default-features = false}
+temporal_rs = { version = "~0.0.6", path = ".", default-features = false }
+tinystr = "0.8.1"
+icu_calendar = { version = "2.0.0-beta2", default-features = false }
 rustc-hash = "2.1.0"
-bitflags = "2.7.0"
 num-traits = "0.2.19"
-ixdtf = { git = "https://github.com/unicode-org/icu4x.git", rev = "3d187da4d3f05b7e37603c4be3f2c1ce45100e03" }
-iana-time-zone = "0.1.61"
-log = "0.4.26"
+ixdtf = "0.4.0"
+iana-time-zone = "0.1.62"
+log = "0.4.27"
 tzif = "0.3.0"
-jiff-tzdb = "0.1.2"
+jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
 
@@ -53,7 +52,7 @@ icu_calendar = { workspace = true, features = ["compiled_data"] }
 num-traits.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
 iana-time-zone.workspace = true
-writeable = "0.6.0"
+writeable = "0.6.1"
 
 # log feature
 log = { workspace = true, optional = true }

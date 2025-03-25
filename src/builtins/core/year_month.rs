@@ -118,42 +118,42 @@ impl PlainYearMonth {
     }
 
     /// Returns the calendar era of the current `PlainYearMonth`
-    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+    pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar().era(&self.iso)
     }
 
     /// Returns the calendar era year of the current `PlainYearMonth`
-    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+    pub fn era_year(&self) -> Option<i32> {
         self.calendar().era_year(&self.iso)
     }
 
     /// Returns the calendar year of the current `PlainYearMonth`
-    pub fn year(&self) -> TemporalResult<i32> {
+    pub fn year(&self) -> i32 {
         self.calendar().year(&self.iso)
     }
 
     /// Returns the calendar month of the current `PlainYearMonth`
-    pub fn month(&self) -> TemporalResult<u8> {
+    pub fn month(&self) -> u8 {
         self.calendar().month(&self.iso)
     }
 
     /// Returns the calendar month code of the current `PlainYearMonth`
-    pub fn month_code(&self) -> TemporalResult<MonthCode> {
+    pub fn month_code(&self) -> MonthCode {
         self.calendar().month_code(&self.iso)
     }
 
     /// Returns the days in the calendar year of the current `PlainYearMonth`.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
+    pub fn days_in_year(&self) -> u16 {
         self.calendar().days_in_year(&self.iso)
     }
 
     /// Returns the days in the calendar month of the current `PlainYearMonth`.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
+    pub fn days_in_month(&self) -> u16 {
         self.calendar().days_in_month(&self.iso)
     }
 
     /// Returns the months in the calendar year of the current `PlainYearMonth`.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
+    pub fn months_in_year(&self) -> u16 {
         self.calendar().months_in_year(&self.iso)
     }
 
@@ -161,9 +161,7 @@ impl PlainYearMonth {
     #[must_use]
     /// Returns a boolean representing whether the current `PlainYearMonth` is in a leap year.
     pub fn in_leap_year(&self) -> bool {
-        self.calendar()
-            .in_leap_year(&self.iso)
-            .is_ok_and(|is_leap_year| is_leap_year)
+        self.calendar().in_leap_year(&self.iso)
     }
 }
 
@@ -185,10 +183,24 @@ impl PlainYearMonth {
     /// Creates a `PlainYearMonth` using the fields provided from a [`PartialDate`]
     pub fn with(
         &self,
-        _partial: PartialDate,
-        _overflow: ArithmeticOverflow,
+        partial: PartialDate,
+        overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented."))
+        // 1. Let yearMonth be the this value.
+        // 2. Perform ? RequireInternalSlot(yearMonth, [[InitializedTemporalYearMonth]]).
+        // 3. If ? IsPartialTemporalObject(temporalYearMonthLike) is false, throw a TypeError exception.
+        // 4. Let calendar be yearMonth.[[Calendar]].
+        // 5. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
+        // 6. Let partialYearMonth be ? PrepareCalendarFields(calendar, temporalYearMonthLike, « year, month, month-code », « », partial).
+        // 7. Set fields to CalendarMergeFields(calendar, fields, partialYearMonth).
+        // 8. Let resolvedOptions be ? GetOptionsObject(options).
+        // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
+        // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
+        // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        self.calendar.year_month_from_partial(
+            &partial.with_fallback_year_month(self)?,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )
     }
 
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
@@ -299,6 +311,78 @@ mod tests {
     use core::str::FromStr;
 
     use super::PlainYearMonth;
+
+    use tinystr::tinystr;
+
+    use super::*;
+
+    #[test]
+    fn test_plain_year_month_with() {
+        let base = PlainYearMonth::new_with_overflow(
+            2025,
+            3,
+            None,
+            Calendar::default(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+
+        // Year
+        let partial = PartialDate {
+            year: Some(2001),
+            ..Default::default()
+        };
+
+        let with_year = base.with(partial, None).unwrap();
+        assert_eq!(with_year.iso_year(), 2001); // year is changed
+        assert_eq!(with_year.iso_month(), 3); // month is not changed
+        assert_eq!(with_year.month_code(), MonthCode::from_str("M03").unwrap()); // assert month code has been initialized correctly
+
+        // Month
+        let partial = PartialDate {
+            month: Some(2),
+            ..Default::default()
+        };
+        let with_month = base.with(partial, None).unwrap();
+        assert_eq!(with_month.iso_year(), 2025); // year is not changed
+        assert_eq!(with_month.iso_month(), 2); // month is changed
+        assert_eq!(with_month.month_code(), MonthCode::from_str("M02").unwrap()); // assert month code has changed as well as month
+
+        // Month Code
+        let partial = PartialDate {
+            month_code: Some(MonthCode(tinystr!(4, "M05"))), // change month to May (5)
+            ..Default::default()
+        };
+        let with_month_code = base.with(partial, None).unwrap();
+        assert_eq!(with_month_code.iso_year(), 2025); // year is not changed
+        assert_eq!(
+            with_month_code.month_code(),
+            MonthCode::from_str("M05").unwrap()
+        ); // assert month code has changed
+        assert_eq!(with_month_code.iso_month(), 5); // month is changed as well
+
+        // Day
+        let partial = PartialDate {
+            day: Some(15),
+            ..Default::default()
+        };
+        let with_day = base.with(partial, None).unwrap();
+        assert_eq!(with_day.iso_year(), 2025); // year is not changed
+        assert_eq!(with_day.iso_month(), 3); // month is not changed
+        assert_eq!(with_day.iso.day, 1); // day is ignored
+
+        // All
+        let partial = PartialDate {
+            year: Some(2001),
+            month: Some(2),
+            day: Some(15),
+            ..Default::default()
+        };
+        let with_all = base.with(partial, None).unwrap();
+        assert_eq!(with_all.iso_year(), 2001); // year is changed
+        assert_eq!(with_all.iso_month(), 2); // month is changed
+        assert_eq!(with_all.iso.day, 1); // day is ignored
+    }
 
     #[test]
     fn basic_from_str() {

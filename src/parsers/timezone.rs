@@ -1,12 +1,8 @@
 use alloc::borrow::ToOwned;
-use alloc::string::String;
 use core::{iter::Peekable, str::Chars};
-use ixdtf::parsers::{
-    records::{TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ},
-    IxdtfParser,
-};
+use ixdtf::parsers::{records::UtcOffsetRecordOrZ, IxdtfParser};
 
-use crate::{TemporalError, TemporalResult, TimeZone};
+use crate::{builtins::timezone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
 use super::{parse_ixdtf, ParseVariant};
 
@@ -34,37 +30,26 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
     };
 
     if let Some(annotation) = annotation {
-        match annotation.tz {
-            TimeZoneRecord::Name(s) => {
-                let identifier = String::from_utf8_lossy(s).into_owned();
-                return Some(TimeZone::IanaIdentifier(identifier));
-            }
-            TimeZoneRecord::Offset(offset) => return Some(timezone_from_offset_record(offset)),
-            _ => {}
-        }
+        return TimeZone::from_time_zone_record(annotation.tz).ok();
     };
 
     if let Some(offset) = offset {
         match offset {
             UtcOffsetRecordOrZ::Z => return Some(TimeZone::default()),
-            UtcOffsetRecordOrZ::Offset(offset) => return Some(timezone_from_offset_record(offset)),
+            UtcOffsetRecordOrZ::Offset(offset) => {
+                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_record(offset)))
+            }
         }
     }
 
     None
 }
 
-fn timezone_from_offset_record(record: UtcOffsetRecord) -> TimeZone {
-    let minutes = (record.hour as i16 * 60) + record.minute as i16 + (record.second as i16 / 60);
-    TimeZone::OffsetMinutes(minutes * record.sign as i16)
-}
-
 #[inline]
 pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZone> {
     let mut cursor = source.chars().peekable();
-    if cursor.peek().is_some_and(is_ascii_sign) {
-        let offset_minutes = parse_offset(&mut cursor)?;
-        return Ok(TimeZone::OffsetMinutes(offset_minutes));
+    if let Some(offset) = parse_offset(&mut cursor)? {
+        return Ok(TimeZone::UtcOffset(UtcOffset(offset)));
     } else if parse_iana_component(&mut cursor) {
         return Ok(TimeZone::IanaIdentifier(source.to_owned()));
     }
@@ -72,10 +57,18 @@ pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZone> {
 }
 
 #[inline]
-pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
+pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<Option<i16>> {
+    if chars.peek().is_none() || !chars.peek().is_some_and(is_ascii_sign) {
+        return Ok(None);
+    }
+
     let sign = chars.next().map_or(1, |c| if c == '+' { 1 } else { -1 });
     // First offset portion
     let hours = parse_digit_pair(chars)?;
+
+    if !(0..24).contains(&hours) {
+        return Err(TemporalError::range().with_message("Invalid offset hour value."));
+    }
 
     let sep = chars.peek().is_some_and(|ch| *ch == ':');
     if sep {
@@ -90,7 +83,54 @@ pub(crate) fn parse_offset(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i1
         None => 0,
     };
 
-    Ok((hours * 60 + minutes) * sign)
+    if !(0..60).contains(&minutes) {
+        return Err(TemporalError::range().with_message("Invalid offset hour value."));
+    }
+
+    let result = Some((hours * 60 + minutes) * sign);
+
+    // We continue parsing for correctness, but we only care about
+    // minute precision
+
+    let next_peek = chars.peek();
+    match next_peek {
+        Some(&':') if sep => _ = chars.next(),
+        Some(&':') => {
+            return Err(TemporalError::range().with_message("offset separators do not align."))
+        }
+        Some(_) => _ = parse_digit_pair(chars),
+        None => return Ok(result),
+    }
+
+    let potential_fraction = chars.next();
+    match potential_fraction {
+        Some(ch) if ch == '.' || ch == ',' => {
+            if !chars.peek().is_some_and(|ch| ch.is_ascii_digit()) {
+                return Err(
+                    TemporalError::range().with_message("fraction separator must have digit after")
+                );
+            }
+        }
+        Some(_) => return Err(TemporalError::range().with_message("Invalid offset")),
+        None => return Ok(result),
+    }
+
+    for _ in 0..9 {
+        let digit_or_end = chars.next().map(|ch| ch.is_ascii_digit());
+        match digit_or_end {
+            Some(true) => {}
+            Some(false) => {
+                return Err(TemporalError::range().with_message("Not a valid fractional second"))
+            }
+            None => break,
+        }
+    }
+
+    if chars.peek().is_some() {
+        return Err(TemporalError::range().with_message("Invalid offset"));
+    }
+
+    Ok(result)
 }
 
 fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
@@ -114,7 +154,15 @@ fn parse_digit_pair(chars: &mut Peekable<Chars<'_>>) -> TemporalResult<i16> {
     let tens = (first.to_digit(10).expect("validated") * 10) as i16;
     let ones = second.to_digit(10).expect("validated") as i16;
 
-    Ok(tens + ones)
+    let result = tens + ones;
+
+    if !(0..=59).contains(&result) {
+        return Err(
+            TemporalError::range().with_message("digit pair not in a valid range of [0..59]")
+        );
+    }
+
+    Ok(result)
 }
 
 fn parse_iana_component(chars: &mut Peekable<Chars<'_>>) -> bool {

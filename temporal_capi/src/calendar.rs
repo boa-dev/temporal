@@ -119,10 +119,7 @@ pub mod ffi {
 
         // Writes an empty string for no era
         pub fn era(&self, date: IsoDate, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
-            let era = self
-                .0
-                .era(&date.into())
-                .map_err(Into::<TemporalError>::into)?;
+            let era = self.0.era(&date.into());
             if let Some(era) = era {
                 // throw away the error, this should always succeed
                 let _ = write.write_str(&era);
@@ -130,37 +127,34 @@ pub mod ffi {
             Ok(())
         }
 
-        pub fn era_year(&self, date: IsoDate) -> Result<Option<i32>, TemporalError> {
-            self.0.era_year(&date.into()).map_err(Into::into)
+        pub fn era_year(&self, date: IsoDate) -> Option<i32> {
+            self.0.era_year(&date.into())
         }
 
-        pub fn year(&self, date: IsoDate) -> Result<i32, TemporalError> {
-            self.0.year(&date.into()).map_err(Into::into)
+        pub fn year(&self, date: IsoDate) -> i32 {
+            self.0.year(&date.into())
         }
-        pub fn month(&self, date: IsoDate) -> Result<u8, TemporalError> {
-            self.0.month(&date.into()).map_err(Into::into)
+        pub fn month(&self, date: IsoDate) -> u8 {
+            self.0.month(&date.into())
         }
         pub fn month_code(
             &self,
             date: IsoDate,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            let code = self
-                .0
-                .month_code(&date.into())
-                .map_err(Into::<TemporalError>::into)?;
+            let code = self.0.month_code(&date.into());
             // throw away the error, this should always succeed
             let _ = write.write_str(code.as_str());
             Ok(())
         }
-        pub fn day(&self, date: IsoDate) -> Result<u8, TemporalError> {
-            self.0.day(&date.into()).map_err(Into::into)
+        pub fn day(&self, date: IsoDate) -> u8 {
+            self.0.day(&date.into())
         }
-        pub fn day_of_week(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.day_of_week(&date.into()).map_err(Into::into)
+        pub fn day_of_week(&self, date: IsoDate) -> u16 {
+            self.0.day_of_week(&date.into())
         }
-        pub fn day_of_year(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.day_of_year(&date.into()).map_err(Into::into)
+        pub fn day_of_year(&self, date: IsoDate) -> u16 {
+            self.0.day_of_year(&date.into())
         }
         pub fn week_of_year(&self, date: IsoDate) -> Result<Option<u16>, TemporalError> {
             self.0.week_of_year(&date.into()).map_err(Into::into)
@@ -171,17 +165,17 @@ pub mod ffi {
         pub fn days_in_week(&self, date: IsoDate) -> Result<u16, TemporalError> {
             self.0.days_in_week(&date.into()).map_err(Into::into)
         }
-        pub fn days_in_month(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.days_in_month(&date.into()).map_err(Into::into)
+        pub fn days_in_month(&self, date: IsoDate) -> u16 {
+            self.0.days_in_month(&date.into())
         }
-        pub fn days_in_year(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.days_in_year(&date.into()).map_err(Into::into)
+        pub fn days_in_year(&self, date: IsoDate) -> u16 {
+            self.0.days_in_year(&date.into())
         }
-        pub fn months_in_year(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.months_in_year(&date.into()).map_err(Into::into)
+        pub fn months_in_year(&self, date: IsoDate) -> u16 {
+            self.0.months_in_year(&date.into())
         }
-        pub fn in_leap_year(&self, date: IsoDate) -> Result<bool, TemporalError> {
-            self.0.in_leap_year(&date.into()).map_err(Into::into)
+        pub fn in_leap_year(&self, date: IsoDate) -> bool {
+            self.0.in_leap_year(&date.into())
         }
 
         // TODO .fields() (need to pick a convenient way to return vectors or iterators, depending on how the API gets used)
