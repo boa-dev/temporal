@@ -52,7 +52,7 @@ impl Instant {
     /// Temporal-Proposal equivalent: `AddInstant`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         let norm = NormalizedTimeDuration::from_time_duration(duration);
-        let result = self.epoch_nanoseconds() + norm.0;
+        let result = self.epoch_nanoseconds().0 + norm.0;
         Ok(Self::from(EpochNanoseconds::try_from(result)?))
     }
 
@@ -226,13 +226,13 @@ impl Instant {
     /// Returns the `epochMilliseconds` value for this `Instant`.
     #[must_use]
     pub fn epoch_milliseconds(&self) -> i64 {
-        (self.as_i128() / 1_000_000) as i64
+        self.as_i128().div_euclid(1_000_000) as i64
     }
 
     /// Returns the `epochNanoseconds` value for this `Instant`.
     #[must_use]
-    pub fn epoch_nanoseconds(&self) -> i128 {
-        self.as_i128()
+    pub fn epoch_nanoseconds(&self) -> &EpochNanoseconds {
+        &self.0
     }
 
     // TODO: May end up needing a provider API during impl
@@ -284,17 +284,27 @@ impl FromStr for Instant {
         let ixdtf_record = parse_instant(s)?;
 
         // Find the offset
-        let offset = match ixdtf_record.offset {
+        let ns_offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
+                let ns = offset
+                    .fraction
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
                 (offset.hour as i64 * NANOSECONDS_PER_HOUR
                     + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
                     + i64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + i64::from(offset.nanosecond))
+                    + i64::from(ns))
                     * offset.sign as i64
             }
             UtcOffsetRecordOrZ::Z => 0,
         };
-        let (millisecond, rem) = ixdtf_record.time.nanosecond.div_rem_euclid(&1_000_000);
+
+        let time_nanoseconds = ixdtf_record
+            .time
+            .fraction
+            .and_then(|x| x.to_nanoseconds())
+            .unwrap_or(0);
+        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
         let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
 
         let balanced = IsoDateTime::balance(
@@ -306,7 +316,7 @@ impl FromStr for Instant {
             ixdtf_record.time.second.clamp(0, 59).into(),
             millisecond.into(),
             microsecond.into(),
-            nanosecond as i64 - offset,
+            nanosecond as i64 - ns_offset,
         );
 
         let nanoseconds = balanced.as_nanoseconds()?;
@@ -340,14 +350,36 @@ mod tests {
         let max_instant = Instant::try_new(max).unwrap();
         let min_instant = Instant::try_new(min).unwrap();
 
-        assert_eq!(max_instant.epoch_nanoseconds(), max);
-        assert_eq!(min_instant.epoch_nanoseconds(), min);
+        assert_eq!(max_instant.epoch_nanoseconds().0, max);
+        assert_eq!(min_instant.epoch_nanoseconds().0, min);
 
         let max_plus_one = NS_MAX_INSTANT + 1;
         let min_minus_one = NS_MIN_INSTANT - 1;
 
         assert!(Instant::try_new(max_plus_one).is_err());
         assert!(Instant::try_new(min_minus_one).is_err());
+    }
+
+    #[test]
+    fn max_min_epoch_millseconds() {
+        // Assert the casting is valid.
+        let max = NS_MAX_INSTANT;
+        let min = NS_MIN_INSTANT;
+        let max_instant = Instant::try_new(max).unwrap();
+        let min_instant = Instant::try_new(min).unwrap();
+
+        // Assert max and min are valid for casting.
+        assert_eq!(
+            max_instant.epoch_milliseconds(),
+            max.div_euclid(1_000_000) as i64
+        );
+        assert_eq!(
+            min_instant.epoch_milliseconds(),
+            min.div_euclid(1_000_000) as i64
+        );
+        // Assert the max and min are not being truncated.
+        assert_ne!(max_instant.epoch_milliseconds(), i64::MAX);
+        assert_ne!(max_instant.epoch_milliseconds(), i64::MIN);
     }
 
     #[test]

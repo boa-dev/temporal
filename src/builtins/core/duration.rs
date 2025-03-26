@@ -7,7 +7,7 @@ use crate::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
         RoundingOptions, TemporalUnit, ToStringRoundingOptions,
     },
-    parsers::{FormattableDuration, Precision},
+    parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult,
@@ -17,10 +17,7 @@ use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::{cmp::Ordering, str::FromStr};
-use ixdtf::parsers::{
-    records::{DateDurationRecord, DurationParseRecord, Sign as IxdtfSign, TimeDurationRecord},
-    IsoDurationParser,
-};
+use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use normalized::NormalizedDurationRecord;
 use num_traits::AsPrimitive;
 
@@ -689,11 +686,79 @@ impl Duration {
     /// Returns the total of the `Duration`
     pub fn total_with_provider(
         &self,
-        _unit: TemporalUnit,
-        _relative_to: Option<RelativeTo>,
-        _provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<i64> {
-        Err(TemporalError::general("Not yet implemented"))
+        unit: TemporalUnit,
+        relative_to: Option<RelativeTo>,
+        provider: &impl TimeZoneProvider,
+        // Review question what is the return type of duration.prototye.total?
+    ) -> TemporalResult<FiniteF64> {
+        match relative_to {
+            // 11. If zonedRelativeTo is not undefined, then
+            Some(RelativeTo::ZonedDateTime(zoned_datetime)) => {
+                // a. Let internalDuration be ToInternalDurationRecord(duration).
+                // b. Let timeZone be zonedRelativeTo.[[TimeZone]].
+                // c. Let calendar be zonedRelativeTo.[[Calendar]].
+                // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
+                // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar, internalDuration, constrain).
+                let target_epcoh_ns =
+                    zoned_datetime.add_as_instant(self, ArithmeticOverflow::Constrain, provider)?;
+                // f. Let total be ? DifferenceZonedDateTimeWithTotal(relativeEpochNs, targetEpochNs, timeZone, calendar, unit).
+                let total = zoned_datetime.diff_with_total(
+                    &ZonedDateTime::new_unchecked(
+                        target_epcoh_ns,
+                        zoned_datetime.calendar().clone(),
+                        zoned_datetime.timezone().clone(),
+                    ),
+                    unit,
+                    provider,
+                )?;
+                Ok(total)
+            }
+            // 12. Else if plainRelativeTo is not undefined, then
+            Some(RelativeTo::PlainDate(plain_date)) => {
+                // a. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                // b. Let targetTime be AddTime(MidnightTimeRecord(), internalDuration.[[Time]]).
+                let (balanced_days, time) =
+                    PlainTime::default().add_normalized_time_duration(self.time.to_normalized());
+                // c. Let calendar be plainRelativeTo.[[Calendar]].
+                // d. Let dateDuration be ! AdjustDateDurationRecord(internalDuration.[[Date]], targetTime.[[Days]]).
+                let date_duration = DateDuration::new(
+                    self.years(),
+                    self.months(),
+                    self.weeks(),
+                    self.days().checked_add(&FiniteF64::from(balanced_days))?,
+                )?;
+                // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
+                let target_date = plain_date.calendar().date_add(
+                    &plain_date.iso,
+                    &Duration::from(date_duration),
+                    ArithmeticOverflow::Constrain,
+                )?;
+                // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
+                let iso_date_time = IsoDateTime::new_unchecked(plain_date.iso, IsoTime::default());
+                // g. Let targetDateTime be CombineISODateAndTimeRecord(targetDate, targetTime).
+                let target_date_time = IsoDateTime::new_unchecked(target_date.iso, time.iso);
+                // h. Let total be ? DifferencePlainDateTimeWithTotal(isoDateTime, targetDateTime, calendar, unit).
+                let plain_dt =
+                    PlainDateTime::new_unchecked(iso_date_time, plain_date.calendar().clone());
+                let total = plain_dt.diff_dt_with_total(
+                    &PlainDateTime::new_unchecked(target_date_time, plain_date.calendar().clone()),
+                    unit,
+                )?;
+                Ok(total)
+            }
+            None => {
+                // a. Let largestUnit be DefaultTemporalLargestUnit(duration).
+                let largest_unit = self.default_largest_unit();
+                // b. If IsCalendarUnit(largestUnit) is true, or IsCalendarUnit(unit) is true, throw a RangeError exception.
+                if largest_unit.is_calendar_unit() || unit.is_calendar_unit() {
+                    return Err(TemporalError::range());
+                }
+                // c. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                // d. Let total be TotalTimeDuration(internalDuration.[[Time]], unit).
+                let total = self.time.to_normalized().total(unit)?;
+                Ok(total)
+            }
+        }
     }
 
     /// Returns the `Duration` as a formatted string
@@ -744,15 +809,10 @@ pub fn duration_to_formattable(
     precision: Precision,
 ) -> TemporalResult<FormattableDuration> {
     let sign = duration.sign();
-    let sign = if sign == Sign::Negative {
-        IxdtfSign::Negative
-    } else {
-        IxdtfSign::Positive
-    };
     let duration = duration.abs();
     let date = duration.years().0 + duration.months().0 + duration.weeks().0 + duration.days().0;
     let date = if date != 0.0 {
-        Some(DateDurationRecord {
+        Some(FormattableDateDuration {
             years: duration.years().0 as u32,
             months: duration.months().0 as u32,
             weeks: duration.weeks().0 as u32,
@@ -777,16 +837,18 @@ pub fn duration_to_formattable(
     let seconds = time.seconds().unsigned_abs();
     let subseconds = time.subseconds().unsigned_abs();
 
-    let time = Some(TimeDurationRecord::Seconds {
-        hours: hours.0 as u64,
-        minutes: minutes.0 as u64,
+    let time = Some(FormattableTimeDuration::Seconds(
+        hours.0 as u64,
+        minutes.0 as u64,
         seconds,
-        fraction: subseconds,
-    });
+        Some(subseconds),
+    ));
 
     Ok(FormattableDuration {
         precision,
-        duration: DurationParseRecord { sign, date, time },
+        sign,
+        date,
+        time,
     })
 }
 
@@ -928,14 +990,17 @@ impl FromStr for Duration {
 
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let minutes = fraction.div_euclid(60 * 1_000_000_000);
-                let rem = fraction.rem_euclid(60 * 1_000_000_000);
+                let unadjusted_fraction =
+                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let fractional_hours_ns = unadjusted_fraction * 3600;
+                let minutes = fractional_hours_ns.div_euclid(60 * 1_000_000_000);
+                let fractional_minutes_ns = fractional_hours_ns.rem_euclid(60 * 1_000_000_000);
 
-                let seconds = rem.div_euclid(1_000_000_000);
-                let rem = rem.rem_euclid(1_000_000_000);
+                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
+                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
 
-                let milliseconds = rem.div_euclid(1_000_000);
-                let rem = rem.rem_euclid(1_000_000);
+                let milliseconds = fractional_seconds.div_euclid(1_000_000);
+                let rem = fractional_seconds.rem_euclid(1_000_000);
 
                 let microseconds = rem.div_euclid(1_000);
                 let nanoseconds = rem.rem_euclid(1_000);
@@ -955,11 +1020,14 @@ impl FromStr for Duration {
                 minutes,
                 fraction,
             }) => {
-                let seconds = fraction.div_euclid(1_000_000_000);
-                let rem = fraction.rem_euclid(1_000_000_000);
+                let unadjusted_fraction =
+                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let fractional_minutes_ns = unadjusted_fraction * 60;
+                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
+                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
 
-                let milliseconds = rem.div_euclid(1_000_000);
-                let rem = rem.rem_euclid(1_000_000);
+                let milliseconds = fractional_seconds.div_euclid(1_000_000);
+                let rem = fractional_seconds.rem_euclid(1_000_000);
 
                 let microseconds = rem.div_euclid(1_000);
                 let nanoseconds = rem.rem_euclid(1_000);
@@ -980,8 +1048,9 @@ impl FromStr for Duration {
                 seconds,
                 fraction,
             }) => {
-                let milliseconds = fraction.div_euclid(1_000_000);
-                let rem = fraction.rem_euclid(1_000_000);
+                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let milliseconds = ns.div_euclid(1_000_000);
+                let rem = ns.rem_euclid(1_000_000);
 
                 let microseconds = rem.div_euclid(1_000);
                 let nanoseconds = rem.rem_euclid(1_000);

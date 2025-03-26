@@ -29,12 +29,9 @@ impl Now {
     ///
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
-    ///
-    /// For an example implementation see [`Self::zoneddatetime_iso`]
-    ///
     pub(crate) fn system_datetime_with_provider(
-        epoch_nanoseconds: EpochNanoseconds,
-        timezone: TimeZone,
+        system_epoch_nanoseconds: EpochNanoseconds,
+        system_timezone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<IsoDateTime> {
         // 1. If temporalTimeZoneLike is undefined, then
@@ -43,7 +40,7 @@ impl Now {
         // a. Let timeZone be ? ToTemporalTimeZoneIdentifier(temporalTimeZoneLike).
         // 3. Let epochNs be SystemUTCEpochNanoseconds().
         // 4. Return GetISODateTimeFor(timeZone, epochNs).
-        timezone.get_iso_datetime_for(&Instant::from(epoch_nanoseconds), provider)
+        system_timezone.get_iso_datetime_for(&Instant::from(system_epoch_nanoseconds), provider)
     }
 
     /// Returns the current system time as a `ZonedDateTime` with an ISO8601 calendar.
@@ -62,16 +59,17 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::zoneddatetime_iso`]
-    pub fn zoneddatetime_iso_with_system_values(
-        epoch_nanos: EpochNanoseconds,
-        timezone: TimeZone,
+    /// For an example implementation, see `Now::zoneddatetime_iso`; available with
+    /// the `compiled_data` feature flag.
+    pub fn zoneddatetime_iso_with_system_info(
+        sys_epoch_nanos: EpochNanoseconds,
+        sys_timezone: TimeZone,
     ) -> TemporalResult<ZonedDateTime> {
-        let instant = Instant::from(epoch_nanos);
+        let instant = Instant::from(sys_epoch_nanos);
         Ok(ZonedDateTime::new_unchecked(
             instant,
             Calendar::default(),
-            timezone,
+            sys_timezone,
         ))
     }
 }
@@ -103,7 +101,7 @@ impl Now {
             timezone.unwrap_or(TimeZone::IanaIdentifier(crate::sys::get_system_timezone()?));
         let system_nanos = crate::sys::get_system_nanoseconds()?;
         let epoch_nanos = EpochNanoseconds::try_from(system_nanos)?;
-        Now::zoneddatetime_iso_with_system_values(epoch_nanos, timezone)
+        Now::zoneddatetime_iso_with_system_info(epoch_nanos, timezone)
     }
 }
 
@@ -121,13 +119,14 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_datetime_iso`]
-    pub fn plain_datetime_iso_with_provider(
-        epoch_nanos: EpochNanoseconds,
-        timezone: TimeZone,
+    /// For an example implementation, see `Now::plain_datetime_iso`; available with the
+    /// `compiled_data` feature flag.
+    pub fn plain_datetime_iso_with_provider_and_system_info(
+        sys_epoch_nanos: EpochNanoseconds,
+        sys_timezone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainDateTime> {
-        let iso = Self::system_datetime_with_provider(epoch_nanos, timezone, provider)?;
+        let iso = Self::system_datetime_with_provider(sys_epoch_nanos, sys_timezone, provider)?;
         Ok(PlainDateTime::new_unchecked(iso, Calendar::default()))
     }
 
@@ -144,13 +143,14 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_date_iso`]
-    pub fn plain_date_iso_with_provider(
-        epoch_nanos: EpochNanoseconds,
-        timezone: TimeZone,
+    /// For an example implementation, see `Now::plain_date_iso`; available
+    /// with the `compiled_data` feature flag.
+    pub fn plain_date_iso_with_provider_and_system_info(
+        sys_epoch_nanos: EpochNanoseconds,
+        sys_timezone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainDate> {
-        let iso = Self::system_datetime_with_provider(epoch_nanos, timezone, provider)?;
+        let iso = Self::system_datetime_with_provider(sys_epoch_nanos, sys_timezone, provider)?;
         Ok(PlainDate::new_unchecked(iso.date, Calendar::default()))
     }
 
@@ -167,27 +167,82 @@ impl Now {
     ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
     ///   2. Get the `SystemNanoseconds`
     ///
-    /// For an example implementation see [`Self::plain_time_iso`]
-    pub fn plain_time_iso_with_provider(
-        epoch_nanos: EpochNanoseconds,
-        timezone: TimeZone,
+    /// For an example implementation, see `Now::plain_time_iso`; available with the
+    /// `compiled_data` feature flag.
+    pub fn plain_time_iso_with_provider_and_system_info(
+        sys_epoch_nanos: EpochNanoseconds,
+        sys_timezone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<PlainTime> {
-        let iso = Self::system_datetime_with_provider(epoch_nanos, timezone, provider)?;
+        let iso = Self::system_datetime_with_provider(sys_epoch_nanos, sys_timezone, provider)?;
         Ok(PlainTime::new_unchecked(iso.time))
     }
 }
 
-#[cfg(all(test, feature = "tzdb", feature = "sys", feature = "compiled_data"))]
+#[cfg(test)]
 mod tests {
+
+    #[cfg(feature = "tzdb")]
     use crate::builtins::core::Now;
-    use std::thread;
-    use std::time::Duration as StdDuration;
-
+    #[cfg(feature = "tzdb")]
     use crate::options::DifferenceSettings;
+    #[cfg(feature = "tzdb")]
+    use crate::time::EpochNanoseconds;
 
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn mocked_datetime() {
+        use crate::{tzdb::FsTzdbProvider, TimeZone};
+        let provider = FsTzdbProvider::default();
+
+        // 2025-03-11T10:47-06:00
+        const TIME_BASE: u128 = 1_741_751_188_077_363_694;
+
+        let cdt = TimeZone::try_from_identifier_str("-05:00").unwrap();
+        let uschi = TimeZone::try_from_identifier_str("America/Chicago").unwrap();
+
+        let base = EpochNanoseconds::try_from(TIME_BASE).unwrap();
+        let now =
+            Now::plain_datetime_iso_with_provider_and_system_info(base, cdt.clone(), &provider)
+                .unwrap();
+        assert_eq!(now.year(), 2025);
+        assert_eq!(now.month(), 3);
+        assert_eq!(now.month_code().as_str(), "M03");
+        assert_eq!(now.day(), 11);
+        assert_eq!(now.hour(), 22);
+        assert_eq!(now.minute(), 46);
+        assert_eq!(now.second(), 28);
+        assert_eq!(now.millisecond(), 77);
+        assert_eq!(now.microsecond(), 363);
+        assert_eq!(now.nanosecond(), 694);
+
+        let now_iana =
+            Now::plain_datetime_iso_with_provider_and_system_info(base, uschi.clone(), &provider)
+                .unwrap();
+        assert_eq!(now, now_iana);
+
+        let plus_5_secs = TIME_BASE + (5 * 1_000_000_000);
+        let plus_5_epoch = EpochNanoseconds::try_from(plus_5_secs).unwrap();
+        let now_plus_5 =
+            Now::plain_datetime_iso_with_provider_and_system_info(plus_5_epoch, cdt, &provider)
+                .unwrap();
+        assert_eq!(now_plus_5.second(), 33);
+
+        let duration = now
+            .until(&now_plus_5, DifferenceSettings::default())
+            .unwrap();
+        assert!(duration.hours().is_zero());
+        assert!(duration.minutes().is_zero());
+        assert_eq!(duration.seconds().as_inner(), 5.0);
+        assert!(duration.milliseconds().is_zero());
+    }
+
+    #[cfg(all(feature = "tzdb", feature = "sys", feature = "compiled_data"))]
     #[test]
     fn now_datetime_test() {
+        use std::thread;
+        use std::time::Duration as StdDuration;
+
         let sleep = 2;
 
         let before = Now::plain_datetime_iso(None).unwrap();

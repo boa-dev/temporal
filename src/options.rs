@@ -181,10 +181,15 @@ impl ResolvedRoundingOptions {
         fallback_largest: TemporalUnit,
         fallback_smallest: TemporalUnit,
     ) -> TemporalResult<Self> {
-        // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
-        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
+        // 1. NOTE: The following steps read options and perform independent validation in alphabetical order.
+        // 2. Let largestUnit be ? GetTemporalUnitValuedOption(options, "largestUnit", unitGroup, auto).
         unit_group.validate_unit(options.largest_unit, None)?;
+        // 3. If disallowedUnits contains largestUnit, throw a RangeError exception.
+        // 4. Let roundingIncrement be ? GetRoundingIncrementOption(options).
         let increment = options.increment.unwrap_or_default();
+        // 5. Let roundingMode be ? GetRoundingModeOption(options, trunc).
+        // 6. If operation is since, then
+        // a. Set roundingMode to NegateRoundingMode(roundingMode).
         let rounding_mode = match operation {
             DifferenceOperation::Since => options
                 .rounding_mode
@@ -194,34 +199,35 @@ impl ResolvedRoundingOptions {
                 options.rounding_mode.unwrap_or(TemporalRoundingMode::Trunc)
             }
         };
+        // 7. Let smallestUnit be ? GetTemporalUnitValuedOption(options, "smallestUnit", unitGroup, fallbackSmallestUnit).
+        unit_group.validate_unit(options.smallest_unit, None)?;
         let smallest_unit = options.smallest_unit.unwrap_or(fallback_smallest);
-        // Use the defaultlargestunit which is max smallestlargestdefault and smallestunit
+        // 8. If disallowedUnits contains smallestUnit, throw a RangeError exception.
+        // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
+        // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         let largest_unit = options
             .largest_unit
-            .unwrap_or(smallest_unit.max(fallback_largest));
-
+            .unwrap_unit_or(smallest_unit.max(fallback_largest));
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
-        // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
-        // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         if largest_unit < smallest_unit {
-            return Err(TemporalError::range().with_message(
-                "largestUnit when rounding Duration was not the largest provided unit",
-            ));
+            return Err(TemporalError::range()
+                .with_message("smallestUnit was larger than largestunit in DifferenceeSettings"));
         }
 
+        // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
         let maximum = smallest_unit.to_maximum_rounding_increment();
+        // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         if let Some(max) = maximum {
             increment.validate(max.into(), false)?;
         }
-
-        let resolved = ResolvedRoundingOptions {
+        // 14. Return the Record { [[SmallestUnit]]: smallestUnit, [[LargestUnit]]: largestUnit, [[RoundingMode]]:
+        // roundingMode, [[RoundingIncrement]]: roundingIncrement,  }.
+        Ok(ResolvedRoundingOptions {
             largest_unit,
             smallest_unit,
             increment,
             rounding_mode,
-        };
-
-        Ok(resolved)
+        })
     }
 
     pub(crate) fn from_duration_options(
@@ -343,6 +349,7 @@ impl ResolvedRoundingOptions {
 
 // ==== Options enums and methods ====
 
+#[derive(Debug, Clone, Copy)]
 pub enum UnitGroup {
     Date,
     Time,
@@ -388,6 +395,8 @@ impl UnitGroup {
     }
 }
 
+// TODO: Need to decide whether to make auto default or remove. Blocker was one
+// of Duration::round / Duration::total
 /// The relevant unit that should be used for the operation that
 /// this option is provided as a value.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -486,6 +495,21 @@ impl TemporalUnit {
             self,
             Hour | Minute | Second | Millisecond | Microsecond | Nanosecond
         )
+    }
+}
+
+trait UnwrapUnit {
+    type Result;
+    fn unwrap_unit_or(self, unit: TemporalUnit) -> Self::Result;
+}
+
+impl UnwrapUnit for Option<TemporalUnit> {
+    type Result = TemporalUnit;
+    fn unwrap_unit_or(self, unit: TemporalUnit) -> Self::Result {
+        if self == Some(TemporalUnit::Auto) {
+            return unit;
+        }
+        self.unwrap_or(unit)
     }
 }
 
