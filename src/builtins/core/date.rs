@@ -725,10 +725,9 @@ impl FromStr for PlainDate {
     }
 }
 
-#[cfg(all(test, feature = "tzdb"))]
+#[cfg(test)]
 mod tests {
     use tinystr::tinystr;
-    use crate::tzdb::FsTzdbProvider;
 
 
     use super::*;
@@ -993,8 +992,10 @@ mod tests {
     }
 
     // test toZonedDateTime
+    #[cfg(feature = "tzdb")]
     #[test]
     fn to_zoned_date_time() {
+        use crate::tzdb::FsTzdbProvider;
         let date = PlainDate::from_str("2020-01-01").unwrap();
         let tz = TimeZone::try_from_str("UTC").unwrap();
         let provider = &FsTzdbProvider::default();
