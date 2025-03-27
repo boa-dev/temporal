@@ -6,14 +6,10 @@ use core::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    iso::{year_month_within_limits, IsoDate},
-    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar, ResolvedRoundingOptions, TemporalUnit, UnitGroup},
-    parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
-    utils::pad_iso_year,
-    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
+    iso::{self, year_month_within_limits, IsoDate, IsoDateTime, IsoTime}, options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar, ResolvedRoundingOptions, RoundingIncrement, TemporalUnit, UnitGroup}, parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth}, provider::NeverProvider, utils::pad_iso_year, Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone
 };
 
-use super::{Duration, PartialDate, PlainDate};
+use super::{duration::normalized::NormalizedDurationRecord, Duration, PartialDate, PlainDate, PlainDateTime};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -73,14 +69,14 @@ impl PlainYearMonth {
         }
         // 4. Let resolvedOptions be ? GetOptionsObject(options).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, date, « week, day », month, year).
-        // TODO: This part needs fixing
+        // TODO: Check spec for largest & smallest check from_diff_setting
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
             UnitGroup::Date,
             true,
-            TemporalUnit::Month,
             TemporalUnit::Year,
+            TemporalUnit::Month,
         )?;
         // 6. If CompareISODate(yearMonth.[[ISODate]], other.[[ISODate]]) = 0, then
         if self.iso == other.iso {
@@ -88,23 +84,39 @@ impl PlainYearMonth {
             return Ok(Duration::default());
         }
         // 7. Let thisFields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
-        // 8. Set thisFields.[[Day]] to 1.
+        // 8. Set thisFields.[[Day]] to 1.       
         // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
         // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
         // 11. Set otherFields.[[Day]] to 1.
         // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
         // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
         // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
+        let result= self.calendar().date_until(&self.iso, &other.iso, resolved.largest_unit)?;
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
+        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
-        // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
-        // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
-        // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
-        // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+        if settings.smallest_unit != Some(TemporalUnit::Month) || settings.increment != Some(RoundingIncrement::ONE) {
+            // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
+            let iso_date_time = IsoDateTime::new_unchecked(self.iso, IsoTime::default());
+            // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
+            let target_iso_date_time = IsoDateTime::new_unchecked(other.iso, IsoTime::default());
+            // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
+            let dest_epoch_ns = target_iso_date_time.as_nanoseconds()?;
+            // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+            duration = duration.round_relative_duration(
+                dest_epoch_ns.as_i128(),
+                &PlainDateTime::new_unchecked(iso_date_time, self.calendar.clone()),
+                Option::<(&TimeZone, &NeverProvider)>::None,
+                resolved)?;
+        }
         // 17. Let result be ! TemporalDurationFromInternal(duration, day).
+        let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
         // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 19. Return result.
-        todo!()
+        match op {
+            DifferenceOperation::Since => return Ok(result.negated()),
+            DifferenceOperation::Until => return Ok(result),
+        }
     }
 }
 
@@ -355,6 +367,20 @@ mod tests {
     use tinystr::tinystr;
 
     use super::*;
+
+    #[test]
+    fn simple_plain_year_month_until() {
+        let earlier = PlainYearMonth::from_str("2002-05").unwrap();   
+        let later = PlainYearMonth::from_str("2003-05").unwrap();
+        let mut setting = DifferenceSettings::default();
+        setting.smallest_unit = Some(TemporalUnit::Day);
+        let result = earlier.until(&later, setting)
+        .unwrap();
+        
+        assert_eq!(result.days(),0.0);
+        assert_eq!(result.months(),0.0);
+        assert_eq!(result.years(),0.0);
+    }
 
     #[test]
     fn test_plain_year_month_with() {
