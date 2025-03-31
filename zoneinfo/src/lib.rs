@@ -1,0 +1,286 @@
+// Implementation note: this library is NOT designed to be the most
+// optimal speed. Instead invariance and clarity is preferred where
+// need be.
+//
+// We can get away with any performance penalty primarily because
+// this library is designed to aid with build time libraries, on
+// a limited dataset, NOT at runtime on extremely large datasets.
+
+#![no_std]
+
+extern crate alloc;
+
+use alloc::{collections::BTreeSet, string::String};
+use core::ops::RangeInclusive;
+use parser::{ZoneInfoParseError, ZoneInfoParser};
+use types::Transition;
+use utils::epoch_seconds_for_year;
+
+use hashbrown::HashMap;
+
+#[cfg(feature = "std")]
+extern crate std;
+
+#[cfg(feature = "std")]
+use std::{io, path::Path};
+
+pub(crate) mod utils;
+
+pub mod parser;
+pub mod rule;
+pub mod types;
+pub mod zone;
+
+use rule::RuleTable;
+use zone::{ZoneBuildContext, ZoneTable};
+
+/// Well-known zone info file
+pub const COMMON_ZONEINFO_FILES: [&str; 9] = [
+    "africa",
+    "antarctica",
+    "asia",
+    "australasia",
+    "backward",
+    "etcetera",
+    "europe",
+    "northamerica",
+    "southamerica",
+];
+
+#[derive(Debug)]
+pub enum ZoneInfoError {
+    Parse(ZoneInfoParseError),
+    #[cfg(feature = "std")]
+    Io(io::Error),
+}
+
+#[cfg(feature = "std")]
+impl From<io::Error> for ZoneInfoError {
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
+}
+
+// NOTE: RangeInclusive<i32> here is excessive. Would be nice to have a
+// range type that enforced a max-min
+#[derive(Debug, Clone)]
+pub struct TzifSettings {
+    range: RangeInclusive<i32>,
+}
+
+impl Default for TzifSettings {
+    fn default() -> Self {
+        Self { range: 1901..=2038 }
+    }
+}
+
+// Intermediate type. Would be nice to have a conversion -> Tzif.
+// But the point here is to provide the required data in a
+// consummable format.
+#[derive(Debug, PartialEq)]
+pub struct TzifData {
+    transitions: BTreeSet<Transition>,
+    posix_string: String, // TODO
+}
+
+#[derive(Debug, Default)]
+pub struct ZoneInfoData {
+    pub data: HashMap<String, TzifData>,
+}
+
+// TODO: Rename to ZoneInfoBuilder
+#[non_exhaustive]
+#[derive(Debug, Clone, Default)]
+pub struct ZoneInfo {
+    pub rules: HashMap<String, RuleTable>,
+    pub zones: HashMap<String, ZoneTable>,
+    pub links: HashMap<String, String>,
+    pub pack_rat: HashMap<String, String>,
+}
+
+impl ZoneInfo {
+    #[cfg(feature = "std")]
+    pub fn from_zoneinfo_directory<P: AsRef<Path>>(dir: P) -> Result<Self, ZoneInfoError> {
+        let mut zoneinfo = Self::default();
+        for filename in COMMON_ZONEINFO_FILES {
+            let file_path = dir.as_ref().join(filename);
+            let parsed = Self::from_filepath(file_path)?;
+            zoneinfo.extend(parsed);
+        }
+        Ok(zoneinfo)
+    }
+
+    #[cfg(feature = "std")]
+    pub fn from_filepath<P: AsRef<Path>>(path: P) -> Result<Self, ZoneInfoError> {
+        Self::from_zoneinfo_str(&std::fs::read_to_string(path)?)
+    }
+
+    pub fn from_zoneinfo_str(src: &str) -> Result<Self, ZoneInfoError> {
+        ZoneInfoParser::from_zoneinfo_str(src)
+            .parse()
+            .map_err(ZoneInfoError::Parse)
+    }
+
+    pub fn extend(&mut self, other: Self) {
+        self.rules.extend(other.rules);
+        self.zones.extend(other.zones);
+        self.links.extend(other.links);
+        self.pack_rat.extend(other.pack_rat);
+    }
+}
+
+impl ZoneInfo {
+    pub fn associate_and_build(&mut self, settings: TzifSettings) -> ZoneInfoData {
+        // Associate the necessary rules with the ZoneTable
+        self.associate();
+        self.build(settings)
+    }
+
+    pub fn associate_and_build_for_zone(
+        &mut self,
+        target: &str,
+        settings: &TzifSettings,
+    ) -> BTreeSet<Transition> {
+        self.associate();
+        self.build_for_zone(target, settings)
+    }
+
+    pub fn build(&mut self, settings: TzifSettings) -> ZoneInfoData {
+        // TODO: Validate and resolve settings here.
+        let mut zoneinfo = ZoneInfoData::default();
+        for identifier in self.zones.keys() {
+            let transitions = self.build_for_zone(identifier, &settings);
+            // TODO: Make POSIX tz string
+            let tzif = TzifData {
+                transitions,
+                posix_string: String::default(),
+            };
+            let _ = zoneinfo.data.insert(identifier.clone(), tzif);
+        }
+        zoneinfo
+    }
+
+    /// Make sure to associate first!
+    pub fn build_for_zone(&self, target: &str, settings: &TzifSettings) -> BTreeSet<Transition> {
+        let table = self
+            .zones
+            .get(target)
+            .expect("Invalid identifier provided.");
+        let mut output = BTreeSet::default();
+        output.insert(table.get_first_transition());
+        // Move this into a build from range function.
+        let mut build_context = ZoneBuildContext::default();
+        for year in settings.range.clone() {
+            build_context.update(year);
+            let year_transitions = table.calculate_transitions_for_year(year, &mut build_context);
+            output.extend(year_transitions);
+        }
+        output
+    }
+
+    pub fn associate(&mut self) {
+        for zones in self.zones.values_mut() {
+            zones.associate_rules(&self.rules);
+        }
+    }
+}
+
+#[cfg(test)]
+#[cfg(feature = "std")]
+mod tests {
+    use crate::{TzifSettings, ZoneInfo};
+    use std::path::Path;
+
+    // Use this function for tests until we handle the i32::MAX
+    fn test_default_settings() -> TzifSettings {
+        TzifSettings { range: 1901..=2037 }
+    }
+
+    #[test]
+    fn test_chicago() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfo::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
+
+        // Association is needed.
+        let computed_transitions =
+            zoneinfo.associate_and_build_for_zone("America/Chicago", &test_default_settings());
+
+        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Chicago")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_sydney() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfo::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
+        // Association is needed.
+        let computed_transitions =
+            zoneinfo.associate_and_build_for_zone("Australia/Sydney", &test_default_settings());
+
+        let data =
+            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Sydney")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_lord_howe() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfo::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
+        // Association is needed.
+        let computed_transitions =
+            zoneinfo.associate_and_build_for_zone("Australia/Lord_Howe", &test_default_settings());
+
+        let data =
+            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Lord_Howe")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_troll() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfo::from_filepath(manifest_dir.join("examples/antarctica")).unwrap();
+        // Association is needed.
+        let computed_transitions =
+            zoneinfo.associate_and_build_for_zone("Antarctica/Troll", &test_default_settings());
+
+        let data =
+            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Antarctica/Troll")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_dublin() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo = ZoneInfo::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+        // Association is needed.
+        let computed_transitions =
+            zoneinfo.associate_and_build_for_zone("Europe/Dublin", &test_default_settings());
+
+        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+}

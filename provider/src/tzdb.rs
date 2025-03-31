@@ -53,8 +53,8 @@ const ZONE_INFO_FILES: [&str; 9] = [
 ];
 
 pub struct TzdbDataProvider {
-    version: String,
-    data: Table,
+    pub(crate) version: String,
+    pub(crate) data: Table,
 }
 
 impl TzdbDataProvider {

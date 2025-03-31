@@ -1,0 +1,19 @@
+[package]
+name = "zoneinfo"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+exclude.workspace = true
+
+[dependencies]
+hashbrown = "0.15.2"
+
+[dev-dependencies]
+tzif = { workspace = true }
+
+[features]
+std = []

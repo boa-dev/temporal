@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi"]
+members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi", "zoneinfo"]
 
 [workspace.package]
 edition = "2021"

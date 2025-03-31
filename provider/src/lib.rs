@@ -4,6 +4,8 @@
 
 mod tzdb;
 
+pub mod tzif;
+
 pub use tzdb::{IanaDataError, IanaIdentifierNormalizer};
 
 /// A prelude of needed types for interacting with `temporal_provider` data.
