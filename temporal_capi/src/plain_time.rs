@@ -6,8 +6,7 @@ pub mod ffi {
     use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{
-        ArithmeticOverflow, DifferenceSettings, TemporalRoundingMode, TemporalUnit,
-        ToStringRoundingOptions,
+        ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
     use std::fmt::Write;
@@ -147,9 +146,9 @@ pub mod ffi {
         }
         pub fn round(
             &self,
-            smallest_unit: TemporalUnit,
+            smallest_unit: Unit,
             rounding_increment: Option<f64>,
-            rounding_mode: Option<TemporalRoundingMode>,
+            rounding_mode: Option<RoundingMode>,
         ) -> Result<Box<Self>, TemporalError> {
             self.0
                 .round(

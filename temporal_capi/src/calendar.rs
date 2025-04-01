@@ -5,7 +5,7 @@ pub mod ffi {
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::iso::ffi::IsoDate;
-    use crate::options::ffi::{ArithmeticOverflow, TemporalUnit};
+    use crate::options::ffi::{ArithmeticOverflow, Unit};
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_month_day::ffi::PlainMonthDay;
     use crate::plain_year_month::ffi::PlainYearMonth;
@@ -109,7 +109,7 @@ pub mod ffi {
             &self,
             one: IsoDate,
             two: IsoDate,
-            largest_unit: TemporalUnit,
+            largest_unit: Unit,
         ) -> Result<Box<Duration>, TemporalError> {
             self.0
                 .date_until(&one.into(), &two.into(), largest_unit.into())

@@ -9,7 +9,7 @@ use crate::{
         Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
     iso::IsoDate,
-    options::{ArithmeticOverflow, TemporalUnit},
+    options::{ArithmeticOverflow, Unit},
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
@@ -328,7 +328,7 @@ impl Calendar {
             // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
             // 9. Let balanceResult be BalanceTimeDuration(norm, "day").
             let (balance_days, _) =
-                TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?;
+                TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?;
 
             // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
             // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
@@ -353,7 +353,7 @@ impl Calendar {
         &self,
         one: &IsoDate,
         two: &IsoDate,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
     ) -> TemporalResult<Duration> {
         if self.is_iso() {
             let date_duration = one.diff_iso_date(two, largest_unit)?;
@@ -673,7 +673,7 @@ impl From<PlainYearMonth> for Calendar {
 
 #[cfg(test)]
 mod tests {
-    use crate::{iso::IsoDate, options::TemporalUnit};
+    use crate::{iso::IsoDate, options::Unit};
     use core::str::FromStr;
 
     use super::Calendar;
@@ -952,9 +952,7 @@ mod tests {
         for test in tests {
             let first = IsoDate::new_unchecked(test.0 .0, test.0 .1, test.0 .2);
             let second = IsoDate::new_unchecked(test.1 .0, test.1 .1, test.1 .2);
-            let result = calendar
-                .date_until(&first, &second, TemporalUnit::Year)
-                .unwrap();
+            let result = calendar.date_until(&first, &second, Unit::Year).unwrap();
             assert_eq!(
                 result.years().0 as i32,
                 test.2 .0,
