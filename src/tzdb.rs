@@ -49,11 +49,12 @@ use tzif::{
     },
 };
 
+use crate::utils::Epoch;
 use crate::{
     iso::IsoDateTime,
     provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
     time::EpochNanoseconds,
-    utils, TemporalError, TemporalResult,
+    TemporalError, TemporalResult,
 };
 
 temporal_provider::iana_normalizer_singleton!();
@@ -362,79 +363,31 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     // TODO: Resolve safety issue around utils.
     //   Using f64 is a hold over from early implementation days and should
     //   be moved away from.
+    let epoch = Epoch::from_seconds(seconds);
+    let start_date_epoch = transition_day_to_epoch(epoch.year(), &start.day);
+    let end_date_epoch = transition_day_to_epoch(epoch.year(), &end.day);
 
-    let (is_transition_day, transition) =
-        cmp_seconds_to_transitions(&start.day, &end.day, seconds)?;
+    let (is_transition_day, transition_type) =
+        get_transition_info(start_date_epoch, end_date_epoch, epoch);
 
-    let transition =
-        compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant);
+    let transition_type =
+        compute_tz_for_epoch(is_transition_day, transition_type, epoch, dst_variant);
     let std_offset = LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).offset;
     let dst_offset = LocalTimeRecord::from_daylight_savings_time(&dst_variant.variant_info).offset;
-    let (old_offset, new_offset) = match transition {
-        TransitionType::Dst => (std_offset, dst_offset),
-        TransitionType::Std => (dst_offset, std_offset),
-    };
-    let transition = match transition {
-        TransitionType::Dst => start,
-        TransitionType::Std => end,
-    };
-    let year = utils::epoch_time_to_epoch_year(seconds * 1000);
-    let year_epoch = utils::epoch_days_for_year(year) * 86400;
-    let leap_day = utils::mathematical_in_leap_year(seconds * 1000) as u16;
-
-    let days = match transition.day {
-        TransitionDay::NoLeap(day) if day > 59 => day - 1 + leap_day,
-        TransitionDay::NoLeap(day) => day - 1,
-        TransitionDay::WithLeap(day) => day,
-        TransitionDay::Mwd(month, week, day) => {
-            let days_to_month = utils::month_to_day((month - 1) as u8, leap_day);
-            let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8) - 1);
-
-            // Month starts in the day...
-            let day_offset =
-                (u16::from(utils::epoch_seconds_to_day_of_week(i64::from(year_epoch)))
-                    + days_to_month)
-                    .rem_euclid(7);
-
-            // EXAMPLE:
-            //
-            // 0   1   2   3   4   5   6
-            // sun mon tue wed thu fri sat
-            // -   -   -   0   1   2   3
-            // 4   5   6   7   8   9   10
-            // 11  12  13  14  15  16  17
-            // 18  19  20  21  22  23  24
-            // 25  26  27  28  29  30  -
-            //
-            // The day_offset = 3, since the month starts on a wednesday.
-            //
-            // We're looking for the second friday of the month. Thus, since the month started before
-            // a friday, we need to start counting from week 0:
-            //
-            // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (2 - 1) * 7 + 5 - 3 = 9
-            //
-            // This works if the month started on a day before the day we want (day_offset <= day). However, if that's not the
-            // case, we need to start counting on week 1. For example, calculate the day of the month for the third monday
-            // of the month:
-            //
-            // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (3 - 0) * 7 + 1 - 3 = 19
-            let mut day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset;
-
-            // If we're on week 5, we need to clamp to the last valid day.
-            if day_of_month > days_in_month - 1 {
-                day_of_month -= 7
-            }
-
-            days_to_month + day_of_month
-        }
+    let offset = match transition_type {
+        TransitionType::Dst => dst_offset,
+        TransitionType::Std => std_offset,
     };
 
     // Transition time is on local time, so we need to add the UTC offset to get the correct UTC timestamp
     // for the transition.
-    let transition_epoch =
-        i64::from(year_epoch) + i64::from(days) * 86400 + transition.time.0 - old_offset;
+    let transition_epoch = match transition_type {
+        TransitionType::Dst => start_date_epoch.seconds() + start.time.0 - std_offset,
+        TransitionType::Std => end_date_epoch.seconds() + end.time.0 - dst_offset,
+    };
+
     Ok(TimeZoneOffset {
-        offset: new_offset,
+        offset,
         transition_epoch: Some(transition_epoch),
     })
 }
@@ -460,10 +413,13 @@ fn resolve_posix_tz_string(
     // NOTE:
     // STD -> DST == start
     // DST -> STD == end
-    let (is_transition_day, is_dst) =
-        cmp_seconds_to_transitions(&dst.start_date.day, &dst.end_date.day, seconds)?;
+    let epoch = Epoch::from_seconds(seconds);
+    let start_transition = transition_day_to_epoch(epoch.year(), &dst.start_date.day);
+    let end_transition = transition_day_to_epoch(epoch.year(), &dst.end_date.day);
+    let (is_transition_day, is_dst) = get_transition_info(start_transition, end_transition, epoch);
+
     if is_transition_day {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) as i64 / 1_000;
+        let time = epoch.millis_since_start_of_day() as i64 / 1_000;
         let transition_time = if is_dst == TransitionType::Dst {
             dst.start_date.time.0
         } else {
@@ -497,103 +453,59 @@ fn resolve_posix_tz_string(
     }
 }
 
-fn compute_tz_for_epoch_seconds(
+fn compute_tz_for_epoch(
     is_transition_day: bool,
-    transition: TransitionType,
-    seconds: i64,
+    typ: TransitionType,
+    epoch: Epoch,
     dst_variant: &DstTransitionInfo,
 ) -> TransitionType {
-    if is_transition_day && transition == TransitionType::Dst {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) / 1_000;
+    let time = epoch.millis_since_start_of_day() / 1000;
+    if is_transition_day && typ == TransitionType::Dst {
         let transition_time = dst_variant.start_date.time.0 - dst_variant.variant_info.offset.0;
         if i64::from(time) < transition_time {
             return TransitionType::Std;
         }
     } else if is_transition_day {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) / 1_000;
         let transition_time = dst_variant.end_date.time.0 - dst_variant.variant_info.offset.0;
         if i64::from(time) < transition_time {
             return TransitionType::Dst;
         }
     }
 
-    transition
+    typ
 }
 
-/// The month, week of month, and day of week value built into the POSIX tz string.
-///
-/// For more information, see the [POSIX tz string docs](https://sourceware.org/glibc/manual/2.40/html_node/Proleptic-TZ.html)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Mwd(u16, u16, u16);
-
-impl Mwd {
-    fn from_seconds(seconds: i64) -> Self {
-        let month = utils::epoch_ms_to_month_in_year(seconds * 1_000) as u16;
-        let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
-        let week_of_month = day_of_month / 7 + 1;
-        let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
-        Self(month, week_of_month, u16::from(day_of_week))
+fn transition_day_to_epoch(year: i32, day: &TransitionDay) -> Epoch {
+    match day {
+        TransitionDay::Mwd(month, week, day) => {
+            Epoch::from_posix_date(year, *month as u8, *week as u8, *day as u8)
+        }
+        TransitionDay::WithLeap(day) => Epoch::from_year_and_day_of_year(year, *day + 1),
+        TransitionDay::NoLeap(day) if Epoch::from_year(year).in_leap_year() => {
+            Epoch::from_year_and_day_of_year(year, *day + u16::from(*day > 59))
+        }
+        TransitionDay::NoLeap(day) => Epoch::from_year_and_day_of_year(year, *day),
     }
 }
 
-fn cmp_seconds_to_transitions(
-    start: &TransitionDay,
-    end: &TransitionDay,
-    seconds: i64,
-) -> TemporalResult<(bool, TransitionType)> {
-    let cmp_result = match (start, end) {
-        (
-            TransitionDay::Mwd(start_month, start_week, start_day),
-            TransitionDay::Mwd(end_month, end_week, end_day),
-        ) => {
-            let mwd = Mwd::from_seconds(seconds);
-            let start = Mwd(*start_month, *start_week, *start_day);
-            let end = Mwd(*end_month, *end_week, *end_day);
-
-            let is_transition = start == mwd || end == mwd;
-            let is_dst = if start > end {
-                mwd < end || start <= mwd
-            } else {
-                start <= mwd && mwd < end
-            };
-
-            (is_transition, is_dst)
-        }
-        (TransitionDay::WithLeap(start), TransitionDay::WithLeap(end)) => {
-            let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000) as u16;
-            let is_transition = *start == day_in_year || *end == day_in_year;
-            let is_dst = if start > end {
-                day_in_year < *end || *start <= day_in_year
-            } else {
-                *start <= day_in_year && day_in_year < *end
-            };
-            (is_transition, is_dst)
-        }
-        // TODO: do we need to modify the logic for leap years?
-        (TransitionDay::NoLeap(start), TransitionDay::NoLeap(end)) => {
-            let day_in_year = utils::epoch_time_to_day_in_year(seconds * 1_000) as u16;
-            let is_transition = *start == day_in_year || *end == day_in_year;
-            let is_dst = if start > end {
-                day_in_year < *end || *start <= day_in_year
-            } else {
-                *start <= day_in_year && day_in_year < *end
-            };
-            (is_transition, is_dst)
-        }
-        // NOTE: The assumption here is that mismatched day types on
-        // a POSIX string is an illformed string.
-        _ => {
-            return Err(
-                TemporalError::assert().with_message("Mismatched day types on a POSIX string.")
-            )
-        }
+fn get_transition_info(
+    start_epoch: Epoch,
+    end_epoch: Epoch,
+    epoch: Epoch,
+) -> (bool, TransitionType) {
+    let is_transition_day = std::dbg!(start_epoch.days()) == std::dbg!(epoch.days())
+        || std::dbg!(end_epoch.days()) == epoch.days();
+    let is_dst = if start_epoch > end_epoch {
+        epoch < end_epoch || start_epoch <= epoch
+    } else {
+        start_epoch <= epoch && epoch < end_epoch
     };
 
-    match cmp_result {
-        (true, dst) if dst => Ok((true, TransitionType::Dst)),
-        (true, _) => Ok((true, TransitionType::Std)),
-        (false, dst) if dst => Ok((false, TransitionType::Dst)),
-        (false, _) => Ok((false, TransitionType::Std)),
+    match (is_transition_day, is_dst) {
+        (true, true) => (true, TransitionType::Dst),
+        (true, false) => (true, TransitionType::Std),
+        (false, true) => (false, TransitionType::Dst),
+        (false, false) => (false, TransitionType::Std),
     }
 }
 
@@ -1113,16 +1025,13 @@ mod tests {
     }
 
     #[test]
-    fn mwd_transition_epoch() {
-        #[cfg(not(target_os = "windows"))]
-        let tzif = Tzif::read_tzif("Europe/Berlin").unwrap();
-        #[cfg(target_os = "windows")]
+    fn mwd_transition_epoch_with_slim_format() {
         let tzif = Tzif::from_bytes(jiff_tzdb::get("Europe/Berlin").unwrap().1).unwrap();
 
         let start_date = crate::iso::IsoDate {
             year: 2028,
             month: 3,
-            day: 30,
+            day: 26,
         };
         let start_time = crate::iso::IsoTime {
             hour: 6,

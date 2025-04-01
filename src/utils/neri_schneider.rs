@@ -84,7 +84,6 @@ const fn n_two(rata_die: u32) -> u32 {
     century_rem(rata_die) | 3
 }
 
-#[cfg(feature = "tzdb")]
 const fn n_three(rata_die: u32) -> u32 {
     2141 * computational_day_of_year(rata_die) + 197_913
 }
@@ -143,7 +142,6 @@ pub const fn computational_year(rata_die: u32) -> u32 {
     100 * century_number(rata_die) + computational_year_of_century(rata_die) as u32
 }
 
-#[cfg(feature = "tzdb")]
 pub const fn computational_month(rata_die: u32) -> u32 {
     n_three(rata_die).div_euclid(TWO_POWER_SIXTEEN)
 }
@@ -152,7 +150,6 @@ pub const fn year(computational_rata_die: u32, shift_constant: i32) -> i32 {
     (computational_year(computational_rata_die) + j(computational_rata_die)) as i32 - shift_constant
 }
 
-#[cfg(feature = "tzdb")]
 pub const fn month(compulational_rata_die: u32) -> u8 {
     (computational_month(compulational_rata_die) - 12 * j(compulational_rata_die)) as u8
 }
