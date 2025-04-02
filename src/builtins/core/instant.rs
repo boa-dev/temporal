@@ -237,7 +237,6 @@ impl Instant {
 
     // TODO: May end up needing a provider API during impl
     pub fn to_zoned_date_time_iso(&self, time_zone: TimeZone) -> TemporalResult<ZonedDateTime> {
-        // 4. Return ! CreateTemporalZonedDateTime(instant.[[EpochNanoseconds]], timeZone, "iso8601").
         Ok(ZonedDateTime::new_unchecked(
             *self,
             Calendar::from_utf8(b"iso8601")?,
