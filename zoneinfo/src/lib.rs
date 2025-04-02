@@ -186,7 +186,7 @@ impl ZoneInfo {
 }
 
 #[cfg(test)]
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", not(target_os = "windows")))]
 mod tests {
     use crate::{TzifSettings, ZoneInfo};
     use std::path::Path;
