@@ -105,8 +105,7 @@ impl TimeZone {
     }
 
     pub fn try_from_str(src: &str) -> TemporalResult<Self> {
-        let normalized = src.to_uppercase();
-        if let Ok(timezone) = Self::try_from_identifier_str(&normalized) {
+        if let Ok(timezone) = Self::try_from_identifier_str(src) {
             return Ok(timezone);
         }
 
