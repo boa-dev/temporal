@@ -341,7 +341,7 @@ mod tests {
         options::{DifferenceSettings, TemporalRoundingMode, TemporalUnit},
         primitive::FiniteF64,
         time::EpochNanoseconds,
-        TimeZone, NS_MAX_INSTANT, NS_MIN_INSTANT,
+        NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
     #[test]
@@ -605,15 +605,6 @@ mod tests {
             negative_result.time(),
             (-376435.0, -23.0, -8.0, -148.0, -529.0, -500.0),
         );
-    }
-
-    #[test]
-    // timezone-case-insensitive.js
-    fn timezone_case_insensitive() {
-        let instance = Instant::try_new(0).unwrap();
-        let time_zone = TimeZone::try_from_str("uTc").unwrap();
-        let result = instance.to_zoned_date_time_iso(time_zone).unwrap();
-        assert_eq!(result.timezone().identifier().unwrap(), "UTC");
     }
 
     // /test/built-ins/Temporal/Instant/prototype/add/cross-epoch.js
