@@ -17,7 +17,7 @@ use crate::{
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
     time::EpochNanoseconds,
-    TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
@@ -236,8 +236,12 @@ impl Instant {
     }
 
     // TODO: May end up needing a provider API during impl
-    pub fn to_zoned_date_time_iso(&self, _time_zone: TimeZone) -> TemporalResult<ZonedDateTime> {
-        Err(TemporalError::general("Not yet implemented"))
+    pub fn to_zoned_date_time_iso(&self, time_zone: TimeZone) -> TemporalResult<ZonedDateTime> {
+        Ok(ZonedDateTime::new_unchecked(
+            *self,
+            Calendar::from_utf8(b"iso8601")?,
+            time_zone,
+        ))
     }
 }
 
