@@ -4,7 +4,6 @@
 //! to full detail, but instead attempts to compress TZif data into
 //! a functional, data driven equivalent.
 
-use zoneinfo_compiler::ZoneInfo;
 use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet},
@@ -12,6 +11,7 @@ use std::{
 };
 use zerotrie::{ZeroTrieBuildError, ZeroTrieSimpleAscii};
 use zerovec::{VarZeroVec, ZeroVec};
+use zoneinfo_compiler::ZoneInfo;
 
 use crate::tzdb::TzdbDataProvider;
 

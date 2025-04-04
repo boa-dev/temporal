@@ -11,10 +11,10 @@
 extern crate alloc;
 
 use alloc::{collections::BTreeSet, string::String};
-use tzif::TzifBlockV2;
 use core::ops::RangeInclusive;
 use parser::{ZoneInfoParseError, ZoneInfoParser};
 use types::Transition;
+use tzif::TzifBlockV2;
 use utils::epoch_seconds_for_year;
 
 use hashbrown::HashMap;
@@ -29,8 +29,8 @@ pub(crate) mod utils;
 
 pub mod parser;
 pub mod rule;
-pub mod tzif;
 pub mod types;
+pub mod tzif;
 pub mod zone;
 
 use rule::RuleTable;
@@ -124,7 +124,9 @@ impl ZoneInfo {
     }
 
     #[cfg(feature = "std")]
-    pub fn from_filepath<P: AsRef<Path> + core::fmt::Debug>(path: P) -> Result<Self, ZoneInfoError> {
+    pub fn from_filepath<P: AsRef<Path> + core::fmt::Debug>(
+        path: P,
+    ) -> Result<Self, ZoneInfoError> {
         Self::from_zoneinfo_str(&std::fs::read_to_string(path)?)
     }
 
@@ -174,7 +176,11 @@ impl ZoneInfo {
     }
 
     /// Make sure to associate first!
-    pub fn build_for_zone(&self, target: &str, settings: &ZoneInfoCompileSettings) -> BTreeSet<Transition> {
+    pub fn build_for_zone(
+        &self,
+        target: &str,
+        settings: &ZoneInfoCompileSettings,
+    ) -> BTreeSet<Transition> {
         let table = self
             .zones
             .get(target)
@@ -201,7 +207,7 @@ impl ZoneInfo {
 #[cfg(test)]
 #[cfg(all(feature = "std", not(target_os = "windows")))]
 mod tests {
-    use crate::{ZoneInfoCompileSettings, ZoneInfo};
+    use crate::{ZoneInfo, ZoneInfoCompileSettings};
     use std::path::Path;
 
     // Use this function for tests until we handle the i32::MAX

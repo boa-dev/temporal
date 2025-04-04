@@ -17,8 +17,7 @@ use crate::types::Transition;
 pub struct TzifBlockV2 {
     pub transition_times: Vec<i64>,
     pub transition_types: Vec<u8>,
-    pub local_time_types: Vec<LocalTimeRecord>
-    // TODO: Add other fields as needed
+    pub local_time_types: Vec<LocalTimeRecord>, // TODO: Add other fields as needed
 }
 
 impl TzifBlockV2 {
@@ -47,8 +46,6 @@ impl TzifBlockV2 {
             transition_types,
             local_time_types,
         }
-
-
     }
 }
 
@@ -56,5 +53,5 @@ impl TzifBlockV2 {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LocalTimeRecord {
     offset: i64,
-    is_dst: bool
+    is_dst: bool,
 }

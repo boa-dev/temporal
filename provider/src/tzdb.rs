@@ -40,7 +40,7 @@ pub struct IanaIdentifierNormalizer<'data> {
 #[derive(Debug)]
 pub enum TzdbDataProviderError {
     Io(io::Error),
-    ZoneInfo(ZoneInfoError)
+    ZoneInfo(ZoneInfoError),
 }
 
 impl From<io::Error> for TzdbDataProviderError {
@@ -57,7 +57,7 @@ impl From<ZoneInfoError> for TzdbDataProviderError {
 
 pub struct TzdbDataProvider {
     pub version: String,
-    pub zone_info: ZoneInfo
+    pub zone_info: ZoneInfo,
 }
 
 impl TzdbDataProvider {
@@ -80,7 +80,8 @@ pub enum IanaDataError {
 
 impl IanaIdentifierNormalizer<'_> {
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
-        let provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata_path).map_err(IanaDataError::Provider)?;
+        let provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata_path)
+            .map_err(IanaDataError::Provider)?;
         let mut identifiers = BTreeSet::default();
         for zone_id in provider.zone_info.zones.keys() {
             // Add canonical identifiers.
