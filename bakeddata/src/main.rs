@@ -4,12 +4,39 @@ use std::{
     io::{self, BufWriter, Write},
     path::Path,
 };
-use temporal_provider::IanaIdentifierNormalizer;
+use temporal_provider::{tzif::ZoneInfoProvider, IanaIdentifierNormalizer};
 
 trait BakedDataProvider {
     fn write_data(&self, data_path: &Path) -> io::Result<()>;
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()>;
+}
+
+impl BakedDataProvider for ZoneInfoProvider<'_> {
+    fn write_data(&self, data_path: &Path) -> io::Result<()> {
+        fs::create_dir_all(data_path)?;
+        let generated_file = data_path.join("zone_info_provider.rs.data");
+        let baked = self.bake(&Default::default());
+
+        let baked_macro = quote! {
+            #[macro_export]
+            macro_rules! zone_info_provider {
+                () => {
+                    pub const ZONE_INFO_PROVIDER: &'static temporal_provider::ZoneInfoProvider = &#baked;
+                }
+            }
+        };
+        let generated = baked_macro.to_string();
+        let mut file = BufWriter::new(File::create(generated_file)?);
+        write!(file, "//@generated\n\n{generated}")
+    }
+
+    fn write_debug(&self, debug_path: &Path) -> io::Result<()> {
+        fs::create_dir_all(debug_path)?;
+        let debug_filename = debug_path.join("zone_info_provider.json");
+        let json = serde_json::to_string_pretty(self).unwrap();
+        fs::write(debug_filename, json)
+    }
 }
 
 impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
@@ -58,8 +85,16 @@ fn main() -> io::Result<()> {
         .parent()
         .unwrap()
         .join("provider/src");
+
+    // Write idenitifiers
     write_data_file_with_debug(
         &provider.join("data"),
         &IanaIdentifierNormalizer::build(&tzdata_dir).unwrap(),
+    )?;
+
+    // Write tzif data
+    write_data_file_with_debug(
+        &provider.join("data"),
+        &ZoneInfoProvider::build(&tzdata_dir).unwrap(),
     )
 }
