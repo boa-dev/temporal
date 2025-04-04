@@ -32,10 +32,32 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
     }
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()> {
-        fs::create_dir_all(debug_path)?;
-        let debug_filename = debug_path.join("zone_info_provider.json");
-        let json = serde_json::to_string_pretty(self).unwrap();
-        fs::write(debug_filename, json)
+        let zoneinfo_debug_path = debug_path.join("zoneinfo");
+        // Remove zoneinfo directory and recreate, so we can rely on diff of what is
+        // changed / missing.
+        if zoneinfo_debug_path.exists() {
+            fs::remove_dir_all(zoneinfo_debug_path.clone())?;
+        }
+        // Recreate directory.
+        fs::create_dir_all(zoneinfo_debug_path.clone())?;
+
+        for (identifier, index) in self.ids.to_btreemap().iter() {
+            let (directory, filename ) = if identifier.contains('/') {
+                let (directory, filename) = identifier.rsplit_once('/').expect("'/' must exist");
+                let identifier_dir = zoneinfo_debug_path.join(directory);
+                fs::create_dir_all(identifier_dir.clone())?;
+                (identifier_dir, filename)
+            } else {
+                (zoneinfo_debug_path.clone(), identifier.as_str())
+            };
+            let mut filepath = directory.join(filename);
+            filepath.set_extension("json");
+            let json = serde_json::to_string_pretty(&self.tzifs[*index])?;
+            fs::write(filepath, json)?;
+        }
+
+        // TODO: Add version
+        Ok(())
     }
 }
 

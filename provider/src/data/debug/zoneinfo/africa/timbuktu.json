@@ -1,0 +1,15 @@
+{
+  "transitions": [
+    -1830383032
+  ],
+  "transition_types": [
+    0
+  ],
+  "types": [
+    {
+      "offset": -968,
+      "is_dst": false
+    }
+  ],
+  "posix": "TODO"
+}
