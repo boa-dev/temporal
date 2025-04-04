@@ -6,7 +6,7 @@
 // this library is designed to aid with build time libraries, on
 // a limited dataset, NOT at runtime on extremely large datasets.
 
-// #![no_std]
+#![no_std]
 
 extern crate alloc;
 

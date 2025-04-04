@@ -5,7 +5,7 @@
 
 // TODO: Potentially add some serialization scheme?
 
-use alloc::{collections::btree_set::BTreeSet, vec::Vec};
+use alloc::{collections::btree_set::BTreeSet, vec, vec::Vec};
 use hashbrown::HashSet;
 
 use crate::{types::Transition, SingleLineZone};
