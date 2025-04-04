@@ -9,19 +9,18 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     path::Path,
 };
-use zerotrie::{ZeroTrieBuildError, ZeroTrieSimpleAscii};
-use zerovec::{VarZeroVec, ZeroVec};
+use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
+use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 use zoneinfo_compiler::{TransitionData, ZoneInfoCompileSettings};
 
 use crate::tzdb::TzdbDataProvider;
 
 #[derive(Debug, Clone, yoke::Yokeable, databake::Bake, serde::Serialize)]
 #[databake(path = temporal_provider::tzif)]
-pub struct ZeroZoneInfo<'data> {
-    // Why u16? It would suck to have to refactor because there are > 256 TZifs
-    ids: ZeroTrieSimpleAscii<ZeroVec<'data, u8>>,
+pub struct ZoneInfoProvider<'data> {
+    ids: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
-    tzifs: VarZeroVec<'data, ZeroTzifULE>,
+    tzifs: VarZeroVec<'data, ZeroTzifULE, Index32>,
 }
 
 #[zerovec::make_varule(ZeroTzifULE)]
@@ -84,11 +83,12 @@ impl ZeroTzif<'_> {
     }
 }
 
+#[derive(Debug)]
 pub enum ZoneInfoDataError {
     Build(ZeroTrieBuildError),
 }
 
-impl ZeroZoneInfo<'_> {
+impl ZoneInfoProvider<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
         let mut provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata).unwrap();
         let mut identifiers = BTreeMap::default();
@@ -110,7 +110,12 @@ impl ZeroZoneInfo<'_> {
 
         let identier_map: BTreeMap<Vec<u8>, usize> = identifiers
             .iter()
-            .map(|(id, zoneid)| (id.as_bytes().to_vec(), zones.binary_search(zoneid).unwrap()))
+            .map(|(id, zoneid)| {
+                (
+                    id.to_ascii_lowercase().as_bytes().to_vec(),
+                    zones.binary_search(zoneid).unwrap(),
+                )
+            })
             .collect();
 
         let tzifs: Vec<ZeroTzif<'_>> = zones
@@ -124,13 +129,13 @@ impl ZeroZoneInfo<'_> {
             })
             .collect();
 
-        let tzifs_zerovec: VarZeroVec<'static, ZeroTzifULE> = tzifs.as_slice().into();
+        let tzifs_zerovec: VarZeroVec<'static, ZeroTzifULE, Index32> = tzifs.as_slice().into();
 
-        let ids = ZeroTrieSimpleAscii::try_from(&identier_map)
+        let ids = ZeroAsciiIgnoreCaseTrie::try_from(&identier_map)
             .map_err(ZoneInfoDataError::Build)?
             .convert_store();
 
-        Ok(ZeroZoneInfo {
+        Ok(ZoneInfoProvider {
             ids,
             tzifs: tzifs_zerovec,
         })
