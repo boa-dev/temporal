@@ -11,6 +11,7 @@
 extern crate alloc;
 
 use alloc::{collections::BTreeSet, string::String};
+use tzif::TzifBlockV2;
 use core::ops::RangeInclusive;
 use parser::{ZoneInfoParseError, ZoneInfoParser};
 use types::Transition;
@@ -28,6 +29,7 @@ pub(crate) mod utils;
 
 pub mod parser;
 pub mod rule;
+pub mod tzif;
 pub mod types;
 pub mod zone;
 
@@ -35,7 +37,7 @@ use rule::RuleTable;
 use zone::{ZoneBuildContext, ZoneTable};
 
 /// Well-known zone info file
-pub const COMMON_ZONEINFO_FILES: [&str; 9] = [
+pub const ZONEINFO_FILES: [&str; 9] = [
     "africa",
     "antarctica",
     "asia",
@@ -64,28 +66,39 @@ impl From<io::Error> for ZoneInfoError {
 // NOTE: RangeInclusive<i32> here is excessive. Would be nice to have a
 // range type that enforced a max-min
 #[derive(Debug, Clone)]
-pub struct TzifSettings {
+pub struct ZoneInfoCompileSettings {
     range: RangeInclusive<i32>,
 }
 
-impl Default for TzifSettings {
+impl Default for ZoneInfoCompileSettings {
     fn default() -> Self {
         Self { range: 1901..=2038 }
     }
 }
 
-// Intermediate type. Would be nice to have a conversion -> Tzif.
-// But the point here is to provide the required data in a
-// consummable format.
+/// Intermediate zoneinfo data type that contains an ordered
+/// set of transition data along with a POSIX time zone
+/// string
+///
+/// But the point here is to provide the required data in a
+/// consummable format for anyone who needs zoneinfo data.
 #[derive(Debug, PartialEq)]
-pub struct TzifData {
-    transitions: BTreeSet<Transition>,
-    posix_string: String, // TODO
+pub struct TransitionData {
+    pub transitions: BTreeSet<Transition>,
+    pub posix_string: String, // TODO: Implement POSIX string building
 }
 
+impl TransitionData {
+    pub fn to_v2_data_block(&self) -> TzifBlockV2 {
+        TzifBlockV2::from_transition_set(&self.transitions)
+    }
+}
+
+/// `ZoneInfoData` is a struct of that maps a IANA identifier to
+/// its ordered transition data.
 #[derive(Debug, Default)]
-pub struct ZoneInfoData {
-    pub data: HashMap<String, TzifData>,
+pub struct ZoneInfoCompiled {
+    pub data: HashMap<String, TransitionData>,
 }
 
 // TODO: Rename to ZoneInfoBuilder
@@ -102,7 +115,7 @@ impl ZoneInfo {
     #[cfg(feature = "std")]
     pub fn from_zoneinfo_directory<P: AsRef<Path>>(dir: P) -> Result<Self, ZoneInfoError> {
         let mut zoneinfo = Self::default();
-        for filename in COMMON_ZONEINFO_FILES {
+        for filename in ZONEINFO_FILES {
             let file_path = dir.as_ref().join(filename);
             let parsed = Self::from_filepath(file_path)?;
             zoneinfo.extend(parsed);
@@ -111,7 +124,7 @@ impl ZoneInfo {
     }
 
     #[cfg(feature = "std")]
-    pub fn from_filepath<P: AsRef<Path>>(path: P) -> Result<Self, ZoneInfoError> {
+    pub fn from_filepath<P: AsRef<Path> + core::fmt::Debug>(path: P) -> Result<Self, ZoneInfoError> {
         Self::from_zoneinfo_str(&std::fs::read_to_string(path)?)
     }
 
@@ -130,7 +143,7 @@ impl ZoneInfo {
 }
 
 impl ZoneInfo {
-    pub fn associate_and_build(&mut self, settings: TzifSettings) -> ZoneInfoData {
+    pub fn associate_and_build(&mut self, settings: ZoneInfoCompileSettings) -> ZoneInfoCompiled {
         // Associate the necessary rules with the ZoneTable
         self.associate();
         self.build(settings)
@@ -139,20 +152,20 @@ impl ZoneInfo {
     pub fn associate_and_build_for_zone(
         &mut self,
         target: &str,
-        settings: &TzifSettings,
+        settings: &ZoneInfoCompileSettings,
     ) -> BTreeSet<Transition> {
         self.associate();
         self.build_for_zone(target, settings)
     }
 
-    pub fn build(&mut self, settings: TzifSettings) -> ZoneInfoData {
+    pub fn build(&mut self, settings: ZoneInfoCompileSettings) -> ZoneInfoCompiled {
         // TODO: Validate and resolve settings here.
-        let mut zoneinfo = ZoneInfoData::default();
+        let mut zoneinfo = ZoneInfoCompiled::default();
         for identifier in self.zones.keys() {
             let transitions = self.build_for_zone(identifier, &settings);
-            // TODO: Make POSIX tz string
-            let tzif = TzifData {
+            let tzif = TransitionData {
                 transitions,
+                // TODO: Handle POSIX tz string
                 posix_string: String::default(),
             };
             let _ = zoneinfo.data.insert(identifier.clone(), tzif);
@@ -161,7 +174,7 @@ impl ZoneInfo {
     }
 
     /// Make sure to associate first!
-    pub fn build_for_zone(&self, target: &str, settings: &TzifSettings) -> BTreeSet<Transition> {
+    pub fn build_for_zone(&self, target: &str, settings: &ZoneInfoCompileSettings) -> BTreeSet<Transition> {
         let table = self
             .zones
             .get(target)
@@ -188,12 +201,12 @@ impl ZoneInfo {
 #[cfg(test)]
 #[cfg(all(feature = "std", not(target_os = "windows")))]
 mod tests {
-    use crate::{TzifSettings, ZoneInfo};
+    use crate::{ZoneInfoCompileSettings, ZoneInfo};
     use std::path::Path;
 
     // Use this function for tests until we handle the i32::MAX
-    fn test_default_settings() -> TzifSettings {
-        TzifSettings { range: 1901..=2037 }
+    fn test_default_settings() -> ZoneInfoCompileSettings {
+        ZoneInfoCompileSettings { range: 1901..=2037 }
     }
 
     #[test]

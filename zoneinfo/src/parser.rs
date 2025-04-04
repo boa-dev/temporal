@@ -155,11 +155,21 @@ impl<'data> ZoneInfoParser<'data> {
         let mut zoneinfo = ZoneInfo::default();
         let mut context = LineParseContext::default();
         while let Some(line) = self.lines.peek() {
-            if line.is_empty() || line.starts_with("# ") {
+            if line.is_empty() || line.starts_with("#") {
                 // Check if line is empty or a comment
                 //
                 // It is important here that a comment matches on "# "
                 // Because a ratpacked line is #PACKRATLIST...
+                // NOTE: This may be able to be consildated with link based off a flag.
+                if line.starts_with("#PACKRATLIST") {
+                    let mut splits = line.split_whitespace();
+                    next_split(&mut splits, &context)?; // Consume the #PACKRATLIST
+                    next_split(&mut splits, &context)?; // Consume the zone.tab
+                    next_split(&mut splits, &context)?; // Consume the Link
+                    let zone = next_split(&mut splits, &context)?;
+                    let link = next_split(&mut splits, &context)?;
+                    zoneinfo.pack_rat.insert(link.to_owned(), zone.to_owned());
+                }
             } else if line.starts_with("Rule") {
                 // TODO: Return a Rule Table and handle extending the table when needed.
                 let (identifier, data) = Rule::parse(line, &mut context).unwrap();
@@ -174,21 +184,13 @@ impl<'data> ZoneInfoParser<'data> {
                 let (identifer, table) =
                     ZoneTable::parse_full_table(&mut self.lines, &mut context).unwrap();
                 zoneinfo.zones.insert(identifer, table);
+                continue; // Skip the next line call
             } else if line.starts_with("Link") {
                 let mut splits = line.split_whitespace();
                 next_split(&mut splits, &context)?; // Consume the Link
                 let zone = next_split(&mut splits, &context)?;
                 let link = next_split(&mut splits, &context)?;
                 zoneinfo.links.insert(link.to_owned(), zone.to_owned());
-            // NOTE: This may be able to be consildated with link based off a flag.
-            } else if line.starts_with("#PACKRATLIST") {
-                let mut splits = line.split_whitespace();
-                next_split(&mut splits, &context)?; // Consume the #PACKRATLIST
-                next_split(&mut splits, &context)?; // Consume the zone.tab
-                next_split(&mut splits, &context)?; // Consume the Link
-                let zone = next_split(&mut splits, &context)?;
-                let link = next_split(&mut splits, &context)?;
-                zoneinfo.pack_rat.insert(link.to_owned(), zone.to_owned());
             }
             self.lines.next();
             context.line_number += 1;

@@ -309,19 +309,22 @@ impl ZoneTable {
             ctx.span(),
         ))?;
         let (identifier, entry) = Self::parse_header_line(header, ctx)?;
+        let has_continuation_lines = entry.date.is_some();
         table.push(entry);
-        while let Some(line) = lines.next() {
-            let cleaned_line = remove_comments(line);
-            if cleaned_line.trim().is_empty() {
+        if has_continuation_lines {
+            while let Some(line) = lines.next() {
+                let cleaned_line = remove_comments(line);
+                if cleaned_line.trim().is_empty() {
+                    ctx.line_number += 1;
+                    continue;
+                }
+                let entry = ZoneEntry::try_from_str(cleaned_line, ctx)?;
+                let last_row = entry.date.is_none();
+                table.push(entry);
                 ctx.line_number += 1;
-                continue;
-            }
-            let entry = ZoneEntry::try_from_str(cleaned_line, ctx)?;
-            let last_row = entry.date.is_none();
-            table.push(entry);
-            ctx.line_number += 1;
-            if last_row {
-                break;
+                if last_row {
+                    break;
+                }
             }
         }
 
