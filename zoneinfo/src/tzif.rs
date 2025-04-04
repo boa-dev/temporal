@@ -8,7 +8,7 @@
 use alloc::{collections::btree_set::BTreeSet, vec::Vec};
 use hashbrown::HashSet;
 
-use crate::types::Transition;
+use crate::{types::Transition, SingleLineZone};
 
 /// A version 2 TZif block.
 ///
@@ -45,6 +45,18 @@ impl TzifBlockV2 {
             transition_times,
             transition_types,
             local_time_types,
+        }
+    }
+
+    pub fn from_single_line_zone(zone: &SingleLineZone) -> Self {
+        let local_time_record = LocalTimeRecord {
+            offset: zone.offset,
+            is_dst: false,
+        };
+        Self {
+            transition_times: Vec::default(),
+            transition_types: Vec::default(),
+            local_time_types: vec![local_time_record],
         }
     }
 }

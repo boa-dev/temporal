@@ -117,20 +117,18 @@ pub enum AbbreviationFormat {
 }
 
 impl AbbreviationFormat {
-    pub fn format(&self, transition: &Transition) -> String {
+    pub fn format(&self, offset: i64, letter: Option<&str>, is_dst: bool) -> String {
         match self {
             Self::String(s) => s.clone(),
-            Self::Formattable(s) => {
-                s.to_formatted_string(transition.letter.as_deref().unwrap_or(""))
-            }
+            Self::Formattable(s) => s.to_formatted_string(letter.unwrap_or("")),
             Self::Pair(std, dst) => {
-                if transition.dst {
+                if is_dst {
                     dst.clone()
                 } else {
                     std.clone()
                 }
             }
-            Self::Numeric => offset_to_str(transition.offset),
+            Self::Numeric => offset_to_str(offset),
         }
     }
 }
@@ -567,69 +565,43 @@ where
 
 #[cfg(test)]
 mod tests {
-    use alloc::{borrow::ToOwned, string::String};
+    use alloc::borrow::ToOwned;
 
     use crate::types::FormattableAbbr;
 
-    use super::{AbbreviationFormat, QualifiedTimeKind, Transition};
+    use super::AbbreviationFormat;
 
     #[test]
     fn abbr_formatting() {
-        let transition = Transition {
-            at_time: 0, // doesn't matter,
-            offset: 3600,
-            dst: true,
-            letter: Some("D".to_owned()),
-            time_type: QualifiedTimeKind::Local,
-            format: String::new(),
-        };
-        let abbr = AbbreviationFormat::Numeric.format(&transition);
+        let abbr = AbbreviationFormat::Numeric.format(3600, Some("D"), true);
         assert_eq!(abbr, "+01");
 
-        let transition = Transition {
-            at_time: 0, // doesn't matter,
-            offset: 3600,
-            dst: true,
-            letter: Some("D".to_owned()),
-            time_type: QualifiedTimeKind::Local,
-            format: String::new(),
-        };
-        let abbr =
-            AbbreviationFormat::Formattable(FormattableAbbr("C%sT".to_owned())).format(&transition);
+        let abbr = AbbreviationFormat::Formattable(FormattableAbbr("C%sT".to_owned())).format(
+            3600,
+            Some("D"),
+            false,
+        );
         assert_eq!(abbr, "CDT");
 
-        let transition = Transition {
-            at_time: 0, // doesn't matter,
-            offset: 3600,
-            dst: true,
-            letter: Some("D".to_owned()),
-            time_type: QualifiedTimeKind::Local,
-            format: String::new(),
-        };
-        let abbr = AbbreviationFormat::Pair("CST".to_owned(), "CDT".to_owned()).format(&transition);
+        let abbr = AbbreviationFormat::Pair("CST".to_owned(), "CDT".to_owned()).format(
+            3600,
+            Some("D"),
+            true,
+        );
         assert_eq!(abbr, "CDT");
 
-        let transition = Transition {
-            at_time: 0, // doesn't matter,
-            offset: 3600,
-            dst: false,
-            letter: Some("S".to_owned()),
-            time_type: QualifiedTimeKind::Local,
-            format: String::new(),
-        };
-        let abbr =
-            AbbreviationFormat::Formattable(FormattableAbbr("C%sT".to_owned())).format(&transition);
+        let abbr = AbbreviationFormat::Formattable(FormattableAbbr("C%sT".to_owned())).format(
+            3600,
+            Some("S"),
+            false,
+        );
         assert_eq!(abbr, "CST");
 
-        let transition = Transition {
-            at_time: 0, // doesn't matter,
-            offset: 3600,
-            dst: false,
-            letter: Some("S".to_owned()),
-            time_type: QualifiedTimeKind::Local,
-            format: String::new(),
-        };
-        let abbr = AbbreviationFormat::Pair("CST".to_owned(), "CDT".to_owned()).format(&transition);
+        let abbr = AbbreviationFormat::Pair("CST".to_owned(), "CDT".to_owned()).format(
+            3600,
+            Some("S"),
+            false,
+        );
         assert_eq!(abbr, "CST");
     }
 }

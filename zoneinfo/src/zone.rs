@@ -135,17 +135,18 @@ impl ZoneTable {
         lmt_date.as_precise_ut_time(&lmt_entry.std_offset, &Time::default())
     }
 
-    pub fn get_first_transition(&self) -> Transition {
+    pub fn get_first_transition(&self) -> Option<Transition> {
         let lmt_entry = &self.table[0];
-        let lmt_date = lmt_entry.date.expect("must exist");
-        Transition {
-            at_time: self.get_first_transition_time(),
-            offset: lmt_entry.std_offset.as_secs(),
-            dst: false,
-            letter: None,
-            time_type: lmt_date.time.time_kind(),
-            format: String::from("LMT"), // This value is constant for the first transition
-        }
+        lmt_entry.date.map(|date| {
+            Transition {
+                at_time: self.get_first_transition_time(),
+                offset: lmt_entry.std_offset.as_secs(),
+                dst: false,
+                letter: None,
+                time_type: date.time.time_kind(),
+                format: String::from("LMT"), // This value is constant for the first transition
+            }
+        })
     }
 
     pub(crate) fn calculate_transitions_for_year(
@@ -283,7 +284,11 @@ impl ZoneTable {
                     && ctx.year_range.contains(&adjusted_transition_time)
                 {
                     // Format handled here.
-                    transition.format = entry.format.format(&transition);
+                    transition.format = entry.format.format(
+                        transition.offset,
+                        transition.letter.as_deref(),
+                        transition.dst,
+                    );
                     output.insert(transition);
                 }
             }

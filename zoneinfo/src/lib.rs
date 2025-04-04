@@ -6,7 +6,7 @@
 // this library is designed to aid with build time libraries, on
 // a limited dataset, NOT at runtime on extremely large datasets.
 
-#![no_std]
+// #![no_std]
 
 extern crate alloc;
 
@@ -76,6 +76,12 @@ impl Default for ZoneInfoCompileSettings {
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct SingleLineZone {
+    offset: i64,
+    identifier: String,
+}
+
 /// Intermediate zoneinfo data type that contains an ordered
 /// set of transition data along with a POSIX time zone
 /// string
@@ -85,13 +91,23 @@ impl Default for ZoneInfoCompileSettings {
 #[derive(Debug, PartialEq)]
 pub struct TransitionData {
     pub transitions: BTreeSet<Transition>,
+    pub single_line_zone: Option<SingleLineZone>,
     pub posix_string: String, // TODO: Implement POSIX string building
 }
 
 impl TransitionData {
     pub fn to_v2_data_block(&self) -> TzifBlockV2 {
-        TzifBlockV2::from_transition_set(&self.transitions)
+        if let Some(single_line) = &self.single_line_zone {
+            TzifBlockV2::from_single_line_zone(single_line)
+        } else {
+            TzifBlockV2::from_transition_set(&self.transitions)
+        }
     }
+}
+
+pub enum ZoneInfoData {
+    Single(SingleLineZone),
+    Transitions(BTreeSet<Transition>),
 }
 
 /// `ZoneInfoData` is a struct of that maps a IANA identifier to
@@ -155,7 +171,7 @@ impl ZoneInfo {
         &mut self,
         target: &str,
         settings: &ZoneInfoCompileSettings,
-    ) -> BTreeSet<Transition> {
+    ) -> ZoneInfoData {
         self.associate();
         self.build_for_zone(target, settings)
     }
@@ -164,9 +180,14 @@ impl ZoneInfo {
         // TODO: Validate and resolve settings here.
         let mut zoneinfo = ZoneInfoCompiled::default();
         for identifier in self.zones.keys() {
-            let transitions = self.build_for_zone(identifier, &settings);
+            let transition_data = self.build_for_zone(identifier, &settings);
+            let (transitions, single_line_zone) = match transition_data {
+                ZoneInfoData::Single(d) => (BTreeSet::default(), Some(d)),
+                ZoneInfoData::Transitions(d) => (d, None),
+            };
             let tzif = TransitionData {
                 transitions,
+                single_line_zone,
                 // TODO: Handle POSIX tz string
                 posix_string: String::default(),
             };
@@ -176,17 +197,20 @@ impl ZoneInfo {
     }
 
     /// Make sure to associate first!
-    pub fn build_for_zone(
-        &self,
-        target: &str,
-        settings: &ZoneInfoCompileSettings,
-    ) -> BTreeSet<Transition> {
+    pub fn build_for_zone(&self, target: &str, settings: &ZoneInfoCompileSettings) -> ZoneInfoData {
         let table = self
             .zones
             .get(target)
             .expect("Invalid identifier provided.");
         let mut output = BTreeSet::default();
-        output.insert(table.get_first_transition());
+        let Some(transition) = table.get_first_transition() else {
+            let line = &table.table[0];
+            return ZoneInfoData::Single(SingleLineZone {
+                offset: line.std_offset.as_secs(),
+                identifier: line.format.format(line.std_offset.as_secs(), None, false),
+            });
+        };
+        output.insert(transition);
         // Move this into a build from range function.
         let mut build_context = ZoneBuildContext::default();
         for year in settings.range.clone() {
@@ -194,7 +218,7 @@ impl ZoneInfo {
             let year_transitions = table.calculate_transitions_for_year(year, &mut build_context);
             output.extend(year_transitions);
         }
-        output
+        ZoneInfoData::Transitions(output)
     }
 
     pub fn associate(&mut self) {
@@ -207,7 +231,7 @@ impl ZoneInfo {
 #[cfg(test)]
 #[cfg(all(feature = "std", not(target_os = "windows")))]
 mod tests {
-    use crate::{ZoneInfo, ZoneInfoCompileSettings};
+    use crate::{ZoneInfo, ZoneInfoCompileSettings, ZoneInfoData};
     use std::path::Path;
 
     // Use this function for tests until we handle the i32::MAX
@@ -222,8 +246,12 @@ mod tests {
             ZoneInfo::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
 
         // Association is needed.
-        let computed_transitions =
-            zoneinfo.associate_and_build_for_zone("America/Chicago", &test_default_settings());
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("America/Chicago", &test_default_settings())
+        {
+            ZoneInfoData::Single(_) => unreachable!(),
+            ZoneInfoData::Transitions(set) => set,
+        };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Chicago")).unwrap();
         let fs_transitions = data.data_block2.unwrap().transition_times;
@@ -239,8 +267,12 @@ mod tests {
         let mut zoneinfo =
             ZoneInfo::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
         // Association is needed.
-        let computed_transitions =
-            zoneinfo.associate_and_build_for_zone("Australia/Sydney", &test_default_settings());
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Australia/Sydney", &test_default_settings())
+        {
+            ZoneInfoData::Single(_) => unreachable!(),
+            ZoneInfoData::Transitions(set) => set,
+        };
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Sydney")).unwrap();
@@ -257,8 +289,12 @@ mod tests {
         let mut zoneinfo =
             ZoneInfo::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
         // Association is needed.
-        let computed_transitions =
-            zoneinfo.associate_and_build_for_zone("Australia/Lord_Howe", &test_default_settings());
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Australia/Lord_Howe", &test_default_settings())
+        {
+            ZoneInfoData::Single(_) => unreachable!(),
+            ZoneInfoData::Transitions(set) => set,
+        };
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Lord_Howe")).unwrap();
@@ -275,8 +311,12 @@ mod tests {
         let mut zoneinfo =
             ZoneInfo::from_filepath(manifest_dir.join("examples/antarctica")).unwrap();
         // Association is needed.
-        let computed_transitions =
-            zoneinfo.associate_and_build_for_zone("Antarctica/Troll", &test_default_settings());
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Antarctica/Troll", &test_default_settings())
+        {
+            ZoneInfoData::Single(_) => unreachable!(),
+            ZoneInfoData::Transitions(set) => set,
+        };
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Antarctica/Troll")).unwrap();
@@ -292,8 +332,12 @@ mod tests {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo = ZoneInfo::from_filepath(manifest_dir.join("examples/europe")).unwrap();
         // Association is needed.
-        let computed_transitions =
-            zoneinfo.associate_and_build_for_zone("Europe/Dublin", &test_default_settings());
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Europe/Dublin", &test_default_settings())
+        {
+            ZoneInfoData::Single(_) => unreachable!(),
+            ZoneInfoData::Transitions(set) => set,
+        };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();
         let fs_transitions = data.data_block2.unwrap().transition_times;
