@@ -4,7 +4,7 @@
 //! to full detail, but instead attempts to compress TZif data into
 //! a functional, data driven equivalent.
 
-use parse_zoneinfo::table::Table;
+use zoneinfo_compiler::ZoneInfo;
 use std::{
     borrow::Cow,
     collections::{BTreeMap, BTreeSet},
@@ -43,15 +43,14 @@ pub enum ZoneInfoDataError {
 
 impl ZeroZoneInfo<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
-        let provider = TzdbDataProvider::new(tzdata).unwrap();
+        let provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata).unwrap();
         let mut identifiers = BTreeMap::default();
         let mut zones_set = BTreeSet::default();
-        for zoneset_id in provider.data.zonesets.keys() {
-            let _ = zones_set.insert(zoneset_id.clone());
-            identifiers.insert(zoneset_id.clone(), zoneset_id.clone());
+        for zone_identifier in provider.zone_info.zones.keys() {
+            let _ = zones_set.insert(zone_identifier.clone());
+            identifiers.insert(zone_identifier.clone(), zone_identifier.clone());
         }
-        for (link, zone) in provider.data.links.iter() {
-            let _ = zones_set.insert(zone.clone());
+        for (link, zone) in provider.zone_info.links.iter() {
             identifiers.insert(link.clone(), zone.clone());
         }
 
@@ -64,7 +63,7 @@ impl ZeroZoneInfo<'_> {
 
         let tzifs: Vec<ZeroTzif<'_>> = zones
             .iter()
-            .map(|id| ZeroTzif::build(&provider.data, id))
+            .map(|id| ZeroTzif::build(&provider.zone_info, id))
             .collect();
 
         let tzifs_zerovec: VarZeroVec<'static, ZeroTzifULE> = tzifs.as_slice().into();
@@ -81,7 +80,7 @@ impl ZeroZoneInfo<'_> {
 }
 
 impl ZeroTzif<'_> {
-    pub fn build(_data: &Table, _id: &str) -> Self {
+    pub fn build(_data: &ZoneInfo, _id: &str) -> Self {
         todo!()
     }
 }
