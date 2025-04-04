@@ -15,7 +15,7 @@ use crate::{
     MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
-use core::{cmp::Ordering, mem::discriminant, str::FromStr};
+use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
 
 use super::{

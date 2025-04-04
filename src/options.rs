@@ -184,9 +184,13 @@ impl ResolvedRoundingOptions {
     ) -> TemporalResult<Self> {
         // Week and day is the only use case where any of the units are not allowed.
         if dissallow_week_and_day {
-            if matches!(options.largest_unit, Some(TemporalUnit::Week) | Some(TemporalUnit::Day))
-                || matches!(options.smallest_unit, Some(TemporalUnit::Week) | Some(TemporalUnit::Day))
-            {
+            if matches!(
+                options.largest_unit,
+                Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
+            ) || matches!(
+                options.smallest_unit,
+                Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
+            ) {
                 return Err(TemporalError::range()
                     .with_message("Weeks and days are not allowed in this operation."));
             }
