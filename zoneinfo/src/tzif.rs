@@ -52,6 +52,6 @@ impl TzifBlockV2 {
 // TODO: Add index field for abbr. if supported.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LocalTimeRecord {
-    offset: i64,
-    is_dst: bool,
+    pub offset: i64,
+    pub is_dst: bool,
 }

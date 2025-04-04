@@ -11,7 +11,7 @@ use std::{
 };
 use zerotrie::{ZeroTrieBuildError, ZeroTrieSimpleAscii};
 use zerovec::{VarZeroVec, ZeroVec};
-use zoneinfo_compiler::ZoneInfo;
+use zoneinfo_compiler::{TransitionData, ZoneInfoCompileSettings};
 
 use crate::tzdb::TzdbDataProvider;
 
@@ -31,10 +31,57 @@ pub struct ZeroZoneInfo<'data> {
 #[databake(path = temporal_provider::tzif)]
 pub struct ZeroTzif<'data> {
     transitions: ZeroVec<'data, i64>,
+    transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
-    transition_types: ZeroVec<'data, u32>,
-    types: ZeroVec<'data, i64>,
+    types: ZeroVec<'data, LocalTimeRecord>,
     posix: Cow<'data, str>,
+}
+
+#[zerovec::make_ule(LocalTimeRecordULE)]
+#[derive(
+    PartialEq,
+    Eq,
+    Debug,
+    Clone,
+    Copy,
+    PartialOrd,
+    Ord,
+    yoke::Yokeable,
+    serde::Serialize,
+    databake::Bake,
+)]
+#[databake(path = temporal_provider::tzif)]
+pub struct LocalTimeRecord {
+    offset: i64,
+    is_dst: bool,
+}
+
+impl From<&zoneinfo_compiler::tzif::LocalTimeRecord> for LocalTimeRecord {
+    fn from(value: &zoneinfo_compiler::tzif::LocalTimeRecord) -> Self {
+        Self {
+            offset: value.offset,
+            is_dst: value.is_dst,
+        }
+    }
+}
+
+impl ZeroTzif<'_> {
+    fn from_transition_data(data: &TransitionData) -> Self {
+        let tzif = data.to_v2_data_block();
+        let transitions = ZeroVec::alloc_from_slice(&tzif.transition_times);
+        let transition_types = ZeroVec::alloc_from_slice(&tzif.transition_types);
+        let mapped_local_records: Vec<LocalTimeRecord> =
+            tzif.local_time_types.iter().map(Into::into).collect();
+        let types = ZeroVec::alloc_from_slice(&mapped_local_records);
+        let posix = String::from("TODO").into();
+
+        Self {
+            transitions,
+            transition_types,
+            types,
+            posix,
+        }
+    }
 }
 
 pub enum ZoneInfoDataError {
@@ -43,9 +90,14 @@ pub enum ZoneInfoDataError {
 
 impl ZeroZoneInfo<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
-        let provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata).unwrap();
+        let mut provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata).unwrap();
         let mut identifiers = BTreeMap::default();
         let mut zones_set = BTreeSet::default();
+
+        let zoneinfo_compiled = provider
+            .zone_info
+            .associate_and_build(ZoneInfoCompileSettings::default());
+
         for zone_identifier in provider.zone_info.zones.keys() {
             let _ = zones_set.insert(zone_identifier.clone());
             identifiers.insert(zone_identifier.clone(), zone_identifier.clone());
@@ -63,7 +115,13 @@ impl ZeroZoneInfo<'_> {
 
         let tzifs: Vec<ZeroTzif<'_>> = zones
             .iter()
-            .map(|id| ZeroTzif::build(&provider.zone_info, id))
+            .map(|id| {
+                let data = zoneinfo_compiled
+                    .data
+                    .get(id)
+                    .expect("all zones should be built");
+                ZeroTzif::from_transition_data(data)
+            })
             .collect();
 
         let tzifs_zerovec: VarZeroVec<'static, ZeroTzifULE> = tzifs.as_slice().into();
@@ -76,11 +134,5 @@ impl ZeroZoneInfo<'_> {
             ids,
             tzifs: tzifs_zerovec,
         })
-    }
-}
-
-impl ZeroTzif<'_> {
-    pub fn build(_data: &ZoneInfo, _id: &str) -> Self {
-        todo!()
     }
 }
