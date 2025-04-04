@@ -42,7 +42,7 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
         fs::create_dir_all(zoneinfo_debug_path.clone())?;
 
         for (identifier, index) in self.ids.to_btreemap().iter() {
-            let (directory, filename ) = if identifier.contains('/') {
+            let (directory, filename) = if identifier.contains('/') {
                 let (directory, filename) = identifier.rsplit_once('/').expect("'/' must exist");
                 let identifier_dir = zoneinfo_debug_path.join(directory);
                 fs::create_dir_all(identifier_dir.clone())?;

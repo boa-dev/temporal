@@ -30,7 +30,6 @@ pub struct ZoneInfoProvider<'data> {
 #[zerovec::derive(Debug, Serialize)]
 #[databake(path = temporal_provider::tzif)]
 pub struct ZeroTzif<'data> {
-
     pub transitions: ZeroVec<'data, i64>,
     pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
