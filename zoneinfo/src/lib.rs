@@ -89,13 +89,13 @@ pub struct SingleLineZone {
 /// But the point here is to provide the required data in a
 /// consummable format for anyone who needs zoneinfo data.
 #[derive(Debug, PartialEq)]
-pub struct TransitionData {
+pub struct ZoneInfoTransitionData {
     pub transitions: BTreeSet<Transition>,
     pub single_line_zone: Option<SingleLineZone>,
     pub posix_string: String, // TODO: Implement POSIX string building
 }
 
-impl TransitionData {
+impl ZoneInfoTransitionData {
     pub fn to_v2_data_block(&self) -> TzifBlockV2 {
         if let Some(single_line) = &self.single_line_zone {
             TzifBlockV2::from_single_line_zone(single_line)
@@ -105,29 +105,28 @@ impl TransitionData {
     }
 }
 
-pub enum ZoneInfoData {
+/// `ZoneInfo` is a struct of that maps a IANA identifier to
+/// its ordered transition data.
+#[derive(Debug, Default)]
+pub struct ZoneInfo {
+    pub data: HashMap<String, ZoneInfoTransitionData>,
+}
+
+pub enum CompiledZone {
     Single(SingleLineZone),
     Transitions(BTreeSet<Transition>),
 }
 
-/// `ZoneInfoData` is a struct of that maps a IANA identifier to
-/// its ordered transition data.
-#[derive(Debug, Default)]
-pub struct ZoneInfoCompiled {
-    pub data: HashMap<String, TransitionData>,
-}
-
-// TODO: Rename to ZoneInfoBuilder
 #[non_exhaustive]
 #[derive(Debug, Clone, Default)]
-pub struct ZoneInfo {
+pub struct ZoneInfoCompiler {
     pub rules: HashMap<String, RuleTable>,
     pub zones: HashMap<String, ZoneTable>,
     pub links: HashMap<String, String>,
     pub pack_rat: HashMap<String, String>,
 }
 
-impl ZoneInfo {
+impl ZoneInfoCompiler {
     #[cfg(feature = "std")]
     pub fn from_zoneinfo_directory<P: AsRef<Path>>(dir: P) -> Result<Self, ZoneInfoError> {
         let mut zoneinfo = Self::default();
@@ -160,8 +159,8 @@ impl ZoneInfo {
     }
 }
 
-impl ZoneInfo {
-    pub fn associate_and_build(&mut self, settings: ZoneInfoCompileSettings) -> ZoneInfoCompiled {
+impl ZoneInfoCompiler {
+    pub fn associate_and_build(&mut self, settings: ZoneInfoCompileSettings) -> ZoneInfo {
         // Associate the necessary rules with the ZoneTable
         self.associate();
         self.build(settings)
@@ -171,21 +170,21 @@ impl ZoneInfo {
         &mut self,
         target: &str,
         settings: &ZoneInfoCompileSettings,
-    ) -> ZoneInfoData {
+    ) -> CompiledZone {
         self.associate();
         self.build_for_zone(target, settings)
     }
 
-    pub fn build(&mut self, settings: ZoneInfoCompileSettings) -> ZoneInfoCompiled {
+    pub fn build(&mut self, settings: ZoneInfoCompileSettings) -> ZoneInfo {
         // TODO: Validate and resolve settings here.
-        let mut zoneinfo = ZoneInfoCompiled::default();
+        let mut zoneinfo = ZoneInfo::default();
         for identifier in self.zones.keys() {
             let transition_data = self.build_for_zone(identifier, &settings);
             let (transitions, single_line_zone) = match transition_data {
-                ZoneInfoData::Single(d) => (BTreeSet::default(), Some(d)),
-                ZoneInfoData::Transitions(d) => (d, None),
+                CompiledZone::Single(d) => (BTreeSet::default(), Some(d)),
+                CompiledZone::Transitions(d) => (d, None),
             };
-            let tzif = TransitionData {
+            let tzif = ZoneInfoTransitionData {
                 transitions,
                 single_line_zone,
                 // TODO: Handle POSIX tz string
@@ -197,7 +196,7 @@ impl ZoneInfo {
     }
 
     /// Make sure to associate first!
-    pub fn build_for_zone(&self, target: &str, settings: &ZoneInfoCompileSettings) -> ZoneInfoData {
+    pub fn build_for_zone(&self, target: &str, settings: &ZoneInfoCompileSettings) -> CompiledZone {
         let table = self
             .zones
             .get(target)
@@ -205,7 +204,7 @@ impl ZoneInfo {
         let mut output = BTreeSet::default();
         let Some(transition) = table.get_first_transition() else {
             let line = &table.table[0];
-            return ZoneInfoData::Single(SingleLineZone {
+            return CompiledZone::Single(SingleLineZone {
                 offset: line.std_offset.as_secs(),
                 identifier: line.format.format(line.std_offset.as_secs(), None, false),
             });
@@ -218,7 +217,7 @@ impl ZoneInfo {
             let year_transitions = table.calculate_transitions_for_year(year, &mut build_context);
             output.extend(year_transitions);
         }
-        ZoneInfoData::Transitions(output)
+        CompiledZone::Transitions(output)
     }
 
     pub fn associate(&mut self) {
@@ -231,7 +230,7 @@ impl ZoneInfo {
 #[cfg(test)]
 #[cfg(all(feature = "std", not(target_os = "windows")))]
 mod tests {
-    use crate::{ZoneInfo, ZoneInfoCompileSettings, ZoneInfoData};
+    use crate::{CompiledZone, ZoneInfoCompileSettings, ZoneInfoCompiler};
     use std::path::Path;
 
     // Use this function for tests until we handle the i32::MAX
@@ -243,14 +242,14 @@ mod tests {
     fn test_chicago() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfo::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
 
         // Association is needed.
         let computed_transitions = match zoneinfo
             .associate_and_build_for_zone("America/Chicago", &test_default_settings())
         {
-            ZoneInfoData::Single(_) => unreachable!(),
-            ZoneInfoData::Transitions(set) => set,
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
         };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Chicago")).unwrap();
@@ -265,13 +264,13 @@ mod tests {
     fn test_sydney() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfo::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
             .associate_and_build_for_zone("Australia/Sydney", &test_default_settings())
         {
-            ZoneInfoData::Single(_) => unreachable!(),
-            ZoneInfoData::Transitions(set) => set,
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
         };
 
         let data =
@@ -287,13 +286,13 @@ mod tests {
     fn test_lord_howe() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfo::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
             .associate_and_build_for_zone("Australia/Lord_Howe", &test_default_settings())
         {
-            ZoneInfoData::Single(_) => unreachable!(),
-            ZoneInfoData::Transitions(set) => set,
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
         };
 
         let data =
@@ -309,13 +308,13 @@ mod tests {
     fn test_troll() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfo::from_filepath(manifest_dir.join("examples/antarctica")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/antarctica")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
             .associate_and_build_for_zone("Antarctica/Troll", &test_default_settings())
         {
-            ZoneInfoData::Single(_) => unreachable!(),
-            ZoneInfoData::Transitions(set) => set,
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
         };
 
         let data =
@@ -330,13 +329,14 @@ mod tests {
     #[test]
     fn test_dublin() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let mut zoneinfo = ZoneInfo::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
             .associate_and_build_for_zone("Europe/Dublin", &test_default_settings())
         {
-            ZoneInfoData::Single(_) => unreachable!(),
-            ZoneInfoData::Transitions(set) => set,
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
         };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();

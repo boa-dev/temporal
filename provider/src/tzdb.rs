@@ -17,7 +17,7 @@ use std::{
 
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{VarZeroVec, ZeroVec};
-use zoneinfo_compiler::{ZoneInfo, ZoneInfoError};
+use zoneinfo_compiler::{ZoneInfoCompiler, ZoneInfoError};
 
 /// A data struct for IANA identifier normalization
 #[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
@@ -57,14 +57,14 @@ impl From<ZoneInfoError> for TzdbDataProviderError {
 
 pub struct TzdbDataProvider {
     pub version: String,
-    pub zone_info: ZoneInfo,
+    pub zone_info: ZoneInfoCompiler,
 }
 
 impl TzdbDataProvider {
     pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataProviderError> {
         let version_file = tzdata_path.join("version");
         let version = fs::read_to_string(version_file)?.trim().to_owned();
-        let zone_info = ZoneInfo::from_zoneinfo_directory(tzdata_path)?;
+        let zone_info = ZoneInfoCompiler::from_zoneinfo_directory(tzdata_path)?;
         Ok(Self { version, zone_info })
     }
 }

@@ -9,7 +9,7 @@ use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 use crate::{
     rule::{Rule, RuleTable},
     zone::ZoneTable,
-    ZoneInfo,
+    ZoneInfoCompiler,
 };
 
 #[derive(Debug)]
@@ -151,8 +151,8 @@ impl<'data> ZoneInfoParser<'data> {
     }
 
     #[allow(clippy::while_let_on_iterator)]
-    pub fn parse(&mut self) -> Result<ZoneInfo, ZoneInfoParseError> {
-        let mut zoneinfo = ZoneInfo::default();
+    pub fn parse(&mut self) -> Result<ZoneInfoCompiler, ZoneInfoParseError> {
+        let mut zoneinfo = ZoneInfoCompiler::default();
         let mut context = LineParseContext::default();
         while let Some(line) = self.lines.peek() {
             if line.is_empty() || line.starts_with("#") {

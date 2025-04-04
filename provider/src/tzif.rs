@@ -11,7 +11,7 @@ use std::{
 };
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
-use zoneinfo_compiler::{TransitionData, ZoneInfoCompileSettings};
+use zoneinfo_compiler::{ZoneInfoCompileSettings, ZoneInfoTransitionData};
 
 use crate::tzdb::TzdbDataProvider;
 
@@ -66,7 +66,7 @@ impl From<&zoneinfo_compiler::tzif::LocalTimeRecord> for LocalTimeRecord {
 }
 
 impl ZeroTzif<'_> {
-    fn from_transition_data(data: &TransitionData) -> Self {
+    fn from_transition_data(data: &ZoneInfoTransitionData) -> Self {
         let tzif = data.to_v2_data_block();
         let transitions = ZeroVec::alloc_from_slice(&tzif.transition_times);
         let transition_types = ZeroVec::alloc_from_slice(&tzif.transition_types);
