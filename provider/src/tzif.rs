@@ -18,9 +18,10 @@ use crate::tzdb::TzdbDataProvider;
 #[derive(Debug, Clone, yoke::Yokeable, databake::Bake, serde::Serialize)]
 #[databake(path = temporal_provider::tzif)]
 pub struct ZoneInfoProvider<'data> {
-    ids: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
-
-    tzifs: VarZeroVec<'data, ZeroTzifULE, Index32>,
+    // IANA identifier map to TZif index.
+    pub ids: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
+    // Vector of TZif data
+    pub tzifs: VarZeroVec<'data, ZeroTzifULE, Index32>,
 }
 
 #[zerovec::make_varule(ZeroTzifULE)]
@@ -29,11 +30,12 @@ pub struct ZoneInfoProvider<'data> {
 #[zerovec::derive(Debug, Serialize)]
 #[databake(path = temporal_provider::tzif)]
 pub struct ZeroTzif<'data> {
-    transitions: ZeroVec<'data, i64>,
-    transition_types: ZeroVec<'data, u8>,
+
+    pub transitions: ZeroVec<'data, i64>,
+    pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
-    types: ZeroVec<'data, LocalTimeRecord>,
-    posix: Cow<'data, str>,
+    pub types: ZeroVec<'data, LocalTimeRecord>,
+    pub posix: Cow<'data, str>,
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
@@ -51,8 +53,8 @@ pub struct ZeroTzif<'data> {
 )]
 #[databake(path = temporal_provider::tzif)]
 pub struct LocalTimeRecord {
-    offset: i64,
-    is_dst: bool,
+    pub offset: i64,
+    pub is_dst: bool,
 }
 
 impl From<&zoneinfo_compiler::tzif::LocalTimeRecord> for LocalTimeRecord {
