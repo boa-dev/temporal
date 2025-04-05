@@ -261,6 +261,29 @@ mod tests {
     }
 
     #[test]
+    fn test_new_york() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
+
+        // Association is needed.
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("America/New_York", &test_default_settings())
+        {
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
+        };
+
+        let data =
+            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/New_York")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
     fn test_sydney() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
@@ -340,6 +363,88 @@ mod tests {
         };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_berlin() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+        // Association is needed.
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Europe/Berlin", &test_default_settings())
+        {
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
+        };
+
+        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Berlin")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_paris() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+        // Association is needed.
+        let computed_transitions =
+            match zoneinfo.associate_and_build_for_zone("Europe/Paris", &test_default_settings()) {
+                CompiledZone::Single(_) => unreachable!(),
+                CompiledZone::Transitions(set) => set,
+            };
+
+        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Paris")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_london() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+        // Association is needed.
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Europe/London", &test_default_settings())
+        {
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
+        };
+
+        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/London")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
+    fn test_riga() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+        // Association is needed.
+        let computed_transitions =
+            match zoneinfo.associate_and_build_for_zone("Europe/Riga", &test_default_settings()) {
+                CompiledZone::Single(_) => unreachable!(),
+                CompiledZone::Transitions(set) => set,
+            };
+
+        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Riga")).unwrap();
         let fs_transitions = data.data_block2.unwrap().transition_times;
 
         for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {

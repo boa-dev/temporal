@@ -15,6 +15,7 @@ pub struct Transition {
     pub at_time: i64,
     pub offset: i64,
     pub dst: bool,
+    pub savings: Time,
     pub letter: Option<String>,
     pub time_type: QualifiedTimeKind,
     pub format: String,
@@ -44,6 +45,12 @@ pub struct ZoneEntry {
     pub format: AbbreviationFormat,
     // Date until
     pub date: Option<UntilDateTime>,
+}
+
+impl ZoneEntry {
+    pub(crate) fn is_named_rule(&self) -> bool {
+        matches!(self.rule, RuleIdentifier::Rule(_))
+    }
 }
 
 impl TryFromStr<LineParseContext> for ZoneEntry {
@@ -198,7 +205,7 @@ impl UntilDateTime {
     }
 
     pub fn as_precise_ut_time(self, std_offset: &Time, save: &Time) -> i64 {
-        self.as_date_secs() + self.time.to_seconds(std_offset, save)
+        self.as_date_secs() + self.time.to_universal_seconds(std_offset, save)
     }
 }
 
@@ -254,7 +261,7 @@ impl Date {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Time {
     pub sign: Sign,
     pub hour: i8,
@@ -262,7 +269,7 @@ pub struct Time {
     pub second: i8,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[repr(i8)]
 pub enum Sign {
     #[default]
@@ -514,7 +521,8 @@ pub enum QualifiedTime {
 }
 
 impl QualifiedTime {
-    pub fn to_seconds(&self, std_offset: &Time, save: &Time) -> i64 {
+    /// Returns universal seconds
+    pub fn to_universal_seconds(&self, std_offset: &Time, save: &Time) -> i64 {
         match self {
             Self::Local(t) => t.as_secs() - std_offset.as_secs() - save.as_secs(),
             Self::Standard(t) => t.as_secs() - std_offset.as_secs(),

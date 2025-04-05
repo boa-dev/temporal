@@ -28,25 +28,19 @@ impl RuleTable {
         &self,
         year: i32,
         std_offset: &Time,
+        use_until: i64,
         ctx: &mut ZoneBuildContext,
     ) -> ApplicableRules {
-        let mut saving = Time::default();
         let mut ordered = BTreeSet::default();
         for rule in &self.rules {
             if rule.range().contains(&year) {
-                if rule.is_dst() {
-                    // NOTE: There is a triple time zone year in Sydney, 1942.
-                    // Also note: we take a guess here based off an assumption
-                    // of no triple time zone with differing save values.
-                    saving = rule.save;
-                }
-                // Impercise calculation for ordering, fix soon
                 let transition_time =
                     rule.transition_time_for_year(year, std_offset, &Time::default());
                 let transition = Transition {
                     at_time: transition_time,
                     offset: std_offset.as_secs(),
                     dst: rule.is_dst(),
+                    savings: rule.save,
                     letter: rule.letter.clone(),
                     time_type: rule.at.time_kind(),
                     format: String::new(),
@@ -55,24 +49,31 @@ impl RuleTable {
             }
         }
 
+        let mut saving = ctx.saving;
+
         // We must push to a vec then create a BTreeSet, because rules
         // are unordered, and we NEED the savings value to compute the
         // the std transition time.
         let mut transitions = BTreeSet::default();
-        for (index, mut transition) in ordered.into_iter().enumerate() {
-            let active_savings = if index == 0 && !transition.dst {
-                ctx.saving
-            } else if !transition.dst {
-                saving
+        for mut transition in ordered {
+            // The zone before had a savings value active, so determine the difference
+            let savings_seconds = if ctx.use_start - ctx.saving.as_secs() == transition.at_time {
+                ctx.saving.as_secs()
+            } else if saving != Time::default() {
+                saving.as_secs()
             } else {
-                Time::default()
+                0
             };
             let new_time = match transition.time_type {
-                QualifiedTimeKind::Local => transition.at_time - active_savings.as_secs(),
+                QualifiedTimeKind::Local => transition.at_time - savings_seconds,
                 _ => transition.at_time,
             };
-            transition.at_time = new_time;
-            let _ = transitions.insert(transition);
+            // Check and see if this transition is valid for use until
+            if new_time < use_until {
+                saving = transition.savings;
+                transition.at_time = new_time;
+                let _ = transitions.insert(transition);
+            }
         }
 
         ApplicableRules {
@@ -82,6 +83,7 @@ impl RuleTable {
     }
 }
 
+#[derive(Debug)]
 pub struct ApplicableRules {
     // Preloaded saving of the applicable rules' dst
     pub saving: Time,
@@ -106,7 +108,7 @@ impl Rule {
 
     fn is_dst(&self) -> bool {
         match &self.letter {
-            Some(letter) if letter == "S" => false,
+            Some(letter) if letter == "S" && self.save == Time::default() => false,
             Some(letter) if letter == "D" => true,
             // Yes, there are other letters than S and D, like US's W and P
             _ => self.save != Time::default(),
@@ -117,7 +119,7 @@ impl Rule {
     fn transition_time_for_year(&self, year: i32, std_offset: &Time, saving: &Time) -> i64 {
         let epoch_days = epoch_days_for_rule_date(year, self.in_month, self.on_date);
         let epoch_seconds = epoch_seconds_for_epoch_days(epoch_days);
-        epoch_seconds + self.at.to_seconds(std_offset, saving)
+        epoch_seconds + self.at.to_universal_seconds(std_offset, saving)
     }
 }
 
