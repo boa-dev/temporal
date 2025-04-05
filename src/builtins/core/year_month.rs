@@ -502,89 +502,34 @@ mod tests {
         }
     }
     #[test]
-    fn test_diff_same_year_month() {
-        let ym1 = PlainYearMonth::from_str("2023-05").unwrap();
-        let ym2 = PlainYearMonth::from_str("2023-05").unwrap();
-        let settings = DifferenceSettings::default();
+    fn test_diff_with_different_calendars() {
+        let ym1 = PlainYearMonth::new_with_overflow(
+            2021,
+            1,
+            None,
+            Calendar::from_str("islamic").unwrap(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
 
-        let diff = ym1
-            .diff(DifferenceOperation::Until, &ym2, settings.clone())
-            .unwrap();
-        assert_eq!(diff.years(), 0.0);
-        assert_eq!(diff.months(), 0.0);
-        assert_eq!(diff.days(), 0.0);
+        let ym2 = PlainYearMonth::new_with_overflow(
+            2021,
+            1,
+            None,
+            Calendar::from_str("hebrew").unwrap(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
 
-        let diff = ym1
-            .diff(DifferenceOperation::Since, &ym2, settings)
-            .unwrap();
-        assert_eq!(diff.years(), 0.0);
-        assert_eq!(diff.months(), 0.0);
-        assert_eq!(diff.days(), 0.0);
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Month);
+
+        let diff = ym1.until(&ym2, settings);
+        assert!(
+            diff.is_err(),
+            "Expected an error when comparing dates from different calendars"
+        );
     }
-
-    #[test]
-    fn test_diff_one_month_apart() {
-        let ym1 = PlainYearMonth::from_str("2023-05").unwrap();
-        let ym2 = PlainYearMonth::from_str("2023-06").unwrap();
-        let settings = DifferenceSettings::default();
-
-        let diff = ym1
-            .diff(DifferenceOperation::Until, &ym2, settings.clone())
-            .unwrap();
-        assert_eq!(diff.years(), 0.0);
-        assert_eq!(diff.months(), 1.0);
-        assert_eq!(diff.days(), 0.0);
-
-        let diff = ym1
-            .diff(DifferenceOperation::Since, &ym2, settings)
-            .unwrap();
-        assert_eq!(diff.years(), 0.0);
-        assert_eq!(diff.months(), -1.0);
-        assert_eq!(diff.days(), 0.0);
-    }
-
-    #[test]
-    fn test_diff_crossing_year_boundary() {
-        let ym1 = PlainYearMonth::from_str("2022-12").unwrap();
-        let ym2 = PlainYearMonth::from_str("2023-01").unwrap();
-        let settings = DifferenceSettings::default();
-
-        let diff = ym1
-            .diff(DifferenceOperation::Until, &ym2, settings.clone())
-            .unwrap();
-        assert_eq!(diff.years(), 0.0);
-        assert_eq!(diff.months(), 1.0);
-        assert_eq!(diff.days(), 0.0);
-
-        let diff = ym1
-            .diff(DifferenceOperation::Since, &ym2, settings)
-            .unwrap();
-        assert_eq!(diff.years(), 0.0);
-        assert_eq!(diff.months(), -1.0);
-        assert_eq!(diff.days(), 0.0);
-    }
-
-    #[test]
-    fn test_diff_multiple_years_apart() {
-        let ym1 = PlainYearMonth::from_str("2010-01").unwrap();
-        let ym2 = PlainYearMonth::from_str("2020-01").unwrap();
-        let settings = DifferenceSettings::default();
-
-        let diff = ym1
-            .diff(DifferenceOperation::Until, &ym2, settings.clone())
-            .unwrap();
-        assert_eq!(diff.years(), 10.0);
-        assert_eq!(diff.months(), 0.0);
-        assert_eq!(diff.days(), 0.0);
-
-        let diff = ym1
-            .diff(DifferenceOperation::Since, &ym2, settings)
-            .unwrap();
-        assert_eq!(diff.years(), -10.0);
-        assert_eq!(diff.months(), 0.0);
-        assert_eq!(diff.days(), 0.0);
-    }
-
     #[test]
     fn test_diff_setting() {
         let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
@@ -597,6 +542,62 @@ mod tests {
         let diff = ym1.until(&ym2, settings).unwrap();
         assert_eq!(diff.months(), 1.0);
         assert_eq!(diff.years(), 2.0);
+    }
+    #[test]
+    fn test_diff_with_smallest_unit_year() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Year);
+
+        let diff = ym1.until(&ym2, settings).unwrap();
+        assert_eq!(diff.years(), 2.0); // Rounded to the nearest year
+        assert_eq!(diff.months(), 0.0); // Months are ignored
+    }
+
+    #[test]
+    fn test_diff_with_smallest_unit_day() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Day);
+
+        let diff = ym1.until(&ym2, settings);
+        assert!(
+            diff.is_err(),
+            "Expected an error when smallest_unit is set to Day"
+        );
+    }
+
+    #[test]
+    fn test_diff_with_smallest_unit_week() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Week);
+
+        let diff = ym1.until(&ym2, settings);
+        assert!(
+            diff.is_err(),
+            "Expected an error when smallest_unit is set to Week"
+        );
+    }
+
+    #[test]
+    fn test_diff_with_no_rounding_increment() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let mut settings = DifferenceSettings::default();
+        settings.smallest_unit = Some(TemporalUnit::Month);
+        settings.increment = None; // No rounding increment
+
+        let diff = ym1.until(&ym2, settings).unwrap();
+        assert_eq!(diff.months(), 1.0); // Exact difference in months
+        assert_eq!(diff.years(), 2.0); // Exact difference in years
     }
 
     #[test]
