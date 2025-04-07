@@ -744,7 +744,6 @@ impl FromStr for PlainDate {
 mod tests {
     use tinystr::tinystr;
 
-
     use super::*;
 
     #[test]
