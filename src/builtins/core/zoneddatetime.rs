@@ -1,4 +1,5 @@
-//! This module implements `ZonedDateTime` and any directly related algorithms.
+//! This module contains the core implementation of the `ZonedDateTime`
+//! builtin type.
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
@@ -80,7 +81,47 @@ impl PartialZonedDateTime {
     }
 }
 
-/// The native Rust implementation of `Temporal.ZonedDateTime`.
+/// The native Rust implementation of a Temporal `ZonedDateTime`.
+///
+/// A `ZonedDateTime` represents a date and time in a specific time
+/// zone and calendar. A `ZonedDateTime` is represented as an instant
+/// of unix epoch nanoseconds with a calendar, and a time zone.
+///
+/// ## Time zone provider` API
+///
+/// The core implementation of `ZonedDateTime` are primarily time zone
+/// provider APIs denoted by a `*_with_provider` suffix. This means a
+/// provider that implements the `TimeZoneProvider` trait must be provided.
+///
+/// A default file system time zone provider, `FsTzdbProvider`, can be
+/// enabled with the `tzdb` feature flag.
+///
+/// The non time zone provider API, which is a default implementation of the
+/// methods using `FsTzdbProvider` can be enabled with the `compiled_data`
+/// feature flag.
+///
+/// ## Example
+///
+/// ```rust
+/// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime};
+///
+/// let zoned_date_time = ZonedDateTime::try_new(
+///     0,
+///     Calendar::default(),
+///     TimeZone::default(),
+/// ).unwrap();
+///
+/// assert_eq!(zoned_date_time.epoch_milliseconds(), 0);
+/// assert_eq!(zoned_date_time.epoch_nanoseconds().as_i128(), 0);
+/// assert_eq!(zoned_date_time.timezone().identifier().unwrap(), "UTC");
+/// assert_eq!(zoned_date_time.calendar().identifier(), "iso8601");
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-zoneddatetime].
+///
+/// [mdn-zoneddatetime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/ZonedDateTime
 #[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZonedDateTime {
@@ -406,6 +447,7 @@ impl ZonedDateTime {
         &self.tz
     }
 
+    /// Create a `ZonedDateTime` from a `PartialZonedDateTime`.
     #[inline]
     pub fn from_partial_with_provider(
         partial: PartialZonedDateTime,
@@ -649,6 +691,7 @@ impl ZonedDateTime {
         Ok(iso.time.nanosecond)
     }
 
+    /// Returns an offset string for the current `ZonedDateTime`.
     pub fn offset_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<String> {
         let offset = self
             .tz
@@ -656,6 +699,7 @@ impl ZonedDateTime {
         Ok(nanoseconds_to_formattable_offset(offset).to_string())
     }
 
+    /// Returns the offset nanoseconds for the current `ZonedDateTime`.
     pub fn offset_nanoseconds_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
@@ -701,6 +745,7 @@ pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: i128) -> Formattabl
 // ==== Core calendar method implementations ====
 
 impl ZonedDateTime {
+    /// Returns the era for the current `ZonedDateTime`.
     pub fn era_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
@@ -710,6 +755,7 @@ impl ZonedDateTime {
         Ok(self.calendar.era(&pdt.iso.date))
     }
 
+    /// Returns the era-specific year for the current `ZonedDateTime`.
     pub fn era_year_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
