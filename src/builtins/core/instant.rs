@@ -236,12 +236,8 @@ impl Instant {
     }
 
     // TODO: May end up needing a provider API during impl
-    pub fn to_zoned_date_time_iso(&self, time_zone: TimeZone) -> TemporalResult<ZonedDateTime> {
-        Ok(ZonedDateTime::new_unchecked(
-            *self,
-            Calendar::from_utf8(b"iso8601")?,
-            time_zone,
-        ))
+    pub fn to_zoned_date_time_iso(&self, time_zone: TimeZone) -> ZonedDateTime {
+        ZonedDateTime::new_unchecked(*self, Calendar::default(), time_zone)
     }
 }
 
