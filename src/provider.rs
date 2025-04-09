@@ -73,7 +73,7 @@ pub trait TimeZoneProvider {
     fn get_named_tz_transition(
         &self,
         identifier: &str,
-        epoch_nanoseconds: i128,
+        epoch_nanoseconds: EpochNanoseconds,
         direction: TransitionDirection,
     ) -> TemporalResult<Option<EpochNanoseconds>>;
 }
@@ -100,7 +100,7 @@ impl TimeZoneProvider for NeverProvider {
     fn get_named_tz_transition(
         &self,
         _: &str,
-        _: i128,
+        _: EpochNanoseconds,
         _: TransitionDirection,
     ) -> TemporalResult<Option<EpochNanoseconds>> {
         unimplemented!()

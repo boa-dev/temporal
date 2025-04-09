@@ -3,6 +3,7 @@
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
+use std::borrow::ToOwned;
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use tinystr::TinyAsciiStr;
 
@@ -427,7 +428,7 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn try_new(nanos: i128, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
+    pub fn try_new(nanos: EpochNanoseconds, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
         Ok(Self::new_unchecked(instant, calendar, tz))
     }
@@ -522,7 +523,7 @@ impl ZonedDateTime {
     /// combined with the provided `TimeZone`.
     pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
         Self::try_new(
-            self.epoch_nanoseconds().as_i128(),
+            self.epoch_nanoseconds().to_owned(),
             self.calendar.clone(),
             timezone,
         )
@@ -532,7 +533,7 @@ impl ZonedDateTime {
     /// combined with the provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
         Self::try_new(
-            self.epoch_nanoseconds().as_i128(),
+            self.epoch_nanoseconds().to_owned(),
             calendar,
             self.tz.clone(),
         )
@@ -573,7 +574,7 @@ impl ZonedDateTime {
         // b. Let transition be GetNamedTimeZonePreviousTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
         let transition = provider.get_named_tz_transition(
             identifier,
-            self.epoch_nanoseconds().as_i128(),
+            self.epoch_nanoseconds().to_owned(),
             direction,
         )?;
 
@@ -710,7 +711,7 @@ impl ZonedDateTime {
     }
 }
 
-pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: i128) -> FormattableOffset {
+pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: EpochNanoseconds) -> FormattableOffset {
     let sign = if nanoseconds >= 0 {
         Sign::Positive
     } else {
@@ -1202,10 +1203,9 @@ pub(crate) fn interpret_isodatetime_offset(
 }
 
 // Formatting utils
-const NS_PER_MINUTE: i128 = 60_000_000_000;
 
 pub(crate) fn nanoseconds_to_formattable_offset_minutes(
-    nanoseconds: i128,
+    nanoseconds: EpochNanoseconds,
 ) -> TemporalResult<(Sign, u8, u8)> {
     // Per 11.1.7 this should be rounding
     let nanoseconds = IncrementRounder::from_signed_num(nanoseconds, unsafe {

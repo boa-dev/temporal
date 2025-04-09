@@ -157,16 +157,16 @@ impl Instant {
 impl Instant {
     /// Create a new validated `Instant`.
     #[inline]
-    pub fn try_new(nanoseconds: i128) -> TemporalResult<Self> {
+    pub fn try_new(nanoseconds: EpochNanoseconds) -> TemporalResult<Self> {
         Ok(Self::from(EpochNanoseconds::try_from(nanoseconds)?))
     }
 
     /// Creates a new `Instant` from the provided Epoch millisecond value.
-    pub fn from_epoch_milliseconds(epoch_milliseconds: i64) -> TemporalResult<Self> {
+    pub fn from_epoch_milliseconds(epoch_milliseconds: EpochNanoseconds) -> TemporalResult<Self> {
         // Input at most is `i64::MAX`. This means guarantees that the
         // transition into nanoseconds MUST be in range of `i128`
-        let epoch_nanos = (epoch_milliseconds as i128) * 1_000_000;
-        Self::try_new(epoch_nanos)
+        let epoch_nanos = (epoch_milliseconds.as_i128()) * 1_000_000;
+        Self::try_new(EpochNanoseconds::try_from(epoch_nanos).unwrap())
     }
 
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
@@ -220,7 +220,7 @@ impl Instant {
         let resolved_options = ResolvedRoundingOptions::from_instant_options(options)?;
 
         let round_result = self.round_instant(resolved_options)?;
-        Self::try_new(round_result)
+        Self::try_new(EpochNanoseconds::try_from(round_result)?)
     }
 
     /// Returns the `epochMilliseconds` value for this `Instant`.
@@ -254,7 +254,7 @@ impl Instant {
         let round = self.round_instant(ResolvedRoundingOptions::from_to_string_options(
             &resolved_options,
         ))?;
-        let rounded_instant = Instant::try_new(round)?;
+        let rounded_instant = Instant::try_new(EpochNanoseconds::try_from(round)?)?;
 
         let mut ixdtf = IxdtfStringBuilder::default();
         let datetime = if let Some(timezone) = timezone {
