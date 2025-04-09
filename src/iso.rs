@@ -90,7 +90,7 @@ impl IsoDateTime {
         // 3. Let epochMilliseconds be 𝔽((epochNanoseconds - remainderNs) / 10^6).
         let epoch_millis = (epoch_nanoseconds.0 - remainder_nanos).div_euclid(1_000_000) as i64;
 
-        let (year, month, day) = utils::ymd_from_epoch_milliseconds(epoch_millis);
+        let (year, month, day) = utils::Epoch::new(epoch_millis).ymd();
 
         // 7. Let hour be ℝ(! HourFromTime(epochMilliseconds)).
         let hour = epoch_millis.div_euclid(3_600_000).rem_euclid(24);
@@ -343,8 +343,7 @@ impl IsoDate {
     /// Equivalent to `BalanceISODate`.
     pub(crate) fn balance(year: i32, month: i32, day: i32) -> Self {
         let epoch_days = iso_date_to_epoch_days(year, month, day);
-        let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0);
-        let (year, month, day) = utils::ymd_from_epoch_milliseconds(ms);
+        let (year, month, day) = utils::Epoch::from_days(epoch_days).ymd();
         Self::new_unchecked(year, month, day)
     }
 
@@ -366,7 +365,7 @@ impl IsoDate {
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
-        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day)
+        utils::Epoch::from_gregorian_date(self.year, self.month, self.day).days()
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -487,12 +486,13 @@ impl IsoDate {
 
         // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
         // 11. Let weeks be 0.
-        let days = utils::epoch_days_from_gregorian_date(other.year, other.month, other.day)
-            - utils::epoch_days_from_gregorian_date(
+        let days = utils::Epoch::from_gregorian_date(other.year, other.month, other.day).days()
+            - utils::Epoch::from_gregorian_date(
                 constrained.year,
                 constrained.month,
                 constrained.day,
-            );
+            )
+            .days();
 
         let (weeks, days) = if largest_unit == TemporalUnit::Week {
             (days / 7, days % 7)
@@ -913,8 +913,7 @@ const MAX_EPOCH_DAYS: i32 = 10i32.pow(8) + 1;
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
 fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
-    if utils::epoch_days_from_gregorian_date(date.year, date.month, date.day).abs() > MAX_EPOCH_DAYS
-    {
+    if utils::Epoch::from_gregorian_date(date.year, date.month, date.day).days() > MAX_EPOCH_DAYS {
         return false;
     }
 
@@ -935,7 +934,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanosec
 #[inline]
 fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
     let ms = time.to_epoch_ms();
-    let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
+    let epoch_ms = utils::Epoch::from_days(date.to_epoch_days()).millis() + ms;
     epoch_ms as i128 * 1_000_000 + time.microsecond as i128 * 1_000 + time.nanosecond as i128
 }
 
@@ -951,10 +950,10 @@ pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     let resolved_month = month.rem_euclid(12) as u8;
     // 3. Find a time t such that EpochTimeToEpochYear(t) is resolvedYear,
     // EpochTimeToMonthInYear(t) is resolvedMonth, and EpochTimeToDate(t) is 1.
-    let epoch_days = utils::epoch_days_from_gregorian_date(resolved_year, resolved_month, 1);
+    let epoch_days = utils::Epoch::from_gregorian_date(resolved_year, resolved_month, 1);
 
     // 4. Return EpochTimeToDayNumber(t) + date - 1.
-    epoch_days + day - 1
+    epoch_days.days() + day - 1
 }
 
 #[inline]
@@ -1005,13 +1004,13 @@ fn balance_iso_year_month(year: i32, month: i32) -> (i32, u8) {
 /// Note: month is 1 based.
 #[inline]
 pub(crate) fn constrain_iso_day(year: i32, month: u8, day: u8) -> u8 {
-    let days_in_month = utils::iso_days_in_month(year, month);
+    let days_in_month = utils::Epoch::from_gregorian_date(year, month, 1).days_in_month();
     day.clamp(1, days_in_month)
 }
 
 #[inline]
 pub(crate) fn is_valid_iso_day(year: i32, month: u8, day: u8) -> bool {
-    let days_in_month = utils::iso_days_in_month(year, month);
+    let days_in_month = utils::Epoch::from_gregorian_date(year, month, 1).days_in_month();
     (1..=days_in_month).contains(&day)
 }
 
