@@ -172,7 +172,6 @@ impl PlainTime {
             settings,
             op,
             UnitGroup::Time,
-            false,
             TemporalUnit::Hour,
             TemporalUnit::Nanosecond,
         )?;

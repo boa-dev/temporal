@@ -310,7 +310,6 @@ impl PlainDate {
             settings,
             op,
             UnitGroup::Date,
-            false,
             TemporalUnit::Day,
             TemporalUnit::Day,
         )?;

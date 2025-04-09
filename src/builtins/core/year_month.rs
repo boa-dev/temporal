@@ -74,24 +74,37 @@ impl PlainYearMonth {
         // 3. If CalendarEquals(calendar, other.[[Calendar]]) is false, throw a RangeError exception.
         if self.calendar().identifier() != other.calendar().identifier() {
             return Err(TemporalError::range()
-                .with_message("Calendars are for difference operation are not the same."));
+                .with_message("Calendars for difference operation are not the same."));
         }
+
+        // Check if weeks or days are disallowed in this operation
+        if matches!(
+            settings.largest_unit,
+            Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
+        ) || matches!(
+            settings.smallest_unit,
+            Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
+        ) {
+            return Err(TemporalError::range()
+                .with_message("Weeks and days are not allowed in this operation."));
+        }
+
         // 4. Let resolvedOptions be ? GetOptionsObject(options).
         // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, date, « week, day », month, year).
-        // TODO: Check spec for largest & smallest check from_diff_setting
         let resolved = ResolvedRoundingOptions::from_diff_settings(
             settings,
             op,
             UnitGroup::Date,
-            true,
             TemporalUnit::Year,
             TemporalUnit::Month,
         )?;
+
         // 6. If CompareISODate(yearMonth.[[ISODate]], other.[[ISODate]]) = 0, then
         if self.iso == other.iso {
             // a. Return ! CreateTemporalDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
             return Ok(Duration::default());
         }
+
         // 7. Let thisFields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
         // 8. Set thisFields.[[Day]] to 1.
         // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
@@ -103,11 +116,13 @@ impl PlainYearMonth {
         let result = self
             .calendar()
             .date_until(&self.iso, &other.iso, resolved.largest_unit)?;
+
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
         let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
-        if settings.smallest_unit != Some(TemporalUnit::Month)
-            || settings.increment != Some(RoundingIncrement::ONE)
+        if resolved.smallest_unit != TemporalUnit::Month
+            || resolved.increment != RoundingIncrement::ONE
         {
             // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
             let iso_date_time = IsoDateTime::new_unchecked(self.iso, IsoTime::default());
@@ -115,7 +130,7 @@ impl PlainYearMonth {
             let target_iso_date_time = IsoDateTime::new_unchecked(other.iso, IsoTime::default());
             // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
             let dest_epoch_ns = target_iso_date_time.as_nanoseconds()?;
-            // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+            // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, resolved.[[LargestUnit]], resolved.[[RoundingIncrement]], resolved.[[SmallestUnit]], resolved.[[RoundingMode]]).
             duration = duration.round_relative_duration(
                 dest_epoch_ns.as_i128(),
                 &PlainDateTime::new_unchecked(iso_date_time, self.calendar.clone()),
@@ -123,13 +138,15 @@ impl PlainYearMonth {
                 resolved,
             )?;
         }
+
         // 17. Let result be ! TemporalDurationFromInternal(duration, day).
         let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
+
         // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 19. Return result.
         match op {
-            DifferenceOperation::Since => return Ok(result.negated()),
-            DifferenceOperation::Until => return Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
+            DifferenceOperation::Until => Ok(result),
         }
     }
 }

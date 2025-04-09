@@ -89,7 +89,6 @@ impl Instant {
             options,
             op,
             UnitGroup::Time,
-            false,
             TemporalUnit::Second,
             TemporalUnit::Nanosecond,
         )?;

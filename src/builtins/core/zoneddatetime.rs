@@ -373,7 +373,6 @@ impl ZonedDateTime {
             options,
             op,
             UnitGroup::DateTime,
-            false,
             TemporalUnit::Hour,
             TemporalUnit::Nanosecond,
         )?;
