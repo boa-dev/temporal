@@ -15,10 +15,7 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
-        ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
-        ToStringRoundingOptions, UnitGroup,
+        self, ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions, UnitGroup
     },
     parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
@@ -974,6 +971,65 @@ impl ZonedDateTime {
             ToStringRoundingOptions::default(),
             provider,
         )
+    }
+
+    /// 6.3.39 Temporal.ZonedDateTime.prototype.round
+    /// Rounds current ZonedDateTime to the a sp
+    /// 
+    /// args:
+    /// 
+
+    pub fn round_with_provider(
+        &self,
+        options: RoundingOptions,
+        // reltive_to: Option<RelativeTo>, ?
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        // 1. Let zonedDateTime be the this value.
+        // 2. Perform ? RequireInternalSlot(zonedDateTime, [[InitializedTemporalZonedDateTime]]).
+        // 3. If roundTo is undefined, then
+            // a. Throw a TypeError exception.
+        // 4. If roundTo is a String, then
+            // a. Let paramString be roundTo.
+            // b. Set roundTo to OrdinaryObjectCreate(null).
+            // c. Perform ! CreateDataPropertyOrThrow(roundTo, "smallestUnit", paramString).
+        // 5. Else,
+            // a. Set roundTo to ? GetOptionsObject(roundTo).
+        // 6. NOTE: The following steps read options and perform independent validation in alphabetical order (GetRoundingIncrementOption reads "roundingIncrement" and GetRoundingModeOption reads "roundingMode").
+        // 7. Let roundingIncrement be ? GetRoundingIncrementOption(roundTo).
+        // 8. Let roundingMode be ? GetRoundingModeOption(roundTo, half-expand).
+        // 9. Let smallestUnit be ? GetTemporalUnitValuedOption(roundTo, "smallestUnit", time, required, « day »).
+        // 10. If smallestUnit is day, then
+        //     a. Let maximum be 1.
+        //     b. Let inclusive be true.
+        // 11. Else,
+        //     a. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+        //     b. Assert: maximum is not unset.
+        //     c. Let inclusive be false.
+        // 12. Perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, inclusive).
+        // 13. If smallestUnit is nanosecond and roundingIncrement = 1, then
+        //     a. Return ! CreateTemporalZonedDateTime(zonedDateTime.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]]).
+        // 14. Let thisNs be zonedDateTime.[[EpochNanoseconds]].
+        // 15. Let timeZone be zonedDateTime.[[TimeZone]].
+        // 16. Let calendar be zonedDateTime.[[Calendar]].
+        // 17. Let isoDateTime be GetISODateTimeFor(timeZone, thisNs).
+        // 18. If smallestUnit is day, then
+        //     a. Let dateStart be isoDateTime.[[ISODate]].
+        //     b. Let dateEnd be BalanceISODate(dateStart.[[Year]], dateStart.[[Month]], dateStart.[[Day]] + 1).
+        //     c. Let startNs be ? GetStartOfDay(timeZone, dateStart).
+        //     d. Assert: thisNs ≥ startNs.
+        //     e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
+        //     f. Assert: thisNs < endNs.
+        //     g. Let dayLengthNs be ℝ(endNs - startNs).
+        //     h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
+        //     i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
+        //     j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
+        // 19. Else,
+        //     a. Let roundResult be RoundISODateTime(isoDateTime, roundingIncrement, smallestUnit, roundingMode).
+        //     b. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, thisNs).
+        //     c. Let epochNanoseconds be ? InterpretISODateTimeOffset(roundResult.[[ISODate]], roundResult.[[Time]], option, offsetNanoseconds, timeZone, compatible, prefer, match-exactly).
+        // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+        todo!()
     }
 
     /// Creates an IXDTF (RFC 9557) date/time string for the provided `ZonedDateTime` according
