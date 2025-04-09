@@ -405,10 +405,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("2024-03").unwrap();
             let later = PlainYearMonth::from_str("2024-03").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Month);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.days(), 0.0);
@@ -424,10 +426,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("2023-01").unwrap();
             let later = PlainYearMonth::from_str("2023-02").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Month);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.months(), 1.0);
@@ -441,10 +445,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("2022-11").unwrap();
             let later = PlainYearMonth::from_str("2023-02").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Month);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.months(), 3.0);
@@ -458,10 +464,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("2002-05").unwrap();
             let later = PlainYearMonth::from_str("2003-06").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Month);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.years(), 1.0);
@@ -477,10 +485,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("2022-06").unwrap();
             let later = PlainYearMonth::from_str("2023-06").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Year);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Year),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.years(), 1.0);
@@ -494,10 +504,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("1000-01").unwrap();
             let later = PlainYearMonth::from_str("2000-01").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Year);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Year),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.years(), 1000.0);
@@ -508,10 +520,12 @@ mod tests {
         {
             let earlier = PlainYearMonth::from_str("-271821-04").unwrap();
             let later = PlainYearMonth::from_str("-271820-04").unwrap();
-            let mut settings = DifferenceSettings::default();
-            settings.smallest_unit = Some(TemporalUnit::Year);
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Year),
+                ..Default::default()
+            };
 
-            let until = earlier.until(&later, settings.clone()).unwrap();
+            let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
             assert_eq!(until.years(), 1.0);
@@ -538,8 +552,10 @@ mod tests {
         )
         .unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Month);
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Month),
+            ..Default::default()
+        };
 
         let diff = ym1.until(&ym2, settings);
         assert!(
@@ -552,9 +568,11 @@ mod tests {
         let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Month);
-        settings.increment = Some(RoundingIncrement::ONE);
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Month),
+            increment: Some(RoundingIncrement::ONE),
+            ..Default::default()
+        };
 
         let diff = ym1.until(&ym2, settings).unwrap();
         assert_eq!(diff.months(), 1.0);
@@ -565,8 +583,10 @@ mod tests {
         let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Year);
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Year),
+            ..Default::default()
+        };
 
         let diff = ym1.until(&ym2, settings).unwrap();
         assert_eq!(diff.years(), 2.0); // Rounded to the nearest year
@@ -578,8 +598,10 @@ mod tests {
         let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Day);
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Day),
+            ..Default::default()
+        };
 
         let diff = ym1.until(&ym2, settings);
         assert!(
@@ -593,8 +615,10 @@ mod tests {
         let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Week);
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Week),
+            ..Default::default()
+        };
 
         let diff = ym1.until(&ym2, settings);
         assert!(
@@ -608,9 +632,11 @@ mod tests {
         let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
-        let mut settings = DifferenceSettings::default();
-        settings.smallest_unit = Some(TemporalUnit::Month);
-        settings.increment = None; // No rounding increment
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Month),
+            increment: None, // No rounding increment
+            ..Default::default()
+        };
 
         let diff = ym1.until(&ym2, settings).unwrap();
         assert_eq!(diff.months(), 1.0); // Exact difference in months
