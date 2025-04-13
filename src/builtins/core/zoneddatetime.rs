@@ -974,11 +974,6 @@ impl ZonedDateTime {
     }
 
     /// 6.3.39 Temporal.ZonedDateTime.prototype.round
-    /// Rounds current ZonedDateTime to the a sp
-    /// 
-    /// args:
-    /// 
-
     pub fn round_with_provider(
         &self,
         options: RoundingOptions,
@@ -997,38 +992,81 @@ impl ZonedDateTime {
             // a. Set roundTo to ? GetOptionsObject(roundTo).
         // 6. NOTE: The following steps read options and perform independent validation in alphabetical order (GetRoundingIncrementOption reads "roundingIncrement" and GetRoundingModeOption reads "roundingMode").
         // 7. Let roundingIncrement be ? GetRoundingIncrementOption(roundTo).
+        let rounding_increment = options.increment;
         // 8. Let roundingMode be ? GetRoundingModeOption(roundTo, half-expand).
+        let rounding_mode = options.rounding_mode;
         // 9. Let smallestUnit be ? GetTemporalUnitValuedOption(roundTo, "smallestUnit", time, required, « day »).
+        let smallest_unit = options.smallest_unit.unwrap_or(TemporalUnit::Day);
         // 10. If smallestUnit is day, then
-        //     a. Let maximum be 1.
-        //     b. Let inclusive be true.
+            // a. Let maximum be 1.
+            // b. Let inclusive be true.
         // 11. Else,
-        //     a. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
-        //     b. Assert: maximum is not unset.
-        //     c. Let inclusive be false.
+            // a. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+            // b. Assert: maximum is not unset.
+            // c. Let inclusive be false.
+        let (maximum, inclusive) = if smallest_unit == TemporalUnit::Day {
+            (1, true)
+        } else {
+            let Some(max) = smallest_unit.to_maximum_rounding_increment() else {
+                return Err(TemporalError::general("Maximum rounding increment is unset"));
+            };
+            (max, false)
+        };
         // 12. Perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, inclusive).
+        // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        let rounding_increment = options.increment.unwrap_or_default();
+        rounding_increment.validate(maximum.into(), inclusive)?;
+        
         // 13. If smallestUnit is nanosecond and roundingIncrement = 1, then
-        //     a. Return ! CreateTemporalZonedDateTime(zonedDateTime.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]]).
+        if smallest_unit == TemporalUnit::Nanosecond && rounding_increment == RoundingIncrement::ONE {
+            // a. Return ! CreateTemporalZonedDateTime(zonedDateTime.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]]).
+            return Ok(self.clone());
+        }
         // 14. Let thisNs be zonedDateTime.[[EpochNanoseconds]].
+        let thisNs = self.epoch_nanoseconds();
         // 15. Let timeZone be zonedDateTime.[[TimeZone]].
         // 16. Let calendar be zonedDateTime.[[Calendar]].
         // 17. Let isoDateTime be GetISODateTimeFor(timeZone, thisNs).
         // 18. If smallestUnit is day, then
-        //     a. Let dateStart be isoDateTime.[[ISODate]].
-        //     b. Let dateEnd be BalanceISODate(dateStart.[[Year]], dateStart.[[Month]], dateStart.[[Day]] + 1).
-        //     c. Let startNs be ? GetStartOfDay(timeZone, dateStart).
-        //     d. Assert: thisNs ≥ startNs.
-        //     e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
-        //     f. Assert: thisNs < endNs.
-        //     g. Let dayLengthNs be ℝ(endNs - startNs).
-        //     h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
-        //     i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
-        //     j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
-        // 19. Else,
-        //     a. Let roundResult be RoundISODateTime(isoDateTime, roundingIncrement, smallestUnit, roundingMode).
-        //     b. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, thisNs).
-        //     c. Let epochNanoseconds be ? InterpretISODateTimeOffset(roundResult.[[ISODate]], roundResult.[[Time]], option, offsetNanoseconds, timeZone, compatible, prefer, match-exactly).
-        // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+        if smallest_unit == TemporalUnit::Day {
+            // a. Let dateStart be isoDateTime.[[ISODate]].
+            let datestart = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            // b. Let dateEnd be BalanceISODate(dateStart.[[Year]], dateStart.[[Month]], dateStart.[[Day]] + 1).
+            let end = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            let dateend = IsoDate::balance(
+                end.date.year,
+                end.date.month.into(),
+                end.date.day.into(), // todo this might be wrong
+            );
+            // c. Let startNs be ? GetStartOfDay(timeZone, dateStart).
+            let startNs = self.tz.get_start_of_day(&datestart.date, provider)?;
+            // d. Assert: thisNs ≥ startNs.
+            // e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
+            let endNs = self.tz.get_start_of_day(&dateend, provider)?;
+            // f. Assert: thisNs < endNs.
+            // g. Let dayLengthNs be ℝ(endNs - startNs).
+            let dayLengthNs=  NormalizedTimeDuration::from_nanosecond_difference(endNs.0, startNs.0)?;
+            // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
+            let dayProgressNs = NormalizedTimeDuration::from_nanosecond_difference(
+                thisNs.0,
+                startNs.0,
+            )?;
+            // i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
+            // j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
+            let roundedDayNs = NormalizedTimeDuration::round(
+                &dayLengthNs,
+                rounding_mode,
+                options,
+            )?;
+            // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+            
+        } else {
+            // 19. Else,
+                // a. Let roundResult be RoundISODateTime(isoDateTime, roundingIncrement, smallestUnit, roundingMode).
+                // b. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, thisNs).
+                // c. Let epochNanoseconds be ? InterpretISODateTimeOffset(roundResult.[[ISODate]], roundResult.[[Time]], option, offsetNanoseconds, timeZone, compatible, prefer, match-exactly).
+            // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+        }
         todo!()
     }
 
