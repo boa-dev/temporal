@@ -65,15 +65,9 @@ impl From<io::Error> for ZoneInfoError {
 
 // NOTE: RangeInclusive<i32> here is excessive. Would be nice to have a
 // range type that enforced a max-min
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct ZoneInfoCompileSettings {
-    range: RangeInclusive<i32>,
-}
-
-impl Default for ZoneInfoCompileSettings {
-    fn default() -> Self {
-        Self { range: 1901..=2038 }
-    }
+    range: Option<RangeInclusive<i32>>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -197,25 +191,30 @@ impl ZoneInfoCompiler {
 
     /// Make sure to associate first!
     pub fn build_for_zone(&self, target: &str, settings: &ZoneInfoCompileSettings) -> CompiledZone {
-        let table = self
+        let zone = self
             .zones
             .get(target)
             .expect("Invalid identifier provided.");
-        let mut output = BTreeSet::default();
-        let Some(transition) = table.get_first_transition() else {
-            let line = &table.table[0];
+        if zone.table.len() == 1 {
+            let line = &zone.table[0];
             return CompiledZone::Single(SingleLineZone {
                 offset: line.std_offset.as_secs(),
                 identifier: line.format.format(line.std_offset.as_secs(), None, false),
             });
-        };
-        output.insert(transition);
-        // Move this into a build from range function.
+        }
+        let range = settings.range.clone().unwrap_or_else(|| {
+            let first_until_date = zone.table[0]
+                .date
+                .expect("A non single lined zone has an until date");
+            // TODO: potentially increase end year date to 2038. Fat compiled
+            // tzifs end on i32::MAX year seconds over year numbers.
+            first_until_date.date.year..=2037
+        });
+        let mut output = BTreeSet::default();
         let mut build_context = ZoneBuildContext::default();
-        for year in settings.range.clone() {
+        for year in range {
             build_context.update(year);
-            let year_transitions = table.calculate_transitions_for_year(year, &mut build_context);
-            output.extend(year_transitions);
+            zone.calculate_transitions_for_year(year, &mut build_context, &mut output);
         }
         CompiledZone::Transitions(output)
     }
@@ -233,20 +232,15 @@ mod tests {
     use crate::{CompiledZone, ZoneInfoCompileSettings, ZoneInfoCompiler};
     use std::path::Path;
 
-    // Use this function for tests until we handle the i32::MAX
-    fn test_default_settings() -> ZoneInfoCompileSettings {
-        ZoneInfoCompileSettings { range: 1901..=2037 }
-    }
-
     #[test]
     fn test_chicago() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
 
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("America/Chicago", &test_default_settings())
+            .associate_and_build_for_zone("America/Chicago", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -264,11 +258,11 @@ mod tests {
     fn test_new_york() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/northamerica")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
 
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("America/New_York", &test_default_settings())
+            .associate_and_build_for_zone("America/New_York", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -284,13 +278,36 @@ mod tests {
     }
 
     #[test]
+    fn test_anchorage() {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let mut zoneinfo =
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
+
+        // Association is needed.
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("America/Anchorage", &ZoneInfoCompileSettings::default())
+        {
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
+        };
+
+        let data =
+            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Anchorage")).unwrap();
+        let fs_transitions = data.data_block2.unwrap().transition_times;
+
+        for (computed, fs) in computed_transitions.iter().zip(fs_transitions.iter()) {
+            assert_eq!(computed.at_time, fs.0);
+        }
+    }
+
+    #[test]
     fn test_sydney() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("Australia/Sydney", &test_default_settings())
+            .associate_and_build_for_zone("Australia/Sydney", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -309,11 +326,12 @@ mod tests {
     fn test_lord_howe() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/australasia")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("Australia/Lord_Howe", &test_default_settings())
-        {
+        let computed_transitions = match zoneinfo.associate_and_build_for_zone(
+            "Australia/Lord_Howe",
+            &ZoneInfoCompileSettings::default(),
+        ) {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
         };
@@ -331,10 +349,10 @@ mod tests {
     fn test_troll() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/antarctica")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("Antarctica/Troll", &test_default_settings())
+            .associate_and_build_for_zone("Antarctica/Troll", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -353,10 +371,10 @@ mod tests {
     fn test_dublin() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("Europe/Dublin", &test_default_settings())
+            .associate_and_build_for_zone("Europe/Dublin", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -374,10 +392,10 @@ mod tests {
     fn test_berlin() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("Europe/Berlin", &test_default_settings())
+            .associate_and_build_for_zone("Europe/Berlin", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -395,13 +413,14 @@ mod tests {
     fn test_paris() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_transitions =
-            match zoneinfo.associate_and_build_for_zone("Europe/Paris", &test_default_settings()) {
-                CompiledZone::Single(_) => unreachable!(),
-                CompiledZone::Transitions(set) => set,
-            };
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Europe/Paris", &ZoneInfoCompileSettings::default())
+        {
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
+        };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Paris")).unwrap();
         let fs_transitions = data.data_block2.unwrap().transition_times;
@@ -415,10 +434,10 @@ mod tests {
     fn test_london() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
         let computed_transitions = match zoneinfo
-            .associate_and_build_for_zone("Europe/London", &test_default_settings())
+            .associate_and_build_for_zone("Europe/London", &ZoneInfoCompileSettings::default())
         {
             CompiledZone::Single(_) => unreachable!(),
             CompiledZone::Transitions(set) => set,
@@ -436,13 +455,14 @@ mod tests {
     fn test_riga() {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let mut zoneinfo =
-            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/europe")).unwrap();
+            ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_transitions =
-            match zoneinfo.associate_and_build_for_zone("Europe/Riga", &test_default_settings()) {
-                CompiledZone::Single(_) => unreachable!(),
-                CompiledZone::Transitions(set) => set,
-            };
+        let computed_transitions = match zoneinfo
+            .associate_and_build_for_zone("Europe/Riga", &ZoneInfoCompileSettings::default())
+        {
+            CompiledZone::Single(_) => unreachable!(),
+            CompiledZone::Transitions(set) => set,
+        };
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Riga")).unwrap();
         let fs_transitions = data.data_block2.unwrap().transition_times;

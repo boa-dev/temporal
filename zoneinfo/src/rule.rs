@@ -38,7 +38,7 @@ impl RuleTable {
                     rule.transition_time_for_year(year, std_offset, &Time::default());
                 let transition = Transition {
                     at_time: transition_time,
-                    offset: std_offset.as_secs(),
+                    offset: std_offset.as_secs() + rule.save.as_secs(),
                     dst: rule.is_dst(),
                     savings: rule.save,
                     letter: rule.letter.clone(),
@@ -56,16 +56,8 @@ impl RuleTable {
         // the std transition time.
         let mut transitions = BTreeSet::default();
         for mut transition in ordered {
-            // The zone before had a savings value active, so determine the difference
-            let savings_seconds = if ctx.use_start - ctx.saving.as_secs() == transition.at_time {
-                ctx.saving.as_secs()
-            } else if saving != Time::default() {
-                saving.as_secs()
-            } else {
-                0
-            };
             let new_time = match transition.time_type {
-                QualifiedTimeKind::Local => transition.at_time - savings_seconds,
+                QualifiedTimeKind::Local => transition.at_time - saving.as_secs(),
                 _ => transition.at_time,
             };
             // Check and see if this transition is valid for use until

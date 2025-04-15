@@ -124,6 +124,14 @@ pub enum AbbreviationFormat {
 }
 
 impl AbbreviationFormat {
+    pub(crate) fn format_with_transition(&self, transition: &Transition) -> String {
+        self.format(
+            transition.offset,
+            transition.letter.as_deref(),
+            transition.dst,
+        )
+    }
+
     pub fn format(&self, offset: i64, letter: Option<&str>, is_dst: bool) -> String {
         match self {
             Self::String(s) => s.clone(),

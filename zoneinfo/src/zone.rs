@@ -24,6 +24,7 @@ pub(crate) struct ZoneBuildContext {
     pub(crate) start_kind: QualifiedTimeKind,
     pub(crate) previous_offset: Time,
     pub(crate) previous_rule: RuleIdentifier,
+    pub(crate) previous_format: String,
 }
 
 impl Default for ZoneBuildContext {
@@ -37,6 +38,7 @@ impl Default for ZoneBuildContext {
             start_kind: QualifiedTimeKind::Universal,
             previous_offset: Time::default(),
             previous_rule: RuleIdentifier::None,
+            previous_format: String::default(),
         }
     }
 }
@@ -52,10 +54,26 @@ impl ZoneBuildContext {
         self.use_start = i64::MIN;
     }
 
-    pub(crate) fn update_for_zone_entry(&mut self, zone: &ZoneEntry, savings: Time) {
+    pub(crate) fn update_for_zone_entry(&mut self, zone: &ZoneEntry, last: Option<&Transition>) {
+        let (savings, format) = last
+            .map(|transition| {
+                (
+                    transition.savings,
+                    zone.format.format(
+                        zone.std_offset.as_secs(),
+                        transition.letter.as_deref(),
+                        transition.savings != Time::default(),
+                    ),
+                )
+            })
+            .unwrap_or((
+                Time::default(),
+                zone.format.format(zone.std_offset.as_secs(), None, false),
+            ));
         self.saving = savings;
         self.previous_offset = zone.std_offset;
         self.previous_rule = zone.rule.clone();
+        self.previous_format = format;
 
         if let Some(use_until) = zone.date {
             self.start_kind = use_until.time.time_kind();
@@ -121,17 +139,20 @@ impl ZoneTable {
     /// Get teh first transition time for this zone table.
     ///
     /// No transition will be lower than this.
-    fn get_first_transition_time(&self) -> i64 {
+    fn get_first_transition_info(&self) -> (i64, QualifiedTimeKind) {
         let lmt_entry = &self.table[0];
         let lmt_date = lmt_entry.date.expect("must exist");
-        lmt_date.as_precise_ut_time(&lmt_entry.std_offset, &Time::default())
+        (
+            lmt_date.as_precise_ut_time(&lmt_entry.std_offset, &Time::default()),
+            lmt_date.time.time_kind(),
+        )
     }
 
     pub fn get_first_transition(&self) -> Option<Transition> {
         let lmt_entry = &self.table[0];
         lmt_entry.date.map(|date| {
             Transition {
-                at_time: self.get_first_transition_time(),
+                at_time: date.as_precise_ut_time(&lmt_entry.std_offset, &Time::default()),
                 offset: lmt_entry.std_offset.as_secs(),
                 dst: false,
                 savings: Time::default(),
@@ -146,13 +167,13 @@ impl ZoneTable {
         &self,
         year: i32,
         ctx: &mut ZoneBuildContext,
-    ) -> BTreeSet<Transition> {
+        output: &mut BTreeSet<Transition>,
+    ) {
         // NOTES: We need to be careful here, zones until time may
         // be at the start of the year but could be mid year or
         // multiple times in a year (EX: America/Chicago)
 
         // Year seconds should be Jan 1 for year.
-        let mut output = BTreeSet::default();
         // By default, the zone is the last zone set
         for entry in &self.table {
             // Calculate the UntilTime with the previous zones inputs.
@@ -168,51 +189,65 @@ impl ZoneTable {
             //   and start time is not in this years full range, skip rule.
             if ctx.in_skippable_zone(until_time_or_max, entry.std_offset.as_secs()) {
                 // Update the zone entry context
-                ctx.update_for_zone_entry(entry, ctx.saving);
+                ctx.update_for_zone_entry(entry, output.last());
                 continue;
             }
             // We've determined that are year is viable for this zone entry.
             // Let's move foward
+            let is_first_transition = entry == &self.table[0];
+
             let mut rule_transitions = BTreeSet::default();
             let savings = match &entry.rule {
                 RuleIdentifier::None => {
-                    // Transitions only occur if the offsets are different
-                    if ctx.previous_offset != entry.std_offset {
-                        let actual_start = if ctx.use_start == i64::MIN {
-                            self.get_first_transition_time()
-                        } else {
-                            ctx.use_start
-                        };
-                        rule_transitions.insert(Transition {
-                            at_time: actual_start,
-                            offset: entry.std_offset.as_secs(),
-                            dst: false,
-                            savings: Time::default(),
-                            letter: None,
-                            time_type: ctx.start_kind,
-                            format: String::new(),
-                        });
+                    // Transitions only occur if the offsets are different or we are at the first zone
+                    let same_offset = ctx.previous_offset.as_secs() + ctx.saving.as_secs()
+                        == entry.std_offset.as_secs()
+                        && ctx.previous_format
+                            == entry.format.format(entry.std_offset.as_secs(), None, false);
+                    if !is_first_transition && same_offset && ctx.saving.as_secs() == 0 {
+                        ctx.update_for_zone_entry(entry, output.last());
+                        continue;
                     }
+                    let (at_time, time_type) = if ctx.use_start == i64::MIN {
+                        self.get_first_transition_info()
+                    } else {
+                        (ctx.use_start - ctx.saving.as_secs(), ctx.start_kind)
+                    };
+                    rule_transitions.insert(Transition {
+                        at_time,
+                        offset: entry.std_offset.as_secs(),
+                        dst: false,
+                        savings: Time::default(),
+                        letter: None,
+                        time_type,
+                        format: String::new(),
+                    });
                     Time::default() // No savings on an empty rule, return 0 savings
                 }
                 RuleIdentifier::Numeric(t) => {
                     // Transitions only occur if the offsets are different
-                    if ctx.previous_offset != entry.std_offset {
-                        let actual_start = if ctx.use_start == i64::MIN {
-                            self.get_first_transition_time()
-                        } else {
-                            ctx.use_start
-                        };
-                        rule_transitions.insert(Transition {
-                            at_time: actual_start,
-                            offset: entry.std_offset.as_secs() + t.as_secs(),
-                            dst: true,
-                            savings: *t,
-                            letter: None,
-                            time_type: ctx.start_kind,
-                            format: String::new(),
-                        });
+                    let same_offset = ctx.previous_offset.as_secs() + ctx.saving.as_secs()
+                        == entry.std_offset.as_secs() + t.as_secs()
+                        && ctx.previous_format
+                            == entry.format.format(entry.std_offset.as_secs(), None, true);
+                    if same_offset {
+                        ctx.update_for_zone_entry(entry, output.last());
+                        continue;
                     }
+                    let (at_time, time_type) = if ctx.use_start == i64::MIN {
+                        self.get_first_transition_info()
+                    } else {
+                        (ctx.use_start - ctx.saving.as_secs(), ctx.start_kind)
+                    };
+                    rule_transitions.insert(Transition {
+                        at_time,
+                        offset: entry.std_offset.as_secs() + t.as_secs(),
+                        dst: true,
+                        savings: *t,
+                        letter: None,
+                        time_type,
+                        format: String::new(),
+                    });
                     *t
                 }
                 RuleIdentifier::Rule(s) => {
@@ -246,21 +281,9 @@ impl ZoneTable {
                 //
                 let mut temp = None;
 
+                // Figuring out savings tends to be a bit more complex, then
+                // may be preferred.
                 let different_offsets = ctx.previous_offset != entry.std_offset;
-
-                let are_zones_different = different_offsets || ctx.saving != savings;
-
-                // Lord Howe has a silent transition from Rule
-                // `LH` to `LH` where the savings changes from
-                // `1:00` to `0:30`. Why is it there? Idk, but
-                // we ignore such cases in favor of rule outcomes
-                //
-                // Meanwhile, Paris has a non-silent transition from
-                // France with offset 00:00 to France with offset 1:00
-                //
-                // NOTE: It may be worthwhile to add format as a column
-                // here to confirm.
-                let same_rule = ctx.previous_rule == entry.rule && !different_offsets;
 
                 // Determine the type of zone pair that we are dealing
                 // with. We care about both being named rules, primarily
@@ -270,24 +293,46 @@ impl ZoneTable {
                 // Further checks on pairs with at least one non named zone
                 // Have the offsets or savings changed between the two? If
                 // not, then there's no transition to worry about.
-                let non_named_rule_zones_are_different = !both_named_rules && are_zones_different;
+                let non_named_rule_zones_are_different = !both_named_rules && different_offsets;
 
+                // NOTE: Potentially need to go to a reverse and
                 // Cycle through our rule transitions, and find out if there are any
-                // transitions that `use_start` may supercede.
+                // transitions that `use_start` may supercede. In order to do this,
+                // we start with previous savings value and update the value with the
+                // transition's savings while iterating.
                 for transition in &rule_transitions {
+                    // Lord Howe has a silent transition from Rule
+                    // `LH` to `LH` where the savings changes from
+                    // `1:00` to `0:30`. Why is it there? Idk, but
+                    // we ignore such cases in favor of rule outcomes
+                    //
+                    // Meanwhile, Paris has a non-silent transition from
+                    // France with offset 00:00 to France with offset 1:00
+                    //
+                    // NOTE: It may be worthwhile to add format as a column
+                    // here to confirm.
+                    let same_rule = ctx.previous_rule == entry.rule
+                        && ctx.previous_offset.as_secs() == transition.offset
+                        && ctx.previous_format
+                            == entry.format.format(
+                                transition.offset,
+                                transition.letter.as_deref(),
+                                transition.dst,
+                            );
+
                     if transition.at_time < ctx.use_start
                         && (!same_rule || non_named_rule_zones_are_different)
                     {
                         let mut transition_clone = transition.clone();
                         transition_clone.at_time = ctx.use_start;
                         let _ = temp.insert(transition_clone);
+                    } else if temp.is_some() && transition.at_time < ctx.use_start {
+                        // Invalidate the previous cloned transition
+                        let _ = temp.take();
                     }
                 }
-                // First we check if there is no valid rule transitions
-                // and the rules are not the same, which would mean
-                // `use_start` is the transition.
-                let different_rules_with_no_transition =
-                    rule_transitions.is_empty() && different_offsets;
+                let different_offset_vals = ctx.previous_offset.as_secs() + ctx.saving.as_secs()
+                    != entry.std_offset.as_secs() + savings.as_secs();
 
                 // If transitions is <= 1 at this point (and did
                 // not meet the different_rules check), that means
@@ -297,14 +342,24 @@ impl ZoneTable {
                 // the transition, we should be dealing with (None, Name)
                 // or (Numeric, Name) zone pairs. So check if the zones
                 // are different and need a transition.
-                let non_named_check =
-                    rule_transitions.len() <= 1 && non_named_rule_zones_are_different;
+                let transition_is_valid = match rule_transitions.last() {
+                    Some(_) if rule_transitions.len() == 1 => {
+                        !both_named_rules
+                            && ctx.previous_offset.as_secs() != entry.std_offset.as_secs()
+                    }
+                    // First we check if there is no valid rule transitions
+                    // and the rules are not the same, which would mean
+                    // `use_start` is the transition.
+                    None => different_offset_vals || !entry.is_named_rule(),
+                    _ => false,
+                };
 
-                if different_rules_with_no_transition || non_named_check {
+                if transition_is_valid {
+                    let dst = ctx.saving != Time::default();
                     let _ = temp.insert(Transition {
                         at_time: ctx.use_start,
                         offset: entry.std_offset.as_secs(),
-                        dst: false, // An assumption that needs to be proved
+                        dst,
                         savings: ctx.saving,
                         letter: None,
                         time_type: ctx.start_kind,
@@ -318,37 +373,36 @@ impl ZoneTable {
 
             // TODO (potentially): use i32::MAX over i64::MAX?
             // Continue by determining the ending instant of the current rule, i64::MAX stands for x into infinite.
-            let use_until_instant = entry
-                .date
-                .map(|dt| dt.as_precise_ut_time(&entry.std_offset, &savings))
-                .unwrap_or(i64::MAX);
-
+            let mut active_savings = ctx.saving;
             for mut transition in rule_transitions {
+                let use_until_instant = entry
+                    .date
+                    .map(|dt| dt.as_precise_ut_time(&entry.std_offset, &active_savings))
+                    .unwrap_or(i64::MAX);
+
                 // If and only if the transition is less than the instant is it added to the output.
+                // let adjusted_transition_time = adjust_time_to_local(transition.time_type, transition.at_time, transition.offset, savings.as_secs());
                 let adjusted_transition_time = match transition.time_type {
                     QualifiedTimeKind::Universal => transition.at_time,
                     QualifiedTimeKind::Standard => transition.at_time + transition.offset,
                     QualifiedTimeKind::Local => {
-                        transition.at_time + transition.offset + savings.as_secs()
+                        transition.at_time + transition.offset + active_savings.as_secs()
                     }
                 };
-                if (ctx.use_start..=use_until_instant).contains(&transition.at_time)
+                if (is_first_transition
+                    || (ctx.use_start..use_until_instant).contains(&transition.at_time))
                     && ctx.year_range.contains(&adjusted_transition_time)
                 {
                     // Format handled here.
-                    transition.format = entry.format.format(
-                        transition.offset,
-                        transition.letter.as_deref(),
-                        transition.dst,
-                    );
+                    active_savings = transition.savings;
+                    transition.format = entry.format.format_with_transition(&transition);
                     output.insert(transition);
                 }
             }
 
             // Update our local "global" values.
-            ctx.update_for_zone_entry(entry, savings);
+            ctx.update_for_zone_entry(entry, output.last());
         }
-        output
     }
 }
 
@@ -545,7 +599,8 @@ mod tests {
         table.associate_rules(&rule_map);
         let mut build_context = ZoneBuildContext::default();
         build_context.update(1918);
-        let transitions = table.calculate_transitions_for_year(1918, &mut build_context);
+        let mut transitions = BTreeSet::default();
+        table.calculate_transitions_for_year(1918, &mut build_context, &mut transitions);
         let transition_times = transitions
             .iter()
             .map(|t| t.at_time)
