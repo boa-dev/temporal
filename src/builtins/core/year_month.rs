@@ -6,14 +6,20 @@ use core::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
 
 use crate::{
-    iso::{year_month_within_limits, IsoDate},
-    options::{ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar},
+    iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
+    options::{
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
+        ResolvedRoundingOptions, RoundingIncrement, TemporalUnit, UnitGroup,
+    },
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
+    provider::NeverProvider,
     utils::pad_iso_year,
-    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
+    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
-use super::{Duration, PartialDate, PlainDate};
+use super::{
+    duration::normalized::NormalizedDurationRecord, Duration, PartialDate, PlainDate, PlainDateTime,
+};
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -59,12 +65,89 @@ impl PlainYearMonth {
     /// The internal difference operation of `PlainYearMonth`.
     pub(crate) fn diff(
         &self,
-        _op: DifferenceOperation,
-        _other: &Self,
-        _settings: DifferenceSettings,
+        op: DifferenceOperation,
+        other: &Self,
+        settings: DifferenceSettings,
     ) -> TemporalResult<Duration> {
-        // TODO: implement
-        Err(TemporalError::general("Not yet implemented"))
+        // 1. Set other to ? ToTemporalYearMonth(other).
+        // 2. Let calendar be yearMonth.[[Calendar]].
+        // 3. If CalendarEquals(calendar, other.[[Calendar]]) is false, throw a RangeError exception.
+        if self.calendar().identifier() != other.calendar().identifier() {
+            return Err(TemporalError::range()
+                .with_message("Calendars for difference operation are not the same."));
+        }
+
+        // Check if weeks or days are disallowed in this operation
+        if matches!(
+            settings.largest_unit,
+            Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
+        ) || matches!(
+            settings.smallest_unit,
+            Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
+        ) {
+            return Err(TemporalError::range()
+                .with_message("Weeks and days are not allowed in this operation."));
+        }
+
+        // 4. Let resolvedOptions be ? GetOptionsObject(options).
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, date, « week, day », month, year).
+        let resolved = ResolvedRoundingOptions::from_diff_settings(
+            settings,
+            op,
+            UnitGroup::Date,
+            TemporalUnit::Year,
+            TemporalUnit::Month,
+        )?;
+
+        // 6. If CompareISODate(yearMonth.[[ISODate]], other.[[ISODate]]) = 0, then
+        if self.iso == other.iso {
+            // a. Return ! CreateTemporalDuration(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
+            return Ok(Duration::default());
+        }
+
+        // 7. Let thisFields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
+        // 8. Set thisFields.[[Day]] to 1.
+        // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
+        // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
+        // 11. Set otherFields.[[Day]] to 1.
+        // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
+        // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
+        // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
+        let result = self
+            .calendar()
+            .date_until(&self.iso, &other.iso, resolved.largest_unit)?;
+
+        // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
+        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+
+        // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
+        if resolved.smallest_unit != TemporalUnit::Month
+            || resolved.increment != RoundingIncrement::ONE
+        {
+            // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
+            let iso_date_time = IsoDateTime::new_unchecked(self.iso, IsoTime::default());
+            // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
+            let target_iso_date_time = IsoDateTime::new_unchecked(other.iso, IsoTime::default());
+            // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
+            let dest_epoch_ns = target_iso_date_time.as_nanoseconds()?;
+            // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, resolved.[[LargestUnit]], resolved.[[RoundingIncrement]], resolved.[[SmallestUnit]], resolved.[[RoundingMode]]).
+            duration = duration.round_relative_duration(
+                dest_epoch_ns.as_i128(),
+                &PlainDateTime::new_unchecked(iso_date_time, self.calendar.clone()),
+                Option::<(&TimeZone, &NeverProvider)>::None,
+                resolved,
+            )?;
+        }
+
+        // 17. Let result be ! TemporalDurationFromInternal(duration, day).
+        let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
+
+        // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
+        // 19. Return result.
+        match op {
+            DifferenceOperation::Since => Ok(result.negated()),
+            DifferenceOperation::Until => Ok(result),
+        }
     }
 }
 
@@ -315,6 +398,250 @@ mod tests {
     use tinystr::tinystr;
 
     use super::*;
+
+    #[test]
+    fn plain_year_month_since_until_diff_tests() {
+        // Equal year-months
+        {
+            let earlier = PlainYearMonth::from_str("2024-03").unwrap();
+            let later = PlainYearMonth::from_str("2024-03").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.days(), 0.0);
+            assert_eq!(until.months(), 0.0);
+            assert_eq!(until.years(), 0.0);
+
+            assert_eq!(since.days(), 0.0);
+            assert_eq!(since.months(), 0.0);
+            assert_eq!(since.years(), 0.0);
+        }
+
+        // One month apart
+        {
+            let earlier = PlainYearMonth::from_str("2023-01").unwrap();
+            let later = PlainYearMonth::from_str("2023-02").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.months(), 1.0);
+            assert_eq!(until.years(), 0.0);
+
+            assert_eq!(since.months(), -1.0);
+            assert_eq!(since.years(), 0.0);
+        }
+
+        // Crossing year boundary
+        {
+            let earlier = PlainYearMonth::from_str("2022-11").unwrap();
+            let later = PlainYearMonth::from_str("2023-02").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.months(), 3.0);
+            assert_eq!(until.years(), 0.0);
+
+            assert_eq!(since.months(), -3.0);
+            assert_eq!(since.years(), 0.0);
+        }
+
+        // One year and one month
+        {
+            let earlier = PlainYearMonth::from_str("2002-05").unwrap();
+            let later = PlainYearMonth::from_str("2003-06").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Month),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.years(), 1.0);
+            assert_eq!(until.months(), 1.0);
+            assert_eq!(until.days(), 0.0);
+
+            assert_eq!(since.years(), -1.0);
+            assert_eq!(since.months(), -1.0);
+            assert_eq!(since.days(), 0.0);
+        }
+
+        // One year apart with unit = Year
+        {
+            let earlier = PlainYearMonth::from_str("2022-06").unwrap();
+            let later = PlainYearMonth::from_str("2023-06").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Year),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.years(), 1.0);
+            assert_eq!(until.months(), 0.0);
+
+            assert_eq!(since.years(), -1.0);
+            assert_eq!(since.months(), 0.0);
+        }
+
+        // Large year gap
+        {
+            let earlier = PlainYearMonth::from_str("1000-01").unwrap();
+            let later = PlainYearMonth::from_str("2000-01").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Year),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.years(), 1000.0);
+            assert_eq!(since.years(), -1000.0);
+        }
+
+        // Lower ISO limit
+        {
+            let earlier = PlainYearMonth::from_str("-271821-04").unwrap();
+            let later = PlainYearMonth::from_str("-271820-04").unwrap();
+            let settings = DifferenceSettings {
+                smallest_unit: Some(TemporalUnit::Year),
+                ..Default::default()
+            };
+
+            let until = earlier.until(&later, settings).unwrap();
+            let since = earlier.since(&later, settings).unwrap();
+
+            assert_eq!(until.years(), 1.0);
+            assert_eq!(since.years(), -1.0);
+        }
+    }
+    #[test]
+    fn test_diff_with_different_calendars() {
+        let ym1 = PlainYearMonth::new_with_overflow(
+            2021,
+            1,
+            None,
+            Calendar::from_str("islamic").unwrap(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+
+        let ym2 = PlainYearMonth::new_with_overflow(
+            2021,
+            1,
+            None,
+            Calendar::from_str("hebrew").unwrap(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Month),
+            ..Default::default()
+        };
+
+        let diff = ym1.until(&ym2, settings);
+        assert!(
+            diff.is_err(),
+            "Expected an error when comparing dates from different calendars"
+        );
+    }
+    #[test]
+    fn test_diff_setting() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Month),
+            increment: Some(RoundingIncrement::ONE),
+            ..Default::default()
+        };
+
+        let diff = ym1.until(&ym2, settings).unwrap();
+        assert_eq!(diff.months(), 1.0);
+        assert_eq!(diff.years(), 2.0);
+    }
+    #[test]
+    fn test_diff_with_smallest_unit_year() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Year),
+            ..Default::default()
+        };
+
+        let diff = ym1.until(&ym2, settings).unwrap();
+        assert_eq!(diff.years(), 2.0); // Rounded to the nearest year
+        assert_eq!(diff.months(), 0.0); // Months are ignored
+    }
+
+    #[test]
+    fn test_diff_with_smallest_unit_day() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Day),
+            ..Default::default()
+        };
+
+        let diff = ym1.until(&ym2, settings);
+        assert!(
+            diff.is_err(),
+            "Expected an error when smallest_unit is set to Day"
+        );
+    }
+
+    #[test]
+    fn test_diff_with_smallest_unit_week() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Week),
+            ..Default::default()
+        };
+
+        let diff = ym1.until(&ym2, settings);
+        assert!(
+            diff.is_err(),
+            "Expected an error when smallest_unit is set to Week"
+        );
+    }
+
+    #[test]
+    fn test_diff_with_no_rounding_increment() {
+        let ym1 = PlainYearMonth::from_str("2021-01").unwrap();
+        let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(TemporalUnit::Month),
+            increment: None, // No rounding increment
+            ..Default::default()
+        };
+
+        let diff = ym1.until(&ym2, settings).unwrap();
+        assert_eq!(diff.months(), 1.0); // Exact difference in months
+        assert_eq!(diff.years(), 2.0); // Exact difference in years
+    }
 
     #[test]
     fn test_plain_year_month_with() {
