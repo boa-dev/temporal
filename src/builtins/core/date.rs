@@ -3,15 +3,16 @@
 use crate::{
     builtins::core::{
         calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime,
+        ZonedDateTime,
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, Unit, UnitGroup,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, ResolvedRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
-    provider::NeverProvider,
+    provider::{NeverProvider, TimeZoneProvider},
     MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
@@ -666,8 +667,50 @@ impl PlainDate {
             .with_calendar(self.calendar.identifier(), display_calendar)
             .build()
     }
-}
 
+    #[inline]
+    pub fn to_zoned_date_time_with_provider(
+        &self,
+        tz: TimeZone,
+        plain_time: Option<PlainTime>,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<ZonedDateTime> {
+        // 1. Let temporalDate be the this value.
+        // 2. Perform ? RequireInternalSlot(temporalDate, [[InitializedTemporalDate]]).
+        // 3. If item is an Object, then
+        //      a. Let timeZoneLike be ? Get(item, "timeZone").
+        //      b. If timeZoneLike is undefined, then
+        //          i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+        //          ii. Let temporalTime be undefined.
+        //      c. Else,
+        //          i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
+        //          ii. Let temporalTime be ? Get(item, "plainTime").
+        // 4. Else,
+        //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
+        //     b. Let temporalTime be undefined.
+
+        //  5. If temporalTime is undefined, then
+        //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
+        //  6. Else,
+        //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
+        //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
+        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
+        //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+        let epoch_ns = if let Some(time) = plain_time {
+            let result_iso = IsoDateTime::new(self.iso, time.iso);
+
+            tz.get_epoch_nanoseconds_for(
+                result_iso.unwrap_or_default(),
+                Disambiguation::Compatible,
+                provider,
+            )?
+        } else {
+            tz.get_start_of_day(&self.iso, provider)?
+        };
+        //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
+        ZonedDateTime::try_new(epoch_ns.0, self.calendar.clone(), tz)
+    }
+}
 // ==== Trait impls ====
 
 impl From<PlainDateTime> for PlainDate {
@@ -948,6 +991,28 @@ mod tests {
         assert_eq!(with_day.month(), 11);
         assert_eq!(with_day.month_code(), MonthCode::from_str("M11").unwrap());
         assert_eq!(with_day.day(), 17);
+    }
+
+    // test toZonedDateTime
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn to_zoned_date_time() {
+        use crate::tzdb::FsTzdbProvider;
+        let date = PlainDate::from_str("2020-01-01").unwrap();
+        let tz = TimeZone::try_from_str("UTC").unwrap();
+        let provider = &FsTzdbProvider::default();
+        let zdt = date
+            .to_zoned_date_time_with_provider(tz, None, provider)
+            .unwrap();
+        assert_eq!(zdt.year_with_provider(provider).unwrap(), 2020);
+        assert_eq!(zdt.month_with_provider(provider).unwrap(), 1);
+        assert_eq!(zdt.day_with_provider(provider).unwrap(), 1);
+        assert_eq!(zdt.hour_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.minute_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.second_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.millisecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.microsecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.nanosecond_with_provider(provider).unwrap(), 0);
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js

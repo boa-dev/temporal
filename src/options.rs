@@ -183,6 +183,9 @@ impl ResolvedRoundingOptions {
     ) -> TemporalResult<Self> {
         // 1. NOTE: The following steps read options and perform independent validation in alphabetical order.
         // 2. Let largestUnit be ? GetUnitValuedOption(options, "largestUnit", unitGroup, auto).
+
+        // 4. Let resolvedOptions be ? SnapshotOwnProperties(? GetOptionsObject(options), null).
+        // 5. Let settings be ? GetDifferenceSettings(operation, resolvedOptions, DATE, « », "day", "day").
         unit_group.validate_unit(options.largest_unit, None)?;
         // 3. If disallowedUnits contains largestUnit, throw a RangeError exception.
         // 4. Let roundingIncrement be ? GetRoundingIncrementOption(options).
