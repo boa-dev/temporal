@@ -5,7 +5,7 @@ use crate::{
     iso::{IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
-        RoundingOptions, TemporalUnit, ToStringRoundingOptions,
+        RoundingOptions, ToStringRoundingOptions, Unit,
     },
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
@@ -130,7 +130,7 @@ impl Duration {
     #[inline]
     pub(crate) fn from_normalized(
         duration_record: NormalizedDurationRecord,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
     ) -> TemporalResult<Self> {
         let (overflow_day, time) = TimeDuration::from_normalized(
             duration_record.normalized_time_duration(),
@@ -175,15 +175,15 @@ impl Duration {
         self.date().fields().iter().all(|x| x == &0.0)
     }
 
-    /// Returns the `TemporalUnit` corresponding to the largest non-zero field.
+    /// Returns the `Unit` corresponding to the largest non-zero field.
     #[inline]
-    pub(crate) fn default_largest_unit(&self) -> TemporalUnit {
+    pub(crate) fn default_largest_unit(&self) -> Unit {
         self.fields()
             .iter()
             .enumerate()
             .find(|x| x.1 != &0.0)
-            .map(|x| TemporalUnit::from(10 - x.0))
-            .unwrap_or(TemporalUnit::Nanosecond)
+            .map(|x| Unit::from(10 - x.0))
+            .unwrap_or(Unit::Nanosecond)
     }
 }
 
@@ -291,7 +291,7 @@ impl Duration {
         let largest_unit_2 = other.default_largest_unit();
         // 10. Let duration1 be ToInternalDurationRecord(one).
         // 11. Let duration2 be ToInternalDurationRecord(two).
-        // 12. If zonedRelativeTo is not undefined, and either TemporalUnitCategory(largestUnit1) or TemporalUnitCategory(largestUnit2) is date, then
+        // 12. If zonedRelativeTo is not undefined, and either UnitCategory(largestUnit1) or UnitCategory(largestUnit2) is date, then
         if let Some(RelativeTo::ZonedDateTime(zdt)) = relative_to.as_ref() {
             if largest_unit_1.is_date_unit() || largest_unit_2.is_date_unit() {
                 // a. Let timeZone be zonedRelativeTo.[[TimeZone]].
@@ -470,7 +470,7 @@ impl Duration {
         let largest_one = self.default_largest_unit();
         // 24. Let largestUnit2 be DefaultTemporalLargestUnit(y2, mon2, w2, d2, h2, min2, s2, ms2, mus2).
         let largest_two = other.default_largest_unit();
-        // 25. Let largestUnit be LargerOfTwoTemporalUnits(largestUnit1, largestUnit2).
+        // 25. Let largestUnit be LargerOfTwoUnits(largestUnit1, largestUnit2).
         let largest_unit = largest_one.max(largest_two);
         // 26. Let norm1 be NormalizeTimeDuration(h1, min1, s1, ms1, mus1, ns1).
         let norm_one = NormalizedTimeDuration::from_time_duration(self.time());
@@ -512,8 +512,8 @@ impl Duration {
     ) -> TemporalResult<Self> {
         // NOTE: Steps 1-14 seem to be implementation specific steps.
         // 14. Let roundingIncrement be ? ToTemporalRoundingIncrement(roundTo).
-        // 15. Let roundingMode be ? ToTemporalRoundingMode(roundTo, "halfExpand").
-        // 16. Let smallestUnit be ? GetTemporalUnit(roundTo, "smallestUnit", DATETIME, undefined).
+        // 15. Let roundingMode be ? ToRoundingMode(roundTo, "halfExpand").
+        // 16. Let smallestUnit be ? GetUnit(roundTo, "smallestUnit", DATETIME, undefined).
         // 17. If smallestUnit is undefined, then
         // a. Set smallestUnitPresent to false.
         // b. Set smallestUnit to "nanosecond".
@@ -521,13 +521,13 @@ impl Duration {
         // duration.[[Months]], duration.[[Weeks]], duration.[[Days]], duration.[[Hours]],
         // duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]],
         // duration.[[Microseconds]]).
-        // 19. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
+        // 19. Let defaultLargestUnit be LargerOfTwoUnits(existingLargestUnit, smallestUnit).
         // 20. If largestUnit is undefined, then
         // a. Set largestUnitPresent to false.
         // b. Set largestUnit to defaultLargestUnit.
         // 21. Else if largestUnit is "auto", then
         // a. Set largestUnit to defaultLargestUnit.
-        // 23. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
+        // 23. If LargerOfTwoUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         // 24. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
         // 25. If maximum is not undefined, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         let existing_largest_unit = self.default_largest_unit();
@@ -686,7 +686,7 @@ impl Duration {
     /// Returns the total of the `Duration`
     pub fn total_with_provider(
         &self,
-        unit: TemporalUnit,
+        unit: Unit,
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
         // Review question what is the return type of duration.prototye.total?
@@ -763,8 +763,7 @@ impl Duration {
 
     /// Returns the `Duration` as a formatted string
     pub fn as_temporal_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
-        if options.smallest_unit == Some(TemporalUnit::Hour)
-            || options.smallest_unit == Some(TemporalUnit::Minute)
+        if options.smallest_unit == Some(Unit::Hour) || options.smallest_unit == Some(Unit::Minute)
         {
             return Err(TemporalError::range().with_message(
                 "string rounding options cannot have hour or minute smallest unit.",
@@ -772,7 +771,7 @@ impl Duration {
         }
 
         let resolved_options = options.resolve()?;
-        if resolved_options.smallest_unit == TemporalUnit::Nanosecond
+        if resolved_options.smallest_unit == Unit::Nanosecond
             && resolved_options.increment == RoundingIncrement::ONE
         {
             let duration = duration_to_formattable(self, resolved_options.precision)?;
@@ -794,8 +793,8 @@ impl Duration {
             .round(FiniteF64::default(), rounding_options)?;
         // 14. Set internalDuration to CombineDateAndTimeDuration(internalDuration.[[Date]], timeDuration).
         let norm = NormalizedDurationRecord::new(norm.date(), rounded.normalized_time_duration())?;
-        // 15. Let roundedLargestUnit be LargerOfTwoTemporalUnits(largestUnit, second).
-        let rounded_largest = largest.max(TemporalUnit::Second);
+        // 15. Let roundedLargestUnit be LargerOfTwoUnits(largestUnit, second).
+        let rounded_largest = largest.max(Unit::Second);
         // 16. Let roundedDuration be ? TemporalDurationFromInternal(internalDuration, roundedLargestUnit).
         let rounded = Self::from_normalized(norm, rounded_largest)?;
 

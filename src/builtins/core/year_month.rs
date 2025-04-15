@@ -9,7 +9,7 @@ use crate::{
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingIncrement, TemporalUnit, UnitGroup,
+        ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     provider::NeverProvider,
@@ -78,13 +78,9 @@ impl PlainYearMonth {
         }
 
         // Check if weeks or days are disallowed in this operation
-        if matches!(
-            settings.largest_unit,
-            Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
-        ) || matches!(
-            settings.smallest_unit,
-            Some(TemporalUnit::Week) | Some(TemporalUnit::Day)
-        ) {
+        if matches!(settings.largest_unit, Some(Unit::Week) | Some(Unit::Day))
+            || matches!(settings.smallest_unit, Some(Unit::Week) | Some(Unit::Day))
+        {
             return Err(TemporalError::range()
                 .with_message("Weeks and days are not allowed in this operation."));
         }
@@ -95,8 +91,8 @@ impl PlainYearMonth {
             settings,
             op,
             UnitGroup::Date,
-            TemporalUnit::Year,
-            TemporalUnit::Month,
+            Unit::Year,
+            Unit::Month,
         )?;
 
         // 6. If CompareISODate(yearMonth.[[ISODate]], other.[[ISODate]]) = 0, then
@@ -121,9 +117,7 @@ impl PlainYearMonth {
         let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
 
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
-        if resolved.smallest_unit != TemporalUnit::Month
-            || resolved.increment != RoundingIncrement::ONE
-        {
+        if resolved.smallest_unit != Unit::Month || resolved.increment != RoundingIncrement::ONE {
             // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
             let iso_date_time = IsoDateTime::new_unchecked(self.iso, IsoTime::default());
             // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
@@ -140,7 +134,7 @@ impl PlainYearMonth {
         }
 
         // 17. Let result be ! TemporalDurationFromInternal(duration, day).
-        let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
+        let result = Duration::from_normalized(duration, Unit::Day)?;
 
         // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 19. Return result.
@@ -406,7 +400,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("2024-03").unwrap();
             let later = PlainYearMonth::from_str("2024-03").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Month),
+                smallest_unit: Some(Unit::Month),
                 ..Default::default()
             };
 
@@ -427,7 +421,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("2023-01").unwrap();
             let later = PlainYearMonth::from_str("2023-02").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Month),
+                smallest_unit: Some(Unit::Month),
                 ..Default::default()
             };
 
@@ -446,7 +440,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("2022-11").unwrap();
             let later = PlainYearMonth::from_str("2023-02").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Month),
+                smallest_unit: Some(Unit::Month),
                 ..Default::default()
             };
 
@@ -465,7 +459,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("2002-05").unwrap();
             let later = PlainYearMonth::from_str("2003-06").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Month),
+                smallest_unit: Some(Unit::Month),
                 ..Default::default()
             };
 
@@ -486,7 +480,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("2022-06").unwrap();
             let later = PlainYearMonth::from_str("2023-06").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Year),
+                smallest_unit: Some(Unit::Year),
                 ..Default::default()
             };
 
@@ -505,7 +499,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("1000-01").unwrap();
             let later = PlainYearMonth::from_str("2000-01").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Year),
+                smallest_unit: Some(Unit::Year),
                 ..Default::default()
             };
 
@@ -521,7 +515,7 @@ mod tests {
             let earlier = PlainYearMonth::from_str("-271821-04").unwrap();
             let later = PlainYearMonth::from_str("-271820-04").unwrap();
             let settings = DifferenceSettings {
-                smallest_unit: Some(TemporalUnit::Year),
+                smallest_unit: Some(Unit::Year),
                 ..Default::default()
             };
 
@@ -553,7 +547,7 @@ mod tests {
         .unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Month),
+            smallest_unit: Some(Unit::Month),
             ..Default::default()
         };
 
@@ -569,7 +563,7 @@ mod tests {
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Month),
+            smallest_unit: Some(Unit::Month),
             increment: Some(RoundingIncrement::ONE),
             ..Default::default()
         };
@@ -584,7 +578,7 @@ mod tests {
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Year),
+            smallest_unit: Some(Unit::Year),
             ..Default::default()
         };
 
@@ -599,7 +593,7 @@ mod tests {
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Day),
+            smallest_unit: Some(Unit::Day),
             ..Default::default()
         };
 
@@ -616,7 +610,7 @@ mod tests {
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Week),
+            smallest_unit: Some(Unit::Week),
             ..Default::default()
         };
 
@@ -633,7 +627,7 @@ mod tests {
         let ym2 = PlainYearMonth::from_str("2023-02").unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Month),
+            smallest_unit: Some(Unit::Month),
             increment: None, // No rounding increment
             ..Default::default()
         };
