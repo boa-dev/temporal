@@ -113,6 +113,6 @@ impl RelativeTo {
             provider,
         )?;
 
-        Ok(ZonedDateTime::try_new(epoch_ns.0, calendar, timezone)?.into())
+        Ok(ZonedDateTime::try_new(epoch_ns, calendar, timezone)?.into())
     }
 }

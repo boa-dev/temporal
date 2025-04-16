@@ -158,7 +158,7 @@ impl Instant {
     /// Create a new validated `Instant`.
     #[inline]
     pub fn try_new(nanoseconds: EpochNanoseconds) -> TemporalResult<Self> {
-        Ok(Self::from(EpochNanoseconds::try_from(nanoseconds)?))
+        Ok(Self::from(EpochNanoseconds::try_from(nanoseconds).unwrap()))
     }
 
     /// Creates a new `Instant` from the provided Epoch millisecond value.
@@ -259,7 +259,7 @@ impl Instant {
         let mut ixdtf = IxdtfStringBuilder::default();
         let datetime = if let Some(timezone) = timezone {
             let datetime = timezone.get_iso_datetime_for(&rounded_instant, provider)?;
-            let nanoseconds = timezone.get_offset_nanos_for(rounded_instant.as_i128(), provider)?;
+            let nanoseconds = timezone.get_offset_nanos_for(rounded_instant.epoch_nanoseconds(), provider)?;
             let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(nanoseconds)?;
             ixdtf = ixdtf.with_minute_offset(sign, hour, minute, DisplayOffset::Auto);
             datetime
@@ -347,8 +347,8 @@ mod tests {
         // valid, i.e., a valid instant is within the range of an f64.
         let max = NS_MAX_INSTANT;
         let min = NS_MIN_INSTANT;
-        let max_instant = Instant::try_new(max).unwrap();
-        let min_instant = Instant::try_new(min).unwrap();
+        let max_instant = Instant::try_new(EpochNanoseconds::try_from(max).unwrap()).unwrap();
+        let min_instant = Instant::try_new(EpochNanoseconds::try_from(min).unwrap()).unwrap();
 
         assert_eq!(max_instant.epoch_nanoseconds().0, max);
         assert_eq!(min_instant.epoch_nanoseconds().0, min);
@@ -356,8 +356,8 @@ mod tests {
         let max_plus_one = NS_MAX_INSTANT + 1;
         let min_minus_one = NS_MIN_INSTANT - 1;
 
-        assert!(Instant::try_new(max_plus_one).is_err());
-        assert!(Instant::try_new(min_minus_one).is_err());
+        assert!(Instant::try_new(EpochNanoseconds::try_from(max_plus_one).unwrap()).is_err());
+        assert!(Instant::try_new(EpochNanoseconds::try_from(min_minus_one).unwrap()).is_err());
     }
 
     #[test]
@@ -365,8 +365,8 @@ mod tests {
         // Assert the casting is valid.
         let max = NS_MAX_INSTANT;
         let min = NS_MIN_INSTANT;
-        let max_instant = Instant::try_new(max).unwrap();
-        let min_instant = Instant::try_new(min).unwrap();
+        let max_instant = Instant::try_new(EpochNanoseconds::try_from(max).unwrap()).unwrap();
+        let min_instant = Instant::try_new(EpochNanoseconds::try_from(min).unwrap()).unwrap();
 
         // Assert max and min are valid for casting.
         assert_eq!(
@@ -453,11 +453,11 @@ mod tests {
         };
 
         let earlier = Instant::try_new(
-            217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
+            EpochNanoseconds::try_from(217_178_610_123_456_789i128).unwrap(), /* 1976-11-18T15:23:30.123456789Z */
         )
         .unwrap();
         let later = Instant::try_new(
-            1_572_345_998_271_986_289, /* 2019-10-29T10:46:38.271986289Z */
+            EpochNanoseconds::try_from(1_572_345_998_271_986_289i128).unwrap(), /* 2019-10-29T10:46:38.271986289Z */
         )
         .unwrap();
 
@@ -541,11 +541,11 @@ mod tests {
         };
 
         let earlier = Instant::try_new(
-            217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
+            EpochNanoseconds::try_from(217_178_610_123_456_789i128).unwrap(), /* 1976-11-18T15:23:30.123456789Z */
         )
         .unwrap();
         let later = Instant::try_new(
-            1_572_345_998_271_986_289, /* 2019-10-29T10:46:38.271986289Z */
+            EpochNanoseconds::try_from(1_572_345_998_271_986_289i128).unwrap(), /* 2019-10-29T10:46:38.271986289Z */
         )
         .unwrap();
 

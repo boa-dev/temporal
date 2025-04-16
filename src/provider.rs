@@ -66,7 +66,7 @@ pub trait TimeZoneProvider {
     fn get_named_tz_offset_nanoseconds(
         &self,
         identifier: &str,
-        epoch_nanoseconds: i128,
+        epoch_nanoseconds: EpochNanoseconds,
     ) -> TemporalResult<TimeZoneOffset>;
 
     // TODO: implement and stabalize
@@ -93,7 +93,7 @@ impl TimeZoneProvider for NeverProvider {
         unimplemented!()
     }
 
-    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<TimeZoneOffset> {
+    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: EpochNanoseconds) -> TemporalResult<TimeZoneOffset> {
         unimplemented!()
     }
 

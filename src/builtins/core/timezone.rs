@@ -1,5 +1,7 @@
 //! This module implements the Temporal `TimeZone` and components.
 
+use std::borrow::ToOwned;
+
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
 
@@ -140,24 +142,24 @@ impl TimeZone {
         instant: &Instant,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<IsoDateTime> {
-        let nanos = self.get_offset_nanos_for(instant.as_i128(), provider)?;
-        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.to_i64().unwrap_or(0))
+        let nanos = self.get_offset_nanos_for(instant.epoch_nanoseconds(), provider)?;
+        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.as_i128().to_i64().unwrap_or(0))
     }
 
     /// Get the offset for this current `TimeZoneSlot`.
     pub(crate) fn get_offset_nanos_for(
         &self,
-        utc_epoch: i128,
+        utc_epoch: &EpochNanoseconds,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<i128> {
+    ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, return parseResult.[[OffsetMinutes]] × (60 × 10**9).
-            Self::UtcOffset(offset) => Ok(i128::from(offset.0) * 60_000_000_000i128),
+            Self::UtcOffset(offset) => Ok(EpochNanoseconds::try_from(i128::from(offset.0) * 60_000_000_000i128)?),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => provider
-                .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
-                .map(|offset| i128::from(offset.offset) * 1_000_000_000),
+                .get_named_tz_offset_nanoseconds(identifier, utc_epoch.to_owned())
+                .map(|offset| EpochNanoseconds::try_from(i128::from(offset.offset) * 1_000_000_000))?,
         }
     }
 
@@ -308,12 +310,12 @@ impl TimeZone {
         debug_assert_eq!(after_possible.len(), 1);
         // 12. Let offsetBefore be GetOffsetNanosecondsFor(timeZone,
         //     beforePossible[0]).
-        let offset_before = self.get_offset_nanos_for(before_possible[0].0, provider)?;
+        let offset_before = self.get_offset_nanos_for(&EpochNanoseconds::try_from(before_possible[0].0)?, provider)?;
         // 13. Let offsetAfter be GetOffsetNanosecondsFor(timeZone,
         //     afterPossible[0]).
-        let offset_after = self.get_offset_nanos_for(after_possible[0].0, provider)?;
+        let offset_after = self.get_offset_nanos_for(&EpochNanoseconds::try_from(after_possible[0].0)?, provider)?;
         // 14. Let nanoseconds be offsetAfter - offsetBefore.
-        let nanoseconds = offset_after - offset_before;
+        let nanoseconds = offset_after.as_i128() - offset_before.as_i128();
         // 15. Assert: abs(nanoseconds) ≤ nsPerDay.
         // 16. If disambiguation is earlier, then
         if disambiguation == Disambiguation::Earlier {
@@ -411,7 +413,7 @@ impl TimeZone {
         let TimeZoneOffset {
             transition_epoch: Some(transition_epoch),
             ..
-        } = provider.get_named_tz_offset_nanoseconds(identifier, after_epoch.0)?
+        } = provider.get_named_tz_offset_nanoseconds(identifier, after_epoch)?
         else {
             return Err(TemporalError::r#type()
                 .with_message("Could not determine the start of day for the provided date."));

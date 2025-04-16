@@ -2,6 +2,7 @@
 //! builtin type.
 
 use alloc::string::String;
+use num_traits::ToPrimitive;
 use core::{cmp::Ordering, num::NonZeroU128};
 use std::borrow::ToOwned;
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
@@ -27,7 +28,7 @@ use crate::{
     provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
     temporal_assert,
-    time::EpochNanoseconds,
+    time::EpochNanoseconds, 
     MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
@@ -581,7 +582,7 @@ impl ZonedDateTime {
         // 11. If transition is null, return null.
         // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
         let result = transition
-            .map(|t| ZonedDateTime::try_new(t.0, self.calendar().clone(), self.tz.clone()))
+            .map(|t| ZonedDateTime::try_new(t, self.calendar().clone(), self.tz.clone()))
             .transpose()?;
 
         Ok(result)
@@ -695,7 +696,7 @@ impl ZonedDateTime {
     pub fn offset_with_provider(&self, provider: &impl TimeZoneProvider) -> TemporalResult<String> {
         let offset = self
             .tz
-            .get_offset_nanos_for(self.epoch_nanoseconds().as_i128(), provider)?;
+            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
         Ok(nanoseconds_to_formattable_offset(offset).to_string())
     }
 
@@ -706,18 +707,18 @@ impl ZonedDateTime {
     ) -> TemporalResult<i64> {
         let offset = self
             .tz
-            .get_offset_nanos_for(self.epoch_nanoseconds().as_i128(), provider)?;
-        Ok(offset as i64)
+            .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
+        Ok(offset.as_i128().to_i64().unwrap_or(0))
     }
 }
 
 pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: EpochNanoseconds) -> FormattableOffset {
-    let sign = if nanoseconds >= 0 {
+    let sign = if nanoseconds.as_i128() >= 0 {
         Sign::Positive
     } else {
         Sign::Negative
     };
-    let nanos = nanoseconds.unsigned_abs();
+    let nanos = nanoseconds.as_i128().unsigned_abs();
     let hour = (nanos / 3_600_000_000_000) as u8;
     let minute = ((nanos / 60_000_000_000) % 60) as u8;
     let second = ((nanos / 1_000_000_000) % 60) as u8;
@@ -871,7 +872,7 @@ impl ZonedDateTime {
         let epoch_ns =
             self.tz
                 .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
-        Self::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
+        Self::try_new(epoch_ns, self.calendar.clone(), self.tz.clone())
     }
 
     /// Add a duration to the current `ZonedDateTime`
@@ -930,7 +931,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Self> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let epoch_nanos = self.tz.get_start_of_day(&iso.date, provider)?;
-        Self::try_new(epoch_nanos.0, self.calendar.clone(), self.tz.clone())
+        Self::try_new(epoch_nanos, self.calendar.clone(), self.tz.clone())
     }
 
     /// Convert the current `ZonedDateTime` to a [`PlainDate`] with
@@ -994,7 +995,7 @@ impl ZonedDateTime {
                     &resolved_options,
                 ))?;
 
-        let offset = self.tz.get_offset_nanos_for(result, provider)?;
+        let offset = self.tz.get_offset_nanos_for(&EpochNanoseconds::try_from(result).unwrap(), provider)?;
         let datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
         let timezone_id = self.timezone().identifier()?;
@@ -1204,11 +1205,15 @@ pub(crate) fn interpret_isodatetime_offset(
 
 // Formatting utils
 
+
 pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     nanoseconds: EpochNanoseconds,
 ) -> TemporalResult<(Sign, u8, u8)> {
+    
+    const NS_PER_MINUTE: i128 = 60_000_000_000;
+
     // Per 11.1.7 this should be rounding
-    let nanoseconds = IncrementRounder::from_signed_num(nanoseconds, unsafe {
+    let nanoseconds = IncrementRounder::from_signed_num(nanoseconds.as_i128(), unsafe {
         NonZeroU128::new_unchecked(NS_PER_MINUTE as u128)
     })?
     .round(TemporalRoundingMode::HalfExpand);
