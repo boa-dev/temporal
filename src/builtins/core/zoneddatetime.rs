@@ -17,8 +17,8 @@ use crate::{
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
-        ResolvedRoundingOptions, RoundingIncrement, TemporalRoundingMode, TemporalUnit,
-        ToStringRoundingOptions, UnitGroup,
+        ResolvedRoundingOptions, RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit,
+        UnitGroup,
     },
     parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
@@ -213,7 +213,7 @@ impl ZonedDateTime {
         resolved_options: ResolvedRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NormalizedDurationRecord> {
-        // 1. If TemporalUnitCategory(largestUnit) is time, then
+        // 1. If UnitCategory(largestUnit) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Return DifferenceInstant(ns1, ns2, roundingIncrement, smallestUnit, roundingMode).
             return self
@@ -223,7 +223,7 @@ impl ZonedDateTime {
         // 2. let difference be ? differencezoneddatetime(ns1, ns2, timezone, calendar, largestunit).
         let diff = self.diff_zoned_datetime(other, resolved_options.largest_unit, provider)?;
         // 3. if smallestunit is nanosecond and roundingincrement = 1, return difference.
-        if resolved_options.smallest_unit == TemporalUnit::Nanosecond
+        if resolved_options.smallest_unit == Unit::Nanosecond
             && resolved_options.increment == RoundingIncrement::ONE
         {
             return Ok(diff);
@@ -245,10 +245,10 @@ impl ZonedDateTime {
     pub(crate) fn diff_with_total(
         &self,
         other: &Self,
-        unit: TemporalUnit,
+        unit: Unit,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<FiniteF64> {
-        // 1. If TemporalUnitCategory(unit) is time, then
+        // 1. If UnitCategory(unit) is time, then
         if unit.is_time_unit() {
             // a. Let difference be TimeDurationFromEpochNanosecondsDifference(ns2, ns1).
             let diff = NormalizedTimeDuration::from_nanosecond_difference(
@@ -277,7 +277,7 @@ impl ZonedDateTime {
     pub(crate) fn diff_zoned_datetime(
         &self,
         other: &Self,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NormalizedDurationRecord> {
         // 1. If ns1 = ns2, return CombineDateAndTimeDuration(ZeroDateDuration(), 0).
@@ -343,8 +343,8 @@ impl ZonedDateTime {
             day_correction += 1;
         }
         // 11. Assert: success is true.
-        // 12. Let dateLargestUnit be LargerOfTwoTemporalUnits(largestUnit, day).
-        let date_largest = largest_unit.max(TemporalUnit::Day);
+        // 12. Let dateLargestUnit be LargerOfTwoUnits(largestUnit, day).
+        let date_largest = largest_unit.max(Unit::Day);
         // 13. Let dateDifference be CalendarDateUntil(calendar, startDateTime.[[ISODate]], intermediateDateTime.[[ISODate]], dateLargestUnit).
         // 14. Return CombineDateAndTimeDuration(dateDifference, timeDuration).
         let date_diff =
@@ -373,11 +373,11 @@ impl ZonedDateTime {
             options,
             op,
             UnitGroup::DateTime,
-            TemporalUnit::Hour,
-            TemporalUnit::Nanosecond,
+            Unit::Hour,
+            Unit::Nanosecond,
         )?;
 
-        // 5. If TemporalUnitCategory(settings.[[LargestUnit]]) is time, then
+        // 5. If UnitCategory(settings.[[LargestUnit]]) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Let internalDuration be DifferenceInstant(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
             let internal = self
@@ -412,7 +412,7 @@ impl ZonedDateTime {
         // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal = self.diff_with_rounding(other, resolved_options, provider)?;
         // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
-        let result = Duration::from_normalized(internal, TemporalUnit::Hour)?;
+        let result = Duration::from_normalized(internal, Unit::Hour)?;
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 12. Return result.
         match op {
@@ -1169,7 +1169,7 @@ pub(crate) fn interpret_isodatetime_offset(
                         candidate_offset,
                         NonZeroU128::new(60_000_000_000).expect("cannot be zero"), // TODO: Add back const { } after MSRV can be bumped
                     )?
-                    .round(TemporalRoundingMode::HalfExpand);
+                    .round(RoundingMode::HalfExpand);
                     // ii. If roundedCandidateNanoseconds = offsetNanoseconds, then
                     if rounded_candidate == offset.into() {
                         // 1. Return candidate.
@@ -1211,7 +1211,7 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     let nanoseconds = IncrementRounder::from_signed_num(nanoseconds, unsafe {
         NonZeroU128::new_unchecked(NS_PER_MINUTE as u128)
     })?
-    .round(TemporalRoundingMode::HalfExpand);
+    .round(RoundingMode::HalfExpand);
     let offset_minutes = (nanoseconds / NS_PER_MINUTE) as i32;
     let sign = if offset_minutes < 0 {
         Sign::Negative
@@ -1227,7 +1227,7 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
 mod tests {
     use super::ZonedDateTime;
     use crate::{
-        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, TemporalUnit},
+        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, Unit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
         time::EpochNanoseconds,
@@ -1350,8 +1350,8 @@ mod tests {
             .until(
                 &midnight_disambiguated.instant,
                 DifferenceSettings {
-                    largest_unit: Some(TemporalUnit::Hour),
-                    smallest_unit: Some(TemporalUnit::Nanosecond),
+                    largest_unit: Some(Unit::Hour),
+                    smallest_unit: Some(Unit::Nanosecond),
                     ..Default::default()
                 },
             )
