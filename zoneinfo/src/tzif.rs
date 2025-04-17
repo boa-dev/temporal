@@ -5,8 +5,8 @@
 
 // TODO: Potentially add some serialization scheme?
 
-use alloc::{vec, vec::Vec};
-use hashbrown::HashSet;
+use alloc::vec::Vec;
+use indexmap::IndexSet;
 
 use crate::ZoneInfoTransitionData;
 
@@ -22,7 +22,11 @@ pub struct TzifBlockV2 {
 
 impl TzifBlockV2 {
     pub fn from_transition_data(data: &ZoneInfoTransitionData) -> Self {
-        let mut local_time_set = HashSet::new();
+        let mut local_time_set = IndexSet::new();
+        local_time_set.insert(LocalTimeRecord {
+            offset: data.lmt.offset,
+            is_dst: data.lmt.saving.as_secs() != 0,
+        });
         let mut transition_times = Vec::default();
         let mut transition_types = Vec::default();
         for transition in &data.transitions {
@@ -39,19 +43,10 @@ impl TzifBlockV2 {
             }
         }
 
-        let first = LocalTimeRecord {
-            offset: data.lmt.offset,
-            is_dst: data.lmt.saving.as_secs() != 0,
-        };
-
-        let mut local_time_types: Vec<LocalTimeRecord> = vec![first];
-        local_time_types.extend_from_slice(
-            local_time_set
-                .iter()
-                .cloned()
-                .collect::<Vec<LocalTimeRecord>>()
-                .as_slice(),
-        );
+        let local_time_types = local_time_set
+            .iter()
+            .cloned()
+            .collect::<Vec<LocalTimeRecord>>();
 
         Self {
             transition_times,

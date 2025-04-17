@@ -11,6 +11,7 @@ exclude.workspace = true
 
 [dependencies]
 hashbrown = "0.15.2"
+indexmap = "2.9.0"
 
 [dev-dependencies]
 tzif = { workspace = true }
