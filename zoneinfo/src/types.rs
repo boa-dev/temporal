@@ -365,7 +365,7 @@ impl ToYear {
 
     pub(crate) fn to_i32(self) -> i32 {
         match self {
-            Self::Max => i32::MAX,
+            Self::Max => 275_760,
             Self::Year(y) => y as i32,
         }
     }

@@ -73,6 +73,26 @@ impl RuleTable {
             transitions,
         }
     }
+
+    pub(crate) fn search_last_savings(&self, transition_point: i64) -> Time {
+        // Reasonable assumption: when searching for a last savings value,
+        // we are dealing with an orphan. This means we do not need to check years
+        // with an upper bound or inside them
+        let mut rule_savings = (i64::MIN, Time::default());
+        for rule in &self.rules {
+            let year = rule.to.map(ToYear::to_i32).unwrap_or(i32::from(rule.from));
+            let epoch_days = epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
+            let rule_date_in_seconds = epoch_seconds_for_epoch_days(epoch_days);
+            // But we do want to keep track of the savings.
+            if rule_date_in_seconds < transition_point && rule_savings.0 < rule_date_in_seconds {
+                rule_savings = (rule_date_in_seconds, rule.save)
+            } else if transition_point < rule_date_in_seconds {
+                break;
+            }
+        }
+
+        rule_savings.1
+    }
 }
 
 #[derive(Debug)]

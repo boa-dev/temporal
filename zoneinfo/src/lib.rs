@@ -228,7 +228,7 @@ mod tests {
             assert_eq!(
                 computed.offset,
                 data_block_v2.local_time_type_records[type_index].utoff.0
-            )
+            );
         }
     }
 
@@ -256,7 +256,7 @@ mod tests {
             assert_eq!(
                 computed.offset,
                 data_block_v2.local_time_type_records[type_index].utoff.0
-            )
+            );
         }
     }
 
@@ -271,14 +271,20 @@ mod tests {
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Anchorage")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -292,14 +298,20 @@ mod tests {
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Sydney")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -313,14 +325,20 @@ mod tests {
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Lord_Howe")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -334,14 +352,20 @@ mod tests {
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Antarctica/Troll")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -354,14 +378,20 @@ mod tests {
         let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Dublin");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -374,14 +404,20 @@ mod tests {
         let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Berlin");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Berlin")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -394,14 +430,20 @@ mod tests {
         let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Paris");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Paris")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
             assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                computed.offset,
+                data_block_v2.local_time_type_records[type_index].utoff.0
+            );
         }
     }
 
@@ -414,14 +456,22 @@ mod tests {
         let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/London");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/London")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
-            assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                (computed.at_time, computed.offset),
+                (
+                    fs.0,
+                    data_block_v2.local_time_type_records[type_index].utoff.0
+                )
+            );
         }
     }
 
@@ -434,14 +484,22 @@ mod tests {
         let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Riga");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Riga")).unwrap();
-        let fs_transitions = data.data_block2.unwrap().transition_times;
+        let data_block_v2 = data.data_block2.unwrap();
+        let fs_transitions = data_block_v2.transition_times;
 
-        for (computed, fs) in computed_zoneinfo
+        for (computed, (idx, fs)) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter())
+            .zip(fs_transitions.iter().enumerate())
         {
-            assert_eq!(computed.at_time, fs.0);
+            let type_index = data_block_v2.transition_types[idx];
+            assert_eq!(
+                (computed.at_time, computed.offset),
+                (
+                    fs.0,
+                    data_block_v2.local_time_type_records[type_index].utoff.0
+                )
+            );
         }
     }
 }

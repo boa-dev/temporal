@@ -350,7 +350,7 @@ impl ZoneTable {
                         !both_named_rules && ctx.previous_offset != entry.std_offset.as_secs()
                     }
                     Some(t) => {
-                        // The major test case here is the shift for Antarctica/Troll
+                        // The major case here is the shift for Antarctica/Troll
                         // from using a format of -00 => +00. We are arguably greedy
                         // here by assuming the EOY rule is the same that would be
                         // the start of the same year. This should hold true except
@@ -371,12 +371,20 @@ impl ZoneTable {
                 };
 
                 if transition_is_valid {
-                    let dst = ctx.saving != Time::default();
+                    let (offset, savings) = if let RuleIdentifier::Rule(rule) = &entry.rule {
+                        // NOTE: See Riga 1941 for an example
+                        let rule = self.associates.get(rule).expect("rule must be associated.");
+                        let savings = rule.search_last_savings(ctx.use_start);
+                        (entry.std_offset.as_secs() + savings.as_secs(), savings)
+                    } else {
+                        (entry.std_offset.as_secs(), ctx.saving)
+                    };
+                    let dst = savings != Time::default();
                     let _ = temp.insert(Transition {
                         at_time: ctx.use_start,
-                        offset: entry.std_offset.as_secs(),
+                        offset,
                         dst,
-                        savings: ctx.saving,
+                        savings,
                         letter: None,
                         time_type: ctx.start_kind,
                         format: String::new(),
