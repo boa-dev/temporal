@@ -111,7 +111,10 @@ impl Rule {
     fn transition_time_for_year(&self, year: i32, std_offset: &Time, saving: &Time) -> i64 {
         let epoch_days = epoch_days_for_rule_date(year, self.in_month, self.on_date);
         let epoch_seconds = epoch_seconds_for_epoch_days(epoch_days);
-        epoch_seconds + self.at.to_universal_seconds(std_offset, saving)
+        epoch_seconds
+            + self
+                .at
+                .to_universal_seconds(std_offset.as_secs(), saving.as_secs())
     }
 }
 

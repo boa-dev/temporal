@@ -212,7 +212,7 @@ impl UntilDateTime {
         self.date.as_secs()
     }
 
-    pub fn as_precise_ut_time(self, std_offset: &Time, save: &Time) -> i64 {
+    pub fn as_precise_ut_time(self, std_offset: i64, save: i64) -> i64 {
         self.as_date_secs() + self.time.to_universal_seconds(std_offset, save)
     }
 }
@@ -530,10 +530,10 @@ pub enum QualifiedTime {
 
 impl QualifiedTime {
     /// Returns universal seconds
-    pub fn to_universal_seconds(&self, std_offset: &Time, save: &Time) -> i64 {
+    pub fn to_universal_seconds(&self, std_offset: i64, save: i64) -> i64 {
         match self {
-            Self::Local(t) => t.as_secs() - std_offset.as_secs() - save.as_secs(),
-            Self::Standard(t) => t.as_secs() - std_offset.as_secs(),
+            Self::Local(t) => t.as_secs() - std_offset - save,
+            Self::Standard(t) => t.as_secs() - std_offset,
             Self::Universal(t) => t.as_secs(),
         }
     }

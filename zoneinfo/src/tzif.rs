@@ -5,10 +5,10 @@
 
 // TODO: Potentially add some serialization scheme?
 
-use alloc::{collections::btree_set::BTreeSet, vec, vec::Vec};
+use alloc::{vec, vec::Vec};
 use hashbrown::HashSet;
 
-use crate::{types::Transition, SingleLineZone};
+use crate::ZoneInfoTransitionData;
 
 /// A version 2 TZif block.
 ///
@@ -21,11 +21,11 @@ pub struct TzifBlockV2 {
 }
 
 impl TzifBlockV2 {
-    pub fn from_transition_set(set: &BTreeSet<Transition>) -> Self {
+    pub fn from_transition_data(data: &ZoneInfoTransitionData) -> Self {
         let mut local_time_set = HashSet::new();
         let mut transition_times = Vec::default();
         let mut transition_types = Vec::default();
-        for transition in set {
+        for transition in &data.transitions {
             let _ = local_time_set.insert(LocalTimeRecord {
                 offset: transition.offset,
                 is_dst: transition.dst,
@@ -39,24 +39,24 @@ impl TzifBlockV2 {
             }
         }
 
-        let local_time_types: Vec<LocalTimeRecord> = local_time_set.iter().cloned().collect();
+        let first = LocalTimeRecord {
+            offset: data.lmt.offset,
+            is_dst: data.lmt.saving.as_secs() != 0,
+        };
+
+        let mut local_time_types: Vec<LocalTimeRecord> = vec![first];
+        local_time_types.extend_from_slice(
+            local_time_set
+                .iter()
+                .cloned()
+                .collect::<Vec<LocalTimeRecord>>()
+                .as_slice(),
+        );
 
         Self {
             transition_times,
             transition_types,
             local_time_types,
-        }
-    }
-
-    pub fn from_single_line_zone(zone: &SingleLineZone) -> Self {
-        let local_time_record = LocalTimeRecord {
-            offset: zone.offset,
-            is_dst: false,
-        };
-        Self {
-            transition_times: Vec::default(),
-            transition_types: Vec::default(),
-            local_time_types: vec![local_time_record],
         }
     }
 }
