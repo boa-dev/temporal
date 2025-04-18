@@ -338,6 +338,17 @@ impl IsoDate {
         Ok(date)
     }
 
+    /// Create a balance date while rejecting invalid intermediates
+    pub(crate) fn try_balance(year: i32, month: i32, day: i32) -> TemporalResult<Self> {
+        let epoch_days = iso_date_to_epoch_days(year, month, day);
+        if MAX_EPOCH_DAYS < epoch_days {
+            return Err(TemporalError::range().with_message("epoch days exceed maximum range."));
+        }
+        let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0);
+        let (year, month, day) = utils::ymd_from_epoch_milliseconds(ms);
+        Ok(Self::new_unchecked(year, month, day))
+    }
+
     /// Create a balanced `IsoDate`
     ///
     /// Equivalent to `BalanceISODate`.
@@ -399,11 +410,11 @@ impl IsoDate {
         let intermediate_days = i32::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
-        Ok(Self::balance(
+        Self::try_balance(
             intermediate.year,
             intermediate.month.into(),
             intermediate_days,
-        ))
+        )
     }
 
     pub(crate) fn diff_iso_date(
