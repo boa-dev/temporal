@@ -787,3 +787,19 @@ fn balance_days_up_to_both_years_and_months() {
         -2.0
     );
 }
+
+// relativeto-plaindate-add24hourdaystonormalizedtimeduration-out-of-range.js
+#[test]
+fn add_normalized_time_duration_out_of_range() {
+    let duration = Duration::from_partial_duration(PartialDuration {
+        years: Some(FiniteF64::from(1)),
+        seconds: Some(FiniteF64::try_from(9_007_199_254_740_990_i64).unwrap()),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let relative_to = PlainDate::new(2000, 1, 1, Calendar::default()).unwrap();
+
+    let err = duration.total(Unit::Day, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err())
+}
