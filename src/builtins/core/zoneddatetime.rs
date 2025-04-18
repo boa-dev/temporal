@@ -427,9 +427,16 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn try_new(nanos: i128, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
+    pub fn try_new(nanos: i128, calendar: Calendar, time_zone: TimeZone) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
-        Ok(Self::new_unchecked(instant, calendar, tz))
+        Ok(Self::new_unchecked(instant, calendar, time_zone))
+    }
+
+    /// Creates a new valid `ZonedDateTime` with an ISO 8601 calendar.
+    #[inline]
+    pub fn try_new_iso(nanos: i128, time_zone: TimeZone) -> TemporalResult<Self> {
+        let instant = Instant::try_new(nanos)?;
+        Ok(Self::new_unchecked(instant, Calendar::default(), time_zone))
     }
 
     /// Returns `ZonedDateTime`'s Calendar.

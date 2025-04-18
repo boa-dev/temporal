@@ -148,7 +148,53 @@ impl PlainYearMonth {
 // ==== Public method implementations ====
 
 impl PlainYearMonth {
-    /// Creates a new valid `YearMonth`.
+    /// Creates a new `PlainYearMonth`, constraining any arguments that into a valid range.
+    #[inline]
+    pub fn new(
+        year: i32,
+        month: u8,
+        reference_day: Option<u8>,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(
+            year,
+            month,
+            reference_day,
+            calendar,
+            ArithmeticOverflow::Constrain,
+        )
+    }
+
+    /// Creates a new `PlainYearMonth`, rejecting any date that may be invalid.
+    #[inline]
+    pub fn try_new(
+        year: i32,
+        month: u8,
+        reference_day: Option<u8>,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(
+            year,
+            month,
+            reference_day,
+            calendar,
+            ArithmeticOverflow::Reject,
+        )
+    }
+
+    /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, rejecting any date that may be invalid.
+    #[inline]
+    pub fn try_new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
+        Self::try_new(year, month, reference_day, Calendar::default())
+    }
+
+    /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, constraining any arguments that into a valid range.
+    #[inline]
+    pub fn new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
+        Self::new(year, month, reference_day, Calendar::default())
+    }
+
+    /// Creates a new valid `YearMonth` with provided `ArithmeticOverflow` option.
     #[inline]
     pub fn new_with_overflow(
         year: i32,
