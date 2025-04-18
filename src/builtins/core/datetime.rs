@@ -249,6 +249,7 @@ impl PlainDateTime {
 
 impl PlainDateTime {
     /// Creates a new `DateTime`, constraining any arguments that into a valid range.
+    #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         year: i32,
@@ -277,7 +278,36 @@ impl PlainDateTime {
         )
     }
 
+    /// Creates a new `DateTime` with an ISO 8601 calendar, constraining any arguments that into a valid range.
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_iso(
+        year: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
+    ) -> TemporalResult<Self> {
+        Self::new(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+            Calendar::default(),
+        )
+    }
+
     /// Creates a new `DateTime`, rejecting any arguments that are not in a valid range.
+    #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn try_new(
         year: i32,
@@ -303,6 +333,34 @@ impl PlainDateTime {
             nanosecond,
             calendar,
             ArithmeticOverflow::Reject,
+        )
+    }
+
+    /// Creates a new `DateTime` with an ISO 8601 calendar, rejecting any arguments that are not in a valid range.
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    pub fn try_new_iso(
+        year: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
+    ) -> TemporalResult<Self> {
+        Self::try_new(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+            Calendar::default(),
         )
     }
 
