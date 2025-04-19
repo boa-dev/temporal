@@ -1,0 +1,38 @@
+{
+  "ids": [
+    "america/guayaquil"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      3,
+      2
+    ],
+    "transitions": [
+      -2524502440,
+      -1230749160,
+      722926800,
+      728884800
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -19160
+      },
+      {
+        "is_dst": false,
+        "offset": -18840
+      },
+      {
+        "is_dst": false,
+        "offset": -18000
+      },
+      {
+        "is_dst": true,
+        "offset": -14400
+      }
+    ]
+  }
+}

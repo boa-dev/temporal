@@ -1,0 +1,50 @@
+{
+  "ids": [
+    "asia/kuala_lumpur",
+    "asia/singapore",
+    "singapore"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      0,
+      1,
+      2,
+      2,
+      3,
+      4,
+      3
+    ],
+    "transitions": [
+      -2177477725,
+      -2038200925,
+      -1167634800,
+      -1073028000,
+      -894181200,
+      -879666600,
+      -767006400
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 24925
+      },
+      {
+        "is_dst": false,
+        "offset": 25200
+      },
+      {
+        "is_dst": true,
+        "offset": 26400
+      },
+      {
+        "is_dst": true,
+        "offset": 27000
+      },
+      {
+        "is_dst": true,
+        "offset": 32400
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "ids": [
+    "antarctica/dumontdurville",
+    "pacific/chuuk",
+    "pacific/port_moresby",
+    "pacific/truk",
+    "pacific/yap"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -2366790512
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 35320
+      },
+      {
+        "is_dst": false,
+        "offset": 36000
+      }
+    ]
+  }
+}

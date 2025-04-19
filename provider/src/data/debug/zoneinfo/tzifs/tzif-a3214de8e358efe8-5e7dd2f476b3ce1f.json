@@ -1,0 +1,43 @@
+{
+  "ids": [
+    "america/creston",
+    "america/phoenix",
+    "mst",
+    "us/arizona"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -2717643600,
+      -1633273200,
+      -1615132800,
+      -1601823600,
+      -1583683200,
+      -880210800,
+      -56224800
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -26898
+      },
+      {
+        "is_dst": false,
+        "offset": -25200
+      },
+      {
+        "is_dst": true,
+        "offset": -21600
+      }
+    ]
+  }
+}

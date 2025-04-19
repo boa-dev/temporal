@@ -1,0 +1,36 @@
+{
+  "ids": [
+    "asia/pyongyang"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      2,
+      1,
+      2
+    ],
+    "transitions": [
+      -1948782180,
+      -1830414600,
+      -768646800,
+      1439564400,
+      1525446000
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 30180
+      },
+      {
+        "is_dst": false,
+        "offset": 30600
+      },
+      {
+        "is_dst": false,
+        "offset": 32400
+      }
+    ]
+  }
+}

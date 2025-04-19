@@ -1,0 +1,40 @@
+{
+  "ids": [
+    "america/caracas"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      3
+    ],
+    "transitions": [
+      -2524505536,
+      -1826739140,
+      -157750200,
+      1197183600,
+      1462086000
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -16064
+      },
+      {
+        "is_dst": false,
+        "offset": -16060
+      },
+      {
+        "is_dst": false,
+        "offset": -16200
+      },
+      {
+        "is_dst": false,
+        "offset": -14400
+      }
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "ids": [
+    "africa/bissau"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -1830380400,
+      157770000
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -3740
+      },
+      {
+        "is_dst": false,
+        "offset": -3600
+      },
+      {
+        "is_dst": false,
+        "offset": 0
+      }
+    ]
+  }
+}

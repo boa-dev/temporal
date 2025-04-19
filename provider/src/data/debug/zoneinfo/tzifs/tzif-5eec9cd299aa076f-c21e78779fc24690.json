@@ -1,0 +1,23 @@
+{
+  "ids": [
+    "etc/uct",
+    "etc/universal",
+    "etc/utc",
+    "etc/zulu",
+    "uct",
+    "universal",
+    "utc",
+    "zulu"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 0
+      }
+    ]
+  }
+}

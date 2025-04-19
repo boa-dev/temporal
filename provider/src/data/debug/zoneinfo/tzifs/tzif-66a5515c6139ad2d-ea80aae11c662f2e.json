@@ -1,0 +1,32 @@
+{
+  "ids": [
+    "america/la_paz"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      0,
+      1,
+      2
+    ],
+    "transitions": [
+      -2524505244,
+      -1205954844,
+      -1192307244
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -16356
+      },
+      {
+        "is_dst": true,
+        "offset": -12756
+      },
+      {
+        "is_dst": true,
+        "offset": -14400
+      }
+    ]
+  }
+}

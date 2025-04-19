@@ -1,0 +1,24 @@
+{
+  "ids": [
+    "pacific/marquesas"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -1806676920
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -33480
+      },
+      {
+        "is_dst": false,
+        "offset": -34200
+      }
+    ]
+  }
+}

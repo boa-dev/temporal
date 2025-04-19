@@ -1,0 +1,37 @@
+{
+  "ids": [
+    "africa/abidjan",
+    "africa/accra",
+    "africa/bamako",
+    "africa/banjul",
+    "africa/conakry",
+    "africa/dakar",
+    "africa/freetown",
+    "africa/lome",
+    "africa/nouakchott",
+    "africa/ouagadougou",
+    "africa/timbuktu",
+    "atlantic/reykjavik",
+    "atlantic/st_helena",
+    "iceland"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -1830383032
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -968
+      },
+      {
+        "is_dst": false,
+        "offset": 0
+      }
+    ]
+  }
+}

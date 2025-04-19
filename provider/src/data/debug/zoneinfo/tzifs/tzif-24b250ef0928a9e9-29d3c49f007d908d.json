@@ -1,0 +1,30 @@
+{
+  "ids": [
+    "africa/ndjamena"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      308703600,
+      321314400
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 3612
+      },
+      {
+        "is_dst": true,
+        "offset": 7200
+      },
+      {
+        "is_dst": false,
+        "offset": 3600
+      }
+    ]
+  }
+}

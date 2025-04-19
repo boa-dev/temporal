@@ -1,0 +1,34 @@
+{
+  "ids": [
+    "america/bogota"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -2707671824,
+      -1739041424,
+      704869200,
+      729057600
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -17776
+      },
+      {
+        "is_dst": false,
+        "offset": -18000
+      },
+      {
+        "is_dst": true,
+        "offset": -14400
+      }
+    ]
+  }
+}

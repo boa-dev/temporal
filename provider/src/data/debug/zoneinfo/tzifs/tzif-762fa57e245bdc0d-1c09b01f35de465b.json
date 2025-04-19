@@ -1,0 +1,31 @@
+{
+  "ids": [
+    "asia/thimbu",
+    "asia/thimphu"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -706341516,
+      560025000
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 21516
+      },
+      {
+        "is_dst": false,
+        "offset": 19800
+      },
+      {
+        "is_dst": false,
+        "offset": 21600
+      }
+    ]
+  }
+}

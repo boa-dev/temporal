@@ -1,0 +1,16 @@
+{
+  "ids": [
+    "etc/gmt+6"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -21600
+      }
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "ids": [
+    "pacific/enderbury",
+    "pacific/kanton"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      3
+    ],
+    "transitions": [
+      -1020470400,
+      307627200,
+      788871600
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "is_dst": false,
+        "offset": -43200
+      },
+      {
+        "is_dst": false,
+        "offset": -39600
+      },
+      {
+        "is_dst": false,
+        "offset": 46800
+      }
+    ]
+  }
+}
