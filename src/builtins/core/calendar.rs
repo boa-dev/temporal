@@ -337,7 +337,7 @@ impl Calendar {
                     duration.years(),
                     duration.months(),
                     duration.weeks(),
-                    duration.days().checked_add(&balance_days)?,
+                    duration.days().saturating_add(balance_days),
                 ),
                 overflow,
             )?;
@@ -954,22 +954,22 @@ mod tests {
             let second = IsoDate::new_unchecked(test.1 .0, test.1 .1, test.1 .2);
             let result = calendar.date_until(&first, &second, Unit::Year).unwrap();
             assert_eq!(
-                result.years().0 as i32,
+                result.years() as i32,
                 test.2 .0,
                 "year failed for test \"{test:?}\""
             );
             assert_eq!(
-                result.months().0 as i32,
+                result.months() as i32,
                 test.2 .1,
                 "months failed for test \"{test:?}\""
             );
             assert_eq!(
-                result.weeks().0 as i32,
+                result.weeks() as i32,
                 test.2 .2,
                 "weeks failed for test \"{test:?}\""
             );
             assert_eq!(
-                result.days().0 as i32,
+                result.days(),
                 test.2 .3,
                 "days failed for test \"{test:?}\""
             );

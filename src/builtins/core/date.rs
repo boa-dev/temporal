@@ -11,7 +11,6 @@ use crate::{
         DisplayCalendar, ResolvedRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
-    primitive::FiniteF64,
     provider::{NeverProvider, TimeZoneProvider},
     MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -217,10 +216,7 @@ impl PlainDate {
         // 2. If options is not present, set options to undefined.
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         // 3. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
-        if duration.date().years != 0.0
-            || duration.date().months != 0.0
-            || duration.date().weeks != 0.0
-        {
+        if duration.date().years != 0 || duration.date().months != 0 || duration.date().weeks != 0 {
             // a. If dateAdd is not present, then
             // i. Set dateAdd to unused.
             // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
@@ -235,20 +231,14 @@ impl PlainDate {
         //    duration.[[Nanoseconds]]).
         // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm,
         //    "day").[[Days]].
-        let days = duration.days().checked_add(
-            &TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
-        )?;
+        let days = duration.days().saturating_add(
+            TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
+        );
 
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
-        let result = self.iso.add_date_duration(
-            &DateDuration::new(
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::default(),
-                days,
-            )?,
-            overflow,
-        )?;
+        let result = self
+            .iso
+            .add_date_duration(&DateDuration::new(0, 0, 0, days)?, overflow)?;
 
         Self::try_new(
             result.year,
@@ -276,12 +266,7 @@ impl PlainDate {
 
         if largest_unit == Unit::Day {
             let days = self.days_until(other);
-            return Ok(Duration::from(DateDuration::new(
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::from(days),
-            )?));
+            return Ok(Duration::from(DateDuration::new(0, 0, 0, days.into())?));
         }
 
         self.calendar()
@@ -911,13 +896,13 @@ mod tests {
         let result = earlier
             .until(&later, DifferenceSettings::default())
             .unwrap();
-        assert_eq!(result.days(), 73.0,);
+        assert_eq!(result.days(), 73,);
 
         let later = PlainDate::from_str("1996-03-03").unwrap();
         let result = earlier
             .until(&later, DifferenceSettings::default())
             .unwrap();
-        assert_eq!(result.days(), 9719.0,);
+        assert_eq!(result.days(), 9719,);
     }
 
     #[test]
@@ -927,13 +912,13 @@ mod tests {
         let result = later
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
-        assert_eq!(result.days(), 73.0,);
+        assert_eq!(result.days(), 73,);
 
         let later = PlainDate::from_str("1996-03-03").unwrap();
         let result = later
             .since(&earlier, DifferenceSettings::default())
             .unwrap();
-        assert_eq!(result.days(), 9719.0,);
+        assert_eq!(result.days(), 9719,);
     }
 
     #[test]

@@ -1,12 +1,9 @@
 //! An implementation of `TimeDuration` and it's methods.
 
-use crate::{
-    options::Unit, primitive::FiniteF64, temporal_assert, Sign, TemporalError, TemporalResult,
-};
+use crate::{options::Unit, temporal_assert, Sign, TemporalError, TemporalResult};
 
 use super::{duration_sign, is_valid_duration, normalized::NormalizedTimeDuration};
 
-use alloc::vec::Vec;
 use num_traits::Euclid;
 
 /// `TimeDuration` represents the [Time Duration record][spec] of the `Duration.`
@@ -19,17 +16,17 @@ use num_traits::Euclid;
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct TimeDuration {
     /// `TimeDuration`'s internal hour value.
-    pub hours: FiniteF64,
+    pub hours: i64,
     /// `TimeDuration`'s internal minute value.
-    pub minutes: FiniteF64,
+    pub minutes: i64,
     /// `TimeDuration`'s internal second value.
-    pub seconds: FiniteF64,
+    pub seconds: i64,
     /// `TimeDuration`'s internal millisecond value.
-    pub milliseconds: FiniteF64,
+    pub milliseconds: i64,
     /// `TimeDuration`'s internal microsecond value.
-    pub microseconds: FiniteF64,
+    pub microseconds: i64,
     /// `TimeDuration`'s internal nanosecond value.
-    pub nanoseconds: FiniteF64,
+    pub nanoseconds: i64,
 }
 // ==== TimeDuration Private API ====
 
@@ -37,12 +34,12 @@ impl TimeDuration {
     /// Creates a new `TimeDuration`.
     #[must_use]
     pub(crate) const fn new_unchecked(
-        hours: FiniteF64,
-        minutes: FiniteF64,
-        seconds: FiniteF64,
-        milliseconds: FiniteF64,
-        microseconds: FiniteF64,
-        nanoseconds: FiniteF64,
+        hours: i64,
+        minutes: i64,
+        seconds: i64,
+        milliseconds: i64,
+        microseconds: i64,
+        nanoseconds: i64,
     ) -> Self {
         Self {
             hours,
@@ -64,7 +61,7 @@ impl TimeDuration {
     pub(crate) fn from_normalized(
         norm: NormalizedTimeDuration,
         largest_unit: Unit,
-    ) -> TemporalResult<(FiniteF64, Self)> {
+    ) -> TemporalResult<(i64, Self)> {
         // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
         let mut days = 0;
         let mut hours = 0;
@@ -74,7 +71,7 @@ impl TimeDuration {
         let mut microseconds = 0;
 
         // 2. Let sign be NormalizedTimeDurationSign(norm).
-        let sign = i32::from(norm.sign() as i8);
+        let sign = i64::from(norm.sign() as i8);
         // 3. Let nanoseconds be NormalizedTimeDurationAbs(norm).[[TotalNanoseconds]].
         let mut nanoseconds = norm.0.abs();
 
@@ -189,20 +186,20 @@ impl TimeDuration {
 
         // NOTE: days may have the potentially to exceed i64
         // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
-        let days = FiniteF64::try_from(days as f64)?.copysign(sign.into());
+        let days = i64::try_from(days).map_err(|_| TemporalError::range())? * sign;
         let result = Self::new_unchecked(
-            FiniteF64::try_from(hours)?.copysign(f64::from(sign)),
-            FiniteF64::try_from(minutes)?.copysign(f64::from(sign)),
-            FiniteF64::try_from(seconds)?.copysign(f64::from(sign)),
-            FiniteF64::try_from(milliseconds)?.copysign(f64::from(sign)),
-            FiniteF64::try_from(microseconds)?.copysign(f64::from(sign)),
-            FiniteF64::try_from(nanoseconds)?.copysign(f64::from(sign)),
+            hours as i64 * sign,
+            minutes as i64 * sign,
+            seconds as i64 * sign,
+            milliseconds as i64 * sign,
+            microseconds as i64 * sign,
+            nanoseconds as i64 * sign,
         );
 
         if !is_valid_duration(
-            FiniteF64::default(),
-            FiniteF64::default(),
-            FiniteF64::default(),
+            0,
+            0,
+            0,
             days,
             result.hours,
             result.minutes,
@@ -227,15 +224,15 @@ impl TimeDuration {
     /// Returns the value of `TimeDuration`'s fields.
     #[inline]
     #[must_use]
-    pub(crate) fn fields(&self) -> Vec<FiniteF64> {
-        Vec::from(&[
+    pub(crate) fn fields(&self) -> [i64; 6] {
+        [
             self.hours,
             self.minutes,
             self.seconds,
             self.milliseconds,
             self.microseconds,
             self.nanoseconds,
-        ])
+        ]
     }
 }
 
@@ -244,12 +241,12 @@ impl TimeDuration {
 impl TimeDuration {
     /// Creates a new validated `TimeDuration`.
     pub fn new(
-        hours: FiniteF64,
-        minutes: FiniteF64,
-        seconds: FiniteF64,
-        milliseconds: FiniteF64,
-        microseconds: FiniteF64,
-        nanoseconds: FiniteF64,
+        hours: i64,
+        minutes: i64,
+        seconds: i64,
+        milliseconds: i64,
+        microseconds: i64,
+        nanoseconds: i64,
     ) -> TemporalResult<Self> {
         let result = Self::new_unchecked(
             hours,
@@ -260,10 +257,10 @@ impl TimeDuration {
             nanoseconds,
         );
         if !is_valid_duration(
-            FiniteF64::default(),
-            FiniteF64::default(),
-            FiniteF64::default(),
-            FiniteF64::default(),
+            0,
+            0,
+            0,
+            0,
             hours,
             minutes,
             seconds,
@@ -297,12 +294,12 @@ impl TimeDuration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            hours: self.hours.negate(),
-            minutes: self.minutes.negate(),
-            seconds: self.seconds.negate(),
-            milliseconds: self.milliseconds.negate(),
-            microseconds: self.microseconds.negate(),
-            nanoseconds: self.nanoseconds.negate(),
+            hours: self.hours.saturating_neg(),
+            minutes: self.minutes.saturating_neg(),
+            seconds: self.seconds.saturating_neg(),
+            milliseconds: self.milliseconds.saturating_neg(),
+            microseconds: self.microseconds.saturating_neg(),
+            nanoseconds: self.nanoseconds.saturating_neg(),
         }
     }
 
@@ -310,12 +307,12 @@ impl TimeDuration {
     #[inline]
     #[must_use]
     pub fn is_within_range(&self) -> bool {
-        self.hours.abs() < 24f64
-            && self.minutes.abs() < 60f64
-            && self.seconds.abs() < 60f64
-            && self.milliseconds.abs() < 1000f64
-            && self.milliseconds.abs() < 1000f64
-            && self.milliseconds.abs() < 1000f64
+        self.hours.abs() < 24
+            && self.minutes.abs() < 60
+            && self.seconds.abs() < 60
+            && self.milliseconds.abs() < 1000
+            && self.milliseconds.abs() < 1000
+            && self.milliseconds.abs() < 1000
     }
 
     #[inline]

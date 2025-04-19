@@ -1,9 +1,6 @@
 use core::str::FromStr;
 
-use crate::{
-    options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration,
-    primitive::FiniteF64,
-};
+use crate::{options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration};
 
 use super::Duration;
 
@@ -16,9 +13,9 @@ fn partial_duration_empty() {
 #[test]
 fn partial_duration_values() {
     let mut partial = PartialDuration::default();
-    let _ = partial.years.insert(FiniteF64(20.0));
+    let _ = partial.years.insert(20);
     let result = Duration::from_partial_duration(partial).unwrap();
-    assert_eq!(result.years(), 20.0);
+    assert_eq!(result.years(), 20);
 }
 
 #[test]
@@ -60,37 +57,13 @@ fn default_duration_string() {
 
 #[test]
 fn duration_to_string_auto_precision() {
-    let duration = Duration::new(
-        1.into(),
-        2.into(),
-        3.into(),
-        4.into(),
-        5.into(),
-        6.into(),
-        7.into(),
-        FiniteF64::default(),
-        FiniteF64::default(),
-        FiniteF64::default(),
-    )
-    .unwrap();
+    let duration = Duration::new(1, 2, 3, 4, 5, 6, 7, 0, 0, 0).unwrap();
     let result = duration
         .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
     assert_eq!(&result, "P1Y2M3W4DT5H6M7S");
 
-    let duration = Duration::new(
-        1.into(),
-        2.into(),
-        3.into(),
-        4.into(),
-        5.into(),
-        6.into(),
-        7.into(),
-        987.into(),
-        650.into(),
-        FiniteF64::default(),
-    )
-    .unwrap();
+    let duration = Duration::new(1, 2, 3, 4, 5, 6, 7, 987, 650, 0).unwrap();
     let result = duration
         .as_temporal_string(ToStringRoundingOptions::default())
         .unwrap();
@@ -113,16 +86,16 @@ fn empty_date_duration() {
 #[test]
 fn negative_fields_to_string() {
     let duration = Duration::from_partial_duration(PartialDuration {
-        years: Some(FiniteF64::from(-1)),
-        months: Some(FiniteF64::from(-1)),
-        weeks: Some(FiniteF64::from(-1)),
-        days: Some(FiniteF64::from(-1)),
-        hours: Some(FiniteF64::from(-1)),
-        minutes: Some(FiniteF64::from(-1)),
-        seconds: Some(FiniteF64::from(-1)),
-        milliseconds: Some(FiniteF64::from(-1)),
-        microseconds: Some(FiniteF64::from(-1)),
-        nanoseconds: Some(FiniteF64::from(-1)),
+        years: Some(-1),
+        months: Some(-1),
+        weeks: Some(-1),
+        days: Some(-1),
+        hours: Some(-1),
+        minutes: Some(-1),
+        seconds: Some(-1),
+        milliseconds: Some(-1),
+        microseconds: Some(-1),
+        nanoseconds: Some(-1),
     })
     .unwrap();
     let result = duration
@@ -131,7 +104,7 @@ fn negative_fields_to_string() {
     assert_eq!(&result, "-P1Y1M1W1DT1H1M1.001001001S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::from(-250)),
+        milliseconds: Some(-250),
         ..Default::default()
     })
     .unwrap();
@@ -141,7 +114,7 @@ fn negative_fields_to_string() {
     assert_eq!(&result, "-PT0.25S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::from(-3500)),
+        milliseconds: Some(-3500),
         ..Default::default()
     })
     .unwrap();
@@ -151,7 +124,7 @@ fn negative_fields_to_string() {
     assert_eq!(&result, "-PT3.5S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::from(-3500)),
+        milliseconds: Some(-3500),
         ..Default::default()
     })
     .unwrap();
@@ -161,8 +134,8 @@ fn negative_fields_to_string() {
     assert_eq!(&result, "-PT3.5S");
 
     let duration = Duration::from_partial_duration(PartialDuration {
-        weeks: Some(FiniteF64::from(-1)),
-        days: Some(FiniteF64::from(-1)),
+        weeks: Some(-1),
+        days: Some(-1),
         ..Default::default()
     })
     .unwrap();
@@ -175,10 +148,10 @@ fn negative_fields_to_string() {
 
 #[test]
 fn preserve_precision_loss() {
-    const MAX_SAFE_INT: f64 = 9_007_199_254_740_991.0;
+    const MAX_SAFE_INT: i64 = 9_007_199_254_740_991;
     let duration = Duration::from_partial_duration(PartialDuration {
-        milliseconds: Some(FiniteF64::try_from(MAX_SAFE_INT).unwrap()),
-        microseconds: Some(FiniteF64::try_from(MAX_SAFE_INT).unwrap()),
+        milliseconds: Some(MAX_SAFE_INT),
+        microseconds: Some(MAX_SAFE_INT),
         ..Default::default()
     })
     .unwrap();
@@ -192,22 +165,22 @@ fn preserve_precision_loss() {
 #[test]
 fn duration_from_str() {
     let duration = Duration::from_str("PT0.999999999H").unwrap();
-    assert_eq!(duration.minutes(), FiniteF64(59.0));
-    assert_eq!(duration.seconds(), FiniteF64(59.0));
-    assert_eq!(duration.milliseconds(), FiniteF64(999.0));
-    assert_eq!(duration.microseconds(), FiniteF64(996.0));
-    assert_eq!(duration.nanoseconds(), FiniteF64(400.0));
+    assert_eq!(duration.minutes(), 59);
+    assert_eq!(duration.seconds(), 59);
+    assert_eq!(duration.milliseconds(), 999);
+    assert_eq!(duration.microseconds(), 996);
+    assert_eq!(duration.nanoseconds(), 400);
 
     let duration = Duration::from_str("PT0.000000011H").unwrap();
-    assert_eq!(duration.minutes(), FiniteF64(0.0));
-    assert_eq!(duration.seconds(), FiniteF64(0.0));
-    assert_eq!(duration.milliseconds(), FiniteF64(0.0));
-    assert_eq!(duration.microseconds(), FiniteF64(39.0));
-    assert_eq!(duration.nanoseconds(), FiniteF64(600.0));
+    assert_eq!(duration.minutes(), 0);
+    assert_eq!(duration.seconds(), 0);
+    assert_eq!(duration.milliseconds(), 0);
+    assert_eq!(duration.microseconds(), 39);
+    assert_eq!(duration.nanoseconds(), 600);
 
     let duration = Duration::from_str("PT0.999999999M").unwrap();
-    assert_eq!(duration.seconds(), FiniteF64(59.0));
-    assert_eq!(duration.milliseconds(), FiniteF64(999.0));
-    assert_eq!(duration.microseconds(), FiniteF64(999.0));
-    assert_eq!(duration.nanoseconds(), FiniteF64(940.0));
+    assert_eq!(duration.seconds(), 59);
+    assert_eq!(duration.milliseconds(), 999);
+    assert_eq!(duration.microseconds(), 999);
+    assert_eq!(duration.nanoseconds(), 940);
 }

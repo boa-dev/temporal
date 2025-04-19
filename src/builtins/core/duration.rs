@@ -10,16 +10,13 @@ use crate::{
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
-    temporal_assert, Sign, TemporalError, TemporalResult,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 use alloc::format;
 use alloc::string::String;
-use alloc::vec;
-use alloc::vec::Vec;
-use core::{cmp::Ordering, str::FromStr};
+use core::{cmp::Ordering, num::NonZeroU128, str::FromStr};
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use normalized::NormalizedDurationRecord;
-use num_traits::AsPrimitive;
 
 use self::normalized::NormalizedTimeDuration;
 
@@ -39,25 +36,25 @@ pub use time::TimeDuration;
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct PartialDuration {
     /// A potentially existent `years` field.
-    pub years: Option<FiniteF64>,
+    pub years: Option<i64>,
     /// A potentially existent `months` field.
-    pub months: Option<FiniteF64>,
+    pub months: Option<i64>,
     /// A potentially existent `weeks` field.
-    pub weeks: Option<FiniteF64>,
+    pub weeks: Option<i64>,
     /// A potentially existent `days` field.
-    pub days: Option<FiniteF64>,
+    pub days: Option<i64>,
     /// A potentially existent `hours` field.
-    pub hours: Option<FiniteF64>,
+    pub hours: Option<i64>,
     /// A potentially existent `minutes` field.
-    pub minutes: Option<FiniteF64>,
+    pub minutes: Option<i64>,
     /// A potentially existent `seconds` field.
-    pub seconds: Option<FiniteF64>,
+    pub seconds: Option<i64>,
     /// A potentially existent `milliseconds` field.
-    pub milliseconds: Option<FiniteF64>,
+    pub milliseconds: Option<i64>,
     /// A potentially existent `microseconds` field.
-    pub microseconds: Option<FiniteF64>,
+    pub microseconds: Option<i64>,
     /// A potentially existent `nanoseconds` field.
-    pub nanoseconds: Option<FiniteF64>,
+    pub nanoseconds: Option<i64>,
 }
 
 impl PartialDuration {
@@ -103,17 +100,10 @@ impl core::fmt::Display for Duration {
 
 #[cfg(test)]
 impl Duration {
-    pub(crate) fn hour(value: FiniteF64) -> Self {
+    pub(crate) fn hour(value: i64) -> Self {
         Self::new_unchecked(
             DateDuration::default(),
-            TimeDuration::new_unchecked(
-                value,
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::default(),
-            ),
+            TimeDuration::new_unchecked(value, 0, 0, 0, 0, 0),
         )
     }
 }
@@ -140,7 +130,11 @@ impl Duration {
             duration_record.date().years,
             duration_record.date().months,
             duration_record.date().weeks,
-            duration_record.date().days.checked_add(&overflow_day)?,
+            duration_record
+                .date()
+                .days
+                .checked_add(overflow_day)
+                .ok_or(TemporalError::range())?,
             time.hours,
             time.minutes,
             time.seconds,
@@ -153,8 +147,8 @@ impl Duration {
     /// Returns the a `Vec` of the fields values.
     #[inline]
     #[must_use]
-    pub(crate) fn fields(&self) -> Vec<FiniteF64> {
-        Vec::from(&[
+    pub(crate) fn fields(&self) -> [i64; 10] {
+        [
             self.years(),
             self.months(),
             self.weeks(),
@@ -165,14 +159,14 @@ impl Duration {
             self.milliseconds(),
             self.microseconds(),
             self.nanoseconds(),
-        ])
+        ]
     }
 
     /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
     #[inline]
     #[must_use]
     pub(crate) fn is_time_duration(&self) -> bool {
-        self.date().fields().iter().all(|x| x == &0.0)
+        self.date().fields().iter().all(|x| x == &0)
     }
 
     /// Returns the `Unit` corresponding to the largest non-zero field.
@@ -181,7 +175,7 @@ impl Duration {
         self.fields()
             .iter()
             .enumerate()
-            .find(|x| x.1 != &0.0)
+            .find(|x| x.1 != &0)
             .map(|x| Unit::from(10 - x.0))
             .unwrap_or(Unit::Nanosecond)
     }
@@ -193,16 +187,16 @@ impl Duration {
     /// Creates a new validated `Duration`.
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        years: FiniteF64,
-        months: FiniteF64,
-        weeks: FiniteF64,
-        days: FiniteF64,
-        hours: FiniteF64,
-        minutes: FiniteF64,
-        seconds: FiniteF64,
-        milliseconds: FiniteF64,
-        microseconds: FiniteF64,
-        nanoseconds: FiniteF64,
+        years: i64,
+        months: i64,
+        weeks: i64,
+        days: i64,
+        hours: i64,
+        minutes: i64,
+        seconds: i64,
+        milliseconds: i64,
+        microseconds: i64,
+        nanoseconds: i64,
     ) -> TemporalResult<Self> {
         let duration = Self::new_unchecked(
             DateDuration::new_unchecked(years, months, weeks, days),
@@ -236,14 +230,9 @@ impl Duration {
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
     #[must_use]
-    pub fn from_day_and_time(day: FiniteF64, time: &TimeDuration) -> Self {
+    pub fn from_day_and_time(day: i64, time: &TimeDuration) -> Self {
         Self {
-            date: DateDuration::new_unchecked(
-                FiniteF64::default(),
-                FiniteF64::default(),
-                FiniteF64::default(),
-                day,
-            ),
+            date: DateDuration::new_unchecked(0, 0, 0, day),
             time: *time,
         }
     }
@@ -319,10 +308,7 @@ impl Duration {
                 let days2 = other.date.days(pdt)?;
                 (days1, days2)
             } else {
-                (
-                    self.date.days.as_integer_if_integral()?,
-                    other.date.days.as_integer_if_integral()?,
-                )
+                (self.date.days, other.date.days)
             };
         // 15. Let timeDuration1 be ? Add24HourDaysToTimeDuration(duration1.[[Time]], days1).
         let time_duration_1 = self.time.to_normalized().add_days(days1)?;
@@ -353,70 +339,70 @@ impl Duration {
     /// Returns the `years` field of duration.
     #[inline]
     #[must_use]
-    pub const fn years(&self) -> FiniteF64 {
+    pub const fn years(&self) -> i64 {
         self.date.years
     }
 
     /// Returns the `months` field of duration.
     #[inline]
     #[must_use]
-    pub const fn months(&self) -> FiniteF64 {
+    pub const fn months(&self) -> i64 {
         self.date.months
     }
 
     /// Returns the `weeks` field of duration.
     #[inline]
     #[must_use]
-    pub const fn weeks(&self) -> FiniteF64 {
+    pub const fn weeks(&self) -> i64 {
         self.date.weeks
     }
 
     /// Returns the `days` field of duration.
     #[inline]
     #[must_use]
-    pub const fn days(&self) -> FiniteF64 {
+    pub const fn days(&self) -> i64 {
         self.date.days
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn hours(&self) -> FiniteF64 {
+    pub const fn hours(&self) -> i64 {
         self.time.hours
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn minutes(&self) -> FiniteF64 {
+    pub const fn minutes(&self) -> i64 {
         self.time.minutes
     }
 
     /// Returns the `seconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn seconds(&self) -> FiniteF64 {
+    pub const fn seconds(&self) -> i64 {
         self.time.seconds
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn milliseconds(&self) -> FiniteF64 {
+    pub const fn milliseconds(&self) -> i64 {
         self.time.milliseconds
     }
 
     /// Returns the `microseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn microseconds(&self) -> FiniteF64 {
+    pub const fn microseconds(&self) -> i64 {
         self.time.microseconds
     }
 
     /// Returns the `nanoseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn nanoseconds(&self) -> FiniteF64 {
+    pub const fn nanoseconds(&self) -> i64 {
         self.time.nanoseconds
     }
 }
@@ -484,10 +470,12 @@ impl Duration {
             ));
         }
 
+        // NOTE: for lines 488-489
+        //
+        // Maximum amount of days in a valid duration: 104_249_991_374 * 2 < i64::MAX
         // 29. Let normResult be ? AddNormalizedTimeDuration(norm1, norm2).
         // 30. Set normResult to ? Add24HourDaysToNormalizedTimeDuration(normResult, d1 + d2).
-        let result =
-            (norm_one + norm_two)?.add_days((self.days().checked_add(&other.days())?).as_())?;
+        let result = (norm_one + norm_two)?.add_days(self.days().saturating_add(other.days()))?;
 
         // 31. Let result be ? BalanceTimeDuration(normResult, largestUnit).
         let (result_days, result_time) = TimeDuration::from_normalized(result, largest_unit)?;
@@ -540,14 +528,14 @@ impl Duration {
         // 27. If duration.[[Days]] ≠ 0 and zonedRelativeTo is not undefined, set hoursToDaysConversionMayOccur to true.
         // 28. Else if abs(duration.[[Hours]]) ≥ 24, set hoursToDaysConversionMayOccur to true.
         let hours_to_days_may_occur =
-            (self.days() != 0.0 && is_zoned_datetime) || self.hours().abs() >= 24.0;
+            (self.days() != 0 && is_zoned_datetime) || self.hours().abs() >= 24;
 
         // 29. If smallestUnit is "nanosecond" and roundingIncrement = 1, let roundingGranularityIsNoop
         // be true; else let roundingGranularityIsNoop be false.
         // 30. If duration.[[Years]] = 0 and duration.[[Months]] = 0 and duration.[[Weeks]] = 0,
         // let calendarUnitsPresent be false; else let calendarUnitsPresent be true.
         let calendar_units_present =
-            !(self.years() == 0.0 && self.months() == 0.0 && self.weeks() == 0.0);
+            !(self.years() == 0 && self.months() == 0 && self.weeks() == 0);
 
         let is_noop = resolved_options.is_noop();
 
@@ -558,11 +546,11 @@ impl Duration {
             && resolved_options.largest_unit == existing_largest_unit
             && !calendar_units_present
             && !hours_to_days_may_occur
-            && self.minutes().abs() < 60.0
-            && self.seconds().abs() < 60.0
-            && self.milliseconds() < 1000.0
-            && self.microseconds() < 1000.0
-            && self.nanoseconds() < 1000.0
+            && self.minutes().abs() < 60
+            && self.seconds().abs() < 60
+            && self.milliseconds() < 1000
+            && self.microseconds() < 1000
+            && self.nanoseconds() < 1000
         {
             // a. NOTE: The above conditions mean that the operation will have no effect: the
             // smallest unit and rounding increment will leave the total duration unchanged,
@@ -618,8 +606,9 @@ impl Duration {
                     self.years(),
                     self.months(),
                     self.weeks(),
-                    self.days().checked_add(&FiniteF64::from(balanced_days))?,
+                    self.days().saturating_add(balanced_days),
                 )?;
+                // NOTE (remove): values are fine to this point.
                 // TODO: Should this be using AdjustDateDurationRecord?
 
                 // c. Let targetDate be ? AddDate(calendarRec, plainRelativeTo, dateDuration).
@@ -641,44 +630,62 @@ impl Duration {
                 // targetTime.[[Microseconds]], targetTime.[[Nanoseconds]], calendarRec, largestUnit, roundingIncrement,
                 // smallestUnit, roundingMode, emptyOptions).
                 let round_record = plain_dt.diff_dt_with_rounding(&target_dt, resolved_options)?;
+
                 // e. Let roundResult be roundRecord.[[DurationRecord]].
                 Duration::from_normalized(round_record, resolved_options.largest_unit)
             }
-            // 40. Else,
+            // TODO (nekevss): Align the above steps with the updates ones from below.
             None => {
-                // a. If calendarUnitsPresent is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
+                // 28. If calendarUnitsPresent is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
                 if calendar_units_present || resolved_options.largest_unit.is_calendar_unit() {
                     return Err(TemporalError::range().with_message(
                         "Calendar units cannot be present without a relative point.",
                     ));
                 }
-                // b. Assert: IsCalendarUnit(smallestUnit) is false.
+                // 29. Assert: IsCalendarUnit(smallestUnit) is false.
                 temporal_assert!(
                     !resolved_options.smallest_unit.is_calendar_unit(),
                     "Assertion failed: resolvedOptions contains a calendar unit\n{:?}",
                     resolved_options
                 );
-
-                // c. Let roundRecord be ? RoundTimeDuration(duration.[[Days]], norm, roundingIncrement, smallestUnit, roundingMode).
-                let (round_record, _) = norm.round(self.days(), resolved_options)?;
-                // d. Let normWithDays be ? Add24HourDaysToNormalizedTimeDuration(roundRecord.[[NormalizedDuration]].[[NormalizedTime]],
-                // roundRecord.[[NormalizedDuration]].[[Days]]).
-                let norm_with_days = round_record
-                    .normalized_time_duration()
-                    .add_days(round_record.date().days.as_())?;
-                // e. Let balanceResult be ? BalanceTimeDuration(normWithDays, largestUnit).
-                let (balanced_days, balanced_time) =
-                    TimeDuration::from_normalized(norm_with_days, resolved_options.largest_unit)?;
-                // f. Let roundResult be CreateDurationRecord(0, 0, 0, balanceResult.[[Days]], balanceResult.[[Hours]],
-                // balanceResult.[[Minutes]], balanceResult.[[Seconds]], balanceResult.[[Milliseconds]],
-                // balanceResult.[[Microseconds]], balanceResult.[[Nanoseconds]]).
-
-                // 41. Return ? CreateTemporalDuration(roundResult.[[Years]], roundResult.[[Months]],
-                // roundResult.[[Weeks]], roundResult.[[Days]], roundResult.[[Hours]],
-                // roundResult.[[Minutes]], roundResult.[[Seconds]], roundResult.[[Milliseconds]],
-                // roundResult.[[Microseconds]], roundResult.[[Nanoseconds]]).
-
-                Ok(Duration::from_day_and_time(balanced_days, &balanced_time))
+                // 30. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                let internal = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+                // 31. If smallestUnit is day, then
+                let internal = if resolved_options.smallest_unit == Unit::Day {
+                    // TODO: TEST
+                    // a. Let fractionalDays be TotalTimeDuration(internalDuration.[[Time]], day).
+                    // b. Let days be RoundNumberToIncrement(fractionalDays, roundingIncrement, roundingMode).
+                    let days = internal
+                        .normalized_time_duration()
+                        .round_to_fractional_days(
+                            resolved_options.increment,
+                            resolved_options.rounding_mode,
+                        )?;
+                    // c. Let dateDuration be ? CreateDateDurationRecord(0, 0, 0, days).
+                    let date = DateDuration::new(0, 0, 0, days)?;
+                    // d. Set internalDuration to CombineDateAndTimeDuration(dateDuration, 0).
+                    NormalizedDurationRecord::new(date, norm)?
+                // 32. Else,
+                } else {
+                    // TODO: update round / round_inner methods
+                    // a. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], roundingIncrement, smallestUnit, roundingMode).
+                    let divisor = resolved_options
+                        .smallest_unit
+                        .as_nanoseconds()
+                        .temporal_unwrap()?;
+                    let increment = resolved_options
+                        .increment
+                        .as_extended_increment()
+                        .checked_mul(NonZeroU128::new(divisor.into()).expect("cannot fail"))
+                        .temporal_unwrap()?;
+                    let normalized_time = internal
+                        .normalized_time_duration()
+                        .round_inner(increment, resolved_options.rounding_mode)?;
+                    // b. Set internalDuration to CombineDateAndTimeDuration(ZeroDateDuration(), timeDuration).
+                    NormalizedDurationRecord::new(DateDuration::default(), normalized_time)?
+                };
+                // 33. Return ? TemporalDurationFromInternal(internalDuration, largestUnit).
+                Duration::from_normalized(internal, resolved_options.largest_unit)
             }
         }
     }
@@ -725,7 +732,7 @@ impl Duration {
                     self.years(),
                     self.months(),
                     self.weeks(),
-                    self.days().checked_add(&FiniteF64::from(balanced_days))?,
+                    self.days().saturating_add(balanced_days),
                 )?;
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = plain_date.calendar().date_add(
@@ -788,11 +795,9 @@ impl Duration {
             NormalizedTimeDuration::from_time_duration(&self.time),
         )?;
         // 13. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], precision.[[Increment]], precision.[[Unit]], roundingMode).
-        let (rounded, _) = norm
-            .normalized_time_duration()
-            .round(FiniteF64::default(), rounding_options)?;
+        let time = norm.normalized_time_duration().round(rounding_options)?;
         // 14. Set internalDuration to CombineDateAndTimeDuration(internalDuration.[[Date]], timeDuration).
-        let norm = NormalizedDurationRecord::new(norm.date(), rounded.normalized_time_duration())?;
+        let norm = NormalizedDurationRecord::new(norm.date(), time)?;
         // 15. Let roundedLargestUnit be LargerOfTwoUnits(largestUnit, second).
         let rounded_largest = largest.max(Unit::Second);
         // 16. Let roundedDuration be ? TemporalDurationFromInternal(internalDuration, roundedLargestUnit).
@@ -809,13 +814,13 @@ pub fn duration_to_formattable(
 ) -> TemporalResult<FormattableDuration> {
     let sign = duration.sign();
     let duration = duration.abs();
-    let date = duration.years().0 + duration.months().0 + duration.weeks().0 + duration.days().0;
-    let date = if date != 0.0 {
+    let date = duration.years() + duration.months() + duration.weeks() + duration.days();
+    let date = if date != 0 {
         Some(FormattableDateDuration {
-            years: duration.years().0 as u32,
-            months: duration.months().0 as u32,
-            weeks: duration.weeks().0 as u32,
-            days: duration.days().0 as u64,
+            years: duration.years() as u32,
+            months: duration.months() as u32,
+            weeks: duration.weeks() as u32,
+            days: duration.days() as u64,
         })
     } else {
         None
@@ -825,8 +830,8 @@ pub fn duration_to_formattable(
     let minutes = duration.minutes().abs();
 
     let time = NormalizedTimeDuration::from_time_duration(&TimeDuration::new_unchecked(
-        FiniteF64::default(),
-        FiniteF64::default(),
+        0,
+        0,
         duration.seconds(),
         duration.milliseconds(),
         duration.microseconds(),
@@ -837,8 +842,8 @@ pub fn duration_to_formattable(
     let subseconds = time.subseconds().unsigned_abs();
 
     let time = Some(FormattableTimeDuration::Seconds(
-        hours.0 as u64,
-        minutes.0 as u64,
+        hours as u64,
+        minutes as u64,
         seconds,
         Some(subseconds),
     ));
@@ -861,19 +866,19 @@ const TWO_POWER_FIFTY_THREE: i128 = 9_007_199_254_740_992;
 #[must_use]
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn is_valid_duration(
-    years: FiniteF64,
-    months: FiniteF64,
-    weeks: FiniteF64,
-    days: FiniteF64,
-    hours: FiniteF64,
-    minutes: FiniteF64,
-    seconds: FiniteF64,
-    milliseconds: FiniteF64,
-    microseconds: FiniteF64,
-    nanoseconds: FiniteF64,
+    years: i64,
+    months: i64,
+    weeks: i64,
+    days: i64,
+    hours: i64,
+    minutes: i64,
+    seconds: i64,
+    milliseconds: i64,
+    microseconds: i64,
+    nanoseconds: i64,
 ) -> bool {
     // 1. Let sign be ! DurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
-    let set = vec![
+    let set = [
         years,
         months,
         weeks,
@@ -891,24 +896,24 @@ pub(crate) fn is_valid_duration(
         // FiniteF64 must always be finite.
         // a. If 𝔽(v) is not finite, return false.
         // b. If v < 0 and sign > 0, return false.
-        if v < 0f64 && sign == Sign::Positive {
+        if v < 0 && sign == Sign::Positive {
             return false;
         }
         // c. If v > 0 and sign < 0, return false.
-        if v > 0f64 && sign == Sign::Negative {
+        if v > 0 && sign == Sign::Negative {
             return false;
         }
     }
     // 3. If abs(years) ≥ 2**32, return false.
-    if years.abs() >= f64::from(u32::MAX) {
+    if years.abs() >= u32::MAX as i64 {
         return false;
     };
     // 4. If abs(months) ≥ 2**32, return false.
-    if months.abs() >= f64::from(u32::MAX) {
+    if months.abs() >= u32::MAX as i64 {
         return false;
     };
     // 5. If abs(weeks) ≥ 2**32, return false.
-    if weeks.abs() >= f64::from(u32::MAX) {
+    if weeks.abs() >= u32::MAX as i64 {
         return false;
     };
 
@@ -920,14 +925,12 @@ pub(crate) fn is_valid_duration(
     // in C++ with an implementation of core::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
-    let normalized_seconds = (days.0 as i128 * 86_400)
-        + (hours.0 as i128) * 3600
-        + minutes.0 as i128 * 60
-        + seconds.0 as i128;
+    let normalized_seconds =
+        (days as i128 * 86_400) + (hours as i128) * 3600 + minutes as i128 * 60 + seconds as i128;
     // Subseconds part
-    let normalized_subseconds_parts = (milliseconds.0 as i128 / 1_000)
-        + (microseconds.0 as i128 / 1_000_000)
-        + (nanoseconds.0 as i128 / 1_000_000_000);
+    let normalized_subseconds_parts = (milliseconds as i128 / 1_000)
+        + (microseconds as i128 / 1_000_000)
+        + (nanoseconds as i128 / 1_000_000_000);
 
     let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
@@ -944,15 +947,15 @@ pub(crate) fn is_valid_duration(
 /// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
-fn duration_sign(set: &Vec<FiniteF64>) -> Sign {
+fn duration_sign(set: &[i64]) -> Sign {
     // 1. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If v < 0, return -1.
-        if *v < 0f64 {
-            return Sign::Negative;
         // b. If v > 0, return 1.
-        } else if *v > 0f64 {
-            return Sign::Positive;
+        match (*v).cmp(&0) {
+            Ordering::Less => return Sign::Negative,
+            Ordering::Greater => return Sign::Positive,
+            _ => {}
         }
     }
     // 2. Return 0.
@@ -1072,19 +1075,19 @@ impl FromStr for Duration {
             (0, 0, 0, 0)
         };
 
-        let sign = f64::from(parse_record.sign as i8);
+        let sign = parse_record.sign as i64;
 
         Self::new(
-            FiniteF64::from(years).copysign(sign),
-            FiniteF64::from(months).copysign(sign),
-            FiniteF64::from(weeks).copysign(sign),
-            FiniteF64::try_from(days)?.copysign(sign),
-            FiniteF64::try_from(hours)?.copysign(sign),
-            FiniteF64::try_from(minutes)?.copysign(sign),
-            FiniteF64::try_from(seconds)?.copysign(sign),
-            FiniteF64::try_from(millis)?.copysign(sign),
-            FiniteF64::try_from(micros)?.copysign(sign),
-            FiniteF64::try_from(nanos)?.copysign(sign),
+            years as i64 * sign,
+            months as i64 * sign,
+            weeks as i64 * sign,
+            days as i64 * sign,
+            hours as i64 * sign,
+            minutes as i64 * sign,
+            seconds as i64 * sign,
+            millis as i64 * sign,
+            micros as i64 * sign,
+            nanos as i64 * sign,
         )
     }
 }
