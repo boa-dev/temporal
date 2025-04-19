@@ -1,0 +1,30 @@
+{
+  "ids": [
+    "america/cayenne"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -1846269040,
+      -71092800
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -12560
+      },
+      {
+        "is_dst": false,
+        "offset": -14400
+      },
+      {
+        "is_dst": false,
+        "offset": -10800
+      }
+    ]
+  }
+}

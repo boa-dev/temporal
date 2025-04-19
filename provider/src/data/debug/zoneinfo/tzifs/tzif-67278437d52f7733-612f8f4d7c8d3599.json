@@ -1,0 +1,54 @@
+{
+  "ids": [
+    "america/anguilla",
+    "america/antigua",
+    "america/aruba",
+    "america/blanc-sablon",
+    "america/curacao",
+    "america/dominica",
+    "america/grenada",
+    "america/guadeloupe",
+    "america/kralendijk",
+    "america/lower_princes",
+    "america/marigot",
+    "america/montserrat",
+    "america/port_of_spain",
+    "america/puerto_rico",
+    "america/st_barthelemy",
+    "america/st_kitts",
+    "america/st_lucia",
+    "america/st_thomas",
+    "america/st_vincent",
+    "america/tortola",
+    "america/virgin"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      2,
+      1
+    ],
+    "transitions": [
+      -2233035335,
+      -873057600,
+      -769395600,
+      -765399600
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -15865
+      },
+      {
+        "is_dst": false,
+        "offset": -14400
+      },
+      {
+        "is_dst": true,
+        "offset": -10800
+      }
+    ]
+  }
+}
