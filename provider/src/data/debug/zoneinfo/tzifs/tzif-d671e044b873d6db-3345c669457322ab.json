@@ -1,0 +1,30 @@
+{
+  "ids": [
+    "pacific/kiritimati"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      307622400,
+      788868000
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -37760
+      },
+      {
+        "is_dst": false,
+        "offset": -36000
+      },
+      {
+        "is_dst": false,
+        "offset": 50400
+      }
+    ]
+  }
+}
