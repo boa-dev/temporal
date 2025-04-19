@@ -1,0 +1,24 @@
+{
+  "ids": [
+    "pacific/tahiti"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -1806674504
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -35896
+      },
+      {
+        "is_dst": false,
+        "offset": -36000
+      }
+    ]
+  }
+}

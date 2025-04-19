@@ -1,0 +1,30 @@
+{
+  "ids": [
+    "indian/chagos"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -1988167780,
+      820436400
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 17380
+      },
+      {
+        "is_dst": false,
+        "offset": 18000
+      },
+      {
+        "is_dst": false,
+        "offset": 21600
+      }
+    ]
+  }
+}
