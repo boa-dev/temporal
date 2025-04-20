@@ -52,6 +52,7 @@ pub(crate) mod utils;
 
 pub mod compiler;
 pub mod parser;
+pub mod posix;
 pub mod rule;
 pub mod types;
 pub mod tzif;
