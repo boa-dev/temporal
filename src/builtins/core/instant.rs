@@ -1,7 +1,7 @@
 //! An implementation of the Temporal Instant.
 
 use alloc::string::String;
-use core::{num::NonZeroU128, str::FromStr};
+use core::{f32::consts::E, num::NonZeroU128, str::FromStr};
 
 use crate::{
     builtins::core::{
@@ -162,11 +162,11 @@ impl Instant {
     }
 
     /// Creates a new `Instant` from the provided Epoch millisecond value.
-    pub fn from_epoch_milliseconds(epoch_milliseconds: EpochNanoseconds) -> TemporalResult<Self> {
+    pub fn from_epoch_milliseconds(epoch_milliseconds: i64) -> TemporalResult<Self> {
         // Input at most is `i64::MAX`. This means guarantees that the
         // transition into nanoseconds MUST be in range of `i128`
-        let epoch_nanos = (epoch_milliseconds.as_i128()) * 1_000_000;
-        Self::try_new(EpochNanoseconds::try_from(epoch_nanos).unwrap())
+        let epoch_nanos = (epoch_milliseconds as i128) * 1_000_000;
+        Self::try_new(EpochNanoseconds::try_from(epoch_nanos)?)
     }
 
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
@@ -347,6 +347,7 @@ mod tests {
         // valid, i.e., a valid instant is within the range of an f64.
         let max = NS_MAX_INSTANT;
         let min = NS_MIN_INSTANT;
+      
         let max_instant = Instant::try_new(EpochNanoseconds::try_from(max).unwrap()).unwrap();
         let min_instant = Instant::try_new(EpochNanoseconds::try_from(min).unwrap()).unwrap();
 
@@ -356,8 +357,12 @@ mod tests {
         let max_plus_one = NS_MAX_INSTANT + 1;
         let min_minus_one = NS_MIN_INSTANT - 1;
 
-        assert!(Instant::try_new(EpochNanoseconds::try_from(max_plus_one).unwrap()).is_err());
-        assert!(Instant::try_new(EpochNanoseconds::try_from(min_minus_one).unwrap()).is_err());
+        assert!(EpochNanoseconds::try_from(max_plus_one)
+            .and_then(|nanos| Instant::try_new(nanos))
+            .is_err());
+        assert!(EpochNanoseconds::try_from(min_minus_one)
+            .and_then(|nanos| Instant::try_new(nanos))
+            .is_err());
     }
 
     #[test]

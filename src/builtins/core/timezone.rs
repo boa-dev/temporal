@@ -143,7 +143,7 @@ impl TimeZone {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<IsoDateTime> {
         let nanos = self.get_offset_nanos_for(instant.epoch_nanoseconds(), provider)?;
-        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.as_i128().to_i64().unwrap_or(0))
+        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.as_i64()) //Is this fail safe
     }
 
     /// Get the offset for this current `TimeZoneSlot`.

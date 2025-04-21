@@ -708,7 +708,7 @@ impl ZonedDateTime {
         let offset = self
             .tz
             .get_offset_nanos_for(self.epoch_nanoseconds(), provider)?;
-        Ok(offset.as_i128().to_i64().unwrap_or(0))
+        Ok(offset.as_i64())
     }
 }
 

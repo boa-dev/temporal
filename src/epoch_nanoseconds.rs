@@ -43,6 +43,10 @@ impl EpochNanoseconds {
     pub fn as_i128(&self) -> i128 {
         self.0
     }
+
+    pub fn as_i64(&self) -> i64 {
+        self.0 as i64
+    }
 }
 
 /// Utility for determining if the nanos are within a valid range.

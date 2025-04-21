@@ -2,6 +2,8 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
+    use temporal_rs::time::EpochNanoseconds;
+
     use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
@@ -27,7 +29,8 @@ pub mod ffi {
             let total = (ns_high_abs << (64 + ns.low as u128)) as i128;
             // Reintroduce the sign
             let instant = if is_neg { -total } else { total };
-            temporal_rs::Instant::try_new(instant)
+            
+            temporal_rs::Instant::try_new(EpochNanoseconds::try_from(instant).unwrap())
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
