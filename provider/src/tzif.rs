@@ -4,16 +4,12 @@
 //! to full detail, but instead attempts to compress TZif data into
 //! a functional, data driven equivalent.
 
-use std::{
-    borrow::Cow,
-    collections::{BTreeMap, BTreeSet},
-    path::Path,
-};
+use std::{borrow::Cow, collections::BTreeMap, path::Path};
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 use zoneinfo_compiler::ZoneInfoTransitionData;
 
-use crate::tzdb::TzdbDataProvider;
+use crate::tzdb::TzdbDataSource;
 
 #[derive(Debug, Clone, yoke::Yokeable, databake::Bake, serde::Serialize)]
 #[databake(path = temporal_provider::tzif)]
@@ -91,21 +87,20 @@ pub enum ZoneInfoDataError {
 
 impl ZoneInfoProvider<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
-        let mut provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata).unwrap();
+        let mut tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
+        let compiled_transitions = tzdb_source.compiler.build();
+
         let mut identifiers = BTreeMap::default();
-        let mut zones_set = BTreeSet::default();
+        let mut zones = Vec::default();
 
-        let zoneinfo_compiled = provider.zone_info.build();
-
-        for zone_identifier in provider.zone_info.zones.keys() {
-            let _ = zones_set.insert(zone_identifier.clone());
+        // Create a Map of <ZoneId | Link, ZoneId>, this is used later to index
+        for zone_identifier in tzdb_source.compiler.zones.keys() {
+            zones.push(zone_identifier.clone());
             identifiers.insert(zone_identifier.clone(), zone_identifier.clone());
         }
-        for (link, zone) in provider.zone_info.links.iter() {
+        for (link, zone) in tzdb_source.compiler.links.iter() {
             identifiers.insert(link.clone(), zone.clone());
         }
-
-        let zones: Vec<String> = zones_set.iter().cloned().collect();
 
         let identier_map: BTreeMap<Vec<u8>, usize> = identifiers
             .iter()
@@ -120,7 +115,7 @@ impl ZoneInfoProvider<'_> {
         let tzifs: Vec<ZeroTzif<'_>> = zones
             .iter()
             .map(|id| {
-                let data = zoneinfo_compiled
+                let data = compiled_transitions
                     .data
                     .get(id)
                     .expect("all zones should be built");

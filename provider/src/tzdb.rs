@@ -38,34 +38,34 @@ pub struct IanaIdentifierNormalizer<'data> {
 // ==== End Data marker implementation ====
 
 #[derive(Debug)]
-pub enum TzdbDataProviderError {
+pub enum TzdbDataSourceError {
     Io(io::Error),
     ZoneInfo(ZoneInfoError),
 }
 
-impl From<io::Error> for TzdbDataProviderError {
+impl From<io::Error> for TzdbDataSourceError {
     fn from(value: io::Error) -> Self {
         Self::Io(value)
     }
 }
 
-impl From<ZoneInfoError> for TzdbDataProviderError {
+impl From<ZoneInfoError> for TzdbDataSourceError {
     fn from(value: ZoneInfoError) -> Self {
         Self::ZoneInfo(value)
     }
 }
 
-pub struct TzdbDataProvider {
+pub struct TzdbDataSource {
     pub version: String,
-    pub zone_info: ZoneInfoCompiler,
+    pub compiler: ZoneInfoCompiler,
 }
 
-impl TzdbDataProvider {
-    pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataProviderError> {
+impl TzdbDataSource {
+    pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
         let version_file = tzdata_path.join("version");
         let version = fs::read_to_string(version_file)?.trim().to_owned();
-        let zone_info = ZoneInfoCompiler::from_zoneinfo_directory(tzdata_path)?;
-        Ok(Self { version, zone_info })
+        let compiler = ZoneInfoCompiler::from_zoneinfo_directory(tzdata_path)?;
+        Ok(Self { version, compiler })
     }
 }
 
@@ -75,19 +75,19 @@ impl TzdbDataProvider {
 pub enum IanaDataError {
     Io(io::Error),
     Build(ZeroTrieBuildError),
-    Provider(TzdbDataProviderError),
+    Provider(TzdbDataSourceError),
 }
 
 impl IanaIdentifierNormalizer<'_> {
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
-        let provider = TzdbDataProvider::try_from_zoneinfo_directory(tzdata_path)
+        let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
         let mut identifiers = BTreeSet::default();
-        for zone_id in provider.zone_info.zones.keys() {
+        for zone_id in provider.compiler.zones.keys() {
             // Add canonical identifiers.
             let _ = identifiers.insert(zone_id.clone());
         }
-        for links in provider.zone_info.links.keys() {
+        for links in provider.compiler.links.keys() {
             // Add link / non-canonical identifiers
             let _ = identifiers.insert(links.clone());
         }
