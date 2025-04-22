@@ -59,9 +59,5 @@ const EPOCH_DAY_OF_WEEK_CONSTANT: i32 = 4;
 
 pub(crate) fn epoch_days_to_week_day(epoch_days: i32) -> u8 {
     // Wrapping here will be off by 1. (Sunday = 7; Mon = 1)
-    let unshifted = (epoch_days + EPOCH_DAY_OF_WEEK_CONSTANT).rem_euclid(7) as u8;
-    if unshifted == 0 {
-        return 7;
-    }
-    unshifted
+    (epoch_days + EPOCH_DAY_OF_WEEK_CONSTANT).rem_euclid(7) as u8
 }

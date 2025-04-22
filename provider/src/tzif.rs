@@ -95,7 +95,7 @@ impl ZoneInfoProvider<'_> {
         let mut identifiers = BTreeMap::default();
         let mut zones_set = BTreeSet::default();
 
-        let zoneinfo_compiled = provider.zone_info.associate_and_build();
+        let zoneinfo_compiled = provider.zone_info.build();
 
         for zone_identifier in provider.zone_info.zones.keys() {
             let _ = zones_set.insert(zone_identifier.clone());

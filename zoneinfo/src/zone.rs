@@ -13,6 +13,10 @@ use crate::{
     ZoneInfoLocalTimeRecord,
 };
 
+/// The zone build context.
+///
+/// This struct is primarily used as an intermediary type that tracks
+/// the state of a zone build across year boundaries.
 #[derive(Debug, Clone)]
 pub(crate) struct ZoneBuildContext {
     pub(crate) saving: Time,
@@ -45,6 +49,8 @@ impl Default for ZoneBuildContext {
 }
 
 impl ZoneBuildContext {
+    /// Create a new zone build context with the initial local time record
+    /// from prior to the first transition.
     pub(crate) fn new(lmt: &ZoneInfoLocalTimeRecord) -> Self {
         Self {
             saving: lmt.saving,
@@ -55,6 +61,7 @@ impl ZoneBuildContext {
         }
     }
 
+    /// Update the current build context data with the current year and until DateTime.
     pub(crate) fn update(&mut self, year: i32, until: &UntilDateTime) {
         let use_start = until.as_precise_ut_time(self.previous_offset, self.saving.as_secs());
         // NOTE: May need to adjust for offset + savings.
@@ -67,6 +74,7 @@ impl ZoneBuildContext {
         self.start_kind = until.time.time_kind();
     }
 
+    /// Update's the build context with the zone entry info and the last transition data.
     pub(crate) fn update_for_zone_entry(&mut self, zone: &ZoneEntry, last: Option<&Transition>) {
         let (savings, format) = last
             .map(|transition| {
@@ -103,27 +111,58 @@ impl ZoneBuildContext {
         }
     }
 
+    /// Check if the zone is beyond the year
     pub(crate) fn is_zone_beyond_year(&self, offset: i64) -> bool {
         self.year_seconds < self.use_start && !self.is_start_in_year_range(offset)
     }
 
+    /// Checks if a zone entry is skippable.
     pub(crate) fn in_skippable_zone(&self, until_time: i64, offset: i64) -> bool {
         !(self.use_start..=until_time).contains(&self.year_seconds)
             && !self.is_start_in_year_range(offset)
     }
 
+    /// Checks if the use start time is within the current year range.
     pub(crate) fn is_start_in_year_range(&self, offset: i64) -> bool {
         self.year_range
             .contains(&(self.use_start.saturating_add(offset)))
     }
 
-    pub(crate) fn zone_was_rule(&self) -> bool {
-        matches!(self.previous_rule, RuleIdentifier::Rule(_))
+    /// Checks if the zone entry was a named rule.
+    pub(crate) fn zone_was_named_rule(&self) -> bool {
+        matches!(self.previous_rule, RuleIdentifier::Named(_))
     }
 }
+
+// TODO: Potentially remove the first record from the
+// table. The first record is compiled separately
+// anyways, so that would clean that up.
+/// The `ZoneTable` represents the zoneinfo files' Zone record.
+///
+/// A ZoneTable is made up of a single record, with zero or
+/// more continuation lines.
+///
+/// # Example
+///
+/// The `America/Chicago` zone record
+///
+/// ```txt
+/// # Zone    NAME        STDOFF    RULES    FORMAT    [UNTIL]
+/// Zone America/Chicago    -5:50:36 -    LMT    1883 Nov 18 18:00u
+///             -6:00    US    C%sT    1920
+///             -6:00    Chicago    C%sT    1936 Mar  1  2:00
+///             -5:00    -    EST    1936 Nov 15  2:00
+///             -6:00    Chicago    C%sT    1942
+///             -6:00    US    C%sT    1946
+///             -6:00    Chicago    C%sT    1967
+///             -6:00    US    C%sT
+/// ```
+///
 #[derive(Debug, Clone, Default)]
 pub struct ZoneTable {
+    /// The zone entries of the `ZoneTable`
     pub table: Vec<ZoneEntry>,
+    /// Any associated rules for the zone table.
     pub associates: HashMap<String, RuleTable>,
 }
 
@@ -137,14 +176,17 @@ impl IntoIterator for ZoneTable {
 }
 
 impl ZoneTable {
+    /// Associate the current `ZoneTable` with rules
     pub fn associate_rules(&mut self, rules: &HashMap<String, RuleTable>) {
-        for entry in &mut self.table {
-            if let RuleIdentifier::Rule(associate_rule) = &entry.rule {
-                if self.associates.contains_key(associate_rule) {
-                    continue;
-                }
-                if let Some(rules) = rules.get(associate_rule).cloned() {
-                    let _ = self.associates.insert(associate_rule.clone(), rules);
+        if self.associates.is_empty() {
+            for entry in &mut self.table {
+                if let RuleIdentifier::Named(associate_rule) = &entry.rule {
+                    if self.associates.contains_key(associate_rule) {
+                        continue;
+                    }
+                    if let Some(rules) = rules.get(associate_rule).cloned() {
+                        let _ = self.associates.insert(associate_rule.clone(), rules);
+                    }
                 }
             }
         }
@@ -170,6 +212,11 @@ impl ZoneTable {
         self.table[0].date.as_ref()
     }
 
+    // TODO: the clarity of this could probably be further improved by using
+    // some sort of local time record in `Transition`
+    /// Calculates the transitions for the provided year with the given context.
+    ///
+    /// For more information, see source code comments.
     pub(crate) fn calculate_transitions_for_year(
         &self,
         year: i32,
@@ -253,7 +300,7 @@ impl ZoneTable {
                     });
                     *t
                 }
-                RuleIdentifier::Rule(s) => {
+                RuleIdentifier::Named(s) => {
                     let rules = self.associates.get(s).expect("rules were not associated.");
                     let applicable_rules =
                         rules.get_rules_for_year(year, &entry.std_offset, until_time_or_max, ctx);
@@ -291,7 +338,7 @@ impl ZoneTable {
                 // Determine the type of zone pair that we are dealing
                 // with. We care about both being named rules, primarily
                 // for the cases where one is not a named zone.
-                let both_named_rules = ctx.zone_was_rule() && entry.is_named_rule();
+                let both_named_rules = ctx.zone_was_named_rule() && entry.is_named_rule();
 
                 // Further checks on pairs with at least one non named zone
                 // Have the offsets or savings changed between the two? If
@@ -371,7 +418,7 @@ impl ZoneTable {
                 };
 
                 if transition_is_valid {
-                    let (offset, savings) = if let RuleIdentifier::Rule(rule) = &entry.rule {
+                    let (offset, savings) = if let RuleIdentifier::Named(rule) = &entry.rule {
                         // NOTE: See Riga 1941 for an example
                         let rule = self.associates.get(rule).expect("rule must be associated.");
                         let savings = rule.search_last_savings(ctx.use_start);
@@ -432,7 +479,8 @@ impl ZoneTable {
 }
 
 impl ZoneTable {
-    #[allow(clippy::while_let_on_iterator)]
+    /// Parses a `ZoneTable` starting from the provided Zone line and
+    /// ending on the final continuation line.
     pub fn parse_full_table(
         lines: &mut Peekable<Lines<'_>>,
         ctx: &mut LineParseContext,
@@ -448,6 +496,7 @@ impl ZoneTable {
         let has_continuation_lines = entry.date.is_some();
         table.push(entry);
         if has_continuation_lines {
+            #[allow(clippy::while_let_on_iterator)]
             while let Some(line) = lines.next() {
                 let cleaned_line = remove_comments(line);
                 if cleaned_line.trim().is_empty() {
@@ -474,6 +523,7 @@ impl ZoneTable {
         ))
     }
 
+    /// Parse a header line, i.e. the first zone record line.
     pub fn parse_header_line(
         header_line: &str,
         ctx: &mut LineParseContext,

@@ -1,3 +1,29 @@
+//! A library for parsing and compiling zoneinfo files into
+//! time zone transition data that can be used to build
+//! TZif files or any other desired time zone format.
+//!
+//! The `zoneinfo_compiler`* offers default parsing and compiling
+//! of zoneinfo files into time zone transition data.
+//!
+//! Why `zoneinfo-compiler`?
+//!
+//! In general, this library seeks to maximally expose as much
+//! data from the zoneinfo files as possible while also supporting
+//! extra time zone database features like the zone.tab, PACKRATLIST,
+//! and POSIX time zone strings.
+//!
+//! * TODO: bikeshed name
+
+// TODO list:
+//
+//  - Support PACKRATLIST
+//  - Support zone.tab
+//  - Support leap second
+//  - Support vanguard and rear guard parsing (potential backlog)
+//  - Provide easy defaults for SLIM and FAT compiling.
+//  - Support v1 TZif with conversion to i32.
+//
+
 // Implementation note: this library is NOT designed to be the most
 // optimal speed. Instead invariance and clarity is preferred where
 // need be.
@@ -48,6 +74,7 @@ pub const ZONEINFO_FILES: [&str; 9] = [
     "southamerica",
 ];
 
+/// The general error type for `ZoneInfo` operations
 #[derive(Debug)]
 pub enum ZoneInfoError {
     Parse(ZoneInfoParseError),
@@ -70,27 +97,41 @@ pub struct ZoneInfoLocalTimeRecord {
     pub designation: String, // AKA format
 }
 
-/// Intermediate zoneinfo data type that contains an ordered
-/// set of transition data along with a POSIX time zone
-/// string
+/// The `ZoneInfoTransitionData` is the complete compiled transition data
+/// for one zone.
 ///
-/// But the point here is to provide the required data in a
-/// consummable format for anyone who needs zoneinfo data.
+/// The transition data contains an initial local time record, an ordered
+/// set of transition data, and a POSIX time zone string.
+///
+/// In general, this struct offers the required data in a consummable format
+/// for anyone who compiled zoneinfo data.
+#[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub struct ZoneInfoTransitionData {
+    /// The initial local time record.
+    ///
+    /// This is used in the case where a time predates a transition time.
     pub lmt: ZoneInfoLocalTimeRecord,
+    /// The full set of calculated time zone transitions
     pub transitions: BTreeSet<Transition>,
+    /// The POSIX time zone string
+    ///
+    /// This string should be used to calculate the time zone beyond the last available transition.
     pub posix_string: String, // TODO: Implement POSIX string building
 }
 
+// NOTE: candidate for removal? Should this library offer TZif structs long term?
+//
+// I think I would prefer all of that live in the `tzif` crate, but that will
+// be a process to update. So implement it here, and then upstream it?
 impl ZoneInfoTransitionData {
     pub fn to_v2_data_block(&self) -> TzifBlockV2 {
         TzifBlockV2::from_transition_data(self)
     }
 }
 
-/// `ZoneInfo` is a struct of that maps a IANA identifier to
-/// its ordered transition data.
+/// The `ZoneInfo` contains a mapping of zone indentifiers (AKA IANA identifiers) to
+/// the zone's transition data.
 #[derive(Debug, Default)]
 pub struct ZoneInfo {
     pub data: HashMap<String, ZoneInfoTransitionData>,
@@ -105,7 +146,13 @@ pub struct ZoneInfoCompiler {
     pub pack_rat: HashMap<String, String>,
 }
 
+// ==== ZoneInfoCompiler parsing methods ====
+
 impl ZoneInfoCompiler {
+    /// Parse data from a path to a directory of zoneinfo files, using well known
+    /// zoneinfo file names.
+    ///
+    /// This is usually pointed to a "tzdata" directory.
     #[cfg(feature = "std")]
     pub fn from_zoneinfo_directory<P: AsRef<Path>>(dir: P) -> Result<Self, ZoneInfoError> {
         let mut zoneinfo = Self::default();
@@ -117,19 +164,22 @@ impl ZoneInfoCompiler {
         Ok(zoneinfo)
     }
 
+    /// Parse data from a filepath to a zoneinfo file.
     #[cfg(feature = "std")]
     pub fn from_filepath<P: AsRef<Path> + core::fmt::Debug>(
         path: P,
     ) -> Result<Self, ZoneInfoError> {
-        Self::from_zoneinfo_str(&std::fs::read_to_string(path)?)
+        Self::from_zoneinfo_file(&std::fs::read_to_string(path)?)
     }
 
-    pub fn from_zoneinfo_str(src: &str) -> Result<Self, ZoneInfoError> {
+    /// Parses data from a zoneinfo file as a string slice.
+    pub fn from_zoneinfo_file(src: &str) -> Result<Self, ZoneInfoError> {
         ZoneInfoParser::from_zoneinfo_str(src)
             .parse()
             .map_err(ZoneInfoError::Parse)
     }
 
+    /// Extend the current `ZoneInfoCompiler` data from another `ZoneInfoCompiler`.
     pub fn extend(&mut self, other: Self) {
         self.rules.extend(other.rules);
         self.zones.extend(other.zones);
@@ -138,19 +188,20 @@ impl ZoneInfoCompiler {
     }
 }
 
-impl ZoneInfoCompiler {
-    pub fn associate_and_build(&mut self) -> ZoneInfo {
-        // Associate the necessary rules with the ZoneTable
-        self.associate();
-        self.build()
-    }
+// ==== ZoneInfoCompiler build / compile methods ====
 
-    pub fn associate_and_build_for_zone(&mut self, target: &str) -> ZoneInfoTransitionData {
-        self.associate();
+impl ZoneInfoCompiler {
+    /// Build transition data for a specific zone.
+    pub fn build_zone(&mut self, target: &str) -> ZoneInfoTransitionData {
+        if let Some(zone) = self.zones.get_mut(target) {
+            zone.associate_rules(&self.rules);
+        }
         self.build_for_zone(target)
     }
 
     pub fn build(&mut self) -> ZoneInfo {
+        // Associate the necessary rules with the ZoneTable
+        self.associate();
         // TODO: Validate and resolve settings here.
         let mut zoneinfo = ZoneInfo::default();
         for identifier in self.zones.keys() {
@@ -160,8 +211,10 @@ impl ZoneInfoCompiler {
         zoneinfo
     }
 
-    /// Make sure to associate first!
-    pub fn build_for_zone(&self, target: &str) -> ZoneInfoTransitionData {
+    /// Builds the `ZoneInfoTransitionData` for a provided zone identifier (AKA IANA identifier)
+    ///
+    /// NOTE: Make sure to associate first!
+    pub(crate) fn build_for_zone(&self, target: &str) -> ZoneInfoTransitionData {
         let zone_table = self
             .zones
             .get(target)
@@ -192,6 +245,7 @@ impl ZoneInfoCompiler {
         }
     }
 
+    /// Associates the current `ZoneTables` with their applicable rules.
     pub fn associate(&mut self) {
         for zones in self.zones.values_mut() {
             zones.associate_rules(&self.rules);
@@ -212,7 +266,7 @@ mod tests {
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
 
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("America/Chicago");
+        let computed_zoneinfo = zoneinfo.build_zone("America/Chicago");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Chicago")).unwrap();
         let data_block_v2 = data.data_block2.unwrap();
@@ -239,7 +293,7 @@ mod tests {
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
 
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("America/New_York");
+        let computed_zoneinfo = zoneinfo.build_zone("America/New_York");
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/New_York")).unwrap();
@@ -267,7 +321,7 @@ mod tests {
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
 
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("America/Anchorage");
+        let computed_zoneinfo = zoneinfo.build_zone("America/Anchorage");
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Anchorage")).unwrap();
@@ -294,7 +348,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Australia/Sydney");
+        let computed_zoneinfo = zoneinfo.build_zone("Australia/Sydney");
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Sydney")).unwrap();
@@ -321,7 +375,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Australia/Lord_Howe");
+        let computed_zoneinfo = zoneinfo.build_zone("Australia/Lord_Howe");
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Lord_Howe")).unwrap();
@@ -348,7 +402,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Antarctica/Troll");
+        let computed_zoneinfo = zoneinfo.build_zone("Antarctica/Troll");
 
         let data =
             tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Antarctica/Troll")).unwrap();
@@ -375,7 +429,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Dublin");
+        let computed_zoneinfo = zoneinfo.build_zone("Europe/Dublin");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();
         let data_block_v2 = data.data_block2.unwrap();
@@ -401,7 +455,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Berlin");
+        let computed_zoneinfo = zoneinfo.build_zone("Europe/Berlin");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Berlin")).unwrap();
         let data_block_v2 = data.data_block2.unwrap();
@@ -427,7 +481,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Paris");
+        let computed_zoneinfo = zoneinfo.build_zone("Europe/Paris");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Paris")).unwrap();
         let data_block_v2 = data.data_block2.unwrap();
@@ -453,7 +507,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/London");
+        let computed_zoneinfo = zoneinfo.build_zone("Europe/London");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/London")).unwrap();
         let data_block_v2 = data.data_block2.unwrap();
@@ -481,7 +535,7 @@ mod tests {
         let mut zoneinfo =
             ZoneInfoCompiler::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
         // Association is needed.
-        let computed_zoneinfo = zoneinfo.associate_and_build_for_zone("Europe/Riga");
+        let computed_zoneinfo = zoneinfo.build_zone("Europe/Riga");
 
         let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Riga")).unwrap();
         let data_block_v2 = data.data_block2.unwrap();

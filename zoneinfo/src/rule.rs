@@ -9,6 +9,38 @@ use crate::{
     zone::ZoneBuildContext,
 };
 
+/// An internal struct for returning the applicable rules found
+/// for a year.
+#[derive(Debug)]
+pub(crate) struct ApplicableRules {
+    // Preloaded saving of the applicable rules' dst
+    pub(crate) saving: Time,
+    pub(crate) transitions: BTreeSet<Transition>,
+}
+
+/// The rule table is a collection of zone info rules.
+///
+/// These tables can be seen throughout zoneinfo files.
+///
+/// # Example
+///
+/// The `Chicago` rule table can be seen below.
+///
+/// ```txt
+/// # Rule    NAME    FROM    TO    -    IN    ON    AT    SAVE    LETTER
+/// Rule    Chicago    1920    only    -    Jun    13    2:00    1:00    D
+/// Rule    Chicago    1920    1921    -    Oct    lastSun    2:00    0    S
+/// Rule    Chicago    1921    only    -    Mar    lastSun    2:00    1:00    D
+/// Rule    Chicago    1922    1966    -    Apr    lastSun    2:00    1:00    D
+/// Rule    Chicago    1922    1954    -    Sep    lastSun    2:00    0    S
+/// Rule    Chicago    1955    1966    -    Oct    lastSun    2:00    0    S
+/// ```
+///
+/// Interestingly, Rule tables appear to be sorted in chronological
+/// order from their start date (FROM). However, their end dates may differ
+/// meaning at any one time there can be rule pairs of: [std, dst],
+/// [dst, std], [std, empty], or [dst, empty]
+///
 #[derive(Debug, Clone)]
 pub struct RuleTable {
     rules: Vec<Rule>,
@@ -74,6 +106,12 @@ impl RuleTable {
         }
     }
 
+    /// A method to search for the last applicable savings for a transition point.
+    ///
+    /// The last savings needs to be searched for from the beginning because the
+    /// rules are sorted by start date, not the end date. So, in theory, a rule
+    /// could be the second rule of ten, but still be active longer then the
+    /// following eight rules.
     pub(crate) fn search_last_savings(&self, transition_point: i64) -> Time {
         // Reasonable assumption: when searching for a last savings value,
         // we are dealing with an orphan. This means we do not need to check years
@@ -95,13 +133,7 @@ impl RuleTable {
     }
 }
 
-#[derive(Debug)]
-pub struct ApplicableRules {
-    // Preloaded saving of the applicable rules' dst
-    pub saving: Time,
-    pub transitions: BTreeSet<Transition>,
-}
-
+/// A zone info rule.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Rule {
     pub from: u16,
@@ -120,14 +152,16 @@ impl Rule {
 
     fn is_dst(&self) -> bool {
         match &self.letter {
-            Some(letter) if letter == "S" && self.save == Time::default() => false,
             Some(letter) if letter == "D" => true,
-            // Yes, there are other letters than S and D, like US's W and P
+            // NOTE: Potentially remove? Need to test
+            // "S" cannot be reliably used as an indicator for "standard", because it's also "Summer"
+            Some(letter) if letter == "S" && self.save == Time::default() => false,
+            // Yes, there are other letters than S and D, like US's W and P, and Europe's M
             _ => self.save != Time::default(),
         }
     }
 
-    // Returns the transition time for that year
+    /// Returns the transition time for that year
     fn transition_time_for_year(&self, year: i32, std_offset: &Time, saving: &Time) -> i64 {
         let epoch_days = epoch_days_for_rule_date(year, self.in_month, self.on_date);
         let epoch_seconds = epoch_seconds_for_epoch_days(epoch_days);
@@ -138,6 +172,7 @@ impl Rule {
     }
 }
 
+/// epoch_days_for_rule_date calculates the epoch days given values provided for a specific `Rule`
 pub(crate) fn epoch_days_for_rule_date(year: i32, month: Month, day_of_month: DayOfMonth) -> i32 {
     let day_of_year_for_month = month.month_start_to_day_of_year(year);
     let epoch_days_for_year = utils::epoch_days_for_year(year);
@@ -183,7 +218,8 @@ pub(crate) fn epoch_days_for_rule_date(year: i32, month: Month, day_of_month: Da
 }
 
 impl Rule {
-    pub fn parse(
+    /// Parse a `Rule` from a line
+    pub fn parse_from_line(
         line: &str,
         context: &mut LineParseContext,
     ) -> Result<(String, Self), ZoneInfoParseError> {
@@ -254,7 +290,7 @@ mod tests {
     #[test]
     fn rule_test() {
         let (identifier, data) =
-            Rule::parse(TEST_DATA[0], &mut LineParseContext::default()).unwrap();
+            Rule::parse_from_line(TEST_DATA[0], &mut LineParseContext::default()).unwrap();
         assert_eq!(identifier, "Algeria");
         assert_eq!(
             data,
@@ -283,7 +319,7 @@ mod tests {
     #[test]
     fn cycle_test() {
         for line in TEST_DATA {
-            let _success = Rule::parse(line, &mut LineParseContext::default()).unwrap();
+            let _success = Rule::parse_from_line(line, &mut LineParseContext::default()).unwrap();
         }
     }
 
