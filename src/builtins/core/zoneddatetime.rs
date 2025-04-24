@@ -514,8 +514,52 @@ impl ZonedDateTime {
         self.instant
     }
 
-    pub fn with(&self, _partial: PartialZonedDateTime) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented"))
+    pub fn with(
+        &self,
+        partial: PartialZonedDateTime,
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+        overflow: Option<ArithmeticOverflow>,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
+        let result_date = self.calendar.date_from_partial(
+            &partial.date.with_fallback_zoneddatetime(self, provider)?,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+
+        let original_iso = self.tz.get_iso_datetime_for(&self.instant, provider)?.time;
+        let time = original_iso.with(
+            partial.time,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+
+        // 24. Let newOffsetNanoseconds be ! ParseDateTimeUTCOffset(fields.[[OffsetString]]).
+        let original_offset = self.offset_nanoseconds_with_provider(provider)?;
+        let new_offset_nanos = partial
+            .offset
+            .map(|offset| i64::from(offset.0) * 60_000_000_000)
+            .or(Some(original_offset));
+
+        // 25. Let epochNanoseconds be ? InterpretISODateTimeOffset(dateTimeResult.[[ISODate]], dateTimeResult.[[Time]], option, newOffsetNanoseconds, timeZone, disambiguation, offset, match-exactly).
+        let epoch_nanos = interpret_isodatetime_offset(
+            result_date.iso,
+            Some(time),
+            false,
+            new_offset_nanos,
+            &self.tz,
+            disambiguation,
+            offset_option,
+            true,
+            provider,
+        )?;
+
+        // 26. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+        Ok(Self::new_unchecked(
+            Instant::from(epoch_nanos),
+            self.calendar.clone(),
+            self.tz.clone(),
+        ))
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
@@ -1365,5 +1409,65 @@ mod tests {
         assert_eq!(diff.milliseconds(), 0);
         assert_eq!(diff.microseconds(), 0);
         assert_eq!(diff.nanoseconds(), 0);
+    }
+
+    #[test]
+    // subclassing_ignored.js
+    fn subclassing_ignored() {
+        // Javacript
+        // TemporalHelpers.checkSubclassingIgnored(
+        //   Temporal.ZonedDateTime,
+        //   [10n, "UTC"],
+        //   "with",
+        //   [{ year: 2000 }],
+        //   (result) => {
+        //     assert.sameValue(result.epochNanoseconds, 946684800_000_000_010n, "epochNanoseconds result");
+        //     assert.sameValue(result.year, 2000, "year result");
+        //     assert.sameValue(result.month, 1, "month result");
+        //     assert.sameValue(result.day, 1, "day result");
+        //     assert.sameValue(result.hour, 0, "hour result");
+        //     assert.sameValue(result.minute, 0, "minute result");
+        //     assert.sameValue(result.second, 0, "second result");
+        //     assert.sameValue(result.millisecond, 0, "millisecond result");
+        //     assert.sameValue(result.microsecond, 0, "microsecond result");
+        //     assert.sameValue(result.nanosecond, 10, "nanosecond result");
+        //   },
+        // );
+
+        let provider = &FsTzdbProvider::default();
+        let zdt = ZonedDateTime::try_new(10_000_000_010, Calendar::default(), TimeZone::default())
+            .unwrap();
+
+        let partial_zdt = PartialZonedDateTime {
+            date: PartialDate {
+                year: Some(2000),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let result = zdt
+            .with(
+                partial_zdt,
+                Disambiguation::Compatible,
+                OffsetDisambiguation::Prefer,
+                None,
+                provider,
+            )
+            .unwrap();
+
+        assert_eq!(
+            result.epoch_nanoseconds(),
+            &EpochNanoseconds(946684800_000_000_010)
+        );
+        assert_eq!(result.year_with_provider(provider).unwrap(), 2000);
+        assert_eq!(result.month_with_provider(provider).unwrap(), 1);
+        assert_eq!(result.day_with_provider(provider).unwrap(), 1);
+        assert_eq!(result.hour_with_provider(provider).unwrap(), 0);
+        assert_eq!(result.minute_with_provider(provider).unwrap(), 0);
+        assert_eq!(result.second_with_provider(provider).unwrap(), 0);
+        assert_eq!(result.millisecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(result.microsecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(result.nanosecond_with_provider(provider).unwrap(), 10);
     }
 }
