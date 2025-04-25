@@ -23,10 +23,10 @@ namespace capi {
     extern "C" {
     
     typedef struct temporal_rs_Duration_create_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_create_result;
-    temporal_rs_Duration_create_result temporal_rs_Duration_create(double years, double months, double weeks, double days, double hours, double minutes, double seconds, double milliseconds, double microseconds, double nanoseconds);
+    temporal_rs_Duration_create_result temporal_rs_Duration_create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds);
     
     typedef struct temporal_rs_Duration_from_day_and_time_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
-    temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(double day, const temporal_rs::capi::TimeDuration* time);
+    temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::TimeDuration* time);
     
     typedef struct temporal_rs_Duration_from_partial_duration_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
     temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(temporal_rs::capi::PartialDuration partial);
@@ -37,25 +37,25 @@ namespace capi {
     
     const temporal_rs::capi::DateDuration* temporal_rs_Duration_date(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_years(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_years(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_months(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_months(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_weeks(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_weeks(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_days(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_days(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_hours(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_hours(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_minutes(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_minutes(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_seconds(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_seconds(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_milliseconds(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_milliseconds(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
     
-    double temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
+    int64_t temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
     
     temporal_rs::capi::Sign temporal_rs_Duration_sign(const temporal_rs::capi::Duration* self);
     
@@ -78,7 +78,7 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::create(double years, double months, double weeks, double days, double hours, double minutes, double seconds, double milliseconds, double microseconds, double nanoseconds) {
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds) {
   auto result = temporal_rs::capi::temporal_rs_Duration_create(years,
     months,
     weeks,
@@ -92,7 +92,7 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_day_and_time(double day, const temporal_rs::TimeDuration& time) {
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time) {
   auto result = temporal_rs::capi::temporal_rs_Duration_from_day_and_time(day,
     time.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
@@ -118,52 +118,52 @@ inline const temporal_rs::DateDuration& temporal_rs::Duration::date() const {
   return *temporal_rs::DateDuration::FromFFI(result);
 }
 
-inline double temporal_rs::Duration::years() const {
+inline int64_t temporal_rs::Duration::years() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_years(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::months() const {
+inline int64_t temporal_rs::Duration::months() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_months(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::weeks() const {
+inline int64_t temporal_rs::Duration::weeks() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_weeks(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::days() const {
+inline int64_t temporal_rs::Duration::days() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_days(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::hours() const {
+inline int64_t temporal_rs::Duration::hours() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_hours(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::minutes() const {
+inline int64_t temporal_rs::Duration::minutes() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_minutes(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::seconds() const {
+inline int64_t temporal_rs::Duration::seconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_seconds(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::milliseconds() const {
+inline int64_t temporal_rs::Duration::milliseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_milliseconds(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::microseconds() const {
+inline int64_t temporal_rs::Duration::microseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_microseconds(this->AsFFI());
   return result;
 }
 
-inline double temporal_rs::Duration::nanoseconds() const {
+inline int64_t temporal_rs::Duration::nanoseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_nanoseconds(this->AsFFI());
   return result;
 }

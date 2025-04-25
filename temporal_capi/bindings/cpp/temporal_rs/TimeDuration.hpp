@@ -20,7 +20,7 @@ namespace capi {
     extern "C" {
     
     typedef struct temporal_rs_TimeDuration_new_result {union {temporal_rs::capi::TimeDuration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_TimeDuration_new_result;
-    temporal_rs_TimeDuration_new_result temporal_rs_TimeDuration_new(double hours, double minutes, double seconds, double milliseconds, double microseconds, double nanoseconds);
+    temporal_rs_TimeDuration_new_result temporal_rs_TimeDuration_new(int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds);
     
     temporal_rs::capi::TimeDuration* temporal_rs_TimeDuration_abs(const temporal_rs::capi::TimeDuration* self);
     
@@ -37,7 +37,7 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::TimeDuration>, temporal_rs::TemporalError> temporal_rs::TimeDuration::new_(double hours, double minutes, double seconds, double milliseconds, double microseconds, double nanoseconds) {
+inline diplomat::result<std::unique_ptr<temporal_rs::TimeDuration>, temporal_rs::TemporalError> temporal_rs::TimeDuration::new_(int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds) {
   auto result = temporal_rs::capi::temporal_rs_TimeDuration_new(hours,
     minutes,
     seconds,
