@@ -646,3 +646,117 @@ fn balance_days_up_to_both_years_and_months() {
         -2.0
     );
 }
+
+// relativeto-plaindate-add24hourdaystonormalizedtimeduration-out-of-range.js
+#[test]
+fn add_normalized_time_duration_out_of_range() {
+    let duration = Duration::from_partial_duration(PartialDuration {
+        years: Some(1),
+        seconds: Some(9_007_199_254_740_990_i64),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let relative_to = PlainDate::new(2000, 1, 1, Calendar::default()).unwrap();
+
+    let err = duration.total(Unit::Day, Some(RelativeTo::PlainDate(relative_to)));
+    assert!(err.is_err())
+}
+
+#[test]
+fn test_rounding_boundaries() {
+    let relative_to = PlainDate::new(2000, 1, 1, Calendar::default()).unwrap();
+
+    // test year
+    let duration = Duration::from_partial_duration(PartialDuration {
+        years: Some((u32::MAX - 1) as i64),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Week),
+        ..Default::default()
+    };
+    let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+
+    // test month
+    let duration = Duration::from_partial_duration(PartialDuration {
+        months: Some((u32::MAX - 1) as i64),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Week),
+        ..Default::default()
+    };
+    let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+
+    // test week
+    let duration = Duration::from_partial_duration(PartialDuration {
+        weeks: Some((u32::MAX - 1) as i64),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Week),
+        ..Default::default()
+    };
+    let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+
+    // test calendar max
+    let duration = Duration::from_partial_duration(PartialDuration {
+        years: Some((u32::MAX - 1) as i64),
+        months: Some((u32::MAX - 1) as i64),
+        weeks: Some((u32::MAX - 1) as i64),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Week),
+        ..Default::default()
+    };
+    let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+
+    // test days for safety
+    let duration = Duration::from_partial_duration(PartialDuration {
+        years: Some((u32::MAX - 1) as i64),
+        months: Some((u32::MAX - 1) as i64),
+        weeks: Some((u32::MAX - 1) as i64),
+        days: Some(104_249_991_374),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Week),
+        ..Default::default()
+    };
+    let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+
+    // test minimum bounds with days for safety
+    let min_calendar_value = -((u32::MAX - 1) as i64);
+    let duration = Duration::from_partial_duration(PartialDuration {
+        years: Some(min_calendar_value),
+        months: Some(min_calendar_value),
+        weeks: Some(min_calendar_value),
+        days: Some(-104_249_991_374),
+        ..Default::default()
+    })
+    .unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Week),
+        ..Default::default()
+    };
+    let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to)));
+    assert!(err.is_err());
+}

@@ -338,12 +338,12 @@ impl IsoDate {
 
     /// Create a balance date while rejecting invalid intermediates
     pub(crate) fn try_balance(year: i32, month: i32, day: i64) -> TemporalResult<Self> {
-        let epoch_days = iso_date_to_epoch_days(year, month, 1) as i64 + day - 1;
-        if (MAX_EPOCH_DAYS as i64) < epoch_days {
+        let epoch_days = iso_date_to_epoch_days(year, month, 1) + day - 1;
+        if (MAX_EPOCH_DAYS) < epoch_days {
             return Err(TemporalError::range().with_message("epoch days exceed maximum range."));
         }
         // NOTE The cast is to i32 is safe due to MAX_EPOCH_DAYS check
-        let ms = utils::epoch_days_to_epoch_ms(epoch_days as i32, 0);
+        let ms = utils::epoch_days_to_epoch_ms(epoch_days, 0);
         let (year, month, day) = utils::ymd_from_epoch_milliseconds(ms);
         Ok(Self::new_unchecked(year, month, day))
     }
@@ -376,7 +376,8 @@ impl IsoDate {
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
     pub(crate) fn to_epoch_days(self) -> i32 {
-        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day)
+        // NOTE: cast to i32 is safe as IsoDate is in a valid range.
+        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day) as i32
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -393,9 +394,9 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
-        let intermediate = balance_iso_year_month(
-            self.year + duration.years as i32,
-            i32::from(self.month) + duration.months as i32,
+        let intermediate = balance_iso_year_month_with_clamp(
+            i64::from(self.year) + duration.years,
+            i64::from(self.month) + duration.months,
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
@@ -510,7 +511,7 @@ impl IsoDate {
         };
 
         // 17. Return ! CreateDateDurationRecord(years, months, weeks, days).
-        DateDuration::new(years as i64, months as i64, weeks as i64, days as i64)
+        DateDuration::new(years as i64, months as i64, weeks, days)
     }
 }
 
@@ -905,7 +906,7 @@ impl IsoTime {
 
 // ==== `IsoDateTime` specific utility functions ====
 
-const MAX_EPOCH_DAYS: i32 = 10i32.pow(8) + 1;
+const MAX_EPOCH_DAYS: i64 = 10i64.pow(8) + 1;
 
 #[inline]
 /// Utility function to determine if a `DateTime`'s components create a `DateTime` within valid limits
@@ -932,7 +933,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanosec
 #[inline]
 fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
     let ms = time.to_epoch_ms();
-    let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
+    let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days() as i64, ms);
     epoch_ms as i128 * 1_000_000 + time.microsecond as i128 * 1_000 + time.nanosecond as i128
 }
 
@@ -941,7 +942,7 @@ fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
 /// Returns the Epoch days based off the given year, month, and day.
 /// Note: Month should be 1 indexed
 #[inline]
-pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
+pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i64 {
     // 1. Let resolvedYear be year + floor(month / 12).
     let resolved_year = year + month.div_euclid(12);
     // 2. Let resolvedMonth be month modulo 12.
@@ -951,7 +952,7 @@ pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i32 {
     let epoch_days = utils::epoch_days_from_gregorian_date(resolved_year, resolved_month, 1);
 
     // 4. Return EpochTimeToDayNumber(t) + date - 1.
-    epoch_days + day - 1
+    epoch_days + day as i64 - 1
 }
 
 #[inline]
@@ -986,6 +987,16 @@ pub(crate) fn year_month_within_limits(year: i32, month: u8) -> bool {
     }
     // 4. Return true.
     true
+}
+
+fn balance_iso_year_month_with_clamp(year: i64, month: i64) -> (i32, u8) {
+    // 1. Assert: year and month are integers.
+    // 2. Set year to year + floor((month - 1) / 12).
+    let y = year + (month - 1).div_euclid(12);
+    // 3. Set month to ((month - 1) modulo 12) + 1.
+    let m = (month - 1).rem_euclid(12) + 1;
+    // 4. Return the Record { [[Year]]: year, [[Month]]: month  }.
+    (y.clamp(i32::MIN as i64, i32::MAX as i64) as i32, m as u8)
 }
 
 #[inline]
@@ -1039,7 +1050,7 @@ fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
 mod tests {
     use super::{iso_date_to_epoch_days, IsoDate};
 
-    const MAX_DAYS_BASE: i32 = 100_000_000;
+    const MAX_DAYS_BASE: i64 = 100_000_000;
 
     #[test]
     fn icu4x_max_conversion_test() {

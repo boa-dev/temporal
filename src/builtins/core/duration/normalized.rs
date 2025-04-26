@@ -64,7 +64,6 @@ impl NormalizedTimeDuration {
         Ok(Self(result))
     }
 
-    // NOTE: `days: f64` should be an integer -> `i64`.
     /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
     /// Add24HourDaysToTimeDuration??
     pub(crate) fn add_days(&self, days: i64) -> TemporalResult<Self> {
@@ -389,8 +388,8 @@ impl NormalizedDurationRecord {
                 // points, but it may really show that a Duration's max range is very very
                 // very big. Too big. To be tested and determined.
                 //
-                // Oh our range is +- 280_000? Let's add 3 BILLION to that. It won't overflow,
-                // right?
+                // In other words, our year range is roughly +/- 280_000? Let's add 2^32 to
+                // that. It won't overflow, right?
 
                 // a. Let isoResult1 be BalanceISODate(dateTime.[[Year]] + duration.[[Years]],
                 // dateTime.[[Month]] + duration.[[Months]], dateTime.[[Day]]).

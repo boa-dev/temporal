@@ -120,7 +120,7 @@ impl DateDuration {
         // 6. Let yearsMonthsWeeksInDays be epochDays2 - epochDays1.
         let ymd_in_days = epoch_days_2 - epoch_days_1;
         // 7. Return dateDuration.[[Days]] + yearsMonthsWeeksInDays.
-        Ok(self.days + i64::from(ymd_in_days))
+        Ok(self.days + ymd_in_days)
     }
 
     /// AdjustDateDurationRecord
