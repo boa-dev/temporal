@@ -1,23 +1,96 @@
-use alloc::string::String;
+//! System dependent structs and traits
+//!
+//! This module hosts system defined trait definitions
+//! and related structs.
+//!
+//! The [`SystemClock`] and [`SystemTimeZone`] traits may be
+//! implemented and provided to [`Now`] to provide it system
+//! access.
+//!
+//! The struct implementations are feature gated by the `sys`
+//! feature flag and include default implementations of the
+//! above traits, [`DefaultSystemClock`] and [`DefaultSystemTimeZone`]
+//! along with the [`Temporal`] namespace struct that provides
+//! a const constructor for [`Now`] with the default trait
+//! implementations.
+//!
+//! The traits in this module define the system methods
+//! that must be implemented for system defined topics,
 
-use crate::TemporalResult;
-
-use crate::TemporalError;
 use alloc::string::ToString;
-use web_time::{SystemTime, UNIX_EPOCH};
+use core::fmt::Display;
 
-// TODO: Need to implement SystemTime handling for non_std.
+use crate::Now;
+use crate::TemporalError;
+use crate::TimeZone;
+use web_time::{SystemTime as DefaultSysTime, SystemTimeError, UNIX_EPOCH};
 
-#[inline]
-pub(crate) fn get_system_timezone() -> TemporalResult<String> {
-    iana_time_zone::get_timezone().map_err(|e| TemporalError::general(e.to_string()))
+pub trait SystemClock: Default {
+    type Error: Display;
+    fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error>;
 }
 
-/// Returns the system time in nanoseconds.
+pub trait SystemTimeZone: Default {
+    type Error: Display;
+    fn get_system_time_zone(&self) -> Result<TimeZone, Self::Error>;
+}
+
+/// The Rust equivalent to the global `Temporal` object.
+///
+/// [`Temporal`] provides access to a default [`Now`] that is
+/// implemented with [`web_time::SystemTime`] as the default
+/// clock.
+///
+/// ```
+/// use temporal_rs::{sys::Temporal, TimeZone};
+///
+/// let uschi = TimeZone::try_from_str("America/Chicago").unwrap();
+/// let instant = Temporal::now().instant().unwrap();
+/// let zoned_date_time = Temporal::now().zoned_date_time_iso(Some(uschi.clone())).unwrap();
+/// let zoned_from_instant = instant.to_zoned_date_time_iso(uschi.clone());
+/// assert_eq!(zoned_date_time.epoch_milliseconds(), zoned_from_instant.epoch_milliseconds());
+/// ```
+///
 #[cfg(feature = "sys")]
-pub(crate) fn get_system_nanoseconds() -> TemporalResult<u128> {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| TemporalError::general(e.to_string()))
-        .map(|d| d.as_nanos())
+pub struct Temporal;
+
+#[cfg(feature = "sys")]
+impl Temporal {
+    /// Return a default `Now` for `SystemTime`.
+    pub const fn now() -> Now<DefaultSystemClock, DefaultSystemTimeZone> {
+        Now {
+            clock: DefaultSystemClock,
+            system_zone: DefaultSystemTimeZone,
+        }
+    }
+}
+
+// ==== Utility functions ====
+
+#[derive(Debug, Default)]
+#[cfg(feature = "sys")]
+pub struct DefaultSystemTimeZone;
+
+#[cfg(feature = "sys")]
+impl SystemTimeZone for DefaultSystemTimeZone {
+    type Error = TemporalError;
+    fn get_system_time_zone(&self) -> Result<TimeZone, Self::Error> {
+        let id =
+            iana_time_zone::get_timezone().map_err(|e| TemporalError::general(e.to_string()))?;
+        TimeZone::try_from_str(&id)
+    }
+}
+
+#[derive(Debug, Default)]
+#[cfg(feature = "sys")]
+pub struct DefaultSystemClock;
+
+#[cfg(feature = "sys")]
+impl SystemClock for DefaultSystemClock {
+    type Error = SystemTimeError;
+    fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error> {
+        DefaultSysTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+    }
 }

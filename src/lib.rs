@@ -65,8 +65,10 @@ pub mod parsers;
 pub mod primitive;
 pub mod provider;
 
+pub mod sys;
+
 #[cfg(feature = "sys")]
-pub(crate) mod sys;
+pub use sys::Temporal;
 
 mod builtins;
 mod epoch_nanoseconds;
