@@ -17,12 +17,16 @@
 //! The traits in this module define the system methods
 //! that must be implemented for system defined topics,
 
-use alloc::string::ToString;
+use crate::TimeZone;
 use core::fmt::Display;
 
+#[cfg(feature = "sys")]
 use crate::Now;
+#[cfg(feature = "sys")]
 use crate::TemporalError;
-use crate::TimeZone;
+#[cfg(feature = "sys")]
+use alloc::string::ToString;
+#[cfg(feature = "sys")]
 use web_time::{SystemTime as DefaultSysTime, SystemTimeError, UNIX_EPOCH};
 
 pub trait SystemClock: Default {

@@ -94,6 +94,12 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
         self
     }
 
+    pub fn time_zone(&self) -> TemporalResult<TimeZone> {
+        self.system_zone
+            .get_system_time_zone()
+            .map_err(|e| TemporalError::general(e.to_string()))
+    }
+
     /// Returns the current instant
     ///
     /// Enable with the `sys` feature flag.
