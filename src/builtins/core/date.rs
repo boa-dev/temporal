@@ -111,7 +111,6 @@ impl PartialDate {
             ),
         };
 
-        #[allow(clippy::needless_update)]
         {
             Ok(Self {
                 year: Some(self.year.unwrap_or(fallback.year_with_provider(provider)?)),
@@ -121,7 +120,6 @@ impl PartialDate {
                 era,
                 era_year,
                 calendar: fallback.calendar().clone(),
-                ..Default::default()
             })
         }
     }
