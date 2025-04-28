@@ -517,22 +517,23 @@ impl ZonedDateTime {
     pub fn with(
         &self,
         partial: PartialZonedDateTime,
-        disambiguation: Disambiguation,
-        offset_option: OffsetDisambiguation,
+        disambiguation: Option<Disambiguation>,
+        offset_option: Option<OffsetDisambiguation>,
         overflow: Option<ArithmeticOverflow>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
+        let overflow = overflow.unwrap_or_default();
+        let disambiguation = disambiguation.unwrap_or_default();
+        let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
+
         // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
         let result_date = self.calendar.date_from_partial(
             &partial.date.with_fallback_zoneddatetime(self, provider)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            ArithmeticOverflow::Constrain,
         )?;
 
         let original_iso = self.tz.get_iso_datetime_for(&self.instant, provider)?.time;
-        let time = original_iso.with(
-            partial.time,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )?;
+        let time = original_iso.with(partial.time, overflow)?;
 
         // 24. Let newOffsetNanoseconds be ! ParseDateTimeUTCOffset(fields.[[OffsetString]]).
         let original_offset = self.offset_nanoseconds_with_provider(provider)?;
