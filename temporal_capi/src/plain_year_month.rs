@@ -139,6 +139,9 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
         pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
             self.0
                 .to_plain_date()

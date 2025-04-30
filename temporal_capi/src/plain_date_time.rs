@@ -242,6 +242,10 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+        
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
             self.0
                 .round(options.try_into()?)

@@ -44,6 +44,10 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+        
         pub fn iso_year(&self) -> i32 {
             self.0.iso_year()
         }
