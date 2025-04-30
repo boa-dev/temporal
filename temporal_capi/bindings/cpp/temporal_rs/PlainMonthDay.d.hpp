@@ -37,6 +37,12 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
 
+  inline bool equals(const temporal_rs::PlainMonthDay& other) const;
+
+  inline static int32_t compare(const temporal_rs::PlainMonthDay& one, const temporal_rs::PlainMonthDay& two);
+
+  inline static int32_t compare_iso_month_day(uint8_t month1, uint8_t day1, uint8_t month2, uint8_t day2);
+
   inline int32_t iso_year() const;
 
   inline uint8_t iso_month() const;

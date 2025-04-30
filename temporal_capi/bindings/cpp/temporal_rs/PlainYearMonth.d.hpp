@@ -74,6 +74,12 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainYearMonth& other, temporal_rs::DifferenceSettings settings) const;
 
+  inline bool equals(const temporal_rs::PlainYearMonth& other) const;
+
+  inline static int32_t compare(const temporal_rs::PlainYearMonth& one, const temporal_rs::PlainYearMonth& two);
+
+  inline static int32_t compare_iso_year_month(int32_t year1, uint8_t month1, int32_t year2, uint8_t month2);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
 
   inline const temporal_rs::capi::PlainYearMonth* AsFFI() const;

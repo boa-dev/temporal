@@ -69,6 +69,12 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainTime& other, temporal_rs::DifferenceSettings settings) const;
 
+  inline bool equals(const temporal_rs::PlainTime& other) const;
+
+  inline static int32_t compare(const temporal_rs::PlainTime& one, const temporal_rs::PlainTime& two);
+
+  inline static int32_t compare_iso_time(uint8_t hour1, uint8_t minute1, uint8_t second1, uint16_t millisecond1, uint16_t microsecond1, uint16_t nanosecond1, uint8_t hour2, uint8_t minute2, uint8_t second2, uint16_t millisecond2, uint16_t microsecond2, uint16_t nanosecond2);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> round(temporal_rs::Unit smallest_unit, std::optional<double> rounding_increment, std::optional<temporal_rs::RoundingMode> rounding_mode) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::ToStringRoundingOptions options) const;

@@ -111,6 +111,12 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainDateTime& other, temporal_rs::DifferenceSettings settings) const;
 
+  inline bool equals(const temporal_rs::PlainDateTime& other) const;
+
+  inline static int32_t compare(const temporal_rs::PlainDateTime& one, const temporal_rs::PlainDateTime& two);
+
+  inline static int32_t compare_iso_plain_date_time(int32_t year1, uint8_t month1, uint8_t day1, uint8_t hour1, uint8_t minute1, uint8_t second1, uint16_t millisecond1, uint16_t microsecond1, uint16_t nanosecond1, int32_t year2, uint8_t month2, uint8_t day2, uint8_t hour2, uint8_t minute2, uint8_t second2, uint16_t millisecond2, uint16_t microsecond2, uint16_t nanosecond2);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;

@@ -112,6 +112,12 @@ namespace capi {
     typedef struct temporal_rs_PlainDateTime_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_since_result;
     temporal_rs_PlainDateTime_since_result temporal_rs_PlainDateTime_since(const temporal_rs::capi::PlainDateTime* self, const temporal_rs::capi::PlainDateTime* other, temporal_rs::capi::DifferenceSettings settings);
     
+    bool temporal_rs_PlainDateTime_equals(const temporal_rs::capi::PlainDateTime* self, const temporal_rs::capi::PlainDateTime* other);
+    
+    int32_t temporal_rs_PlainDateTime_compare(const temporal_rs::capi::PlainDateTime* one, const temporal_rs::capi::PlainDateTime* two);
+    
+    int32_t temporal_rs_PlainDateTime_compare_iso_plain_date_time(int32_t year1, uint8_t month1, uint8_t day1, uint8_t hour1, uint8_t minute1, uint8_t second1, uint16_t millisecond1, uint16_t microsecond1, uint16_t nanosecond1, int32_t year2, uint8_t month2, uint8_t day2, uint8_t hour2, uint8_t minute2, uint8_t second2, uint16_t millisecond2, uint16_t microsecond2, uint16_t nanosecond2);
+    
     typedef struct temporal_rs_PlainDateTime_round_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_round_result;
     temporal_rs_PlainDateTime_round_result temporal_rs_PlainDateTime_round(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::RoundingOptions options);
     
@@ -341,6 +347,40 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
     other.AsFFI(),
     settings.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline bool temporal_rs::PlainDateTime::equals(const temporal_rs::PlainDateTime& other) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_equals(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline int32_t temporal_rs::PlainDateTime::compare(const temporal_rs::PlainDateTime& one, const temporal_rs::PlainDateTime& two) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_compare(one.AsFFI(),
+    two.AsFFI());
+  return result;
+}
+
+inline int32_t temporal_rs::PlainDateTime::compare_iso_plain_date_time(int32_t year1, uint8_t month1, uint8_t day1, uint8_t hour1, uint8_t minute1, uint8_t second1, uint16_t millisecond1, uint16_t microsecond1, uint16_t nanosecond1, int32_t year2, uint8_t month2, uint8_t day2, uint8_t hour2, uint8_t minute2, uint8_t second2, uint16_t millisecond2, uint16_t microsecond2, uint16_t nanosecond2) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_compare_iso_plain_date_time(year1,
+    month1,
+    day1,
+    hour1,
+    minute1,
+    second1,
+    millisecond1,
+    microsecond1,
+    nanosecond1,
+    year2,
+    month2,
+    day2,
+    hour2,
+    minute2,
+    second2,
+    millisecond2,
+    microsecond2,
+    nanosecond2);
+  return result;
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::round(temporal_rs::RoundingOptions options) const {
