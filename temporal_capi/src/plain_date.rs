@@ -15,6 +15,7 @@ pub mod ffi {
     use crate::plain_time::ffi::PlainTime;
     use crate::plain_year_month::ffi::PlainYearMonth;
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
+    use std::cmp::Ordering;
     use std::fmt::Write;
 
     #[diplomat::opaque]
@@ -158,7 +159,36 @@ pub mod ffi {
         pub fn equals(&self, other: &Self) -> bool {
             self.0 == other.0
         }
-        
+
+        pub fn compare(one: &Self, two: &Self) -> i32 {
+            Self::compare_iso_date(
+                one.iso_year(),
+                one.iso_month(),
+                one.iso_day(),
+                two.iso_year(),
+                two.iso_month(),
+                two.iso_day(),
+            )
+        }
+
+        pub fn compare_iso_date(
+            year1: i32,
+            month1: u8,
+            day1: u8,
+            year2: i32,
+            month2: u8,
+            day2: u8,
+        ) -> i32 {
+            match (year1.cmp(&year2), month1.cmp(&month2), day1.cmp(&day2)) {
+                (Ordering::Greater, _, _) => 1,
+                (Ordering::Less, _, _) => -1,
+                (_, Ordering::Greater, _) => 1,
+                (_, Ordering::Less, _) => -1,
+                (_, _, Ordering::Greater) => 1,
+                (_, _, Ordering::Less) => -1,
+                _ => 0,
+            }
+        }
         pub fn year(&self) -> i32 {
             self.0.year()
         }

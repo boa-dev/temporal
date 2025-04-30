@@ -9,6 +9,7 @@ pub mod ffi {
     use crate::plain_date::ffi::{PartialDate, PlainDate};
 
     use diplomat_runtime::DiplomatWrite;
+    use std::cmp::Ordering;
     use std::fmt::Write;
 
     #[diplomat::opaque]
@@ -47,7 +48,30 @@ pub mod ffi {
         pub fn equals(&self, other: &Self) -> bool {
             self.0 == other.0
         }
-        
+
+        pub fn compare(one: &Self, two: &Self) -> i32 {
+            Self::compare_iso_month_day(
+                one.iso_month(),
+                one.iso_day(),
+                two.iso_month(),
+                two.iso_day(),
+            )
+        }
+
+        /// Compares two ISO month-day pairs and returns -1, 0, or 1.
+        pub fn compare_iso_month_day(month1: u8, day1: u8, month2: u8, day2: u8) -> i32 {
+            if month1 > month2 {
+                1
+            } else if month1 < month2 {
+                -1
+            } else if day1 > day2 {
+                1
+            } else if day1 < day2 {
+                -1
+            } else {
+                0
+            }
+        }
         pub fn iso_year(&self) -> i32 {
             self.0.iso_year()
         }

@@ -142,6 +142,28 @@ pub mod ffi {
         pub fn equals(&self, other: &Self) -> bool {
             self.0 == other.0
         }
+        pub fn compare(one: &Self, two: &Self) -> i32 {
+            Self::compare_iso_year_month(
+                one.iso_year(),
+                one.iso_month(),
+                two.iso_year(),
+                two.iso_month(),
+            )
+        }
+
+        pub fn compare_iso_year_month(year1: i32, month1: u8, year2: i32, month2: u8) -> i32 {
+            if year1 > year2 {
+                1
+            } else if year1 < year2 {
+                -1
+            } else if month1 > month2 {
+                1
+            } else if month1 < month2 {
+                -1
+            } else {
+                0
+            }
+        }
         pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
             self.0
                 .to_plain_date()

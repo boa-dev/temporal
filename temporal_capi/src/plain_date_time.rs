@@ -245,7 +245,71 @@ pub mod ffi {
         pub fn equals(&self, other: &Self) -> bool {
             self.0 == other.0
         }
-        
+
+        pub fn compare(one: &Self, two: &Self) -> i32 {
+            Self::compare_iso_plain_date_time(
+                one.iso_year(),
+                one.iso_month(),
+                one.iso_day(),
+                one.hour(),
+                one.minute(),
+                one.second(),
+                one.millisecond(),
+                one.microsecond(),
+                one.nanosecond(),
+                two.iso_year(),
+                two.iso_month(),
+                two.iso_day(),
+                two.hour(),
+                two.minute(),
+                two.second(),
+                two.millisecond(),
+                two.microsecond(),
+                two.nanosecond(),
+            )
+        }
+
+        pub fn compare_iso_plain_date_time(
+            year1: i32,
+            month1: u8,
+            day1: u8,
+            hour1: u8,
+            minute1: u8,
+            second1: u8,
+            millisecond1: u16,
+            microsecond1: u16,
+            nanosecond1: u16,
+            year2: i32,
+            month2: u8,
+            day2: u8,
+            hour2: u8,
+            minute2: u8,
+            second2: u8,
+            millisecond2: u16,
+            microsecond2: u16,
+            nanosecond2: u16,
+        ) -> i32 {
+            let comparisons = [
+                year1.cmp(&year2),
+                month1.cmp(&month2),
+                day1.cmp(&day2),
+                hour1.cmp(&hour2),
+                minute1.cmp(&minute2),
+                second1.cmp(&second2),
+                millisecond1.cmp(&millisecond2),
+                microsecond1.cmp(&microsecond2),
+                nanosecond1.cmp(&nanosecond2),
+            ];
+            comparisons
+                .iter()
+                .find(|&&ord| ord != std::cmp::Ordering::Equal)
+                .map_or(0, |ord| match ord {
+                    std::cmp::Ordering::Greater => 1,
+                    std::cmp::Ordering::Less => -1,
+                    std::cmp::Ordering::Equal => 0,
+                })
+        }
+
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
             self.0
                 .round(options.try_into()?)
