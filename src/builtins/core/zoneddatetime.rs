@@ -2,7 +2,7 @@
 //! builtin type.
 
 use alloc::string::String;
-use core::{cmp::Ordering, num::NonZeroU128};
+use core::{cmp::Ordering, num::NonZeroU128, ops::Add};
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use tinystr::TinyAsciiStr;
 
@@ -12,19 +12,9 @@ use crate::{
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
         timezone::{TimeZone, UtcOffset},
         Duration, Instant, PlainDate, PlainDateTime, PlainTime,
-    },
-    iso::{IsoDate, IsoDateTime, IsoTime},
-    options::{
+    }, epoch_nanoseconds, iso::{IsoDate, IsoDateTime, IsoTime}, options::{
         self, ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions, UnitGroup
-    },
-    parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
-    partial::{PartialDate, PartialTime},
-    primitive::FiniteF64,
-    provider::{TimeZoneProvider, TransitionDirection},
-    rounding::{IncrementRounder, Round},
-    temporal_assert,
-    time::EpochNanoseconds,
-    MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    }, parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision}, partial::{PartialDate, PartialTime}, primitive::FiniteF64, provider::{TimeZoneProvider, TransitionDirection}, rounding::{IncrementRounder, Round}, temporal_assert, time::EpochNanoseconds, MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap
 };
 
 /// A struct representing a partial `ZonedDateTime`.
@@ -992,9 +982,9 @@ impl ZonedDateTime {
             // a. Set roundTo to ? GetOptionsObject(roundTo).
         // 6. NOTE: The following steps read options and perform independent validation in alphabetical order (GetRoundingIncrementOption reads "roundingIncrement" and GetRoundingModeOption reads "roundingMode").
         // 7. Let roundingIncrement be ? GetRoundingIncrementOption(roundTo).
-        let rounding_increment = options.increment;
+        let rounding_increment = options.increment.unwrap_or_default(); // TODO: validate this
         // 8. Let roundingMode be ? GetRoundingModeOption(roundTo, half-expand).
-        let rounding_mode = options.rounding_mode;
+        let rounding_mode = options.rounding_mode.unwrap(); // TODO: validate this
         // 9. Let smallestUnit be ? GetTemporalUnitValuedOption(roundTo, "smallestUnit", time, required, « day »).
         let smallest_unit = options.smallest_unit.unwrap_or(TemporalUnit::Day);
         // 10. If smallestUnit is day, then
@@ -1023,7 +1013,7 @@ impl ZonedDateTime {
             return Ok(self.clone());
         }
         // 14. Let thisNs be zonedDateTime.[[EpochNanoseconds]].
-        let thisNs = self.epoch_nanoseconds();
+        let this_ns = self.epoch_nanoseconds();
         // 15. Let timeZone be zonedDateTime.[[TimeZone]].
         // 16. Let calendar be zonedDateTime.[[Calendar]].
         // 17. Let isoDateTime be GetISODateTimeFor(timeZone, thisNs).
@@ -1039,26 +1029,43 @@ impl ZonedDateTime {
                 end.date.day.into(), // todo this might be wrong
             );
             // c. Let startNs be ? GetStartOfDay(timeZone, dateStart).
-            let startNs = self.tz.get_start_of_day(&datestart.date, provider)?;
+            let start_ns = self.tz.get_start_of_day(&datestart.date, provider)?;
             // d. Assert: thisNs ≥ startNs.
             // e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
-            let endNs = self.tz.get_start_of_day(&dateend, provider)?;
+            let end_ns = self.tz.get_start_of_day(&dateend, provider)?;
             // f. Assert: thisNs < endNs.
+            if this_ns.0 >= end_ns.0 {
+                return Err(TemporalError::range()
+                    .with_message("thisNs must be less than endNs"));
+            }
             // g. Let dayLengthNs be ℝ(endNs - startNs).
-            let dayLengthNs=  NormalizedTimeDuration::from_nanosecond_difference(endNs.0, startNs.0)?;
+            let day_length_ns=  NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
             // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
-            let dayProgressNs = NormalizedTimeDuration::from_nanosecond_difference(
-                thisNs.0,
-                startNs.0,
-            )?;
+            let day_progress_ns = NormalizedTimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0).unwrap();
             // i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
+            // expressed in days (FiniteF64) – this is the *divisor*
+            let rounded_day_ns = {
+                // increment is the *length of the day* in nanoseconds
+                let increment = NonZeroU128::new(day_length_ns.0.unsigned_abs() as u128).unwrap();
+            
+                let rounded = IncrementRounder::<i128>::from_signed_num(
+                    day_progress_ns.0,   // the raw nanoseconds we’re rounding
+                    increment,           // divisor
+                )?
+                .round(rounding_mode);
+            
+                NormalizedTimeDuration(rounded)
+            };
             // j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
-            let roundedDayNs = NormalizedTimeDuration::round(
-                &dayLengthNs,
-                rounding_mode,
-                options,
-            )?;
+            let epoch_ns = {
+                let candidate = start_ns.0 + rounded_day_ns.0;      // i128 arithmetic
+            
+                // The spec-level check that `Instant` already performs:
+                Instant::try_new(candidate)?;                       // RangeError if invalid
+                candidate
+            };
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+            return ZonedDateTime::try_new(epoch_ns, self.calendar.clone(), self.tz.clone());
             
         } else {
             // 19. Else,
@@ -1066,8 +1073,20 @@ impl ZonedDateTime {
                 // b. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, thisNs).
                 // c. Let epochNanoseconds be ? InterpretISODateTimeOffset(roundResult.[[ISODate]], roundResult.[[Time]], option, offsetNanoseconds, timeZone, compatible, prefer, match-exactly).
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+            let iso_dt   = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
+            let rounded  = iso_dt.round(resolved)?;
+            let offset   = self.tz.get_offset_nanos_for(this_ns.as_i128(), provider)?;
+            let epoch_ns = interpret_isodatetime_offset(
+                    rounded.date, Some(rounded.time), /*is_exact=*/false,
+                    Some(offset as i64),
+                    &self.tz, Disambiguation::Compatible,
+                    OffsetDisambiguation::Prefer, /*match-exactly=*/true,
+                    provider,
+            )?;
+            ZonedDateTime::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
+
         }
-        todo!()
     }
 
     /// Creates an IXDTF (RFC 9557) date/time string for the provided `ZonedDateTime` according
@@ -1185,6 +1204,7 @@ impl ZonedDateTime {
     }
 }
 
+/// InterpretISODateTimeOffset
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn interpret_isodatetime_offset(
     date: IsoDate,
