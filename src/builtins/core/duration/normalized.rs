@@ -681,7 +681,10 @@ impl NormalizedDurationRecord {
             self.date.years,
             self.date.months,
             self.date.weeks,
-            self.date.days.saturating_add(day_delta.into()),
+            self.date
+                .days
+                .checked_add(day_delta.into())
+                .ok_or(TemporalError::range())?,
         )?;
         // 15. Let resultDuration be CombineDateAndTimeDuration(dateDuration, roundedTimeDuration).
         let normalized = NormalizedDurationRecord::new(date, rounded_time)?;
@@ -815,7 +818,8 @@ impl NormalizedDurationRecord {
                         duration
                             .date()
                             .years
-                            .saturating_add(sign.as_sign_multiplier().into()),
+                            .checked_add(sign.as_sign_multiplier().into())
+                            .ok_or(TemporalError::range())?,
                         0,
                         0,
                         0,
@@ -830,7 +834,8 @@ impl NormalizedDurationRecord {
                         duration
                             .date()
                             .months
-                            .saturating_add(sign.as_sign_multiplier().into()),
+                            .checked_add(sign.as_sign_multiplier().into())
+                            .ok_or(TemporalError::range())?,
                         0,
                         0,
                     )?
@@ -845,7 +850,8 @@ impl NormalizedDurationRecord {
                         duration
                             .date()
                             .weeks
-                            .saturating_add(sign.as_sign_multiplier().into()),
+                            .checked_add(sign.as_sign_multiplier().into())
+                            .ok_or(TemporalError::range())?,
                         0,
                     )?
                 }
@@ -861,7 +867,8 @@ impl NormalizedDurationRecord {
                         duration
                             .date()
                             .days
-                            .saturating_add(sign.as_sign_multiplier().into()),
+                            .checked_add(sign.as_sign_multiplier().into())
+                            .ok_or(TemporalError::range())?,
                     )?
                 }
                 _ => unreachable!(),

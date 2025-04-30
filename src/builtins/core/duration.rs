@@ -475,7 +475,11 @@ impl Duration {
         // Maximum amount of days in a valid duration: 104_249_991_374 * 2 < i64::MAX
         // 29. Let normResult be ? AddNormalizedTimeDuration(norm1, norm2).
         // 30. Set normResult to ? Add24HourDaysToNormalizedTimeDuration(normResult, d1 + d2).
-        let result = (norm_one + norm_two)?.add_days(self.days().saturating_add(other.days()))?;
+        let result = (norm_one + norm_two)?.add_days(
+            self.days()
+                .checked_add(other.days())
+                .ok_or(TemporalError::range())?,
+        )?;
 
         // 31. Let result be ? BalanceTimeDuration(normResult, largestUnit).
         let (result_days, result_time) = TimeDuration::from_normalized(result, largest_unit)?;
@@ -606,7 +610,9 @@ impl Duration {
                     self.years(),
                     self.months(),
                     self.weeks(),
-                    self.days().saturating_add(balanced_days),
+                    self.days()
+                        .checked_add(balanced_days)
+                        .ok_or(TemporalError::range())?,
                 )?;
                 // NOTE (remove): values are fine to this point.
                 // TODO: Should this be using AdjustDateDurationRecord?
@@ -732,7 +738,9 @@ impl Duration {
                     self.years(),
                     self.months(),
                     self.weeks(),
-                    self.days().saturating_add(balanced_days),
+                    self.days()
+                        .checked_add(balanced_days)
+                        .ok_or(TemporalError::range())?,
                 )?;
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = plain_date.calendar().date_add(

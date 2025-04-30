@@ -337,7 +337,10 @@ impl Calendar {
                     duration.years(),
                     duration.months(),
                     duration.weeks(),
-                    duration.days().saturating_add(balance_days),
+                    duration
+                        .days()
+                        .checked_add(balance_days)
+                        .ok_or(TemporalError::range())?,
                 ),
                 overflow,
             )?;

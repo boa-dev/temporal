@@ -231,9 +231,12 @@ impl PlainDate {
         //    duration.[[Nanoseconds]]).
         // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm,
         //    "day").[[Days]].
-        let days = duration.days().saturating_add(
-            TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
-        );
+        let days = duration
+            .days()
+            .checked_add(
+                TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
+            )
+            .ok_or(TemporalError::range())?;
 
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
         let result = self

@@ -170,7 +170,10 @@ impl IsoDateTime {
             date_duration.years,
             date_duration.months,
             date_duration.weeks,
-            date_duration.days.saturating_add(t_result.0),
+            date_duration
+                .days
+                .checked_add(t_result.0)
+                .ok_or(TemporalError::range())?,
         )?;
         let duration = Duration::from(date_duration);
 
