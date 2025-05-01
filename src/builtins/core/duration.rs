@@ -147,16 +147,16 @@ impl Duration {
     /// Returns the a `Vec` of the fields values.
     #[inline]
     #[must_use]
-    pub(crate) fn fields(&self) -> [i64; 10] {
+    pub(crate) fn fields_signum(&self) -> [i64; 10] {
         [
-            self.years(),
-            self.months(),
-            self.weeks(),
-            self.days(),
-            self.hours(),
-            self.minutes(),
-            self.seconds(),
-            self.milliseconds(),
+            self.years().signum(),
+            self.months().signum(),
+            self.weeks().signum(),
+            self.days().signum(),
+            self.hours().signum(),
+            self.minutes().signum(),
+            self.seconds().signum(),
+            self.milliseconds().signum(),
             self.microseconds().signum() as i64,
             self.nanoseconds().signum() as i64,
         ]
@@ -172,7 +172,7 @@ impl Duration {
     /// Returns the `Unit` corresponding to the largest non-zero field.
     #[inline]
     pub(crate) fn default_largest_unit(&self) -> Unit {
-        self.fields()
+        self.fields_signum()
             .iter()
             .enumerate()
             .find(|x| x.1 != &0)
@@ -414,7 +414,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> Sign {
-        duration_sign(&self.fields())
+        duration_sign(&self.fields_signum())
     }
 
     /// Returns whether the current `Duration` is zero.
@@ -935,15 +935,17 @@ pub(crate) fn is_valid_duration(
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
     // TODO: Fix the below parts after clarification around behavior.
-    let normalized_nanoseconds =
-        (days as i128 * NS_PER_DAY as i128) + (hours as i128) * 3_600_000_000_000 + minutes as i128 * 60_000_000_000 + seconds as i128 * 1_000_000_000;
+    let normalized_nanoseconds = (days as i128 * NS_PER_DAY as i128)
+        + (hours as i128) * 3_600_000_000_000
+        + minutes as i128 * 60_000_000_000
+        + seconds as i128 * 1_000_000_000;
     // Subseconds part
     let normalized_subseconds_parts =
         (milliseconds as i128 * 1_000_000) + (microseconds * 1_000) + nanoseconds;
 
-    let normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
+    let total_normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
-    if normalized_seconds.abs() >= MAX_SAFE_NS_PRECISION  {
+    if total_normalized_seconds.abs() >= MAX_SAFE_NS_PRECISION {
         return false;
     }
 

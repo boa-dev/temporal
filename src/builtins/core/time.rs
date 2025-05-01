@@ -525,15 +525,22 @@ mod tests {
 
     fn assert_duration(
         result: Duration,
-        values: (i64, i64, i64, i64, i64, i64, i64, i64, i64, i64),
+        values: (i64, i64, i64, i64, i64, i64, i64, i64, i128, i128),
     ) {
-        let fields = result.fields();
         assert_eq!(
-            &fields,
-            &[
-                values.0, values.1, values.2, values.3, values.4, values.5, values.6, values.7,
-                values.8, values.9
-            ]
+            (
+                result.years(),
+                result.months(),
+                result.weeks(),
+                result.days(),
+                result.hours(),
+                result.minutes(),
+                result.seconds(),
+                result.milliseconds(),
+                result.microseconds(),
+                result.nanoseconds()
+            ),
+            values
         )
     }
 
