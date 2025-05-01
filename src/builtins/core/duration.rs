@@ -10,7 +10,7 @@ use crate::{
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
-    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    temporal_assert, Sign, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use alloc::format;
 use alloc::string::String;
@@ -658,7 +658,6 @@ impl Duration {
                 let internal = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
                 // 31. If smallestUnit is day, then
                 let internal = if resolved_options.smallest_unit == Unit::Day {
-                    // TODO: TEST
                     // a. Let fractionalDays be TotalTimeDuration(internalDuration.[[Time]], day).
                     // b. Let days be RoundNumberToIncrement(fractionalDays, roundingIncrement, roundingMode).
                     let days = internal
@@ -670,7 +669,7 @@ impl Duration {
                     // c. Let dateDuration be ? CreateDateDurationRecord(0, 0, 0, days).
                     let date = DateDuration::new(0, 0, 0, days)?;
                     // d. Set internalDuration to CombineDateAndTimeDuration(dateDuration, 0).
-                    NormalizedDurationRecord::new(date, norm)?
+                    NormalizedDurationRecord::new(date, NormalizedTimeDuration::default())?
                 // 32. Else,
                 } else {
                     // TODO: update round / round_inner methods
@@ -769,8 +768,9 @@ impl Duration {
                     return Err(TemporalError::range());
                 }
                 // c. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+                let internal = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
                 // d. Let total be TotalTimeDuration(internalDuration.[[Time]], unit).
-                let total = self.time.to_normalized().total(unit)?;
+                let total = internal.normalized_time_duration().total(unit)?;
                 Ok(total)
             }
         }
@@ -867,6 +867,7 @@ pub fn duration_to_formattable(
 // TODO: Update, optimize, and fix the below. is_valid_duration should probably be generic over a T.
 
 const TWO_POWER_FIFTY_THREE: i128 = 9_007_199_254_740_992;
+const MAX_SAFE_NS_PRECISION: i128 = TWO_POWER_FIFTY_THREE * 1_000_000_000;
 
 // NOTE: Can FiniteF64 optimize the duration_validation
 /// Utility function to check whether the `Duration` fields are valid.
@@ -933,15 +934,16 @@ pub(crate) fn is_valid_duration(
     // in C++ with an implementation of core::remquo() with sufficient bits in the quotient.
     // String manipulation will also give an exact result, since the multiplication is by a power of 10.
     // Seconds part
-    let normalized_seconds =
-        (days as i128 * 86_400) + (hours as i128) * 3600 + minutes as i128 * 60 + seconds as i128;
+    // TODO: Fix the below parts after clarification around behavior.
+    let normalized_nanoseconds =
+        (days as i128 * NS_PER_DAY as i128) + (hours as i128) * 3_600_000_000_000 + minutes as i128 * 60_000_000_000 + seconds as i128 * 1_000_000_000;
     // Subseconds part
     let normalized_subseconds_parts =
-        (milliseconds as i128 / 1_000) + (microseconds / 1_000_000) + (nanoseconds / 1_000_000_000);
+        (milliseconds as i128 * 1_000_000) + (microseconds * 1_000) + nanoseconds;
 
-    let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
+    let normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
-    if normalized_seconds.abs() >= TWO_POWER_FIFTY_THREE {
+    if normalized_seconds.abs() >= MAX_SAFE_NS_PRECISION  {
         return false;
     }
 

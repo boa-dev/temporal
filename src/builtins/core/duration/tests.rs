@@ -1,6 +1,6 @@
 use core::str::FromStr;
 
-use crate::{options::ToStringRoundingOptions, parsers::Precision, partial::PartialDuration};
+use crate::{options::{RoundingOptions, ToStringRoundingOptions, Unit}, parsers::Precision, partial::PartialDuration, provider::NeverProvider};
 
 use super::Duration;
 
@@ -184,3 +184,53 @@ fn duration_from_str() {
     assert_eq!(duration.microseconds(), 999);
     assert_eq!(duration.nanoseconds(), 940);
 }
+
+#[test]
+fn duration_max() {
+    let cases = [
+        (Duration::new(0, 0, 0, 104249991374, 7, 36, 31, 999, 999, 999).unwrap(), "max days", 9007199254740991.999999999),
+        (Duration::new(0, 0, 0, 0, 2501999792983, 36, 31, 999, 999, 999).unwrap(), "max hours", 9007199254740991.999999999),
+        (Duration::new(0, 0, 0, 0, 0, 150119987579016, 31, 999, 999, 999).unwrap(), "max minutes", 9007199254740991.999999999),
+        (Duration::new(0, 0, 0, 0, 0, 0, 9007199254740991, 999, 999, 999).unwrap(), "max seconds", 9007199254740991.999999999),
+        (Duration::new(0, 0, 0, -104249991374, -7, -36, -31, -999, -999, -999).unwrap(), "min days", -9007199254740991.999999999),
+        (Duration::new(0, 0, 0, 0, -2501999792983, -36, -31, -999, -999, -999).unwrap(), "min hours", -9007199254740991.999999999),
+        (Duration::new(0, 0, 0, 0, 0, -150119987579016, -31, -999, -999, -999).unwrap(), "min minutes", -9007199254740991.999999999),
+        (Duration::new(0, 0, 0, 0, 0, 0, -9007199254740991, -999, -999, -999).unwrap(), "min seconds", -9007199254740991.999999999),
+      ];
+
+    for (duration, description, result) in cases {
+        assert_eq!(duration.total_with_provider(Unit::Second, None, &NeverProvider).unwrap().0, result, "{description}");
+    }
+}
+
+#[test]
+fn duration_round_negative() {
+    let duration = Duration::new(0, 0, 0, 0, -60, 0, 0, 0, 0, 0).unwrap();
+    let result = duration.round_with_provider(RoundingOptions {
+        smallest_unit: Some(Unit::Day),
+        ..Default::default()
+    }, None, &NeverProvider).unwrap();
+    assert_eq!(result.days(), -3);
+
+}
+
+/*
+TODO: Uncomment
+
+The below test should fail, but currently doesn't. This has to do with weird
+floating point math in IsValidDuration Step 6-8 that defers to C++ std::remquo
+
+Needs further clarification.
+
+#[test]
+fn duration_round_out_of_range_norm_conversion() {
+    const MAX_SAFE_INT: i64 = 9_007_199_254_740_991;
+    let duration = Duration::new(0, 0, 0, 0, 0, 0, MAX_SAFE_INT, 0, 0, 999_999_999).unwrap();
+    let err = duration.round_with_provider( RoundingOptions {
+        largest_unit: Some(Unit::Nanosecond),
+        increment: Some(RoundingIncrement::ONE),
+        ..Default::default()
+    }, None, &NeverProvider);
+    assert!(err.is_err())
+}
+*/
