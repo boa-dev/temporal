@@ -11,6 +11,10 @@ pub mod ffi {
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use core::fmt::Write;
     use diplomat_runtime::DiplomatWrite;
+    use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use alloc::string::String;
+
+    use core::str::{self, FromStr};
 
     #[diplomat::opaque]
     pub struct PlainYearMonth(pub(crate) temporal_rs::PlainYearMonth);
@@ -42,6 +46,22 @@ pub mod ffi {
             self.0
                 .with(partial.try_into()?, overflow.map(Into::into))
                 .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to validate
+            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::PlainYearMonth::from_str(s)
+                .map(|c| Box::new(Self(c)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::PlainYearMonth::from_str(&s)
+                .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
 
