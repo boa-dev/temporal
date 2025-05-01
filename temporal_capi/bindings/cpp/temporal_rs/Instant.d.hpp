@@ -17,10 +17,13 @@ namespace capi { struct Instant; }
 class Instant;
 namespace capi { struct TimeDuration; }
 class TimeDuration;
+namespace capi { struct TimeZone; }
+class TimeZone;
 struct DifferenceSettings;
 struct I128Nanoseconds;
 struct RoundingOptions;
 struct TemporalError;
+struct ToStringRoundingOptions;
 }
 
 
@@ -59,6 +62,8 @@ public:
   inline int64_t epoch_milliseconds() const;
 
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
+
+  inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options) const;
 
   inline const temporal_rs::capi::Instant* AsFFI() const;
   inline temporal_rs::capi::Instant* AsFFI();
