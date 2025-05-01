@@ -33,7 +33,7 @@ namespace temporal_rs {
 class Duration {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time);
 
@@ -61,9 +61,9 @@ public:
 
   inline int64_t milliseconds() const;
 
-  inline int64_t microseconds() const;
+  inline std::optional<double> microseconds() const;
 
-  inline int64_t nanoseconds() const;
+  inline std::optional<double> nanoseconds() const;
 
   inline temporal_rs::Sign sign() const;
 

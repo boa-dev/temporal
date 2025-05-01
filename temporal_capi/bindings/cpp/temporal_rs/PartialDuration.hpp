@@ -40,8 +40,8 @@ inline temporal_rs::capi::PartialDuration temporal_rs::PartialDuration::AsFFI() 
     /* .minutes = */ minutes.has_value() ? (diplomat::capi::OptionI64{ { minutes.value() }, true }) : (diplomat::capi::OptionI64{ {}, false }),
     /* .seconds = */ seconds.has_value() ? (diplomat::capi::OptionI64{ { seconds.value() }, true }) : (diplomat::capi::OptionI64{ {}, false }),
     /* .milliseconds = */ milliseconds.has_value() ? (diplomat::capi::OptionI64{ { milliseconds.value() }, true }) : (diplomat::capi::OptionI64{ {}, false }),
-    /* .microseconds = */ microseconds.has_value() ? (diplomat::capi::OptionI64{ { microseconds.value() }, true }) : (diplomat::capi::OptionI64{ {}, false }),
-    /* .nanoseconds = */ nanoseconds.has_value() ? (diplomat::capi::OptionI64{ { nanoseconds.value() }, true }) : (diplomat::capi::OptionI64{ {}, false }),
+    /* .microseconds = */ microseconds.has_value() ? (diplomat::capi::OptionF64{ { microseconds.value() }, true }) : (diplomat::capi::OptionF64{ {}, false }),
+    /* .nanoseconds = */ nanoseconds.has_value() ? (diplomat::capi::OptionF64{ { nanoseconds.value() }, true }) : (diplomat::capi::OptionF64{ {}, false }),
   };
 }
 

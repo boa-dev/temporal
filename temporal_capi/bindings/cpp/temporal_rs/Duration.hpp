@@ -23,7 +23,7 @@ namespace capi {
     extern "C" {
     
     typedef struct temporal_rs_Duration_create_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_create_result;
-    temporal_rs_Duration_create_result temporal_rs_Duration_create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds);
+    temporal_rs_Duration_create_result temporal_rs_Duration_create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
     
     typedef struct temporal_rs_Duration_from_day_and_time_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
     temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::TimeDuration* time);
@@ -53,9 +53,11 @@ namespace capi {
     
     int64_t temporal_rs_Duration_milliseconds(const temporal_rs::capi::Duration* self);
     
-    int64_t temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
+    typedef struct temporal_rs_Duration_microseconds_result {union {double ok; }; bool is_ok;} temporal_rs_Duration_microseconds_result;
+    temporal_rs_Duration_microseconds_result temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
     
-    int64_t temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
+    typedef struct temporal_rs_Duration_nanoseconds_result {union {double ok; }; bool is_ok;} temporal_rs_Duration_nanoseconds_result;
+    temporal_rs_Duration_nanoseconds_result temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
     
     temporal_rs::capi::Sign temporal_rs_Duration_sign(const temporal_rs::capi::Duration* self);
     
@@ -78,7 +80,7 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds) {
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds) {
   auto result = temporal_rs::capi::temporal_rs_Duration_create(years,
     months,
     weeks,
@@ -158,14 +160,14 @@ inline int64_t temporal_rs::Duration::milliseconds() const {
   return result;
 }
 
-inline int64_t temporal_rs::Duration::microseconds() const {
+inline std::optional<double> temporal_rs::Duration::microseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_microseconds(this->AsFFI());
-  return result;
+  return result.is_ok ? std::optional<double>(result.ok) : std::nullopt;
 }
 
-inline int64_t temporal_rs::Duration::nanoseconds() const {
+inline std::optional<double> temporal_rs::Duration::nanoseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_nanoseconds(this->AsFFI());
-  return result;
+  return result.is_ok ? std::optional<double>(result.ok) : std::nullopt;
 }
 
 inline temporal_rs::Sign temporal_rs::Duration::sign() const {

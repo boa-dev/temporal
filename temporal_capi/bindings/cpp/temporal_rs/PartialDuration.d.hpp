@@ -22,8 +22,8 @@ namespace capi {
       diplomat::capi::OptionI64 minutes;
       diplomat::capi::OptionI64 seconds;
       diplomat::capi::OptionI64 milliseconds;
-      diplomat::capi::OptionI64 microseconds;
-      diplomat::capi::OptionI64 nanoseconds;
+      diplomat::capi::OptionF64 microseconds;
+      diplomat::capi::OptionF64 nanoseconds;
     };
     
     typedef struct PartialDuration_option {union { PartialDuration ok; }; bool is_ok; } PartialDuration_option;
@@ -41,8 +41,8 @@ struct PartialDuration {
   std::optional<int64_t> minutes;
   std::optional<int64_t> seconds;
   std::optional<int64_t> milliseconds;
-  std::optional<int64_t> microseconds;
-  std::optional<int64_t> nanoseconds;
+  std::optional<double> microseconds;
+  std::optional<double> nanoseconds;
 
   inline bool is_empty();
 

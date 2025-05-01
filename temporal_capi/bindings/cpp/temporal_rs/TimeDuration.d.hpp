@@ -28,7 +28,7 @@ namespace temporal_rs {
 class TimeDuration {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeDuration>, temporal_rs::TemporalError> new_(int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, int64_t microseconds, int64_t nanoseconds);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeDuration>, temporal_rs::TemporalError> new_(int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
   inline std::unique_ptr<temporal_rs::TimeDuration> abs() const;
 

@@ -6,6 +6,7 @@ use crate::error::ffi::TemporalError;
 pub mod ffi {
     use crate::error::ffi::TemporalError;
     use diplomat_runtime::DiplomatOption;
+    use num_traits::FromPrimitive;
 
     #[diplomat::opaque]
     pub struct Duration(pub(crate) temporal_rs::Duration);
@@ -27,8 +28,8 @@ pub mod ffi {
         pub minutes: DiplomatOption<i64>,
         pub seconds: DiplomatOption<i64>,
         pub milliseconds: DiplomatOption<i64>,
-        pub microseconds: DiplomatOption<i128>,
-        pub nanoseconds: DiplomatOption<i128>,
+        pub microseconds: DiplomatOption<f64>,
+        pub nanoseconds: DiplomatOption<f64>,
     }
 
     #[diplomat::enum_convert(temporal_rs::Sign)]
@@ -52,16 +53,16 @@ pub mod ffi {
             minutes: i64,
             seconds: i64,
             milliseconds: i64,
-            microseconds: i128,
-            nanoseconds: i128,
+            microseconds: f64,
+            nanoseconds: f64,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::TimeDuration::new(
                 hours,
                 minutes,
                 seconds,
                 milliseconds,
-                microseconds,
-                nanoseconds,
+                i128::from_f64(microseconds).ok_or(TemporalError::range())?,
+                i128::from_f64(nanoseconds).ok_or(TemporalError::range())?,
             )
             .map(|x| Box::new(TimeDuration(x)))
             .map_err(Into::into)
@@ -115,8 +116,8 @@ pub mod ffi {
             minutes: i64,
             seconds: i64,
             milliseconds: i64,
-            microseconds: i128,
-            nanoseconds: i128,
+            microseconds: f64,
+            nanoseconds: f64,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::Duration::new(
                 years,
@@ -127,8 +128,8 @@ pub mod ffi {
                 minutes,
                 seconds,
                 milliseconds,
-                microseconds,
-                nanoseconds,
+                i128::from_f64(microseconds).ok_or(TemporalError::range())?,
+                i128::from_f64(nanoseconds).ok_or(TemporalError::range())?,
             )
             .map(|x| Box::new(Duration(x)))
             .map_err(Into::into)
@@ -186,11 +187,11 @@ pub mod ffi {
         pub fn milliseconds(&self) -> i64 {
             self.0.milliseconds()
         }
-        pub fn microseconds(&self) -> i128 {
-            self.0.microseconds()
+        pub fn microseconds(&self) -> Option<f64> {
+            f64::from_i128(self.0.microseconds())
         }
-        pub fn nanoseconds(&self) -> i128 {
-            self.0.nanoseconds()
+        pub fn nanoseconds(&self) -> Option<f64> {
+            f64::from_i128(self.0.nanoseconds())
         }
 
         pub fn sign(&self) -> Sign {
@@ -230,6 +231,7 @@ pub mod ffi {
 impl TryFrom<ffi::PartialDuration> for temporal_rs::partial::PartialDuration {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialDuration) -> Result<Self, TemporalError> {
+        use num_traits::FromPrimitive;
         Ok(Self {
             years: other.years.into_option(),
             months: other.months.into_option(),
@@ -239,8 +241,16 @@ impl TryFrom<ffi::PartialDuration> for temporal_rs::partial::PartialDuration {
             minutes: other.minutes.into_option(),
             seconds: other.seconds.into_option(),
             milliseconds: other.milliseconds.into_option(),
-            microseconds: other.microseconds.into_option(),
-            nanoseconds: other.nanoseconds.into_option(),
+            microseconds: other
+                .microseconds
+                .into_option()
+                .map(|v| i128::from_f64(v).ok_or(TemporalError::range()))
+                .transpose()?,
+            nanoseconds: other
+                .nanoseconds
+                .into_option()
+                .map(|v| i128::from_f64(v).ok_or(TemporalError::range()))
+                .transpose()?,
         })
     }
 }
