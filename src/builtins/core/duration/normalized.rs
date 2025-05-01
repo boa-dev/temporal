@@ -47,8 +47,8 @@ impl NormalizedTimeDuration {
         nanoseconds += time.minutes as i128 * NANOSECONDS_PER_MINUTE;
         nanoseconds += time.seconds as i128 * 1_000_000_000;
         nanoseconds += time.milliseconds as i128 * 1_000_000;
-        nanoseconds += time.microseconds as i128 * 1_000;
-        nanoseconds += time.nanoseconds as i128;
+        nanoseconds += time.microseconds * 1_000;
+        nanoseconds += time.nanoseconds;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
         Self(nanoseconds)

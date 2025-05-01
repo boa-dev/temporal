@@ -24,9 +24,9 @@ pub struct TimeDuration {
     /// `TimeDuration`'s internal millisecond value.
     pub milliseconds: i64,
     /// `TimeDuration`'s internal microsecond value.
-    pub microseconds: i64,
+    pub microseconds: i128,
     /// `TimeDuration`'s internal nanosecond value.
-    pub nanoseconds: i64,
+    pub nanoseconds: i128,
 }
 // ==== TimeDuration Private API ====
 
@@ -38,8 +38,8 @@ impl TimeDuration {
         minutes: i64,
         seconds: i64,
         milliseconds: i64,
-        microseconds: i64,
-        nanoseconds: i64,
+        microseconds: i128,
+        nanoseconds: i128,
     ) -> Self {
         Self {
             hours,
@@ -192,8 +192,8 @@ impl TimeDuration {
             minutes as i64 * sign,
             seconds as i64 * sign,
             milliseconds as i64 * sign,
-            microseconds as i64 * sign,
-            nanoseconds as i64 * sign,
+            microseconds * sign as i128,
+            nanoseconds * sign as i128,
         );
 
         if !is_valid_duration(
@@ -230,8 +230,8 @@ impl TimeDuration {
             self.minutes,
             self.seconds,
             self.milliseconds,
-            self.microseconds,
-            self.nanoseconds,
+            self.microseconds.signum() as i64,
+            self.nanoseconds.signum() as i64,
         ]
     }
 }
@@ -245,8 +245,8 @@ impl TimeDuration {
         minutes: i64,
         seconds: i64,
         milliseconds: i64,
-        microseconds: i64,
-        nanoseconds: i64,
+        microseconds: i128,
+        nanoseconds: i128,
     ) -> TemporalResult<Self> {
         let result = Self::new_unchecked(
             hours,

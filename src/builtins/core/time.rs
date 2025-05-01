@@ -133,8 +133,8 @@ impl PlainTime {
             i64::from(self.minute()).saturating_add(duration.minutes),
             i64::from(self.second()).saturating_add(duration.seconds),
             i64::from(self.millisecond()).saturating_add(duration.milliseconds),
-            i64::from(self.microsecond()).saturating_add(duration.microseconds),
-            i64::from(self.nanosecond()).saturating_add(duration.nanoseconds),
+            i128::from(self.microsecond()).saturating_add(duration.microseconds),
+            i128::from(self.nanosecond()).saturating_add(duration.nanoseconds),
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`

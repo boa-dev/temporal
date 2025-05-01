@@ -760,3 +760,29 @@ fn test_rounding_boundaries() {
     let err = duration.round(options, Some(RelativeTo::PlainDate(relative_to)));
     assert!(err.is_err());
 }
+
+#[test]
+fn test_duration_compare_boundary() {
+    let relative_to = PlainDate::new(2000, 1, 1, Calendar::default()).unwrap();
+    let zero = Duration::default();
+
+    let max_days = 2i64.pow(53) / 86_400;
+    let max_duration = Duration::new(0, 0, 1, max_days, 0, 0, 0, 0, 0, 0).unwrap();
+    let err = zero.compare(
+        &max_duration,
+        Some(RelativeTo::PlainDate(relative_to.clone())),
+    );
+    assert!(err.is_err());
+    let err = max_duration.compare(&zero, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+
+    let min_days = -(2i64.pow(53) / 86_400);
+    let min_duration = Duration::new(0, 0, -1, min_days, 0, 0, 0, 0, 0, 0).unwrap();
+    let err = zero.compare(
+        &min_duration,
+        Some(RelativeTo::PlainDate(relative_to.clone())),
+    );
+    assert!(err.is_err());
+    let err = min_duration.compare(&zero, Some(RelativeTo::PlainDate(relative_to.clone())));
+    assert!(err.is_err());
+}

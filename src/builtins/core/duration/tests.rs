@@ -151,7 +151,7 @@ fn preserve_precision_loss() {
     const MAX_SAFE_INT: i64 = 9_007_199_254_740_991;
     let duration = Duration::from_partial_duration(PartialDuration {
         milliseconds: Some(MAX_SAFE_INT),
-        microseconds: Some(MAX_SAFE_INT),
+        microseconds: Some(MAX_SAFE_INT as i128),
         ..Default::default()
     })
     .unwrap();

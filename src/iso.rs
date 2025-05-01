@@ -115,8 +115,8 @@ impl IsoDateTime {
             minute,
             second,
             millis,
-            micros,
-            nanos + offset,
+            micros.into(),
+            (nanos + offset).into(),
         ))
     }
 
@@ -129,8 +129,8 @@ impl IsoDateTime {
         minute: i64,
         second: i64,
         millisecond: i64,
-        microsecond: i64,
-        nanosecond: i64,
+        microsecond: i128,
+        nanosecond: i128,
     ) -> Self {
         let (overflow_day, time) =
             IsoTime::balance(hour, minute, second, millisecond, microsecond, nanosecond);
@@ -342,7 +342,7 @@ impl IsoDate {
     /// Create a balance date while rejecting invalid intermediates
     pub(crate) fn try_balance(year: i32, month: i32, day: i64) -> TemporalResult<Self> {
         let epoch_days = iso_date_to_epoch_days(year, month, 1) + day - 1;
-        if (MAX_EPOCH_DAYS) < epoch_days {
+        if (MAX_EPOCH_DAYS) < epoch_days.abs() {
             return Err(TemporalError::range().with_message("epoch days exceed maximum range."));
         }
         // NOTE The cast is to i32 is safe due to MAX_EPOCH_DAYS check
@@ -671,18 +671,18 @@ impl IsoTime {
         minute: i64,
         second: i64,
         millisecond: i64,
-        microsecond: i64,
-        nanosecond: i64,
+        microsecond: i128,
+        nanosecond: i128,
     ) -> (i64, Self) {
         // 1. Set microsecond to microsecond + floor(nanosecond / 1000).
         // 2. Set nanosecond to nanosecond modulo 1000.
-        let (quotient, nanosecond) = div_mod(nanosecond, 1000);
+        let (quotient, nanosecond) = (nanosecond.div_euclid(1000), nanosecond.rem_euclid(1000));
         let microsecond = microsecond + quotient;
 
         // 3. Set millisecond to millisecond + floor(microsecond / 1000).
         // 4. Set microsecond to microsecond modulo 1000.
-        let (quotient, microsecond) = div_mod(microsecond, 1000);
-        let millisecond = millisecond + quotient;
+        let (quotient, microsecond) = (microsecond.div_euclid(1000), microsecond.rem_euclid(1000));
+        let millisecond = millisecond + quotient as i64;
 
         // 5. Set second to second + floor(millisecond / 1000).
         // 6. Set millisecond to millisecond modulo 1000.
@@ -721,8 +721,8 @@ impl IsoTime {
         let m = i64::from(other.minute) - i64::from(self.minute);
         let s = i64::from(other.second) - i64::from(self.second);
         let ms = i64::from(other.millisecond) - i64::from(self.millisecond);
-        let mis = i64::from(other.microsecond) - i64::from(self.microsecond);
-        let ns = i64::from(other.nanosecond) - i64::from(self.nanosecond);
+        let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
+        let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
         TimeDuration::new_unchecked(h, m, s, ms, mis, ns)
     }
@@ -844,7 +844,7 @@ impl IsoTime {
                 self.minute.into(),
                 self.second.into(),
                 self.millisecond.into(),
-                result_i64,
+                result_i64.into(),
                 0,
             )),
             // 15. Assert: unit is "nanosecond".
@@ -855,7 +855,7 @@ impl IsoTime {
                 self.second.into(),
                 self.millisecond.into(),
                 self.microsecond.into(),
-                result_i64,
+                result_i64.into(),
             )),
             _ => Err(TemporalError::assert()),
         }

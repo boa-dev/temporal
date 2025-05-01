@@ -27,8 +27,8 @@ pub mod ffi {
         pub minutes: DiplomatOption<i64>,
         pub seconds: DiplomatOption<i64>,
         pub milliseconds: DiplomatOption<i64>,
-        pub microseconds: DiplomatOption<i64>,
-        pub nanoseconds: DiplomatOption<i64>,
+        pub microseconds: DiplomatOption<i128>,
+        pub nanoseconds: DiplomatOption<i128>,
     }
 
     #[diplomat::enum_convert(temporal_rs::Sign)]
@@ -52,8 +52,8 @@ pub mod ffi {
             minutes: i64,
             seconds: i64,
             milliseconds: i64,
-            microseconds: i64,
-            nanoseconds: i64,
+            microseconds: i128,
+            nanoseconds: i128,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::TimeDuration::new(
                 hours,
@@ -115,8 +115,8 @@ pub mod ffi {
             minutes: i64,
             seconds: i64,
             milliseconds: i64,
-            microseconds: i64,
-            nanoseconds: i64,
+            microseconds: i128,
+            nanoseconds: i128,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::Duration::new(
                 years,
@@ -186,10 +186,10 @@ pub mod ffi {
         pub fn milliseconds(&self) -> i64 {
             self.0.milliseconds()
         }
-        pub fn microseconds(&self) -> i64 {
+        pub fn microseconds(&self) -> i128 {
             self.0.microseconds()
         }
-        pub fn nanoseconds(&self) -> i64 {
+        pub fn nanoseconds(&self) -> i128 {
             self.0.nanoseconds()
         }
 

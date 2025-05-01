@@ -1129,7 +1129,7 @@ pub(crate) fn interpret_isodatetime_offset(
                 time.second.into(),
                 time.millisecond.into(),
                 time.microsecond.into(),
-                i64::from(time.nanosecond) - offset,
+                (i64::from(time.nanosecond) - offset).into(),
             );
 
             // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).

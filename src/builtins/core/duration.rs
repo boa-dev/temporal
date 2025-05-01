@@ -52,9 +52,9 @@ pub struct PartialDuration {
     /// A potentially existent `milliseconds` field.
     pub milliseconds: Option<i64>,
     /// A potentially existent `microseconds` field.
-    pub microseconds: Option<i64>,
+    pub microseconds: Option<i128>,
     /// A potentially existent `nanoseconds` field.
-    pub nanoseconds: Option<i64>,
+    pub nanoseconds: Option<i128>,
 }
 
 impl PartialDuration {
@@ -157,8 +157,8 @@ impl Duration {
             self.minutes(),
             self.seconds(),
             self.milliseconds(),
-            self.microseconds(),
-            self.nanoseconds(),
+            self.microseconds().signum() as i64,
+            self.nanoseconds().signum() as i64,
         ]
     }
 
@@ -195,8 +195,8 @@ impl Duration {
         minutes: i64,
         seconds: i64,
         milliseconds: i64,
-        microseconds: i64,
-        nanoseconds: i64,
+        microseconds: i128,
+        nanoseconds: i128,
     ) -> TemporalResult<Self> {
         let duration = Self::new_unchecked(
             DateDuration::new_unchecked(years, months, weeks, days),
@@ -395,14 +395,14 @@ impl Duration {
     /// Returns the `microseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn microseconds(&self) -> i64 {
+    pub const fn microseconds(&self) -> i128 {
         self.time.microseconds
     }
 
     /// Returns the `nanoseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn nanoseconds(&self) -> i64 {
+    pub const fn nanoseconds(&self) -> i128 {
         self.time.nanoseconds
     }
 }
@@ -882,8 +882,8 @@ pub(crate) fn is_valid_duration(
     minutes: i64,
     seconds: i64,
     milliseconds: i64,
-    microseconds: i64,
-    nanoseconds: i64,
+    microseconds: i128,
+    nanoseconds: i128,
 ) -> bool {
     // 1. Let sign be ! DurationSign(years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
     let set = [
@@ -895,8 +895,8 @@ pub(crate) fn is_valid_duration(
         minutes,
         seconds,
         milliseconds,
-        microseconds,
-        nanoseconds,
+        microseconds.signum() as i64,
+        nanoseconds.signum() as i64,
     ];
     let sign = duration_sign(&set);
     // 2. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
@@ -936,9 +936,8 @@ pub(crate) fn is_valid_duration(
     let normalized_seconds =
         (days as i128 * 86_400) + (hours as i128) * 3600 + minutes as i128 * 60 + seconds as i128;
     // Subseconds part
-    let normalized_subseconds_parts = (milliseconds as i128 / 1_000)
-        + (microseconds as i128 / 1_000_000)
-        + (nanoseconds as i128 / 1_000_000_000);
+    let normalized_subseconds_parts =
+        (milliseconds as i128 / 1_000) + (microseconds / 1_000_000) + (nanoseconds / 1_000_000_000);
 
     let normalized_seconds = normalized_seconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
@@ -1016,12 +1015,12 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    hours as f64,
-                    minutes as f64,
-                    seconds as f64,
-                    milliseconds as f64,
-                    microseconds as f64,
-                    nanoseconds as f64,
+                    hours,
+                    minutes,
+                    seconds,
+                    milliseconds,
+                    microseconds,
+                    nanoseconds,
                 )
             }
             // Minutes variant is defined as { hours: u32, minutes: u32, fraction: u64 }
@@ -1043,12 +1042,12 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    hours as f64,
-                    minutes as f64,
-                    seconds as f64,
-                    milliseconds as f64,
-                    microseconds as f64,
-                    nanoseconds as f64,
+                    hours,
+                    minutes,
+                    seconds,
+                    milliseconds,
+                    microseconds,
+                    nanoseconds,
                 )
             }
             // Seconds variant is defined as { hours: u32, minutes: u32, seconds: u32, fraction: u32 }
@@ -1066,15 +1065,15 @@ impl FromStr for Duration {
                 let nanoseconds = rem.rem_euclid(1_000);
 
                 (
-                    hours as f64,
-                    minutes as f64,
-                    seconds as f64,
-                    milliseconds as f64,
-                    microseconds as f64,
-                    nanoseconds as f64,
+                    hours,
+                    minutes,
+                    seconds,
+                    milliseconds as u64,
+                    microseconds as u64,
+                    nanoseconds as u64,
                 )
             }
-            None => (0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
+            None => (0, 0, 0, 0, 0, 0),
         };
 
         let (years, months, weeks, days) = if let Some(date) = parse_record.date {
@@ -1094,8 +1093,8 @@ impl FromStr for Duration {
             minutes as i64 * sign,
             seconds as i64 * sign,
             millis as i64 * sign,
-            micros as i64 * sign,
-            nanos as i64 * sign,
+            micros as i128 * sign as i128,
+            nanos as i128 * sign as i128,
         )
     }
 }

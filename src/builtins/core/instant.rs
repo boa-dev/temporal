@@ -310,7 +310,7 @@ impl FromStr for Instant {
             ixdtf_record.time.second.clamp(0, 59).into(),
             millisecond.into(),
             microsecond.into(),
-            nanosecond as i64 - ns_offset,
+            i128::from(nanosecond) - i128::from(ns_offset),
         );
 
         let nanoseconds = balanced.as_nanoseconds()?;
@@ -431,19 +431,20 @@ mod tests {
             }
         };
 
-        let assert_time_duration = |td: &TimeDuration, expected: (i64, i64, i64, i64, i64, i64)| {
-            assert_eq!(
-                td,
-                &TimeDuration {
-                    hours: expected.0,
-                    minutes: expected.1,
-                    seconds: expected.2,
-                    milliseconds: expected.3,
-                    microseconds: expected.4,
-                    nanoseconds: expected.5,
-                }
-            )
-        };
+        let assert_time_duration =
+            |td: &TimeDuration, expected: (i64, i64, i64, i64, i128, i128)| {
+                assert_eq!(
+                    td,
+                    &TimeDuration {
+                        hours: expected.0,
+                        minutes: expected.1,
+                        seconds: expected.2,
+                        milliseconds: expected.3,
+                        microseconds: expected.4,
+                        nanoseconds: expected.5,
+                    }
+                )
+            };
 
         let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
@@ -504,19 +505,20 @@ mod tests {
             }
         };
 
-        let assert_time_duration = |td: &TimeDuration, expected: (i64, i64, i64, i64, i64, i64)| {
-            assert_eq!(
-                td,
-                &TimeDuration {
-                    hours: expected.0,
-                    minutes: expected.1,
-                    seconds: expected.2,
-                    milliseconds: expected.3,
-                    microseconds: expected.4,
-                    nanoseconds: expected.5,
-                }
-            )
-        };
+        let assert_time_duration =
+            |td: &TimeDuration, expected: (i64, i64, i64, i64, i128, i128)| {
+                assert_eq!(
+                    td,
+                    &TimeDuration {
+                        hours: expected.0,
+                        minutes: expected.1,
+                        seconds: expected.2,
+                        milliseconds: expected.3,
+                        microseconds: expected.4,
+                        nanoseconds: expected.5,
+                    }
+                )
+            };
 
         let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
