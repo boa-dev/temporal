@@ -24,7 +24,7 @@ pub mod ffi {
             let is_neg = ns.high < 0;
             let ns_high_abs = ns.high.unsigned_abs() as u128;
             // Stick them together
-            let total = (ns_high_abs << (64 + ns.low as u128)) as i128;
+            let total = ((ns_high_abs << 64) + ns.low as u128) as i128;
             // Reintroduce the sign
             let instant = if is_neg { -total } else { total };
             temporal_rs::Instant::try_new(instant)
