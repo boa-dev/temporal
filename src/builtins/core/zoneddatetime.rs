@@ -529,7 +529,7 @@ impl ZonedDateTime {
         // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
         let result_date = self.calendar.date_from_partial(
             &partial.date.with_fallback_zoneddatetime(self, provider)?,
-            ArithmeticOverflow::Constrain,
+            overflow,
         )?;
 
         let original_iso = self.tz.get_iso_datetime_for(&self.instant, provider)?.time;
@@ -1272,7 +1272,9 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
 mod tests {
     use super::ZonedDateTime;
     use crate::{
-        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, Unit},
+        options::{
+            ArithmeticOverflow, DifferenceSettings, Disambiguation, OffsetDisambiguation, Unit,
+        },
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         time::EpochNanoseconds,
         tzdb::FsTzdbProvider,
@@ -1410,5 +1412,43 @@ mod tests {
         assert_eq!(diff.milliseconds(), 0);
         assert_eq!(diff.microseconds(), 0);
         assert_eq!(diff.nanoseconds(), 0);
+    }
+
+    // overflow-reject-throws.js
+    #[test]
+    fn overflow_reject_throws() {
+        // const zdt = new Temporal.PlainDateTime(1976, 11, 18, 15, 23, 30, 123, 456, 789).toZonedDateTime("UTC");
+        //
+        // const overflow = "reject";
+        // assert.throws(RangeError, () => zdt.with({ month: 29 }, { overflow }));
+        // assert.throws(RangeError, () => zdt.with({ day: 31 }, { overflow }));
+        // assert.throws(RangeError, () => zdt.with({ hour: 29 }, { overflow }));
+        // assert.throws(RangeError, () => zdt.with({ nanosecond: 9000 }, { overflow }));
+
+        let provider = &FsTzdbProvider::default();
+
+        let zdt =
+            ZonedDateTime::try_new(217178610123456789, Calendar::default(), TimeZone::default())
+                .unwrap();
+
+        let overflow = ArithmeticOverflow::Reject;
+
+        let result_2 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate {
+                    day: Some(31),
+                    ..Default::default()
+                },
+                time: PartialTime::default(),
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        assert!(result_2.is_err()); // Fails
     }
 }
