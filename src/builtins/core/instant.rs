@@ -13,7 +13,6 @@ use crate::{
         RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_instant, IxdtfStringBuilder},
-    primitive::FiniteF64,
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
     time::EpochNanoseconds,
@@ -64,11 +63,8 @@ impl Instant {
     ) -> TemporalResult<NormalizedDurationRecord> {
         let diff =
             NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
-        let (round_record, _) = diff.round(FiniteF64::default(), resolved_options)?;
-        NormalizedDurationRecord::new(
-            DateDuration::default(),
-            round_record.normalized_time_duration(),
-        )
+        let normalized_time = diff.round(resolved_options)?;
+        NormalizedDurationRecord::new(DateDuration::default(), normalized_time)
     }
 
     // TODO: Add test for `diff_instant`.
@@ -314,7 +310,7 @@ impl FromStr for Instant {
             ixdtf_record.time.second.clamp(0, 59).into(),
             millisecond.into(),
             microsecond.into(),
-            nanosecond as i64 - ns_offset,
+            i128::from(nanosecond) - i128::from(ns_offset),
         );
 
         let nanoseconds = balanced.as_nanoseconds()?;
@@ -333,7 +329,6 @@ mod tests {
     use crate::{
         builtins::core::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, RoundingMode, Unit},
-        primitive::FiniteF64,
         time::EpochNanoseconds,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
@@ -436,19 +431,20 @@ mod tests {
             }
         };
 
-        let assert_time_duration = |td: &TimeDuration, expected: (f64, f64, f64, f64, f64, f64)| {
-            assert_eq!(
-                td,
-                &TimeDuration {
-                    hours: FiniteF64(expected.0),
-                    minutes: FiniteF64(expected.1),
-                    seconds: FiniteF64(expected.2),
-                    milliseconds: FiniteF64(expected.3),
-                    microseconds: FiniteF64(expected.4),
-                    nanoseconds: FiniteF64(expected.5),
-                }
-            )
-        };
+        let assert_time_duration =
+            |td: &TimeDuration, expected: (i64, i64, i64, i64, i128, i128)| {
+                assert_eq!(
+                    td,
+                    &TimeDuration {
+                        hours: expected.0,
+                        minutes: expected.1,
+                        seconds: expected.2,
+                        milliseconds: expected.3,
+                        microseconds: expected.4,
+                        nanoseconds: expected.5,
+                    }
+                )
+            };
 
         let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
@@ -462,55 +458,40 @@ mod tests {
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376436.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(positive_result.time(), (376436, 0, 0, 0, 0, 0));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(negative_result.time(), (-376435, 0, 0, 0, 0, 0));
 
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435.0, 24.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(positive_result.time(), (376435, 24, 0, 0, 0, 0));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(
-            negative_result.time(),
-            (-376435.0, -23.0, 0.0, 0.0, 0.0, 0.0),
-        );
+        assert_time_duration(negative_result.time(), (-376435, -23, 0, 0, 0, 0));
 
         // ... Skip to lower units ...
 
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(
-            positive_result.time(),
-            (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0),
-        );
+        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 530, 0));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(
-            negative_result.time(),
-            (-376435.0, -23.0, -8.0, -148.0, -529.0, 0.0),
-        );
+        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, 0));
 
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(
-            positive_result.time(),
-            (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0),
-        );
+        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 529, 500));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(
-            negative_result.time(),
-            (-376435.0, -23.0, -8.0, -148.0, -529.0, -500.0),
-        );
+        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, -500));
     }
 
     #[test]
@@ -524,19 +505,20 @@ mod tests {
             }
         };
 
-        let assert_time_duration = |td: &TimeDuration, expected: (f64, f64, f64, f64, f64, f64)| {
-            assert_eq!(
-                td,
-                &TimeDuration {
-                    hours: FiniteF64(expected.0),
-                    minutes: FiniteF64(expected.1),
-                    seconds: FiniteF64(expected.2),
-                    milliseconds: FiniteF64(expected.3),
-                    microseconds: FiniteF64(expected.4),
-                    nanoseconds: FiniteF64(expected.5),
-                }
-            )
-        };
+        let assert_time_duration =
+            |td: &TimeDuration, expected: (i64, i64, i64, i64, i128, i128)| {
+                assert_eq!(
+                    td,
+                    &TimeDuration {
+                        hours: expected.0,
+                        minutes: expected.1,
+                        seconds: expected.2,
+                        milliseconds: expected.3,
+                        microseconds: expected.4,
+                        nanoseconds: expected.5,
+                    }
+                )
+            };
 
         let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
@@ -550,55 +532,40 @@ mod tests {
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376436.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(positive_result.time(), (376436, 0, 0, 0, 0, 0));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435.0, 0.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(negative_result.time(), (-376435, 0, 0, 0, 0, 0));
 
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435.0, 24.0, 0.0, 0.0, 0.0, 0.0));
+        assert_time_duration(positive_result.time(), (376435, 24, 0, 0, 0, 0));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(
-            negative_result.time(),
-            (-376435.0, -23.0, 0.0, 0.0, 0.0, 0.0),
-        );
+        assert_time_duration(negative_result.time(), (-376435, -23, 0, 0, 0, 0));
 
         // ... Skip to lower units ...
 
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(
-            positive_result.time(),
-            (376435.0, 23.0, 8.0, 148.0, 530.0, 0.0),
-        );
+        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 530, 0));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(
-            negative_result.time(),
-            (-376435.0, -23.0, -8.0, -148.0, -529.0, 0.0),
-        );
+        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, 0));
 
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(
-            positive_result.time(),
-            (376435.0, 23.0, 8.0, 148.0, 529.0, 500.0),
-        );
+        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 529, 500));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(
-            negative_result.time(),
-            (-376435.0, -23.0, -8.0, -148.0, -529.0, -500.0),
-        );
+        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, -500));
     }
 
     // /test/built-ins/Temporal/Instant/prototype/add/cross-epoch.js

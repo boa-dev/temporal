@@ -117,6 +117,28 @@ impl Roundable for f64 {
     }
 }
 
+impl Roundable for i64 {
+    fn is_exact(dividend: Self, divisor: Self) -> bool {
+        dividend.rem_euclid(divisor) == 0
+    }
+
+    fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
+        Some((dividend.abs() % divisor).cmp(&(divisor / 2)))
+    }
+
+    fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
+        Roundable::result_floor(dividend, divisor).rem_euclid(2) == 0
+    }
+
+    fn result_floor(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor) as u128
+    }
+
+    fn result_ceil(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor) as u128 + 1
+    }
+}
+
 /// Applies the unsigned rounding mode.
 fn apply_unsigned_rounding_mode<T: Roundable>(
     dividend: T,
