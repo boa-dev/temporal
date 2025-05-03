@@ -1417,14 +1417,6 @@ mod tests {
     // overflow-reject-throws.js
     #[test]
     fn overflow_reject_throws() {
-        // const zdt = new Temporal.PlainDateTime(1976, 11, 18, 15, 23, 30, 123, 456, 789).toZonedDateTime("UTC");
-        //
-        // const overflow = "reject";
-        // assert.throws(RangeError, () => zdt.with({ month: 29 }, { overflow }));
-        // assert.throws(RangeError, () => zdt.with({ day: 31 }, { overflow }));
-        // assert.throws(RangeError, () => zdt.with({ hour: 29 }, { overflow }));
-        // assert.throws(RangeError, () => zdt.with({ nanosecond: 9000 }, { overflow }));
-
         let provider = &FsTzdbProvider::default();
 
         let zdt =
@@ -1449,6 +1441,6 @@ mod tests {
             provider,
         );
 
-        assert!(result_2.is_err()); // Fails
+        assert!(result_2.is_err());
     }
 }
