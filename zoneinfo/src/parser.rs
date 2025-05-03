@@ -7,9 +7,9 @@ use core::{
 use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 
 use crate::{
-    rule::{Rule, RuleTable},
-    zone::ZoneTable,
-    ZoneInfoCompiler,
+    rule::{Rule, Rules},
+    zone::ZoneRecord,
+    ZoneInfoData,
 };
 
 #[derive(Debug)]
@@ -19,6 +19,16 @@ pub enum ZoneInfoParseError {
     UnexpectedEndOfLine(u32, &'static str),
     UnknownValue(u32, String),
     ParseIntError(u32, ParseIntError, &'static str),
+}
+
+impl ZoneInfoParseError {
+    pub(crate) fn unexpected_eol(ctx: &LineParseContext) -> Self {
+        Self::UnexpectedEndOfLine(ctx.line_number, ctx.span())
+    }
+
+    pub(crate) fn unknown(s: &str, ctx: &LineParseContext) -> Self {
+        Self::UnknownValue(ctx.line_number, s.to_owned())
+    }
 }
 
 pub trait TryFromStr<C>: Sized {
@@ -83,7 +93,7 @@ impl ContextParse for String {
 impl TryFromStr<LineParseContext> for String {
     type Error = ZoneInfoParseError;
     fn try_from_str(s: &str, _: &mut LineParseContext) -> Result<Self, Self::Error> {
-        Ok(s.parse::<String>().expect("parse String is infallible"))
+        Ok(s.to_owned())
     }
 }
 
@@ -151,8 +161,8 @@ impl<'data> ZoneInfoParser<'data> {
     }
 
     /// Parse the provided lines
-    pub fn parse(&mut self) -> Result<ZoneInfoCompiler, ZoneInfoParseError> {
-        let mut zoneinfo = ZoneInfoCompiler::default();
+    pub fn parse(&mut self) -> Result<ZoneInfoData, ZoneInfoParseError> {
+        let mut zoneinfo = ZoneInfoData::default();
         let mut context = LineParseContext::default();
 
         // The allow clippy is used in favor of for so that `ZoneTable` can
@@ -177,13 +187,11 @@ impl<'data> ZoneInfoParser<'data> {
                 if let Some(rules) = zoneinfo.rules.get_mut(&identifier) {
                     rules.extend(data);
                 } else {
-                    zoneinfo
-                        .rules
-                        .insert(identifier, RuleTable::initialize(data));
+                    zoneinfo.rules.insert(identifier, Rules::initialize(data));
                 }
             } else if line.starts_with("Zone") {
                 let (identifer, table) =
-                    ZoneTable::parse_full_table(&mut self.lines, &mut context).unwrap();
+                    ZoneRecord::parse_full_table(&mut self.lines, &mut context).unwrap();
                 zoneinfo.zones.insert(identifer, table);
                 continue; // Skip the next line call
             } else if line.starts_with("Link") {

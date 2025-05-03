@@ -18,13 +18,14 @@ pub(crate) struct ApplicableRules {
     pub(crate) transitions: BTreeSet<Transition>,
 }
 
-/// The rule table is a collection of zone info rules.
+/// The `Rule` is a collection of zone info rules under the same
+/// rule name.
 ///
-/// These tables can be seen throughout zoneinfo files.
+/// These rule collections can be seen throughout zoneinfo files.
 ///
 /// # Example
 ///
-/// The `Chicago` rule table can be seen below.
+/// The `Chicago` rules can be seen below.
 ///
 /// ```txt
 /// # Rule    NAME    FROM    TO    -    IN    ON    AT    SAVE    LETTER
@@ -36,17 +37,17 @@ pub(crate) struct ApplicableRules {
 /// Rule    Chicago    1955    1966    -    Oct    lastSun    2:00    0    S
 /// ```
 ///
-/// Interestingly, Rule tables appear to be sorted in chronological
+/// Interestingly, Rules appear to be sorted in chronological
 /// order from their start date (FROM). However, their end dates may differ
 /// meaning at any one time there can be rule pairs of: [std, dst],
 /// [dst, std], [std, empty], or [dst, empty]
 ///
 #[derive(Debug, Clone)]
-pub struct RuleTable {
+pub struct Rules {
     rules: Vec<Rule>,
 }
 
-impl RuleTable {
+impl Rules {
     pub fn initialize(rule: Rule) -> Self {
         Self { rules: vec![rule] }
     }
@@ -219,18 +220,26 @@ pub(crate) fn epoch_days_for_rule_date(year: i32, month: Month, day_of_month: Da
 
 impl Rule {
     /// Parse a `Rule` from a line
+    ///
+    /// A rule line is made up of the following columns:
+    ///
+    /// # Rule    NAME    FROM    TO    -    IN    ON    AT    SAVE    LETTER
+    ///
+    /// The "-" is a reserved field that represents the deprecated TYPE
+    /// field. It is preserved for backward compatibility reasons.
     pub fn parse_from_line(
         line: &str,
         context: &mut LineParseContext,
     ) -> Result<(String, Self), ZoneInfoParseError> {
         context.enter("Rule");
         let mut splits = line.split_whitespace();
-        let first = splits.next();
+        let first = splits.next(); // Consume "Rule"
         debug_assert!(first == Some("Rule"));
+        // AKA the NAME field
         let identifier = next_split(&mut splits, context)?.to_owned();
         let from = next_split(&mut splits, context)?.context_parse::<u16>(context)?;
         let to = ToYear::parse_optional_to_year(next_split(&mut splits, context)?, context)?;
-        next_split(&mut splits, context)?;
+        next_split(&mut splits, context)?; // Skip the deprecated TYPE field
         let in_month = next_split(&mut splits, context)?.context_parse::<Month>(context)?;
         let on_date = next_split(&mut splits, context)?.context_parse::<DayOfMonth>(context)?;
         let at = next_split(&mut splits, context)?.context_parse::<QualifiedTime>(context)?;

@@ -7,7 +7,7 @@
 use std::{borrow::Cow, collections::BTreeMap, path::Path};
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
-use zoneinfo_compiler::ZoneInfoTransitionData;
+use zoneinfo_compiler::{CompiledTransition, ZoneInfoCompiler, ZoneInfoData};
 
 use crate::tzdb::TzdbDataSource;
 
@@ -62,7 +62,7 @@ impl From<&zoneinfo_compiler::tzif::LocalTimeRecord> for LocalTimeRecord {
 }
 
 impl ZeroTzif<'_> {
-    fn from_transition_data(data: &ZoneInfoTransitionData) -> Self {
+    fn from_transition_data(data: &CompiledTransition) -> Self {
         let tzif = data.to_v2_data_block();
         let transitions = ZeroVec::alloc_from_slice(&tzif.transition_times);
         let transition_types = ZeroVec::alloc_from_slice(&tzif.transition_types);
@@ -87,37 +87,39 @@ pub enum ZoneInfoDataError {
 
 impl ZoneInfoProvider<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
-        let mut tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
-        let compiled_transitions = tzdb_source.compiler.build();
+        let tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
+        let compiled_transitions = ZoneInfoCompiler::new(tzdb_source.data.clone()).build();
 
         let mut identifiers = BTreeMap::default();
-        let mut zones = Vec::default();
+        let mut primary_zones = Vec::default();
 
         // Create a Map of <ZoneId | Link, ZoneId>, this is used later to index
-        for zone_identifier in tzdb_source.compiler.zones.keys() {
-            zones.push(zone_identifier.clone());
-            identifiers.insert(zone_identifier.clone(), zone_identifier.clone());
+        let ZoneInfoData { links, zones, .. } = tzdb_source.data;
+
+        for zone_identifier in zones.into_keys() {
+            primary_zones.push(zone_identifier.clone());
+            identifiers.insert(zone_identifier.clone(), zone_identifier);
         }
-        for (link, zone) in tzdb_source.compiler.links.iter() {
-            identifiers.insert(link.clone(), zone.clone());
+        for (link, zone) in links.into_iter() {
+            identifiers.insert(link, zone);
         }
 
-        let identier_map: BTreeMap<Vec<u8>, usize> = identifiers
-            .iter()
+        let identifier_map: BTreeMap<Vec<u8>, usize> = identifiers
+            .into_iter()
             .map(|(id, zoneid)| {
                 (
                     id.to_ascii_lowercase().as_bytes().to_vec(),
-                    zones.binary_search(zoneid).unwrap(),
+                    primary_zones.binary_search(&zoneid).unwrap(),
                 )
             })
             .collect();
 
-        let tzifs: Vec<ZeroTzif<'_>> = zones
-            .iter()
+        let tzifs: Vec<ZeroTzif<'_>> = primary_zones
+            .into_iter()
             .map(|id| {
                 let data = compiled_transitions
                     .data
-                    .get(id)
+                    .get(&id)
                     .expect("all zones should be built");
                 ZeroTzif::from_transition_data(data)
             })
@@ -125,7 +127,7 @@ impl ZoneInfoProvider<'_> {
 
         let tzifs_zerovec: VarZeroVec<'static, ZeroTzifULE, Index32> = tzifs.as_slice().into();
 
-        let ids = ZeroAsciiIgnoreCaseTrie::try_from(&identier_map)
+        let ids = ZeroAsciiIgnoreCaseTrie::try_from(&identifier_map)
             .map_err(ZoneInfoDataError::Build)?
             .convert_store();
 

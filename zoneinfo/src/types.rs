@@ -30,16 +30,32 @@ use crate::{
 #[non_exhaustive]
 pub struct Transition {
     /// The time to transition at
+    ///
+    /// This represents the time in Unix Epoch seconds
+    /// at which a transition should occur.
     pub at_time: i64,
     /// The transition time kind.
+    ///
+    /// Whether the transition was specified in Local, Standard, or Universal time.
     pub time_type: QualifiedTimeKind,
+
+    // TODO: Below are fields that should be split into a
+    // currently non-existent LocalTime record.
     /// The offset of the transition.
     pub offset: i64,
     /// Whether the transition is a savings offset or not
+    ///
+    /// This flag corresponds to the `is_dst` flag
     pub dst: bool,
     /// The savings for the local time record
+    ///
+    /// This field represents the exact [`Time`] value
+    /// used for savings.
     pub savings: Time,
     /// The letter designation for the local time record
+    ///
+    /// The LETTER designation used in the fully formatted
+    /// abbreviation
     pub letter: Option<String>,
     /// The abbreviation format for the local time record.
     pub format: String,
@@ -47,13 +63,13 @@ pub struct Transition {
 
 impl Ord for Transition {
     fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.partial_cmp(other).expect("always some")
+        self.at_time.cmp(&other.at_time)
     }
 }
 
 impl PartialOrd for Transition {
     fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.at_time.cmp(&other.at_time))
+        Some(self.cmp(other))
     }
 }
 
@@ -85,18 +101,12 @@ impl TryFromStr<LineParseContext> for ZoneEntry {
         let mut splits = s.split_whitespace();
         let std_offset = splits
             .next()
-            .ok_or(ZoneInfoParseError::UnexpectedEndOfLine(
-                ctx.line_number,
-                ctx.span(),
-            ))?
+            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?
             .context_parse::<Time>(ctx)?;
         let rule = next_split(&mut splits, ctx)?.context_parse::<RuleIdentifier>(ctx)?;
         let format = splits
             .next()
-            .ok_or(ZoneInfoParseError::UnexpectedEndOfLine(
-                ctx.line_number,
-                ctx.span(),
-            ))?
+            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?
             .context_parse::<AbbreviationFormat>(ctx)?;
         let datetime = splits.collect::<Vec<&str>>();
         let date = if datetime.is_empty() {
@@ -198,22 +208,15 @@ impl TryFromStr<LineParseContext> for AbbreviationFormat {
         } else if s.contains("%z") {
             Ok(Self::Numeric)
         } else if s.contains("/") {
-            let (std, dst) = s.split_once('/').ok_or(ZoneInfoParseError::UnknownValue(
-                ctx.line_number,
-                s.to_owned(),
-            ))?;
+            let (std, dst) = s
+                .split_once('/')
+                .ok_or(ZoneInfoParseError::unknown(s, ctx))?;
             Ok(Self::Pair(std.to_owned(), dst.to_owned()))
         } else {
             Ok(AbbreviationFormat::String(s.to_owned()))
         };
         ctx.exit();
         value
-    }
-}
-
-impl Default for AbbreviationFormat {
-    fn default() -> Self {
-        Self::String("LMT".to_owned())
     }
 }
 
@@ -294,6 +297,7 @@ impl Date {
     }
 }
 
+/// `Time` represents any [-]hh:mm:ss time value
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Time {
     pub sign: Sign,
@@ -335,10 +339,9 @@ impl TryFromStr<LineParseContext> for Time {
                 second: 0,
             });
         }
-        let (hour, sub_hour) = s.split_once(':').ok_or(ZoneInfoParseError::UnknownValue(
-            ctx.line_number,
-            s.to_owned(),
-        ))?;
+        let (hour, sub_hour) = s
+            .split_once(':')
+            .ok_or(ZoneInfoParseError::unknown(s, ctx))?;
         let hour = hour.context_parse::<i8>(ctx)?;
         if !sub_hour.contains(':') {
             let minute = sub_hour.context_parse::<i8>(ctx)?;
@@ -428,12 +431,12 @@ pub enum Month {
 impl Month {
     /// Calculates the day of year for the start of the month
     pub(crate) fn month_start_to_day_of_year(self, year: i32) -> i32 {
-        utils::month_to_day(self as u8, utils::in_leap_year(year))
+        utils::month_to_day(self as u8, utils::num_leap_days(year))
     }
 
     /// Calculates the day of year for the end of the month
     pub(crate) fn month_end_to_day_of_year(self, year: i32) -> i32 {
-        utils::month_to_day(self as u8 + 1, utils::in_leap_year(year)) - 1
+        utils::month_to_day(self as u8 + 1, utils::num_leap_days(year)) - 1
     }
 }
 
@@ -454,10 +457,7 @@ impl TryFromStr<LineParseContext> for Month {
             "Oct" => Ok(Self::Oct),
             "Nov" => Ok(Self::Nov),
             "Dec" => Ok(Self::Dec),
-            _ => Err(ZoneInfoParseError::UnknownValue(
-                ctx.line_number,
-                s.to_owned(),
-            )),
+            _ => Err(ZoneInfoParseError::unknown(s, ctx)),
         };
         ctx.exit();
         result
@@ -499,10 +499,9 @@ fn parse_date_split(
     pat: &str,
     ctx: &mut LineParseContext,
 ) -> Result<(WeekDay, u8), ZoneInfoParseError> {
-    let (week_day, num) = s.split_once(pat).ok_or(ZoneInfoParseError::UnknownValue(
-        ctx.line_number,
-        s.to_owned(),
-    ))?;
+    let (week_day, num) = s
+        .split_once(pat)
+        .ok_or(ZoneInfoParseError::unknown(s, ctx))?;
     let w = week_day.context_parse::<WeekDay>(ctx)?;
     let d = num.context_parse(ctx)?;
     Ok((w, d))
@@ -546,6 +545,8 @@ pub enum QualifiedTimeKind {
     Universal,
 }
 
+/// `QualifiedTime` represents any [-]hh:mm:ss[u|s|g|z|w] time value,
+/// where the time value is qualified with a kind.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum QualifiedTime {
     // Local time including dst shifts

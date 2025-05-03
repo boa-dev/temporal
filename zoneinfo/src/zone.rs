@@ -8,7 +8,7 @@ use hashbrown::HashMap;
 use crate::{
     epoch_seconds_for_year,
     parser::{remove_comments, LineParseContext, TryFromStr, ZoneInfoParseError},
-    rule::RuleTable,
+    rule::Rules,
     types::{QualifiedTimeKind, RuleIdentifier, Time, Transition, UntilDateTime, ZoneEntry},
     ZoneInfoLocalTimeRecord,
 };
@@ -137,9 +137,9 @@ impl ZoneBuildContext {
 // TODO: Potentially remove the first record from the
 // table. The first record is compiled separately
 // anyways, so that would clean that up.
-/// The `ZoneTable` represents the zoneinfo files' Zone record.
+/// The `ZoneRecord` represents the zoneinfo files' Zone record.
 ///
-/// A ZoneTable is made up of a single record, with zero or
+/// A ZoneRecord is made up of a single record, with zero or
 /// more continuation lines.
 ///
 /// # Example
@@ -159,27 +159,27 @@ impl ZoneBuildContext {
 /// ```
 ///
 #[derive(Debug, Clone, Default)]
-pub struct ZoneTable {
-    /// The zone entries of the `ZoneTable`
-    pub table: Vec<ZoneEntry>,
+pub struct ZoneRecord {
+    /// The zone entries of the `ZoneRecord`
+    pub entries: Vec<ZoneEntry>,
     /// Any associated rules for the zone table.
-    pub associates: HashMap<String, RuleTable>,
+    pub associates: HashMap<String, Rules>,
 }
 
-impl IntoIterator for ZoneTable {
+impl IntoIterator for ZoneRecord {
     type Item = ZoneEntry;
     type IntoIter = alloc::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.table.into_iter()
+        self.entries.into_iter()
     }
 }
 
-impl ZoneTable {
+impl ZoneRecord {
     /// Associate the current `ZoneTable` with rules
-    pub fn associate_rules(&mut self, rules: &HashMap<String, RuleTable>) {
+    pub fn associate_rules(&mut self, rules: &HashMap<String, Rules>) {
         if self.associates.is_empty() {
-            for entry in &mut self.table {
+            for entry in &mut self.entries {
                 if let RuleIdentifier::Named(associate_rule) = &entry.rule {
                     if self.associates.contains_key(associate_rule) {
                         continue;
@@ -196,7 +196,7 @@ impl ZoneTable {
     ///
     /// No transition will be lower than this.
     pub(crate) fn get_first_local_record(&self) -> ZoneInfoLocalTimeRecord {
-        let lmt_entry = &self.table[0];
+        let lmt_entry = &self.entries[0];
         ZoneInfoLocalTimeRecord {
             offset: lmt_entry.std_offset.as_secs(),
             // An assumption
@@ -209,7 +209,7 @@ impl ZoneTable {
     }
 
     pub(crate) fn get_first_until_date(&self) -> Option<&UntilDateTime> {
-        self.table[0].date.as_ref()
+        self.entries[0].date.as_ref()
     }
 
     // TODO: the clarity of this could probably be further improved by using
@@ -229,8 +229,8 @@ impl ZoneTable {
 
         // Year seconds should be Jan 1 for year.
         // By default, the zone is the last zone set
-        for entry in &self.table {
-            if entry == &self.table[0] {
+        for entry in &self.entries {
+            if entry == &self.entries[0] {
                 continue;
             }
             // Calculate the UntilTime with the previous zones inputs.
@@ -478,7 +478,7 @@ impl ZoneTable {
     }
 }
 
-impl ZoneTable {
+impl ZoneRecord {
     /// Parses a `ZoneTable` starting from the provided Zone line and
     /// ending on the final continuation line.
     pub fn parse_full_table(
@@ -488,10 +488,9 @@ impl ZoneTable {
         ctx.enter("zone table");
         let mut table = Vec::default();
         ctx.line_number += 1;
-        let header = lines.next().ok_or(ZoneInfoParseError::UnexpectedEndOfLine(
-            ctx.line_number,
-            ctx.span(),
-        ))?;
+        let header = lines
+            .next()
+            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?;
         let (identifier, entry) = Self::parse_header_line(header, ctx)?;
         let has_continuation_lines = entry.date.is_some();
         table.push(entry);
@@ -517,7 +516,7 @@ impl ZoneTable {
         Ok((
             identifier,
             Self {
-                table,
+                entries: table,
                 associates: HashMap::default(),
             },
         ))
@@ -554,7 +553,7 @@ mod tests {
 
     use crate::{
         parser::{LineParseContext, TryFromStr},
-        rule::{Rule, RuleTable},
+        rule::{Rule, Rules},
         types::{
             AbbreviationFormat, Date, DayOfMonth, Month, QualifiedTime, RuleIdentifier, Sign, Time,
             ToYear, UntilDateTime, WeekDay, ZoneEntry,
@@ -562,7 +561,7 @@ mod tests {
         zone::ZoneBuildContext,
     };
 
-    use super::ZoneTable;
+    use super::ZoneRecord;
 
     const CHICAGO: &str = r#"Zone America/Chicago	-5:50:36 -	LMT	1883 Nov 18 18:00u
                     -6:00	US	C%sT	1920
@@ -573,10 +572,10 @@ mod tests {
                     -6:00	Chicago	C%sT	1967
                     -6:00	US	C%sT"#;
 
-    fn parse_chicago() -> (String, ZoneTable) {
+    fn parse_chicago() -> (String, ZoneRecord) {
         let mut lines = CHICAGO.lines().peekable();
         let mut ctx = LineParseContext::default();
-        ZoneTable::parse_full_table(&mut lines, &mut ctx).unwrap()
+        ZoneRecord::parse_full_table(&mut lines, &mut ctx).unwrap()
     }
 
     #[test]
@@ -629,7 +628,7 @@ mod tests {
 
     #[test]
     fn chicago_transition() {
-        let mut rules = RuleTable::initialize(Rule {
+        let mut rules = Rules::initialize(Rule {
             from: 1918,
             to: Some(ToYear::Year(1919)),
             in_month: Month::Mar,

@@ -16,7 +16,7 @@ pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
     }
 }
 
-pub(crate) fn in_leap_year(year: i32) -> i32 {
+pub(crate) fn num_leap_days(year: i32) -> i32 {
     mathematical_days_in_year(year) - 365
 }
 

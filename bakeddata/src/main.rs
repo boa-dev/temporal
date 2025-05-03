@@ -108,7 +108,7 @@ fn main() -> io::Result<()> {
         .unwrap()
         .join("provider/src");
 
-    // Write idenitifiers
+    // Write identifiers
     write_data_file_with_debug(
         &provider.join("data"),
         &IanaIdentifierNormalizer::build(&tzdata_dir).unwrap(),

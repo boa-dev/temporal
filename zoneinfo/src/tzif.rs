@@ -8,7 +8,7 @@
 use alloc::vec::Vec;
 use indexmap::IndexSet;
 
-use crate::ZoneInfoTransitionData;
+use crate::CompiledTransition;
 
 /// A version 2 TZif block.
 ///
@@ -21,11 +21,11 @@ pub struct TzifBlockV2 {
 }
 
 impl TzifBlockV2 {
-    pub fn from_transition_data(data: &ZoneInfoTransitionData) -> Self {
+    pub fn from_transition_data(data: &CompiledTransition) -> Self {
         let mut local_time_set = IndexSet::new();
         local_time_set.insert(LocalTimeRecord {
-            offset: data.lmt.offset,
-            is_dst: data.lmt.saving.as_secs() != 0,
+            offset: data.initial_record.offset,
+            is_dst: data.initial_record.saving.as_secs() != 0,
         });
         let mut transition_times = Vec::default();
         let mut transition_types = Vec::default();
@@ -43,10 +43,7 @@ impl TzifBlockV2 {
             }
         }
 
-        let local_time_types = local_time_set
-            .iter()
-            .cloned()
-            .collect::<Vec<LocalTimeRecord>>();
+        let local_time_types = local_time_set.into_iter().collect::<Vec<LocalTimeRecord>>();
 
         Self {
             transition_times,

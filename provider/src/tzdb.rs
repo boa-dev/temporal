@@ -17,7 +17,7 @@ use std::{
 
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{VarZeroVec, ZeroVec};
-use zoneinfo_compiler::{ZoneInfoCompiler, ZoneInfoError};
+use zoneinfo_compiler::{ZoneInfoData, ZoneInfoError};
 
 /// A data struct for IANA identifier normalization
 #[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
@@ -57,15 +57,15 @@ impl From<ZoneInfoError> for TzdbDataSourceError {
 
 pub struct TzdbDataSource {
     pub version: String,
-    pub compiler: ZoneInfoCompiler,
+    pub data: ZoneInfoData,
 }
 
 impl TzdbDataSource {
     pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
         let version_file = tzdata_path.join("version");
         let version = fs::read_to_string(version_file)?.trim().to_owned();
-        let compiler = ZoneInfoCompiler::from_zoneinfo_directory(tzdata_path)?;
-        Ok(Self { version, compiler })
+        let data = ZoneInfoData::from_zoneinfo_directory(tzdata_path)?;
+        Ok(Self { version, data })
     }
 }
 
@@ -83,11 +83,11 @@ impl IanaIdentifierNormalizer<'_> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
         let mut identifiers = BTreeSet::default();
-        for zone_id in provider.compiler.zones.keys() {
+        for zone_id in provider.data.zones.keys() {
             // Add canonical identifiers.
             let _ = identifiers.insert(zone_id.clone());
         }
-        for links in provider.compiler.links.keys() {
+        for links in provider.data.links.keys() {
             // Add link / non-canonical identifiers
             let _ = identifiers.insert(links.clone());
         }
