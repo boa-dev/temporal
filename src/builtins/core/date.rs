@@ -81,48 +81,6 @@ impl PartialDate {
     crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth); // excludes day
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
-
-    pub(crate) fn with_fallback_zoneddatetime(
-        &self,
-        fallback: &ZonedDateTime,
-        provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Self> {
-        let era = if let Some(era) = self.era {
-            Some(era)
-        } else {
-            let era = fallback.era_with_provider(provider)?;
-            era.map(|e| {
-                TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
-                    .map_err(|e| TemporalError::general(format!("{e}")))
-            })
-            .transpose()?
-        };
-
-        let fallback_era_year = fallback.era_year_with_provider(provider)?;
-        let era_year = self.era_year.map_or_else(|| fallback_era_year, Some);
-
-        let (month, month_code) = match (self.month, self.month_code) {
-            (Some(month), Some(mc)) => (Some(month), Some(mc)),
-            (Some(month), None) => (Some(month), Some(month_to_month_code(month)?)),
-            (None, Some(mc)) => (Some(mc.to_month_integer()), Some(mc)),
-            (None, None) => (
-                Some(fallback.month_with_provider(provider)?),
-                Some(fallback.month_code_with_provider(provider)?),
-            ),
-        };
-
-        {
-            Ok(Self {
-                year: Some(self.year.unwrap_or(fallback.year_with_provider(provider)?)),
-                month,
-                month_code,
-                day: Some(self.day.unwrap_or(fallback.day_with_provider(provider)?)),
-                era,
-                era_year,
-                calendar: fallback.calendar().clone(),
-            })
-        }
-    }
 }
 
 // Use macro to impl fallback methods to avoid having a trait method.
