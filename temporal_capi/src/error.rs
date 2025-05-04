@@ -24,6 +24,12 @@ pub mod ffi {
                 kind: ErrorKind::Syntax,
             }
         }
+
+        pub(crate) fn range() -> Self {
+            TemporalError {
+                kind: ErrorKind::Range,
+            }
+        }
     }
 }
 
