@@ -1400,8 +1400,13 @@ mod tests {
     fn round_with_provider_test() {
         let provider = &FsTzdbProvider::default();
         let dt = "1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
-        let zdt = ZonedDateTime::from_str(dt, Disambiguation::default(), OffsetDisambiguation::Use)
-            .unwrap();
+        let zdt = ZonedDateTime::from_str_with_provider(
+            dt,
+            Disambiguation::default(),
+            OffsetDisambiguation::Use,
+            provider,
+        )
+        .unwrap();
 
         let result = zdt
             .round_with_provider(
