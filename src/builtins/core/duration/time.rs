@@ -1,8 +1,7 @@
 //! An implementation of `TimeDuration` and it's methods.
 
 use crate::{
-    options::TemporalUnit, primitive::FiniteF64, temporal_assert, Sign, TemporalError,
-    TemporalResult,
+    options::Unit, primitive::FiniteF64, temporal_assert, Sign, TemporalError, TemporalResult,
 };
 
 use super::{duration_sign, is_valid_duration, normalized::NormalizedTimeDuration};
@@ -64,7 +63,7 @@ impl TimeDuration {
     ///   - Will error if provided duration is invalid
     pub(crate) fn from_normalized(
         norm: NormalizedTimeDuration,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
     ) -> TemporalResult<(FiniteF64, Self)> {
         // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
         let mut days = 0;
@@ -81,7 +80,7 @@ impl TimeDuration {
 
         match largest_unit {
             // 4. If largestUnit is "year", "month", "week", or "day", then
-            TemporalUnit::Year | TemporalUnit::Month | TemporalUnit::Week | TemporalUnit::Day => {
+            Unit::Year | Unit::Month | Unit::Week | Unit::Day => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
                 (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
@@ -107,7 +106,7 @@ impl TimeDuration {
                 (days, hours) = hours.div_rem_euclid(&24);
             }
             // 5. Else if largestUnit is "hour", then
-            TemporalUnit::Hour => {
+            Unit::Hour => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
                 (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
@@ -129,7 +128,7 @@ impl TimeDuration {
                 (hours, minutes) = minutes.div_rem_euclid(&60);
             }
             // 6. Else if largestUnit is "minute", then
-            TemporalUnit::Minute => {
+            Unit::Minute => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
                 (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
@@ -147,7 +146,7 @@ impl TimeDuration {
                 (minutes, seconds) = seconds.div_rem_euclid(&60);
             }
             // 7. Else if largestUnit is "second", then
-            TemporalUnit::Second => {
+            Unit::Second => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
                 (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
@@ -161,7 +160,7 @@ impl TimeDuration {
                 (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
             }
             // 8. Else if largestUnit is "millisecond", then
-            TemporalUnit::Millisecond => {
+            Unit::Millisecond => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
                 (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
@@ -171,14 +170,14 @@ impl TimeDuration {
                 (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
             }
             // 9. Else if largestUnit is "microsecond", then
-            TemporalUnit::Microsecond => {
+            Unit::Microsecond => {
                 // a. Set microseconds to floor(nanoseconds / 1000).
                 // b. Set nanoseconds to nanoseconds modulo 1000.
                 (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
             }
             // 10. Else,
             // a. Assert: largestUnit is "nanosecond".
-            _ => temporal_assert!(largest_unit == TemporalUnit::Nanosecond),
+            _ => temporal_assert!(largest_unit == Unit::Nanosecond),
         }
 
         // NOTE(nekevss): `mul_add` is essentially the Rust's implementation of `std::fma()`, so that's handy, but

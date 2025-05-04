@@ -8,7 +8,7 @@ use crate::{
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, ResolvedRoundingOptions, TemporalUnit, UnitGroup,
+        DisplayCalendar, ResolvedRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -236,7 +236,7 @@ impl PlainDate {
         // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm,
         //    "day").[[Days]].
         let days = duration.days().checked_add(
-            &TimeDuration::from_normalized(duration.time().to_normalized(), TemporalUnit::Day)?.0,
+            &TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
         )?;
 
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
@@ -265,7 +265,7 @@ impl PlainDate {
     pub(crate) fn internal_diff_date(
         &self,
         other: &Self,
-        largest_unit: TemporalUnit,
+        largest_unit: Unit,
     ) -> TemporalResult<Duration> {
         if self.iso.year == other.iso.year
             && self.iso.month == other.iso.month
@@ -274,7 +274,7 @@ impl PlainDate {
             return Ok(Duration::default());
         }
 
-        if largest_unit == TemporalUnit::Day {
+        if largest_unit == Unit::Day {
             let days = self.days_until(other);
             return Ok(Duration::from(DateDuration::new(
                 FiniteF64::default(),
@@ -310,8 +310,8 @@ impl PlainDate {
             settings,
             op,
             UnitGroup::Date,
-            TemporalUnit::Day,
-            TemporalUnit::Day,
+            Unit::Day,
+            Unit::Day,
         )?;
 
         // 6. If temporalDate.[[ISOYear]] = other.[[ISOYear]], and temporalDate.[[ISOMonth]] = other.[[ISOMonth]],
@@ -330,7 +330,7 @@ impl PlainDate {
         let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
         // 11. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
         let rounding_granularity_is_noop =
-            resolved.smallest_unit == TemporalUnit::Day && resolved.increment.get() == 1;
+            resolved.smallest_unit == Unit::Day && resolved.increment.get() == 1;
         // 12. If roundingGranularityIsNoop is false, then
         if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
@@ -348,7 +348,7 @@ impl PlainDate {
                 resolved,
             )?
         }
-        let result = Duration::from_normalized(duration, TemporalUnit::Day)?;
+        let result = Duration::from_normalized(duration, Unit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
         match op {
             DifferenceOperation::Until => Ok(result),

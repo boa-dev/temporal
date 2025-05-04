@@ -5,7 +5,7 @@ use crate::{
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
-        RoundingIncrement, TemporalRoundingMode, TemporalUnit, ToStringRoundingOptions, UnitGroup,
+        RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
     primitive::FiniteF64,
@@ -172,8 +172,8 @@ impl PlainTime {
             settings,
             op,
             UnitGroup::Time,
-            TemporalUnit::Hour,
-            TemporalUnit::Nanosecond,
+            Unit::Hour,
+            Unit::Nanosecond,
         )?;
 
         // 5. Let norm be ! DifferenceTime(temporalTime.[[ISOHour]], temporalTime.[[ISOMinute]],
@@ -183,7 +183,7 @@ impl PlainTime {
         let mut normalized_time = self.iso.diff(&other.iso).to_normalized();
 
         // 6. If settings.[[SmallestUnit]] is not "nanosecond" or settings.[[RoundingIncrement]] ≠ 1, then
-        if resolved.smallest_unit != TemporalUnit::Nanosecond
+        if resolved.smallest_unit != Unit::Nanosecond
             || resolved.increment != RoundingIncrement::ONE
         {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
@@ -451,12 +451,12 @@ impl PlainTime {
     /// Rounds the current `Time` according to provided options.
     pub fn round(
         &self,
-        smallest_unit: TemporalUnit,
+        smallest_unit: Unit,
         rounding_increment: Option<f64>,
-        rounding_mode: Option<TemporalRoundingMode>,
+        rounding_mode: Option<RoundingMode>,
     ) -> TemporalResult<Self> {
         let increment = RoundingIncrement::try_from(rounding_increment.unwrap_or(1.0))?;
-        let rounding_mode = rounding_mode.unwrap_or(TemporalRoundingMode::HalfExpand);
+        let rounding_mode = rounding_mode.unwrap_or(RoundingMode::HalfExpand);
 
         let max = smallest_unit
             .to_maximum_rounding_increment()
@@ -468,7 +468,7 @@ impl PlainTime {
         increment.validate(u64::from(max), false)?;
 
         let resolved = ResolvedRoundingOptions {
-            largest_unit: TemporalUnit::Auto,
+            largest_unit: Unit::Auto,
             increment,
             smallest_unit,
             rounding_mode,
@@ -516,7 +516,7 @@ mod tests {
     use crate::{
         builtins::core::Duration,
         iso::IsoTime,
-        options::{ArithmeticOverflow, DifferenceSettings, RoundingIncrement, TemporalUnit},
+        options::{ArithmeticOverflow, DifferenceSettings, RoundingIncrement, Unit},
     };
     use num_traits::FromPrimitive;
 
@@ -586,24 +586,16 @@ mod tests {
     fn time_round_millisecond() {
         let base = PlainTime::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
 
-        let result_1 = base
-            .round(TemporalUnit::Millisecond, Some(1.0), None)
-            .unwrap();
+        let result_1 = base.round(Unit::Millisecond, Some(1.0), None).unwrap();
         assert_time(result_1, (3, 34, 56, 988, 0, 0));
 
-        let result_2 = base
-            .round(TemporalUnit::Millisecond, Some(2.0), None)
-            .unwrap();
+        let result_2 = base.round(Unit::Millisecond, Some(2.0), None).unwrap();
         assert_time(result_2, (3, 34, 56, 988, 0, 0));
 
-        let result_3 = base
-            .round(TemporalUnit::Millisecond, Some(4.0), None)
-            .unwrap();
+        let result_3 = base.round(Unit::Millisecond, Some(4.0), None).unwrap();
         assert_time(result_3, (3, 34, 56, 988, 0, 0));
 
-        let result_4 = base
-            .round(TemporalUnit::Millisecond, Some(5.0), None)
-            .unwrap();
+        let result_4 = base.round(Unit::Millisecond, Some(5.0), None).unwrap();
         assert_time(result_4, (3, 34, 56, 990, 0, 0));
     }
 
@@ -611,24 +603,16 @@ mod tests {
     fn time_round_microsecond() {
         let base = PlainTime::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
 
-        let result_1 = base
-            .round(TemporalUnit::Microsecond, Some(1.0), None)
-            .unwrap();
+        let result_1 = base.round(Unit::Microsecond, Some(1.0), None).unwrap();
         assert_time(result_1, (3, 34, 56, 987, 654, 0));
 
-        let result_2 = base
-            .round(TemporalUnit::Microsecond, Some(2.0), None)
-            .unwrap();
+        let result_2 = base.round(Unit::Microsecond, Some(2.0), None).unwrap();
         assert_time(result_2, (3, 34, 56, 987, 654, 0));
 
-        let result_3 = base
-            .round(TemporalUnit::Microsecond, Some(4.0), None)
-            .unwrap();
+        let result_3 = base.round(Unit::Microsecond, Some(4.0), None).unwrap();
         assert_time(result_3, (3, 34, 56, 987, 656, 0));
 
-        let result_4 = base
-            .round(TemporalUnit::Microsecond, Some(5.0), None)
-            .unwrap();
+        let result_4 = base.round(Unit::Microsecond, Some(5.0), None).unwrap();
         assert_time(result_4, (3, 34, 56, 987, 655, 0));
     }
 
@@ -636,24 +620,16 @@ mod tests {
     fn time_round_nanoseconds() {
         let base = PlainTime::new_unchecked(IsoTime::new_unchecked(3, 34, 56, 987, 654, 321));
 
-        let result_1 = base
-            .round(TemporalUnit::Nanosecond, Some(1.0), None)
-            .unwrap();
+        let result_1 = base.round(Unit::Nanosecond, Some(1.0), None).unwrap();
         assert_time(result_1, (3, 34, 56, 987, 654, 321));
 
-        let result_2 = base
-            .round(TemporalUnit::Nanosecond, Some(2.0), None)
-            .unwrap();
+        let result_2 = base.round(Unit::Nanosecond, Some(2.0), None).unwrap();
         assert_time(result_2, (3, 34, 56, 987, 654, 322));
 
-        let result_3 = base
-            .round(TemporalUnit::Nanosecond, Some(4.0), None)
-            .unwrap();
+        let result_3 = base.round(Unit::Nanosecond, Some(4.0), None).unwrap();
         assert_time(result_3, (3, 34, 56, 987, 654, 320));
 
-        let result_4 = base
-            .round(TemporalUnit::Nanosecond, Some(5.0), None)
-            .unwrap();
+        let result_4 = base.round(Unit::Nanosecond, Some(5.0), None).unwrap();
         assert_time(result_4, (3, 34, 56, 987, 654, 320));
     }
 
@@ -725,7 +701,7 @@ mod tests {
         let later = PlainTime::new(13, 47, 57, 988, 655, 322).unwrap();
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Second),
+            smallest_unit: Some(Unit::Second),
             increment: Some(RoundingIncrement::try_new(1).unwrap()),
             ..Default::default()
         };
@@ -735,7 +711,7 @@ mod tests {
         );
 
         let settings = DifferenceSettings {
-            smallest_unit: Some(TemporalUnit::Second),
+            smallest_unit: Some(Unit::Second),
             increment: Some(RoundingIncrement::try_new(4).unwrap()),
             ..Default::default()
         };
@@ -753,92 +729,77 @@ mod tests {
                 .unwrap();
 
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(1.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(1.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(2.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(2.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 322, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(4.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(4.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(5.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(5.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(8.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(8.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(10.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(10.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(20.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(20.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(25.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(25.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 325, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(40.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(40.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(50.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(50.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(100.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(100.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(125.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(125.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 375, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(200.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(200.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 400, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(250.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(250.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 250, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
         assert_eq!(
-            time.round(TemporalUnit::Nanosecond, Some(500.0), None)
-                .unwrap(),
+            time.round(Unit::Nanosecond, Some(500.0), None).unwrap(),
             PlainTime::new_with_overflow(3, 34, 56, 987, 654, 500, ArithmeticOverflow::Constrain)
                 .unwrap()
         );
