@@ -289,25 +289,30 @@ pub mod ffi {
             microsecond2: u16,
             nanosecond2: u16,
         ) -> i32 {
-            let comparisons = [
-                year1.cmp(&year2),
-                month1.cmp(&month2),
-                day1.cmp(&day2),
-                hour1.cmp(&hour2),
-                minute1.cmp(&minute2),
-                second1.cmp(&second2),
-                millisecond1.cmp(&millisecond2),
-                microsecond1.cmp(&microsecond2),
-                nanosecond1.cmp(&nanosecond2),
-            ];
-            comparisons
-                .iter()
-                .find(|&&ord| ord != std::cmp::Ordering::Equal)
-                .map_or(0, |ord| match ord {
-                    std::cmp::Ordering::Greater => 1,
-                    std::cmp::Ordering::Less => -1,
-                    std::cmp::Ordering::Equal => 0,
-                })
+            let tuple1 = (
+                year1,
+                month1,
+                day1,
+                hour1,
+                minute1,
+                second1,
+                millisecond1,
+                microsecond1,
+                nanosecond1,
+            );
+            let tuple2 = (
+                year2,
+                month2,
+                day2,
+                hour2,
+                minute2,
+                second2,
+                millisecond2,
+                microsecond2,
+                nanosecond2,
+            );
+
+            tuple1.cmp(&tuple2) as i32
         }
 
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {

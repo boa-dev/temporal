@@ -9,6 +9,7 @@ pub mod ffi {
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings};
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use diplomat_runtime::DiplomatWrite;
+    use std::cmp::Ordering;
     use std::fmt::Write;
 
     #[diplomat::opaque]
@@ -152,16 +153,10 @@ pub mod ffi {
         }
 
         pub fn compare_iso_year_month(year1: i32, month1: u8, year2: i32, month2: u8) -> i32 {
-            if year1 > year2 {
-                1
-            } else if year1 < year2 {
-                -1
-            } else if month1 > month2 {
-                1
-            } else if month1 < month2 {
-                -1
-            } else {
-                0
+            match (year1, month1).cmp(&(year2, month2)) {
+                Ordering::Greater => 1,
+                Ordering::Less => -1,
+                Ordering::Equal => 0,
             }
         }
         pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {

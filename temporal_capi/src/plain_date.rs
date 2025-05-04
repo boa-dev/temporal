@@ -179,14 +179,10 @@ pub mod ffi {
             month2: u8,
             day2: u8,
         ) -> i32 {
-            match (year1.cmp(&year2), month1.cmp(&month2), day1.cmp(&day2)) {
-                (Ordering::Greater, _, _) => 1,
-                (Ordering::Less, _, _) => -1,
-                (_, Ordering::Greater, _) => 1,
-                (_, Ordering::Less, _) => -1,
-                (_, _, Ordering::Greater) => 1,
-                (_, _, Ordering::Less) => -1,
-                _ => 0,
+            match (year1, month1, day1).cmp(&(year2, month2, day2)) {
+                std::cmp::Ordering::Less => -1,
+                std::cmp::Ordering::Equal => 0,
+                std::cmp::Ordering::Greater => 1,
             }
         }
         pub fn year(&self) -> i32 {
