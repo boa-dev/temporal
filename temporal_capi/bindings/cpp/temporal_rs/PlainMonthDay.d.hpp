@@ -41,7 +41,7 @@ public:
 
   inline static int32_t compare(const temporal_rs::PlainMonthDay& one, const temporal_rs::PlainMonthDay& two);
 
-  inline static int32_t compare_iso_month_day(uint8_t month1, uint8_t day1, uint8_t month2, uint8_t day2);
+  inline static int32_t compare_iso_year_month(int32_t year1, uint8_t month1, int32_t year2, uint8_t month2);
 
   inline int32_t iso_year() const;
 

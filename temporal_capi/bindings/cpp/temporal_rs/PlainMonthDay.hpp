@@ -32,7 +32,7 @@ namespace capi {
     
     int32_t temporal_rs_PlainMonthDay_compare(const temporal_rs::capi::PlainMonthDay* one, const temporal_rs::capi::PlainMonthDay* two);
     
-    int32_t temporal_rs_PlainMonthDay_compare_iso_month_day(uint8_t month1, uint8_t day1, uint8_t month2, uint8_t day2);
+    int32_t temporal_rs_PlainMonthDay_compare_iso_year_month(int32_t year1, uint8_t month1, int32_t year2, uint8_t month2);
     
     int32_t temporal_rs_PlainMonthDay_iso_year(const temporal_rs::capi::PlainMonthDay* self);
     
@@ -82,11 +82,11 @@ inline int32_t temporal_rs::PlainMonthDay::compare(const temporal_rs::PlainMonth
   return result;
 }
 
-inline int32_t temporal_rs::PlainMonthDay::compare_iso_month_day(uint8_t month1, uint8_t day1, uint8_t month2, uint8_t day2) {
-  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_compare_iso_month_day(month1,
-    day1,
-    month2,
-    day2);
+inline int32_t temporal_rs::PlainMonthDay::compare_iso_year_month(int32_t year1, uint8_t month1, int32_t year2, uint8_t month2) {
+  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_compare_iso_year_month(year1,
+    month1,
+    year2,
+    month2);
   return result;
 }
 

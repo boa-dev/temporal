@@ -15,7 +15,6 @@ pub mod ffi {
     use crate::plain_time::ffi::PlainTime;
     use crate::plain_year_month::ffi::PlainYearMonth;
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
-    use std::cmp::Ordering;
     use std::fmt::Write;
 
     #[diplomat::opaque]
