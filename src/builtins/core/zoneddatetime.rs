@@ -967,7 +967,6 @@ impl ZonedDateTime {
     pub fn round_with_provider(
         &self,
         options: RoundingOptions,
-        // reltive_to: Option<RelativeTo>, ?
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         // 1. Let zonedDateTime be the this value.
@@ -982,11 +981,9 @@ impl ZonedDateTime {
             // a. Set roundTo to ? GetOptionsObject(roundTo).
         // 6. NOTE: The following steps read options and perform independent validation in alphabetical order (GetRoundingIncrementOption reads "roundingIncrement" and GetRoundingModeOption reads "roundingMode").
         // 7. Let roundingIncrement be ? GetRoundingIncrementOption(roundTo).
-        let rounding_increment = options.increment.unwrap_or_default(); // TODO: validate this
         // 8. Let roundingMode be ? GetRoundingModeOption(roundTo, half-expand).
-        let rounding_mode = options.rounding_mode.unwrap(); // TODO: validate this
         // 9. Let smallestUnit be ? GetTemporalUnitValuedOption(roundTo, "smallestUnit", time, required, « day »).
-        let smallest_unit = options.smallest_unit.unwrap_or(TemporalUnit::Day);
+        let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
         // 10. If smallestUnit is day, then
             // a. Let maximum be 1.
             // b. Let inclusive be true.
@@ -994,21 +991,18 @@ impl ZonedDateTime {
             // a. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
             // b. Assert: maximum is not unset.
             // c. Let inclusive be false.
-        let (maximum, inclusive) = if smallest_unit == TemporalUnit::Day {
+        let (maximum, inclusive) = if resolved.smallest_unit == TemporalUnit::Day {
             (1, true)
         } else {
-            let Some(max) = smallest_unit.to_maximum_rounding_increment() else {
+            let Some(max) = resolved.smallest_unit.to_maximum_rounding_increment() else {
                 return Err(TemporalError::general("Maximum rounding increment is unset"));
             };
             (max, false)
         };
         // 12. Perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, inclusive).
         // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
-        let rounding_increment = options.increment.unwrap_or_default();
-        rounding_increment.validate(maximum.into(), inclusive)?;
-        
         // 13. If smallestUnit is nanosecond and roundingIncrement = 1, then
-        if smallest_unit == TemporalUnit::Nanosecond && rounding_increment == RoundingIncrement::ONE {
+        if resolved.smallest_unit == TemporalUnit::Nanosecond && resolved.increment == RoundingIncrement::ONE {
             // a. Return ! CreateTemporalZonedDateTime(zonedDateTime.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]]).
             return Ok(self.clone());
         }
@@ -1018,54 +1012,37 @@ impl ZonedDateTime {
         // 16. Let calendar be zonedDateTime.[[Calendar]].
         // 17. Let isoDateTime be GetISODateTimeFor(timeZone, thisNs).
         // 18. If smallestUnit is day, then
-        if smallest_unit == TemporalUnit::Day {
+        if resolved.smallest_unit == TemporalUnit::Day {
             // a. Let dateStart be isoDateTime.[[ISODate]].
-            let datestart = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            let iso_start = self.tz.get_iso_datetime_for(&self.instant, provider)?;
             // b. Let dateEnd be BalanceISODate(dateStart.[[Year]], dateStart.[[Month]], dateStart.[[Day]] + 1).
-            let end = self.tz.get_iso_datetime_for(&self.instant, provider)?;
-            let dateend = IsoDate::balance(
-                end.date.year,
-                end.date.month.into(),
-                end.date.day.into(), // todo this might be wrong
+            let iso_end = IsoDate::balance(
+                iso_start.date.year,
+                iso_start.date.month.into(),
+                i32::from(iso_start.date.day + 1),
             );
             // c. Let startNs be ? GetStartOfDay(timeZone, dateStart).
-            let start_ns = self.tz.get_start_of_day(&datestart.date, provider)?;
             // d. Assert: thisNs ≥ startNs.
             // e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
-            let end_ns = self.tz.get_start_of_day(&dateend, provider)?;
             // f. Assert: thisNs < endNs.
-            if this_ns.0 >= end_ns.0 {
-                return Err(TemporalError::range()
-                    .with_message("thisNs must be less than endNs"));
-            }
+            let start_ns   = self.tz.get_start_of_day(&iso_start.date, provider)?;
+            let end_ns     = self.tz.get_start_of_day(&iso_end,       provider)?;
+            temporal_assert!(this_ns.0 >= start_ns.0 && this_ns.0 < end_ns.0);
             // g. Let dayLengthNs be ℝ(endNs - startNs).
-            let day_length_ns=  NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
             // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
-            let day_progress_ns = NormalizedTimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0).unwrap();
+            let day_len_ns = NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
+            let day_progress_ns   = NormalizedTimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0)?;
             // i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
-            // expressed in days (FiniteF64) – this is the *divisor*
-            let rounded_day_ns = {
-                // increment is the *length of the day* in nanoseconds
-                let increment = NonZeroU128::new(day_length_ns.0.unsigned_abs() as u128).unwrap();
-            
-                let rounded = IncrementRounder::<i128>::from_signed_num(
-                    day_progress_ns.0,   // the raw nanoseconds we’re rounding
-                    increment,           // divisor
-                )?
-                .round(rounding_mode);
-            
-                NormalizedTimeDuration(rounded)
-            };
+            let rounded = IncrementRounder::<i128>::from_signed_num(
+                day_progress_ns.0,
+                NonZeroU128::new(day_len_ns.0.unsigned_abs() as u128).unwrap(),
+            )?.round(resolved.rounding_mode);
+
             // j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
-            let epoch_ns = {
-                let candidate = start_ns.0 + rounded_day_ns.0;      // i128 arithmetic
-            
-                // The spec-level check that `Instant` already performs:
-                Instant::try_new(candidate)?;                       // RangeError if invalid
-                candidate
-            };
+            let candidate = start_ns.0 + rounded;
+            Instant::try_new(candidate)?; 
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
-            return ZonedDateTime::try_new(epoch_ns, self.calendar.clone(), self.tz.clone());
+            return ZonedDateTime::try_new(candidate, self.calendar.clone(), self.tz.clone());
             
         } else {
             // 19. Else,
@@ -1073,17 +1050,22 @@ impl ZonedDateTime {
                 // b. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, thisNs).
                 // c. Let epochNanoseconds be ? InterpretISODateTimeOffset(roundResult.[[ISODate]], roundResult.[[Time]], option, offsetNanoseconds, timeZone, compatible, prefer, match-exactly).
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
-            let iso_dt   = self.tz.get_iso_datetime_for(&self.instant, provider)?;
-            let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
-            let rounded  = iso_dt.round(resolved)?;
-            let offset   = self.tz.get_offset_nanos_for(this_ns.as_i128(), provider)?;
+            let iso_dt      = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            let rounded_dt  = iso_dt.round(resolved)?; 
+            let offset_ns   = self.tz.get_offset_nanos_for(this_ns.as_i128(), provider)?;
+
             let epoch_ns = interpret_isodatetime_offset(
-                    rounded.date, Some(rounded.time), /*is_exact=*/false,
-                    Some(offset as i64),
-                    &self.tz, Disambiguation::Compatible,
-                    OffsetDisambiguation::Prefer, /*match-exactly=*/true,
-                    provider,
+                rounded_dt.date,
+                Some(rounded_dt.time),
+                false,
+                Some(offset_ns as i64),
+                &self.tz,
+                Disambiguation::Compatible,
+                OffsetDisambiguation::Prefer,
+                true,
+                provider,
             )?;
+
             ZonedDateTime::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
 
         }
@@ -1341,7 +1323,7 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
 mod tests {
     use super::ZonedDateTime;
     use crate::{
-        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, TemporalUnit},
+        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, RoundingIncrement, RoundingOptions, TemporalRoundingMode, TemporalUnit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         primitive::FiniteF64,
         time::EpochNanoseconds,
@@ -1397,6 +1379,49 @@ mod tests {
         assert_eq!(zdt_plus_eleven.hour_with_provider(provider).unwrap(), 12);
         assert_eq!(zdt_plus_eleven.minute_with_provider(provider).unwrap(), 49);
         assert_eq!(zdt_plus_eleven.second_with_provider(provider).unwrap(), 12);
+    }
+
+    /// Test cases from Temporal.ZonedDateTime docs
+    #[test]
+    fn round_with_provider_test() {
+        let provider = &FsTzdbProvider::default();
+        let dt = "1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
+        let zdt = ZonedDateTime::from_str(
+            dt, 
+            Disambiguation::default(), 
+            OffsetDisambiguation::Use
+        ).unwrap();
+
+        let result = zdt.round_with_provider(
+            RoundingOptions {
+                smallest_unit: Some(TemporalUnit::Hour),
+                ..Default::default()
+            }, 
+            provider
+        ).unwrap();
+        assert_eq!(result.to_string_with_provider(provider).unwrap(), "1995-12-07T03:00:00-08:00[America/Los_Angeles]");
+
+        let result = zdt.round_with_provider(
+            RoundingOptions {
+                smallest_unit: Some(TemporalUnit::Minute),
+                increment: Some((RoundingIncrement::try_new(30)).unwrap()),
+                ..Default::default() 
+            },
+            provider,
+        ).unwrap();
+        assert_eq!(result.to_string_with_provider(provider).unwrap(), "1995-12-07T03:30:00-08:00[America/Los_Angeles]");
+
+        let result = zdt.round_with_provider(
+            RoundingOptions {
+                smallest_unit: Some(TemporalUnit::Minute),
+                increment: Some((RoundingIncrement::try_new(30)).unwrap()),
+                rounding_mode: Some(TemporalRoundingMode::Floor),
+                ..Default::default() 
+            },
+            provider,
+        ).unwrap();
+        assert_eq!(result.to_string_with_provider(provider).unwrap(), "1995-12-07T03:00:00-08:00[America/Los_Angeles]");
+
     }
 
     #[test]
