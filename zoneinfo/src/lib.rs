@@ -36,10 +36,8 @@
 
 extern crate alloc;
 
-use alloc::{collections::BTreeSet, string::String};
-use parser::{ZoneInfoParseError, ZoneInfoParser};
-use types::{Time, Transition};
-use tzif::TzifBlockV2;
+use alloc::string::String;
+use parser::ZoneInfoParseError;
 use utils::epoch_seconds_for_year;
 
 use hashbrown::HashMap;
@@ -52,14 +50,21 @@ use std::{io, path::Path};
 
 pub(crate) mod utils;
 
+pub mod compiler;
 pub mod parser;
 pub mod rule;
 pub mod types;
 pub mod tzif;
 pub mod zone;
 
+#[doc(inline)]
+pub use compiler::ZoneInfoCompiler;
+
+#[doc(inline)]
+pub use parser::ZoneInfoParser;
+
 use rule::Rules;
-use zone::{ZoneBuildContext, ZoneRecord};
+use zone::ZoneRecord;
 
 /// Well-known zone info file
 pub const ZONEINFO_FILES: [&str; 9] = [
@@ -87,54 +92,6 @@ impl From<io::Error> for ZoneInfoError {
     fn from(value: io::Error) -> Self {
         Self::Io(value)
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct ZoneInfoLocalTimeRecord {
-    pub offset: i64,
-    pub saving: Time,
-    pub letter: Option<String>,
-    pub designation: String, // AKA format
-}
-
-/// The `ZoneInfoTransitionData` is the complete compiled transition data
-/// for one zone.
-///
-/// The transition data contains an initial local time record, an ordered
-/// set of transition data, and a POSIX time zone string.
-///
-/// In general, this struct offers the required data in a consummable format
-/// for anyone who compiled zoneinfo data.
-#[non_exhaustive]
-#[derive(Debug, PartialEq)]
-pub struct CompiledTransition {
-    /// The initial local time record.
-    ///
-    /// This is used in the case where a time predates a transition time.
-    pub initial_record: ZoneInfoLocalTimeRecord,
-    /// The full set of calculated time zone transitions
-    pub transitions: BTreeSet<Transition>,
-    /// The POSIX time zone string
-    ///
-    /// This string should be used to calculate the time zone beyond the last available transition.
-    pub posix_string: String, // TODO: Implement POSIX string building
-}
-
-// NOTE: candidate for removal? Should this library offer TZif structs long term?
-//
-// I think I would prefer all of that live in the `tzif` crate, but that will
-// be a process to update. So implement it here, and then upstream it?
-impl CompiledTransition {
-    pub fn to_v2_data_block(&self) -> TzifBlockV2 {
-        TzifBlockV2::from_transition_data(self)
-    }
-}
-
-/// The `ZoneInfo` struct contains a mapping of zone identifiers (AKA IANA identifiers) to
-/// the zone's transition data.
-#[derive(Debug, Default)]
-pub struct CompiledTransitionData {
-    pub data: HashMap<String, CompiledTransition>,
 }
 
 /// `ZoneInfoData` represents raw unprocessed zone info data
@@ -193,81 +150,6 @@ impl ZoneInfoData {
         self.zones.extend(other.zones);
         self.links.extend(other.links);
         self.pack_rat.extend(other.pack_rat);
-    }
-}
-
-// ==== ZoneInfoCompiler build / compile methods ====
-
-pub struct ZoneInfoCompiler {
-    data: ZoneInfoData,
-}
-
-impl ZoneInfoCompiler {
-    /// Create a new `ZoneInfoCompiler` instance with provided `ZoneInfoData`.
-    pub fn new(data: ZoneInfoData) -> Self {
-        Self { data }
-    }
-
-    /// Build transition data for a specific zone.
-    pub fn build_zone(&mut self, target: &str) -> CompiledTransition {
-        if let Some(zone) = self.data.zones.get_mut(target) {
-            zone.associate_rules(&self.data.rules);
-        }
-        self.build_for_zone(target)
-    }
-
-    pub fn build(&mut self) -> CompiledTransitionData {
-        // Associate the necessary rules with the ZoneTable
-        self.associate();
-        // TODO: Validate and resolve settings here.
-        let mut zoneinfo = CompiledTransitionData::default();
-        for identifier in self.data.zones.keys() {
-            let transition_data = self.build_for_zone(identifier);
-            let _ = zoneinfo.data.insert(identifier.clone(), transition_data);
-        }
-        zoneinfo
-    }
-
-    /// Builds the `ZoneInfoTransitionData` for a provided zone identifier (AKA IANA identifier)
-    ///
-    /// NOTE: Make sure to associate first!
-    pub(crate) fn build_for_zone(&self, target: &str) -> CompiledTransition {
-        let zone_table = self
-            .data
-            .zones
-            .get(target)
-            .expect("Invalid identifier provided.");
-        let initial_record = zone_table.get_first_local_record();
-        let mut transitions = BTreeSet::default();
-        if let Some(until_date) = zone_table.get_first_until_date() {
-            // TODO: Handle max year better.
-            let range = until_date.date.year..=2037;
-
-            let mut build_context = ZoneBuildContext::new(&initial_record);
-            for year in range {
-                build_context.update(year, until_date);
-                zone_table.calculate_transitions_for_year(
-                    year,
-                    &mut build_context,
-                    &mut transitions,
-                );
-            }
-        }
-
-        // TODO: POSIX tz string handling
-
-        CompiledTransition {
-            initial_record,
-            transitions,
-            posix_string: String::default(),
-        }
-    }
-
-    /// Associates the current `ZoneTables` with their applicable rules.
-    pub fn associate(&mut self) {
-        for zones in self.data.zones.values_mut() {
-            zones.associate_rules(&self.data.rules);
-        }
     }
 }
 

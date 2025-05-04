@@ -1,130 +1,20 @@
 //! Zoneinfo types
+//!
+//! This module contains general types that are present in a zone info
+//! file.
 
 use core::fmt::Write;
 
-use alloc::{borrow::ToOwned, string::String, vec::Vec};
+use alloc::{borrow::ToOwned, string::String};
 
 use crate::{
+    compiler::Transition,
     parser::{next_split, ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError},
     rule::epoch_days_for_rule_date,
     utils,
 };
 
-// TODO: improve `Transition` repr this type provides a lot of
-// information by design, but the local time record data
-// should be separated from the transition info with a clear
-// separation.
-//
-// EX:
-// pub struct Transition {
-//     /// The time to transition at
-//     pub at_time: i64,
-//     /// The transition time kind.
-//     pub time_type: QualifiedTimeKind,
-//     /// LocalTimeRecord transitioned into
-//     pub to_local: ZoneInfoLocalTimeRecord,
-// }
-//
-/// The primary transition data.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct Transition {
-    /// The time to transition at
-    ///
-    /// This represents the time in Unix Epoch seconds
-    /// at which a transition should occur.
-    pub at_time: i64,
-    /// The transition time kind.
-    ///
-    /// Whether the transition was specified in Local, Standard, or Universal time.
-    pub time_type: QualifiedTimeKind,
-
-    // TODO: Below are fields that should be split into a
-    // currently non-existent LocalTime record.
-    /// The offset of the transition.
-    pub offset: i64,
-    /// Whether the transition is a savings offset or not
-    ///
-    /// This flag corresponds to the `is_dst` flag
-    pub dst: bool,
-    /// The savings for the local time record
-    ///
-    /// This field represents the exact [`Time`] value
-    /// used for savings.
-    pub savings: Time,
-    /// The letter designation for the local time record
-    ///
-    /// The LETTER designation used in the fully formatted
-    /// abbreviation
-    pub letter: Option<String>,
-    /// The abbreviation format for the local time record.
-    pub format: String,
-}
-
-impl Ord for Transition {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.at_time.cmp(&other.at_time)
-    }
-}
-
-impl PartialOrd for Transition {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
 // ==== Zone Table specific types ====
-
-/// `ZoneEntry` represents a single row in a `ZoneTable`
-#[derive(Debug, Clone, PartialEq)]
-pub struct ZoneEntry {
-    // Standard offset in seconds
-    pub std_offset: Time,
-    // Rule  in use
-    pub rule: RuleIdentifier,
-    // String format
-    pub format: AbbreviationFormat,
-    // Date until
-    pub date: Option<UntilDateTime>,
-}
-
-impl ZoneEntry {
-    pub(crate) fn is_named_rule(&self) -> bool {
-        matches!(self.rule, RuleIdentifier::Named(_))
-    }
-}
-
-impl TryFromStr<LineParseContext> for ZoneEntry {
-    type Error = ZoneInfoParseError;
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        ctx.enter("ZoneEntry");
-        let mut splits = s.split_whitespace();
-        let std_offset = splits
-            .next()
-            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?
-            .context_parse::<Time>(ctx)?;
-        let rule = next_split(&mut splits, ctx)?.context_parse::<RuleIdentifier>(ctx)?;
-        let format = splits
-            .next()
-            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?
-            .context_parse::<AbbreviationFormat>(ctx)?;
-        let datetime = splits.collect::<Vec<&str>>();
-        let date = if datetime.is_empty() {
-            None
-        } else {
-            let dt_str = datetime.join(" \t");
-            Some(dt_str.context_parse::<UntilDateTime>(ctx)?)
-        };
-
-        ctx.exit();
-        Ok(ZoneEntry {
-            std_offset,
-            rule,
-            format,
-            date,
-        })
-    }
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum RuleIdentifier {

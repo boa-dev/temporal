@@ -1,3 +1,5 @@
+//! Zone info parsing implementation
+
 use core::{
     iter::Peekable,
     num::ParseIntError,
@@ -12,6 +14,7 @@ use crate::{
     ZoneInfoData,
 };
 
+/// The zoneinfo parsing error
 #[derive(Debug)]
 pub enum ZoneInfoParseError {
     InvalidZoneHeader(u32),
@@ -31,11 +34,14 @@ impl ZoneInfoParseError {
     }
 }
 
+/// A utility trait for implementing a `try_from_str` with a provided
+/// context.
 pub trait TryFromStr<C>: Sized {
     type Error;
     fn try_from_str(s: &str, context: &mut C) -> Result<Self, Self::Error>;
 }
 
+/// The context for the line parser
 #[derive(Debug, Clone)]
 pub struct LineParseContext {
     pub line_number: u32,
@@ -147,6 +153,13 @@ pub(crate) fn remove_comments(line: &str) -> &str {
     }
 }
 
+/// The primary parser for zoneinfo code points.
+///
+/// This parser takes a single `&str` of data and parses the provided
+/// `&str` into zoneinfo data.
+///
+/// The parser uses the approach of a line parser, and evaluates the text
+/// line by line.
 #[non_exhaustive]
 pub struct ZoneInfoParser<'data> {
     lines: Peekable<Lines<'data>>,

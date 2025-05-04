@@ -1,10 +1,15 @@
+//! Zone info Rule functionality
+//!
+//! This module implements the core zoneinfo [`Rule`].
+
 use core::ops::RangeInclusive;
 
 use alloc::{borrow::ToOwned, collections::BTreeSet, string::String, vec, vec::Vec};
 
 use crate::{
+    compiler::Transition,
     parser::{next_split, ContextParse, LineParseContext, ZoneInfoParseError},
-    types::{DayOfMonth, Month, QualifiedTime, QualifiedTimeKind, Time, ToYear, Transition},
+    types::{DayOfMonth, Month, QualifiedTime, QualifiedTimeKind, Time, ToYear},
     utils::{self, epoch_seconds_for_epoch_days},
     zone::ZoneBuildContext,
 };

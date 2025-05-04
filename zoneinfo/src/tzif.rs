@@ -1,14 +1,15 @@
-//! Implementation of the `tzif` data struct.
+//! Implementation of the `tzif` data struct
 //!
 //! Please note this currently only supports the minimal required
 //! fields in order to implement a TZif.
 
+// TODO: Look into upstreaming to `tzif`.
 // TODO: Potentially add some serialization scheme?
 
 use alloc::vec::Vec;
 use indexmap::IndexSet;
 
-use crate::CompiledTransition;
+use crate::compiler::CompiledTransitions;
 
 /// A version 2 TZif block.
 ///
@@ -21,7 +22,7 @@ pub struct TzifBlockV2 {
 }
 
 impl TzifBlockV2 {
-    pub fn from_transition_data(data: &CompiledTransition) -> Self {
+    pub fn from_transition_data(data: &CompiledTransitions) -> Self {
         let mut local_time_set = IndexSet::new();
         local_time_set.insert(LocalTimeRecord {
             offset: data.initial_record.offset,

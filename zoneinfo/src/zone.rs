@@ -1,4 +1,4 @@
-//! Zone structures
+//! Implementation of zone info's [`ZoneRecord`]
 
 use core::{iter::Peekable, ops::Range, str::Lines};
 
@@ -6,11 +6,13 @@ use alloc::{borrow::ToOwned, collections::BTreeSet, string::String, vec::Vec};
 use hashbrown::HashMap;
 
 use crate::{
+    compiler::{LocalTimeRecord, Transition},
     epoch_seconds_for_year,
-    parser::{remove_comments, LineParseContext, TryFromStr, ZoneInfoParseError},
+    parser::{
+        next_split, remove_comments, ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError,
+    },
     rule::Rules,
-    types::{QualifiedTimeKind, RuleIdentifier, Time, Transition, UntilDateTime, ZoneEntry},
-    ZoneInfoLocalTimeRecord,
+    types::{AbbreviationFormat, QualifiedTimeKind, RuleIdentifier, Time, UntilDateTime},
 };
 
 /// The zone build context.
@@ -51,7 +53,7 @@ impl Default for ZoneBuildContext {
 impl ZoneBuildContext {
     /// Create a new zone build context with the initial local time record
     /// from prior to the first transition.
-    pub(crate) fn new(lmt: &ZoneInfoLocalTimeRecord) -> Self {
+    pub(crate) fn new(lmt: &LocalTimeRecord) -> Self {
         Self {
             saving: lmt.saving,
             previous_offset: lmt.offset,
@@ -134,6 +136,57 @@ impl ZoneBuildContext {
     }
 }
 
+/// `ZoneEntry` represents a single row in a `ZoneTable`
+#[derive(Debug, Clone, PartialEq)]
+pub struct ZoneEntry {
+    // Standard offset in seconds
+    pub std_offset: Time,
+    // Rule  in use
+    pub rule: RuleIdentifier,
+    // String format
+    pub format: AbbreviationFormat,
+    // Date until
+    pub date: Option<UntilDateTime>,
+}
+
+impl ZoneEntry {
+    pub(crate) fn is_named_rule(&self) -> bool {
+        matches!(self.rule, RuleIdentifier::Named(_))
+    }
+}
+
+impl TryFromStr<LineParseContext> for ZoneEntry {
+    type Error = ZoneInfoParseError;
+    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
+        ctx.enter("ZoneEntry");
+        let mut splits = s.split_whitespace();
+        let std_offset = splits
+            .next()
+            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?
+            .context_parse::<Time>(ctx)?;
+        let rule = next_split(&mut splits, ctx)?.context_parse::<RuleIdentifier>(ctx)?;
+        let format = splits
+            .next()
+            .ok_or(ZoneInfoParseError::unexpected_eol(ctx))?
+            .context_parse::<AbbreviationFormat>(ctx)?;
+        let datetime = splits.collect::<Vec<&str>>();
+        let date = if datetime.is_empty() {
+            None
+        } else {
+            let dt_str = datetime.join(" \t");
+            Some(dt_str.context_parse::<UntilDateTime>(ctx)?)
+        };
+
+        ctx.exit();
+        Ok(ZoneEntry {
+            std_offset,
+            rule,
+            format,
+            date,
+        })
+    }
+}
+
 // TODO: Potentially remove the first record from the
 // table. The first record is compiled separately
 // anyways, so that would clean that up.
@@ -195,9 +248,9 @@ impl ZoneRecord {
     /// Get the first transition time for this zone table.
     ///
     /// No transition will be lower than this.
-    pub(crate) fn get_first_local_record(&self) -> ZoneInfoLocalTimeRecord {
+    pub(crate) fn get_first_local_record(&self) -> LocalTimeRecord {
         let lmt_entry = &self.entries[0];
-        ZoneInfoLocalTimeRecord {
+        LocalTimeRecord {
             offset: lmt_entry.std_offset.as_secs(),
             // An assumption
             saving: Time::default(),
@@ -556,12 +609,12 @@ mod tests {
         rule::{Rule, Rules},
         types::{
             AbbreviationFormat, Date, DayOfMonth, Month, QualifiedTime, RuleIdentifier, Sign, Time,
-            ToYear, UntilDateTime, WeekDay, ZoneEntry,
+            ToYear, UntilDateTime, WeekDay,
         },
         zone::ZoneBuildContext,
     };
 
-    use super::ZoneRecord;
+    use super::{ZoneEntry, ZoneRecord};
 
     const CHICAGO: &str = r#"Zone America/Chicago	-5:50:36 -	LMT	1883 Nov 18 18:00u
                     -6:00	US	C%sT	1920
