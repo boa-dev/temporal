@@ -23,7 +23,7 @@ exclude = [
 # Self
 temporal_rs = { version = "~0.0.6", path = ".", default-features = false }
 temporal_provider = { version = "~0.0.6", path = "./provider" }
-zoneinfo_compiler = { version = "~0.0.6", path = "./zoneinfo" }
+zoneinfo_rs = { version = "~0.0.6", path = "./zoneinfo" }
 
 # Dependencies
 tinystr = "0.8.1"

@@ -16,7 +16,7 @@ zerotrie = { version = "0.2.1", features = ["serde", "databake"] }
 zerovec = { version = "0.11.1", features = ["serde", "databake", "derive"] }
 
 # IANA dependency
-zoneinfo_compiler = { workspace = true, features = ["std"] }
+zoneinfo_rs = { workspace = true, features = ["std"] }
 
 # Databake dependencies
 serde = { version = "1.0.219", features = ["derive"] }

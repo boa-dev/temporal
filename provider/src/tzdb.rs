@@ -17,7 +17,7 @@ use std::{
 
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{VarZeroVec, ZeroVec};
-use zoneinfo_compiler::{ZoneInfoData, ZoneInfoError};
+use zoneinfo_rs::{ZoneInfoData, ZoneInfoError};
 
 /// A data struct for IANA identifier normalization
 #[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]

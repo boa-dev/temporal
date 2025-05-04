@@ -1,5 +1,5 @@
 [package]
-name = "zoneinfo_compiler"
+name = "zoneinfo_rs"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true

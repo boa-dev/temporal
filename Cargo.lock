@@ -877,7 +877,7 @@ dependencies = [
  "yoke",
  "zerotrie",
  "zerovec",
- "zoneinfo_compiler",
+ "zoneinfo_rs",
 ]
 
 [[package]]
@@ -1245,7 +1245,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "zoneinfo_compiler"
+name = "zoneinfo_rs"
 version = "0.0.6"
 dependencies = [
  "hashbrown",

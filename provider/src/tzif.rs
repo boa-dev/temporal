@@ -7,7 +7,7 @@
 use std::{borrow::Cow, collections::BTreeMap, path::Path};
 use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
-use zoneinfo_compiler::{compiler::CompiledTransitions, ZoneInfoCompiler, ZoneInfoData};
+use zoneinfo_rs::{compiler::CompiledTransitions, ZoneInfoCompiler, ZoneInfoData};
 
 use crate::tzdb::TzdbDataSource;
 
@@ -52,8 +52,8 @@ pub struct LocalTimeRecord {
     pub is_dst: bool,
 }
 
-impl From<&zoneinfo_compiler::tzif::LocalTimeRecord> for LocalTimeRecord {
-    fn from(value: &zoneinfo_compiler::tzif::LocalTimeRecord) -> Self {
+impl From<&zoneinfo_rs::tzif::LocalTimeRecord> for LocalTimeRecord {
+    fn from(value: &zoneinfo_rs::tzif::LocalTimeRecord) -> Self {
         Self {
             offset: value.offset,
             is_dst: value.is_dst,
