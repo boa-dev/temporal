@@ -83,3 +83,6 @@ std = []
 [package.metadata.cargo-all-features]
 denylist = ["default"]
 max_combination_size = 4
+
+[package.metadata.docs.rs]
+all-features = true

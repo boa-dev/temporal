@@ -871,6 +871,7 @@ dependencies = [
  "diplomat",
  "diplomat-runtime",
  "icu_calendar",
+ "num-traits",
  "temporal_rs",
 ]
 

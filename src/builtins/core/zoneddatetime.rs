@@ -1129,7 +1129,7 @@ pub(crate) fn interpret_isodatetime_offset(
                 time.second.into(),
                 time.millisecond.into(),
                 time.microsecond.into(),
-                i64::from(time.nanosecond) - offset,
+                (i64::from(time.nanosecond) - offset).into(),
             );
 
             // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
@@ -1229,7 +1229,6 @@ mod tests {
     use crate::{
         options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, Unit},
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
-        primitive::FiniteF64,
         time::EpochNanoseconds,
         tzdb::FsTzdbProvider,
         Calendar, MonthCode, TimeZone,
@@ -1356,16 +1355,15 @@ mod tests {
                 },
             )
             .unwrap();
-        let zero = FiniteF64::from(0);
-        assert_eq!(diff.years(), zero);
-        assert_eq!(diff.months(), zero);
-        assert_eq!(diff.weeks(), zero);
-        assert_eq!(diff.days(), zero);
-        assert_eq!(diff.hours(), zero);
-        assert_eq!(diff.minutes(), FiniteF64::from(30));
-        assert_eq!(diff.seconds(), zero);
-        assert_eq!(diff.milliseconds(), zero);
-        assert_eq!(diff.microseconds(), zero);
-        assert_eq!(diff.nanoseconds(), zero);
+        assert_eq!(diff.years(), 0);
+        assert_eq!(diff.months(), 0);
+        assert_eq!(diff.weeks(), 0);
+        assert_eq!(diff.days(), 0);
+        assert_eq!(diff.hours(), 0);
+        assert_eq!(diff.minutes(), 30);
+        assert_eq!(diff.seconds(), 0);
+        assert_eq!(diff.milliseconds(), 0);
+        assert_eq!(diff.microseconds(), 0);
+        assert_eq!(diff.nanoseconds(), 0);
     }
 }

@@ -231,10 +231,10 @@ mod tests {
         let duration = now
             .until(&now_plus_5, DifferenceSettings::default())
             .unwrap();
-        assert!(duration.hours().is_zero());
-        assert!(duration.minutes().is_zero());
-        assert_eq!(duration.seconds().as_inner(), 5.0);
-        assert!(duration.milliseconds().is_zero());
+        assert_eq!(duration.hours(), 0);
+        assert_eq!(duration.minutes(), 0);
+        assert_eq!(duration.seconds(), 5);
+        assert_eq!(duration.milliseconds(), 0);
     }
 
     #[cfg(all(feature = "tzdb", feature = "sys", feature = "compiled_data"))]
@@ -251,14 +251,14 @@ mod tests {
 
         let diff = after.since(&before, DifferenceSettings::default()).unwrap();
 
-        let sleep_base = sleep as f64;
-        let tolerable_range = sleep_base..=sleep_base + 5.0;
+        let sleep_base = sleep as i64;
+        let tolerable_range = sleep_base..=sleep_base + 5;
 
         // We assert a tolerable range of sleep + 5 because std::thread::sleep
         // is only guaranteed to be >= the value to sleep. So to prevent sporadic
         // errors, we only assert a range.
-        assert!(tolerable_range.contains(&diff.seconds().as_inner()));
-        assert!(diff.hours().is_zero());
-        assert!(diff.minutes().is_zero());
+        assert!(tolerable_range.contains(&diff.seconds()));
+        assert_eq!(diff.hours(), 0);
+        assert_eq!(diff.minutes(), 0);
     }
 }
