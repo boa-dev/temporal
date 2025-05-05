@@ -93,9 +93,9 @@ impl Rules {
 
         let mut saving = ctx.saving;
 
-        // We must push to a vec then create a BTreeSet, because rules
-        // are unordered, and we NEED the savings value to compute the
-        // the std transition time.
+        // We must first build an ordered collection of transitions, as rules
+        // are unordered, but transition savings values must be evaluated in
+        // order.
         let transitions = ordered
             .into_iter()
             .filter_map(|mut transition| {
