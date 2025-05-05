@@ -9,8 +9,11 @@ pub mod ffi {
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
+    use alloc::string::String;
     use core::fmt::Write;
+    use core::str::{self, FromStr};
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
+    use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
     #[diplomat::opaque]
     pub struct PlainTime(pub(crate) temporal_rs::PlainTime);
@@ -73,6 +76,22 @@ pub mod ffi {
             self.0
                 .with(partial.into(), overflow.map(Into::into))
                 .map(|x| Box::new(PlainTime(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to validate
+            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::PlainTime::from_str(s)
+                .map(|c| Box::new(Self(c)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::PlainTime::from_str(&s)
+                .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
 

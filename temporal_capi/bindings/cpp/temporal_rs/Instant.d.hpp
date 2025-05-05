@@ -38,6 +38,10 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t epoch_milliseconds);
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> from_utf8(std::string_view s);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> add(const temporal_rs::Duration& duration) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> add_time_duration(const temporal_rs::TimeDuration& duration) const;

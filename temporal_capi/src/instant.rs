@@ -6,6 +6,9 @@ pub mod ffi {
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
     use alloc::boxed::Box;
+    use alloc::string::String;
+    use core::str::{self, FromStr};
+    use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
     #[diplomat::opaque]
     pub struct Instant(pub temporal_rs::Instant);
@@ -37,6 +40,22 @@ pub mod ffi {
             epoch_milliseconds: i64,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::Instant::from_epoch_milliseconds(epoch_milliseconds)
+                .map(|c| Box::new(Self(c)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to validate
+            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::Instant::from_str(s)
+                .map(|c| Box::new(Self(c)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::Instant::from_str(&s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
