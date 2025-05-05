@@ -76,7 +76,7 @@ web-time = { workspace = true, optional =  true }
 default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
-sys = ["std", "dep:web-time", "iana-time-zone"]
+sys = ["std", "dep:web-time", "dep:iana-time-zone"]
 tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine", "dep:temporal_provider"]
 std = []
 
