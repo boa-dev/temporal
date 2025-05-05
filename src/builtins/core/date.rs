@@ -81,8 +81,6 @@ impl PartialDate {
     crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth); // excludes day
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
-
-    // TODO: ZonedDateTime
 }
 
 // Use macro to impl fallback methods to avoid having a trait method.
