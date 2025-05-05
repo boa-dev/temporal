@@ -7,6 +7,7 @@ pub mod ffi {
     use crate::calendar::ffi::Calendar;
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+    use alloc::boxed::Box;
 
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
@@ -14,8 +15,8 @@ pub mod ffi {
     };
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
+    use core::fmt::Write;
     use diplomat_runtime::DiplomatWrite;
-    use std::fmt::Write;
 
     #[diplomat::opaque]
     pub struct PlainDateTime(pub(crate) temporal_rs::PlainDateTime);

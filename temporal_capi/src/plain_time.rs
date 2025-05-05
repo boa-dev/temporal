@@ -2,14 +2,15 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
+    use alloc::boxed::Box;
 
     use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
+    use core::fmt::Write;
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
-    use std::fmt::Write;
 
     #[diplomat::opaque]
     pub struct PlainTime(pub(crate) temporal_rs::PlainTime);

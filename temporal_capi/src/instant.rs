@@ -5,6 +5,7 @@ pub mod ffi {
     use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
+    use alloc::boxed::Box;
 
     #[diplomat::opaque]
     pub struct Instant(pub temporal_rs::Instant);
