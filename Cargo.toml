@@ -71,6 +71,7 @@ combine = { workspace = true, optional = true }
 
 # System time feature
 web-time = { workspace = true, optional =  true }
+core_maths = "0.1.1"
 
 [features]
 default = ["sys"]
