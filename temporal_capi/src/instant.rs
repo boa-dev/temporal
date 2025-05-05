@@ -6,9 +6,9 @@ pub mod ffi {
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
     use alloc::boxed::Box;
-    use diplomat_runtime::{DiplomatStr, DiplomatStr16};
-    use core::str::{self, FromStr};
     use alloc::string::String;
+    use core::str::{self, FromStr};
+    use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
     #[diplomat::opaque]
     pub struct Instant(pub temporal_rs::Instant);

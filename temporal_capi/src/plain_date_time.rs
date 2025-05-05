@@ -15,11 +15,11 @@ pub mod ffi {
     };
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
-    use core::fmt::Write;
     use alloc::string::String;
+    use core::fmt::Write;
+    use core::str::{self, FromStr};
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
-    use core::str::{self, FromStr};
 
     #[diplomat::opaque]
     pub struct PlainDateTime(pub(crate) temporal_rs::PlainDateTime);

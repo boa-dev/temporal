@@ -9,11 +9,11 @@ pub mod ffi {
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
+    use alloc::string::String;
+    use core::fmt::Write;
+    use core::str::{self, FromStr};
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
-    use core::str::{self, FromStr};
-    use core::fmt::Write;
-    use alloc::string::String;
 
     #[diplomat::opaque]
     pub struct PlainTime(pub(crate) temporal_rs::PlainTime);

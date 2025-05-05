@@ -15,8 +15,8 @@ pub mod ffi {
     use crate::plain_time::ffi::PlainTime;
     use crate::plain_year_month::ffi::PlainYearMonth;
     use alloc::boxed::Box;
-    use core::fmt::Write;
     use alloc::string::String;
+    use core::fmt::Write;
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 

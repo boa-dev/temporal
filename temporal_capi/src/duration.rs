@@ -6,11 +6,11 @@ use crate::error::ffi::TemporalError;
 pub mod ffi {
     use crate::error::ffi::TemporalError;
     use alloc::boxed::Box;
+    use alloc::string::String;
+    use core::str::{self, FromStr};
     use diplomat_runtime::DiplomatOption;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
     use num_traits::FromPrimitive;
-    use core::str::{self, FromStr};
-    use alloc::string::String;
 
     #[diplomat::opaque]
     pub struct Duration(pub(crate) temporal_rs::Duration);

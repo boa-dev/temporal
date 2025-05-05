@@ -9,10 +9,10 @@ pub mod ffi {
 
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings};
     use crate::plain_date::ffi::{PartialDate, PlainDate};
+    use alloc::string::String;
     use core::fmt::Write;
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
-    use alloc::string::String;
 
     use core::str::{self, FromStr};
 
