@@ -3,7 +3,8 @@
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::error::ffi::TemporalError;
-    use std::str;
+    use alloc::boxed::Box;
+    use core::str;
 
     #[diplomat::opaque]
     pub struct TimeZone(pub temporal_rs::TimeZone);

@@ -145,7 +145,7 @@ pub mod ffi {
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            use std::fmt::Write;
+            use core::fmt::Write;
             let string = self.0.to_ixdtf_string(zone.map(|x| &x.0), options.into())?;
             // throw away the error, this should always succeed
             let _ = write.write_str(&string);
