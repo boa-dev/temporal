@@ -10,6 +10,11 @@ pub mod ffi {
     use core::str::{self, FromStr};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
+    #[cfg(feature = "compiled_data")]
+    use crate::options::ffi::ToStringRoundingOptions;
+    #[cfg(feature = "compiled_data")]
+    use crate::time_zone::ffi::TimeZone;
+
     #[diplomat::opaque]
     pub struct Instant(pub temporal_rs::Instant);
 
@@ -132,6 +137,22 @@ pub mod ffi {
 
             I128Nanoseconds { high, low }
         }
-        // TODO timezone APIs
+
+        #[cfg(feature = "compiled_data")]
+        pub fn to_ixdtf_string_with_compiled_data(
+            &self,
+            zone: Option<&TimeZone>,
+            options: ToStringRoundingOptions,
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
+            use core::fmt::Write;
+            let string = self.0.to_ixdtf_string(zone.map(|x| &x.0), options.into())?;
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
+
+            Ok(())
+        }
+
+        // TODO non-compiled data timezone APIs
     }
 }

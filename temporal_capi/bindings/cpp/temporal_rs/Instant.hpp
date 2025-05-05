@@ -17,6 +17,8 @@
 #include "RoundingOptions.hpp"
 #include "TemporalError.hpp"
 #include "TimeDuration.hpp"
+#include "TimeZone.hpp"
+#include "ToStringRoundingOptions.hpp"
 
 
 namespace temporal_rs {
@@ -59,6 +61,9 @@ namespace capi {
     int64_t temporal_rs_Instant_epoch_milliseconds(const temporal_rs::capi::Instant* self);
     
     temporal_rs::capi::I128Nanoseconds temporal_rs_Instant_epoch_nanoseconds(const temporal_rs::capi::Instant* self);
+    
+    typedef struct temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result;
+    temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instant_to_ixdtf_string_with_compiled_data(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeZone* zone, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
     
     
     void temporal_rs_Instant_destroy(Instant* self);
@@ -139,6 +144,16 @@ inline int64_t temporal_rs::Instant::epoch_milliseconds() const {
 inline temporal_rs::I128Nanoseconds temporal_rs::Instant::epoch_nanoseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Instant_epoch_nanoseconds(this->AsFFI());
   return temporal_rs::I128Nanoseconds::FromFFI(result);
+}
+
+inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Instant::to_ixdtf_string_with_compiled_data(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options) const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  auto result = temporal_rs::capi::temporal_rs_Instant_to_ixdtf_string_with_compiled_data(this->AsFFI(),
+    zone ? zone->AsFFI() : nullptr,
+    options.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline const temporal_rs::capi::Instant* temporal_rs::Instant::AsFFI() const {
