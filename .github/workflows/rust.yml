@@ -125,6 +125,12 @@ jobs:
       - name: Makefile tests
         run: cd temporal_capi/cpp_tests && make
 
+      # There's no guarantee that dependencies are no_std unless you test with a toolchain without `std`
+      - name: Install no_std toolchain
+        run: rustup target add thumbv7m-none-eabi
+      - name: Run no_std tests
+        run: cargo check -p temporal_capi --target thumbv7m-none-eabi
+
   docs:
     name: Documentation
     runs-on: ubuntu-latest
