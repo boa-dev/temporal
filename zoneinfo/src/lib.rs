@@ -32,7 +32,7 @@
 // this library is designed to aid with build time libraries, on
 // a limited dataset, NOT at runtime on extremely large datasets.
 
-#![no_std]
+// #![no_std]
 
 extern crate alloc;
 
@@ -154,318 +154,187 @@ impl ZoneInfoData {
 }
 
 #[cfg(test)]
-#[cfg(all(feature = "std", not(target_os = "windows")))]
+#[cfg(feature = "std")]
 mod tests {
+    use serde::{Deserialize, Serialize};
+
     use crate::{ZoneInfoCompiler, ZoneInfoData};
-    use std::path::Path;
+    use std::{
+        format,
+        fs::{self, read_to_string},
+        path::Path,
+        vec::Vec,
+    };
 
-    #[test]
-    fn test_chicago() {
+    #[derive(Debug, Serialize, Deserialize)]
+    struct TzifTestData {
+        first_record: LocalRecord,
+        transitions: alloc::vec::Vec<TransitionRecord>,
+    }
+
+    #[derive(Debug, Serialize, Deserialize)]
+    struct TransitionRecord {
+        transition_time: i64,
+        record: LocalRecord,
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    struct LocalRecord {
+        offset: i64,
+        is_dst: bool,
+        abbr: alloc::string::String,
+    }
+
+    // Utility function for generating example files
+    #[allow(unused)]
+    fn generate_test_data(identifier: &str) {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
+        let examples_dir = manifest_dir.join("examples");
+        let filename = identifier.to_lowercase().replace("/", "-");
+        let test_data_path = examples_dir.join(&format!("{filename}.json"));
+
+        let tzif =
+            tzif::parse_tzif_file(Path::new(&format!("/usr/share/zoneinfo/{identifier}"))).unwrap();
+        let tzif_block_v2 = tzif.data_block2.unwrap();
+
+        let first_record_data = tzif_block_v2.local_time_type_records[0];
+        let first_record = LocalRecord {
+            offset: first_record_data.utoff.0,
+            is_dst: first_record_data.is_dst,
+            abbr: tzif_block_v2.time_zone_designations[0].clone(),
+        };
+
+        let local_records = tzif_block_v2
+            .local_time_type_records
+            .iter()
+            .enumerate()
+            .map(|(idx, r)| LocalRecord {
+                offset: r.utoff.0,
+                is_dst: r.is_dst,
+                abbr: tzif_block_v2.time_zone_designations[idx].clone(),
+            })
+            .collect::<Vec<_>>();
+
+        let transitions = tzif_block_v2
+            .transition_times
+            .iter()
+            .zip(tzif_block_v2.transition_types)
+            .map(|(time, time_type)| TransitionRecord {
+                transition_time: time.0,
+                record: local_records[time_type].clone(),
+            })
+            .collect::<Vec<TransitionRecord>>();
+
+        let tzif_data = TzifTestData {
+            first_record,
+            transitions,
+        };
+
+        std::println!("Writing generated example data to {:?}", test_data_path);
+        fs::write(
+            test_data_path,
+            serde_json::to_string_pretty(&tzif_data).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn test_data_for_id(identifier: &str) {
+        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+        let examples_dir = manifest_dir.join("examples");
+
+        // Get test data
+        let test_json = identifier.replace("/", "-").to_ascii_lowercase();
+        let test_data_path = examples_dir.join(&format!("{}.json", test_json));
+        let test_data: TzifTestData =
+            serde_json::from_str(&read_to_string(test_data_path).unwrap()).unwrap();
+
+        // Compile zoneinfo file.
+        let zoneinfo_data = ZoneInfoData::from_filepath(examples_dir.join("zoneinfo")).unwrap();
         let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
+        let computed_zoneinfo = compiler.build_zone(identifier);
 
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("America/Chicago");
+        assert_eq!(
+            computed_zoneinfo.initial_record.offset,
+            test_data.first_record.offset
+        );
+        assert_eq!(
+            computed_zoneinfo.initial_record.designation,
+            test_data.first_record.abbr
+        );
 
-        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Chicago")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
+        for (computed, test_data) in computed_zoneinfo
             .transitions
             .iter()
-            .zip(fs_transitions.iter().enumerate())
+            .zip(test_data.transitions)
         {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
+            assert_eq!(computed.at_time, test_data.transition_time);
+            assert_eq!(computed.offset, test_data.record.offset);
+            // Test data is currently in rearguard, not vanguard. Would need to add
+            // support for rearguard and to test dst for Europe/Dublin
+            //
+            // That or the tzif source for the data is wrong ...
+            // assert_eq!(computed.dst, test_data.record.is_dst); // TODO stabilize dst flags / vanguard/rearguard parsing
+            // TODO: Fix bug with first transition formatting.
+            //
+            // When in named rule before any transition has happened,
+            // value is initialized to first letter of save == 0
+            // assert_eq!(computed.format, test_data.record.abbr); // TODO stabilize abbr
         }
+    }
+
+    #[test]
+    #[cfg(feature = "std")]
+    fn test_chicago() {
+        test_data_for_id("America/Chicago");
     }
 
     #[test]
     fn test_new_york() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("America/New_York");
-
-        let data =
-            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/New_York")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("America/New_York");
     }
 
     #[test]
     fn test_anchorage() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("America/Anchorage");
-
-        let data =
-            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/America/Anchorage")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("America/Anchorage");
     }
 
     #[test]
     fn test_sydney() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Australia/Sydney");
-
-        let data =
-            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Sydney")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("Australia/Sydney");
     }
 
     #[test]
     fn test_lord_howe() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Australia/Lord_Howe");
-
-        let data =
-            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Australia/Lord_Howe")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("Australia/Lord_Howe");
     }
 
     #[test]
     fn test_troll() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Antarctica/Troll");
-
-        let data =
-            tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Antarctica/Troll")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("Antarctica/Troll");
     }
 
     #[test]
     fn test_dublin() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Europe/Dublin");
-
-        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Dublin")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("Europe/Dublin");
     }
 
     #[test]
     fn test_berlin() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Europe/Berlin");
-
-        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Berlin")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("Europe/Berlin");
     }
 
     #[test]
     fn test_paris() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Europe/Paris");
-
-        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Paris")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            assert_eq!(computed.at_time, fs.0);
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                computed.offset,
-                data_block_v2.local_time_type_records[type_index].utoff.0
-            );
-        }
+        test_data_for_id("Europe/Paris");
     }
 
     #[test]
     fn test_london() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Europe/London");
-
-        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/London")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                (computed.at_time, computed.offset),
-                (
-                    fs.0,
-                    data_block_v2.local_time_type_records[type_index].utoff.0
-                )
-            );
-        }
+        test_data_for_id("Europe/London");
     }
 
     #[test]
     fn test_riga() {
-        let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-        let zoneinfo_data =
-            ZoneInfoData::from_filepath(manifest_dir.join("examples/zoneinfo")).unwrap();
-        let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
-        // Association is needed.
-        let computed_zoneinfo = compiler.build_zone("Europe/Riga");
-
-        let data = tzif::parse_tzif_file(Path::new("/usr/share/zoneinfo/Europe/Riga")).unwrap();
-        let data_block_v2 = data.data_block2.unwrap();
-        let fs_transitions = data_block_v2.transition_times;
-
-        for (computed, (idx, fs)) in computed_zoneinfo
-            .transitions
-            .iter()
-            .zip(fs_transitions.iter().enumerate())
-        {
-            let type_index = data_block_v2.transition_types[idx];
-            assert_eq!(
-                (computed.at_time, computed.offset),
-                (
-                    fs.0,
-                    data_block_v2.local_time_type_records[type_index].utoff.0
-                )
-            );
-        }
+        test_data_for_id("Europe/Riga");
     }
 }

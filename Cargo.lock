@@ -1250,5 +1250,7 @@ version = "0.0.6"
 dependencies = [
  "hashbrown",
  "indexmap",
+ "serde",
+ "serde_json",
  "tzif",
 ]

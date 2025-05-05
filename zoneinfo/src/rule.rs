@@ -83,7 +83,7 @@ impl Rules {
                     time_type: rule.at.time_kind(),
                     format: String::new(),
                 };
-                let _ = ordered.insert(transition);
+                ordered.insert(transition);
             }
         }
 
@@ -102,7 +102,7 @@ impl Rules {
             if new_time < use_until {
                 saving = transition.savings;
                 transition.at_time = new_time;
-                let _ = transitions.insert(transition);
+                transitions.insert(transition);
             }
         }
 
@@ -118,7 +118,7 @@ impl Rules {
     /// rules are sorted by start date, not the end date. So, in theory, a rule
     /// could be the second rule of ten, but still be active longer then the
     /// following eight rules.
-    pub(crate) fn search_last_savings(&self, transition_point: i64) -> Time {
+    pub(crate) fn search_last_active_savings(&self, transition_point: i64) -> Time {
         // Reasonable assumption: when searching for a last savings value,
         // we are dealing with an orphan. This means we do not need to check years
         // with an upper bound or inside them
@@ -157,14 +157,7 @@ impl Rule {
     }
 
     fn is_dst(&self) -> bool {
-        match &self.letter {
-            Some(letter) if letter == "D" => true,
-            // NOTE: Potentially remove? Need to test
-            // "S" cannot be reliably used as an indicator for "standard", because it's also "Summer"
-            Some(letter) if letter == "S" && self.save == Time::default() => false,
-            // Yes, there are other letters than S and D, like US's W and P, and Europe's M
-            _ => self.save != Time::default(),
-        }
+        self.save != Time::default()
     }
 
     /// Returns the transition time for that year

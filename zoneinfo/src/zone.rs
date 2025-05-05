@@ -286,6 +286,7 @@ impl ZoneRecord {
             if entry == &self.entries[0] {
                 continue;
             }
+
             // Calculate the UntilTime with the previous zones inputs.
             let until_time_or_max = entry
                 .date
@@ -474,11 +475,12 @@ impl ZoneRecord {
                     let (offset, savings) = if let RuleIdentifier::Named(rule) = &entry.rule {
                         // NOTE: See Riga 1941 for an example
                         let rule = self.associates.get(rule).expect("rule must be associated.");
-                        let savings = rule.search_last_savings(ctx.use_start);
+                        let savings = rule.search_last_active_savings(ctx.use_start);
                         (entry.std_offset.as_secs() + savings.as_secs(), savings)
                     } else {
-                        (entry.std_offset.as_secs(), ctx.saving)
+                        (entry.std_offset.as_secs(), savings)
                     };
+                    // Set DST based off savings
                     let dst = savings != Time::default();
                     let _ = temp.insert(Transition {
                         at_time: ctx.use_start,
