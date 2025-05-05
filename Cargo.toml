@@ -58,7 +58,7 @@ tinystr.workspace = true
 icu_calendar = { workspace = true, features = ["compiled_data"] }
 num-traits.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
-iana-time-zone.workspace = true
+iana-time-zone = { workspace = true, optional = true }
 writeable = "0.6.1"
 
 # log feature
@@ -76,7 +76,7 @@ web-time = { workspace = true, optional =  true }
 default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
-sys = ["std", "dep:web-time"]
+sys = ["std", "dep:web-time", "iana-time-zone"]
 tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine", "dep:temporal_provider"]
 std = []
 
