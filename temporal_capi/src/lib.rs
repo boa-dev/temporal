@@ -13,6 +13,10 @@
 //!
 //! [`temporal_rs`]: http://crates.io/crates/temporal_rs
 
+#![no_std]
+
+extern crate alloc;
+
 pub mod calendar;
 pub mod duration;
 pub mod error;

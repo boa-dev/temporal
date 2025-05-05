@@ -5,6 +5,7 @@ use crate::error::ffi::TemporalError;
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::error::ffi::TemporalError;
+    use alloc::boxed::Box;
     use diplomat_runtime::DiplomatOption;
     use num_traits::FromPrimitive;
 

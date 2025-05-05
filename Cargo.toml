@@ -28,7 +28,7 @@ temporal_provider = { version = "~0.0.6", path = "./provider" }
 tinystr = "0.8.1"
 icu_calendar = { version = "2.0.0-beta2", default-features = false }
 rustc-hash = "2.1.0"
-num-traits = "0.2.19"
+num-traits = { version = "0.2.19", default-features = false }
 ixdtf = "0.4.0"
 iana-time-zone = "0.1.63"
 log = "0.4.27"
@@ -71,6 +71,7 @@ combine = { workspace = true, optional = true }
 
 # System time feature
 web-time = { workspace = true, optional =  true }
+core_maths = "0.1.1"
 
 [features]
 default = ["sys"]
