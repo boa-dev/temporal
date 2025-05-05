@@ -71,9 +71,7 @@ namespace capi {
     
     bool temporal_rs_PlainYearMonth_equals(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::PlainYearMonth* other);
     
-    int32_t temporal_rs_PlainYearMonth_compare(const temporal_rs::capi::PlainYearMonth* one, const temporal_rs::capi::PlainYearMonth* two);
-    
-    int32_t temporal_rs_PlainYearMonth_compare_iso_year_month(int32_t year1, uint8_t month1, int32_t year2, uint8_t month2);
+    int8_t temporal_rs_PlainYearMonth_compare(const temporal_rs::capi::PlainYearMonth* one, const temporal_rs::capi::PlainYearMonth* two);
     
     typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
     temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const temporal_rs::capi::PlainYearMonth* self);
@@ -209,17 +207,9 @@ inline bool temporal_rs::PlainYearMonth::equals(const temporal_rs::PlainYearMont
   return result;
 }
 
-inline int32_t temporal_rs::PlainYearMonth::compare(const temporal_rs::PlainYearMonth& one, const temporal_rs::PlainYearMonth& two) {
+inline int8_t temporal_rs::PlainYearMonth::compare(const temporal_rs::PlainYearMonth& one, const temporal_rs::PlainYearMonth& two) {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_compare(one.AsFFI(),
     two.AsFFI());
-  return result;
-}
-
-inline int32_t temporal_rs::PlainYearMonth::compare_iso_year_month(int32_t year1, uint8_t month1, int32_t year2, uint8_t month2) {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_compare_iso_year_month(year1,
-    month1,
-    year2,
-    month2);
   return result;
 }
 

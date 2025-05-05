@@ -75,9 +75,7 @@ public:
 
   inline bool equals(const temporal_rs::PlainDate& other) const;
 
-  inline static int32_t compare(const temporal_rs::PlainDate& one, const temporal_rs::PlainDate& two);
-
-  inline static int32_t compare_iso_date(int32_t year1, uint8_t month1, uint8_t day1, int32_t year2, uint8_t month2, uint8_t day2);
+  inline static int8_t compare(const temporal_rs::PlainDate& one, const temporal_rs::PlainDate& two);
 
   inline int32_t year() const;
 

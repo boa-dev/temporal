@@ -159,30 +159,11 @@ pub mod ffi {
             self.0 == other.0
         }
 
-        pub fn compare(one: &Self, two: &Self) -> i32 {
-            Self::compare_iso_date(
-                one.iso_year(),
-                one.iso_month(),
-                one.iso_day(),
-                two.iso_year(),
-                two.iso_month(),
-                two.iso_day(),
-            )
-        }
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            let tuple1 = (one.iso_year(), one.iso_month(), one.iso_day());
+            let tuple2 = (two.iso_year(), two.iso_month(), two.iso_day());
 
-        pub fn compare_iso_date(
-            year1: i32,
-            month1: u8,
-            day1: u8,
-            year2: i32,
-            month2: u8,
-            day2: u8,
-        ) -> i32 {
-            match (year1, month1, day1).cmp(&(year2, month2, day2)) {
-                std::cmp::Ordering::Less => -1,
-                std::cmp::Ordering::Equal => 0,
-                std::cmp::Ordering::Greater => 1,
-            }
+            tuple1.cmp(&tuple2)
         }
         pub fn year(&self) -> i32 {
             self.0.year()

@@ -70,9 +70,7 @@ namespace capi {
     
     bool temporal_rs_PlainDate_equals(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other);
     
-    int32_t temporal_rs_PlainDate_compare(const temporal_rs::capi::PlainDate* one, const temporal_rs::capi::PlainDate* two);
-    
-    int32_t temporal_rs_PlainDate_compare_iso_date(int32_t year1, uint8_t month1, uint8_t day1, int32_t year2, uint8_t month2, uint8_t day2);
+    int8_t temporal_rs_PlainDate_compare(const temporal_rs::capi::PlainDate* one, const temporal_rs::capi::PlainDate* two);
     
     int32_t temporal_rs_PlainDate_year(const temporal_rs::capi::PlainDate* self);
     
@@ -229,19 +227,9 @@ inline bool temporal_rs::PlainDate::equals(const temporal_rs::PlainDate& other) 
   return result;
 }
 
-inline int32_t temporal_rs::PlainDate::compare(const temporal_rs::PlainDate& one, const temporal_rs::PlainDate& two) {
+inline int8_t temporal_rs::PlainDate::compare(const temporal_rs::PlainDate& one, const temporal_rs::PlainDate& two) {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_compare(one.AsFFI(),
     two.AsFFI());
-  return result;
-}
-
-inline int32_t temporal_rs::PlainDate::compare_iso_date(int32_t year1, uint8_t month1, uint8_t day1, int32_t year2, uint8_t month2, uint8_t day2) {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_compare_iso_date(year1,
-    month1,
-    day1,
-    year2,
-    month2,
-    day2);
   return result;
 }
 

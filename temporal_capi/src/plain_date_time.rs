@@ -246,8 +246,8 @@ pub mod ffi {
             self.0 == other.0
         }
 
-        pub fn compare(one: &Self, two: &Self) -> i32 {
-            Self::compare_iso_plain_date_time(
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            let tuple1 = (
                 one.iso_year(),
                 one.iso_month(),
                 one.iso_day(),
@@ -257,6 +257,8 @@ pub mod ffi {
                 one.millisecond(),
                 one.microsecond(),
                 one.nanosecond(),
+            );
+            let tuple2 = (
                 two.iso_year(),
                 two.iso_month(),
                 two.iso_day(),
@@ -266,53 +268,9 @@ pub mod ffi {
                 two.millisecond(),
                 two.microsecond(),
                 two.nanosecond(),
-            )
-        }
-
-        pub fn compare_iso_plain_date_time(
-            year1: i32,
-            month1: u8,
-            day1: u8,
-            hour1: u8,
-            minute1: u8,
-            second1: u8,
-            millisecond1: u16,
-            microsecond1: u16,
-            nanosecond1: u16,
-            year2: i32,
-            month2: u8,
-            day2: u8,
-            hour2: u8,
-            minute2: u8,
-            second2: u8,
-            millisecond2: u16,
-            microsecond2: u16,
-            nanosecond2: u16,
-        ) -> i32 {
-            let tuple1 = (
-                year1,
-                month1,
-                day1,
-                hour1,
-                minute1,
-                second1,
-                millisecond1,
-                microsecond1,
-                nanosecond1,
-            );
-            let tuple2 = (
-                year2,
-                month2,
-                day2,
-                hour2,
-                minute2,
-                second2,
-                millisecond2,
-                microsecond2,
-                nanosecond2,
             );
 
-            tuple1.cmp(&tuple2) as i32
+            tuple1.cmp(&tuple2)
         }
 
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {

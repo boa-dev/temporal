@@ -48,22 +48,10 @@ pub mod ffi {
             self.0 == other.0
         }
 
-        pub fn compare(one: &Self, two: &Self) -> i32 {
-            Self::compare_iso_year_month(
-                one.iso_year(),
-                one.iso_month(),
-                two.iso_year(),
-                two.iso_month(),
-            )
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
         }
 
-        pub fn compare_iso_year_month(year1: i32, month1: u8, year2: i32, month2: u8) -> i32 {
-            match (year1, month1).cmp(&(year2, month2)) {
-                std::cmp::Ordering::Less => -1,
-                std::cmp::Ordering::Equal => 0,
-                std::cmp::Ordering::Greater => 1,
-            }
-        }
         pub fn iso_year(&self) -> i32 {
             self.0.iso_year()
         }
