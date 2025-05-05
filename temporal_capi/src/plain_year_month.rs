@@ -9,7 +9,6 @@ pub mod ffi {
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings};
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use diplomat_runtime::DiplomatWrite;
-    use std::cmp::Ordering;
     use std::fmt::Write;
 
     #[diplomat::opaque]
