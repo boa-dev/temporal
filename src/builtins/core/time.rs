@@ -8,12 +8,10 @@ use crate::{
         RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
-    primitive::FiniteF64,
     TemporalError, TemporalResult,
 };
 use alloc::string::String;
 use core::str::FromStr;
-use num_traits::AsPrimitive;
 
 use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
 
@@ -108,7 +106,7 @@ impl PlainTime {
     }
 
     /// Specification equivalent to `AddTime`
-    pub(crate) fn add_normalized_time_duration(&self, norm: NormalizedTimeDuration) -> (i32, Self) {
+    pub(crate) fn add_normalized_time_duration(&self, norm: NormalizedTimeDuration) -> (i64, Self) {
         // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
         let second = i64::from(self.second()) + norm.seconds();
         // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
@@ -131,24 +129,12 @@ impl PlainTime {
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
     pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         let (_, result) = IsoTime::balance(
-            FiniteF64::from(self.hour())
-                .checked_add(&duration.hours)?
-                .as_(),
-            FiniteF64::from(self.minute())
-                .checked_add(&duration.minutes)?
-                .as_(),
-            FiniteF64::from(self.second())
-                .checked_add(&duration.seconds)?
-                .as_(),
-            FiniteF64::from(self.millisecond())
-                .checked_add(&duration.milliseconds)?
-                .as_(),
-            FiniteF64::from(self.microsecond())
-                .checked_add(&duration.microseconds)?
-                .as_(),
-            FiniteF64::from(self.nanosecond())
-                .checked_add(&duration.nanoseconds)?
-                .as_(),
+            i64::from(self.hour()).saturating_add(duration.hours),
+            i64::from(self.minute()).saturating_add(duration.minutes),
+            i64::from(self.second()).saturating_add(duration.seconds),
+            i64::from(self.millisecond()).saturating_add(duration.milliseconds),
+            i128::from(self.microsecond()).saturating_add(duration.microseconds),
+            i128::from(self.nanosecond()).saturating_add(duration.nanoseconds),
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`
@@ -187,9 +173,8 @@ impl PlainTime {
             || resolved.increment != RoundingIncrement::ONE
         {
             // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            let (round_record, _) = normalized_time.round(FiniteF64::default(), resolved)?;
             // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
-            normalized_time = round_record.normalized_time_duration()
+            normalized_time = normalized_time.round(resolved)?;
         };
 
         // 7. Let result be BalanceTimeDuration(norm, settings.[[LargestUnit]]).
@@ -540,19 +525,22 @@ mod tests {
 
     fn assert_duration(
         result: Duration,
-        values: (i32, i32, i32, i32, i32, i32, i32, i32, i32, i32),
+        values: (i64, i64, i64, i64, i64, i64, i64, i64, i128, i128),
     ) {
-        let fields = result
-            .fields()
-            .iter()
-            .map(|v| v.as_date_value().unwrap())
-            .collect::<alloc::vec::Vec<i32>>();
         assert_eq!(
-            fields,
-            &[
-                values.0, values.1, values.2, values.3, values.4, values.5, values.6, values.7,
-                values.8, values.9
-            ]
+            (
+                result.years(),
+                result.months(),
+                result.weeks(),
+                result.days(),
+                result.hours(),
+                result.minutes(),
+                result.seconds(),
+                result.milliseconds(),
+                result.microseconds(),
+                result.nanoseconds()
+            ),
+            values
         )
     }
 
@@ -654,18 +642,18 @@ mod tests {
                 .unwrap();
 
         let result = one.since(&two, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), 1.0);
+        assert_eq!(result.hours(), 1);
 
         let result = two.since(&one, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), -1.0);
+        assert_eq!(result.hours(), -1);
 
         let result = one.since(&three, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), 1.0);
-        assert_eq!(result.minutes(), 53.0);
+        assert_eq!(result.hours(), 1);
+        assert_eq!(result.minutes(), 53);
 
         let result = three.since(&one, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), -1.0);
-        assert_eq!(result.minutes(), -53.0);
+        assert_eq!(result.hours(), -1);
+        assert_eq!(result.minutes(), -53);
     }
 
     #[test]
@@ -681,18 +669,18 @@ mod tests {
                 .unwrap();
 
         let result = one.until(&two, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), 1.0);
+        assert_eq!(result.hours(), 1);
 
         let result = two.until(&one, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), -1.0);
+        assert_eq!(result.hours(), -1);
 
         let result = one.until(&three, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), 1.0);
-        assert_eq!(result.minutes(), 37.0);
+        assert_eq!(result.hours(), 1);
+        assert_eq!(result.minutes(), 37);
 
         let result = three.until(&one, DifferenceSettings::default()).unwrap();
-        assert_eq!(result.hours(), -1.0);
-        assert_eq!(result.minutes(), -37.0);
+        assert_eq!(result.hours(), -1);
+        assert_eq!(result.minutes(), -37);
     }
 
     #[test]

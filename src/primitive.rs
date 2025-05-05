@@ -72,13 +72,6 @@ impl FiniteF64 {
         }
     }
 
-    pub(crate) fn as_date_value(&self) -> TemporalResult<i32> {
-        if !(f64::from(i32::MIN)..=f64::from(i32::MAX)).contains(&self.0) {
-            return Err(TemporalError::range().with_message("number exceeds a valid date value."));
-        }
-        Ok(self.0 as i32)
-    }
-
     /// Returns an integer of type `T` if if value is integral
     pub fn as_integer_if_integral<T: PrimInt + AsPrimitive<f64>>(&self) -> TemporalResult<T>
     where

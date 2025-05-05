@@ -324,11 +324,11 @@ impl TimeZone {
             // c. Let earlierDate be BalanceISODate(isoDateTime.[[ISODate]].[[Year]],
             // isoDateTime.[[ISODate]].[[Month]],
             // isoDateTime.[[ISODate]].[[Day]] + earlierTime.[[Days]]).
-            let earlier_date = IsoDate::balance(
+            let earlier_date = IsoDate::try_balance(
                 iso.date.year,
                 iso.date.month.into(),
-                i32::from(iso.date.day) + earlier_time.0,
-            );
+                i64::from(iso.date.day) + earlier_time.0,
+            )?;
 
             // d. Let earlierDateTime be
             // CombineISODateAndTimeRecord(earlierDate, earlierTime).
@@ -346,11 +346,11 @@ impl TimeZone {
         let later_time = iso.time.add(time_duration);
         // 20. Let laterDate be BalanceISODate(isoDateTime.[[ISODate]].[[Year]],
         // isoDateTime.[[ISODate]].[[Month]], isoDateTime.[[ISODate]].[[Day]] + laterTime.[[Days]]).
-        let later_date = IsoDate::balance(
+        let later_date = IsoDate::try_balance(
             iso.date.year,
             iso.date.month.into(),
-            i32::from(iso.date.day) + later_time.0,
-        );
+            i64::from(iso.date.day) + later_time.0,
+        )?;
         // 21. Let laterDateTime be CombineISODateAndTimeRecord(laterDate, laterTime).
         let later = IsoDateTime::new_unchecked(later_date, later_time.1);
         // 22. Set possibleEpochNs to ? GetPossibleEpochNanoseconds(timeZone, laterDateTime).
