@@ -69,42 +69,50 @@ impl Rules {
         use_until: i64,
         ctx: &mut ZoneBuildContext,
     ) -> ApplicableRules {
-        let mut ordered = BTreeSet::default();
-        for rule in &self.rules {
-            if rule.range().contains(&year) {
-                let transition_time =
-                    rule.transition_time_for_year(year, std_offset, &Time::default());
-                let transition = Transition {
-                    at_time: transition_time,
-                    offset: std_offset.as_secs() + rule.save.as_secs(),
-                    dst: rule.is_dst(),
-                    savings: rule.save,
-                    letter: rule.letter.clone(),
-                    time_type: rule.at.time_kind(),
-                    format: String::new(),
-                };
-                ordered.insert(transition);
-            }
-        }
+        let ordered = self
+            .rules
+            .iter()
+            .filter_map(|rule| {
+                if rule.range().contains(&year) {
+                    let transition_time =
+                        rule.transition_time_for_year(year, std_offset, &Time::default());
+                    Some(Transition {
+                        at_time: transition_time,
+                        offset: std_offset.as_secs() + rule.save.as_secs(),
+                        dst: rule.is_dst(),
+                        savings: rule.save,
+                        letter: rule.letter.clone(),
+                        time_type: rule.at.time_kind(),
+                        format: String::new(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect::<BTreeSet<_>>();
 
         let mut saving = ctx.saving;
 
         // We must push to a vec then create a BTreeSet, because rules
         // are unordered, and we NEED the savings value to compute the
         // the std transition time.
-        let mut transitions = BTreeSet::default();
-        for mut transition in ordered {
-            let new_time = match transition.time_type {
-                QualifiedTimeKind::Local => transition.at_time - saving.as_secs(),
-                _ => transition.at_time,
-            };
-            // Check and see if this transition is valid for use until
-            if new_time < use_until {
-                saving = transition.savings;
-                transition.at_time = new_time;
-                transitions.insert(transition);
-            }
-        }
+        let transitions = ordered
+            .into_iter()
+            .filter_map(|mut transition| {
+                let new_time = match transition.time_type {
+                    QualifiedTimeKind::Local => transition.at_time - saving.as_secs(),
+                    _ => transition.at_time,
+                };
+                // Check and see if this transition is valid for use until
+                if new_time < use_until {
+                    saving = transition.savings;
+                    transition.at_time = new_time;
+                    Some(transition)
+                } else {
+                    None
+                }
+            })
+            .collect::<BTreeSet<_>>();
 
         ApplicableRules {
             saving,
