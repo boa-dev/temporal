@@ -191,7 +191,7 @@ mod tests {
         let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
         let examples_dir = manifest_dir.join("examples");
         let filename = identifier.to_lowercase().replace("/", "-");
-        let test_data_path = examples_dir.join(&format!("{filename}.json"));
+        let test_data_path = examples_dir.join(format!("{filename}.json"));
 
         let tzif =
             tzif::parse_tzif_file(Path::new(&format!("/usr/share/zoneinfo/{identifier}"))).unwrap();
@@ -244,7 +244,7 @@ mod tests {
 
         // Get test data
         let test_json = identifier.replace("/", "-").to_ascii_lowercase();
-        let test_data_path = examples_dir.join(&format!("{}.json", test_json));
+        let test_data_path = examples_dir.join(format!("{test_json}.json"));
         let test_data: TzifTestData =
             serde_json::from_str(&read_to_string(test_data_path).unwrap()).unwrap();
 
