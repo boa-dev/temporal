@@ -323,7 +323,14 @@ impl PlainYearMonth {
     }
 
     pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
-        Err(TemporalError::general("Not yet iimplemented."))
+        let iso_date = IsoDate::new_with_overflow(
+            self.iso_year(),
+            self.iso_month(),
+            self.iso.day,
+            ArithmeticOverflow::Reject,
+            )?;
+        
+            Ok(PlainDate::new_unchecked(iso_date, self.calendar.clone()))
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`

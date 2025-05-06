@@ -99,7 +99,14 @@ impl PlainMonthDay {
     }
 
     pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
-        Err(TemporalError::general("Not yet implemented"))
+        let iso_date = IsoDate::new_with_overflow(
+        self.iso_year(),
+        self.iso_month(),
+        self.iso_day(),
+        ArithmeticOverflow::Reject,
+        )?;
+    
+        Ok(PlainDate::new_unchecked(iso_date, self.calendar.clone()))
     }
 
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
