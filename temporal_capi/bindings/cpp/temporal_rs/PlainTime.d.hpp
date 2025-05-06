@@ -45,6 +45,10 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> with(temporal_rs::PartialTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> from_utf8(std::string_view s);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
+
   inline uint8_t hour() const;
 
   inline uint8_t minute() const;

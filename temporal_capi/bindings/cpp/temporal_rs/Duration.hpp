@@ -31,6 +31,12 @@ namespace capi {
     typedef struct temporal_rs_Duration_from_partial_duration_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
     temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(temporal_rs::capi::PartialDuration partial);
     
+    typedef struct temporal_rs_Duration_from_utf8_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_utf8_result;
+    temporal_rs_Duration_from_utf8_result temporal_rs_Duration_from_utf8(diplomat::capi::DiplomatStringView s);
+    
+    typedef struct temporal_rs_Duration_from_utf16_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_utf16_result;
+    temporal_rs_Duration_from_utf16_result temporal_rs_Duration_from_utf16(diplomat::capi::DiplomatString16View s);
+    
     bool temporal_rs_Duration_is_time_within_range(const temporal_rs::capi::Duration* self);
     
     const temporal_rs::capi::TimeDuration* temporal_rs_Duration_time(const temporal_rs::capi::Duration* self);
@@ -102,6 +108,16 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
 
 inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_partial_duration(temporal_rs::PartialDuration partial) {
   auto result = temporal_rs::capi::temporal_rs_Duration_from_partial_duration(partial.AsFFI());
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_utf8(std::string_view s) {
+  auto result = temporal_rs::capi::temporal_rs_Duration_from_utf8({s.data(), s.size()});
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_utf16(std::u16string_view s) {
+  auto result = temporal_rs::capi::temporal_rs_Duration_from_utf16({s.data(), s.size()});
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 

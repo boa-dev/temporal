@@ -514,8 +514,55 @@ impl ZonedDateTime {
         self.instant
     }
 
-    pub fn with(&self, _partial: PartialZonedDateTime) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented"))
+    pub fn with(
+        &self,
+        partial: PartialZonedDateTime,
+        disambiguation: Option<Disambiguation>,
+        offset_option: Option<OffsetDisambiguation>,
+        overflow: Option<ArithmeticOverflow>,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        let overflow = overflow.unwrap_or_default();
+        let disambiguation = disambiguation.unwrap_or_default();
+        let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
+
+        let iso_date_time = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let plain_date_time = PlainDateTime::new_unchecked(iso_date_time, self.calendar.clone());
+
+        // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
+        let result_date = self.calendar.date_from_partial(
+            &partial.date.with_fallback_datetime(&plain_date_time)?,
+            overflow,
+        )?;
+
+        let time = iso_date_time.time.with(partial.time, overflow)?;
+
+        // 24. Let newOffsetNanoseconds be ! ParseDateTimeUTCOffset(fields.[[OffsetString]]).
+        let original_offset = self.offset_nanoseconds_with_provider(provider)?;
+        let new_offset_nanos = partial
+            .offset
+            .map(|offset| i64::from(offset.0) * 60_000_000_000)
+            .or(Some(original_offset));
+
+        // 25. Let epochNanoseconds be ? InterpretISODateTimeOffset(dateTimeResult.[[ISODate]], dateTimeResult.[[Time]], option, newOffsetNanoseconds, timeZone, disambiguation, offset, match-exactly).
+        let epoch_nanos = interpret_isodatetime_offset(
+            result_date.iso,
+            Some(time),
+            false,
+            new_offset_nanos,
+            &self.tz,
+            disambiguation,
+            offset_option,
+            true,
+            provider,
+        )?;
+
+        // 26. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+        Ok(Self::new_unchecked(
+            Instant::from(epoch_nanos),
+            self.calendar.clone(),
+            self.tz.clone(),
+        ))
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
@@ -1336,8 +1383,8 @@ mod tests {
     use super::ZonedDateTime;
     use crate::{
         options::{
-            DifferenceSettings, Disambiguation, OffsetDisambiguation, RoundingIncrement,
-            RoundingMode, RoundingOptions, Unit,
+            ArithmeticOverflow, DifferenceSettings, Disambiguation, OffsetDisambiguation,
+            RoundingIncrement, RoundingMode, RoundingOptions, Unit,
         },
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         time::EpochNanoseconds,
@@ -1535,5 +1582,86 @@ mod tests {
         assert_eq!(diff.milliseconds(), 0);
         assert_eq!(diff.microseconds(), 0);
         assert_eq!(diff.nanoseconds(), 0);
+    }
+
+    // overflow-reject-throws.js
+    #[test]
+    fn overflow_reject_throws() {
+        let provider = &FsTzdbProvider::default();
+
+        let zdt =
+            ZonedDateTime::try_new(217178610123456789, Calendar::default(), TimeZone::default())
+                .unwrap();
+
+        let overflow = ArithmeticOverflow::Reject;
+
+        let result_1 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate {
+                    month: Some(29),
+                    ..Default::default()
+                },
+                time: PartialTime::default(),
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        let result_2 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate {
+                    day: Some(31),
+                    ..Default::default()
+                },
+                time: PartialTime::default(),
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        let result_3 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate::default(),
+                time: PartialTime {
+                    hour: Some(29),
+                    ..Default::default()
+                },
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        let result_4 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate::default(),
+                time: PartialTime {
+                    nanosecond: Some(9000),
+                    ..Default::default()
+                },
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        assert!(result_1.is_err());
+        assert!(result_2.is_err());
+        assert!(result_3.is_err());
+        assert!(result_4.is_err());
     }
 }

@@ -1,6 +1,7 @@
 //! Implementation of the FiniteF64 primitive
 
 use crate::{TemporalError, TemporalResult};
+use num_traits::float::FloatCore;
 use num_traits::{AsPrimitive, FromPrimitive, PrimInt};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -48,7 +49,7 @@ impl FiniteF64 {
 
     #[inline]
     pub fn checked_mul_add(&self, a: FiniteF64, b: FiniteF64) -> TemporalResult<Self> {
-        let result = Self(self.0.mul_add(a.0, b.0));
+        let result = Self(core_maths::CoreFloat::mul_add(self.0, a.0, b.0));
         if !result.0.is_finite() {
             return Err(TemporalError::range().with_message("number value is not a finite value."));
         }
@@ -77,7 +78,7 @@ impl FiniteF64 {
     where
         f64: AsPrimitive<T>,
     {
-        if self.0 != self.0.trunc() {
+        if self.0 != FloatCore::trunc(self.0) {
             return Err(TemporalError::range().with_message("value must be integral."));
         }
         Ok(self.0.as_())
