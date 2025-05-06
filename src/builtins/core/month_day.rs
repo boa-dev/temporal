@@ -155,3 +155,24 @@ impl FromStr for PlainMonthDay {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_to_plain_date() {
+        let month_day = PlainMonthDay::new_with_overflow(5, 15, Calendar::default(), ArithmeticOverflow::Reject, Some(2023)).unwrap();
+        let plain_date = month_day.to_plain_date().unwrap();
+
+        assert_eq!(plain_date.iso_year(), 2023); // Reference year
+        assert_eq!(plain_date.iso_month(), 5);
+        assert_eq!(plain_date.iso_day(), 15);
+    }
+
+    #[test]
+    fn test_to_plain_date_with_invalid_date() {
+        let month_day = PlainMonthDay::new_with_overflow(2, 30, Calendar::default(), ArithmeticOverflow::Reject, Some(2023));
+        assert!(month_day.is_err()); // February 30th is invalid
+    }
+}

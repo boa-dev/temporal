@@ -752,4 +752,22 @@ mod tests {
             assert!(err.is_err());
         }
     }
+
+    #[test]
+    fn test_to_plain_date() {
+        let year_month = PlainYearMonth::from_str("2023-05").unwrap();
+        let plain_date = year_month.to_plain_date().unwrap();
+
+        assert_eq!(plain_date.iso_year(), 2023);
+        assert_eq!(plain_date.iso_month(), 5);
+        assert_eq!(plain_date.iso_day(), 1); // Default day is 1
+    }
+
+    #[test]
+    fn test_to_plain_date_with_invalid_date() {
+        let year_month = PlainYearMonth::from_str("2023-02").unwrap();
+        let result = year_month.to_plain_date();
+
+        assert!(result.is_ok()); // February 1st is valid
+    }
 }
