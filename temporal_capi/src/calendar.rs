@@ -9,8 +9,9 @@ pub mod ffi {
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_month_day::ffi::PlainMonthDay;
     use crate::plain_year_month::ffi::PlainYearMonth;
+    use alloc::boxed::Box;
+    use core::fmt::Write;
     use diplomat_runtime::DiplomatStr;
-    use std::fmt::Write;
 
     #[diplomat::enum_convert(icu_calendar::any_calendar::AnyCalendarKind, needs_wildcard)]
     pub enum AnyCalendarKind {
