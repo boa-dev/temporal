@@ -4,7 +4,7 @@ use crate::ZonedDateTime;
 use crate::{
     options::{
         ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
-        DisplayTimeZone, OffsetDisambiguation, ToStringRoundingOptions,
+        DisplayTimeZone, OffsetDisambiguation, ToStringRoundingOptions, RoundingOptions,
     },
     Duration, MonthCode, PlainDate, PlainDateTime, PlainTime, TemporalError, TemporalResult,
 };
@@ -394,6 +394,19 @@ impl ZonedDateTime {
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
         self.to_plain_datetime_with_provider(&*provider)
+    }
+    
+    /// Rounds this [`ZonedDateTime`] to the nearest value according to the given rounding options.
+    ///
+    /// Enable with the `compiled_data` feature flag.
+    pub fn round(
+        &self,
+        options: RoundingOptions,
+    ) -> TemporalResult<Self> {
+        let provider = TZ_PROVIDER
+            .lock()
+            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.round_with_provider(options, &*provider)
     }
 
     /// Returns a RFC9557 (IXDTF) string with the provided options.
