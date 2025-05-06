@@ -328,9 +328,9 @@ impl PlainYearMonth {
             self.iso_month(),
             self.iso.day,
             ArithmeticOverflow::Reject,
-            )?;
-        
-            Ok(PlainDate::new_unchecked(iso_date, self.calendar.clone()))
+        )?;
+
+        Ok(PlainDate::new_unchecked(iso_date, self.calendar.clone()))
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
