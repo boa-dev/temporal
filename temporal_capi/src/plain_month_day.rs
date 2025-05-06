@@ -84,9 +84,9 @@ pub mod ffi {
             let _ = write.write_str(code.as_str());
         }
 
-        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
+        pub fn to_plain_date(&self, year: Option<i32>) -> Result<Box<PlainDate>, TemporalError> {
             self.0
-                .to_plain_date()
+                .to_plain_date(year)
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }

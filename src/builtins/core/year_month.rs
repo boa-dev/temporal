@@ -322,8 +322,17 @@ impl PlainYearMonth {
         self.diff(DifferenceOperation::Since, other, settings)
     }
 
-    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
-        Err(TemporalError::general("Not yet iimplemented."))
+    pub fn to_plain_date(&self, day: Option<u8>) -> TemporalResult<PlainDate> {
+        let ref_day = day.unwrap_or(1); // The day defaults to 1 if no day is provided
+
+        let partial_date = PartialDate::new()
+            .with_year(Some(self.iso_year()))
+            .with_month(Some(self.iso_month()))
+            .with_day(Some(ref_day))
+            .with_calendar(self.calendar.clone());
+
+        self.calendar
+            .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
@@ -744,5 +753,22 @@ mod tests {
             let err = PlainYearMonth::from_str(invalid_case);
             assert!(err.is_err());
         }
+    }
+
+    #[test]
+    fn test_to_plain_date() {
+        let year_month = PlainYearMonth::new_with_overflow(
+            2023, // year
+            5,    // month
+            None, // reference_day
+            Calendar::default(),
+            ArithmeticOverflow::Reject,
+        )
+        .unwrap();
+
+        let plain_date = year_month.to_plain_date(Some(3)).unwrap();
+        assert_eq!(plain_date.iso_year(), 2023);
+        assert_eq!(plain_date.iso_month(), 5);
+        assert_eq!(plain_date.iso_day(), 3);
     }
 }
