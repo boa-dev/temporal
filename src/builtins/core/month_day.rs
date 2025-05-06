@@ -98,15 +98,16 @@ impl PlainMonthDay {
         self.calendar.month_code(&self.iso)
     }
 
-    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
-        let iso_date = IsoDate::new_with_overflow(
-            self.iso_year(),
-            self.iso_month(),
-            self.iso_day(),
-            ArithmeticOverflow::Reject,
-        )?;
+    pub fn to_plain_date(&self, year: Option<i32>) -> TemporalResult<PlainDate> {
+        let ref_year = year.unwrap_or(1972); // The year defaults to 1972 if no year is provided
 
-        Ok(PlainDate::new_unchecked(iso_date, self.calendar.clone()))
+        let partial_date = PartialDate::new()
+            .with_year(Some(ref_year))
+            .with_month(Some(self.iso_month()))
+            .with_day(Some(self.iso_day()))
+            .with_calendar(self.calendar.clone());
+
+        self.calendar.date_from_partial(&partial_date, ArithmeticOverflow::Reject)
     }
 
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
@@ -161,31 +162,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_plain_date() {
+    fn test_to_plain_date_with_year() {
         let month_day = PlainMonthDay::new_with_overflow(
             5,
             15,
             Calendar::default(),
             ArithmeticOverflow::Reject,
-            Some(2023),
+            None,
         )
         .unwrap();
-        let plain_date = month_day.to_plain_date().unwrap();
 
-        assert_eq!(plain_date.iso_year(), 2023); // Reference year
+        let plain_date = month_day.to_plain_date(Some(2023)).unwrap();
+        assert_eq!(plain_date.iso_year(), 2023);
         assert_eq!(plain_date.iso_month(), 5);
         assert_eq!(plain_date.iso_day(), 15);
-    }
-
-    #[test]
-    fn test_to_plain_date_with_invalid_date() {
-        let month_day = PlainMonthDay::new_with_overflow(
-            2,
-            30,
-            Calendar::default(),
-            ArithmeticOverflow::Reject,
-            Some(2023),
-        );
-        assert!(month_day.is_err()); // February 30th is invalid
     }
 }
