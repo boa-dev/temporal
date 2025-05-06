@@ -1,0 +1,24 @@
+{
+  "ids": [
+    "asia/kabul"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -788932800
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 16608
+      },
+      {
+        "is_dst": false,
+        "offset": 16200
+      }
+    ]
+  }
+}
