@@ -122,9 +122,10 @@ pub struct CompiledTransitionsMap {
 // ==== ZoneInfoCompiler build / compile methods ====
 
 use crate::{
+    posix::PosixTimeZone,
     types::{QualifiedTimeKind, Time},
     tzif::TzifBlockV2,
-    zone::ZoneBuildContext,
+    zone::{ZoneBuildContext, ZoneRecord},
     ZoneInfoData,
 };
 
@@ -185,13 +186,24 @@ impl ZoneInfoCompiler {
             }
         }
 
-        // TODO: POSIX tz string handling
+        let posix_string = zone_table
+            .get_posix_time_zone()
+            .to_string()
+            .expect("to_string only throws when a `write!` fails.");
 
         CompiledTransitions {
             initial_record,
             transitions,
-            posix_string: String::default(),
+            posix_string,
         }
+    }
+
+    pub fn get_posix_time_zone(&mut self, target: &str) -> Option<PosixTimeZone> {
+        self.associate();
+        self.data
+            .zones
+            .get(target)
+            .map(ZoneRecord::get_posix_time_zone)
     }
 
     /// Associates the current `ZoneTables` with their applicable rules.
