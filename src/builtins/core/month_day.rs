@@ -107,7 +107,8 @@ impl PlainMonthDay {
             .with_day(Some(self.iso_day()))
             .with_calendar(self.calendar.clone());
 
-        self.calendar.date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+        self.calendar
+            .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
     }
 
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {

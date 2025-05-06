@@ -331,7 +331,8 @@ impl PlainYearMonth {
             .with_day(Some(ref_day))
             .with_calendar(self.calendar.clone());
 
-        self.calendar.date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+        self.calendar
+            .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
