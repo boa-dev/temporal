@@ -75,6 +75,10 @@ namespace capi {
     typedef struct temporal_rs_PlainYearMonth_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_since_result;
     temporal_rs_PlainYearMonth_since_result temporal_rs_PlainYearMonth_since(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::PlainYearMonth* other, temporal_rs::capi::DifferenceSettings settings);
     
+    bool temporal_rs_PlainYearMonth_equals(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::PlainYearMonth* other);
+    
+    int8_t temporal_rs_PlainYearMonth_compare(const temporal_rs::capi::PlainYearMonth* one, const temporal_rs::capi::PlainYearMonth* two);
+    
     typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
     temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const temporal_rs::capi::PlainYearMonth* self);
     
@@ -211,6 +215,18 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
     other.AsFFI(),
     settings.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline bool temporal_rs::PlainYearMonth::equals(const temporal_rs::PlainYearMonth& other) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_equals(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline int8_t temporal_rs::PlainYearMonth::compare(const temporal_rs::PlainYearMonth& one, const temporal_rs::PlainYearMonth& two) {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_compare(one.AsFFI(),
+    two.AsFFI());
+  return result;
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::to_plain_date() const {

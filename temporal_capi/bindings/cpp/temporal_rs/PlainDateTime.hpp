@@ -118,6 +118,10 @@ namespace capi {
     typedef struct temporal_rs_PlainDateTime_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_since_result;
     temporal_rs_PlainDateTime_since_result temporal_rs_PlainDateTime_since(const temporal_rs::capi::PlainDateTime* self, const temporal_rs::capi::PlainDateTime* other, temporal_rs::capi::DifferenceSettings settings);
     
+    bool temporal_rs_PlainDateTime_equals(const temporal_rs::capi::PlainDateTime* self, const temporal_rs::capi::PlainDateTime* other);
+    
+    int8_t temporal_rs_PlainDateTime_compare(const temporal_rs::capi::PlainDateTime* one, const temporal_rs::capi::PlainDateTime* two);
+    
     typedef struct temporal_rs_PlainDateTime_round_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_round_result;
     temporal_rs_PlainDateTime_round_result temporal_rs_PlainDateTime_round(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::RoundingOptions options);
     
@@ -357,6 +361,18 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
     other.AsFFI(),
     settings.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline bool temporal_rs::PlainDateTime::equals(const temporal_rs::PlainDateTime& other) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_equals(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline int8_t temporal_rs::PlainDateTime::compare(const temporal_rs::PlainDateTime& one, const temporal_rs::PlainDateTime& two) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_compare(one.AsFFI(),
+    two.AsFFI());
+  return result;
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::round(temporal_rs::RoundingOptions options) const {

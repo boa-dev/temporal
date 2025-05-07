@@ -160,6 +160,12 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
+        }
         pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
             self.0
                 .to_plain_date()

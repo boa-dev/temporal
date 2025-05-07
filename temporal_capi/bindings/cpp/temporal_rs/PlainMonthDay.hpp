@@ -28,6 +28,10 @@ namespace capi {
     typedef struct temporal_rs_PlainMonthDay_with_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_with_result;
     temporal_rs_PlainMonthDay_with_result temporal_rs_PlainMonthDay_with(const temporal_rs::capi::PlainMonthDay* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow overflow);
     
+    bool temporal_rs_PlainMonthDay_equals(const temporal_rs::capi::PlainMonthDay* self, const temporal_rs::capi::PlainMonthDay* other);
+    
+    int8_t temporal_rs_PlainMonthDay_compare(const temporal_rs::capi::PlainMonthDay* one, const temporal_rs::capi::PlainMonthDay* two);
+    
     typedef struct temporal_rs_PlainMonthDay_from_utf8_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_utf8_result;
     temporal_rs_PlainMonthDay_from_utf8_result temporal_rs_PlainMonthDay_from_utf8(diplomat::capi::DiplomatStringView s);
     
@@ -68,6 +72,18 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs
     partial.AsFFI(),
     overflow.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainMonthDay>>(std::unique_ptr<temporal_rs::PlainMonthDay>(temporal_rs::PlainMonthDay::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline bool temporal_rs::PlainMonthDay::equals(const temporal_rs::PlainMonthDay& other) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_equals(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline int8_t temporal_rs::PlainMonthDay::compare(const temporal_rs::PlainMonthDay& one, const temporal_rs::PlainMonthDay& two) {
+  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_compare(one.AsFFI(),
+    two.AsFFI());
+  return result;
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> temporal_rs::PlainMonthDay::from_utf8(std::string_view s) {
