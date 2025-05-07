@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi"]
+members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi", "zoneinfo"]
 
 [workspace.package]
 edition = "2021"
@@ -23,6 +23,7 @@ exclude = [
 # Self
 temporal_rs = { version = "~0.0.6", path = ".", default-features = false }
 temporal_provider = { version = "~0.0.6", path = "./provider" }
+zoneinfo_rs = { version = "~0.0.6", path = "./zoneinfo" }
 
 # Dependencies
 tinystr = "0.8.1"
