@@ -13,4 +13,4 @@ publish = false
 [dependencies]
 databake = "0.2.0"
 serde_json = "1.0.140"
-temporal_provider = { workspace = true }
+timezone_provider = { workspace = true }
