@@ -1,4 +1,4 @@
-//! `temporal_provider` is the core data provider implementations for `temporal_rs`
+//! `timezone_provider` is the core data provider implementations for `temporal_rs`
 
 // What are we even doing here? Why are providers needed?
 //
@@ -24,7 +24,7 @@ use zerovec::{VarZeroVec, ZeroVec};
 
 /// A data struct for IANA identifier normalization
 #[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
-#[databake(path = temporal_provider)]
+#[databake(path = timezone_provider)]
 #[derive(serde::Deserialize)]
 pub struct IanaIdentifierNormalizer<'data> {
     /// TZDB version
