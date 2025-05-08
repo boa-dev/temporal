@@ -22,7 +22,7 @@ exclude = [
 [workspace.dependencies]
 # Self
 temporal_rs = { version = "~0.0.6", path = ".", default-features = false }
-temporal_provider = { version = "~0.0.6", path = "./provider" }
+timezone_provider = { version = "~0.0.6", path = "./provider" }
 
 # Dependencies
 tinystr = "0.8.1"
@@ -52,7 +52,6 @@ readme.workspace = true
 exclude.workspace = true
 
 [dependencies]
-temporal_provider = { workspace = true, optional = true}
 
 tinystr.workspace = true
 icu_calendar = { workspace = true, features = ["compiled_data"] }
@@ -68,6 +67,7 @@ log = { workspace = true, optional = true }
 tzif = { workspace = true, optional = true }
 jiff-tzdb = { workspace = true, optional = true }
 combine = { workspace = true, optional = true }
+timezone_provider = { workspace = true, optional = true}
 
 # System time feature
 web-time = { workspace = true, optional =  true }
@@ -78,7 +78,7 @@ default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
 sys = ["std", "dep:web-time", "dep:iana-time-zone"]
-tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine", "dep:temporal_provider"]
+tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine", "dep:timezone_provider"]
 std = []
 
 [package.metadata.cargo-all-features]

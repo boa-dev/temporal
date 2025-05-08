@@ -126,7 +126,7 @@ version = "0.0.6"
 dependencies = [
  "databake",
  "serde_json",
- "temporal_provider",
+ "timezone_provider",
 ]
 
 [[package]]
@@ -876,19 +876,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "temporal_provider"
-version = "0.0.6"
-dependencies = [
- "databake",
- "parse-zoneinfo",
- "serde",
- "serde_json",
- "yoke",
- "zerotrie",
- "zerovec",
-]
-
-[[package]]
 name = "temporal_rs"
 version = "0.0.6"
 dependencies = [
@@ -900,11 +887,24 @@ dependencies = [
  "jiff-tzdb",
  "log",
  "num-traits",
- "temporal_provider",
+ "timezone_provider",
  "tinystr",
  "tzif",
  "web-time",
  "writeable",
+]
+
+[[package]]
+name = "timezone_provider"
+version = "0.0.6"
+dependencies = [
+ "databake",
+ "parse-zoneinfo",
+ "serde",
+ "serde_json",
+ "yoke",
+ "zerotrie",
+ "zerovec",
 ]
 
 [[package]]
