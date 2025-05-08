@@ -1,5 +1,7 @@
-//! `timezone_provider` is a crate designed for data providers
-//! intended for `temporal_rs`
+//! Data providers for time zone data
+//!
+//! This crate aims to provide a variety of data providers
+//! for time zone data.
 //!
 
 mod tzdb;
