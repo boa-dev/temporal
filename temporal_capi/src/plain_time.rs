@@ -164,6 +164,29 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            let tuple1 = (
+                one.hour(),
+                one.minute(),
+                one.second(),
+                one.millisecond(),
+                one.microsecond(),
+                one.nanosecond(),
+            );
+            let tuple2 = (
+                two.hour(),
+                two.minute(),
+                two.second(),
+                two.millisecond(),
+                two.microsecond(),
+                two.nanosecond(),
+            );
+
+            tuple1.cmp(&tuple2)
+        }
         pub fn round(
             &self,
             smallest_unit: Unit,

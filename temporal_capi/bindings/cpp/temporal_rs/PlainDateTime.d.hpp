@@ -115,6 +115,10 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainDateTime& other, temporal_rs::DifferenceSettings settings) const;
 
+  inline bool equals(const temporal_rs::PlainDateTime& other) const;
+
+  inline static int8_t compare(const temporal_rs::PlainDateTime& one, const temporal_rs::PlainDateTime& two);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
