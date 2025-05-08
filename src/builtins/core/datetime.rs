@@ -248,7 +248,8 @@ impl PlainDateTime {
 // ==== Public PlainDateTime API ====
 
 impl PlainDateTime {
-    /// Creates a new `DateTime`, constraining any arguments that into a valid range.
+    /// Creates a new `DateTime`, constraining any arguments that are invalid
+    /// into a valid range.
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -278,7 +279,8 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime` with an ISO 8601 calendar, constraining any arguments that into a valid range.
+    /// Creates a new `DateTime` with an ISO 8601 calendar, constraining any
+    /// arguments that are invalid into a valid range.
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn new_iso(

@@ -148,7 +148,7 @@ impl PlainYearMonth {
 // ==== Public method implementations ====
 
 impl PlainYearMonth {
-    /// Creates a new `PlainYearMonth`, constraining any arguments that into a valid range.
+    /// Creates a new `PlainYearMonth`, constraining any arguments that are invalid into a valid range.
     #[inline]
     pub fn new(
         year: i32,
@@ -188,7 +188,8 @@ impl PlainYearMonth {
         Self::try_new(year, month, reference_day, Calendar::default())
     }
 
-    /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, constraining any arguments that into a valid range.
+    /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, constraining any arguments
+    /// that are invalid into a valid range.
     #[inline]
     pub fn new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
         Self::new(year, month, reference_day, Calendar::default())

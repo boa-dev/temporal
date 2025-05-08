@@ -375,7 +375,8 @@ impl PlainDate {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
     }
 
-    /// Creates a new `PlainDate` with an ISO 8601 calendar automatically constraining any values that may be invalid.
+    /// Creates a new `PlainDate` with an ISO 8601 calendar automatically constraining any
+    /// values that may be invalid into a valid range.
     #[inline]
     pub fn new_iso(year: i32, month: u8, day: u8) -> TemporalResult<Self> {
         Self::new(year, month, day, Calendar::default())
