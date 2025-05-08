@@ -17,8 +17,8 @@ use crate::{
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
-        ResolvedRoundingOptions, RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit,
-        UnitGroup,
+        ResolvedRoundingOptions, RoundingIncrement, RoundingMode, RoundingOptions,
+        ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
@@ -521,8 +521,55 @@ impl ZonedDateTime {
         self.instant
     }
 
-    pub fn with(&self, _partial: PartialZonedDateTime) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented"))
+    pub fn with(
+        &self,
+        partial: PartialZonedDateTime,
+        disambiguation: Option<Disambiguation>,
+        offset_option: Option<OffsetDisambiguation>,
+        overflow: Option<ArithmeticOverflow>,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        let overflow = overflow.unwrap_or_default();
+        let disambiguation = disambiguation.unwrap_or_default();
+        let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
+
+        let iso_date_time = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let plain_date_time = PlainDateTime::new_unchecked(iso_date_time, self.calendar.clone());
+
+        // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
+        let result_date = self.calendar.date_from_partial(
+            &partial.date.with_fallback_datetime(&plain_date_time)?,
+            overflow,
+        )?;
+
+        let time = iso_date_time.time.with(partial.time, overflow)?;
+
+        // 24. Let newOffsetNanoseconds be ! ParseDateTimeUTCOffset(fields.[[OffsetString]]).
+        let original_offset = self.offset_nanoseconds_with_provider(provider)?;
+        let new_offset_nanos = partial
+            .offset
+            .map(|offset| i64::from(offset.0) * 60_000_000_000)
+            .or(Some(original_offset));
+
+        // 25. Let epochNanoseconds be ? InterpretISODateTimeOffset(dateTimeResult.[[ISODate]], dateTimeResult.[[Time]], option, newOffsetNanoseconds, timeZone, disambiguation, offset, match-exactly).
+        let epoch_nanos = interpret_isodatetime_offset(
+            result_date.iso,
+            Some(time),
+            false,
+            new_offset_nanos,
+            &self.tz,
+            disambiguation,
+            offset_option,
+            true,
+            provider,
+        )?;
+
+        // 26. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+        Ok(Self::new_unchecked(
+            Instant::from(epoch_nanos),
+            self.calendar.clone(),
+            self.tz.clone(),
+        ))
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
@@ -983,6 +1030,113 @@ impl ZonedDateTime {
         )
     }
 
+    /// 6.3.39 Temporal.ZonedDateTime.prototype.round
+    pub fn round_with_provider(
+        &self,
+        options: RoundingOptions,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        // 1. Let zonedDateTime be the this value.
+        // 2. Perform ? RequireInternalSlot(zonedDateTime, [[InitializedTemporalZonedDateTime]]).
+        // 3. If roundTo is undefined, then
+        // a. Throw a TypeError exception.
+        // 4. If roundTo is a String, then
+        // a. Let paramString be roundTo.
+        // b. Set roundTo to OrdinaryObjectCreate(null).
+        // c. Perform ! CreateDataPropertyOrThrow(roundTo, "smallestUnit", paramString).
+        // 5. Else,
+        // a. Set roundTo to ? GetOptionsObject(roundTo).
+        // 6. NOTE: The following steps read options and perform independent validation in alphabetical order (GetRoundingIncrementOption reads "roundingIncrement" and GetRoundingModeOption reads "roundingMode").
+        // 7. Let roundingIncrement be ? GetRoundingIncrementOption(roundTo).
+        // 8. Let roundingMode be ? GetRoundingModeOption(roundTo, half-expand).
+        // 9. Let smallestUnit be ? GetTemporalUnitValuedOption(roundTo, "smallestUnit", time, required, « day »).
+        // 10. If smallestUnit is day, then
+        // a. Let maximum be 1.
+        // b. Let inclusive be true.
+        // 11. Else,
+        // a. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+        // b. Assert: maximum is not unset.
+        // c. Let inclusive be false.
+        let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
+        // 12. Perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, inclusive).
+        // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        // 13. If smallestUnit is nanosecond and roundingIncrement = 1, then
+        if resolved.smallest_unit == Unit::Nanosecond
+            && resolved.increment == RoundingIncrement::ONE
+        {
+            // a. Return ! CreateTemporalZonedDateTime(zonedDateTime.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]]).
+            return Ok(self.clone());
+        }
+        // 14. Let thisNs be zonedDateTime.[[EpochNanoseconds]].
+        let this_ns = self.epoch_nanoseconds();
+        // 15. Let timeZone be zonedDateTime.[[TimeZone]].
+        // 16. Let calendar be zonedDateTime.[[Calendar]].
+        // 17. Let isoDateTime be GetISODateTimeFor(timeZone, thisNs).
+        // 18. If smallestUnit is day, then
+        if resolved.smallest_unit == Unit::Day {
+            // a. Let dateStart be isoDateTime.[[ISODate]].
+            let iso_start = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            // b. Let dateEnd be BalanceISODate(dateStart.[[Year]], dateStart.[[Month]], dateStart.[[Day]] + 1).
+            let iso_end = IsoDate::balance(
+                iso_start.date.year,
+                iso_start.date.month.into(),
+                i32::from(iso_start.date.day + 1),
+            );
+            // c. Let startNs be ? GetStartOfDay(timeZone, dateStart).
+            // d. Assert: thisNs ≥ startNs.
+            // e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
+            // f. Assert: thisNs < endNs.
+            let start_ns = self.tz.get_start_of_day(&iso_start.date, provider)?;
+            let end_ns = self.tz.get_start_of_day(&iso_end, provider)?;
+            if !(this_ns.0 >= start_ns.0 && this_ns.0 < end_ns.0) {
+                return Err(TemporalError::range()
+                    .with_message("ZonedDateTime is outside the expected day bounds"));
+            }
+            // g. Let dayLengthNs be ℝ(endNs - startNs).
+            // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
+            let day_len_ns =
+                NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
+            let day_progress_ns =
+                NormalizedTimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0)?;
+            // i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
+            let rounded = if let Some(increment) = NonZeroU128::new(day_len_ns.0.unsigned_abs()) {
+                IncrementRounder::<i128>::from_signed_num(day_progress_ns.0, increment)?
+                    .round(resolved.rounding_mode)
+            } else {
+                0 // Zero-length day: round to start of day
+            };
+
+            // j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
+            let candidate = start_ns.0 + rounded;
+            Instant::try_new(candidate)?;
+            // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+            ZonedDateTime::try_new(candidate, self.calendar.clone(), self.tz.clone())
+        } else {
+            // 19. Else,
+            // a. Let roundResult be RoundISODateTime(isoDateTime, roundingIncrement, smallestUnit, roundingMode).
+            // b. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, thisNs).
+            // c. Let epochNanoseconds be ? InterpretISODateTimeOffset(roundResult.[[ISODate]], roundResult.[[Time]], option, offsetNanoseconds, timeZone, compatible, prefer, match-exactly).
+            // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
+            let iso_dt = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+            let rounded_dt = iso_dt.round(resolved)?;
+            let offset_ns = self.tz.get_offset_nanos_for(this_ns.as_i128(), provider)?;
+
+            let epoch_ns = interpret_isodatetime_offset(
+                rounded_dt.date,
+                Some(rounded_dt.time),
+                false,
+                Some(offset_ns as i64),
+                &self.tz,
+                Disambiguation::Compatible,
+                OffsetDisambiguation::Prefer,
+                true,
+                provider,
+            )?;
+
+            ZonedDateTime::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
+        }
+    }
+
     /// Creates an IXDTF (RFC 9557) date/time string for the provided `ZonedDateTime` according
     /// to the provided display options.
     pub fn to_ixdtf_string_with_provider(
@@ -1098,6 +1252,7 @@ impl ZonedDateTime {
     }
 }
 
+/// InterpretISODateTimeOffset
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn interpret_isodatetime_offset(
     date: IsoDate,
@@ -1136,7 +1291,7 @@ pub(crate) fn interpret_isodatetime_offset(
                 time.second.into(),
                 time.millisecond.into(),
                 time.microsecond.into(),
-                i64::from(time.nanosecond) - offset,
+                (i64::from(time.nanosecond) - offset).into(),
             );
 
             // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
@@ -1234,9 +1389,11 @@ pub(crate) fn nanoseconds_to_formattable_offset_minutes(
 mod tests {
     use super::ZonedDateTime;
     use crate::{
-        options::{DifferenceSettings, Disambiguation, OffsetDisambiguation, Unit},
+        options::{
+            ArithmeticOverflow, DifferenceSettings, Disambiguation, OffsetDisambiguation,
+            RoundingIncrement, RoundingMode, RoundingOptions, Unit,
+        },
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
-        primitive::FiniteF64,
         time::EpochNanoseconds,
         tzdb::FsTzdbProvider,
         Calendar, MonthCode, TimeZone,
@@ -1290,6 +1447,65 @@ mod tests {
         assert_eq!(zdt_plus_eleven.hour_with_provider(provider).unwrap(), 12);
         assert_eq!(zdt_plus_eleven.minute_with_provider(provider).unwrap(), 49);
         assert_eq!(zdt_plus_eleven.second_with_provider(provider).unwrap(), 12);
+    }
+
+    #[test]
+    // https://tc39.es/proposal-temporal/docs/zoneddatetime.html#round
+    fn round_with_provider_test() {
+        let provider = &FsTzdbProvider::default();
+        let dt = "1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
+        let zdt = ZonedDateTime::from_str_with_provider(
+            dt,
+            Disambiguation::default(),
+            OffsetDisambiguation::Use,
+            provider,
+        )
+        .unwrap();
+
+        let result = zdt
+            .round_with_provider(
+                RoundingOptions {
+                    smallest_unit: Some(Unit::Hour),
+                    ..Default::default()
+                },
+                provider,
+            )
+            .unwrap();
+        assert_eq!(
+            result.to_string_with_provider(provider).unwrap(),
+            "1995-12-07T03:00:00-08:00[America/Los_Angeles]"
+        );
+
+        let result = zdt
+            .round_with_provider(
+                RoundingOptions {
+                    smallest_unit: Some(Unit::Minute),
+                    increment: Some((RoundingIncrement::try_new(30)).unwrap()),
+                    ..Default::default()
+                },
+                provider,
+            )
+            .unwrap();
+        assert_eq!(
+            result.to_string_with_provider(provider).unwrap(),
+            "1995-12-07T03:30:00-08:00[America/Los_Angeles]"
+        );
+
+        let result = zdt
+            .round_with_provider(
+                RoundingOptions {
+                    smallest_unit: Some(Unit::Minute),
+                    increment: Some((RoundingIncrement::try_new(30)).unwrap()),
+                    rounding_mode: Some(RoundingMode::Floor),
+                    ..Default::default()
+                },
+                provider,
+            )
+            .unwrap();
+        assert_eq!(
+            result.to_string_with_provider(provider).unwrap(),
+            "1995-12-07T03:00:00-08:00[America/Los_Angeles]"
+        );
     }
 
     #[test]
@@ -1363,16 +1579,96 @@ mod tests {
                 },
             )
             .unwrap();
-        let zero = FiniteF64::from(0);
-        assert_eq!(diff.years(), zero);
-        assert_eq!(diff.months(), zero);
-        assert_eq!(diff.weeks(), zero);
-        assert_eq!(diff.days(), zero);
-        assert_eq!(diff.hours(), zero);
-        assert_eq!(diff.minutes(), FiniteF64::from(30));
-        assert_eq!(diff.seconds(), zero);
-        assert_eq!(diff.milliseconds(), zero);
-        assert_eq!(diff.microseconds(), zero);
-        assert_eq!(diff.nanoseconds(), zero);
+        assert_eq!(diff.years(), 0);
+        assert_eq!(diff.months(), 0);
+        assert_eq!(diff.weeks(), 0);
+        assert_eq!(diff.days(), 0);
+        assert_eq!(diff.hours(), 0);
+        assert_eq!(diff.minutes(), 30);
+        assert_eq!(diff.seconds(), 0);
+        assert_eq!(diff.milliseconds(), 0);
+        assert_eq!(diff.microseconds(), 0);
+        assert_eq!(diff.nanoseconds(), 0);
+    }
+
+    // overflow-reject-throws.js
+    #[test]
+    fn overflow_reject_throws() {
+        let provider = &FsTzdbProvider::default();
+
+        let zdt =
+            ZonedDateTime::try_new(217178610123456789, Calendar::default(), TimeZone::default())
+                .unwrap();
+
+        let overflow = ArithmeticOverflow::Reject;
+
+        let result_1 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate {
+                    month: Some(29),
+                    ..Default::default()
+                },
+                time: PartialTime::default(),
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        let result_2 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate {
+                    day: Some(31),
+                    ..Default::default()
+                },
+                time: PartialTime::default(),
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        let result_3 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate::default(),
+                time: PartialTime {
+                    hour: Some(29),
+                    ..Default::default()
+                },
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        let result_4 = zdt.with(
+            PartialZonedDateTime {
+                date: PartialDate::default(),
+                time: PartialTime {
+                    nanosecond: Some(9000),
+                    ..Default::default()
+                },
+                offset: None,
+                timezone: None,
+            },
+            None,
+            None,
+            Some(overflow),
+            provider,
+        );
+
+        assert!(result_1.is_err());
+        assert!(result_2.is_err());
+        assert!(result_3.is_err());
+        assert!(result_4.is_err());
     }
 }

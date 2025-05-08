@@ -55,6 +55,10 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with_calendar(const temporal_rs::Calendar& calendar) const;
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_utf8(std::string_view s);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
+
   inline int32_t iso_year() const;
 
   inline uint8_t iso_month() const;
@@ -72,6 +76,10 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> until(const temporal_rs::PlainDate& other, temporal_rs::DifferenceSettings settings) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainDate& other, temporal_rs::DifferenceSettings settings) const;
+
+  inline bool equals(const temporal_rs::PlainDate& other) const;
+
+  inline static int8_t compare(const temporal_rs::PlainDate& one, const temporal_rs::PlainDate& two);
 
   inline int32_t year() const;
 

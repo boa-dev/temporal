@@ -871,6 +871,7 @@ dependencies = [
  "diplomat",
  "diplomat-runtime",
  "icu_calendar",
+ "num-traits",
  "temporal_rs",
 ]
 
@@ -892,6 +893,7 @@ name = "temporal_rs"
 version = "0.0.6"
 dependencies = [
  "combine",
+ "core_maths",
  "iana-time-zone",
  "icu_calendar",
  "ixdtf",

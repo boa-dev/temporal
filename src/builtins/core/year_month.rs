@@ -454,13 +454,13 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.days(), 0.0);
-            assert_eq!(until.months(), 0.0);
-            assert_eq!(until.years(), 0.0);
+            assert_eq!(until.days(), 0);
+            assert_eq!(until.months(), 0);
+            assert_eq!(until.years(), 0);
 
-            assert_eq!(since.days(), 0.0);
-            assert_eq!(since.months(), 0.0);
-            assert_eq!(since.years(), 0.0);
+            assert_eq!(since.days(), 0);
+            assert_eq!(since.months(), 0);
+            assert_eq!(since.years(), 0);
         }
 
         // One month apart
@@ -475,11 +475,11 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.months(), 1.0);
-            assert_eq!(until.years(), 0.0);
+            assert_eq!(until.months(), 1);
+            assert_eq!(until.years(), 0);
 
-            assert_eq!(since.months(), -1.0);
-            assert_eq!(since.years(), 0.0);
+            assert_eq!(since.months(), -1);
+            assert_eq!(since.years(), 0);
         }
 
         // Crossing year boundary
@@ -494,11 +494,11 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.months(), 3.0);
-            assert_eq!(until.years(), 0.0);
+            assert_eq!(until.months(), 3);
+            assert_eq!(until.years(), 0);
 
-            assert_eq!(since.months(), -3.0);
-            assert_eq!(since.years(), 0.0);
+            assert_eq!(since.months(), -3);
+            assert_eq!(since.years(), 0);
         }
 
         // One year and one month
@@ -513,13 +513,13 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.years(), 1.0);
-            assert_eq!(until.months(), 1.0);
-            assert_eq!(until.days(), 0.0);
+            assert_eq!(until.years(), 1);
+            assert_eq!(until.months(), 1);
+            assert_eq!(until.days(), 0);
 
-            assert_eq!(since.years(), -1.0);
-            assert_eq!(since.months(), -1.0);
-            assert_eq!(since.days(), 0.0);
+            assert_eq!(since.years(), -1);
+            assert_eq!(since.months(), -1);
+            assert_eq!(since.days(), 0);
         }
 
         // One year apart with unit = Year
@@ -534,11 +534,11 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.years(), 1.0);
-            assert_eq!(until.months(), 0.0);
+            assert_eq!(until.years(), 1);
+            assert_eq!(until.months(), 0);
 
-            assert_eq!(since.years(), -1.0);
-            assert_eq!(since.months(), 0.0);
+            assert_eq!(since.years(), -1);
+            assert_eq!(since.months(), 0);
         }
 
         // Large year gap
@@ -553,8 +553,8 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.years(), 1000.0);
-            assert_eq!(since.years(), -1000.0);
+            assert_eq!(until.years(), 1000);
+            assert_eq!(since.years(), -1000);
         }
 
         // Lower ISO limit
@@ -569,8 +569,8 @@ mod tests {
             let until = earlier.until(&later, settings).unwrap();
             let since = earlier.since(&later, settings).unwrap();
 
-            assert_eq!(until.years(), 1.0);
-            assert_eq!(since.years(), -1.0);
+            assert_eq!(until.years(), 1);
+            assert_eq!(since.years(), -1);
         }
     }
     #[test]
@@ -616,8 +616,8 @@ mod tests {
         };
 
         let diff = ym1.until(&ym2, settings).unwrap();
-        assert_eq!(diff.months(), 1.0);
-        assert_eq!(diff.years(), 2.0);
+        assert_eq!(diff.months(), 1);
+        assert_eq!(diff.years(), 2);
     }
     #[test]
     fn test_diff_with_smallest_unit_year() {
@@ -630,8 +630,8 @@ mod tests {
         };
 
         let diff = ym1.until(&ym2, settings).unwrap();
-        assert_eq!(diff.years(), 2.0); // Rounded to the nearest year
-        assert_eq!(diff.months(), 0.0); // Months are ignored
+        assert_eq!(diff.years(), 2); // Rounded to the nearest year
+        assert_eq!(diff.months(), 0); // Months are ignored
     }
 
     #[test]
@@ -680,8 +680,8 @@ mod tests {
         };
 
         let diff = ym1.until(&ym2, settings).unwrap();
-        assert_eq!(diff.months(), 1.0); // Exact difference in months
-        assert_eq!(diff.years(), 2.0); // Exact difference in years
+        assert_eq!(diff.months(), 1); // Exact difference in months
+        assert_eq!(diff.years(), 2); // Exact difference in years
     }
 
     #[test]

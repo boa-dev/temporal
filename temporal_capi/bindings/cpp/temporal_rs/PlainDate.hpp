@@ -46,6 +46,12 @@ namespace capi {
     typedef struct temporal_rs_PlainDate_with_calendar_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_calendar_result;
     temporal_rs_PlainDate_with_calendar_result temporal_rs_PlainDate_with_calendar(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::Calendar* calendar);
     
+    typedef struct temporal_rs_PlainDate_from_utf8_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf8_result;
+    temporal_rs_PlainDate_from_utf8_result temporal_rs_PlainDate_from_utf8(diplomat::capi::DiplomatStringView s);
+    
+    typedef struct temporal_rs_PlainDate_from_utf16_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf16_result;
+    temporal_rs_PlainDate_from_utf16_result temporal_rs_PlainDate_from_utf16(diplomat::capi::DiplomatString16View s);
+    
     int32_t temporal_rs_PlainDate_iso_year(const temporal_rs::capi::PlainDate* self);
     
     uint8_t temporal_rs_PlainDate_iso_month(const temporal_rs::capi::PlainDate* self);
@@ -67,6 +73,10 @@ namespace capi {
     
     typedef struct temporal_rs_PlainDate_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_since_result;
     temporal_rs_PlainDate_since_result temporal_rs_PlainDate_since(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other, temporal_rs::capi::DifferenceSettings settings);
+    
+    bool temporal_rs_PlainDate_equals(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other);
+    
+    int8_t temporal_rs_PlainDate_compare(const temporal_rs::capi::PlainDate* one, const temporal_rs::capi::PlainDate* two);
     
     int32_t temporal_rs_PlainDate_year(const temporal_rs::capi::PlainDate* self);
     
@@ -164,6 +174,16 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_utf8(std::string_view s) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_from_utf8({s.data(), s.size()});
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_utf16(std::u16string_view s) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_from_utf16({s.data(), s.size()});
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
 inline int32_t temporal_rs::PlainDate::iso_year() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_iso_year(this->AsFFI());
   return result;
@@ -215,6 +235,18 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
     other.AsFFI(),
     settings.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline bool temporal_rs::PlainDate::equals(const temporal_rs::PlainDate& other) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_equals(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline int8_t temporal_rs::PlainDate::compare(const temporal_rs::PlainDate& one, const temporal_rs::PlainDate& two) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_compare(one.AsFFI(),
+    two.AsFFI());
+  return result;
 }
 
 inline int32_t temporal_rs::PlainDate::year() const {

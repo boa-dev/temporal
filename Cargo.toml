@@ -28,7 +28,7 @@ temporal_provider = { version = "~0.0.6", path = "./provider" }
 tinystr = "0.8.1"
 icu_calendar = { version = "2.0.0-beta2", default-features = false }
 rustc-hash = "2.1.0"
-num-traits = "0.2.19"
+num-traits = { version = "0.2.19", default-features = false }
 ixdtf = "0.4.0"
 iana-time-zone = "0.1.63"
 log = "0.4.27"
@@ -58,7 +58,7 @@ tinystr.workspace = true
 icu_calendar = { workspace = true, features = ["compiled_data"] }
 num-traits.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
-iana-time-zone.workspace = true
+iana-time-zone = { workspace = true, optional = true }
 writeable = "0.6.1"
 
 # log feature
@@ -71,15 +71,19 @@ combine = { workspace = true, optional = true }
 
 # System time feature
 web-time = { workspace = true, optional =  true }
+core_maths = "0.1.1"
 
 [features]
 default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
-sys = ["std", "dep:web-time"]
+sys = ["std", "dep:web-time", "dep:iana-time-zone"]
 tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine", "dep:temporal_provider"]
 std = []
 
 [package.metadata.cargo-all-features]
 denylist = ["default"]
 max_combination_size = 4
+
+[package.metadata.docs.rs]
+all-features = true

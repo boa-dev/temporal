@@ -199,7 +199,6 @@ impl PlainDateTime {
         let diff = self
             .iso
             .diff(&other.iso, &self.calendar, options.largest_unit)?;
-
         // 4. If smallestUnit is nanosecond and roundingIncrement = 1, return diff.
         if options.smallest_unit == Unit::Nanosecond && options.increment.get() == 1 {
             return Ok(diff);
@@ -859,7 +858,6 @@ mod tests {
             ToStringRoundingOptions, Unit,
         },
         parsers::Precision,
-        primitive::FiniteF64,
         MonthCode, TemporalResult,
     };
 
@@ -1091,15 +1089,7 @@ mod tests {
 
         let result = pdt
             .add(
-                &Duration::from(
-                    DateDuration::new(
-                        FiniteF64::default(),
-                        FiniteF64(1.0),
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                    )
-                    .unwrap(),
-                ),
+                &Duration::from(DateDuration::new(0, 1, 0, 0).unwrap()),
                 None,
             )
             .unwrap();
@@ -1117,15 +1107,7 @@ mod tests {
 
         let result = pdt
             .subtract(
-                &Duration::from(
-                    DateDuration::new(
-                        FiniteF64::default(),
-                        FiniteF64(1.0),
-                        FiniteF64::default(),
-                        FiniteF64::default(),
-                    )
-                    .unwrap(),
-                ),
+                &Duration::from(DateDuration::new(0, 1, 0, 0).unwrap()),
                 None,
             )
             .unwrap();
@@ -1141,13 +1123,13 @@ mod tests {
             PlainDateTime::try_new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default())
                 .unwrap();
 
-        let result = dt.subtract(&Duration::hour(FiniteF64(12.0)), None).unwrap();
+        let result = dt.subtract(&Duration::hour(12), None).unwrap();
         assert_datetime(
             result,
             (2019, 10, tinystr!(4, "M10"), 28, 22, 46, 38, 271, 986, 102),
         );
 
-        let result = dt.add(&Duration::hour(FiniteF64(-12.0)), None).unwrap();
+        let result = dt.add(&Duration::hour(-12), None).unwrap();
         assert_datetime(
             result,
             (2019, 10, tinystr!(4, "M10"), 28, 22, 46, 38, 271, 986, 102),
@@ -1179,15 +1161,15 @@ mod tests {
         let settings = create_diff_setting(Unit::Hour, 3, RoundingMode::HalfExpand);
         let result = earlier.until(&later, settings).unwrap();
 
-        assert_eq!(result.days(), 973.0);
-        assert_eq!(result.hours(), 3.0);
+        assert_eq!(result.days(), 973);
+        assert_eq!(result.hours(), 3);
 
         let settings = create_diff_setting(Unit::Minute, 30, RoundingMode::HalfExpand);
         let result = earlier.until(&later, settings).unwrap();
 
-        assert_eq!(result.days(), 973.0);
-        assert_eq!(result.hours(), 4.0);
-        assert_eq!(result.minutes(), 30.0);
+        assert_eq!(result.days(), 973);
+        assert_eq!(result.hours(), 4);
+        assert_eq!(result.minutes(), 30);
     }
 
     #[test]
@@ -1202,15 +1184,15 @@ mod tests {
         let settings = create_diff_setting(Unit::Hour, 3, RoundingMode::HalfExpand);
         let result = later.since(&earlier, settings).unwrap();
 
-        assert_eq!(result.days(), 973.0);
-        assert_eq!(result.hours(), 3.0);
+        assert_eq!(result.days(), 973);
+        assert_eq!(result.hours(), 3);
 
         let settings = create_diff_setting(Unit::Minute, 30, RoundingMode::HalfExpand);
         let result = later.since(&earlier, settings).unwrap();
 
-        assert_eq!(result.days(), 973.0);
-        assert_eq!(result.hours(), 4.0);
-        assert_eq!(result.minutes(), 30.0);
+        assert_eq!(result.days(), 973);
+        assert_eq!(result.hours(), 4);
+        assert_eq!(result.minutes(), 30);
     }
 
     #[test]

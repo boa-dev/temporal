@@ -11,6 +11,7 @@ use core::{
     ops::{Div, Neg},
 };
 
+use num_traits::float::FloatCore;
 use num_traits::{ConstZero, Euclid, FromPrimitive, NumCast, Signed, ToPrimitive};
 
 pub(crate) trait Roundable:
@@ -98,14 +99,16 @@ impl Roundable for f64 {
 
     fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
         let quotient = Roundable::quotient_abs(dividend, divisor);
-        let d1 = quotient - quotient.floor();
-        let d2 = quotient.ceil() - quotient;
+        let d1 = quotient - FloatCore::floor(quotient);
+        let d2 = FloatCore::ceil(quotient) - quotient;
         d1.partial_cmp(&d2)
     }
 
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
         let quotient = Roundable::quotient_abs(dividend, divisor);
-        (quotient.floor() / (quotient.ceil() - quotient.floor()) % 2.0) == 0.0
+        (FloatCore::floor(quotient) / (FloatCore::ceil(quotient) - FloatCore::floor(quotient))
+            % 2.0)
+            == 0.0
     }
 
     fn result_floor(dividend: Self, divisor: Self) -> u128 {
@@ -114,6 +117,28 @@ impl Roundable for f64 {
 
     fn result_ceil(dividend: Self, divisor: Self) -> u128 {
         Roundable::quotient_abs(dividend, divisor).ceil() as u128
+    }
+}
+
+impl Roundable for i64 {
+    fn is_exact(dividend: Self, divisor: Self) -> bool {
+        dividend.rem_euclid(divisor) == 0
+    }
+
+    fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
+        Some((dividend.abs() % divisor).cmp(&(divisor / 2)))
+    }
+
+    fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
+        Roundable::result_floor(dividend, divisor).rem_euclid(2) == 0
+    }
+
+    fn result_floor(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor) as u128
+    }
+
+    fn result_ceil(dividend: Self, divisor: Self) -> u128 {
+        Roundable::quotient_abs(dividend, divisor) as u128 + 1
     }
 }
 

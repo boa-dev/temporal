@@ -7,6 +7,7 @@ pub mod ffi {
     use crate::calendar::ffi::Calendar;
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+    use alloc::boxed::Box;
 
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
@@ -14,8 +15,11 @@ pub mod ffi {
     };
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
+    use alloc::string::String;
+    use core::fmt::Write;
+    use core::str::{self, FromStr};
     use diplomat_runtime::DiplomatWrite;
-    use std::fmt::Write;
+    use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
     #[diplomat::opaque]
     pub struct PlainDateTime(pub(crate) temporal_rs::PlainDateTime);
@@ -111,6 +115,22 @@ pub mod ffi {
             self.0
                 .with_calendar(calendar.0.clone())
                 .map(|x| Box::new(PlainDateTime(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to validate
+            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::PlainDateTime::from_str(s)
+                .map(|c| Box::new(Self(c)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            temporal_rs::PlainDateTime::from_str(&s)
+                .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
 
@@ -240,6 +260,37 @@ pub mod ffi {
                 .since(&other.0, settings.try_into()?)
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
+        }
+
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            let tuple1 = (
+                one.iso_year(),
+                one.iso_month(),
+                one.iso_day(),
+                one.hour(),
+                one.minute(),
+                one.second(),
+                one.millisecond(),
+                one.microsecond(),
+                one.nanosecond(),
+            );
+            let tuple2 = (
+                two.iso_year(),
+                two.iso_month(),
+                two.iso_day(),
+                two.hour(),
+                two.minute(),
+                two.second(),
+                two.millisecond(),
+                two.microsecond(),
+                two.nanosecond(),
+            );
+
+            tuple1.cmp(&tuple2)
         }
 
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
