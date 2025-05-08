@@ -1,5 +1,5 @@
 [package]
-name = "temporal_provider"
+name = "timezone_provider"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true

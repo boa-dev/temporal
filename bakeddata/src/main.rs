@@ -4,7 +4,7 @@ use std::{
     io::{self, BufWriter, Write},
     path::Path,
 };
-use temporal_provider::IanaIdentifierNormalizer;
+use timezone_provider::IanaIdentifierNormalizer;
 
 trait BakedDataProvider {
     fn write_data(&self, data_path: &Path) -> io::Result<()>;
@@ -22,7 +22,7 @@ impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
             #[macro_export]
             macro_rules! iana_normalizer_singleton {
                 () => {
-                    pub const SINGLETON_IANA_NORMALIZER: &'static temporal_provider::IanaIdentifierNormalizer = &#baked;
+                    pub const SINGLETON_IANA_NORMALIZER: &'static timezone_provider::IanaIdentifierNormalizer = &#baked;
                 }
             }
         };
