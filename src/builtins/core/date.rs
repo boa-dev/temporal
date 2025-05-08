@@ -356,13 +356,28 @@ impl PlainDate {
 
 impl PlainDate {
     /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
+    #[inline]
     pub fn new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
     }
 
+    /// Creates a new `PlainDate` with an ISO 8601 calendar automatically constraining any
+    /// values that may be invalid into a valid range.
+    #[inline]
+    pub fn new_iso(year: i32, month: u8, day: u8) -> TemporalResult<Self> {
+        Self::new(year, month, day, Calendar::default())
+    }
+
     /// Creates a new `PlainDate` rejecting any date that may be invalid.
+    #[inline]
     pub fn try_new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Reject)
+    }
+
+    /// Creates a new `PlainDate` with an ISO 8601 calendar rejecting any date that may be invalid.
+    #[inline]
+    pub fn try_new_iso(year: i32, month: u8, day: u8) -> TemporalResult<Self> {
+        Self::try_new(year, month, day, Calendar::default())
     }
 
     /// Creates a new `PlainDate` with the specified overflow.
