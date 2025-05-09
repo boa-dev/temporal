@@ -13,8 +13,8 @@ use crate::{
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
+use alloc::string::ToString;
 use core::str::FromStr;
-use std::string::ToString;
 
 use icu_calendar::{
     cal::{
