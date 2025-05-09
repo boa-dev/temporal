@@ -51,7 +51,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::Calendar::from_utf8(s)
+            temporal_rs::Calendar::try_from_utf8(s)
                 .map(|c| Box::new(Calendar(c)))
                 .map_err(Into::into)
         }
