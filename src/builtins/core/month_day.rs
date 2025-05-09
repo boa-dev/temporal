@@ -122,7 +122,7 @@ impl FromStr for PlainMonthDay {
 
         let calendar = record
             .calendar
-            .map(Calendar::from_utf8)
+            .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 
