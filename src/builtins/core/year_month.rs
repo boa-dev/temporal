@@ -322,13 +322,18 @@ impl PlainYearMonth {
         self.diff(DifferenceOperation::Since, other, settings)
     }
 
-    pub fn to_plain_date(&self, day: Option<u8>) -> TemporalResult<PlainDate> {
-        let ref_day = day.unwrap_or(1); // The day defaults to 1 if no day is provided
+    pub fn to_plain_date(&self, day: Option<PartialDate>) -> TemporalResult<PlainDate> {
+        let day_value = match &day {
+            Some(partial) => partial.day.ok_or_else(|| {
+                TemporalError::r#type().with_message("PartialDate must contain a day field")
+            })?,
+            None => return Err(TemporalError::r#type().with_message("Day must be provided")),
+        };
 
         let partial_date = PartialDate::new()
             .with_year(Some(self.iso_year()))
             .with_month(Some(self.iso_month()))
-            .with_day(Some(ref_day))
+            .with_day(Some(day_value))
             .with_calendar(self.calendar.clone());
 
         self.calendar
@@ -766,7 +771,8 @@ mod tests {
         )
         .unwrap();
 
-        let plain_date = year_month.to_plain_date(Some(3)).unwrap();
+        let partial_date = PartialDate::new().with_day(Some(3));
+        let plain_date = year_month.to_plain_date(Some(partial_date)).unwrap();
         assert_eq!(plain_date.iso_year(), 2023);
         assert_eq!(plain_date.iso_month(), 5);
         assert_eq!(plain_date.iso_day(), 3);

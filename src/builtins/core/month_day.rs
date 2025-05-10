@@ -98,11 +98,16 @@ impl PlainMonthDay {
         self.calendar.month_code(&self.iso)
     }
 
-    pub fn to_plain_date(&self, year: Option<i32>) -> TemporalResult<PlainDate> {
-        let ref_year = year.unwrap_or(1972); // The year defaults to 1972 if no year is provided
+    pub fn to_plain_date(&self, year: Option<PartialDate>) -> TemporalResult<PlainDate> {
+        let year_value = match &year {
+            Some(partial) => partial.year.ok_or_else(|| {
+                TemporalError::r#type().with_message("PartialDate must contain a year field")
+            })?,
+            None => return Err(TemporalError::r#type().with_message("Year must be provided")),
+        };
 
         let partial_date = PartialDate::new()
-            .with_year(Some(ref_year))
+            .with_year(Some(year_value))
             .with_month(Some(self.iso_month()))
             .with_day(Some(self.iso_day()))
             .with_calendar(self.calendar.clone());
@@ -173,8 +178,9 @@ mod tests {
         )
         .unwrap();
 
-        let plain_date = month_day.to_plain_date(Some(2023)).unwrap();
-        assert_eq!(plain_date.iso_year(), 2023);
+        let partial_date = PartialDate::new().with_year(Some(2025));
+        let plain_date = month_day.to_plain_date(Some(partial_date)).unwrap();
+        assert_eq!(plain_date.iso_year(), 2025);
         assert_eq!(plain_date.iso_month(), 5);
         assert_eq!(plain_date.iso_day(), 15);
     }

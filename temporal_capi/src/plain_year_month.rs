@@ -160,9 +160,12 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
-        pub fn to_plain_date(&self, day: Option<u8>) -> Result<Box<PlainDate>, TemporalError> {
+        pub fn to_plain_date(
+            &self,
+            day: Option<PartialDate>,
+        ) -> Result<Box<PlainDate>, TemporalError> {
             self.0
-                .to_plain_date(day)
+                .to_plain_date(day.map(|d| d.try_into()).transpose()?)
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }
