@@ -17,6 +17,7 @@
 //! The traits in this module define the system methods
 //! that must be implemented for system defined topics,
 
+use crate::time::EpochNanoseconds;
 use crate::TimeZone;
 use core::fmt::Display;
 
@@ -27,11 +28,11 @@ use crate::TemporalError;
 #[cfg(feature = "sys")]
 use alloc::string::ToString;
 #[cfg(feature = "sys")]
-use web_time::{SystemTime as DefaultSysTime, SystemTimeError, UNIX_EPOCH};
+use web_time::{SystemTime as DefaultSysTime, UNIX_EPOCH};
 
 pub trait SystemClock: Default {
     type Error: Display;
-    fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error>;
+    fn get_system_epoch_nanoseconds(&self) -> Result<EpochNanoseconds, Self::Error>;
 }
 
 pub trait SystemTimeZone: Default {
@@ -60,7 +61,7 @@ pub struct Temporal;
 
 #[cfg(feature = "sys")]
 impl Temporal {
-    /// Return a default `Now` for `SystemTime`.
+    /// Returns a `Now` using Rust's `SystemTime`.
     pub const fn now() -> Now<DefaultSystemClock, DefaultSystemTimeZone> {
         Now {
             clock: DefaultSystemClock,
@@ -91,10 +92,12 @@ pub struct DefaultSystemClock;
 
 #[cfg(feature = "sys")]
 impl SystemClock for DefaultSystemClock {
-    type Error = SystemTimeError;
-    fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error> {
+    type Error = TemporalError;
+    fn get_system_epoch_nanoseconds(&self) -> Result<EpochNanoseconds, Self::Error> {
         DefaultSysTime::now()
             .duration_since(UNIX_EPOCH)
             .map(|d| d.as_nanos())
+            .map_err(|e| TemporalError::general(e.to_string()))
+            .map(EpochNanoseconds::try_from)?
     }
 }

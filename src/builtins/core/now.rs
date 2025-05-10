@@ -13,19 +13,19 @@ use super::{
 };
 
 #[derive(Debug, Default)]
-pub struct DefaultUnixEpoch;
+pub struct EmptySystemClock;
 
-impl SystemClock for DefaultUnixEpoch {
+impl SystemClock for EmptySystemClock {
     type Error = TemporalError;
-    fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error> {
-        Ok(0)
+    fn get_system_epoch_nanoseconds(&self) -> Result<EpochNanoseconds, Self::Error> {
+        Err(TemporalError::general("System clock is not defined"))
     }
 }
 
 #[derive(Default)]
-pub struct DefaultUtcZone;
+pub struct EmptySystemZone;
 
-impl SystemTimeZone for DefaultUtcZone {
+impl SystemTimeZone for EmptySystemZone {
     type Error = TemporalError;
     fn get_system_time_zone(&self) -> Result<TimeZone, Self::Error> {
         Ok(TimeZone::default())
@@ -35,32 +35,19 @@ impl SystemTimeZone for DefaultUtcZone {
 /// The Temporal Now object.
 #[derive(Default)]
 #[non_exhaustive] // Now cannot be constructed with a struct expression
-pub struct Now<Clock: SystemClock = DefaultUnixEpoch, TimeZone: SystemTimeZone = DefaultUtcZone> {
+pub struct Now<Clock: SystemClock = EmptySystemClock, TimeZone: SystemTimeZone = EmptySystemZone> {
     pub(crate) clock: Clock,
     pub(crate) system_zone: TimeZone,
 }
 
 impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     pub(crate) fn clock(&self) -> TemporalResult<EpochNanoseconds> {
-        let system_nanoseconds = self
-            .clock
+        self.clock
             .get_system_epoch_nanoseconds()
-            .map_err(|e| TemporalError::general(e.to_string()))?;
-        EpochNanoseconds::try_from(system_nanoseconds)
+            .map_err(|e| TemporalError::general(e.to_string()))
     }
 
     /// Returns the current system `DateTime` based off the provided system args
-    ///
-    /// ## Order of operations
-    ///
-    /// The order of operations for this method requires the `GetSystemTimeZone` call
-    /// to occur prior to calling system time and resolving the `EpochNanoseconds`
-    /// value.
-    ///
-    /// A correct implementation will follow the following steps:
-    ///
-    ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
-    ///   2. Get the `SystemNanoseconds`
     pub(crate) fn system_datetime_with_provider(
         &self,
         time_zone: Option<TimeZone>,
@@ -94,6 +81,7 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
         self
     }
 
+    /// Return's the system time zone
     pub fn time_zone(&self) -> TemporalResult<TimeZone> {
         self.system_zone
             .get_system_time_zone()
@@ -131,20 +119,6 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
 
 impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     /// Returns the current system time as a `PlainDateTime` with an ISO8601 calendar.
-    ///
-    /// ## Order of operations
-    ///
-    /// The order of operations for this method requires the `GetSystemTimeZone` call
-    /// to occur prior to calling system time and resolving the `EpochNanoseconds`
-    /// value.
-    ///
-    /// A correct implementation will follow the following steps:
-    ///
-    ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
-    ///   2. Get the `SystemNanoseconds`
-    ///
-    /// For an example implementation, see `Now::plain_datetime_iso`; available with the
-    /// `compiled_data` feature flag.
     pub fn plain_date_time_iso_with_provider(
         &self,
         time_zone: Option<TimeZone>,
@@ -155,20 +129,6 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     }
 
     /// Returns the current system time as a `PlainDate` with an ISO8601 calendar.
-    ///
-    /// ## Order of operations
-    ///
-    /// The order of operations for this method requires the `GetSystemTimeZone` call
-    /// to occur prior to calling system time and resolving the `EpochNanoseconds`
-    /// value.
-    ///
-    /// A correct implementation will follow the following steps:
-    ///
-    ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
-    ///   2. Get the `SystemNanoseconds`
-    ///
-    /// For an example implementation, see `Now::plain_date_iso`; available
-    /// with the `compiled_data` feature flag.
     pub fn plain_date_iso_with_provider(
         &self,
         time_zone: Option<TimeZone>,
@@ -179,20 +139,6 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     }
 
     /// Returns the current system time as a `PlainTime` according to an ISO8601 calendar.
-    ///
-    /// ## Order of operations
-    ///
-    /// The order of operations for this method requires the `GetSystemTimeZone` call
-    /// to occur prior to calling system time and resolving the `EpochNanoseconds`
-    /// value.
-    ///
-    /// A correct implementation will follow the following steps:
-    ///
-    ///   1. Resolve user input `TimeZone` with the `SystemTimeZone`.
-    ///   2. Get the `SystemNanoseconds`
-    ///
-    /// For an example implementation, see `Now::plain_time_iso`; available with the
-    /// `compiled_data` feature flag.
     pub fn plain_time_iso_with_provider(
         &self,
         time_zone: Option<TimeZone>,
@@ -214,6 +160,7 @@ mod tests {
     fn mocked_datetime() {
         use crate::{
             sys::{SystemClock, SystemTimeZone},
+            time::EpochNanoseconds,
             tzdb::FsTzdbProvider,
             Now, TemporalError, TimeZone,
         };
@@ -231,8 +178,8 @@ mod tests {
         #[cfg(feature = "tzdb")]
         impl SystemClock for StaticTime {
             type Error = TemporalError;
-            fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error> {
-                Ok(TIME_BASE)
+            fn get_system_epoch_nanoseconds(&self) -> Result<EpochNanoseconds, Self::Error> {
+                Ok(EpochNanoseconds::try_from(TIME_BASE).unwrap())
             }
         }
 
@@ -290,9 +237,9 @@ mod tests {
         #[cfg(feature = "tzdb")]
         impl SystemClock for StaticTimePlusFive {
             type Error = TemporalError;
-            fn get_system_epoch_nanoseconds(&self) -> Result<u128, Self::Error> {
+            fn get_system_epoch_nanoseconds(&self) -> Result<EpochNanoseconds, Self::Error> {
                 let plus_5_secs = TIME_BASE + (5 * 1_000_000_000);
-                Ok(plus_5_secs)
+                Ok(EpochNanoseconds::try_from(plus_5_secs).unwrap())
             }
         }
 
