@@ -47,7 +47,7 @@ impl RelativeTo {
 
             let calendar = result
                 .calendar
-                .map(Calendar::from_utf8)
+                .map(Calendar::try_from_utf8)
                 .transpose()?
                 .unwrap_or_default();
 
@@ -87,7 +87,7 @@ impl RelativeTo {
 
         let calendar = result
             .calendar
-            .map(Calendar::from_utf8)
+            .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 

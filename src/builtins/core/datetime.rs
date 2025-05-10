@@ -636,7 +636,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> u16 {
+    pub fn day_of_week(&self) -> TemporalResult<u16> {
         self.calendar.day_of_week(&self.iso.date)
     }
 
@@ -646,12 +646,12 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
+    pub fn week_of_year(&self) -> Option<u8> {
         self.calendar.week_of_year(&self.iso.date)
     }
 
     /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
+    pub fn year_of_week(&self) -> Option<i32> {
         self.calendar.year_of_week(&self.iso.date)
     }
 
@@ -820,7 +820,7 @@ impl FromStr for PlainDateTime {
 
         let calendar = parse_record
             .calendar
-            .map(Calendar::from_utf8)
+            .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 

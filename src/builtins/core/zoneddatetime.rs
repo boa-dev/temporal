@@ -825,7 +825,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.day_of_week(&pdt.iso.date))
+        self.calendar.day_of_week(&pdt.iso.date)
     }
 
     /// Returns the calendar day of year value.
@@ -842,10 +842,10 @@ impl ZonedDateTime {
     pub fn week_of_year_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Option<u16>> {
+    ) -> TemporalResult<Option<u8>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.week_of_year(&pdt.iso.date)
+        Ok(self.calendar.week_of_year(&pdt.iso.date))
     }
 
     /// Returns the calendar year of week value.
@@ -855,7 +855,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Option<i32>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.year_of_week(&pdt.iso.date)
+        Ok(self.calendar.year_of_week(&pdt.iso.date))
     }
 
     /// Returns the calendar days in week value.
@@ -1210,7 +1210,7 @@ impl ZonedDateTime {
 
         let calendar = parse_result
             .calendar
-            .map(Calendar::from_utf8)
+            .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 
