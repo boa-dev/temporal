@@ -20,7 +20,7 @@ pub mod ffi {
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
 
     #[diplomat::opaque]
     pub struct PlainDate(pub(crate) temporal_rs::PlainDate);
@@ -103,9 +103,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::PlainDate::from_str(s)
+            temporal_rs::PlainDate::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }

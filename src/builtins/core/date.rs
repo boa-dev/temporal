@@ -431,6 +431,22 @@ impl PlainDate {
         partial.calendar.date_from_partial(&partial, overflow)
     }
 
+    // Converts a UTF-8 encoded string into a `PlainDate`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let parse_record = parse_date_time(s)?;
+
+        let calendar = parse_record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        // Assertion: PlainDate must exist on a DateTime parse.
+        let date = parse_record.date.temporal_unwrap()?;
+
+        Self::try_new(date.year, date.month, date.day, calendar)
+    }
+
     /// Creates a date time with values from a `PartialDate`.
     pub fn with(
         &self,
@@ -726,18 +742,7 @@ impl FromStr for PlainDate {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = parse_date_time(s)?;
-
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        // Assertion: PlainDate must exist on a DateTime parse.
-        let date = parse_record.date.temporal_unwrap()?;
-
-        Self::try_new(date.year, date.month, date.day, calendar)
+        Self::from_utf8(s.as_bytes())
     }
 }
 
