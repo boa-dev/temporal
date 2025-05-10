@@ -17,7 +17,7 @@ pub mod ffi {
     use crate::plain_time::ffi::{PartialTime, PlainTime};
     use alloc::string::String;
     use core::fmt::Write;
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
@@ -119,9 +119,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::PlainDateTime::from_str(s)
+            temporal_rs::PlainDateTime::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }

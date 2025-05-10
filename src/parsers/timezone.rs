@@ -9,7 +9,7 @@ use super::{parse_ixdtf, ParseVariant};
 #[inline]
 pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
     let (offset, annotation) = if let Ok((offset, annotation)) =
-        parse_ixdtf(s, ParseVariant::DateTime).map(|r| (r.offset, r.tz))
+        parse_ixdtf(s.as_bytes(), ParseVariant::DateTime).map(|r| (r.offset, r.tz))
     {
         (offset, annotation)
     } else if let Ok((offset, annotation)) = IxdtfParser::from_str(s)
@@ -18,11 +18,11 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
     {
         (offset, annotation)
     } else if let Ok((offset, annotation)) =
-        parse_ixdtf(s, ParseVariant::YearMonth).map(|r| (r.offset, r.tz))
+        parse_ixdtf(s.as_bytes(), ParseVariant::YearMonth).map(|r| (r.offset, r.tz))
     {
         (offset, annotation)
     } else if let Ok((offset, annotation)) =
-        parse_ixdtf(s, ParseVariant::MonthDay).map(|r| (r.offset, r.tz))
+        parse_ixdtf(s.as_bytes(), ParseVariant::MonthDay).map(|r| (r.offset, r.tz))
     {
         (offset, annotation)
     } else {

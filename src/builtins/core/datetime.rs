@@ -449,6 +449,34 @@ impl PlainDateTime {
         Self::from_date_and_time(date, PlainTime::new_unchecked(iso_time))
     }
 
+    // Converts a UTF-8 encoded string into a `PlainDateTime`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let parse_record = parse_date_time(s)?;
+
+        let calendar = parse_record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        let time = parse_record
+            .time
+            .map(IsoTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
+
+        let parsed_date = parse_record.date.temporal_unwrap()?;
+
+        let date = IsoDate::new_with_overflow(
+            parsed_date.year,
+            parsed_date.month,
+            parsed_date.day,
+            ArithmeticOverflow::Reject,
+        )?;
+
+        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
+    }
+
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
     ///
     /// ```rust
@@ -816,30 +844,7 @@ impl FromStr for PlainDateTime {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = parse_date_time(s)?;
-
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        let time = parse_record
-            .time
-            .map(IsoTime::from_time_record)
-            .transpose()?
-            .unwrap_or_default();
-
-        let parsed_date = parse_record.date.temporal_unwrap()?;
-
-        let date = IsoDate::new_with_overflow(
-            parsed_date.year,
-            parsed_date.month,
-            parsed_date.day,
-            ArithmeticOverflow::Reject,
-        )?;
-
-        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
+        Self::from_utf8(s.as_bytes())
     }
 }
 
