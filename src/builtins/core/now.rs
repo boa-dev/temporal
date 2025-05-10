@@ -32,12 +32,29 @@ impl SystemTimeZone for EmptySystemZone {
     }
 }
 
-/// The Temporal Now object.
-#[derive(Default)]
+/// The Now builtin
+///
+/// ## Usage
+///
+/// To use `Now` in a `no_std` environment a manual system integration to be implemented using
+/// the [`SystemClock`] and [`SystemTimeZone`] traits.
+///
+/// Unless `no_std` is required or other constraints are present, it is recommended for general
+/// usage to use the `Now` via [`crate::sys::Temporal`] for general usage, enabled with the `sys`
+/// feature flag.
+///
+/// A default system integration can be used via [`Temporal`] with the `sys`
+/// feature flag.
 #[non_exhaustive] // Now cannot be constructed with a struct expression
 pub struct Now<Clock: SystemClock = EmptySystemClock, TimeZone: SystemTimeZone = EmptySystemZone> {
     pub(crate) clock: Clock,
     pub(crate) system_zone: TimeZone,
+}
+
+impl Default for Now<EmptySystemClock, EmptySystemZone> {
+    fn default() -> Self {
+        Self::new(EmptySystemClock, EmptySystemZone)
+    }
 }
 
 impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
@@ -69,28 +86,42 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
 }
 
 impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
+    pub const fn new(clock: C, system_zone: T) -> Self {
+        Self { clock, system_zone }
+    }
+
     /// Set `Now`'s system clock
-    pub fn with_system_clock(mut self, clock: C) -> Self {
-        self.clock = clock;
-        self
+    pub fn with_system_clock<SC: SystemClock>(self, clock: SC) -> Now<SC, T> {
+        Now {
+            clock,
+            system_zone: self.system_zone,
+        }
     }
 
     /// Set `Now`'s system time zone fetcher
-    pub fn with_system_time_zone(mut self, time_zone: T) -> Self {
-        self.system_zone = time_zone;
-        self
+    pub fn with_system_time_zone<S: SystemTimeZone>(self, system_zone: S) -> Now<C, S> {
+        Now {
+            clock: self.clock,
+            system_zone,
+        }
     }
 
-    /// Return's the system time zone
+    /// Returns the system time zone.
+    ///
+    /// ```
+    /// use temporal_rs::{Now, TimeZone};
+    ///
+    /// let now = Now::default();
+    /// assert_eq!(now.time_zone(), Ok(TimeZone::default()));
+    /// ```
+    ///
     pub fn time_zone(&self) -> TemporalResult<TimeZone> {
         self.system_zone
             .get_system_time_zone()
             .map_err(|e| TemporalError::general(e.to_string()))
     }
 
-    /// Returns the current instant
-    ///
-    /// Enable with the `sys` feature flag.
+    /// Returns the current instant.
     pub fn instant(&self) -> TemporalResult<Instant> {
         let epoch_nanos = self.clock()?;
         Ok(Instant::from(epoch_nanos))
@@ -98,8 +129,6 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
 
     /// Returns the current system time as a [`PlainDateTime`] with an optional
     /// [`TimeZone`].
-    ///
-    /// Enable with the `sys` feature flag.
     pub fn zoned_date_time_iso(
         &self,
         time_zone: Option<TimeZone>,

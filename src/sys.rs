@@ -40,6 +40,9 @@ pub trait SystemTimeZone: Default {
     fn get_system_time_zone(&self) -> Result<TimeZone, Self::Error>;
 }
 
+#[doc(inline)]
+pub use crate::builtins::{EmptySystemClock, EmptySystemZone};
+
 /// The Rust equivalent to the global `Temporal` object.
 ///
 /// [`Temporal`] provides access to a default [`Now`] that is
@@ -61,12 +64,10 @@ pub struct Temporal;
 
 #[cfg(feature = "sys")]
 impl Temporal {
-    /// Returns a `Now` using Rust's `SystemTime`.
+    /// Returns a [`Now`] using [`web_time::SystemTime`] as the clock and
+    /// [`iana_time_zone`] as the system time zone.
     pub const fn now() -> Now<DefaultSystemClock, DefaultSystemTimeZone> {
-        Now {
-            clock: DefaultSystemClock,
-            system_zone: DefaultSystemTimeZone,
-        }
+        Now::new(DefaultSystemClock, DefaultSystemTimeZone)
     }
 }
 

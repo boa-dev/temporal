@@ -14,7 +14,7 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     /// Returns the current system time as a [`PlainDateTime`] with an optional
     /// [`TimeZone`].
     ///
-    /// Enable with the `compiled_data` and `sys` feature flags.
+    /// Enable with the `compiled_data` feature flags.
     pub fn plain_date_time_iso(
         &self,
         time_zone: Option<TimeZone>,
@@ -28,7 +28,7 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     /// Returns the current system time as a [`PlainDate`] with an optional
     /// [`TimeZone`].
     ///
-    /// Enable with the `compiled_data` and `sys` feature flags.
+    /// Enable with the `compiled_data` feature flags.
     pub fn plain_date_iso(&self, time_zone: Option<TimeZone>) -> TemporalResult<PlainDate> {
         let provider = TZ_PROVIDER
             .lock()
@@ -39,7 +39,7 @@ impl<C: SystemClock, T: SystemTimeZone> Now<C, T> {
     /// Returns the current system time as a [`PlainTime`] with an optional
     /// [`TimeZone`].
     ///
-    /// Enable with the `compiled_data` and `sys` feature flags.
+    /// Enable with the `compiled_data` feature flags.
     pub fn plain_time_iso(&self, time_zone: Option<TimeZone>) -> TemporalResult<PlainTime> {
         let provider = TZ_PROVIDER
             .lock()
