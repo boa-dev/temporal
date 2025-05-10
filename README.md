@@ -31,6 +31,7 @@ Create a [`PlainDateTime`] from a [RFC9557](https://www.rfc-editor.org/rfc/rfc95
 ```rust
 use temporal_rs::PlainDateTime;
 use core::str::FromStr;
+
 let pdt = PlainDateTime::from_str("2025-03-01T11:16:10[u-ca=gregory]").unwrap();
 assert_eq!(pdt.calendar().identifier(), "gregory");
 assert_eq!(pdt.year(), 2025);
@@ -39,6 +40,34 @@ assert_eq!(pdt.day(), 1);
 assert_eq!(pdt.hour(), 11);
 assert_eq!(pdt.minute(), 16);
 assert_eq!(pdt.second(), 10);
+```
+
+Create a [`ZonedDateTime`] for a RFC 9557 IXDTF string.
+
+**Important Note:** The below API is enabled with the `compiled_data` feature flag.
+
+```rust
+# #[cfg(feature = "compiled_data")] {
+use temporal_rs::{ZonedDateTime, TimeZone};
+use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
+
+let zdt = ZonedDateTime::from_str("2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
+assert_eq!(zdt.year().unwrap(), 2025);
+assert_eq!(zdt.month().unwrap(), 3);
+assert_eq!(zdt.day().unwrap(), 1);
+assert_eq!(zdt.hour().unwrap(), 11);
+assert_eq!(zdt.minute().unwrap(), 16);
+assert_eq!(zdt.second().unwrap(), 10);
+
+let zurich_zone = TimeZone::try_from_str("Europe/Zurich").unwrap();
+let zdt_zurich = zdt.with_timezone(zurich_zone).unwrap();
+assert_eq!(zdt_zurich.year().unwrap(), 2025);
+assert_eq!(zdt_zurich.month().unwrap(), 3);
+assert_eq!(zdt_zurich.day().unwrap(), 1);
+assert_eq!(zdt_zurich.hour().unwrap(), 18);
+assert_eq!(zdt_zurich.minute().unwrap(), 16);
+assert_eq!(zdt_zurich.second().unwrap(), 10);
+# }
 ```
 
 ## Temporal proposal

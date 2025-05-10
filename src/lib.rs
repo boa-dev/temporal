@@ -43,6 +43,36 @@
 //!
 //! ```
 //!
+//! Create a [`ZonedDateTime`] for a RFC 9557 IXDTF string.
+//!
+//! **Important Note:** The below API is enabled with the
+//! `compiled_data` feature flag.
+//!
+//! ```rust
+//! # #[cfg(feature = "compiled_data")] {
+//! use temporal_rs::{ZonedDateTime, TimeZone};
+//! use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
+//!
+//! let zdt = ZonedDateTime::from_str("2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
+//! assert_eq!(zdt.year().unwrap(), 2025);
+//! assert_eq!(zdt.month().unwrap(), 3);
+//! assert_eq!(zdt.day().unwrap(), 1);
+//! assert_eq!(zdt.hour().unwrap(), 11);
+//! assert_eq!(zdt.minute().unwrap(), 16);
+//! assert_eq!(zdt.second().unwrap(), 10);
+//!
+//! let zurich_zone = TimeZone::try_from_str("Europe/Zurich").unwrap();
+//! let zdt_zurich = zdt.with_timezone(zurich_zone).unwrap();
+//! assert_eq!(zdt_zurich.year().unwrap(), 2025);
+//! assert_eq!(zdt_zurich.month().unwrap(), 3);
+//! assert_eq!(zdt_zurich.day().unwrap(), 1);
+//! assert_eq!(zdt_zurich.hour().unwrap(), 18);
+//! assert_eq!(zdt_zurich.minute().unwrap(), 16);
+//! assert_eq!(zdt_zurich.second().unwrap(), 10);
+//!
+//! # }
+//! ```
+//!
 //! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that
 //! provides new JS objects and functions for working with dates and
 //! times that fully supports time zones and non-gregorian calendars.
