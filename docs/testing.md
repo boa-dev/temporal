@@ -1,8 +1,10 @@
 ## Testing `temporal_rs`
 
 Temporal's primary test suite is the [Temporal `test262` test
-suite][test262-temporal]. There is an outstanding issue / PR to extract
-the tests from test262 into a format that `temporal_rs` can run against.
+suite][test262-temporal]. There is an open issue / PR to extract
+the tests from test262 into a format that `temporal_rs` can run
+against in native Rust.
+
 In the meantime, there are two primary ways to test:
 
 1. Map the test into a Rust version in the `test` module in
