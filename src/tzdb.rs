@@ -52,7 +52,7 @@ use tzif::{
 use crate::{
     iso::IsoDateTime,
     provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
 

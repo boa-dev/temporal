@@ -76,7 +76,7 @@ web-time = { workspace = true, optional =  true }
 core_maths = "0.1.1"
 
 [features]
-default = ["sys"]
+default = ["sys", "compiled_data"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
 sys = ["std", "dep:web-time", "dep:iana-time-zone"]

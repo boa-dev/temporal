@@ -16,7 +16,7 @@ use crate::{
     builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     TemporalError, TemporalResult, ZonedDateTime,
 };
 use crate::{Calendar, Sign};
