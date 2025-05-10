@@ -40,7 +40,7 @@ impl RelativeTo {
         source: &str,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let result = parse_date_time(source)?;
+        let result = parse_date_time(source.as_bytes())?;
 
         let Some(annotation) = result.tz else {
             let date_record = result.date.temporal_unwrap()?;

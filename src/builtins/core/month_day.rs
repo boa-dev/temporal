@@ -49,6 +49,38 @@ impl PlainMonthDay {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
+    // Converts a UTF-8 encoded string into a `PlainMonthDay`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let record = crate::parsers::parse_month_day(s)?;
+
+        let calendar = record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
+
+        let date = record.date;
+
+        let date = date.temporal_unwrap()?;
+
+        Self::new_with_overflow(
+            date.month,
+            date.day,
+            calendar,
+            ArithmeticOverflow::Reject,
+            None,
+        )
+    }
+
     pub fn with(
         &self,
         _partial: PartialDate,
@@ -118,33 +150,6 @@ impl FromStr for PlainMonthDay {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let record = crate::parsers::parse_month_day(s)?;
-
-        let calendar = record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        // ParseISODateTime
-        // Step 4.a.ii.3
-        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
-        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
-        // RangeError exception.
-        if !calendar.is_iso() {
-            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
-        }
-
-        let date = record.date;
-
-        let date = date.temporal_unwrap()?;
-
-        Self::new_with_overflow(
-            date.month,
-            date.day,
-            calendar,
-            ArithmeticOverflow::Reject,
-            None,
-        )
+        Self::from_utf8(s.as_bytes())
     }
 }

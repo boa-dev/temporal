@@ -163,6 +163,51 @@ impl Instant {
         Self::try_new(epoch_nanos)
     }
 
+    // Converts a UTF-8 encoded string into a `Instant`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let ixdtf_record = parse_instant(s)?;
+
+        // Find the offset
+        let ns_offset = match ixdtf_record.offset {
+            UtcOffsetRecordOrZ::Offset(offset) => {
+                let ns = offset
+                    .fraction
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
+                (offset.hour as i64 * NANOSECONDS_PER_HOUR
+                    + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
+                    + i64::from(offset.second) * NANOSECONDS_PER_SECOND
+                    + i64::from(ns))
+                    * offset.sign as i64
+            }
+            UtcOffsetRecordOrZ::Z => 0,
+        };
+
+        let time_nanoseconds = ixdtf_record
+            .time
+            .fraction
+            .and_then(|x| x.to_nanoseconds())
+            .unwrap_or(0);
+        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
+        let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
+
+        let balanced = IsoDateTime::balance(
+            ixdtf_record.date.year,
+            ixdtf_record.date.month.into(),
+            ixdtf_record.date.day.into(),
+            ixdtf_record.time.hour.into(),
+            ixdtf_record.time.minute.into(),
+            ixdtf_record.time.second.clamp(0, 59).into(),
+            millisecond.into(),
+            microsecond.into(),
+            i128::from(nanosecond) - i128::from(ns_offset),
+        );
+
+        let nanoseconds = balanced.as_nanoseconds()?;
+
+        Ok(Self(nanoseconds))
+    }
+
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
     /// contains a `DateDuration`.
     #[inline]
@@ -274,48 +319,9 @@ impl Instant {
 
 impl FromStr for Instant {
     type Err = TemporalError;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ixdtf_record = parse_instant(s)?;
-
-        // Find the offset
-        let ns_offset = match ixdtf_record.offset {
-            UtcOffsetRecordOrZ::Offset(offset) => {
-                let ns = offset
-                    .fraction
-                    .and_then(|x| x.to_nanoseconds())
-                    .unwrap_or(0);
-                (offset.hour as i64 * NANOSECONDS_PER_HOUR
-                    + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
-                    + i64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + i64::from(ns))
-                    * offset.sign as i64
-            }
-            UtcOffsetRecordOrZ::Z => 0,
-        };
-
-        let time_nanoseconds = ixdtf_record
-            .time
-            .fraction
-            .and_then(|x| x.to_nanoseconds())
-            .unwrap_or(0);
-        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
-        let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
-
-        let balanced = IsoDateTime::balance(
-            ixdtf_record.date.year,
-            ixdtf_record.date.month.into(),
-            ixdtf_record.date.day.into(),
-            ixdtf_record.time.hour.into(),
-            ixdtf_record.time.minute.into(),
-            ixdtf_record.time.second.clamp(0, 59).into(),
-            millisecond.into(),
-            microsecond.into(),
-            i128::from(nanosecond) - i128::from(ns_offset),
-        );
-
-        let nanoseconds = balanced.as_nanoseconds()?;
-
-        Ok(Self(nanoseconds))
+        Self::from_utf8(s.as_bytes())
     }
 }
 
