@@ -27,14 +27,14 @@ impl core::fmt::Display for PlainMonthDay {
 }
 
 impl PlainMonthDay {
-    /// Creates a new unchecked `MonthDay`
+    /// Creates a new unchecked `PlainMonthDay`
     #[inline]
     #[must_use]
     pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
         Self { iso, calendar }
     }
 
-    /// Creates a new valid `MonthDay`.
+    /// Creates a new valid `PlainMonthDay`.
     #[inline]
     pub fn new_with_overflow(
         month: u8,
@@ -89,45 +89,51 @@ impl PlainMonthDay {
         Err(TemporalError::general("Not yet implemented."))
     }
 
-    /// Returns the iso day value of `MonthDay`.
+    /// Returns the ISO day value of `PlainMonthDay`.
     #[inline]
     #[must_use]
     pub fn iso_day(&self) -> u8 {
         self.iso.day
     }
 
-    // returns the iso month value of `MonthDay`.
+    // Returns the ISO month value of `PlainMonthDay`.
     #[inline]
     #[must_use]
     pub fn iso_month(&self) -> u8 {
         self.iso.month
     }
 
-    // returns the iso year value of `MonthDay`.
+    // Returns the ISO year value of `PlainMonthDay`.
     #[inline]
     #[must_use]
     pub fn iso_year(&self) -> i32 {
         self.iso.year
     }
 
-    /// Returns the string identifier for the current calendar used.
+    /// Returns the string identifier for the current `Calendar`.
     #[inline]
     #[must_use]
     pub fn calendar_id(&self) -> &'static str {
         self.calendar.identifier()
     }
 
-    /// Returns a reference to `MonthDay`'s `CalendarSlot`
+    /// Returns a reference to `PlainMonthDay`'s inner `Calendar`.
     #[inline]
     #[must_use]
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 
-    /// Returns the `monthCode` value of `MonthDay`.
+    /// Returns the calendar `monthCode` value of `PlainMonthDay`.
     #[inline]
     pub fn month_code(&self) -> MonthCode {
         self.calendar.month_code(&self.iso)
+    }
+
+    /// Returns the calendar day value of `PlainMonthDay`.
+    #[inline]
+    pub fn day(&self) -> u8 {
+        self.calendar.day(&self.iso)
     }
 
     pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
