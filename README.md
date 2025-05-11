@@ -10,8 +10,10 @@ and general usage implementation of Temporal and its algorithms.
 
 ## Example usage
 
-Creating an ISO 8601 [`PlainDate`] and convert it into a [`PlainDate`]
-with the Japanese calendar.
+Below are a few examples to give an overview of `temporal_rs`'s current
+API.
+
+### Convert from an ISO8601 `PlainDate` into a Japanese `PlainDate`.
 
 ```rust
 use temporal_rs::{PlainDate, Calendar};
@@ -26,7 +28,10 @@ assert_eq!(japanese_date.era_year(), Some(7));
 assert_eq!(japanese_date.month(), 3)
 ```
 
-Create a [`PlainDateTime`] from a [RFC9557](https://www.rfc-editor.org/rfc/rfc9557.txt) IXDTF string.
+### Create a `PlainDateTime` from a RFC9557 IXDTF string.
+
+For more information on the Internet Extended DateTime Format (IXDTF),
+see [RFC9557](https://www.rfc-editor.org/rfc/rfc9557.txt).
 
 ```rust
 use temporal_rs::PlainDateTime;
@@ -42,12 +47,11 @@ assert_eq!(pdt.minute(), 16);
 assert_eq!(pdt.second(), 10);
 ```
 
-Create a [`ZonedDateTime`] for a RFC 9557 IXDTF string.
+### Create a `ZonedDateTime` for a RFC9557 IXDTF string.
 
 **Important Note:** The below API is enabled with the `compiled_data` feature flag.
 
 ```rust
-# #[cfg(feature = "compiled_data")] {
 use temporal_rs::{ZonedDateTime, TimeZone};
 use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
 
@@ -67,7 +71,6 @@ assert_eq!(zdt_zurich.day().unwrap(), 1);
 assert_eq!(zdt_zurich.hour().unwrap(), 18);
 assert_eq!(zdt_zurich.minute().unwrap(), 16);
 assert_eq!(zdt_zurich.second().unwrap(), 10);
-# }
 ```
 
 ## Temporal proposal
@@ -100,6 +103,11 @@ information.
 
 The `temporal_rs`'s current conformance results can be viewed on
 Boa's [test262 conformance page](https://boajs.dev/conformance).
+
+## FFI
+
+`temporal_rs` currently has bindings for C++, available via the
+`temporal_capi` crate.
 
 ## Communication
 
