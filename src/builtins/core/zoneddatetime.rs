@@ -26,7 +26,7 @@ use crate::{
     provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
     temporal_assert,
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
@@ -1394,8 +1394,8 @@ mod tests {
             RoundingIncrement, RoundingMode, RoundingOptions, Unit,
         },
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
-        time::EpochNanoseconds,
         tzdb::FsTzdbProvider,
+        unix_time::EpochNanoseconds,
         Calendar, MonthCode, TimeZone,
     };
     use core::str::FromStr;

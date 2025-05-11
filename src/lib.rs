@@ -146,11 +146,15 @@ use core::cmp::Ordering;
 /// Re-export of `TinyAsciiStr` from `tinystr`.
 pub use tinystr::TinyAsciiStr;
 
+/// The `Temporal` result type
+pub type TemporalResult<T> = Result<T, TemporalError>;
+
 #[doc(inline)]
 pub use error::TemporalError;
 
-/// The `Temporal` result type
-pub type TemporalResult<T> = Result<T, TemporalError>;
+#[cfg(feature = "sys")]
+#[doc(inline)]
+pub use sys::Temporal;
 
 pub mod partial {
     //! Partial Date/Time component records.
@@ -163,15 +167,21 @@ pub mod partial {
 }
 
 // TODO: Potentially bikeshed how `EpochNanoseconds` should be exported.
-pub mod time {
+pub mod unix_time {
     pub use crate::epoch_nanoseconds::EpochNanoseconds;
+}
+
+/// The `Now` module includes type for building a Now.
+pub mod now {
+    pub use crate::builtins::{Now, NowBuilder};
 }
 
 pub use crate::builtins::{
     calendar::{Calendar, MonthCode},
     core::timezone::{TimeZone, UtcOffset},
-    DateDuration, Duration, Instant, Now, PlainDate, PlainDateTime, PlainMonthDay, PlainTime,
-    PlainYearMonth, TimeDuration, ZonedDateTime,
+    core::DateDuration,
+    Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
+    TimeDuration, ZonedDateTime,
 };
 
 /// A library specific trait for unwrapping assertions.

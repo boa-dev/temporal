@@ -15,7 +15,7 @@ use crate::{
     parsers::{parse_instant, IxdtfStringBuilder},
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
@@ -335,7 +335,7 @@ mod tests {
     use crate::{
         builtins::core::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, RoundingMode, Unit},
-        time::EpochNanoseconds,
+        unix_time::EpochNanoseconds,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
