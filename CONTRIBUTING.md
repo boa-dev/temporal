@@ -1,12 +1,10 @@
 # Contributing to Temporal in Rust
 
-This project is currently highly experimental and fairly volatile. As
-such, while we do welcome contributions, we prefer that you open up an
-issue first beforehand to ensure the feature is not being actively
-worked on by a maintainer.
+We welcome contributions, feel free to checkout our open issues. If you
+find an issue you're interested in, please feel free to ask to be assigned.
 
 If you're interested in helping out but don't see an issue that's for
-you, please feel free to contact us on `Boa` Matrix server.
+you, please feel free to contact us on `Boa`'s Matrix server.
 
 ## Contributor Information
 
@@ -14,9 +12,11 @@ The Temporal proposal is a new date/time API that is being developed and propose
 for the ECMAScript specification. This library aims to be a Rust
 implementation of that specification.
 
-Due to the current experimental nature of the material and this library,
-we would advise potential contributors to familiarize themselves with
-the Temporal specification.
+Due to the nature of the material and this library, we would advise anyone
+interested in contributing to familiarize themselves with the Temporal
+specification.
+
+Also, always feel free to reach out for any advice or feedback as needed.
 
 ## Testing and debugging
 
