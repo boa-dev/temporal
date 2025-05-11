@@ -222,6 +222,7 @@ impl PartialOrd<f64> for FiniteF64 {
 
 impl Eq for FiniteF64 {}
 
+#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for FiniteF64 {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.0.partial_cmp(&other.0) {
