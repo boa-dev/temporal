@@ -36,7 +36,6 @@ impl NowBuilder {
 }
 
 #[derive(Debug)]
-#[non_exhaustive] // Not constructable by external means
 pub struct Now {
     clock: Option<EpochNanoseconds>,
     zone: TimeZone,
