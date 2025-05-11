@@ -8,8 +8,10 @@
 //!
 //! ## Examples
 //!
-//! Creating an ISO 8601 [`PlainDate`] and convert it into a [`PlainDate`]
-//! with the Japanese calendar.
+//! Below are a few examples to give an overview of `temporal_rs`'s current
+//! API.
+//!
+//! ### Convert from an ISO8601 [`PlainDate`]  into a Japanese [`PlainDate`]
 //!
 //! ```rust
 //! use temporal_rs::{PlainDate, Calendar};
@@ -26,7 +28,10 @@
 //! assert_eq!(japanese_date.month(), 3)
 //! ```
 //!
-//! Create a [`PlainDateTime`] from a [RFC9557][ixdtf] IXDTF string.
+//! ### Create a `PlainDateTime` from a RFC9557 IXDTF string.
+//!
+//! For more information on the Internet Extended DateTime Format (IXDTF),
+//! see [RFC9557](https://www.rfc-editor.org/rfc/rfc9557.txt).
 //!
 //! ```rust
 //! use temporal_rs::PlainDateTime;
@@ -43,7 +48,7 @@
 //!
 //! ```
 //!
-//! Create a [`ZonedDateTime`] for a RFC 9557 IXDTF string.
+//! ### Create a `ZonedDateTime` for a RFC9557 IXDTF string.
 //!
 //! **Important Note:** The below API is enabled with the
 //! `compiled_data` feature flag.
@@ -73,11 +78,11 @@
 //! # }
 //! ```
 //!
+//! ## More information
+//!
 //! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that
 //! provides new JS objects and functions for working with dates and
 //! times that fully supports time zones and non-gregorian calendars.
-//!
-//! ## More information
 //!
 //! This library's primary development source is the Temporal
 //! Proposal [specification][spec].
