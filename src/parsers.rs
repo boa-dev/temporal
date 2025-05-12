@@ -14,7 +14,7 @@ use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
 mod timezone;
 
-pub(crate) use timezone::{parse_allowed_timezone_formats, parse_identifier, parse_offset};
+pub(crate) use timezone::{parse_allowed_timezone_formats, parse_identifier};
 
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 
