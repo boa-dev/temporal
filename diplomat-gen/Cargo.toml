@@ -11,4 +11,4 @@ exclude.workspace = true
 publish = false
 
 [dependencies]
-diplomat-tool = "0.10.0"
+diplomat-tool = "0.11.1"
