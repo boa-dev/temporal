@@ -68,17 +68,17 @@ impl RelativeTo {
                 let UtcOffsetRecordOrZ::Offset(offset) = record else {
                     return (None, true);
                 };
-                let hours_in_ns = i64::from(offset.hour) * 3_600_000_000_000_i64;
-                let minutes_in_ns = i64::from(offset.minute) * 60_000_000_000_i64;
-                let seconds_in_ns = i64::from(offset.minute) * 1_000_000_000_i64;
+                let hours_in_ns = i64::from(offset.hour()) * 3_600_000_000_000_i64;
+                let minutes_in_ns = i64::from(offset.minute()) * 60_000_000_000_i64;
+                let seconds_in_ns = i64::from(offset.second().unwrap_or(0)) * 1_000_000_000_i64;
                 let ns = offset
-                    .fraction
+                    .fraction()
                     .and_then(|x| x.to_nanoseconds())
                     .unwrap_or(0);
                 (
                     Some(
                         (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
-                            * i64::from(offset.sign as i8),
+                            * i64::from(offset.sign() as i8),
                     ),
                     false,
                 )

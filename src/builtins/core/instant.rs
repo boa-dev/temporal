@@ -171,14 +171,14 @@ impl Instant {
         let ns_offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
                 let ns = offset
-                    .fraction
+                    .fraction()
                     .and_then(|x| x.to_nanoseconds())
                     .unwrap_or(0);
-                (offset.hour as i64 * NANOSECONDS_PER_HOUR
-                    + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
-                    + i64::from(offset.second) * NANOSECONDS_PER_SECOND
+                (offset.hour() as i64 * NANOSECONDS_PER_HOUR
+                    + i64::from(offset.minute()) * NANOSECONDS_PER_MINUTE
+                    + i64::from(offset.second().unwrap_or(0)) * NANOSECONDS_PER_SECOND
                     + i64::from(ns))
-                    * offset.sign as i64
+                    * offset.sign() as i64
             }
             UtcOffsetRecordOrZ::Z => 0,
         };

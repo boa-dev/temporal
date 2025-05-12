@@ -1,6 +1,9 @@
 use alloc::borrow::ToOwned;
 use core::{iter::Peekable, str::Chars};
-use ixdtf::parsers::{records::UtcOffsetRecordOrZ, IxdtfParser};
+use ixdtf::parsers::{
+    records::{UtcOffsetRecord, UtcOffsetRecordOrZ},
+    IxdtfParser,
+};
 
 use crate::{builtins::timezone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
@@ -37,7 +40,11 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
         match offset {
             UtcOffsetRecordOrZ::Z => return Some(TimeZone::default()),
             UtcOffsetRecordOrZ::Offset(offset) => {
-                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_record(offset)))
+                let offset = match offset {
+                    UtcOffsetRecord::MinutePrecision(offset) => offset,
+                    _ => return None,
+                };
+                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_record(offset)));
             }
         }
     }
@@ -45,6 +52,7 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
     None
 }
 
+// TODO: Update `ixdtf` to expose parse_time_zone_record
 #[inline]
 pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZone> {
     let mut cursor = source.chars().peekable();
