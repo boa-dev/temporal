@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "RoundingMode.d.hpp"
 #include "Unit.d.hpp"
@@ -26,7 +27,7 @@ namespace capi {
       temporal_rs::capi::RoundingMode_option rounding_mode;
       diplomat::capi::OptionU32 increment;
     };
-    
+
     typedef struct DifferenceSettings_option {union { DifferenceSettings ok; }; bool is_ok; } DifferenceSettings_option;
 } // namespace capi
 } // namespace

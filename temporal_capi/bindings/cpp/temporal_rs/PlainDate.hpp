@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "ArithmeticOverflow.hpp"
 #include "Calendar.hpp"
@@ -27,106 +28,105 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     typedef struct temporal_rs_PlainDate_create_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_create_result;
     temporal_rs_PlainDate_create_result temporal_rs_PlainDate_create(int32_t year, uint8_t month, uint8_t day, const temporal_rs::capi::Calendar* calendar);
-    
+
     typedef struct temporal_rs_PlainDate_try_create_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_create_result;
     temporal_rs_PlainDate_try_create_result temporal_rs_PlainDate_try_create(int32_t year, uint8_t month, uint8_t day, const temporal_rs::capi::Calendar* calendar);
-    
+
     typedef struct temporal_rs_PlainDate_create_with_overflow_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_create_with_overflow_result;
     temporal_rs_PlainDate_create_with_overflow_result temporal_rs_PlainDate_create_with_overflow(int32_t year, uint8_t month, uint8_t day, const temporal_rs::capi::Calendar* calendar, temporal_rs::capi::ArithmeticOverflow overflow);
-    
+
     typedef struct temporal_rs_PlainDate_from_partial_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_partial_result;
     temporal_rs_PlainDate_from_partial_result temporal_rs_PlainDate_from_partial(temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
-    
+
     typedef struct temporal_rs_PlainDate_with_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_result;
     temporal_rs_PlainDate_with_result temporal_rs_PlainDate_with(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
-    
+
     typedef struct temporal_rs_PlainDate_with_calendar_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_calendar_result;
     temporal_rs_PlainDate_with_calendar_result temporal_rs_PlainDate_with_calendar(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::Calendar* calendar);
-    
+
     typedef struct temporal_rs_PlainDate_from_utf8_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf8_result;
     temporal_rs_PlainDate_from_utf8_result temporal_rs_PlainDate_from_utf8(diplomat::capi::DiplomatStringView s);
-    
+
     typedef struct temporal_rs_PlainDate_from_utf16_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf16_result;
     temporal_rs_PlainDate_from_utf16_result temporal_rs_PlainDate_from_utf16(diplomat::capi::DiplomatString16View s);
-    
+
     int32_t temporal_rs_PlainDate_iso_year(const temporal_rs::capi::PlainDate* self);
-    
+
     uint8_t temporal_rs_PlainDate_iso_month(const temporal_rs::capi::PlainDate* self);
-    
+
     uint8_t temporal_rs_PlainDate_iso_day(const temporal_rs::capi::PlainDate* self);
-    
+
     const temporal_rs::capi::Calendar* temporal_rs_PlainDate_calendar(const temporal_rs::capi::PlainDate* self);
-    
+
     bool temporal_rs_PlainDate_is_valid(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_add_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_add_result;
     temporal_rs_PlainDate_add_result temporal_rs_PlainDate_add(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::Duration* duration, temporal_rs::capi::ArithmeticOverflow_option overflow);
-    
+
     typedef struct temporal_rs_PlainDate_subtract_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_subtract_result;
     temporal_rs_PlainDate_subtract_result temporal_rs_PlainDate_subtract(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::Duration* duration, temporal_rs::capi::ArithmeticOverflow_option overflow);
-    
+
     typedef struct temporal_rs_PlainDate_until_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_until_result;
     temporal_rs_PlainDate_until_result temporal_rs_PlainDate_until(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other, temporal_rs::capi::DifferenceSettings settings);
-    
+
     typedef struct temporal_rs_PlainDate_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_since_result;
     temporal_rs_PlainDate_since_result temporal_rs_PlainDate_since(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other, temporal_rs::capi::DifferenceSettings settings);
-    
+
     bool temporal_rs_PlainDate_equals(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainDate* other);
-    
+
     int8_t temporal_rs_PlainDate_compare(const temporal_rs::capi::PlainDate* one, const temporal_rs::capi::PlainDate* two);
-    
+
     int32_t temporal_rs_PlainDate_year(const temporal_rs::capi::PlainDate* self);
-    
+
     uint8_t temporal_rs_PlainDate_month(const temporal_rs::capi::PlainDate* self);
-    
+
     void temporal_rs_PlainDate_month_code(const temporal_rs::capi::PlainDate* self, diplomat::capi::DiplomatWrite* write);
-    
+
     uint8_t temporal_rs_PlainDate_day(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_day_of_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_day_of_week_result;
     temporal_rs_PlainDate_day_of_week_result temporal_rs_PlainDate_day_of_week(const temporal_rs::capi::PlainDate* self);
-    
+
     uint16_t temporal_rs_PlainDate_day_of_year(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_week_of_year_result {union {uint8_t ok; }; bool is_ok;} temporal_rs_PlainDate_week_of_year_result;
     temporal_rs_PlainDate_week_of_year_result temporal_rs_PlainDate_week_of_year(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainDate_year_of_week_result;
     temporal_rs_PlainDate_year_of_week_result temporal_rs_PlainDate_year_of_week(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_days_in_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_days_in_week_result;
     temporal_rs_PlainDate_days_in_week_result temporal_rs_PlainDate_days_in_week(const temporal_rs::capi::PlainDate* self);
-    
+
     uint16_t temporal_rs_PlainDate_days_in_month(const temporal_rs::capi::PlainDate* self);
-    
+
     uint16_t temporal_rs_PlainDate_days_in_year(const temporal_rs::capi::PlainDate* self);
-    
+
     uint16_t temporal_rs_PlainDate_months_in_year(const temporal_rs::capi::PlainDate* self);
-    
+
     bool temporal_rs_PlainDate_in_leap_year(const temporal_rs::capi::PlainDate* self);
-    
+
     void temporal_rs_PlainDate_era(const temporal_rs::capi::PlainDate* self, diplomat::capi::DiplomatWrite* write);
-    
+
     typedef struct temporal_rs_PlainDate_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainDate_era_year_result;
     temporal_rs_PlainDate_era_year_result temporal_rs_PlainDate_era_year(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_to_plain_date_time_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_date_time_result;
     temporal_rs_PlainDate_to_plain_date_time_result temporal_rs_PlainDate_to_plain_date_time(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::PlainTime* time);
-    
+
     typedef struct temporal_rs_PlainDate_to_plain_month_day_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_month_day_result;
     temporal_rs_PlainDate_to_plain_month_day_result temporal_rs_PlainDate_to_plain_month_day(const temporal_rs::capi::PlainDate* self);
-    
+
     typedef struct temporal_rs_PlainDate_to_plain_year_month_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_year_month_result;
     temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_year_month(const temporal_rs::capi::PlainDate* self);
-    
+
     void temporal_rs_PlainDate_to_ixdtf_string(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
-    
-    
+
     void temporal_rs_PlainDate_destroy(PlainDate* self);
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace

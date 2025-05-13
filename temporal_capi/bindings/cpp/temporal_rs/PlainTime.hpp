@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "ArithmeticOverflow.hpp"
 #include "DifferenceSettings.hpp"
@@ -25,68 +26,67 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     typedef struct temporal_rs_PlainTime_create_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_create_result;
     temporal_rs_PlainTime_create_result temporal_rs_PlainTime_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
-    
+
     typedef struct temporal_rs_PlainTime_try_create_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_create_result;
     temporal_rs_PlainTime_try_create_result temporal_rs_PlainTime_try_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
-    
+
     typedef struct temporal_rs_PlainTime_from_partial_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_partial_result;
     temporal_rs_PlainTime_from_partial_result temporal_rs_PlainTime_from_partial(temporal_rs::capi::PartialTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
-    
+
     typedef struct temporal_rs_PlainTime_with_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_with_result;
     temporal_rs_PlainTime_with_result temporal_rs_PlainTime_with(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::PartialTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
-    
+
     typedef struct temporal_rs_PlainTime_from_utf8_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_utf8_result;
     temporal_rs_PlainTime_from_utf8_result temporal_rs_PlainTime_from_utf8(diplomat::capi::DiplomatStringView s);
-    
+
     typedef struct temporal_rs_PlainTime_from_utf16_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_utf16_result;
     temporal_rs_PlainTime_from_utf16_result temporal_rs_PlainTime_from_utf16(diplomat::capi::DiplomatString16View s);
-    
+
     uint8_t temporal_rs_PlainTime_hour(const temporal_rs::capi::PlainTime* self);
-    
+
     uint8_t temporal_rs_PlainTime_minute(const temporal_rs::capi::PlainTime* self);
-    
+
     uint8_t temporal_rs_PlainTime_second(const temporal_rs::capi::PlainTime* self);
-    
+
     uint16_t temporal_rs_PlainTime_millisecond(const temporal_rs::capi::PlainTime* self);
-    
+
     uint16_t temporal_rs_PlainTime_microsecond(const temporal_rs::capi::PlainTime* self);
-    
+
     uint16_t temporal_rs_PlainTime_nanosecond(const temporal_rs::capi::PlainTime* self);
-    
+
     typedef struct temporal_rs_PlainTime_add_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_add_result;
     temporal_rs_PlainTime_add_result temporal_rs_PlainTime_add(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::Duration* duration);
-    
+
     typedef struct temporal_rs_PlainTime_subtract_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_subtract_result;
     temporal_rs_PlainTime_subtract_result temporal_rs_PlainTime_subtract(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::Duration* duration);
-    
+
     typedef struct temporal_rs_PlainTime_add_time_duration_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_add_time_duration_result;
     temporal_rs_PlainTime_add_time_duration_result temporal_rs_PlainTime_add_time_duration(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::TimeDuration* duration);
-    
+
     typedef struct temporal_rs_PlainTime_subtract_time_duration_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_subtract_time_duration_result;
     temporal_rs_PlainTime_subtract_time_duration_result temporal_rs_PlainTime_subtract_time_duration(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::TimeDuration* duration);
-    
+
     typedef struct temporal_rs_PlainTime_until_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_until_result;
     temporal_rs_PlainTime_until_result temporal_rs_PlainTime_until(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::PlainTime* other, temporal_rs::capi::DifferenceSettings settings);
-    
+
     typedef struct temporal_rs_PlainTime_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_since_result;
     temporal_rs_PlainTime_since_result temporal_rs_PlainTime_since(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::PlainTime* other, temporal_rs::capi::DifferenceSettings settings);
-    
+
     bool temporal_rs_PlainTime_equals(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::PlainTime* other);
-    
+
     int8_t temporal_rs_PlainTime_compare(const temporal_rs::capi::PlainTime* one, const temporal_rs::capi::PlainTime* two);
-    
+
     typedef struct temporal_rs_PlainTime_round_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_round_result;
     temporal_rs_PlainTime_round_result temporal_rs_PlainTime_round(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::Unit smallest_unit, diplomat::capi::OptionF64 rounding_increment, temporal_rs::capi::RoundingMode_option rounding_mode);
-    
+
     typedef struct temporal_rs_PlainTime_to_ixdtf_string_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_to_ixdtf_string_result;
     temporal_rs_PlainTime_to_ixdtf_string_result temporal_rs_PlainTime_to_ixdtf_string(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
-    
-    
+
     void temporal_rs_PlainTime_destroy(PlainTime* self);
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace

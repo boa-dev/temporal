@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
@@ -25,7 +26,7 @@ namespace capi {
       diplomat::capi::OptionF64 microseconds;
       diplomat::capi::OptionF64 nanoseconds;
     };
-    
+
     typedef struct PartialDuration_option {union { PartialDuration ok; }; bool is_ok; } PartialDuration_option;
 } // namespace capi
 } // namespace
@@ -44,7 +45,7 @@ struct PartialDuration {
   std::optional<double> microseconds;
   std::optional<double> nanoseconds;
 
-  inline bool is_empty();
+  inline bool is_empty() const;
 
   inline temporal_rs::capi::PartialDuration AsFFI() const;
   inline static temporal_rs::PartialDuration FromFFI(temporal_rs::capi::PartialDuration c_struct);
