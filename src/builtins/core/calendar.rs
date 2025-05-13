@@ -149,9 +149,9 @@ impl Calendar {
         // TODO: Determine the best way to handle "julian" here.
         // Not supported by `CalendarAlgorithm`
         let icu_locale_value = Value::try_from_utf8(&bytes.to_ascii_lowercase())
-            .map_err(|e| TemporalError::general(e.to_string()))?;
+            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
         let algorithm = CalendarAlgorithm::try_from(&icu_locale_value)
-            .map_err(|e| TemporalError::general(e.to_string()))?;
+            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
         Self::try_from_calendar_algorithm(algorithm)
     }
 }
