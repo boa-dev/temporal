@@ -10,14 +10,14 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace
@@ -41,7 +41,7 @@ inline temporal_rs::Unit temporal_rs::Unit::FromFFI(temporal_rs::capi::Unit c_en
     case temporal_rs::capi::Unit_Year:
       return static_cast<temporal_rs::Unit::Value>(c_enum);
     default:
-      abort();
+      std::abort();
   }
 }
 #endif // temporal_rs_Unit_HPP

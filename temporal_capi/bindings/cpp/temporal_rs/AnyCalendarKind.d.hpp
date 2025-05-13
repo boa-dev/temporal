@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -37,7 +38,7 @@ namespace capi {
       AnyCalendarKind_Persian = 16,
       AnyCalendarKind_Roc = 17,
     };
-    
+
     typedef struct AnyCalendarKind_option {union { AnyCalendarKind ok; }; bool is_ok; } AnyCalendarKind_option;
 } // namespace capi
 } // namespace

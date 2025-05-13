@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "AnyCalendarKind.hpp"
 #include "ArithmeticOverflow.hpp"
@@ -26,71 +27,70 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     temporal_rs::capi::Calendar* temporal_rs_Calendar_create(temporal_rs::capi::AnyCalendarKind kind);
-    
+
     typedef struct temporal_rs_Calendar_from_utf8_result {union {temporal_rs::capi::Calendar* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_from_utf8_result;
     temporal_rs_Calendar_from_utf8_result temporal_rs_Calendar_from_utf8(diplomat::capi::DiplomatStringView s);
-    
+
     bool temporal_rs_Calendar_is_iso(const temporal_rs::capi::Calendar* self);
-    
+
     diplomat::capi::DiplomatStringView temporal_rs_Calendar_identifier(const temporal_rs::capi::Calendar* self);
-    
+
     typedef struct temporal_rs_Calendar_date_from_partial_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_from_partial_result;
     temporal_rs_Calendar_date_from_partial_result temporal_rs_Calendar_date_from_partial(const temporal_rs::capi::Calendar* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow overflow);
-    
+
     typedef struct temporal_rs_Calendar_month_day_from_partial_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_month_day_from_partial_result;
     temporal_rs_Calendar_month_day_from_partial_result temporal_rs_Calendar_month_day_from_partial(const temporal_rs::capi::Calendar* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow overflow);
-    
+
     typedef struct temporal_rs_Calendar_year_month_from_partial_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_year_month_from_partial_result;
     temporal_rs_Calendar_year_month_from_partial_result temporal_rs_Calendar_year_month_from_partial(const temporal_rs::capi::Calendar* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow overflow);
-    
+
     typedef struct temporal_rs_Calendar_date_add_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_add_result;
     temporal_rs_Calendar_date_add_result temporal_rs_Calendar_date_add(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, const temporal_rs::capi::Duration* duration, temporal_rs::capi::ArithmeticOverflow overflow);
-    
+
     typedef struct temporal_rs_Calendar_date_until_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_until_result;
     temporal_rs_Calendar_date_until_result temporal_rs_Calendar_date_until(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate one, temporal_rs::capi::IsoDate two, temporal_rs::capi::Unit largest_unit);
-    
+
     typedef struct temporal_rs_Calendar_era_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_era_result;
     temporal_rs_Calendar_era_result temporal_rs_Calendar_era(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, diplomat::capi::DiplomatWrite* write);
-    
+
     typedef struct temporal_rs_Calendar_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_Calendar_era_year_result;
     temporal_rs_Calendar_era_year_result temporal_rs_Calendar_era_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     int32_t temporal_rs_Calendar_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     uint8_t temporal_rs_Calendar_month(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     typedef struct temporal_rs_Calendar_month_code_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_month_code_result;
     temporal_rs_Calendar_month_code_result temporal_rs_Calendar_month_code(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, diplomat::capi::DiplomatWrite* write);
-    
+
     uint8_t temporal_rs_Calendar_day(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     typedef struct temporal_rs_Calendar_day_of_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_day_of_week_result;
     temporal_rs_Calendar_day_of_week_result temporal_rs_Calendar_day_of_week(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     uint16_t temporal_rs_Calendar_day_of_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     typedef struct temporal_rs_Calendar_week_of_year_result {union {uint8_t ok; }; bool is_ok;} temporal_rs_Calendar_week_of_year_result;
     temporal_rs_Calendar_week_of_year_result temporal_rs_Calendar_week_of_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     typedef struct temporal_rs_Calendar_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_Calendar_year_of_week_result;
     temporal_rs_Calendar_year_of_week_result temporal_rs_Calendar_year_of_week(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     typedef struct temporal_rs_Calendar_days_in_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_days_in_week_result;
     temporal_rs_Calendar_days_in_week_result temporal_rs_Calendar_days_in_week(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     uint16_t temporal_rs_Calendar_days_in_month(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     uint16_t temporal_rs_Calendar_days_in_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     uint16_t temporal_rs_Calendar_months_in_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
+
     bool temporal_rs_Calendar_in_leap_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
-    
-    
+
     void temporal_rs_Calendar_destroy(Calendar* self);
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace

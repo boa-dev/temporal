@@ -10,17 +10,17 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     typedef struct temporal_rs_AnyCalendarKind_get_for_str_result {union {temporal_rs::capi::AnyCalendarKind ok; }; bool is_ok;} temporal_rs_AnyCalendarKind_get_for_str_result;
     temporal_rs_AnyCalendarKind_get_for_str_result temporal_rs_AnyCalendarKind_get_for_str(diplomat::capi::DiplomatStringView s);
-    
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace
@@ -51,7 +51,7 @@ inline temporal_rs::AnyCalendarKind temporal_rs::AnyCalendarKind::FromFFI(tempor
     case temporal_rs::capi::AnyCalendarKind_Roc:
       return static_cast<temporal_rs::AnyCalendarKind::Value>(c_enum);
     default:
-      abort();
+      std::abort();
   }
 }
 

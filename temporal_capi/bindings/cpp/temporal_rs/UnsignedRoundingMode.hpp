@@ -10,14 +10,14 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace
@@ -35,7 +35,7 @@ inline temporal_rs::UnsignedRoundingMode temporal_rs::UnsignedRoundingMode::From
     case temporal_rs::capi::UnsignedRoundingMode_HalfEven:
       return static_cast<temporal_rs::UnsignedRoundingMode::Value>(c_enum);
     default:
-      abort();
+      std::abort();
   }
 }
 #endif // temporal_rs_UnsignedRoundingMode_HPP

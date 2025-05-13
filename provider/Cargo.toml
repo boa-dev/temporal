@@ -12,8 +12,8 @@ exclude.workspace = true
 [dependencies]
 
 # Provider dependency
-zerotrie = { version = "0.2.1", features = ["serde", "databake"] }
-zerovec = { version = "0.11.1", features = ["serde", "databake"] }
+zerotrie = { version = "0.2.2", features = ["serde", "databake"] }
+zerovec = { version = "0.11.2", features = ["serde", "databake"] }
 
 # IANA dependency
 parse-zoneinfo = "0.3.1"

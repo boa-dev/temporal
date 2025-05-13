@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "DateDuration.hpp"
 #include "PartialDuration.hpp"
@@ -21,67 +22,66 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     typedef struct temporal_rs_Duration_create_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_create_result;
     temporal_rs_Duration_create_result temporal_rs_Duration_create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
-    
+
     typedef struct temporal_rs_Duration_from_day_and_time_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
     temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::TimeDuration* time);
-    
+
     typedef struct temporal_rs_Duration_from_partial_duration_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
     temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(temporal_rs::capi::PartialDuration partial);
-    
+
     typedef struct temporal_rs_Duration_from_utf8_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_utf8_result;
     temporal_rs_Duration_from_utf8_result temporal_rs_Duration_from_utf8(diplomat::capi::DiplomatStringView s);
-    
+
     typedef struct temporal_rs_Duration_from_utf16_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_utf16_result;
     temporal_rs_Duration_from_utf16_result temporal_rs_Duration_from_utf16(diplomat::capi::DiplomatString16View s);
-    
+
     bool temporal_rs_Duration_is_time_within_range(const temporal_rs::capi::Duration* self);
-    
+
     const temporal_rs::capi::TimeDuration* temporal_rs_Duration_time(const temporal_rs::capi::Duration* self);
-    
+
     const temporal_rs::capi::DateDuration* temporal_rs_Duration_date(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_years(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_months(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_weeks(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_days(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_hours(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_minutes(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_seconds(const temporal_rs::capi::Duration* self);
-    
+
     int64_t temporal_rs_Duration_milliseconds(const temporal_rs::capi::Duration* self);
-    
+
     typedef struct temporal_rs_Duration_microseconds_result {union {double ok; }; bool is_ok;} temporal_rs_Duration_microseconds_result;
     temporal_rs_Duration_microseconds_result temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
-    
+
     typedef struct temporal_rs_Duration_nanoseconds_result {union {double ok; }; bool is_ok;} temporal_rs_Duration_nanoseconds_result;
     temporal_rs_Duration_nanoseconds_result temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
-    
+
     temporal_rs::capi::Sign temporal_rs_Duration_sign(const temporal_rs::capi::Duration* self);
-    
+
     bool temporal_rs_Duration_is_zero(const temporal_rs::capi::Duration* self);
-    
+
     temporal_rs::capi::Duration* temporal_rs_Duration_abs(const temporal_rs::capi::Duration* self);
-    
+
     temporal_rs::capi::Duration* temporal_rs_Duration_negated(const temporal_rs::capi::Duration* self);
-    
+
     typedef struct temporal_rs_Duration_add_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_add_result;
     temporal_rs_Duration_add_result temporal_rs_Duration_add(const temporal_rs::capi::Duration* self, const temporal_rs::capi::Duration* other);
-    
+
     typedef struct temporal_rs_Duration_subtract_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_subtract_result;
     temporal_rs_Duration_subtract_result temporal_rs_Duration_subtract(const temporal_rs::capi::Duration* self, const temporal_rs::capi::Duration* other);
-    
-    
+
     void temporal_rs_Duration_destroy(Duration* self);
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace
