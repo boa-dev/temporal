@@ -1,5 +1,6 @@
 [package]
 name = "timezone_provider"
+description = "Time zone data providers"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
@@ -8,6 +9,13 @@ license.workspace = true
 repository.workspace = true
 readme.workspace = true
 exclude.workspace = true
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "LICENSE-Apache",
+    "LICENSE-MIT",
+    "README.md"
+]
 
 [dependencies]
 
