@@ -202,7 +202,7 @@ impl ZonedDateTime {
     /// Returns the calendar week of year value.
     ///
     /// Enable with the `compiled_data` feature flag.
-    pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
+    pub fn week_of_year(&self) -> TemporalResult<Option<u8>> {
         let provider = TZ_PROVIDER
             .lock()
             .map_err(|_| TemporalError::general("Unable to acquire lock"))?;

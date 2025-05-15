@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -85,13 +86,13 @@ public:
 
   inline uint8_t day() const;
 
-  inline uint16_t day_of_week() const;
+  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week() const;
 
   inline uint16_t day_of_year() const;
 
-  inline diplomat::result<std::optional<uint16_t>, temporal_rs::TemporalError> week_of_year() const;
+  inline std::optional<uint8_t> week_of_year() const;
 
-  inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> year_of_week() const;
+  inline std::optional<int32_t> year_of_week() const;
 
   inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week() const;
 
@@ -114,6 +115,10 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> until(const temporal_rs::PlainDateTime& other, temporal_rs::DifferenceSettings settings) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainDateTime& other, temporal_rs::DifferenceSettings settings) const;
+
+  inline bool equals(const temporal_rs::PlainDateTime& other) const;
+
+  inline static int8_t compare(const temporal_rs::PlainDateTime& one, const temporal_rs::PlainDateTime& two);
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options) const;
 

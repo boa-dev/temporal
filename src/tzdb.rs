@@ -38,7 +38,7 @@ use core::cell::RefCell;
 
 use combine::Parser;
 
-use temporal_provider::prelude::*;
+use timezone_provider::prelude::*;
 
 use tzif::{
     self,
@@ -52,11 +52,11 @@ use tzif::{
 use crate::{
     iso::IsoDateTime,
     provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
 
-temporal_provider::iana_normalizer_singleton!();
+timezone_provider::iana_normalizer_singleton!();
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";

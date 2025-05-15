@@ -26,7 +26,7 @@ use crate::{
     provider::{TimeZoneProvider, TransitionDirection},
     rounding::{IncrementRounder, Round},
     temporal_assert,
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
@@ -427,9 +427,16 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn try_new(nanos: i128, calendar: Calendar, tz: TimeZone) -> TemporalResult<Self> {
+    pub fn try_new(nanos: i128, calendar: Calendar, time_zone: TimeZone) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
-        Ok(Self::new_unchecked(instant, calendar, tz))
+        Ok(Self::new_unchecked(instant, calendar, time_zone))
+    }
+
+    /// Creates a new valid `ZonedDateTime` with an ISO 8601 calendar.
+    #[inline]
+    pub fn try_new_iso(nanos: i128, time_zone: TimeZone) -> TemporalResult<Self> {
+        let instant = Instant::try_new(nanos)?;
+        Ok(Self::new_unchecked(instant, Calendar::default(), time_zone))
     }
 
     /// Returns `ZonedDateTime`'s Calendar.
@@ -818,7 +825,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.day_of_week(&pdt.iso.date))
+        self.calendar.day_of_week(&pdt.iso.date)
     }
 
     /// Returns the calendar day of year value.
@@ -835,10 +842,10 @@ impl ZonedDateTime {
     pub fn week_of_year_with_provider(
         &self,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Option<u16>> {
+    ) -> TemporalResult<Option<u8>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.week_of_year(&pdt.iso.date)
+        Ok(self.calendar.week_of_year(&pdt.iso.date))
     }
 
     /// Returns the calendar year of week value.
@@ -848,7 +855,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Option<i32>> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.year_of_week(&pdt.iso.date)
+        Ok(self.calendar.year_of_week(&pdt.iso.date))
     }
 
     /// Returns the calendar days in week value.
@@ -1183,18 +1190,18 @@ impl ZonedDateTime {
                 let UtcOffsetRecordOrZ::Offset(offset) = record else {
                     return (None, true);
                 };
-                let hours_in_ns = i64::from(offset.hour) * 3_600_000_000_000_i64;
-                let minutes_in_ns = i64::from(offset.minute) * 60_000_000_000_i64;
-                let seconds_in_ns = i64::from(offset.minute) * 1_000_000_000_i64;
+                let hours_in_ns = i64::from(offset.hour()) * 3_600_000_000_000_i64;
+                let minutes_in_ns = i64::from(offset.minute()) * 60_000_000_000_i64;
+                let seconds_in_ns = i64::from(offset.second().unwrap_or(0)) * 1_000_000_000_i64;
                 let ns = offset
-                    .fraction
+                    .fraction()
                     .and_then(|x| x.to_nanoseconds())
                     .unwrap_or(0);
 
                 (
                     Some(
                         (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
-                            * i64::from(offset.sign as i8),
+                            * i64::from(offset.sign() as i8),
                     ),
                     false,
                 )
@@ -1203,7 +1210,7 @@ impl ZonedDateTime {
 
         let calendar = parse_result
             .calendar
-            .map(Calendar::from_utf8)
+            .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 
@@ -1387,8 +1394,8 @@ mod tests {
             RoundingIncrement, RoundingMode, RoundingOptions, Unit,
         },
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
-        time::EpochNanoseconds,
         tzdb::FsTzdbProvider,
+        unix_time::EpochNanoseconds,
         Calendar, MonthCode, TimeZone,
     };
     use core::str::FromStr;

@@ -1,19 +1,25 @@
 [package]
-name = "temporal_provider"
+name = "timezone_provider"
+description = "Time zone data providers"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-readme.workspace = true
-exclude.workspace = true
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "LICENSE-Apache",
+    "LICENSE-MIT",
+    "README.md"
+]
 
 [dependencies]
 
 # Provider dependency
-zerotrie = { version = "0.2.1", features = ["serde", "databake"] }
-zerovec = { version = "0.11.1", features = ["serde", "databake"] }
+zerotrie = { version = "0.2.2", features = ["serde", "databake"] }
+zerovec = { version = "0.11.2", features = ["serde", "databake"] }
 
 # IANA dependency
 parse-zoneinfo = "0.3.1"

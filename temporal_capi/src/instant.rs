@@ -7,7 +7,7 @@ pub mod ffi {
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
     use alloc::boxed::Box;
     use alloc::string::String;
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
     #[cfg(feature = "compiled_data")]
@@ -50,9 +50,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::Instant::from_str(s)
+            temporal_rs::Instant::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }

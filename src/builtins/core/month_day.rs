@@ -27,14 +27,14 @@ impl core::fmt::Display for PlainMonthDay {
 }
 
 impl PlainMonthDay {
-    /// Creates a new unchecked `MonthDay`
+    /// Creates a new unchecked `PlainMonthDay`
     #[inline]
     #[must_use]
     pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
         Self { iso, calendar }
     }
 
-    /// Creates a new valid `MonthDay`.
+    /// Creates a new valid `PlainMonthDay`.
     #[inline]
     pub fn new_with_overflow(
         month: u8,
@@ -49,6 +49,38 @@ impl PlainMonthDay {
         Ok(Self::new_unchecked(iso, calendar))
     }
 
+    // Converts a UTF-8 encoded string into a `PlainMonthDay`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let record = crate::parsers::parse_month_day(s)?;
+
+        let calendar = record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
+
+        let date = record.date;
+
+        let date = date.temporal_unwrap()?;
+
+        Self::new_with_overflow(
+            date.month,
+            date.day,
+            calendar,
+            ArithmeticOverflow::Reject,
+            None,
+        )
+    }
+
     pub fn with(
         &self,
         _partial: PartialDate,
@@ -57,45 +89,51 @@ impl PlainMonthDay {
         Err(TemporalError::general("Not yet implemented."))
     }
 
-    /// Returns the iso day value of `MonthDay`.
+    /// Returns the ISO day value of `PlainMonthDay`.
     #[inline]
     #[must_use]
     pub fn iso_day(&self) -> u8 {
         self.iso.day
     }
 
-    // returns the iso month value of `MonthDay`.
+    // Returns the ISO month value of `PlainMonthDay`.
     #[inline]
     #[must_use]
     pub fn iso_month(&self) -> u8 {
         self.iso.month
     }
 
-    // returns the iso year value of `MonthDay`.
+    // Returns the ISO year value of `PlainMonthDay`.
     #[inline]
     #[must_use]
     pub fn iso_year(&self) -> i32 {
         self.iso.year
     }
 
-    /// Returns the string identifier for the current calendar used.
+    /// Returns the string identifier for the current `Calendar`.
     #[inline]
     #[must_use]
     pub fn calendar_id(&self) -> &'static str {
         self.calendar.identifier()
     }
 
-    /// Returns a reference to `MonthDay`'s `CalendarSlot`
+    /// Returns a reference to `PlainMonthDay`'s inner `Calendar`.
     #[inline]
     #[must_use]
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
 
-    /// Returns the `monthCode` value of `MonthDay`.
+    /// Returns the calendar `monthCode` value of `PlainMonthDay`.
     #[inline]
     pub fn month_code(&self) -> MonthCode {
         self.calendar.month_code(&self.iso)
+    }
+
+    /// Returns the calendar day value of `PlainMonthDay`.
+    #[inline]
+    pub fn day(&self) -> u8 {
+        self.calendar.day(&self.iso)
     }
 
     pub fn to_plain_date(&self, year: Option<PartialDate>) -> TemporalResult<PlainDate> {
@@ -132,34 +170,7 @@ impl FromStr for PlainMonthDay {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let record = crate::parsers::parse_month_day(s)?;
-
-        let calendar = record
-            .calendar
-            .map(Calendar::from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        // ParseISODateTime
-        // Step 4.a.ii.3
-        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
-        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
-        // RangeError exception.
-        if !calendar.is_iso() {
-            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
-        }
-
-        let date = record.date;
-
-        let date = date.temporal_unwrap()?;
-
-        Self::new_with_overflow(
-            date.month,
-            date.day,
-            calendar,
-            ArithmeticOverflow::Reject,
-            None,
-        )
+        Self::from_utf8(s.as_bytes())
     }
 }
 

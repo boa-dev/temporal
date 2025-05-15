@@ -148,7 +148,54 @@ impl PlainYearMonth {
 // ==== Public method implementations ====
 
 impl PlainYearMonth {
-    /// Creates a new valid `YearMonth`.
+    /// Creates a new `PlainYearMonth`, constraining any arguments that are invalid into a valid range.
+    #[inline]
+    pub fn new(
+        year: i32,
+        month: u8,
+        reference_day: Option<u8>,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(
+            year,
+            month,
+            reference_day,
+            calendar,
+            ArithmeticOverflow::Constrain,
+        )
+    }
+
+    /// Creates a new `PlainYearMonth`, rejecting any date that may be invalid.
+    #[inline]
+    pub fn try_new(
+        year: i32,
+        month: u8,
+        reference_day: Option<u8>,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::new_with_overflow(
+            year,
+            month,
+            reference_day,
+            calendar,
+            ArithmeticOverflow::Reject,
+        )
+    }
+
+    /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, rejecting any date that may be invalid.
+    #[inline]
+    pub fn try_new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
+        Self::try_new(year, month, reference_day, Calendar::default())
+    }
+
+    /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, constraining any arguments
+    /// that are invalid into a valid range.
+    #[inline]
+    pub fn new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
+        Self::new(year, month, reference_day, Calendar::default())
+    }
+
+    /// Creates a new valid `YearMonth` with provided `ArithmeticOverflow` option.
     #[inline]
     pub fn new_with_overflow(
         year: i32,
@@ -171,6 +218,46 @@ impl PlainYearMonth {
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
         partial.calendar.year_month_from_partial(&partial, overflow)
+    }
+
+    // Converts a UTF-8 encoded string into a `PlainYearMonth`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let record = crate::parsers::parse_year_month(s)?;
+        let calendar = record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
+
+        let date = record.date.temporal_unwrap()?;
+
+        // The below steps are from `ToTemporalYearMonth`
+        // 10. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
+        let iso = IsoDate::new_unchecked(date.year, date.month, date.day);
+
+        // 11. If ISOYearMonthWithinLimits(isoDate) is false, throw a RangeError exception.
+        if !year_month_within_limits(iso.year, iso.month) {
+            return Err(TemporalError::range().with_message("Exceeded valid range."));
+        }
+
+        let intermediate = Self::new_unchecked(iso, calendar);
+        // 12. Set result to ISODateToFields(calendar, isoDate, year-month).
+        let partial = PartialDate::try_from_year_month(&intermediate)?;
+        // 13. NOTE: The following operation is called with constrain regardless of the
+        // value of overflow, in order for the calendar to store a canonical value in the
+        // [[Day]] field of the [[ISODate]] internal slot of the result.
+        // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
+        // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        PlainYearMonth::from_partial(partial, ArithmeticOverflow::Constrain)
     }
 
     /// Returns the iso year value for this `YearMonth`.
@@ -358,42 +445,7 @@ impl FromStr for PlainYearMonth {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let record = crate::parsers::parse_year_month(s)?;
-        let calendar = record
-            .calendar
-            .map(Calendar::from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        // ParseISODateTime
-        // Step 4.a.ii.3
-        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
-        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
-        // RangeError exception.
-        if !calendar.is_iso() {
-            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
-        }
-
-        let date = record.date.temporal_unwrap()?;
-
-        // The below steps are from `ToTemporalYearMonth`
-        // 10. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
-        let iso = IsoDate::new_unchecked(date.year, date.month, date.day);
-
-        // 11. If ISOYearMonthWithinLimits(isoDate) is false, throw a RangeError exception.
-        if !year_month_within_limits(iso.year, iso.month) {
-            return Err(TemporalError::range().with_message("Exceeded valid range."));
-        }
-
-        let intermediate = Self::new_unchecked(iso, calendar);
-        // 12. Set result to ISODateToFields(calendar, isoDate, year-month).
-        let partial = PartialDate::try_from_year_month(&intermediate)?;
-        // 13. NOTE: The following operation is called with constrain regardless of the
-        // value of overflow, in order for the calendar to store a canonical value in the
-        // [[Day]] field of the [[ISODate]] internal slot of the result.
-        // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
-        // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        PlainYearMonth::from_partial(partial, ArithmeticOverflow::Constrain)
+        Self::from_utf8(s.as_bytes())
     }
 }
 

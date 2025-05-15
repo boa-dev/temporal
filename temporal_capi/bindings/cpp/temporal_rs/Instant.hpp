@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "DifferenceSettings.hpp"
 #include "Duration.hpp"
@@ -24,50 +25,49 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     typedef struct temporal_rs_Instant_try_new_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_try_new_result;
     temporal_rs_Instant_try_new_result temporal_rs_Instant_try_new(temporal_rs::capi::I128Nanoseconds ns);
-    
+
     typedef struct temporal_rs_Instant_from_epoch_milliseconds_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_from_epoch_milliseconds_result;
     temporal_rs_Instant_from_epoch_milliseconds_result temporal_rs_Instant_from_epoch_milliseconds(int64_t epoch_milliseconds);
-    
+
     typedef struct temporal_rs_Instant_from_utf8_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_from_utf8_result;
     temporal_rs_Instant_from_utf8_result temporal_rs_Instant_from_utf8(diplomat::capi::DiplomatStringView s);
-    
+
     typedef struct temporal_rs_Instant_from_utf16_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_from_utf16_result;
     temporal_rs_Instant_from_utf16_result temporal_rs_Instant_from_utf16(diplomat::capi::DiplomatString16View s);
-    
+
     typedef struct temporal_rs_Instant_add_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_add_result;
     temporal_rs_Instant_add_result temporal_rs_Instant_add(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Duration* duration);
-    
+
     typedef struct temporal_rs_Instant_add_time_duration_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_add_time_duration_result;
     temporal_rs_Instant_add_time_duration_result temporal_rs_Instant_add_time_duration(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeDuration* duration);
-    
+
     typedef struct temporal_rs_Instant_subtract_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_subtract_result;
     temporal_rs_Instant_subtract_result temporal_rs_Instant_subtract(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Duration* duration);
-    
+
     typedef struct temporal_rs_Instant_subtract_time_duration_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_subtract_time_duration_result;
     temporal_rs_Instant_subtract_time_duration_result temporal_rs_Instant_subtract_time_duration(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeDuration* duration);
-    
+
     typedef struct temporal_rs_Instant_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_since_result;
     temporal_rs_Instant_since_result temporal_rs_Instant_since(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Instant* other, temporal_rs::capi::DifferenceSettings settings);
-    
+
     typedef struct temporal_rs_Instant_until_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_until_result;
     temporal_rs_Instant_until_result temporal_rs_Instant_until(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Instant* other, temporal_rs::capi::DifferenceSettings settings);
-    
+
     typedef struct temporal_rs_Instant_round_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_round_result;
     temporal_rs_Instant_round_result temporal_rs_Instant_round(const temporal_rs::capi::Instant* self, temporal_rs::capi::RoundingOptions options);
-    
+
     int64_t temporal_rs_Instant_epoch_milliseconds(const temporal_rs::capi::Instant* self);
-    
+
     temporal_rs::capi::I128Nanoseconds temporal_rs_Instant_epoch_nanoseconds(const temporal_rs::capi::Instant* self);
-    
+
     typedef struct temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result;
     temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instant_to_ixdtf_string_with_compiled_data(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeZone* zone, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
-    
-    
+
     void temporal_rs_Instant_destroy(Instant* self);
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace

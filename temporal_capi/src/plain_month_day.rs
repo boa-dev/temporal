@@ -11,7 +11,7 @@ pub mod ffi {
 
     use alloc::string::String;
     use core::fmt::Write;
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
@@ -48,10 +48,16 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
+        }
+
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::PlainMonthDay::from_str(s)
+            temporal_rs::PlainMonthDay::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
