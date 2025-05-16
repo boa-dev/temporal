@@ -418,8 +418,8 @@ impl PlainYearMonth {
         };
 
         let partial_date = PartialDate::new()
-            .with_year(Some(self.iso_year()))
-            .with_month(Some(self.iso_month()))
+            .with_year(Some(self.year()))
+            .with_month_code(Some(self.month_code()))
             .with_day(Some(day_value))
             .with_calendar(self.calendar.clone());
 
