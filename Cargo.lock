@@ -284,9 +284,9 @@ dependencies = [
 
 [[package]]
 name = "diplomat"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea1fa372cd3d71ab28ee5d1176be9e93eaed0eba94a3498d12b8113109c4d313"
+checksum = "ced081520ee8cf2b8c5b64a1a901eccd7030ece670dac274afe64607d6499b71"
 dependencies = [
  "diplomat_core",
  "proc-macro2",
@@ -303,15 +303,15 @@ dependencies = [
 
 [[package]]
 name = "diplomat-runtime"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ebd68bdec9f1f4e625f207e3179c0687e7c73bad578ec37df48a23a414da8d4"
+checksum = "098f9520ec5c190943b083bca3ea4cc4e67dc5f85a37062e528ecf1d25f04eb4"
 
 [[package]]
 name = "diplomat-tool"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "461ea47dee0fef3e42ea3f11441d55ce173127b5318c794998879ada6a0a556e"
+checksum = "e5e4f4dca06f60e3845a1c59130c312efcd020da95b6fd0183c0f9d9419d831a"
 dependencies = [
  "askama",
  "clap",
@@ -331,9 +331,9 @@ dependencies = [
 
 [[package]]
 name = "diplomat_core"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8372a0961d18867e19c8cc0a2afb3ad46d5c5bd5e30b2c71d4edc788c93bbb8"
+checksum = "b2adc721d57b84cb388d5569bb0b5771dd38dc9f2d3f14a6205e5ef76c9b1990"
 dependencies = [
  "displaydoc",
  "either",
@@ -415,9 +415,9 @@ dependencies = [
 
 [[package]]
 name = "icu_calendar"
-version = "2.0.0"
+version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecdccbb1b3e5f9fb6fdd83053a93220dccbe770b063cf32fc1691bd9e8eec45f"
+checksum = "214f8d14f00e7d9809e0aa39014be3d99441b7f38afe21891342fe2cb3dd7d0a"
 dependencies = [
  "calendrical_calculations",
  "displaydoc",
