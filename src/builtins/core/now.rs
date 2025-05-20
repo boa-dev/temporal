@@ -128,12 +128,12 @@ impl Now {
 #[cfg(test)]
 mod tests {
 
-    #[cfg(feature = "tzdb")]
+    #[cfg(feature = "fs-provider")]
     use crate::options::DifferenceSettings;
-    #[cfg(feature = "tzdb")]
+    #[cfg(feature = "fs-provider")]
     use crate::unix_time::EpochNanoseconds;
 
-    #[cfg(feature = "tzdb")]
+    #[cfg(feature = "fs-provider")]
     #[test]
     fn mocked_datetime() {
         use crate::{now::NowBuilder, tzdb::FsTzdbProvider, TimeZone};
@@ -193,7 +193,7 @@ mod tests {
         assert_eq!(duration.milliseconds(), 0);
     }
 
-    #[cfg(all(feature = "tzdb", feature = "sys", feature = "compiled_data"))]
+    #[cfg(all(feature = "fs-provider", feature = "sys", feature = "compiled_data"))]
     #[test]
     fn now_datetime_test() {
         use crate::Temporal;

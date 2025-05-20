@@ -164,7 +164,7 @@ impl TimeZone {
             Self::UtcOffset(offset) => Ok(i128::from(offset.0) * 60_000_000_000i128),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => provider
-                .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
+                .get_time_zone_offset(identifier, utc_epoch)
                 .map(|offset| i128::from(offset.offset) * 1_000_000_000),
         }
     }
@@ -227,7 +227,7 @@ impl TimeZone {
                 // b. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
-                provider.get_named_tz_epoch_nanoseconds(identifier, iso)?
+                provider.get_possible_local_time_seconds(identifier, iso)?
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
@@ -419,7 +419,7 @@ impl TimeZone {
         let TimeZoneOffset {
             transition_epoch: Some(transition_epoch),
             ..
-        } = provider.get_named_tz_offset_nanoseconds(identifier, after_epoch.0)?
+        } = provider.get_time_zone_offset(identifier, after_epoch.0)?
         else {
             return Err(TemporalError::r#type()
                 .with_message("Could not determine the start of day for the provided date."));

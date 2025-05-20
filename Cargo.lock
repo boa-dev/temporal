@@ -862,10 +862,12 @@ dependencies = [
 name = "timezone_provider"
 version = "0.0.7"
 dependencies = [
+ "combine",
  "databake",
  "parse-zoneinfo",
  "serde",
  "serde_json",
+ "tzif",
  "yoke",
  "zerotrie",
  "zerovec",
