@@ -1000,7 +1000,7 @@ mod tests {
     }
 
     // test toZonedDateTime
-    #[cfg(feature = "tzdb")]
+    #[cfg(feature = "fs-provider")]
     #[test]
     fn to_zoned_date_time() {
         use crate::tzdb::FsTzdbProvider;

@@ -28,17 +28,11 @@
 // offset diff = is_dst { dst_off - std_off } else { std_off - dst_off }, i.e. to_offset - from_offset
 
 use std::path::Path;
-#[cfg(target_family = "unix")]
 use std::path::PathBuf;
 
 use alloc::collections::BTreeMap;
-use alloc::string::{String, ToString};
-use alloc::{vec, vec::Vec};
+use alloc::string::String;
 use core::cell::RefCell;
-
-use combine::Parser;
-
-use timezone_provider::prelude::*;
 
 use tzif::{
     self,
@@ -50,16 +44,37 @@ use tzif::{
 };
 
 use crate::{
-    iso::IsoDateTime,
-    provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
-    unix_time::EpochNanoseconds,
-    utils, TemporalError, TemporalResult,
+    identifiers::SINGLETON_IANA_NORMALIZER, utils, PotentialLocalTime, TimeZoneOffset,
+    TimeZoneProvider, TransitionDirection,
 };
 
-timezone_provider::iana_normalizer_singleton!();
+const UNIX_ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
-#[cfg(target_family = "unix")]
-const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
+#[derive(Debug)]
+pub enum FsProviderError {
+    Tzif(TzifError),
+    NotYetImplemented,
+}
+
+impl From<TzifError> for FsProviderError {
+    fn from(value: TzifError) -> Self {
+        Self::Tzif(value)
+    }
+}
+
+#[derive(Debug)]
+pub enum TzifError {
+    Tzif(tzif::error::Error),
+    MissingPosixTimeZoneString,
+    MissingDataBlock,
+    UnalignedDayType,
+}
+
+impl From<tzif::error::Error> for TzifError {
+    fn from(value: tzif::error::Error) -> Self {
+        Self::Tzif(value)
+    }
+}
 
 /// `LocalTimeRecord` represents an local time offset record.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,47 +106,6 @@ impl From<LocalTimeTypeRecord> for LocalTimeRecord {
         Self {
             is_dst: value.is_dst,
             offset: value.utoff.0,
-        }
-    }
-}
-
-// TODO: Workshop record name?
-/// The `LocalTimeRecord` result represents the result of searching for a
-/// time zone transition without the offset seconds applied to the
-/// epoch seconds.
-///
-/// As a result of the search, it is possible for the resulting search to be either
-/// Empty (due to an invalid time being provided that would be in the +1 tz shift)
-/// or two time zones (when a time exists in the ambiguous range of a -1 shift).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LocalTimeRecordResult {
-    Empty,
-    Single(LocalTimeRecord),
-    // Note(nekevss): it may be best to switch this to initial, need to double check
-    // disambiguation ops with inverse DST-STD relationship
-    Ambiguous {
-        std: LocalTimeRecord,
-        dst: LocalTimeRecord,
-    },
-}
-
-impl From<LocalTimeRecord> for LocalTimeRecordResult {
-    fn from(value: LocalTimeRecord) -> Self {
-        Self::Single(value)
-    }
-}
-
-impl From<LocalTimeTypeRecord> for LocalTimeRecordResult {
-    fn from(value: LocalTimeTypeRecord) -> Self {
-        Self::Single(value.into())
-    }
-}
-
-impl From<(LocalTimeTypeRecord, LocalTimeTypeRecord)> for LocalTimeRecordResult {
-    fn from(value: (LocalTimeTypeRecord, LocalTimeTypeRecord)) -> Self {
-        Self::Ambiguous {
-            std: value.0.into(),
-            dst: value.1.into(),
         }
     }
 }
@@ -180,37 +154,19 @@ impl From<TzifData> for Tzif {
 }
 
 impl Tzif {
-    pub fn from_bytes(data: &[u8]) -> TemporalResult<Self> {
-        let Ok((parse_result, _)) = tzif::parse::tzif::tzif().parse(data) else {
-            return Err(TemporalError::general("Illformed Tzif data."));
-        };
-        Ok(Self::from(parse_result))
-    }
-
-    #[cfg(target_family = "unix")]
-    pub fn read_tzif(identifier: &str) -> TemporalResult<Self> {
-        let mut path = PathBuf::from(ZONEINFO_DIR);
-        path.push(identifier);
-        Self::from_path(&path)
-    }
-
-    pub fn from_path(path: &Path) -> TemporalResult<Self> {
-        tzif::parse_tzif_file(path)
-            .map(Into::into)
-            .map_err(|e| TemporalError::general(e.to_string()))
+    pub fn from_path(path: &Path) -> Result<Self, TzifError> {
+        Ok(tzif::parse_tzif_file(path).map(Into::into)?)
     }
 
     pub fn posix_tz_string(&self) -> Option<&PosixTzString> {
         self.footer.as_ref()
     }
 
-    pub fn get_data_block2(&self) -> TemporalResult<&DataBlock> {
-        self.data_block2
-            .as_ref()
-            .ok_or(TemporalError::general("Only Tzif V2+ is supported."))
+    pub fn get_data_block2(&self) -> Result<&DataBlock, TzifError> {
+        self.data_block2.as_ref().ok_or(TzifError::MissingDataBlock)
     }
 
-    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<TimeZoneOffset> {
+    pub fn get(&self, epoch_seconds: &Seconds) -> Result<TimeZoneOffset, TzifError> {
         let db = self.get_data_block2()?;
 
         let result = db.transition_times.binary_search(epoch_seconds);
@@ -238,9 +194,8 @@ impl Tzif {
                     // the available transition time, so the time zone is
                     // resolved with the POSIX tz string.
                     let mut offset = resolve_posix_tz_string_for_epoch_seconds(
-                        self.posix_tz_string().ok_or(TemporalError::general(
-                            "No POSIX tz string to resolve with.",
-                        ))?,
+                        self.posix_tz_string()
+                            .ok_or(TzifError::MissingPosixTimeZoneString)?,
                         epoch_seconds.0,
                     )?;
                     offset
@@ -264,7 +219,7 @@ impl Tzif {
     /// side of the transition, the DateTime 2017-03-12T02:30:00 could
     /// be provided. This time does NOT exist due to the +1 jump from
     /// 02:00 -> 03:00 (but of course it does as a nanosecond value).
-    pub fn v2_estimate_tz_pair(&self, seconds: &Seconds) -> TemporalResult<LocalTimeRecordResult> {
+    pub fn v2_estimate_tz_pair(&self, seconds: &Seconds) -> Result<PotentialLocalTime, TzifError> {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         let db = self.get_data_block2()?;
@@ -272,11 +227,9 @@ impl Tzif {
 
         let estimated_idx = match b_search_result {
             // TODO: Double check returning early here with tests.
-            Ok(idx) => return Ok(get_local_record(db, idx).into()),
+            Ok(idx) => return Ok(PotentialLocalTime::Single(get_local_record(db, idx).into())),
             Err(idx) if idx == 0 => {
-                return Ok(LocalTimeRecordResult::Single(
-                    get_local_record(db, idx).into(),
-                ))
+                return Ok(PotentialLocalTime::Single(get_local_record(db, idx).into()))
             }
             Err(idx) => {
                 if db.transition_times.len() <= idx {
@@ -285,7 +238,7 @@ impl Tzif {
                     // resolved with the POSIX tz string.
                     return resolve_posix_tz_string(
                         self.posix_tz_string()
-                            .ok_or(TemporalError::general("Could not resolve time zone."))?,
+                            .ok_or(TzifError::MissingPosixTimeZoneString)?,
                         seconds.0,
                     );
                 }
@@ -317,10 +270,15 @@ impl Tzif {
         // Adjust for offset inversion from northern/southern hemisphere.
         let offset_range = offset_range(initial_record.utoff.0, next_record.utoff.0);
         match offset_range.contains(&current_diff.0) {
-            true if next_record.is_dst => Ok(LocalTimeRecordResult::Empty),
-            true => Ok((next_record, initial_record).into()),
-            false if current_diff <= initial_record.utoff => Ok(initial_record.into()),
-            false => Ok(next_record.into()),
+            true if next_record.is_dst => Ok(PotentialLocalTime::Empty),
+            true => Ok(PotentialLocalTime::Ambiguous {
+                dst: next_record.into(),
+                std: initial_record.into(),
+            }),
+            false if current_diff <= initial_record.utoff => {
+                Ok(PotentialLocalTime::Single(initial_record.into()))
+            }
+            false => Ok(PotentialLocalTime::Single(next_record.into())),
         }
     }
 }
@@ -347,7 +305,7 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
 fn resolve_posix_tz_string_for_epoch_seconds(
     posix_tz_string: &PosixTzString,
     seconds: i64,
-) -> TemporalResult<TimeZoneOffset> {
+) -> Result<TimeZoneOffset, TzifError> {
     let Some(dst_variant) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
         return Ok(TimeZoneOffset {
@@ -446,11 +404,13 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 fn resolve_posix_tz_string(
     posix_tz_string: &PosixTzString,
     seconds: i64,
-) -> TemporalResult<LocalTimeRecordResult> {
+) -> Result<PotentialLocalTime, TzifError> {
     let std = &posix_tz_string.std_info;
     let Some(dst) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).into());
+        return Ok(PotentialLocalTime::Single(
+            LocalTimeRecord::from_standard_time(&posix_tz_string.std_info),
+        ));
     };
 
     // TODO: Resolve safety issue around utils.
@@ -476,9 +436,9 @@ fn resolve_posix_tz_string(
         };
         let offset = offset_range(transition_time + transition_diff, transition_time);
         match offset.contains(&time) {
-            true if is_dst == TransitionType::Dst => return Ok(LocalTimeRecordResult::Empty),
+            true if is_dst == TransitionType::Dst => return Ok(PotentialLocalTime::Empty),
             true => {
-                return Ok(LocalTimeRecordResult::Ambiguous {
+                return Ok(PotentialLocalTime::Ambiguous {
                     std: LocalTimeRecord::from_standard_time(std),
                     dst: LocalTimeRecord::from_daylight_savings_time(&dst.variant_info),
                 })
@@ -488,12 +448,12 @@ fn resolve_posix_tz_string(
     }
 
     match is_dst {
-        TransitionType::Dst => {
-            Ok(LocalTimeRecord::from_daylight_savings_time(&dst.variant_info).into())
-        }
-        TransitionType::Std => {
-            Ok(LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).into())
-        }
+        TransitionType::Dst => Ok(PotentialLocalTime::Single(
+            LocalTimeRecord::from_daylight_savings_time(&dst.variant_info),
+        )),
+        TransitionType::Std => Ok(PotentialLocalTime::Single(
+            LocalTimeRecord::from_standard_time(&posix_tz_string.std_info),
+        )),
     }
 }
 
@@ -540,7 +500,7 @@ fn cmp_seconds_to_transitions(
     start: &TransitionDay,
     end: &TransitionDay,
     seconds: i64,
-) -> TemporalResult<(bool, TransitionType)> {
+) -> Result<(bool, TransitionType), TzifError> {
     let cmp_result = match (start, end) {
         (
             TransitionDay::Mwd(start_month, start_week, start_day),
@@ -582,11 +542,7 @@ fn cmp_seconds_to_transitions(
         }
         // NOTE: The assumption here is that mismatched day types on
         // a POSIX string is an illformed string.
-        _ => {
-            return Err(
-                TemporalError::assert().with_message("Mismatched day types on a POSIX string.")
-            )
-        }
+        _ => return Err(TzifError::UnalignedDayType),
     };
 
     match cmp_result {
@@ -610,28 +566,35 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
     offset_two..offset_one
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct FsTzdbProvider {
+    path: PathBuf,
     cache: RefCell<BTreeMap<String, Tzif>>,
 }
 
+impl Default for FsTzdbProvider {
+    fn default() -> Self {
+        Self {
+            path: PathBuf::from(UNIX_ZONEINFO_DIR),
+            cache: RefCell::default(),
+        }
+    }
+}
+
 impl FsTzdbProvider {
-    pub fn get(&self, identifier: &str) -> TemporalResult<Tzif> {
+    pub fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            cache: RefCell::default(),
+        }
+    }
+
+    pub fn get(&self, identifier: &str) -> Result<Tzif, FsProviderError> {
         if let Some(tzif) = self.cache.borrow().get(identifier) {
             return Ok(tzif.clone());
         }
-        #[cfg(target_family = "unix")]
-        let (identifier, tzif) = { (identifier, Tzif::read_tzif(identifier)?) };
-
-        #[cfg(any(target_family = "windows", target_family = "wasm"))]
-        let (identifier, tzif) = {
-            let Some((canonical_name, data)) = jiff_tzdb::get(identifier) else {
-                return Err(
-                    TemporalError::range().with_message("Time zone identifier does not exist.")
-                );
-            };
-            (canonical_name, Tzif::from_bytes(data)?)
-        };
+        let path = self.path.join(identifier);
+        let (identifier, tzif) = { (identifier, Tzif::from_path(&path)?) };
 
         Ok(self
             .cache
@@ -643,6 +606,7 @@ impl FsTzdbProvider {
 }
 
 impl TimeZoneProvider for FsTzdbProvider {
+    type Error = FsProviderError;
     fn check_identifier(&self, identifier: &str) -> bool {
         if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
             return SINGLETON_IANA_NORMALIZER
@@ -653,68 +617,51 @@ impl TimeZoneProvider for FsTzdbProvider {
         false
     }
 
-    fn get_named_tz_epoch_nanoseconds(
+    fn get_possible_local_time_seconds(
         &self,
         identifier: &str,
-        iso_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = iso_datetime.as_nanoseconds()?;
-        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
+        date_time_seconds: i64,
+    ) -> Result<PotentialLocalTime, Self::Error> {
         let tzif = self.get(identifier)?;
-        let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
-        let result = match local_time_record_result {
-            LocalTimeRecordResult::Empty => Vec::default(),
-            LocalTimeRecordResult::Single(r) => {
-                let epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.offset))?;
-                vec![epoch_ns]
-            }
-            LocalTimeRecordResult::Ambiguous { std, dst } => {
-                let std_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.offset))?;
-                let dst_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.offset))?;
-                vec![std_epoch_ns, dst_epoch_ns]
-            }
-        };
-        Ok(result)
+        Ok(tzif.v2_estimate_tz_pair(&Seconds(date_time_seconds))?)
     }
 
-    fn get_named_tz_offset_nanoseconds(
+    fn get_time_zone_offset(
         &self,
         identifier: &str,
-        utc_epoch: i128,
-    ) -> TemporalResult<TimeZoneOffset> {
+        epoch_seconds: i64,
+    ) -> Result<TimeZoneOffset, Self::Error> {
         let tzif = self.get(identifier)?;
-        let seconds = (utc_epoch / 1_000_000_000) as i64;
-        tzif.get(&Seconds(seconds))
+        Ok(tzif.get(&Seconds(epoch_seconds))?)
     }
 
-    fn get_named_tz_transition(
+    fn get_time_zone_transition(
         &self,
         _identifier: &str,
-        _epoch_nanoseconds: i128,
+        _epoch_seconds: i64,
         _direction: TransitionDirection,
-    ) -> TemporalResult<Option<EpochNanoseconds>> {
-        Err(TemporalError::general("Not yet implemented."))
+    ) -> Result<Option<i64>, Self::Error> {
+        Err(FsProviderError::NotYetImplemented)
     }
-}
-
-#[inline]
-fn seconds_to_nanoseconds(seconds: i64) -> i128 {
-    seconds as i128 * 1_000_000_000
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
     use tzif::data::time::Seconds;
 
     use crate::{
-        iso::IsoDateTime,
-        tzdb::{LocalTimeRecord, LocalTimeRecordResult, TimeZoneProvider},
+        fs::UNIX_ZONEINFO_DIR, utils, LocalTimeRecord, PotentialLocalTime, TimeZoneProvider,
     };
 
     use super::{FsTzdbProvider, Tzif, SINGLETON_IANA_NORMALIZER};
+
+    fn date_time_to_seconds(date: (i32, u8, u8), time: (u8, u8, u8)) -> i64 {
+        let time_in_seconds = i64::from(time.0) * 3600 + i64::from(time.1) * 60 + i64::from(time.2);
+        let epoch_days =
+            utils::neri_schneider::epoch_days_from_gregorian_date(date.0, date.1, date.2);
+        time_in_seconds + (epoch_days * 86_400)
+    }
 
     fn get_singleton_identifier(id: &str) -> Option<&'static str> {
         let index = SINGLETON_IANA_NORMALIZER.available_id_index.get(id)?;
@@ -740,156 +687,85 @@ mod tests {
     #[test]
     fn exactly_transition_time_after_empty_edge_case() {
         let provider = FsTzdbProvider::default();
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 3,
-            day: 12,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 3,
-            minute: 0,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let today = IsoDateTime::new(date, time).unwrap();
+        let date = (2017, 3, 12);
+        let time = (3, 0, 0);
+        let today = date_time_to_seconds(date, time);
 
         let local = provider
-            .get_named_tz_epoch_nanoseconds("America/New_York", today)
+            .get_possible_local_time_seconds("America/New_York", today)
             .unwrap();
-        assert_eq!(local.len(), 1);
+        assert_eq!(
+            local,
+            PotentialLocalTime::Single(LocalTimeRecord {
+                is_dst: true,
+                offset: -14400
+            })
+        );
     }
 
     #[test]
     fn one_second_before_empty_edge_case() {
         let provider = FsTzdbProvider::default();
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 3,
-            day: 12,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 2,
-            minute: 59,
-            second: 59,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let today = IsoDateTime::new(date, time).unwrap();
+        let date = (2017, 3, 12);
+        let time = (2, 59, 59);
+        let today = date_time_to_seconds(date, time);
 
         let local = provider
-            .get_named_tz_epoch_nanoseconds("America/New_York", today)
+            .get_possible_local_time_seconds("America/New_York", today)
             .unwrap();
-        assert!(local.is_empty());
+        assert_eq!(local, PotentialLocalTime::Empty);
     }
 
     #[test]
     fn new_york_empty_test_case() {
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 3,
-            day: 12,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 2,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let date = (2017, 3, 12);
+        let time = (2, 30, 0);
+        let edge_case = date_time_to_seconds(date, time);
 
-        #[cfg(not(target_os = "windows"))]
-        let new_york = Tzif::read_tzif("America/New_York");
-        #[cfg(target_os = "windows")]
-        let new_york = {
-            let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
-            Tzif::from_bytes(data)
-        };
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("America/New_York");
+        let new_york = Tzif::from_path(&path);
 
         assert!(new_york.is_ok());
         let new_york = new_york.unwrap();
 
-        let locals = new_york
-            .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
-            .unwrap();
-        assert_eq!(locals, LocalTimeRecordResult::Empty);
+        let locals = new_york.v2_estimate_tz_pair(&Seconds(edge_case)).unwrap();
+        assert_eq!(locals, PotentialLocalTime::Empty);
     }
 
     #[test]
     fn sydney_empty_test_case() {
         // Australia Daylight savings day
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 10,
-            day: 1,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 2,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let date = (2017, 10, 1);
+        let time = (2, 30, 0);
+        let seconds = date_time_to_seconds(date, time);
 
-        #[cfg(not(target_os = "windows"))]
-        let sydney = Tzif::read_tzif("Australia/Sydney");
-        #[cfg(target_os = "windows")]
-        let sydney = {
-            let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
-            Tzif::from_bytes(data)
-        };
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("Australia/Sydney");
+        let sydney = Tzif::from_path(&path);
 
         assert!(sydney.is_ok());
         let sydney = sydney.unwrap();
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
-        assert_eq!(locals, LocalTimeRecordResult::Empty);
+        assert_eq!(locals, PotentialLocalTime::Empty);
     }
 
     #[test]
     fn new_york_duplicate_case() {
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 11,
-            day: 5,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 1,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let date = (2017, 11, 5);
+        let time = (1, 30, 0);
+        let seconds = date_time_to_seconds(date, time);
 
-        #[cfg(not(target_os = "windows"))]
-        let new_york = Tzif::read_tzif("America/New_York");
-        #[cfg(target_os = "windows")]
-        let new_york = {
-            let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
-            Tzif::from_bytes(data)
-        };
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("America/New_York");
+        let new_york = Tzif::from_path(&path);
 
         assert!(new_york.is_ok());
         let new_york = new_york.unwrap();
 
-        let locals = new_york
-            .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
-            .unwrap();
+        let locals = new_york.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
 
         assert_eq!(
             locals,
-            LocalTimeRecordResult::Ambiguous {
+            PotentialLocalTime::Ambiguous {
                 std: LocalTimeRecord {
                     is_dst: false,
                     offset: -18000
@@ -905,29 +781,12 @@ mod tests {
     #[test]
     fn sydney_duplicate_case() {
         // Australia Daylight savings day
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 4,
-            day: 2,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 2,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let date = (2017, 4, 2);
+        let time = (2, 30, 0);
+        let seconds = date_time_to_seconds(date, time);
 
-        #[cfg(not(target_os = "windows"))]
-        let sydney = Tzif::read_tzif("Australia/Sydney");
-        #[cfg(target_os = "windows")]
-        let sydney = {
-            let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
-            Tzif::from_bytes(data)
-        };
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("Australia/Sydney");
+        let sydney = Tzif::from_path(&path);
 
         assert!(sydney.is_ok());
         let sydney = sydney.unwrap();
@@ -936,90 +795,7 @@ mod tests {
 
         assert_eq!(
             locals,
-            LocalTimeRecordResult::Ambiguous {
-                std: LocalTimeRecord {
-                    is_dst: false,
-                    offset: 36000
-                },
-                dst: LocalTimeRecord {
-                    is_dst: true,
-                    offset: 39600,
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn new_york_duplicate_with_slim_format() {
-        let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
-        let new_york = Tzif::from_bytes(data);
-        assert!(new_york.is_ok());
-        let new_york = new_york.unwrap();
-
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 11,
-            day: 5,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 1,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
-
-        let locals = new_york
-            .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
-            .unwrap();
-
-        assert_eq!(
-            locals,
-            LocalTimeRecordResult::Ambiguous {
-                std: LocalTimeRecord {
-                    is_dst: false,
-                    offset: -18000
-                },
-                dst: LocalTimeRecord {
-                    is_dst: true,
-                    offset: -14400,
-                },
-            }
-        );
-    }
-
-    #[test]
-    fn sydney_duplicate_case_with_slim_format() {
-        let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
-        let sydney = Tzif::from_bytes(data);
-        assert!(sydney.is_ok());
-        let sydney = sydney.unwrap();
-
-        // Australia Daylight savings day
-        let date = crate::iso::IsoDate {
-            year: 2017,
-            month: 4,
-            day: 2,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 2,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
-
-        let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
-
-        assert_eq!(
-            locals,
-            LocalTimeRecordResult::Ambiguous {
+            PotentialLocalTime::Ambiguous {
                 std: LocalTimeRecord {
                     is_dst: false,
                     offset: 36000
@@ -1039,38 +815,19 @@ mod tests {
     // be expected.
     #[test]
     fn before_epoch_northern_hemisphere() {
-        let date = crate::iso::IsoDate {
-            year: 1880,
-            month: 11,
-            day: 5,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 1,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let date = (1880, 11, 5);
+        let time = (1, 30, 0);
+        let seconds = date_time_to_seconds(date, time);
 
-        #[cfg(not(target_os = "windows"))]
-        let new_york = Tzif::read_tzif("America/New_York");
-        #[cfg(target_os = "windows")]
-        let new_york = {
-            let (_, data) = jiff_tzdb::get("America/New_York").unwrap();
-            Tzif::from_bytes(data)
-        };
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("America/New_York");
+        let new_york = Tzif::from_path(&path);
 
         assert!(new_york.is_ok());
         let new_york = new_york.unwrap();
 
-        let locals = new_york
-            .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
-            .unwrap();
+        let locals = new_york.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
 
-        assert!(matches!(locals, LocalTimeRecordResult::Single(_)));
+        assert!(matches!(locals, PotentialLocalTime::Single(_)));
     }
 
     // TODO: Determine the validity of this test. Primarily, this test
@@ -1081,60 +838,27 @@ mod tests {
     #[test]
     fn before_epoch_southern_hemisphere() {
         // Australia Daylight savings day
-        let date = crate::iso::IsoDate {
-            year: 1880,
-            month: 4,
-            day: 2,
-        };
-        let time = crate::iso::IsoTime {
-            hour: 2,
-            minute: 30,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let date = (1880, 4, 2);
+        let time = (2, 30, 0);
+        let seconds = date_time_to_seconds(date, time);
 
-        #[cfg(not(target_os = "windows"))]
-        let sydney = Tzif::read_tzif("Australia/Sydney");
-        #[cfg(target_os = "windows")]
-        let sydney = {
-            let (_, data) = jiff_tzdb::get("Australia/Sydney").unwrap();
-            Tzif::from_bytes(data)
-        };
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("Australia/Sydney");
+        let sydney = Tzif::from_path(&path);
 
         assert!(sydney.is_ok());
         let sydney = sydney.unwrap();
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
-        assert!(matches!(locals, LocalTimeRecordResult::Single(_)));
+        assert!(matches!(locals, PotentialLocalTime::Single(_)));
     }
 
     #[test]
     fn mwd_transition_epoch() {
-        #[cfg(not(target_os = "windows"))]
-        let tzif = Tzif::read_tzif("Europe/Berlin").unwrap();
-        #[cfg(target_os = "windows")]
-        let tzif = Tzif::from_bytes(jiff_tzdb::get("Europe/Berlin").unwrap().1).unwrap();
-
-        let start_date = crate::iso::IsoDate {
-            year: 2028,
-            month: 3,
-            day: 30,
-        };
-        let start_time = crate::iso::IsoTime {
-            hour: 6,
-            minute: 0,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let start_dt = IsoDateTime::new(start_date, start_time).unwrap();
-        let start_dt_secs = (start_dt.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
-
+        let path = PathBuf::from(UNIX_ZONEINFO_DIR).join("Europe/Berlin");
+        let tzif = Tzif::from_path(&path).unwrap();
+        let date = (2028, 3, 30);
+        let time = (6, 0, 0);
+        let start_dt_secs = date_time_to_seconds(date, time);
         let start_seconds = &Seconds(start_dt_secs);
 
         assert_eq!(
@@ -1143,22 +867,9 @@ mod tests {
             1837645200
         );
 
-        let end_date = crate::iso::IsoDate {
-            year: 2028,
-            month: 10,
-            day: 29,
-        };
-        let end_time = crate::iso::IsoTime {
-            hour: 6,
-            minute: 0,
-            second: 0,
-            millisecond: 0,
-            microsecond: 0,
-            nanosecond: 0,
-        };
-        let end_dt = IsoDateTime::new(end_date, end_time).unwrap();
-        let end_dt_secs = (end_dt.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
-
+        let date = (2028, 10, 29);
+        let time = (6, 0, 0);
+        let end_dt_secs = date_time_to_seconds(date, time);
         let end_seconds = &Seconds(end_dt_secs);
 
         assert_eq!(

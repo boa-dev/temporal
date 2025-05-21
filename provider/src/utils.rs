@@ -1,52 +1,10 @@
-//! Utility date and time equations for Temporal
+//! Utility functions
 
-use alloc::format;
-use alloc::string::String;
+// Used for testing in fs.rs
+pub(crate) mod neri_schneider;
 
-use crate::MS_PER_DAY;
+pub const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
 
-mod neri_schneider;
-
-pub(crate) use neri_schneider::epoch_days_from_gregorian_date;
-
-// NOTE: Potentially add more of tests.
-
-// ==== Begin Date Equations ====
-
-pub(crate) const MS_PER_HOUR: i64 = 3_600_000;
-pub(crate) const MS_PER_MINUTE: i64 = 60_000;
-
-/// `EpochDaysToEpochMS`
-///
-/// Functionally the same as Date's abstract operation `MakeDate`
-pub(crate) fn epoch_days_to_epoch_ms(day: i64, time: i64) -> i64 {
-    (day * MS_PER_DAY as i64) + time
-}
-
-/// 3.5.11 PadISOYear ( y )
-///
-/// returns a String representation of y suitable for inclusion in an ISO 8601 string
-pub(crate) fn pad_iso_year(year: i32) -> String {
-    if (0..9999).contains(&year) {
-        return format!("{:04}", year);
-    }
-    let year_sign = if year > 0 { "+" } else { "-" };
-    let year_string = format!("{:06}", year.abs());
-    format!("{year_sign}{year_string}",)
-}
-
-/// `EpochTimeToDayNumber`
-///
-/// This equation is the equivalent to `ECMAScript`'s `Date(t)`
-pub(crate) fn epoch_time_to_day_number(t: i64) -> i32 {
-    t.div_euclid(MS_PER_DAY as i64) as i32
-}
-
-pub(crate) fn epoch_ms_to_ms_in_day(t: i64) -> u32 {
-    (t.rem_euclid(i64::from(MS_PER_DAY))) as u32
-}
-
-/// Mathematically determine the days in a year.
 pub(crate) fn mathematical_days_in_year(y: i32) -> i32 {
     if y % 4 != 0 {
         365
@@ -87,9 +45,15 @@ pub(crate) const fn epoch_ms_to_epoch_days(ms: i64) -> i32 {
     (ms.div_euclid(MS_PER_DAY as i64)) as i32
 }
 
-pub(crate) fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
-    let epoch_days = epoch_ms_to_epoch_days(epoch_milliseconds);
-    neri_schneider::ymd_from_epoch_days(epoch_days)
+/// `EpochTimeToDayNumber`
+///
+/// This equation is the equivalent to `ECMAScript`'s `Date(t)`
+pub(crate) fn epoch_time_to_day_number(t: i64) -> i32 {
+    t.div_euclid(MS_PER_DAY as i64) as i32
+}
+
+pub(crate) fn epoch_ms_to_ms_in_day(t: i64) -> u32 {
+    (t.rem_euclid(i64::from(MS_PER_DAY))) as u32
 }
 
 pub(crate) fn month_to_day(m: u8, leap_day: u16) -> u16 {
@@ -130,19 +94,6 @@ pub(crate) fn epoch_seconds_to_day_of_month(t: i64) -> u16 {
         - month_to_day(epoch_ms_to_month_in_year(t * 1_000) - 1, leap_day as u16)
 }
 
-// Trait implementations
-
-// EpochTimeTOWeekDay -> REMOVED
-
-// ==== End Date Equations ====
-
-// ==== Begin Calendar Equations ====
-
-// NOTE: below was the iso methods in temporal::calendar -> Need to be reassessed.
-
-/// 12.2.31 `ISODaysInMonth ( year, month )`
-///
-/// NOTE: month is 1 based
 pub(crate) fn iso_days_in_month(year: i32, month: u8) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
@@ -151,11 +102,3 @@ pub(crate) fn iso_days_in_month(year: i32, month: u8) -> u8 {
         _ => unreachable!("ISODaysInMonth panicking is an implementation error."),
     }
 }
-
-// The below calendar abstract equations/utilities were removed for being unused.
-// 12.2.32 `ToISOWeekOfYear ( year, month, day )`
-// 12.2.33 `ISOMonthCode ( month )`
-// 12.2.39 `ToISODayOfYear ( year, month, day )`
-// 12.2.40 `ToISODayOfWeek ( year, month, day )`
-
-// ==== End Calendar Equations ====

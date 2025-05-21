@@ -575,7 +575,7 @@ mod tests {
     }
 
     // /test/built-ins/Temporal/Instant/prototype/add/cross-epoch.js
-    #[cfg(feature = "tzdb")]
+    #[cfg(feature = "fs-provider")]
     #[test]
     fn instant_add_across_epoch() {
         use crate::builtins::core::Duration;
@@ -636,7 +636,7 @@ mod tests {
         assert_eq!(four, two);
 
         // Assert the to_string is valid.
-        let provider = &FsTzdbProvider::default();
+        let provider = &timezone_provider::FsTzdbProvider::default();
         let inst_string = instant
             .to_ixdtf_string_with_provider(None, ToStringRoundingOptions::default(), provider)
             .unwrap();
