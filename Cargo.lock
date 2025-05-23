@@ -283,6 +283,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "depcheck"
+version = "0.0.7"
+
+[[package]]
 name = "diplomat"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
