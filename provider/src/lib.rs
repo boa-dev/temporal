@@ -5,8 +5,10 @@
 //!
 
 mod tzdb;
+pub use tzdb::IanaIdentifierNormalizer;
 
-pub use tzdb::{IanaDataError, IanaIdentifierNormalizer};
+#[cfg(feature = "datagen")]
+pub use tzdb::IanaDataError;
 
 /// A prelude of needed types for interacting with `timezone_provider` data.
 pub mod prelude {
