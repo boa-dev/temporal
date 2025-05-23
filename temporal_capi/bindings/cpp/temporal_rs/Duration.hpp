@@ -17,6 +17,7 @@
 #include "Sign.hpp"
 #include "TemporalError.hpp"
 #include "TimeDuration.hpp"
+#include "ToStringRoundingOptions.hpp"
 
 
 namespace temporal_rs {
@@ -79,6 +80,9 @@ namespace capi {
 
     typedef struct temporal_rs_Duration_subtract_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_subtract_result;
     temporal_rs_Duration_subtract_result temporal_rs_Duration_subtract(const temporal_rs::capi::Duration* self, const temporal_rs::capi::Duration* other);
+
+    typedef struct temporal_rs_Duration_to_string_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_to_string_result;
+    temporal_rs_Duration_to_string_result temporal_rs_Duration_to_string(const temporal_rs::capi::Duration* self, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
 
     void temporal_rs_Duration_destroy(Duration* self);
 
@@ -216,6 +220,15 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
   auto result = temporal_rs::capi::temporal_rs_Duration_subtract(this->AsFFI(),
     other.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Duration::to_string(temporal_rs::ToStringRoundingOptions options) const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  auto result = temporal_rs::capi::temporal_rs_Duration_to_string(this->AsFFI(),
+    options.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline const temporal_rs::capi::Duration* temporal_rs::Duration::AsFFI() const {

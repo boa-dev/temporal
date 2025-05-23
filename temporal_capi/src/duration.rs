@@ -5,6 +5,7 @@ use crate::error::ffi::TemporalError;
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::error::ffi::TemporalError;
+    use crate::options::ffi::ToStringRoundingOptions;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::str::FromStr;
@@ -240,6 +241,19 @@ pub mod ffi {
                 .subtract(&other.0)
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
+        }
+
+        pub fn to_string(
+            &self,
+            options: ToStringRoundingOptions,
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
+            use core::fmt::Write;
+            let string = self.0.as_temporal_string(options.into())?;
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
+
+            Ok(())
         }
 
         // TODO round_with_provider (needs time zone stuff)
