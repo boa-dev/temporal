@@ -1,5 +1,5 @@
 [package]
-name = "bakeddata"
+name = "depcheck"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
@@ -8,9 +8,5 @@ license.workspace = true
 repository.workspace = true
 readme.workspace = true
 exclude.workspace = true
-publish = false
 
 [dependencies]
-databake = "0.2.0"
-serde_json = "1.0.140"
-timezone_provider = { workspace = true, features = ["datagen"] }

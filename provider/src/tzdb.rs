@@ -8,38 +8,44 @@
 //   - IANA TZif data (much harder)
 //
 
+use std::borrow::Cow;
+#[cfg(feature = "datagen")]
 use std::{
-    borrow::Cow,
     collections::{BTreeMap, BTreeSet},
     fs, io,
     path::Path,
 };
 
+#[cfg(feature = "datagen")]
 use parse_zoneinfo::{
     line::{Line, LineParser},
     table::{Table, TableBuilder},
 };
-use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
+
+use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{VarZeroVec, ZeroVec};
 
 /// A data struct for IANA identifier normalization
-#[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
-#[databake(path = timezone_provider)]
-#[derive(serde::Deserialize)]
+#[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(
+    feature = "datagen",
+    derive(serde::Serialize, yoke::Yokeable, serde::Deserialize, databake::Bake)
+)]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider))]
 pub struct IanaIdentifierNormalizer<'data> {
     /// TZDB version
     pub version: Cow<'data, str>,
     /// An index to the location of the normal identifier.
-    #[serde(borrow)]
+    #[cfg_attr(feature = "datagen", serde(borrow))]
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
     /// The normalized IANA identifier
-    #[serde(borrow)]
+    #[cfg_attr(feature = "datagen", serde(borrow))]
     pub normalized_identifiers: VarZeroVec<'data, str>,
 }
 
 // ==== End Data marker implementation ====
-
+#[cfg(feature = "datagen")]
 const ZONE_INFO_FILES: [&str; 9] = [
     "africa",
     "antarctica",
@@ -52,11 +58,13 @@ const ZONE_INFO_FILES: [&str; 9] = [
     "southamerica",
 ];
 
+#[cfg(feature = "datagen")]
 pub struct TzdbDataProvider {
     version: String,
     data: Table,
 }
 
+#[cfg(feature = "datagen")]
 impl TzdbDataProvider {
     pub fn new(tzdata: &Path) -> Result<Self, io::Error> {
         let parser = LineParser::default();
@@ -91,12 +99,14 @@ impl TzdbDataProvider {
 // ==== Begin DataProvider impl ====
 
 #[derive(Debug)]
+#[cfg(feature = "datagen")]
 pub enum IanaDataError {
     Io(io::Error),
-    Build(ZeroTrieBuildError),
+    Build(zerotrie::ZeroTrieBuildError),
 }
 
 impl IanaIdentifierNormalizer<'_> {
+    #[cfg(feature = "datagen")]
     pub fn build(tzdata: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataProvider::new(tzdata).unwrap();
         let mut identifiers = BTreeSet::default();
