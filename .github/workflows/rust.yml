@@ -35,6 +35,8 @@ jobs:
         run: cargo ws exec cargo clippy --all-features --all-targets
       - name: Check clippy (No features)
         run: cargo ws exec cargo clippy --no-default-features --all-targets
+      - name: Check dependencies
+        run: cargo run -p depcheck
 
   msrv:
     name: MSRV
