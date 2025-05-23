@@ -207,11 +207,38 @@ pub mod ffi {
         pub fn milliseconds(&self) -> i64 {
             self.0.milliseconds()
         }
+
+        /// Deprecated, use saturating version instead
         pub fn microseconds(&self) -> Option<f64> {
             f64::from_i128(self.0.microseconds())
         }
+
+        /// Deprecated, use saturating version instead
         pub fn nanoseconds(&self) -> Option<f64> {
             f64::from_i128(self.0.nanoseconds())
+        }
+
+        /// Spec returns a Number here; we should saturate towards Infinity
+        /// since the spec uses 𝔽
+        pub fn microseconds_saturated(&self) -> f64 {
+            let mis = self.0.microseconds();
+            if let Some(mis) = f64::from_i128(mis) {
+                mis
+            } else if mis > 0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            }
+        }
+        pub fn nanoseconds_saturated(&self) -> f64 {
+            let ns = self.0.nanoseconds();
+            if let Some(ns) = f64::from_i128(ns) {
+                ns
+            } else if ns > 0 {
+                f64::INFINITY
+            } else {
+                f64::NEG_INFINITY
+            }
         }
 
         pub fn sign(&self) -> Sign {

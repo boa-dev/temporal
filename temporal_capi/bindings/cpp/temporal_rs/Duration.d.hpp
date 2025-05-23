@@ -67,9 +67,23 @@ public:
 
   inline int64_t milliseconds() const;
 
+  /**
+   * Deprecated, use saturating version instead
+   */
   inline std::optional<double> microseconds() const;
 
+  /**
+   * Deprecated, use saturating version instead
+   */
   inline std::optional<double> nanoseconds() const;
+
+  /**
+   * Spec returns a Number here; we should saturate towards Infinity
+   * since the spec uses 𝔽
+   */
+  inline double microseconds_saturated() const;
+
+  inline double nanoseconds_saturated() const;
 
   inline temporal_rs::Sign sign() const;
 
