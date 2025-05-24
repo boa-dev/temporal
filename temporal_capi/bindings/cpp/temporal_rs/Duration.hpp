@@ -61,11 +61,9 @@ namespace capi {
 
     int64_t temporal_rs_Duration_milliseconds(const temporal_rs::capi::Duration* self);
 
-    typedef struct temporal_rs_Duration_microseconds_result {union {double ok; }; bool is_ok;} temporal_rs_Duration_microseconds_result;
-    temporal_rs_Duration_microseconds_result temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
+    double temporal_rs_Duration_microseconds(const temporal_rs::capi::Duration* self);
 
-    typedef struct temporal_rs_Duration_nanoseconds_result {union {double ok; }; bool is_ok;} temporal_rs_Duration_nanoseconds_result;
-    temporal_rs_Duration_nanoseconds_result temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
+    double temporal_rs_Duration_nanoseconds(const temporal_rs::capi::Duration* self);
 
     temporal_rs::capi::Sign temporal_rs_Duration_sign(const temporal_rs::capi::Duration* self);
 
@@ -180,14 +178,14 @@ inline int64_t temporal_rs::Duration::milliseconds() const {
   return result;
 }
 
-inline std::optional<double> temporal_rs::Duration::microseconds() const {
+inline double temporal_rs::Duration::microseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_microseconds(this->AsFFI());
-  return result.is_ok ? std::optional<double>(result.ok) : std::nullopt;
+  return result;
 }
 
-inline std::optional<double> temporal_rs::Duration::nanoseconds() const {
+inline double temporal_rs::Duration::nanoseconds() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_nanoseconds(this->AsFFI());
-  return result.is_ok ? std::optional<double>(result.ok) : std::nullopt;
+  return result;
 }
 
 inline temporal_rs::Sign temporal_rs::Duration::sign() const {

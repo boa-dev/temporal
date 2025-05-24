@@ -67,9 +67,9 @@ public:
 
   inline int64_t milliseconds() const;
 
-  inline std::optional<double> microseconds() const;
+  inline double microseconds() const;
 
-  inline std::optional<double> nanoseconds() const;
+  inline double nanoseconds() const;
 
   inline temporal_rs::Sign sign() const;
 
