@@ -207,11 +207,19 @@ pub mod ffi {
         pub fn milliseconds(&self) -> i64 {
             self.0.milliseconds()
         }
-        pub fn microseconds(&self) -> Option<f64> {
-            f64::from_i128(self.0.microseconds())
+        pub fn microseconds(&self) -> f64 {
+            // The error case should never occur since
+            // duration values are clamped within range
+            //
+            // https://github.com/boa-dev/temporal/issues/189
+            f64::from_i128(self.0.microseconds()).unwrap_or(0.)
         }
-        pub fn nanoseconds(&self) -> Option<f64> {
-            f64::from_i128(self.0.nanoseconds())
+        pub fn nanoseconds(&self) -> f64 {
+            // The error case should never occur since
+            // duration values are clamped within range
+            //
+            // https://github.com/boa-dev/temporal/issues/189
+            f64::from_i128(self.0.nanoseconds()).unwrap_or(0.)
         }
 
         pub fn sign(&self) -> Sign {
