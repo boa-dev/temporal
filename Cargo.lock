@@ -120,7 +120,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "databake",
  "serde_json",
@@ -284,7 +284,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.0.7"
+version = "0.0.8"
 
 [[package]]
 name = "diplomat"
@@ -300,7 +300,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "diplomat-tool",
 ]
@@ -832,7 +832,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -844,7 +844,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "combine",
  "core_maths",
@@ -864,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "timezone_provider"
-version = "0.0.7"
+version = "0.0.8"
 dependencies = [
  "databake",
  "parse-zoneinfo",
