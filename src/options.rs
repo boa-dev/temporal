@@ -457,23 +457,22 @@ impl Unit {
     //
     // Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
     #[inline]
-    #[must_use]
-    pub fn larger(u1: Unit, u2: Unit) -> Unit {
+    pub fn larger(u1: Unit, u2: Unit) -> TemporalResult<Unit> {
         // 1. For each row of Table 21, except the header row, in table order, do
         //     a. Let unit be the value in the "Value" column of the row.
         for unit in UNIT_VALUE_TABLE {
             // b. If u1 is unit, return unit.
             if u1 == unit {
-                return unit;
+                return Ok(unit);
             }
             // c. If u2 is unit, return unit.
             if u2 == unit {
-                return unit;
+                return Ok(unit);
             }
         }
 
         // NOTE(HalidOdat): deviation from specification.
-        Unit::Auto
+        Err(TemporalError::assert().with_message("auto cannot be used for comparison"))
     }
 }
 

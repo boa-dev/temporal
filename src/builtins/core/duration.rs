@@ -655,7 +655,7 @@ impl Duration {
         let existing_largest_unit = self.default_largest_unit();
 
         // 18. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
-        let default_largest_unit = Unit::larger(existing_largest_unit, smallest_unit);
+        let default_largest_unit = Unit::larger(existing_largest_unit, smallest_unit)?;
 
         let largest_unit = match options.largest_unit {
             // 19. If largestUnit is unset, then
@@ -675,7 +675,7 @@ impl Duration {
         }
 
         // 22. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
-        if Unit::larger(largest_unit, smallest_unit) != largest_unit {
+        if Unit::larger(largest_unit, smallest_unit)? != largest_unit {
             return Err(
                 TemporalError::range().with_message("smallestUnit is larger than largestUnit.")
             );
@@ -755,10 +755,13 @@ impl Duration {
                     .add_normalized_time_duration(internal_duration.normalized_time_duration());
 
                 // c. Let calendar be plainRelativeTo.[[Calendar]].
-                let calendar = plain_relative_to.calendar().clone();
+                let calendar = plain_relative_to.calendar();
 
                 // d. Let dateDuration be ! AdjustDateDurationRecord(internalDuration.[[Date]], targetTime.[[Days]]).
-                let date_duration = self.date.adjust(target_time_days, None, None)?;
+                let date_duration =
+                    internal_duration
+                        .date()
+                        .adjust(target_time_days, None, None)?;
 
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = calendar.date_add(
@@ -775,11 +778,12 @@ impl Duration {
                 let target_date_time = IsoDateTime::new_unchecked(target_date.iso, target_time.iso);
 
                 // h. Set internalDuration to ? DifferencePlainDateTimeWithRounding(isoDateTime, targetDateTime, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
-                let internal_duration = iso_date_time.diff(
-                    &target_date_time,
-                    &calendar,
-                    resolved_options.largest_unit,
-                )?;
+                let internal_duration =
+                    PlainDateTime::new_unchecked(iso_date_time, calendar.clone())
+                        .diff_dt_with_rounding(
+                            &PlainDateTime::new_unchecked(target_date_time, calendar.clone()),
+                            resolved_options,
+                        )?;
 
                 // i. Return ? TemporalDurationFromInternal(internalDuration, largestUnit).
                 return Duration::from_normalized(internal_duration, resolved_options.largest_unit);
