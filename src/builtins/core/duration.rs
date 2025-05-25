@@ -606,7 +606,7 @@ impl Duration {
     ///
     /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal.duration.prototype.round>
     ///
-    // Spec last accesed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
+    // Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
     #[inline]
     pub fn round_with_provider(
         &self,

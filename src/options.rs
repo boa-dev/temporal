@@ -335,7 +335,7 @@ impl UnitGroup {
 ///
 /// Spec: <https://tc39.es/proposal-temporal/#table-temporal-units>
 //
-// Spec last accesed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
+// Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
 const UNIT_VALUE_TABLE: [Unit; 10] = [
     Unit::Year,
     Unit::Month,
@@ -455,7 +455,7 @@ impl Unit {
     ///
     /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-largeroftwotemporalunits>
     //
-    // Spec last accesed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
+    // Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
     #[inline]
     #[must_use]
     pub fn larger(u1: Unit, u2: Unit) -> Unit {
@@ -472,7 +472,7 @@ impl Unit {
             }
         }
 
-        // TODO: Is this correct???
+        // NOTE(HalidOdat): deviation from specification.
         Unit::Auto
     }
 }
