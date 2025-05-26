@@ -105,7 +105,9 @@ impl PlainTime {
         self.iso.is_valid()
     }
 
-    /// Specification equivalent to `AddTime`
+    /// Specification equivalent to `4.5.15 AddTime ( time, timeDuration )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-addtime>
     pub(crate) fn add_normalized_time_duration(&self, norm: NormalizedTimeDuration) -> (i64, Self) {
         // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
         let second = i64::from(self.second()) + norm.seconds();
