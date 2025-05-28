@@ -14,7 +14,7 @@ use crate::{
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
-    TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
 use super::{DateDuration, Duration, Sign, TimeDuration};
@@ -782,12 +782,14 @@ impl NormalizedDurationRecord {
     //
     // spec(2025-05-28): https://github.com/tc39/proposal-temporal/tree/69001e954c70e29ba3d2e6433bc7ece2a037377a
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     fn bubble_relative_duration(
         &self,
         sign: Sign,
         nudged_epoch_ns: i128,
-        date_time: &PlainDateTime,
+        iso_date_time: &IsoDateTime,
         time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        calendar: &Calendar,
         largest_unit: Unit,
         smallest_unit: Unit,
     ) -> TemporalResult<NormalizedDurationRecord> {
@@ -858,14 +860,14 @@ impl NormalizedDurationRecord {
                 };
 
                 // iv. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
-                let end = date_time.calendar().date_add(
-                    &date_time.iso.date,
+                let end = calendar.date_add(
+                    &iso_date_time.date,
                     &Duration::from(end_duration),
                     ArithmeticOverflow::Constrain,
                 )?;
 
                 // v. Let endDateTime be CombineISODateAndTimeRecord(end, isoDateTime.[[Time]]).
-                let end_date_time = IsoDateTime::new_unchecked(end.iso, date_time.iso.time);
+                let end_date_time = IsoDateTime::new_unchecked(end.iso, iso_date_time.time);
 
                 let end_epoch_ns = match time_zone {
                     // vi. If timeZone is unset, then
@@ -951,8 +953,9 @@ impl NormalizedDurationRecord {
             duration = duration.bubble_relative_duration(
                 sign,
                 nudge_result.nudge_epoch_ns,
-                dt,
+                &dt.iso,
                 timezone_record,
+                dt.calendar(),
                 options.largest_unit,
                 start_unit,
             )?
