@@ -4,9 +4,8 @@
 //! to full detail, but instead attempts to compress TZif data into
 //! a functional, data driven equivalent.
 
-use alloc::borrow::Cow;
 #[cfg(feature = "datagen")]
-use alloc::{string::String, vec::Vec};
+use alloc::vec::Vec;
 
 #[cfg(feature = "datagen")]
 use std::{collections::BTreeMap, path::Path};
@@ -48,7 +47,7 @@ pub struct ZeroTzif<'data> {
     pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
     pub types: ZeroVec<'data, LocalTimeRecord>,
-    pub posix: Cow<'data, str>,
+    pub posix: &'data str,
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
@@ -82,7 +81,7 @@ impl ZeroTzif<'_> {
         let mapped_local_records: Vec<LocalTimeRecord> =
             tzif.local_time_types.iter().map(Into::into).collect();
         let types = ZeroVec::alloc_from_slice(&mapped_local_records);
-        let posix = String::from("TODO").into();
+        let posix = "TODO";
 
         Self {
             transitions,
