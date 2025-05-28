@@ -124,8 +124,10 @@ jobs:
       - name: Check diff
         run: git diff --exit-code
       # Todo: eventually we should check in bindings and test them
-      - name: Makefile tests
-        run: cd temporal_capi/cpp_tests && make
+      - name: FFI tests
+        run: |
+          pushd temporal_capi/tests/c && make && popd
+          pushd temporal_capi/tests/cpp && make && popd
 
       # There's no guarantee that dependencies are no_std unless you test with a toolchain without `std`
       - name: Install no_std toolchain
