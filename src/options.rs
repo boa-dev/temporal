@@ -337,7 +337,7 @@ impl UnitGroup {
 /// Spec: <https://tc39.es/proposal-temporal/#table-temporal-units>
 //
 // Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
-const UNIT_VALUE_TABLE: [Unit; 10] = [
+pub(crate) const UNIT_VALUE_TABLE: [Unit; 10] = [
     Unit::Year,
     Unit::Month,
     Unit::Week,
@@ -474,6 +474,28 @@ impl Unit {
 
         // NOTE(HalidOdat): deviation from specification.
         Err(TemporalError::assert().with_message("auto cannot be used for comparison"))
+    }
+
+    /// Helper method for getting the index into the [`UNIT_VALUE_TABLE`].
+    ///
+    /// # Error
+    ///
+    /// If the given [`Unit`] is [`Unit::Auto`].
+    pub(crate) fn table_index(&self) -> TemporalResult<usize> {
+        // Taken from: <https://tc39.es/proposal-temporal/#sec-temporal-bubblerelativeduration>
+        //
+        // spec(2025-05-28): https://github.com/tc39/proposal-temporal/tree/69001e954c70e29ba3d2e6433bc7ece2a037377a
+        //
+        // 2. Let largestUnitIndex be the ordinal index of the row of Table 21 whose "Value" column contains largestUnit.
+        // 3. Let smallestUnitIndex be the ordinal index of the row of Table 21 whose "Value" column contains smallestUnit.
+        for (i, unit) in UNIT_VALUE_TABLE.iter().enumerate() {
+            if self == unit {
+                return Ok(i);
+            }
+        }
+
+        Err(TemporalError::assert()
+            .with_message("auto does not exist in the spec Table 21 Value column"))
     }
 }
 
