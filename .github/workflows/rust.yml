@@ -124,7 +124,7 @@ jobs:
       - name: Check diff
         run: git diff --exit-code
       # Todo: eventually we should check in bindings and test them
-      - name: FII tests
+      - name: FFI tests
         run: |
           pushd temporal_capi/tests/c && make && popd
           pushd temporal_capi/tests/cpp && make && popd
