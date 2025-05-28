@@ -49,13 +49,21 @@ impl DateDuration {
 
 impl DateDuration {
     /// Creates a new `DateDuration` with provided values.
+    ///
+    /// `7.5.9 CreateDateDurationRecord ( years, months, weeks, days )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-createdatedurationrecord>
+    //
+    // spec(2025-05-28): https://github.com/tc39/proposal-temporal/tree/69001e954c70e29ba3d2e6433bc7ece2a037377a
     #[inline]
     pub fn new(years: i64, months: i64, weeks: i64, days: i64) -> TemporalResult<Self> {
-        let result = Self::new_unchecked(years, months, weeks, days);
+        // 1. If IsValidDuration(years, months, weeks, days, 0, 0, 0, 0, 0, 0) is false, throw a RangeError exception.
         if !super::is_valid_duration(years, months, weeks, days, 0, 0, 0, 0, 0, 0) {
             return Err(TemporalError::range().with_message("Invalid DateDuration."));
         }
-        Ok(result)
+
+        // 2. Return Date Duration Record { [[Years]]: ℝ(𝔽(years)), [[Months]]: ℝ(𝔽(months)), [[Weeks]]: ℝ(𝔽(weeks)), [[Days]]: ℝ(𝔽(days))  }.
+        Ok(Self::new_unchecked(years, months, weeks, days))
     }
 
     /// Returns a negated `DateDuration`.
@@ -123,7 +131,11 @@ impl DateDuration {
         Ok(self.days + ymd_in_days)
     }
 
-    /// AdjustDateDurationRecord
+    /// `7.5.10 AdjustDateDurationRecord ( dateDuration, days [ , weeks [ , months ] ] )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-adjustdatedurationrecord>
+    //
+    // spec(2025-05-28): https://github.com/tc39/proposal-temporal/tree/69001e954c70e29ba3d2e6433bc7ece2a037377a
     pub(crate) fn adjust(
         &self,
         days: i64,
@@ -131,10 +143,12 @@ impl DateDuration {
         months: Option<i64>,
     ) -> TemporalResult<Self> {
         // 1. If weeks is not present, set weeks to dateDuration.[[Weeks]].
-        // 2. If months is not present, set months to dateDuration.[[Months]].
-        // 3. Return ? CreateDateDurationRecord(dateDuration.[[Years]], months, weeks, days).
         let weeks = weeks.unwrap_or(self.weeks);
+
+        // 2. If months is not present, set months to dateDuration.[[Months]].
         let months = months.unwrap_or(self.months);
+
+        // 3. Return ? CreateDateDurationRecord(dateDuration.[[Years]], months, weeks, days).
         Ok(Self {
             years: self.years,
             months,
