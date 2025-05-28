@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -58,6 +59,10 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> until(const temporal_rs::Instant& other, temporal_rs::DifferenceSettings settings) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options) const;
+
+  inline int8_t compare(const temporal_rs::Instant& other) const;
+
+  inline bool equals(const temporal_rs::Instant& other) const;
 
   inline int64_t epoch_milliseconds() const;
 

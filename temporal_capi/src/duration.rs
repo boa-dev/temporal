@@ -5,9 +5,10 @@ use crate::error::ffi::TemporalError;
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::error::ffi::TemporalError;
+    use crate::options::ffi::ToStringRoundingOptions;
     use alloc::boxed::Box;
     use alloc::string::String;
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
     use diplomat_runtime::DiplomatOption;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
     use num_traits::FromPrimitive;
@@ -154,9 +155,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::Duration::from_str(s)
+            temporal_rs::Duration::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
@@ -208,11 +207,19 @@ pub mod ffi {
         pub fn milliseconds(&self) -> i64 {
             self.0.milliseconds()
         }
-        pub fn microseconds(&self) -> Option<f64> {
-            f64::from_i128(self.0.microseconds())
+        pub fn microseconds(&self) -> f64 {
+            // The error case should never occur since
+            // duration values are clamped within range
+            //
+            // https://github.com/boa-dev/temporal/issues/189
+            f64::from_i128(self.0.microseconds()).unwrap_or(0.)
         }
-        pub fn nanoseconds(&self) -> Option<f64> {
-            f64::from_i128(self.0.nanoseconds())
+        pub fn nanoseconds(&self) -> f64 {
+            // The error case should never occur since
+            // duration values are clamped within range
+            //
+            // https://github.com/boa-dev/temporal/issues/189
+            f64::from_i128(self.0.nanoseconds()).unwrap_or(0.)
         }
 
         pub fn sign(&self) -> Sign {
@@ -242,6 +249,19 @@ pub mod ffi {
                 .subtract(&other.0)
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
+        }
+
+        pub fn to_string(
+            &self,
+            options: ToStringRoundingOptions,
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
+            use core::fmt::Write;
+            let string = self.0.as_temporal_string(options.into())?;
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
+
+            Ok(())
         }
 
         // TODO round_with_provider (needs time zone stuff)

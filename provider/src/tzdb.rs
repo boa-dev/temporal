@@ -1,4 +1,4 @@
-//! `temporal_provider` is the core data provider implementations for `temporal_rs`
+//! `timezone_provider` is the core data provider implementations for `temporal_rs`
 
 // What are we even doing here? Why are providers needed?
 //
@@ -8,58 +8,75 @@
 //   - IANA TZif data (much harder)
 //
 
+use alloc::borrow::Cow;
+
+#[cfg(feature = "datagen")]
+use alloc::string::String;
+#[cfg(feature = "datagen")]
+use alloc::vec::Vec;
+
+#[cfg(feature = "datagen")]
 use std::{
-    borrow::Cow,
+    borrow::ToOwned,
     collections::{BTreeMap, BTreeSet},
     fs, io,
     path::Path,
 };
 
-use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
+use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{VarZeroVec, ZeroVec};
+#[cfg(feature = "datagen")]
 use zoneinfo_rs::{ZoneInfoData, ZoneInfoError};
 
 /// A data struct for IANA identifier normalization
-#[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
-#[databake(path = temporal_provider)]
-#[derive(serde::Deserialize)]
+#[derive(PartialEq, Debug, Clone)]
+#[cfg_attr(
+    feature = "datagen",
+    derive(serde::Serialize, yoke::Yokeable, serde::Deserialize, databake::Bake)
+)]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider))]
 pub struct IanaIdentifierNormalizer<'data> {
     /// TZDB version
     pub version: Cow<'data, str>,
     /// An index to the location of the normal identifier.
-    #[serde(borrow)]
+    #[cfg_attr(feature = "datagen", serde(borrow))]
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
     /// The normalized IANA identifier
-    #[serde(borrow)]
+    #[cfg_attr(feature = "datagen", serde(borrow))]
     pub normalized_identifiers: VarZeroVec<'data, str>,
 }
 
 // ==== End Data marker implementation ====
 
 #[derive(Debug)]
+#[cfg(feature = "datagen")]
 pub enum TzdbDataSourceError {
     Io(io::Error),
     ZoneInfo(ZoneInfoError),
 }
 
+#[cfg(feature = "datagen")]
 impl From<io::Error> for TzdbDataSourceError {
     fn from(value: io::Error) -> Self {
         Self::Io(value)
     }
 }
 
+#[cfg(feature = "datagen")]
 impl From<ZoneInfoError> for TzdbDataSourceError {
     fn from(value: ZoneInfoError) -> Self {
         Self::ZoneInfo(value)
     }
 }
 
+#[cfg(feature = "datagen")]
 pub struct TzdbDataSource {
     pub version: String,
     pub data: ZoneInfoData,
 }
 
+#[cfg(feature = "datagen")]
 impl TzdbDataSource {
     pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
         let version_file = tzdata_path.join("version");
@@ -72,13 +89,15 @@ impl TzdbDataSource {
 // ==== Begin DataProvider impl ====
 
 #[derive(Debug)]
+#[cfg(feature = "datagen")]
 pub enum IanaDataError {
     Io(io::Error),
-    Build(ZeroTrieBuildError),
     Provider(TzdbDataSourceError),
+    Build(zerotrie::ZeroTrieBuildError),
 }
 
 impl IanaIdentifierNormalizer<'_> {
+    #[cfg(feature = "datagen")]
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;

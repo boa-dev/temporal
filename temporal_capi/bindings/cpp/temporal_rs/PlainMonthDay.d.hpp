@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -37,6 +38,10 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
 
+  inline bool equals(const temporal_rs::PlainMonthDay& other) const;
+
+  inline static int8_t compare(const temporal_rs::PlainMonthDay& one, const temporal_rs::PlainMonthDay& two);
+
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
@@ -51,7 +56,7 @@ public:
 
   inline std::string month_code() const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> year) const;
 
   inline const temporal_rs::capi::PlainMonthDay* AsFFI() const;
   inline temporal_rs::capi::PlainMonthDay* AsFFI();

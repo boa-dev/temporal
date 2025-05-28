@@ -254,7 +254,9 @@ impl NormalizedDurationRecord {
         Ok(Self { date, norm })
     }
 
-    /// Equivalent of 7.5.6
+    /// Equivalent of `7.5.6 ToInternalDurationRecordWith24HourDays ( duration )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-tointernaldurationrecordwith24hourdays>
     pub(crate) fn from_duration_with_24_hour_days(duration: &Duration) -> TemporalResult<Self> {
         // 1. Let timeDuration be TimeDurationFromComponents(duration.[[Hours]], duration.[[Minutes]],
         // duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).

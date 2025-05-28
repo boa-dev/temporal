@@ -14,7 +14,7 @@ pub mod ffi {
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
 
     #[diplomat::opaque]
     pub struct PlainYearMonth(pub(crate) temporal_rs::PlainYearMonth);
@@ -50,9 +50,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::PlainYearMonth::from_str(s)
+            temporal_rs::PlainYearMonth::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
@@ -160,9 +158,18 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
-        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
+        }
+        pub fn to_plain_date(
+            &self,
+            day: Option<PartialDate>,
+        ) -> Result<Box<PlainDate>, TemporalError> {
             self.0
-                .to_plain_date()
+                .to_plain_date(day.map(|d| d.try_into()).transpose()?)
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }

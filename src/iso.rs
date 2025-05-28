@@ -38,7 +38,7 @@ use crate::{
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
     rounding::{IncrementRounder, Round},
     temporal_assert,
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};

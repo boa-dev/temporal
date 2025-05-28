@@ -4,15 +4,28 @@
 //! to full detail, but instead attempts to compress TZif data into
 //! a functional, data driven equivalent.
 
-use std::{borrow::Cow, collections::BTreeMap, path::Path};
-use zerotrie::{ZeroAsciiIgnoreCaseTrie, ZeroTrieBuildError};
+use alloc::borrow::Cow;
+#[cfg(feature = "datagen")]
+use alloc::{string::String, vec::Vec};
+
+#[cfg(feature = "datagen")]
+use std::{collections::BTreeMap, path::Path};
+use zerotrie::ZeroAsciiIgnoreCaseTrie;
+#[cfg(feature = "datagen")]
+use zerotrie::ZeroTrieBuildError;
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
+#[cfg(feature = "datagen")]
 use zoneinfo_rs::{compiler::CompiledTransitions, ZoneInfoCompiler, ZoneInfoData};
 
+#[cfg(feature = "datagen")]
 use crate::tzdb::TzdbDataSource;
 
-#[derive(Debug, Clone, yoke::Yokeable, databake::Bake, serde::Serialize)]
-#[databake(path = temporal_provider::tzif)]
+#[derive(Debug, Clone)]
+#[cfg_attr(
+    feature = "datagen",
+    derive(yoke::Yokeable, serde::Serialize, databake::Bake)
+)]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
 pub struct ZoneInfoProvider<'data> {
     // IANA identifier map to TZif index.
     pub ids: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
@@ -21,10 +34,15 @@ pub struct ZoneInfoProvider<'data> {
 }
 
 #[zerovec::make_varule(ZeroTzifULE)]
-#[derive(PartialEq, Debug, Clone, yoke::Yokeable, serde::Serialize, databake::Bake)]
+#[derive(PartialEq, Debug, Clone)]
 #[zerovec::skip_derive(Ord)]
-#[zerovec::derive(Debug, Serialize)]
-#[databake(path = temporal_provider::tzif)]
+#[zerovec::derive(Debug)]
+#[cfg_attr(
+    feature = "datagen",
+    derive(yoke::Yokeable, serde::Serialize, databake::Bake)
+)]
+#[cfg_attr(feature = "datagen", zerovec::derive(Serialize))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
 pub struct ZeroTzif<'data> {
     pub transitions: ZeroVec<'data, i64>,
     pub transition_types: ZeroVec<'data, u8>,
@@ -34,24 +52,18 @@ pub struct ZeroTzif<'data> {
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
-#[derive(
-    PartialEq,
-    Eq,
-    Debug,
-    Clone,
-    Copy,
-    PartialOrd,
-    Ord,
-    yoke::Yokeable,
-    serde::Serialize,
-    databake::Bake,
+#[derive(PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
+#[cfg_attr(
+    feature = "datagen",
+    derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[databake(path = temporal_provider::tzif)]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
 pub struct LocalTimeRecord {
     pub offset: i64,
     pub is_dst: bool,
 }
 
+#[cfg(feature = "datagen")]
 impl From<&zoneinfo_rs::tzif::LocalTimeRecord> for LocalTimeRecord {
     fn from(value: &zoneinfo_rs::tzif::LocalTimeRecord) -> Self {
         Self {
@@ -62,6 +74,7 @@ impl From<&zoneinfo_rs::tzif::LocalTimeRecord> for LocalTimeRecord {
 }
 
 impl ZeroTzif<'_> {
+    #[cfg(feature = "datagen")]
     fn from_transition_data(data: &CompiledTransitions) -> Self {
         let tzif = data.to_v2_data_block();
         let transitions = ZeroVec::alloc_from_slice(&tzif.transition_times);
@@ -80,12 +93,14 @@ impl ZeroTzif<'_> {
     }
 }
 
+#[cfg(feature = "datagen")]
 #[derive(Debug)]
 pub enum ZoneInfoDataError {
     Build(ZeroTrieBuildError),
 }
 
 impl ZoneInfoProvider<'_> {
+    #[cfg(feature = "datagen")]
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
         let tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
         let compiled_transitions = ZoneInfoCompiler::new(tzdb_source.data.clone()).build();

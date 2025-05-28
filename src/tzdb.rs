@@ -38,12 +38,12 @@ use core::cell::RefCell;
 
 use combine::Parser;
 
-use temporal_provider::prelude::*;
+use timezone_provider::prelude::*;
 
 use tzif::{
     self,
     data::{
-        posix::{DstTransitionInfo, PosixTzString, TransitionDay, ZoneVariantInfo},
+        posix::{DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDay},
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -52,11 +52,11 @@ use tzif::{
 use crate::{
     iso::IsoDateTime,
     provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
 
-temporal_provider::iana_normalizer_singleton!();
+timezone_provider::iana_normalizer_singleton!();
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
@@ -71,14 +71,14 @@ pub struct LocalTimeRecord {
 }
 
 impl LocalTimeRecord {
-    fn from_daylight_savings_time(info: &ZoneVariantInfo) -> Self {
+    fn from_daylight_savings_time(info: &TimeZoneVariantInfo) -> Self {
         Self {
             is_dst: true,
             offset: -info.offset.0,
         }
     }
 
-    fn from_standard_time(info: &ZoneVariantInfo) -> Self {
+    fn from_standard_time(info: &TimeZoneVariantInfo) -> Self {
         Self {
             is_dst: false,
             offset: -info.offset.0,
