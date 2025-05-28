@@ -14,7 +14,7 @@ use crate::{
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
-    temporal_assert, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
 use super::{DateDuration, Duration, Sign, TimeDuration};
@@ -843,7 +843,7 @@ impl NormalizedDurationRecord {
                     // iii. Else,
                     unit => {
                         // 1. Assert: unit is week.
-                        temporal_assert!(unit == Unit::Week);
+                        debug_assert!(unit == Unit::Week);
 
                         // 2. Let weeks be duration.[[Date]].[[Weeks]] + sign.
                         let weeks = self
