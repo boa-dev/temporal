@@ -26,9 +26,10 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
                 }
             }
         };
-        let generated = baked_macro.to_string();
+        let file = syn::parse_file(&baked_macro.to_string()).unwrap();
+        let formatted = prettyplease::unparse(&file);
         let mut file = BufWriter::new(File::create(generated_file)?);
-        write!(file, "//@generated\n\n{generated}")
+        write!(file, "//@generated\n// (by `bakeddata` binary in temporal_rs, using `databake`)\n\n{formatted}")
     }
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()> {
