@@ -6,9 +6,10 @@
 #include <stdio.h>
 
 int main() {
-    Calendar* cal = temporal_rs_Calendar_create(AnyCalendarKind_Gregorian);
-    
-    temporal_rs_PlainDate_create_with_overflow_result result = temporal_rs_PlainDate_create_with_overflow(2025, 1, 33, cal, ArithmeticOverflow_Constrain);
+    Calendar *cal = temporal_rs_Calendar_create(AnyCalendarKind_Gregorian);
+
+    temporal_rs_PlainDate_create_with_overflow_result result =
+        temporal_rs_PlainDate_create_with_overflow(2025, 1, 33, cal, ArithmeticOverflow_Constrain);
 
     if (!result.is_ok) {
         fprintf(stderr, "failed to create a PlainDate\n");
@@ -16,7 +17,7 @@ int main() {
         return 1;
     }
 
-    PlainDate* date = result.ok;
+    PlainDate *date = result.ok;
     char formatted[40];
     DiplomatWrite write = diplomat_simple_write(formatted, 40);
 
