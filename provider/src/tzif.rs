@@ -118,6 +118,8 @@ impl ZoneInfoProvider<'_> {
             identifiers.insert(link, zone);
         }
 
+        primary_zones.sort();
+
         let identifier_map: BTreeMap<Vec<u8>, usize> = identifiers
             .into_iter()
             .map(|(id, zoneid)| {
