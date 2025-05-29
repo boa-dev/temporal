@@ -1,0 +1,23 @@
+{
+  "ids": [
+    "africa/blantyre",
+    "africa/bujumbura",
+    "africa/gaborone",
+    "africa/harare",
+    "africa/kigali",
+    "africa/lubumbashi",
+    "africa/lusaka",
+    "africa/maputo"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 7818
+      }
+    ]
+  }
+}

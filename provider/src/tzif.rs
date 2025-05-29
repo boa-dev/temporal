@@ -32,6 +32,13 @@ pub struct ZoneInfoProvider<'data> {
     pub tzifs: VarZeroVec<'data, ZeroTzifULE, Index32>,
 }
 
+impl ZoneInfoProvider<'_> {
+    pub fn get(&self, identifier: &str) -> Option<&ZeroTzifULE> {
+        let idx = self.ids.get(identifier)?;
+        self.tzifs.get(idx)
+    }
+}
+
 #[zerovec::make_varule(ZeroTzifULE)]
 #[derive(PartialEq, Debug, Clone)]
 #[zerovec::skip_derive(Ord)]
@@ -117,6 +124,7 @@ impl ZoneInfoProvider<'_> {
         for (link, zone) in links.into_iter() {
             identifiers.insert(link, zone);
         }
+        primary_zones.sort();
 
         primary_zones.sort();
 

@@ -1,0 +1,29 @@
+{
+  "ids": [
+    "asia/bangkok",
+    "asia/phnom_penh",
+    "asia/vientiane",
+    "indian/christmas"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      0,
+      1
+    ],
+    "transitions": [
+      -2840164924,
+      -1570084924
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 24124
+      },
+      {
+        "is_dst": false,
+        "offset": 25200
+      }
+    ]
+  }
+}
