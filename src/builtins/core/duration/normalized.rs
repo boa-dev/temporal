@@ -909,58 +909,68 @@ impl NormalizedDurationRecord {
         Ok(duration)
     }
 
+    /// `7.5.37 RoundRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone, calendar, largestUnit, increment, smallestUnit, roundingMode )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-roundrelativeduration>
+    //
+    // spec(2025-05-29): https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254
+    //
     // TODO: Potentially revisit and optimize
-    // 7.5.44 RoundRelativeDuration ( duration, destEpochNs, dateTime, calendarRec, timeZoneRec, largestUnit, increment, smallestUnit, roundingMode )
     #[inline]
     pub(crate) fn round_relative_duration(
         &self,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        timezone_record: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
+        let duration = *self;
+
         // 1. Let irregularLengthUnit be false.
         // 2. If IsCalendarUnit(smallestUnit) is true, set irregularLengthUnit to true.
-        // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
-        let irregular_unit = options.smallest_unit.is_calendar_unit()
-            || (timezone_record.is_some() && options.smallest_unit == Unit::Day);
+        // 3. If timeZone is not unset and smallestUnit is day, set irregularLengthUnit to true.
+        let irregular_length_unit = options.smallest_unit.is_calendar_unit()
+            || (time_zone.is_some() && options.smallest_unit == Unit::Day);
 
-        // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
-        let sign = self.sign()?;
+        // 4. If InternalDurationSign(duration) < 0, let sign be -1; else let sign be 1.
+        let sign = duration.sign()?;
 
         // 5. If irregularLengthUnit is true, then
-        let nudge_result = if irregular_unit {
-            // a. Let nudgeResult be ? NudgeToCalendarUnit(sign, duration, destEpochNs, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_calendar_unit(sign, dest_epoch_ns, dt, timezone_record, options)?
-        // 6. Else if timeZoneRec is not unset, then
-        } else if let Some((tz, provider)) = timezone_record {
-            // a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_to_zoned_time(sign, dt, tz, options, provider)?
-        // 7. Else,
+        let nudge_result = if irregular_length_unit {
+            // a. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, increment, smallestUnit, roundingMode).
+            // b. Let nudgeResult be record.[[NudgeResult]].
+            duration.nudge_calendar_unit(sign, dest_epoch_ns, dt, time_zone, options)?
+        } else if let Some((time_zone, time_zone_provider)) = time_zone {
+            // 6. Else if timeZone is not unset, then
+            //      a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, isoDateTime, timeZone, calendar, increment, smallestUnit, roundingMode).
+            duration.nudge_to_zoned_time(sign, dt, time_zone, options, time_zone_provider)?
         } else {
-            // a. Let nudgeResult be ? NudgeToDayOrTime(duration, destEpochNs, largestUnit, increment, smallestUnit, roundingMode).
-            self.nudge_to_day_or_time(dest_epoch_ns, options)?
+            // 7. Else,
+            //      a. Let nudgeResult be ? NudgeToDayOrTime(duration, destEpochNs, largestUnit, increment, smallestUnit, roundingMode).
+            duration.nudge_to_day_or_time(dest_epoch_ns, options)?
         };
 
         // 8. Set duration to nudgeResult.[[Duration]].
         let mut duration = nudge_result.normalized;
 
-        // 9. If nudgeResult.[[DidExpandCalendarUnit]] is true and smallestUnit is not "week", then
+        // 9. If nudgeResult.[[DidExpandCalendarUnit]] is true and smallestUnit is not week, then
         if nudge_result.expanded && options.smallest_unit != Unit::Week {
-            // a. Let startUnit be LargerOfTwoUnits(smallestUnit, "day").
-            let start_unit = options.smallest_unit.max(Unit::Day);
-            // b. Set duration to ? BubbleRelativeDuration(sign, duration, nudgeResult.[[NudgedEpochNs]], dateTime, calendarRec, timeZoneRec, largestUnit, startUnit).
+            // a. Let startUnit be LargerOfTwoTemporalUnits(smallestUnit, day).
+            let start_unit = Unit::larger(options.smallest_unit, Unit::Day)?;
+
+            // b. Set duration to ? BubbleRelativeDuration(sign, duration, nudgeResult.[[NudgedEpochNs]], isoDateTime, timeZone, calendar, largestUnit, startUnit).
             duration = duration.bubble_relative_duration(
                 sign,
                 nudge_result.nudge_epoch_ns,
                 &dt.iso,
-                timezone_record,
+                time_zone,
                 dt.calendar(),
                 options.largest_unit,
                 start_unit,
-            )?
-        };
+            )?;
+        }
 
+        // 10. Return duration.
         Ok(duration)
     }
 
