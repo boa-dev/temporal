@@ -17,3 +17,7 @@ tzdata/
 
 # Ignore log files
 *.log
+
+# Ignore clangd files
+.cache
+compile_commands.json
