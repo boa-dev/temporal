@@ -16,6 +16,7 @@ include = [
 ]
 
 [features]
+default = ["datagen"]
 datagen = ["std", "dep:serde", "dep:databake",
            "dep:yoke", "dep:serde_json",
            "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake", "zerovec/derive", "zoneinfo_rs"]
