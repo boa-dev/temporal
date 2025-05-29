@@ -89,6 +89,8 @@ namespace capi {
 
     bool temporal_rs_Calendar_in_leap_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
 
+    temporal_rs::capi::AnyCalendarKind temporal_rs_Calendar_kind(const temporal_rs::capi::Calendar* self);
+
     void temporal_rs_Calendar_destroy(Calendar* self);
 
     } // extern "C"
@@ -246,6 +248,11 @@ inline bool temporal_rs::Calendar::in_leap_year(temporal_rs::IsoDate date) const
   auto result = temporal_rs::capi::temporal_rs_Calendar_in_leap_year(this->AsFFI(),
     date.AsFFI());
   return result;
+}
+
+inline temporal_rs::AnyCalendarKind temporal_rs::Calendar::kind() const {
+  auto result = temporal_rs::capi::temporal_rs_Calendar_kind(this->AsFFI());
+  return temporal_rs::AnyCalendarKind::FromFFI(result);
 }
 
 inline const temporal_rs::capi::Calendar* temporal_rs::Calendar::AsFFI() const {

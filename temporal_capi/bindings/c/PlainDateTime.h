@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
+#include "AnyCalendarKind.d.h"
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DifferenceSettings.d.h"
@@ -27,10 +28,10 @@
 
 
 typedef struct temporal_rs_PlainDateTime_create_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_create_result;
-temporal_rs_PlainDateTime_create_result temporal_rs_PlainDateTime_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, const Calendar* calendar);
+temporal_rs_PlainDateTime_create_result temporal_rs_PlainDateTime_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDateTime_try_create_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_create_result;
-temporal_rs_PlainDateTime_try_create_result temporal_rs_PlainDateTime_try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, const Calendar* calendar);
+temporal_rs_PlainDateTime_try_create_result temporal_rs_PlainDateTime_try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDateTime_from_partial_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_partial_result;
 temporal_rs_PlainDateTime_from_partial_result temporal_rs_PlainDateTime_from_partial(PartialDateTime partial, ArithmeticOverflow_option overflow);
@@ -42,7 +43,7 @@ typedef struct temporal_rs_PlainDateTime_with_time_result {union {PlainDateTime*
 temporal_rs_PlainDateTime_with_time_result temporal_rs_PlainDateTime_with_time(const PlainDateTime* self, const PlainTime* time);
 
 typedef struct temporal_rs_PlainDateTime_with_calendar_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_calendar_result;
-temporal_rs_PlainDateTime_with_calendar_result temporal_rs_PlainDateTime_with_calendar(const PlainDateTime* self, const Calendar* calendar);
+temporal_rs_PlainDateTime_with_calendar_result temporal_rs_PlainDateTime_with_calendar(const PlainDateTime* self, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDateTime_from_utf8_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_utf8_result;
 temporal_rs_PlainDateTime_from_utf8_result temporal_rs_PlainDateTime_from_utf8(DiplomatStringView s);

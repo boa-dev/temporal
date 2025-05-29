@@ -86,6 +86,8 @@ uint16_t temporal_rs_Calendar_months_in_year(const Calendar* self, IsoDate date)
 
 bool temporal_rs_Calendar_in_leap_year(const Calendar* self, IsoDate date);
 
+AnyCalendarKind temporal_rs_Calendar_kind(const Calendar* self);
+
 void temporal_rs_Calendar_destroy(Calendar* self);
 
 

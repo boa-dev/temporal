@@ -2,7 +2,7 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::calendar::ffi::Calendar;
+    use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::error::ffi::TemporalError;
     use alloc::boxed::Box;
 
@@ -22,14 +22,14 @@ pub mod ffi {
         pub fn create_with_overflow(
             month: u8,
             day: u8,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
             overflow: ArithmeticOverflow,
             ref_year: Option<i32>,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainMonthDay::new_with_overflow(
                 month,
                 day,
-                calendar.0.clone(),
+                temporal_rs::Calendar::new(calendar.into()),
                 overflow.into(),
                 ref_year,
             )

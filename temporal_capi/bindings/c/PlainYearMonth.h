@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
+#include "AnyCalendarKind.d.h"
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DifferenceSettings.d.h"
@@ -23,7 +24,7 @@
 
 
 typedef struct temporal_rs_PlainYearMonth_create_with_overflow_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_create_with_overflow_result;
-temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, OptionU8 reference_day, const Calendar* calendar, ArithmeticOverflow overflow);
+temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, OptionU8 reference_day, AnyCalendarKind calendar, ArithmeticOverflow overflow);
 
 typedef struct temporal_rs_PlainYearMonth_with_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
 temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const PlainYearMonth* self, PartialDate partial, ArithmeticOverflow_option overflow);
