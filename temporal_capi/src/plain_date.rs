@@ -6,7 +6,7 @@ use crate::error::ffi::TemporalError;
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::calendar::ffi::Calendar;
+    use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar};
@@ -42,34 +42,44 @@ pub mod ffi {
             year: i32,
             month: u8,
             day: u8,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::PlainDate::new(year, month, day, calendar.0.clone())
-                .map(|x| Box::new(PlainDate(x)))
-                .map_err(Into::into)
+            temporal_rs::PlainDate::new(
+                year,
+                month,
+                day,
+                temporal_rs::Calendar::new(calendar.into()),
+            )
+            .map(|x| Box::new(PlainDate(x)))
+            .map_err(Into::into)
         }
         pub fn try_create(
             year: i32,
             month: u8,
             day: u8,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::PlainDate::try_new(year, month, day, calendar.0.clone())
-                .map(|x| Box::new(PlainDate(x)))
-                .map_err(Into::into)
+            temporal_rs::PlainDate::try_new(
+                year,
+                month,
+                day,
+                temporal_rs::Calendar::new(calendar.into()),
+            )
+            .map(|x| Box::new(PlainDate(x)))
+            .map_err(Into::into)
         }
         pub fn create_with_overflow(
             year: i32,
             month: u8,
             day: u8,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
             overflow: ArithmeticOverflow,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainDate::new_with_overflow(
                 year,
                 month,
                 day,
-                calendar.0.clone(),
+                temporal_rs::Calendar::new(calendar.into()),
                 overflow.into(),
             )
             .map(|x| Box::new(PlainDate(x)))
@@ -95,9 +105,9 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_calendar(&self, calendar: &Calendar) -> Result<Box<Self>, TemporalError> {
+        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_calendar(calendar.0.clone())
+                .with_calendar(temporal_rs::Calendar::new(calendar.into()))
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }

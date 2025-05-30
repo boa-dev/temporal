@@ -89,6 +89,11 @@ public:
 
   inline bool in_leap_year(temporal_rs::IsoDate date) const;
 
+  /**
+   * Returns the kind of this calendar
+   */
+  inline temporal_rs::AnyCalendarKind kind() const;
+
   inline const temporal_rs::capi::Calendar* AsFFI() const;
   inline temporal_rs::capi::Calendar* AsFFI();
   inline static const temporal_rs::Calendar* FromFFI(const temporal_rs::capi::Calendar* ptr);

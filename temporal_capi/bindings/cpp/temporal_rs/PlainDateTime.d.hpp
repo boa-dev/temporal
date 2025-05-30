@@ -27,6 +27,7 @@ struct PartialDateTime;
 struct RoundingOptions;
 struct TemporalError;
 struct ToStringRoundingOptions;
+class AnyCalendarKind;
 class ArithmeticOverflow;
 class DisplayCalendar;
 }
@@ -42,9 +43,9 @@ namespace temporal_rs {
 class PlainDateTime {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, const temporal_rs::Calendar& calendar);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::AnyCalendarKind calendar);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, const temporal_rs::Calendar& calendar);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::AnyCalendarKind calendar);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialDateTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
 
@@ -52,7 +53,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_time(const temporal_rs::PlainTime& time) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_calendar(const temporal_rs::Calendar& calendar) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 

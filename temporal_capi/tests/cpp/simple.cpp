@@ -6,9 +6,7 @@
 using namespace temporal_rs;
 
 int main() {
-    auto c = Calendar::create(AnyCalendarKind::Gregorian);
-
-    auto date = PlainDate::create_with_overflow(2025, 1, 33, *c, ArithmeticOverflow::Constrain).ok().value();
+    auto date = PlainDate::create_with_overflow(2025, 1, 33, AnyCalendarKind::Gregorian, ArithmeticOverflow::Constrain).ok().value();
 
     auto formatted = date->to_ixdtf_string(DisplayCalendar::Always);
 

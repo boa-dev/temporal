@@ -178,6 +178,12 @@ impl Calendar {
         matches!(self.0 .0, AnyCalendar::Iso(_))
     }
 
+    /// Returns the kind of this calendar
+    #[inline]
+    pub fn kind(&self) -> AnyCalendarKind {
+        self.0 .0.kind()
+    }
+
     /// `CalendarDateFromFields`
     pub fn date_from_partial(
         &self,
