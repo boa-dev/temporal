@@ -9,8 +9,7 @@ pub use core::*;
 #[cfg(feature = "compiled_data")]
 use crate::tzdb::FsTzdbProvider;
 #[cfg(feature = "compiled_data")]
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 
 #[cfg(feature = "compiled_data")]
-pub static TZ_PROVIDER: LazyLock<Mutex<FsTzdbProvider>> =
-    LazyLock::new(|| Mutex::new(FsTzdbProvider::default()));
+pub static TZ_PROVIDER: LazyLock<FsTzdbProvider> = LazyLock::new(FsTzdbProvider::default);

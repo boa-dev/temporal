@@ -620,7 +620,7 @@ impl FsTzdbProvider {
         if let Some(tzif) = self
             .cache
             .read()
-            .map_err(|_| TemporalError::range().with_message("poisoned RWLock"))?
+            .map_err(|_| TemporalError::general("poisoned RWLock"))?
             .get(identifier)
         {
             return Ok(tzif.clone());
@@ -641,7 +641,7 @@ impl FsTzdbProvider {
         Ok(self
             .cache
             .write()
-            .map_err(|_| TemporalError::range().with_message("poisoned RWLock"))?
+            .map_err(|_| TemporalError::general("poisoned RWLock"))?
             .entry(identifier.into())
             .or_insert(tzif)
             .clone())

@@ -1,6 +1,5 @@
 use crate::{
-    builtins::TZ_PROVIDER, options::ToStringRoundingOptions, Instant, TemporalError,
-    TemporalResult, TimeZone,
+    builtins::TZ_PROVIDER, options::ToStringRoundingOptions, Instant, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 
@@ -14,10 +13,6 @@ impl Instant {
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
     ) -> TemporalResult<String> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-
-        self.to_ixdtf_string_with_provider(timezone, options, &*provider)
+        self.to_ixdtf_string_with_provider(timezone, options, &*TZ_PROVIDER)
     }
 }
