@@ -24,11 +24,11 @@
 
 
 
-typedef struct temporal_rs_PlainTime_create_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_create_result;
-temporal_rs_PlainTime_create_result temporal_rs_PlainTime_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
+typedef struct temporal_rs_PlainTime_try_new_constrain_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_new_constrain_result;
+temporal_rs_PlainTime_try_new_constrain_result temporal_rs_PlainTime_try_new_constrain(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
 
-typedef struct temporal_rs_PlainTime_try_create_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_create_result;
-temporal_rs_PlainTime_try_create_result temporal_rs_PlainTime_try_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
+typedef struct temporal_rs_PlainTime_try_new_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_new_result;
+temporal_rs_PlainTime_try_new_result temporal_rs_PlainTime_try_new(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
 
 typedef struct temporal_rs_PlainTime_from_partial_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_partial_result;
 temporal_rs_PlainTime_from_partial_result temporal_rs_PlainTime_from_partial(PartialTime partial, ArithmeticOverflow_option overflow);

@@ -27,14 +27,14 @@
 
 
 
-typedef struct temporal_rs_PlainDate_create_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_create_result;
-temporal_rs_PlainDate_create_result temporal_rs_PlainDate_create(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar);
+typedef struct temporal_rs_PlainDate_try_new_constrain_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_new_constrain_result;
+temporal_rs_PlainDate_try_new_constrain_result temporal_rs_PlainDate_try_new_constrain(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar);
 
-typedef struct temporal_rs_PlainDate_try_create_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_create_result;
-temporal_rs_PlainDate_try_create_result temporal_rs_PlainDate_try_create(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar);
+typedef struct temporal_rs_PlainDate_try_new_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_new_result;
+temporal_rs_PlainDate_try_new_result temporal_rs_PlainDate_try_new(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar);
 
-typedef struct temporal_rs_PlainDate_create_with_overflow_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_create_with_overflow_result;
-temporal_rs_PlainDate_create_with_overflow_result temporal_rs_PlainDate_create_with_overflow(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar, ArithmeticOverflow overflow);
+typedef struct temporal_rs_PlainDate_try_new_with_overflow_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_new_with_overflow_result;
+temporal_rs_PlainDate_try_new_with_overflow_result temporal_rs_PlainDate_try_new_with_overflow(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar, ArithmeticOverflow overflow);
 
 typedef struct temporal_rs_PlainDate_from_partial_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_partial_result;
 temporal_rs_PlainDate_from_partial_result temporal_rs_PlainDate_from_partial(PartialDate partial, ArithmeticOverflow_option overflow);

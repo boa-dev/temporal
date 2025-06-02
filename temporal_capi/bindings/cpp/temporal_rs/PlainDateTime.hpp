@@ -30,11 +30,11 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    typedef struct temporal_rs_PlainDateTime_create_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_create_result;
-    temporal_rs_PlainDateTime_create_result temporal_rs_PlainDateTime_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::capi::AnyCalendarKind calendar);
+    typedef struct temporal_rs_PlainDateTime_try_new_constrain_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_new_constrain_result;
+    temporal_rs_PlainDateTime_try_new_constrain_result temporal_rs_PlainDateTime_try_new_constrain(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::capi::AnyCalendarKind calendar);
 
-    typedef struct temporal_rs_PlainDateTime_try_create_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_create_result;
-    temporal_rs_PlainDateTime_try_create_result temporal_rs_PlainDateTime_try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::capi::AnyCalendarKind calendar);
+    typedef struct temporal_rs_PlainDateTime_try_new_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_new_result;
+    temporal_rs_PlainDateTime_try_new_result temporal_rs_PlainDateTime_try_new(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::capi::AnyCalendarKind calendar);
 
     typedef struct temporal_rs_PlainDateTime_from_partial_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_partial_result;
     temporal_rs_PlainDateTime_from_partial_result temporal_rs_PlainDateTime_from_partial(temporal_rs::capi::PartialDateTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -143,8 +143,8 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::AnyCalendarKind calendar) {
-  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_create(year,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::try_new_constrain(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::AnyCalendarKind calendar) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_try_new_constrain(year,
     month,
     day,
     hour,
@@ -157,8 +157,8 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::AnyCalendarKind calendar) {
-  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_try_create(year,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::try_new(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, temporal_rs::AnyCalendarKind calendar) {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_try_new(year,
     month,
     day,
     hour,

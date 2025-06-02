@@ -38,7 +38,7 @@ pub mod ffi {
     }
 
     impl PlainDate {
-        pub fn create(
+        pub fn try_new_constrain(
             year: i32,
             month: u8,
             day: u8,
@@ -53,7 +53,7 @@ pub mod ffi {
             .map(|x| Box::new(PlainDate(x)))
             .map_err(Into::into)
         }
-        pub fn try_create(
+        pub fn try_new(
             year: i32,
             month: u8,
             day: u8,
@@ -68,7 +68,7 @@ pub mod ffi {
             .map(|x| Box::new(PlainDate(x)))
             .map_err(Into::into)
         }
-        pub fn create_with_overflow(
+        pub fn try_new_with_overflow(
             year: i32,
             month: u8,
             day: u8,

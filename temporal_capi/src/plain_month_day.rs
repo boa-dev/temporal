@@ -19,7 +19,7 @@ pub mod ffi {
     pub struct PlainMonthDay(pub(crate) temporal_rs::PlainMonthDay);
 
     impl PlainMonthDay {
-        pub fn create_with_overflow(
+        pub fn try_new_with_overflow(
             month: u8,
             day: u8,
             calendar: AnyCalendarKind,

@@ -27,11 +27,11 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    typedef struct temporal_rs_PlainTime_create_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_create_result;
-    temporal_rs_PlainTime_create_result temporal_rs_PlainTime_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
+    typedef struct temporal_rs_PlainTime_try_new_constrain_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_new_constrain_result;
+    temporal_rs_PlainTime_try_new_constrain_result temporal_rs_PlainTime_try_new_constrain(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
 
-    typedef struct temporal_rs_PlainTime_try_create_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_create_result;
-    temporal_rs_PlainTime_try_create_result temporal_rs_PlainTime_try_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
+    typedef struct temporal_rs_PlainTime_try_new_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_try_new_result;
+    temporal_rs_PlainTime_try_new_result temporal_rs_PlainTime_try_new(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond);
 
     typedef struct temporal_rs_PlainTime_from_partial_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_partial_result;
     temporal_rs_PlainTime_from_partial_result temporal_rs_PlainTime_from_partial(temporal_rs::capi::PartialTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -91,8 +91,8 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond) {
-  auto result = temporal_rs::capi::temporal_rs_PlainTime_create(hour,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::try_new_constrain(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond) {
+  auto result = temporal_rs::capi::temporal_rs_PlainTime_try_new_constrain(hour,
     minute,
     second,
     millisecond,
@@ -101,8 +101,8 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::Te
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::try_create(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond) {
-  auto result = temporal_rs::capi::temporal_rs_PlainTime_try_create(hour,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::try_new(uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond) {
+  auto result = temporal_rs::capi::temporal_rs_PlainTime_try_new(hour,
     minute,
     second,
     millisecond,

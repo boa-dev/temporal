@@ -27,11 +27,11 @@
 
 
 
-typedef struct temporal_rs_PlainDateTime_create_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_create_result;
-temporal_rs_PlainDateTime_create_result temporal_rs_PlainDateTime_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, AnyCalendarKind calendar);
+typedef struct temporal_rs_PlainDateTime_try_new_constrain_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_new_constrain_result;
+temporal_rs_PlainDateTime_try_new_constrain_result temporal_rs_PlainDateTime_try_new_constrain(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, AnyCalendarKind calendar);
 
-typedef struct temporal_rs_PlainDateTime_try_create_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_create_result;
-temporal_rs_PlainDateTime_try_create_result temporal_rs_PlainDateTime_try_create(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, AnyCalendarKind calendar);
+typedef struct temporal_rs_PlainDateTime_try_new_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_try_new_result;
+temporal_rs_PlainDateTime_try_new_result temporal_rs_PlainDateTime_try_new(int32_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second, uint16_t millisecond, uint16_t microsecond, uint16_t nanosecond, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDateTime_from_partial_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_partial_result;
 temporal_rs_PlainDateTime_from_partial_result temporal_rs_PlainDateTime_from_partial(PartialDateTime partial, ArithmeticOverflow_option overflow);

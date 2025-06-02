@@ -25,7 +25,7 @@
 
 
 
-Calendar* temporal_rs_Calendar_create(AnyCalendarKind kind);
+Calendar* temporal_rs_Calendar_try_new_constrain(AnyCalendarKind kind);
 
 typedef struct temporal_rs_Calendar_from_utf8_result {union {Calendar* ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_from_utf8_result;
 temporal_rs_Calendar_from_utf8_result temporal_rs_Calendar_from_utf8(DiplomatStringView s);
