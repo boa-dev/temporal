@@ -30,13 +30,7 @@ pub mod ffi {
 
     impl Instant {
         pub fn try_new(ns: I128Nanoseconds) -> Result<Box<Self>, TemporalError> {
-            let is_neg = ns.high < 0;
-            let ns_high_abs = ns.high.unsigned_abs() as u128;
-            // Stick them together
-            let total = ((ns_high_abs << 64) + ns.low as u128) as i128;
-            // Reintroduce the sign
-            let instant = if is_neg { -total } else { total };
-            temporal_rs::Instant::try_new(instant)
+            temporal_rs::Instant::try_new(ns.into())
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
@@ -134,14 +128,7 @@ pub mod ffi {
 
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
             let ns = self.0.epoch_nanoseconds().as_i128();
-            let is_neg = ns < 0;
-            let ns = ns.unsigned_abs();
-
-            let high = (ns >> 64) as i64;
-            let low = (ns & u64::MAX as u128) as u64;
-            let high = if is_neg { -high } else { high };
-
-            I128Nanoseconds { high, low }
+            ns.into()
         }
 
         #[cfg(feature = "compiled_data")]
@@ -160,5 +147,33 @@ pub mod ffi {
         }
 
         // TODO non-compiled data timezone APIs
+    }
+}
+
+impl From<ffi::I128Nanoseconds> for i128 {
+    fn from(ns: ffi::I128Nanoseconds) -> Self {
+        let is_neg = ns.high < 0;
+        let ns_high_abs = ns.high.unsigned_abs() as u128;
+        // Stick them together
+        let total = ((ns_high_abs << 64) + ns.low as u128) as i128;
+        // Reintroduce the sign
+        if is_neg {
+            -total
+        } else {
+            total
+        }
+    }
+}
+
+impl From<i128> for ffi::I128Nanoseconds {
+    fn from(ns: i128) -> Self {
+        let is_neg = ns < 0;
+        let ns = ns.unsigned_abs();
+
+        let high = (ns >> 64) as i64;
+        let low = (ns & u64::MAX as u128) as u64;
+        let high = if is_neg { -high } else { high };
+
+        ffi::I128Nanoseconds { high, low }
     }
 }

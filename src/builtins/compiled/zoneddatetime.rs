@@ -1,4 +1,5 @@
 use crate::builtins::TZ_PROVIDER;
+use crate::partial::PartialZonedDateTime;
 use crate::provider::TransitionDirection;
 use crate::ZonedDateTime;
 use crate::{
@@ -222,6 +223,39 @@ impl ZonedDateTime {
 /// The following [`ZonedDateTime`] methods are feature gated behind the
 /// `compiled_data` feature flag.
 impl ZonedDateTime {
+    #[inline]
+    pub fn from_partial(
+        partial: PartialZonedDateTime,
+        overflow: Option<ArithmeticOverflow>,
+        disambiguation: Option<Disambiguation>,
+        offset_option: Option<OffsetDisambiguation>,
+    ) -> TemporalResult<Self> {
+        Self::from_partial_with_provider(
+            partial,
+            overflow,
+            disambiguation,
+            offset_option,
+            &*crate::builtins::TZ_PROVIDER,
+        )
+    }
+
+    #[inline]
+    pub fn with(
+        &self,
+        partial: PartialZonedDateTime,
+        disambiguation: Option<Disambiguation>,
+        offset_option: Option<OffsetDisambiguation>,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        self.with_with_provider(
+            partial,
+            disambiguation,
+            offset_option,
+            overflow,
+            &*TZ_PROVIDER,
+        )
+    }
+
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime` with the provided `PlainTime`.
     ///
     /// combined with the provided `TimeZone`.

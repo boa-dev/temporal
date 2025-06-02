@@ -128,6 +128,18 @@ impl TimeZone {
             TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
+
+    /// <https://tc39.es/proposal-temporal/#sec-getavailablenamedtimezoneidentifier> but just a getter
+    pub fn is_valid_with_provider(&self, provider: &impl TimeZoneProvider) -> bool {
+        match self {
+            Self::IanaIdentifier(s) => provider.check_identifier(s),
+            Self::UtcOffset(..) => true,
+        }
+    }
+    #[cfg(feature = "compiled_data")]
+    pub fn is_valid(&self) -> bool {
+        self.is_valid_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
 }
 
 impl Default for TimeZone {

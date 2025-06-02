@@ -7,6 +7,7 @@ pub mod ffi {
     use core::str;
 
     #[diplomat::opaque]
+    #[diplomat::transparent_convert]
     pub struct TimeZone(pub temporal_rs::TimeZone);
 
     impl TimeZone {
@@ -25,6 +26,11 @@ pub mod ffi {
             temporal_rs::TimeZone::try_from_str(ident)
                 .map(|x| Box::new(TimeZone(x)))
                 .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn is_valid(&self) -> bool {
+            self.0.is_valid()
         }
     }
 }
