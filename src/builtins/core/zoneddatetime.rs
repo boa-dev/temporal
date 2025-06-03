@@ -521,7 +521,7 @@ impl ZonedDateTime {
         self.instant
     }
 
-    pub fn with(
+    pub fn with_with_provider(
         &self,
         partial: PartialZonedDateTime,
         disambiguation: Option<Disambiguation>,
@@ -1602,7 +1602,7 @@ mod tests {
 
         let overflow = ArithmeticOverflow::Reject;
 
-        let result_1 = zdt.with(
+        let result_1 = zdt.with_with_provider(
             PartialZonedDateTime {
                 date: PartialDate {
                     month: Some(29),
@@ -1618,7 +1618,7 @@ mod tests {
             provider,
         );
 
-        let result_2 = zdt.with(
+        let result_2 = zdt.with_with_provider(
             PartialZonedDateTime {
                 date: PartialDate {
                     day: Some(31),
@@ -1634,7 +1634,7 @@ mod tests {
             provider,
         );
 
-        let result_3 = zdt.with(
+        let result_3 = zdt.with_with_provider(
             PartialZonedDateTime {
                 date: PartialDate::default(),
                 time: PartialTime {
@@ -1650,7 +1650,7 @@ mod tests {
             provider,
         );
 
-        let result_4 = zdt.with(
+        let result_4 = zdt.with_with_provider(
             PartialZonedDateTime {
                 date: PartialDate::default(),
                 time: PartialTime {
