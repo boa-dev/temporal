@@ -17,8 +17,8 @@
 
 
 
-typedef struct temporal_rs_DateDuration_new_result {union {DateDuration* ok; TemporalError err;}; bool is_ok;} temporal_rs_DateDuration_new_result;
-temporal_rs_DateDuration_new_result temporal_rs_DateDuration_new(int64_t years, int64_t months, int64_t weeks, int64_t days);
+typedef struct temporal_rs_DateDuration_try_new_result {union {DateDuration* ok; TemporalError err;}; bool is_ok;} temporal_rs_DateDuration_try_new_result;
+temporal_rs_DateDuration_try_new_result temporal_rs_DateDuration_try_new(int64_t years, int64_t months, int64_t weeks, int64_t days);
 
 DateDuration* temporal_rs_DateDuration_abs(const DateDuration* self);
 

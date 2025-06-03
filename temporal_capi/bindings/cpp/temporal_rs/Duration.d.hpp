@@ -35,7 +35,12 @@ namespace temporal_rs {
 class Duration {
 public:
 
+  /**
+   * Temporary API until v8 can move off of it
+   */
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time);
 

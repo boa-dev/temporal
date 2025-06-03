@@ -20,7 +20,7 @@ pub mod ffi {
     pub struct PlainYearMonth(pub(crate) temporal_rs::PlainYearMonth);
 
     impl PlainYearMonth {
-        pub fn create_with_overflow(
+        pub fn try_new_with_overflow(
             year: i32,
             month: u8,
             reference_day: Option<u8>,
