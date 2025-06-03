@@ -34,7 +34,7 @@ use std::path::PathBuf;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
-use core::cell::RefCell;
+use std::sync::RwLock;
 
 use combine::Parser;
 
@@ -612,12 +612,17 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
 
 #[derive(Debug, Default)]
 pub struct FsTzdbProvider {
-    cache: RefCell<BTreeMap<String, Tzif>>,
+    cache: RwLock<BTreeMap<String, Tzif>>,
 }
 
 impl FsTzdbProvider {
     pub fn get(&self, identifier: &str) -> TemporalResult<Tzif> {
-        if let Some(tzif) = self.cache.borrow().get(identifier) {
+        if let Some(tzif) = self
+            .cache
+            .read()
+            .map_err(|_| TemporalError::general("poisoned RWLock"))?
+            .get(identifier)
+        {
             return Ok(tzif.clone());
         }
         #[cfg(target_family = "unix")]
@@ -635,7 +640,8 @@ impl FsTzdbProvider {
 
         Ok(self
             .cache
-            .borrow_mut()
+            .write()
+            .map_err(|_| TemporalError::general("poisoned RWLock"))?
             .entry(identifier.into())
             .or_insert(tzif)
             .clone())

@@ -9,8 +9,8 @@ impl PlainDate {
         plain_time: Option<PlainTime>
     ) -> TemporalResult<crate::ZonedDateTime> {
         let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.to_zoned_date_time_with_provider(time_zone, plain_time, &*provider)
+            
+            ;
+        self.to_zoned_date_time_with_provider(time_zone, plain_time, &*TZ_PROVIDER)
     }
 }
