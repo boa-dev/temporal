@@ -10,10 +10,10 @@
 #include <optional>
 #include <cstdlib>
 #include "../diplomat_runtime.hpp"
+#include "AnyCalendarKind.d.hpp"
 
 namespace temporal_rs {
-namespace capi { struct Calendar; }
-class Calendar;
+class AnyCalendarKind;
 }
 
 
@@ -26,7 +26,7 @@ namespace capi {
       diplomat::capi::OptionU8 day;
       diplomat::capi::DiplomatStringView era;
       diplomat::capi::OptionI32 era_year;
-      const temporal_rs::capi::Calendar* calendar;
+      temporal_rs::capi::AnyCalendarKind calendar;
     };
 
     typedef struct PartialDate_option {union { PartialDate ok; }; bool is_ok; } PartialDate_option;
@@ -42,7 +42,7 @@ struct PartialDate {
   std::optional<uint8_t> day;
   std::string_view era;
   std::optional<int32_t> era_year;
-  const temporal_rs::Calendar& calendar;
+  temporal_rs::AnyCalendarKind calendar;
 
   inline temporal_rs::capi::PartialDate AsFFI() const;
   inline static temporal_rs::PartialDate FromFFI(temporal_rs::capi::PartialDate c_struct);
