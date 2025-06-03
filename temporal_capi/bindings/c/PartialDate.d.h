@@ -7,7 +7,7 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
-#include "Calendar.d.h"
+#include "AnyCalendarKind.d.h"
 
 
 
@@ -19,7 +19,7 @@ typedef struct PartialDate {
   OptionU8 day;
   DiplomatStringView era;
   OptionI32 era_year;
-  const Calendar* calendar;
+  AnyCalendarKind calendar;
 } PartialDate;
 
 typedef struct PartialDate_option {union { PartialDate ok; }; bool is_ok; } PartialDate_option;
