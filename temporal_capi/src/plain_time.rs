@@ -28,7 +28,7 @@ pub mod ffi {
     }
 
     impl PlainTime {
-        pub fn create(
+        pub fn try_new_constrain(
             hour: u8,
             minute: u8,
             second: u8,
@@ -40,7 +40,7 @@ pub mod ffi {
                 .map(|x| Box::new(PlainTime(x)))
                 .map_err(Into::into)
         }
-        pub fn try_create(
+        pub fn try_new(
             hour: u8,
             minute: u8,
             second: u8,

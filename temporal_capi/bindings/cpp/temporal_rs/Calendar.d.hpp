@@ -41,7 +41,7 @@ namespace temporal_rs {
 class Calendar {
 public:
 
-  inline static std::unique_ptr<temporal_rs::Calendar> create(temporal_rs::AnyCalendarKind kind);
+  inline static std::unique_ptr<temporal_rs::Calendar> try_new_constrain(temporal_rs::AnyCalendarKind kind);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Calendar>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 

@@ -26,8 +26,8 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    typedef struct temporal_rs_PlainYearMonth_create_with_overflow_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_create_with_overflow_result;
-    temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, temporal_rs::capi::AnyCalendarKind calendar, temporal_rs::capi::ArithmeticOverflow overflow);
+    typedef struct temporal_rs_PlainYearMonth_try_new_with_overflow_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_try_new_with_overflow_result;
+    temporal_rs_PlainYearMonth_try_new_with_overflow_result temporal_rs_PlainYearMonth_try_new_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, temporal_rs::capi::AnyCalendarKind calendar, temporal_rs::capi::ArithmeticOverflow overflow);
 
     typedef struct temporal_rs_PlainYearMonth_with_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
     temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -90,8 +90,8 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::create_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow) {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_create_with_overflow(year,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::try_new_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow) {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_try_new_with_overflow(year,
     month,
     reference_day.has_value() ? (diplomat::capi::OptionU8{ { reference_day.value() }, true }) : (diplomat::capi::OptionU8{ {}, false }),
     calendar.AsFFI(),

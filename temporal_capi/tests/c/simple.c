@@ -6,8 +6,8 @@
 #include <stdio.h>
 
 int main() {
-    temporal_rs_PlainDate_create_with_overflow_result result =
-        temporal_rs_PlainDate_create_with_overflow(2025, 1, 33, AnyCalendarKind_Gregorian, ArithmeticOverflow_Constrain);
+    temporal_rs_PlainDate_try_new_with_overflow_result result =
+        temporal_rs_PlainDate_try_new_with_overflow(2025, 1, 33, AnyCalendarKind_Gregorian, ArithmeticOverflow_Constrain);
 
     if (!result.is_ok) {
         fprintf(stderr, "failed to create a PlainDate\n");

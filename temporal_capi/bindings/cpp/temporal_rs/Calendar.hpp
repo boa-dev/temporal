@@ -28,7 +28,7 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    temporal_rs::capi::Calendar* temporal_rs_Calendar_create(temporal_rs::capi::AnyCalendarKind kind);
+    temporal_rs::capi::Calendar* temporal_rs_Calendar_try_new_constrain(temporal_rs::capi::AnyCalendarKind kind);
 
     typedef struct temporal_rs_Calendar_from_utf8_result {union {temporal_rs::capi::Calendar* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_from_utf8_result;
     temporal_rs_Calendar_from_utf8_result temporal_rs_Calendar_from_utf8(diplomat::capi::DiplomatStringView s);
@@ -97,8 +97,8 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline std::unique_ptr<temporal_rs::Calendar> temporal_rs::Calendar::create(temporal_rs::AnyCalendarKind kind) {
-  auto result = temporal_rs::capi::temporal_rs_Calendar_create(kind.AsFFI());
+inline std::unique_ptr<temporal_rs::Calendar> temporal_rs::Calendar::try_new_constrain(temporal_rs::AnyCalendarKind kind) {
+  auto result = temporal_rs::capi::temporal_rs_Calendar_try_new_constrain(kind.AsFFI());
   return std::unique_ptr<temporal_rs::Calendar>(temporal_rs::Calendar::FromFFI(result));
 }
 

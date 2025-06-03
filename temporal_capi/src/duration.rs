@@ -53,7 +53,7 @@ pub mod ffi {
     }
 
     impl TimeDuration {
-        pub fn new(
+        pub fn try_new(
             hours: i64,
             minutes: i64,
             seconds: i64,
@@ -89,7 +89,7 @@ pub mod ffi {
     }
 
     impl DateDuration {
-        pub fn new(
+        pub fn try_new(
             years: i64,
             months: i64,
             weeks: i64,
@@ -112,7 +112,34 @@ pub mod ffi {
         }
     }
     impl Duration {
+        /// Temporary API until v8 can move off of it
         pub fn create(
+            years: i64,
+            months: i64,
+            weeks: i64,
+            days: i64,
+            hours: i64,
+            minutes: i64,
+            seconds: i64,
+            milliseconds: i64,
+            microseconds: f64,
+            nanoseconds: f64,
+        ) -> Result<Box<Self>, TemporalError> {
+            Self::try_new(
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+                milliseconds,
+                microseconds,
+                nanoseconds,
+            )
+        }
+
+        pub fn try_new(
             years: i64,
             months: i64,
             weeks: i64,

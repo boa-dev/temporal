@@ -55,7 +55,7 @@ pub mod ffi {
     pub struct Calendar(pub temporal_rs::Calendar);
 
     impl Calendar {
-        pub fn create(kind: AnyCalendarKind) -> Box<Self> {
+        pub fn try_new_constrain(kind: AnyCalendarKind) -> Box<Self> {
             Box::new(Calendar(temporal_rs::Calendar::new(kind.into())))
         }
 
