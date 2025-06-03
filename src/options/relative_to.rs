@@ -7,30 +7,30 @@ use crate::options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation};
 use crate::parsers::parse_date_time;
 use crate::provider::TimeZoneProvider;
 use crate::{TemporalResult, TemporalUnwrap};
-
+use alloc::borrow::Cow;
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 
 // ==== RelativeTo Object ====
 
 #[derive(Debug, Clone)]
-pub enum RelativeTo {
-    PlainDate(PlainDate),
-    ZonedDateTime(ZonedDateTime),
+pub enum RelativeTo<'a> {
+    PlainDate(Cow<'a, PlainDate>),
+    ZonedDateTime(Cow<'a, ZonedDateTime>),
 }
 
-impl From<PlainDate> for RelativeTo {
+impl From<PlainDate> for RelativeTo<'_> {
     fn from(value: PlainDate) -> Self {
-        Self::PlainDate(value)
+        Self::PlainDate(Cow::Owned(value))
     }
 }
 
-impl From<ZonedDateTime> for RelativeTo {
+impl From<ZonedDateTime> for RelativeTo<'_> {
     fn from(value: ZonedDateTime) -> Self {
-        Self::ZonedDateTime(value)
+        Self::ZonedDateTime(Cow::Owned(value))
     }
 }
 
-impl RelativeTo {
+impl RelativeTo<'_> {
     /// Attempts to parse a `ZonedDateTime` string falling back to a `PlainDate`
     /// if possible.
     ///

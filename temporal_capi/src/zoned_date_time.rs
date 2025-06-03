@@ -63,11 +63,11 @@ pub mod ffi {
 
             match converted {
                 RelativeTo::PlainDate(d) => Ok(Self {
-                    date: Some(Box::new(PlainDate(d))),
+                    date: Some(Box::new(PlainDate(d.into_owned()))),
                     zoned: None,
                 }),
                 RelativeTo::ZonedDateTime(d) => Ok(Self {
-                    zoned: Some(Box::new(ZonedDateTime(d))),
+                    zoned: Some(Box::new(ZonedDateTime(d.into_owned()))),
                     date: None,
                 }),
             }
@@ -434,14 +434,17 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZon
 }
 
 #[cfg(feature = "compiled_data")]
-impl From<ffi::RelativeTo<'_>> for Option<temporal_rs::options::RelativeTo> {
-    fn from(other: ffi::RelativeTo) -> Self {
+impl<'a> From<ffi::RelativeTo<'a>> for Option<temporal_rs::options::RelativeTo<'a>> {
+    fn from(other: ffi::RelativeTo<'a>) -> Self {
+        use alloc::borrow::Cow;
         if let Some(pd) = other.date {
-            Some(temporal_rs::options::RelativeTo::PlainDate(pd.0.clone()))
+            Some(temporal_rs::options::RelativeTo::PlainDate(Cow::Borrowed(
+                &pd.0,
+            )))
         } else {
             other
                 .zoned
-                .map(|z| temporal_rs::options::RelativeTo::ZonedDateTime(z.0.clone()))
+                .map(|z| temporal_rs::options::RelativeTo::ZonedDateTime(Cow::Borrowed(&z.0)))
         }
     }
 }

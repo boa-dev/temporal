@@ -9,7 +9,7 @@ mod zoneddatetime;
 mod options {
     use crate::{builtins::TZ_PROVIDER, options::RelativeTo, TemporalResult};
 
-    impl RelativeTo {
+    impl RelativeTo<'_> {
         pub fn try_from_str(source: &str) -> TemporalResult<Self> {
             Self::try_from_str_with_provider(source, &*TZ_PROVIDER)
         }
