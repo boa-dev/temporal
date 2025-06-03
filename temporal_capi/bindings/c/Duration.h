@@ -9,10 +9,13 @@
 
 #include "DateDuration.d.h"
 #include "PartialDuration.d.h"
+#include "RelativeTo.d.h"
+#include "RoundingOptions.d.h"
 #include "Sign.d.h"
 #include "TemporalError.d.h"
 #include "TimeDuration.d.h"
 #include "ToStringRoundingOptions.d.h"
+#include "Unit.d.h"
 
 #include "Duration.d.h"
 
@@ -81,6 +84,15 @@ temporal_rs_Duration_subtract_result temporal_rs_Duration_subtract(const Duratio
 
 typedef struct temporal_rs_Duration_to_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_Duration_to_string_result;
 temporal_rs_Duration_to_string_result temporal_rs_Duration_to_string(const Duration* self, ToStringRoundingOptions options, DiplomatWrite* write);
+
+typedef struct temporal_rs_Duration_round_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_round_result;
+temporal_rs_Duration_round_result temporal_rs_Duration_round(const Duration* self, RoundingOptions options, RelativeTo relative_to);
+
+typedef struct temporal_rs_Duration_compare_result {union {int8_t ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_compare_result;
+temporal_rs_Duration_compare_result temporal_rs_Duration_compare(const Duration* self, const Duration* other, RelativeTo relative_to);
+
+typedef struct temporal_rs_Duration_total_result {union {double ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_total_result;
+temporal_rs_Duration_total_result temporal_rs_Duration_total(const Duration* self, Unit unit, RelativeTo relative_to);
 
 void temporal_rs_Duration_destroy(Duration* self);
 

@@ -15,6 +15,7 @@
 #include "TimeDuration.d.h"
 #include "TimeZone.d.h"
 #include "ToStringRoundingOptions.d.h"
+#include "ZonedDateTime.d.h"
 
 #include "Instant.d.h"
 
@@ -66,6 +67,8 @@ I128Nanoseconds temporal_rs_Instant_epoch_nanoseconds(const Instant* self);
 
 typedef struct temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result {union { TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result;
 temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instant_to_ixdtf_string_with_compiled_data(const Instant* self, const TimeZone* zone, ToStringRoundingOptions options, DiplomatWrite* write);
+
+ZonedDateTime* temporal_rs_Instant_to_zoned_date_time_iso(const Instant* self, const TimeZone* zone);
 
 void temporal_rs_Instant_destroy(Instant* self);
 

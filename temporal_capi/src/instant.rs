@@ -5,6 +5,8 @@ pub mod ffi {
     use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::str::FromStr;
@@ -146,7 +148,10 @@ pub mod ffi {
             Ok(())
         }
 
-        // TODO non-compiled data timezone APIs
+        #[cfg(feature = "compiled_data")]
+        pub fn to_zoned_date_time_iso(&self, zone: &TimeZone) -> Box<ZonedDateTime> {
+            Box::new(ZonedDateTime(self.0.to_zoned_date_time_iso(zone.0.clone())))
+        }
     }
 }
 
