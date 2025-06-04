@@ -4,11 +4,22 @@
 //! for time zone data.
 //!
 
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
+
 mod tzdb;
-pub use tzdb::IanaIdentifierNormalizer;
+#[cfg(feature = "zoneinfo64-provider")]
+pub mod zoneinfo64;
+#[cfg(feature = "zoneinfo64-provider")]
+pub use zoneinfo64::CompiledZoneInfo64Provider;
 
 #[cfg(feature = "datagen")]
 pub use tzdb::IanaDataError;
+pub use tzdb::IanaIdentifierNormalizer;
 
 /// A prelude of needed types for interacting with `timezone_provider` data.
 pub mod prelude {

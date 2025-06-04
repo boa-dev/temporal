@@ -16,14 +16,20 @@ include = [
 ]
 
 [features]
-datagen = ["dep:parse-zoneinfo", "dep:serde", "dep:databake",
+default = ["zoneinfo64-provider"]
+datagen = ["std", "dep:parse-zoneinfo", "dep:serde", "dep:databake",
            "dep:yoke", "dep:serde_json",
            "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake"]
+zoneinfo64-provider = ["dep:serde", "zerovec/serde", "zerovec/derive", "zerovec/databake", "writeable"]
+std = []
+
+
 [dependencies]
 
 # Provider dependency
 zerotrie = "0.2.2"
 zerovec = "0.11.2"
+zerofrom = "0.1.6"
 
 # IANA dependency
 parse-zoneinfo = {version = "0.3.1", optional = true }
@@ -34,3 +40,7 @@ databake = { version = "0.2.0", features = ["derive"], optional = true }
 yoke = { version = "0.8.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0.140", optional = true }
 
+# ZoneInfo64 dependencies
+resb = { git = "https://github.com/unicode-org/icu4x.git" }
+rustc-hash.workspace = true
+writeable = { workspace = true, optional = true }

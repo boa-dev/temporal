@@ -8,7 +8,12 @@
 //   - IANA TZif data (much harder)
 //
 
-use std::borrow::Cow;
+use alloc::borrow::Cow;
+#[cfg(feature = "datagen")]
+use alloc::string::String;
+#[cfg(feature = "datagen")]
+use alloc::vec::Vec;
+
 #[cfg(feature = "datagen")]
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -84,7 +89,7 @@ impl TzdbDataProvider {
                     Ok(Line::Rule(rule)) => builder.add_rule_line(rule).unwrap(),
                     Ok(Line::Link(link)) => builder.add_link_line(link).unwrap(),
                     Ok(Line::Space) => {}
-                    Err(e) => eprintln!("{e}"),
+                    Err(e) => std::eprintln!("{e}"),
                 }
             }
         }
