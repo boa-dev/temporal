@@ -11,6 +11,8 @@ use crate::{TemporalError, TemporalResult};
 
 use crate::builtins::core::{calendar::Calendar, PartialDate};
 
+use super::era::ISO_ERA;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResolutionType {
     Date,
@@ -34,7 +36,7 @@ impl ResolvedCalendarFields {
         overflow: ArithmeticOverflow,
         resolve_type: ResolutionType,
     ) -> TemporalResult<Self> {
-        let era_year = EraYear::try_from_partial_date(partial_date)?;
+        let era_year = EraYear::try_from_partial_date(partial_date, resolve_type)?;
         if partial_date.calendar.is_iso() {
             let month_code = resolve_iso_month(partial_date, overflow)?;
             let day = resolve_day(partial_date.day, resolve_type == ResolutionType::YearMonth)?;
@@ -85,7 +87,10 @@ pub struct EraYear {
 }
 
 impl EraYear {
-    pub(crate) fn try_from_partial_date(partial: &PartialDate) -> TemporalResult<Self> {
+    pub(crate) fn try_from_partial_date(
+        partial: &PartialDate,
+        resolution_type: ResolutionType,
+    ) -> TemporalResult<Self> {
         match (partial.year, partial.era, partial.era_year) {
             (Some(year), None, None) => {
                 let Some(era) = partial.calendar.get_calendar_default_era() else {
@@ -112,6 +117,10 @@ impl EraYear {
                     era: Era(era_info.name),
                 })
             }
+            (None, None, None) if resolution_type == ResolutionType::MonthDay => Ok(Self {
+                era: Era(ISO_ERA.name),
+                year: 1972,
+            }),
             _ => Err(TemporalError::r#type()
                 .with_message("Required fields missing to determine an era and year.")),
         }

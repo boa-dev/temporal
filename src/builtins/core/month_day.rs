@@ -10,7 +10,7 @@ use crate::{
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-use super::{PartialDate, PlainDate};
+use super::{calendar::month_to_month_code, PartialDate, PlainDate};
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
@@ -81,12 +81,45 @@ impl PlainMonthDay {
         )
     }
 
+    /// Create a `PlainMonthDay` with the provided fields from a [`PartialDate`].
     pub fn with(
         &self,
-        _partial: PartialDate,
-        _overflow: ArithmeticOverflow,
+        partial: PartialDate,
+        overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        Err(TemporalError::general("Not yet implemented."))
+        // Steps 1-6 are engine specific.
+        // 5. Let fields be ISODateToFields(calendar, monthDay.[[ISODate]], month-day).
+        // 6. Let partialMonthDay be ? PrepareCalendarFields(calendar, temporalMonthDayLike, « year, month, month-code, day », « », partial).
+        //
+        // NOTE:  We assert that partial is not empty per step 6
+        if partial.is_empty() {
+            return Err(TemporalError::r#type().with_message("partial object must have a field."));
+        }
+
+        // NOTE: We only need to set month / month_code and day, per spec.
+        // 7. Set fields to CalendarMergeFields(calendar, fields, partialMonthDay).
+        let (month, month_code) = match (partial.month, partial.month_code) {
+            (Some(m), Some(mc)) => (Some(m), Some(mc)),
+            (Some(m), None) => (Some(m), Some(month_to_month_code(m)?)),
+            (None, Some(mc)) => (Some(mc.to_month_integer()), Some(mc)),
+            (None, None) => (
+                Some(self.month_code().to_month_integer()),
+                Some(self.month_code()),
+            ),
+        };
+        let merged_day = partial.day.unwrap_or(self.day());
+        let merged = partial
+            .with_month(month)
+            .with_month_code(month_code)
+            .with_day(Some(merged_day));
+
+        // Step 8-9 already handled by engine.
+        // 8. Let resolvedOptions be ? GetOptionsObject(options).
+        // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
+        // 10. Let isoDate be ? CalendarMonthDayFromFields(calendar, fields, overflow).
+        // 11. Return ! CreateTemporalMonthDay(isoDate, calendar).
+        self.calendar
+            .month_day_from_partial(&merged, overflow.unwrap_or(ArithmeticOverflow::Constrain))
     }
 
     /// Returns the ISO day value of `PlainMonthDay`.
@@ -136,6 +169,7 @@ impl PlainMonthDay {
         self.calendar.day(&self.iso)
     }
 
+    /// Create a [`PlainDate`] from the current `PlainMonthDay`.
     pub fn to_plain_date(&self, year: Option<PartialDate>) -> TemporalResult<PlainDate> {
         let year_partial = match &year {
             Some(partial) => partial,
@@ -163,6 +197,7 @@ impl PlainMonthDay {
             .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
     }
 
+    /// Creates a RFC9557 IXDTF string from the current `PlainMonthDay`.
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
         let ixdtf = FormattableMonthDay {
             date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),
@@ -189,6 +224,29 @@ mod tests {
     use crate::builtins::core::PartialDate;
     use crate::Calendar;
     use tinystr::tinystr;
+
+    #[test]
+    fn test_plain_month_day_with() {
+        let month_day = PlainMonthDay::from_utf8("01-15".as_bytes()).unwrap();
+
+        let new = month_day
+            .with(PartialDate::new().with_day(Some(22)), None)
+            .unwrap();
+        assert_eq!(
+            new.month_code(),
+            MonthCode::try_from_utf8("M01".as_bytes()).unwrap()
+        );
+        assert_eq!(new.day(), 22,);
+
+        let new = month_day
+            .with(PartialDate::new().with_month(Some(12)), None)
+            .unwrap();
+        assert_eq!(
+            new.month_code(),
+            MonthCode::try_from_utf8("M12".as_bytes()).unwrap()
+        );
+        assert_eq!(new.day(), 15,);
+    }
 
     #[test]
     fn test_to_plain_date_with_year() {
