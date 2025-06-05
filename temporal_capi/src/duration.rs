@@ -6,6 +6,10 @@ use crate::error::ffi::TemporalError;
 pub mod ffi {
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::ToStringRoundingOptions;
+    #[cfg(feature = "compiled_data")]
+    use crate::options::ffi::{RoundingOptions, Unit};
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::RelativeTo;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::str::FromStr;
@@ -291,8 +295,35 @@ pub mod ffi {
             Ok(())
         }
 
-        // TODO round_with_provider (needs time zone stuff)
-        // TODO total_with_provider (needs time zone stuff)
+        #[cfg(feature = "compiled_data")]
+        pub fn round(
+            &self,
+            options: RoundingOptions,
+            relative_to: RelativeTo,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .round(options.try_into()?, relative_to.into())
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn compare(&self, other: &Self, relative_to: RelativeTo) -> Result<i8, TemporalError> {
+            // Ideally we'd return core::cmp::Ordering here but Diplomat
+            // isn't happy about needing to convert the contents of a result
+            self.0
+                .compare(&other.0, relative_to.into())
+                .map(|x| x as i8)
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn total(&self, unit: Unit, relative_to: RelativeTo) -> Result<f64, TemporalError> {
+            self.0
+                .total(unit.into(), relative_to.into())
+                .map(|x| x.as_inner())
+                .map_err(Into::into)
+        }
     }
 }
 
