@@ -19,9 +19,12 @@ class Duration;
 namespace capi { struct TimeDuration; }
 class TimeDuration;
 struct PartialDuration;
+struct RelativeTo;
+struct RoundingOptions;
 struct TemporalError;
 struct ToStringRoundingOptions;
 class Sign;
+class Unit;
 }
 
 
@@ -89,6 +92,12 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> subtract(const temporal_rs::Duration& other) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_string(temporal_rs::ToStringRoundingOptions options) const;
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options, temporal_rs::RelativeTo relative_to) const;
+
+  inline diplomat::result<int8_t, temporal_rs::TemporalError> compare(const temporal_rs::Duration& other, temporal_rs::RelativeTo relative_to) const;
+
+  inline diplomat::result<double, temporal_rs::TemporalError> total(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to) const;
 
   inline const temporal_rs::capi::Duration* AsFFI() const;
   inline temporal_rs::capi::Duration* AsFFI();
