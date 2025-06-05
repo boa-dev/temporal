@@ -140,10 +140,13 @@ pub mod ffi {
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            use core::fmt::Write;
-            let string = self.0.to_ixdtf_string(zone.map(|x| &x.0), options.into())?;
-            // throw away the error, this should always succeed
-            let _ = write.write_str(&string);
+            use writeable::Writeable;
+            let writeable = self
+                .0
+                .to_ixdtf_writeable(zone.map(|x| &x.0), options.into())?;
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
 
             Ok(())
         }

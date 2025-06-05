@@ -14,6 +14,7 @@ pub mod ffi {
     use core::str::FromStr;
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use writeable::Writeable;
 
     #[diplomat::opaque]
     pub struct PlainMonthDay(pub(crate) temporal_rs::PlainMonthDay);
@@ -104,10 +105,10 @@ pub mod ffi {
             display_calendar: DisplayCalendar,
             write: &mut DiplomatWrite,
         ) {
-            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.to_ixdtf_string(display_calendar.into());
-            // throw away the error, this should always succeed
-            let _ = write.write_str(&string);
+            let writeable = self.0.to_ixdtf_writeable(display_calendar.into());
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
         }
     }
 }
