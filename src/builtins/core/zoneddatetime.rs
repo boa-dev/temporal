@@ -916,14 +916,17 @@ impl ZonedDateTime {
     /// combined with the provided `TimeZone`.
     pub fn with_plain_time_and_provider(
         &self,
-        time: PlainTime,
+        time: Option<PlainTime>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
-        let result_iso = IsoDateTime::new_unchecked(iso.date, time.iso);
-        let epoch_ns =
+        let epoch_ns = if let Some(time) = time {
+            let result_iso = IsoDateTime::new_unchecked(iso.date, time.iso);
             self.tz
-                .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?;
+                .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
+        } else {
+            self.tz.get_start_of_day(&iso.date, provider)?
+        };
         Self::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
     }
 

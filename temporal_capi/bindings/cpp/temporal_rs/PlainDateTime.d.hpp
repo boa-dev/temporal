@@ -22,6 +22,10 @@ namespace capi { struct PlainDateTime; }
 class PlainDateTime;
 namespace capi { struct PlainTime; }
 class PlainTime;
+namespace capi { struct TimeZone; }
+class TimeZone;
+namespace capi { struct ZonedDateTime; }
+class ZonedDateTime;
 struct DifferenceSettings;
 struct PartialDateTime;
 struct RoundingOptions;
@@ -29,6 +33,7 @@ struct TemporalError;
 struct ToStringRoundingOptions;
 class AnyCalendarKind;
 class ArithmeticOverflow;
+class Disambiguation;
 class DisplayCalendar;
 }
 
@@ -51,7 +56,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with(temporal_rs::PartialDateTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_time(const temporal_rs::PlainTime& time) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_time(const temporal_rs::PlainTime* time) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
@@ -126,6 +131,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> to_plain_time() const;
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(const temporal_rs::TimeZone& time_zone, temporal_rs::Disambiguation disambiguation) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar) const;
 

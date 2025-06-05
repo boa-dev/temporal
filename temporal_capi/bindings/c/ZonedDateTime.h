@@ -64,6 +64,9 @@ const TimeZone* temporal_rs_ZonedDateTime_timezone(const ZonedDateTime* self);
 
 int8_t temporal_rs_ZonedDateTime_compare_instant(const ZonedDateTime* self, const ZonedDateTime* other);
 
+typedef struct temporal_rs_ZonedDateTime_start_of_day_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_start_of_day_result;
+temporal_rs_ZonedDateTime_start_of_day_result temporal_rs_ZonedDateTime_start_of_day(const ZonedDateTime* self);
+
 typedef struct temporal_rs_ZonedDateTime_get_time_zone_transition_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_get_time_zone_transition_result;
 temporal_rs_ZonedDateTime_get_time_zone_transition_result temporal_rs_ZonedDateTime_get_time_zone_transition(const ZonedDateTime* self, TransitionDirection direction);
 

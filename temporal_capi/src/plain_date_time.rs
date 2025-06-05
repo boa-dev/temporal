@@ -7,12 +7,19 @@ pub mod ffi {
     use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+    #[cfg(feature = "compiled_data")]
+    use crate::time_zone::ffi::TimeZone;
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
 
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
         ToStringRoundingOptions,
     };
+
+    #[cfg(feature = "compiled_data")]
+    use crate::options::ffi::Disambiguation;
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
     use alloc::string::String;
@@ -104,9 +111,9 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_time(&self, time: &PlainTime) -> Result<Box<Self>, TemporalError> {
+        pub fn with_time(&self, time: Option<&PlainTime>) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_time(time.0)
+                .with_time(time.map(|t| t.0))
                 .map(|x| Box::new(PlainDateTime(x)))
                 .map_err(Into::into)
         }
@@ -309,6 +316,18 @@ pub mod ffi {
             self.0
                 .to_plain_time()
                 .map(|x| Box::new(PlainTime(x)))
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn to_zoned_date_time(
+            &self,
+            time_zone: &TimeZone,
+            disambiguation: Disambiguation,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .to_zoned_date_time(&time_zone.0, disambiguation.into())
+                .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
 
