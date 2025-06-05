@@ -34,7 +34,7 @@ pub mod ffi {
         // None if empty
         pub era: DiplomatStrSlice<'a>,
         pub era_year: DiplomatOption<i32>,
-        pub calendar: &'a Calendar,
+        pub calendar: AnyCalendarKind,
     }
 
     impl PlainDate {
@@ -314,7 +314,7 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
             day: other.day.into(),
             era_year: other.era_year.into(),
             era,
-            calendar: other.calendar.0.clone(),
+            calendar: temporal_rs::Calendar::new(other.calendar.into()),
         })
     }
 }
