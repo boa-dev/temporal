@@ -10,6 +10,7 @@
 #include "AnyCalendarKind.d.h"
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
+#include "DisplayCalendar.d.h"
 #include "PartialDate.d.h"
 #include "PlainDate.d.h"
 #include "TemporalError.d.h"
@@ -49,6 +50,8 @@ void temporal_rs_PlainMonthDay_month_code(const PlainMonthDay* self, DiplomatWri
 
 typedef struct temporal_rs_PlainMonthDay_to_plain_date_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_to_plain_date_result;
 temporal_rs_PlainMonthDay_to_plain_date_result temporal_rs_PlainMonthDay_to_plain_date(const PlainMonthDay* self, PartialDate_option year);
+
+void temporal_rs_PlainMonthDay_to_ixdtf_string(const PlainMonthDay* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 
 void temporal_rs_PlainMonthDay_destroy(PlainMonthDay* self);
 

@@ -15,6 +15,7 @@
 #include "AnyCalendarKind.hpp"
 #include "ArithmeticOverflow.hpp"
 #include "Calendar.hpp"
+#include "DisplayCalendar.hpp"
 #include "PartialDate.hpp"
 #include "PlainDate.hpp"
 #include "TemporalError.hpp"
@@ -52,6 +53,8 @@ namespace capi {
 
     typedef struct temporal_rs_PlainMonthDay_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_to_plain_date_result;
     temporal_rs_PlainMonthDay_to_plain_date_result temporal_rs_PlainMonthDay_to_plain_date(const temporal_rs::capi::PlainMonthDay* self, temporal_rs::capi::PartialDate_option year);
+
+    void temporal_rs_PlainMonthDay_to_ixdtf_string(const temporal_rs::capi::PlainMonthDay* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
     void temporal_rs_PlainMonthDay_destroy(PlainMonthDay* self);
 
@@ -129,6 +132,15 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
   auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_to_plain_date(this->AsFFI(),
     year.has_value() ? (temporal_rs::capi::PartialDate_option{ { year.value().AsFFI() }, true }) : (temporal_rs::capi::PartialDate_option{ {}, false }));
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::string temporal_rs::PlainMonthDay::to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  temporal_rs::capi::temporal_rs_PlainMonthDay_to_ixdtf_string(this->AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
+  return output;
 }
 
 inline const temporal_rs::capi::PlainMonthDay* temporal_rs::PlainMonthDay::AsFFI() const {

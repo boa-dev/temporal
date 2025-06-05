@@ -11,6 +11,7 @@
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DifferenceSettings.d.h"
+#include "DisplayCalendar.d.h"
 #include "Duration.d.h"
 #include "PartialDate.d.h"
 #include "PlainDate.d.h"
@@ -80,6 +81,8 @@ int8_t temporal_rs_PlainYearMonth_compare(const PlainYearMonth* one, const Plain
 
 typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
 temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const PlainYearMonth* self, PartialDate_option day);
+
+void temporal_rs_PlainYearMonth_to_ixdtf_string(const PlainYearMonth* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 
 void temporal_rs_PlainYearMonth_destroy(PlainYearMonth* self);
 

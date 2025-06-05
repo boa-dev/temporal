@@ -6,7 +6,7 @@ pub mod ffi {
     use crate::error::ffi::TemporalError;
     use alloc::boxed::Box;
 
-    use crate::options::ffi::ArithmeticOverflow;
+    use crate::options::ffi::{ArithmeticOverflow, DisplayCalendar};
     use crate::plain_date::ffi::{PartialDate, PlainDate};
 
     use alloc::string::String;
@@ -98,6 +98,16 @@ pub mod ffi {
                 .to_plain_date(year.map(|y| y.try_into()).transpose()?)
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
+        }
+        pub fn to_ixdtf_string(
+            &self,
+            display_calendar: DisplayCalendar,
+            write: &mut DiplomatWrite,
+        ) {
+            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
+            let string = self.0.to_ixdtf_string(display_calendar.into());
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
         }
     }
 }

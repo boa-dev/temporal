@@ -25,6 +25,7 @@ struct PartialDate;
 struct TemporalError;
 class AnyCalendarKind;
 class ArithmeticOverflow;
+class DisplayCalendar;
 }
 
 
@@ -85,6 +86,8 @@ public:
   inline static int8_t compare(const temporal_rs::PlainYearMonth& one, const temporal_rs::PlainYearMonth& two);
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> day) const;
+
+  inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
 
   inline const temporal_rs::capi::PlainYearMonth* AsFFI() const;
   inline temporal_rs::capi::PlainYearMonth* AsFFI();
