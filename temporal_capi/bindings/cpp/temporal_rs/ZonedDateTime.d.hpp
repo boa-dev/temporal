@@ -77,6 +77,8 @@ public:
 
   inline int8_t compare_instant(const temporal_rs::ZonedDateTime& other) const;
 
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> start_of_day() const;
+
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> get_time_zone_transition(temporal_rs::TransitionDirection direction) const;
 
   inline diplomat::result<uint8_t, temporal_rs::TemporalError> hours_in_day() const;
@@ -91,7 +93,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_plain_time(const temporal_rs::PlainTime& time) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_plain_time(const temporal_rs::PlainTime* time) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> add(const temporal_rs::Duration& duration, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 

@@ -259,7 +259,7 @@ impl ZonedDateTime {
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime` with the provided `PlainTime`.
     ///
     /// combined with the provided `TimeZone`.
-    pub fn with_plain_time(&self, time: PlainTime) -> TemporalResult<Self> {
+    pub fn with_plain_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
         self.with_plain_time_and_provider(time, &*TZ_PROVIDER)
     }
 

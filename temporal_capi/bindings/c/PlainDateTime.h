@@ -11,6 +11,7 @@
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DifferenceSettings.d.h"
+#include "Disambiguation.d.h"
 #include "DisplayCalendar.d.h"
 #include "Duration.d.h"
 #include "PartialDateTime.d.h"
@@ -18,7 +19,9 @@
 #include "PlainTime.d.h"
 #include "RoundingOptions.d.h"
 #include "TemporalError.d.h"
+#include "TimeZone.d.h"
 #include "ToStringRoundingOptions.d.h"
+#include "ZonedDateTime.d.h"
 
 #include "PlainDateTime.d.h"
 
@@ -130,6 +133,9 @@ temporal_rs_PlainDateTime_to_plain_date_result temporal_rs_PlainDateTime_to_plai
 
 typedef struct temporal_rs_PlainDateTime_to_plain_time_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_plain_time_result;
 temporal_rs_PlainDateTime_to_plain_time_result temporal_rs_PlainDateTime_to_plain_time(const PlainDateTime* self);
+
+typedef struct temporal_rs_PlainDateTime_to_zoned_date_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_zoned_date_time_result;
+temporal_rs_PlainDateTime_to_zoned_date_time_result temporal_rs_PlainDateTime_to_zoned_date_time(const PlainDateTime* self, const TimeZone* time_zone, Disambiguation disambiguation);
 
 typedef struct temporal_rs_PlainDateTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_ixdtf_string_result;
 temporal_rs_PlainDateTime_to_ixdtf_string_result temporal_rs_PlainDateTime_to_ixdtf_string(const PlainDateTime* self, ToStringRoundingOptions options, DisplayCalendar display_calendar, DiplomatWrite* write);

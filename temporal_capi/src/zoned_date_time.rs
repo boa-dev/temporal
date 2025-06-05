@@ -192,6 +192,13 @@ pub mod ffi {
             self.0.compare_instant(&other.0)
         }
 
+        pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .start_of_day()
+                .map(|x| Box::new(ZonedDateTime(x)))
+                .map_err(Into::into)
+        }
+
         pub fn get_time_zone_transition(
             &self,
             direction: TransitionDirection,
@@ -257,9 +264,12 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_plain_time(&self, time: &PlainTime) -> Result<Box<Self>, TemporalError> {
+        pub fn with_plain_time(
+            &self,
+            time: Option<&PlainTime>,
+        ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_plain_time(time.0)
+                .with_plain_time(time.map(|t| t.0))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }

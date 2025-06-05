@@ -14,6 +14,10 @@ pub mod ffi {
     use crate::plain_month_day::ffi::PlainMonthDay;
     use crate::plain_time::ffi::PlainTime;
     use crate::plain_year_month::ffi::PlainYearMonth;
+    #[cfg(feature = "compiled_data")]
+    use crate::time_zone::ffi::TimeZone;
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::fmt::Write;
@@ -272,6 +276,18 @@ pub mod ffi {
                 .map(|x| Box::new(PlainYearMonth(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
+        pub fn to_zoned_date_time(
+            &self,
+            time_zone: &TimeZone,
+            time: Option<&PlainTime>,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .to_zoned_date_time(time_zone.0.clone(), time.map(|x| x.0))
+                .map(|x| Box::new(ZonedDateTime(x)))
+                .map_err(Into::into)
+        }
+
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,

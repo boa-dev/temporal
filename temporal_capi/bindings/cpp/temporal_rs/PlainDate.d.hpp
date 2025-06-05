@@ -26,6 +26,10 @@ namespace capi { struct PlainTime; }
 class PlainTime;
 namespace capi { struct PlainYearMonth; }
 class PlainYearMonth;
+namespace capi { struct TimeZone; }
+class TimeZone;
+namespace capi { struct ZonedDateTime; }
+class ZonedDateTime;
 struct DifferenceSettings;
 struct PartialDate;
 struct TemporalError;
@@ -118,6 +122,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> to_plain_month_day() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> to_plain_year_month() const;
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
 

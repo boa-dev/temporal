@@ -538,7 +538,8 @@ impl PlainDateTime {
     }
 
     /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
-    pub fn with_time(&self, time: PlainTime) -> TemporalResult<Self> {
+    pub fn with_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
+        let time = time.unwrap_or_default();
         Self::try_new(
             self.iso_year(),
             self.iso_month(),
