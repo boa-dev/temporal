@@ -1,5 +1,6 @@
 //! This module implements native Rust wrappers for the Temporal builtins.
 
+mod date;
 mod duration;
 mod instant;
 mod now;

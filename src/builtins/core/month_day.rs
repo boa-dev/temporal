@@ -11,6 +11,7 @@ use crate::{
 };
 
 use super::{calendar::month_to_month_code, PartialDate, PlainDate};
+use writeable::Writeable;
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`
 #[non_exhaustive]
@@ -199,6 +200,12 @@ impl PlainMonthDay {
 
     /// Creates a RFC9557 IXDTF string from the current `PlainMonthDay`.
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        self.to_ixdtf_writeable(display_calendar)
+            .write_to_string()
+            .into()
+    }
+
+    pub fn to_ixdtf_writeable(&self, display_calendar: DisplayCalendar) -> impl Writeable + '_ {
         let ixdtf = FormattableMonthDay {
             date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),
             calendar: FormattableCalendar {
@@ -206,7 +213,7 @@ impl PlainMonthDay {
                 calendar: self.calendar().identifier(),
             },
         };
-        ixdtf.to_string()
+        ixdtf
     }
 }
 

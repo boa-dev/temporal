@@ -858,6 +858,7 @@ dependencies = [
  "icu_locale",
  "num-traits",
  "temporal_rs",
+ "writeable",
 ]
 
 [[package]]

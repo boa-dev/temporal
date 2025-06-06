@@ -14,11 +14,16 @@ pub mod ffi {
     use crate::plain_month_day::ffi::PlainMonthDay;
     use crate::plain_time::ffi::PlainTime;
     use crate::plain_year_month::ffi::PlainYearMonth;
+    #[cfg(feature = "compiled_data")]
+    use crate::time_zone::ffi::TimeZone;
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::fmt::Write;
     use diplomat_runtime::{DiplomatOption, DiplomatStrSlice, DiplomatWrite};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use writeable::Writeable;
 
     use core::str::FromStr;
 
@@ -272,15 +277,27 @@ pub mod ffi {
                 .map(|x| Box::new(PlainYearMonth(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
+        pub fn to_zoned_date_time(
+            &self,
+            time_zone: &TimeZone,
+            time: Option<&PlainTime>,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .to_zoned_date_time(time_zone.0.clone(), time.map(|x| x.0))
+                .map(|x| Box::new(ZonedDateTime(x)))
+                .map_err(Into::into)
+        }
+
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,
             write: &mut DiplomatWrite,
         ) {
-            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.to_ixdtf_string(display_calendar.into());
-            // throw away the error, this should always succeed
-            let _ = write.write_str(&string);
+            let writeable = self.0.to_ixdtf_writeable(display_calendar.into());
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
         }
     }
 }

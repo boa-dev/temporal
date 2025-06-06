@@ -24,6 +24,8 @@
 #include "PlainTime.hpp"
 #include "PlainYearMonth.hpp"
 #include "TemporalError.hpp"
+#include "TimeZone.hpp"
+#include "ZonedDateTime.hpp"
 
 
 namespace temporal_rs {
@@ -123,6 +125,9 @@ namespace capi {
 
     typedef struct temporal_rs_PlainDate_to_plain_year_month_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_year_month_result;
     temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_year_month(const temporal_rs::capi::PlainDate* self);
+
+    typedef struct temporal_rs_PlainDate_to_zoned_date_time_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_result;
+    temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::TimeZone* time_zone, const temporal_rs::capi::PlainTime* time);
 
     void temporal_rs_PlainDate_to_ixdtf_string(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
@@ -346,6 +351,13 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_plain_year_month() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_to_plain_year_month(this->AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_zoned_date_time(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_to_zoned_date_time(this->AsFFI(),
+    time_zone.AsFFI(),
+    time ? time->AsFFI() : nullptr);
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::ZonedDateTime>>(std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline std::string temporal_rs::PlainDate::to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const {

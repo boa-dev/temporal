@@ -38,6 +38,49 @@ pub mod ffi {
         pub offset: DiplomatOption<DiplomatStrSlice<'a>>,
         pub timezone: Option<&'a TimeZone>,
     }
+
+    pub struct RelativeTo<'a> {
+        pub date: Option<&'a PlainDate>,
+        pub zoned: Option<&'a ZonedDateTime>,
+    }
+
+    /// GetTemporalRelativeToOption can create fresh PlainDate/ZonedDateTimes by parsing them,
+    /// we need a way to produce that result.
+    #[diplomat::out]
+    pub struct OwnedRelativeTo {
+        pub date: Option<Box<PlainDate>>,
+        pub zoned: Option<Box<ZonedDateTime>>,
+    }
+
+    impl OwnedRelativeTo {
+        pub fn try_from_str(source: &DiplomatStr) -> Result<Self, TemporalError> {
+            use temporal_rs::options::RelativeTo;
+            // TODO(#275) This should not need to check
+            let s =
+                core::str::from_utf8(source).map_err(|_| temporal_rs::TemporalError::range())?;
+
+            let converted = RelativeTo::try_from_str(s).map_err(Into::<TemporalError>::into)?;
+
+            match converted {
+                RelativeTo::PlainDate(d) => Ok(Self {
+                    date: Some(Box::new(PlainDate(d))),
+                    zoned: None,
+                }),
+                RelativeTo::ZonedDateTime(d) => Ok(Self {
+                    zoned: Some(Box::new(ZonedDateTime(d))),
+                    date: None,
+                }),
+            }
+        }
+
+        pub fn empty() -> Self {
+            Self {
+                date: None,
+                zoned: None,
+            }
+        }
+    }
+
     #[diplomat::opaque]
     pub struct ZonedDateTime(pub(crate) temporal_rs::ZonedDateTime);
 
@@ -149,6 +192,13 @@ pub mod ffi {
             self.0.compare_instant(&other.0)
         }
 
+        pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .start_of_day()
+                .map(|x| Box::new(ZonedDateTime(x)))
+                .map_err(Into::into)
+        }
+
         pub fn get_time_zone_transition(
             &self,
             direction: TransitionDirection,
@@ -214,9 +264,12 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_plain_time(&self, time: &PlainTime) -> Result<Box<Self>, TemporalError> {
+        pub fn with_plain_time(
+            &self,
+            time: Option<&PlainTime>,
+        ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_plain_time(time.0)
+                .with_plain_time(time.map(|t| t.0))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
@@ -387,5 +440,18 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZon
             offset,
             timezone: other.timezone.map(|x| x.0.clone()),
         })
+    }
+}
+
+#[cfg(feature = "compiled_data")]
+impl From<ffi::RelativeTo<'_>> for Option<temporal_rs::options::RelativeTo> {
+    fn from(other: ffi::RelativeTo) -> Self {
+        if let Some(pd) = other.date {
+            Some(temporal_rs::options::RelativeTo::PlainDate(pd.0.clone()))
+        } else {
+            other
+                .zoned
+                .map(|z| temporal_rs::options::RelativeTo::ZonedDateTime(z.0.clone()))
+        }
     }
 }

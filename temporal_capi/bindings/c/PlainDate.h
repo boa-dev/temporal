@@ -19,6 +19,8 @@
 #include "PlainTime.d.h"
 #include "PlainYearMonth.d.h"
 #include "TemporalError.d.h"
+#include "TimeZone.d.h"
+#include "ZonedDateTime.d.h"
 
 #include "PlainDate.d.h"
 
@@ -120,6 +122,9 @@ temporal_rs_PlainDate_to_plain_month_day_result temporal_rs_PlainDate_to_plain_m
 
 typedef struct temporal_rs_PlainDate_to_plain_year_month_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_year_month_result;
 temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_year_month(const PlainDate* self);
+
+typedef struct temporal_rs_PlainDate_to_zoned_date_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_result;
+temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const PlainDate* self, const TimeZone* time_zone, const PlainTime* time);
 
 void temporal_rs_PlainDate_to_ixdtf_string(const PlainDate* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 

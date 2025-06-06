@@ -20,6 +20,7 @@ use crate::{
 use super::{
     duration::normalized::NormalizedDurationRecord, Duration, PartialDate, PlainDate, PlainDateTime,
 };
+use writeable::Writeable;
 
 /// The native Rust implementation of `Temporal.YearMonth`.
 #[non_exhaustive]
@@ -430,6 +431,14 @@ impl PlainYearMonth {
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
     #[inline]
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        self.to_ixdtf_writeable(display_calendar)
+            .write_to_string()
+            .into()
+    }
+
+    /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth` as a Writeable
+    #[inline]
+    pub fn to_ixdtf_writeable(&self, display_calendar: DisplayCalendar) -> impl Writeable + '_ {
         let ixdtf = FormattableYearMonth {
             date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),
             calendar: FormattableCalendar {
@@ -437,7 +446,7 @@ impl PlainYearMonth {
                 calendar: self.calendar().identifier(),
             },
         };
-        ixdtf.to_string()
+        ixdtf
     }
 }
 
