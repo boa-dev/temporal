@@ -17,6 +17,7 @@ use crate::{
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
+use writeable::Writeable;
 
 use super::{
     calendar::month_to_month_code,
@@ -679,6 +680,13 @@ impl PlainDate {
 
     #[inline]
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        self.to_ixdtf_writeable(display_calendar)
+            .write_to_string()
+            .into()
+    }
+
+    #[inline]
+    pub fn to_ixdtf_writeable(&self, display_calendar: DisplayCalendar) -> impl Writeable + '_ {
         IxdtfStringBuilder::default()
             .with_date(self.iso)
             .with_calendar(self.calendar.identifier(), display_calendar)

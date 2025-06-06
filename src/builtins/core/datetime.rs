@@ -20,6 +20,7 @@ use crate::{
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
+use writeable::Writeable;
 
 /// A partial PlainDateTime record
 #[derive(Debug, Default, Clone)]
@@ -807,11 +808,11 @@ impl PlainDateTime {
         Ok(PlainTime::new_unchecked(self.iso.time))
     }
 
-    pub fn to_ixdtf_string(
+    pub fn to_ixdtf_writeable(
         &self,
         options: ToStringRoundingOptions,
         display_calendar: DisplayCalendar,
-    ) -> TemporalResult<String> {
+    ) -> TemporalResult<impl Writeable + '_> {
         let resolved_options = options.resolve()?;
         let result = self
             .iso
@@ -821,12 +822,20 @@ impl PlainDateTime {
         if !result.is_within_limits() {
             return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
         }
-        let ixdtf_string = IxdtfStringBuilder::default()
+        let builder = IxdtfStringBuilder::default()
             .with_date(result.date)
             .with_time(result.time, resolved_options.precision)
-            .with_calendar(self.calendar.identifier(), display_calendar)
-            .build();
-        Ok(ixdtf_string)
+            .with_calendar(self.calendar.identifier(), display_calendar);
+        Ok(builder)
+    }
+
+    pub fn to_ixdtf_string(
+        &self,
+        options: ToStringRoundingOptions,
+        display_calendar: DisplayCalendar,
+    ) -> TemporalResult<String> {
+        self.to_ixdtf_writeable(options, display_calendar)
+            .map(|x| x.write_to_string().into())
     }
 }
 

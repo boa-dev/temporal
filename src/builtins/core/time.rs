@@ -12,6 +12,7 @@ use crate::{
 };
 use alloc::string::String;
 use core::str::FromStr;
+use writeable::Writeable;
 
 use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
 
@@ -474,14 +475,21 @@ impl PlainTime {
     }
 
     pub fn to_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+        self.to_ixdtf_writeable(options)
+            .map(|x| x.write_to_string().into())
+    }
+
+    #[inline]
+    pub fn to_ixdtf_writeable(
+        &self,
+        options: ToStringRoundingOptions,
+    ) -> TemporalResult<impl Writeable + '_> {
         let resolved = options.resolve()?;
         let (_, result) = self
             .iso
             .round(ResolvedRoundingOptions::from_to_string_options(&resolved))?;
-        let ixdtf_string = IxdtfStringBuilder::default()
-            .with_time(result, resolved.precision)
-            .build();
-        Ok(ixdtf_string)
+        let builder = IxdtfStringBuilder::default().with_time(result, resolved.precision);
+        Ok(builder)
     }
 }
 
