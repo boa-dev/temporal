@@ -16,17 +16,19 @@ include = [
 ]
 
 [features]
-datagen = ["dep:parse-zoneinfo", "dep:serde", "dep:databake",
+datagen = ["std", "dep:serde", "dep:databake",
            "dep:yoke", "dep:serde_json",
-           "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake"]
+           "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake", "zerovec/derive", "zoneinfo_rs"]
+std = []
+
 [dependencies]
 
 # Provider dependency
 zerotrie = "0.2.2"
-zerovec = "0.11.2"
+zerovec = { version = "0.11.2", features = ["derive", "alloc"] }
 
 # IANA dependency
-parse-zoneinfo = {version = "0.3.1", optional = true }
+zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
 
 # Databake dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true }

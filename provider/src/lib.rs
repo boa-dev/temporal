@@ -4,7 +4,16 @@
 //! for time zone data.
 //!
 
+#![no_std]
+
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
+
 mod tzdb;
+pub mod tzif;
+
 pub use tzdb::IanaIdentifierNormalizer;
 
 #[cfg(feature = "datagen")]

@@ -43,7 +43,7 @@ use timezone_provider::prelude::*;
 use tzif::{
     self,
     data::{
-        posix::{DstTransitionInfo, PosixTzString, TransitionDay, ZoneVariantInfo},
+        posix::{DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDay},
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -71,14 +71,14 @@ pub struct LocalTimeRecord {
 }
 
 impl LocalTimeRecord {
-    fn from_daylight_savings_time(info: &ZoneVariantInfo) -> Self {
+    fn from_daylight_savings_time(info: &TimeZoneVariantInfo) -> Self {
         Self {
             is_dst: true,
             offset: -info.offset.0,
         }
     }
 
-    fn from_standard_time(info: &ZoneVariantInfo) -> Self {
+    fn from_standard_time(info: &TimeZoneVariantInfo) -> Self {
         Self {
             is_dst: false,
             offset: -info.offset.0,
