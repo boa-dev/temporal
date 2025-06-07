@@ -54,11 +54,12 @@ exclude.workspace = true
 
 [dependencies]
 
-tinystr.workspace = true
+core_maths = "0.1.1"
 icu_calendar = { workspace = true, features = ["compiled_data"] }
 icu_locale.workspace = true
-num-traits.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
+num-traits.workspace = true
+tinystr.workspace = true
 writeable = "0.6.1"
 
 # log feature
@@ -73,7 +74,6 @@ timezone_provider = { workspace = true, optional = true}
 # System time feature
 web-time = { workspace = true, optional =  true }
 iana-time-zone = { workspace = true, optional = true }
-core_maths = "0.1.1"
 
 [features]
 default = ["sys"]
