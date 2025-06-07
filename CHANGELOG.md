@@ -1,3 +1,23 @@
+## What's Changed in v0.0.9
+* Implement PlainMonthDay::with functionality by @nekevss in [#335](https://github.com/boa-dev/temporal/pull/335)
+* Add Writeable getters for some types, use in FFI by @Manishearth in [#340](https://github.com/boa-dev/temporal/pull/340)
+* Add missing FFI APIs by @Manishearth in [#339](https://github.com/boa-dev/temporal/pull/339)
+* Fill in missing Zoned APIs by @Manishearth in [#331](https://github.com/boa-dev/temporal/pull/331)
+* Add stringifiers to MonthDay/YearMonth by @Manishearth in [#338](https://github.com/boa-dev/temporal/pull/338)
+* Use AnyCalendarKind in PartialDate by @Manishearth in [#332](https://github.com/boa-dev/temporal/pull/332)
+* Add ZonedDateTime FFI by @Manishearth in [#329](https://github.com/boa-dev/temporal/pull/329)
+* Use a lock internally to FsTzdbProvider instead of externally by @Manishearth in [#327](https://github.com/boa-dev/temporal/pull/327)
+* Remove create() APIs, consistently use try_new() by @Manishearth in [#326](https://github.com/boa-dev/temporal/pull/326)
+* Switch FFI calendar APIs over to using AnyCalendarKind for input by @Manishearth in [#324](https://github.com/boa-dev/temporal/pull/324)
+* Update abstract method `7.5.37 RoundRelativeDuration` by @HalidOdat in [#323](https://github.com/boa-dev/temporal/pull/323)
+* Fix abstract method `7.5.36 BubbleRelativeDuration()` by @HalidOdat in [#322](https://github.com/boa-dev/temporal/pull/322)
+* Generate FFI bindings for C by @jedel1043 in [#321](https://github.com/boa-dev/temporal/pull/321)
+* Improve baked data formatting by @Manishearth in [#319](https://github.com/boa-dev/temporal/pull/319)
+* Correctly validate largestUnit when constructing from DifferenceSettings by @Manishearth in [#316](https://github.com/boa-dev/temporal/pull/316)
+* Align `Duration.prototype.round()` to latest specification by @HalidOdat in [#317](https://github.com/boa-dev/temporal/pull/317)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.8...v0.0.9
+
 ## What's Changed in v0.0.8
 * Make duration capi getters non-optional by @Manishearth in [#314](https://github.com/boa-dev/temporal/pull/314)
 * Add to_string to Duration by @Manishearth in [#312](https://github.com/boa-dev/temporal/pull/312)
