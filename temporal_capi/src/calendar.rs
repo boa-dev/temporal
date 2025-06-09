@@ -101,7 +101,10 @@ pub mod ffi {
         ) -> Result<Box<PlainYearMonth>, TemporalError> {
             let partial: temporal_rs::partial::PartialDate = partial.try_into()?;
             self.0
-                .year_month_from_partial(&temporal_rs::partial::PartialYearMonth::from(&partial), overflow.into())
+                .year_month_from_partial(
+                    &temporal_rs::partial::PartialYearMonth::from(&partial),
+                    overflow.into(),
+                )
                 .map(|c| Box::new(PlainYearMonth(c)))
                 .map_err(Into::into)
         }
