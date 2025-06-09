@@ -42,11 +42,6 @@ pub struct PartialYearMonth {
 }
 
 impl PartialYearMonth {
-    /// Returns a boolean for if the current `PartialYearMonth` is empty.
-    pub(crate) fn is_empty(&self) -> bool {
-        *self == Self::default()
-    }
-
     pub(crate) fn try_from_year_month(year_month: &PlainYearMonth) -> TemporalResult<Self> {
         let (year, era, era_year) = if year_month.era().is_some() {
             (
