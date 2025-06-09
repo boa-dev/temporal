@@ -799,3 +799,51 @@ fn test_duration_compare_boundary() {
     let err = min_duration.compare(&zero, Some(RelativeTo::PlainDate(relative_to.clone())));
     assert!(err.is_err());
 }
+
+#[test]
+fn rounding_cross_boundary() {
+    let relative_to = PlainDate::new(2022, 1, 1, Calendar::default()).unwrap();
+
+    let duration = Duration::from(DateDuration::new(1, 11, 0, 24).unwrap());
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Month),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = duration
+        .round(options, Some(RelativeTo::PlainDate(relative_to)))
+        .unwrap();
+    assert_duration(result, (2, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+#[test]
+fn rounding_cross_boundary_negative() {
+    let relative_to = PlainDate::new(2022, 1, 1, Calendar::default()).unwrap();
+
+    let duration = Duration::from(DateDuration::new(-1, -11, 0, -24).unwrap());
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Month),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = duration
+        .round(options, Some(RelativeTo::PlainDate(relative_to)))
+        .unwrap();
+    assert_duration(result, (-2, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+#[test]
+fn rounding_cross_boundary_time_units() {
+    let duration = Duration::new(0, 0, 0, 0, 1, 59, 59, 900, 0, 0).unwrap();
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Second),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = duration.round(options, None).unwrap();
+    assert_duration(result, (0, 0, 0, 0, 2, 0, 0, 0, 0, 0));
+
+    let neg_duration = Duration::new(0, 0, 0, 0, -1, -59, -59, -900, 0, 0).unwrap();
+    let result = neg_duration.round(options, None).unwrap();
+    assert_duration(result, (0, 0, 0, 0, -2, 0, 0, 0, 0, 0));
+}
