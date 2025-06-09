@@ -1,4 +1,5 @@
 ## What's Changed in v0.0.9
+* Cross boundary rounding fix #286 by @robot-head in [#343](https://github.com/boa-dev/temporal/pull/343)
 * Implement PlainMonthDay::with functionality by @nekevss in [#335](https://github.com/boa-dev/temporal/pull/335)
 * Add Writeable getters for some types, use in FFI by @Manishearth in [#340](https://github.com/boa-dev/temporal/pull/340)
 * Add missing FFI APIs by @Manishearth in [#339](https://github.com/boa-dev/temporal/pull/339)
