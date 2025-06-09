@@ -32,7 +32,7 @@ use icu_calendar::{
 use icu_locale::extensions::unicode::Value;
 use tinystr::{tinystr, TinyAsciiStr};
 
-use super::{PartialDate, ZonedDateTime};
+use super::{PartialDate, PartialYearMonth, ZonedDateTime};
 
 mod era;
 mod types;
@@ -249,11 +249,14 @@ impl Calendar {
     /// `CalendarPlainYearMonthFromFields`
     pub fn year_month_from_partial(
         &self,
-        partial: &PartialDate,
+        partial: &PartialYearMonth,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
-        let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::YearMonth)?;
+        let resolved_fields = ResolvedCalendarFields::try_from_partial(
+            &PartialDate::from(partial),
+            overflow,
+            ResolutionType::YearMonth,
+        )?;
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.year,

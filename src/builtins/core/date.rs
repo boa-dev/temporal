@@ -22,7 +22,7 @@ use writeable::Writeable;
 use super::{
     calendar::month_to_month_code,
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    PlainMonthDay, PlainYearMonth,
+    PartialYearMonth, PlainMonthDay, PlainYearMonth,
 };
 use tinystr::TinyAsciiStr;
 
@@ -651,7 +651,6 @@ impl PlainDate {
     /// Converts the current `Date` into a `PlainYearMonth`
     #[inline]
     pub fn to_plain_year_month(&self) -> TemporalResult<PlainYearMonth> {
-        // TODO: Migrate to `PartialYearMonth`
         let era = self
             .era()
             .map(|e| {
@@ -659,7 +658,7 @@ impl PlainDate {
                     .map_err(|e| TemporalError::general(format!("{e}")))
             })
             .transpose()?;
-        let partial = PartialDate::new()
+        let partial = PartialYearMonth::new()
             .with_year(Some(self.year()))
             .with_era(era)
             .with_era_year(self.era_year())
