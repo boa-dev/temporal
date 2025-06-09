@@ -252,6 +252,7 @@ impl Calendar {
         partial: &PartialYearMonth,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
+        // TODO: add a from_partial_year_month method on ResolvedCalendarFields
         let resolved_fields = ResolvedCalendarFields::try_from_partial(
             &PartialDate::from(partial),
             overflow,
