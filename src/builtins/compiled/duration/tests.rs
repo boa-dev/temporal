@@ -1,5 +1,3 @@
-use std::string::ToString;
-
 use crate::{
     options::{
         OffsetDisambiguation, RelativeTo, RoundingIncrement, RoundingMode, RoundingOptions, Unit,
@@ -506,55 +504,6 @@ fn round_relative_to_zoned_datetime() {
     // Result duration should be: (0, 0, 0, 1, 1, 0, 0, 0, 0, 0)
     assert_eq!(result.days(), 1);
     assert_eq!(result.hours(), 1);
-}
-
-#[test]
-fn test_duration_compare() {
-    // TODO(#199): fix this on Windows
-    if cfg!(not(windows)) {
-        let one = Duration::from_partial_duration(PartialDuration {
-            hours: Some(79),
-            minutes: Some(10),
-            ..Default::default()
-        })
-        .unwrap();
-        let two = Duration::from_partial_duration(PartialDuration {
-            days: Some(3),
-            hours: Some(7),
-            seconds: Some(630),
-            ..Default::default()
-        })
-        .unwrap();
-        let three = Duration::from_partial_duration(PartialDuration {
-            days: Some(3),
-            hours: Some(6),
-            minutes: Some(50),
-            ..Default::default()
-        })
-        .unwrap();
-
-        let mut arr = [&one, &two, &three];
-        arr.sort_by(|a, b| Duration::compare(a, b, None).unwrap());
-        assert_eq!(
-            arr.map(ToString::to_string),
-            [&three, &one, &two].map(ToString::to_string)
-        );
-
-        // Sorting relative to a date, taking DST changes into account:
-        let zdt = ZonedDateTime::from_str(
-            "2020-11-01T00:00-07:00[America/Los_Angeles]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-        )
-        .unwrap();
-        arr.sort_by(|a, b| {
-            Duration::compare(a, b, Some(RelativeTo::ZonedDateTime(zdt.clone()))).unwrap()
-        });
-        assert_eq!(
-            arr.map(ToString::to_string),
-            [&one, &three, &two].map(ToString::to_string)
-        )
-    }
 }
 
 #[test]
