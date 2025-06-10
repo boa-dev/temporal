@@ -610,6 +610,104 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
     offset_two..offset_one
 }
 
+/// Timezone provider that uses compiled data.
+///
+/// Currently uses jiff_tzdb and performs parsing; will eventually
+/// use pure compiled data (<https://github.com/boa-dev/temporal/pull/264>)
+#[derive(Debug, Default)]
+pub struct CompiledTzdbProvider {
+    cache: RwLock<BTreeMap<String, Tzif>>,
+}
+
+impl CompiledTzdbProvider {
+    /// Get timezone data for a single identifier
+    pub fn get(&self, identifier: &str) -> TemporalResult<Tzif> {
+        if let Some(tzif) = self
+            .cache
+            .read()
+            .map_err(|_| TemporalError::general("poisoned RWLock"))?
+            .get(identifier)
+        {
+            return Ok(tzif.clone());
+        }
+
+        let (identifier, tzif) = {
+            let Some((canonical_name, data)) = jiff_tzdb::get(identifier) else {
+                return Err(
+                    TemporalError::range().with_message("Time zone identifier does not exist.")
+                );
+            };
+            (canonical_name, Tzif::from_bytes(data)?)
+        };
+
+        Ok(self
+            .cache
+            .write()
+            .map_err(|_| TemporalError::general("poisoned RWLock"))?
+            .entry(identifier.into())
+            .or_insert(tzif)
+            .clone())
+    }
+}
+
+impl TimeZoneProvider for CompiledTzdbProvider {
+    fn check_identifier(&self, identifier: &str) -> bool {
+        if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
+            return SINGLETON_IANA_NORMALIZER
+                .normalized_identifiers
+                .get(index)
+                .is_some();
+        }
+        false
+    }
+
+    fn get_named_tz_epoch_nanoseconds(
+        &self,
+        identifier: &str,
+        iso_datetime: IsoDateTime,
+    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+        let epoch_nanos = iso_datetime.as_nanoseconds()?;
+        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
+        let tzif = self.get(identifier)?;
+        let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
+        let result = match local_time_record_result {
+            LocalTimeRecordResult::Empty => Vec::default(),
+            LocalTimeRecordResult::Single(r) => {
+                let epoch_ns =
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.offset))?;
+                vec![epoch_ns]
+            }
+            LocalTimeRecordResult::Ambiguous { std, dst } => {
+                let std_epoch_ns =
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.offset))?;
+                let dst_epoch_ns =
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.offset))?;
+                vec![std_epoch_ns, dst_epoch_ns]
+            }
+        };
+        Ok(result)
+    }
+
+    fn get_named_tz_offset_nanoseconds(
+        &self,
+        identifier: &str,
+        utc_epoch: i128,
+    ) -> TemporalResult<TimeZoneOffset> {
+        let tzif = self.get(identifier)?;
+        let seconds = (utc_epoch / 1_000_000_000) as i64;
+        tzif.get(&Seconds(seconds))
+    }
+
+    fn get_named_tz_transition(
+        &self,
+        _identifier: &str,
+        _epoch_nanoseconds: i128,
+        _direction: TransitionDirection,
+    ) -> TemporalResult<Option<EpochNanoseconds>> {
+        Err(TemporalError::general("Not yet implemented."))
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct FsTzdbProvider {
     cache: RwLock<BTreeMap<String, Tzif>>,
