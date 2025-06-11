@@ -19,6 +19,11 @@ pub mod ffi {
                 .map(|x| Box::new(TimeZone(x)))
                 .map_err(Into::into)
         }
+        pub fn try_from_offset_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::UtcOffset::from_utf8(ident)
+                .map(|x| Box::new(TimeZone(temporal_rs::TimeZone::UtcOffset(x))))
+                .map_err(Into::into)
+        }
         pub fn try_from_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             let Ok(ident) = str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
