@@ -39,6 +39,15 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
+        pub fn from_partial(
+            partial: PartialDate,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::PlainYearMonth::from_partial(partial.try_into()?, overflow.map(Into::into))
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialDate,
