@@ -12,10 +12,10 @@ date/time API.
 - You are implementing the Temporal API in a JavaScript engine or any
   other language.
 - You have internationalization date/time needs for different calendars
-  that do not involve the ISO / propoleptic Gregorian calendar.
+  that do not involve the ISO / proleptic Gregorian calendar.
 - You really like the JavaScript Temporal built-in and would like to use
   a similar API that you are familiar with.
-- Idk, are you a big ECMA402 fan? Than we might be your jam.
+- Idk, are you a big [ECMA402][ecma402-spec] fan? Than we might be your jam.
 
 ## Why not use `jiff` to implement Temporal?
 
@@ -45,4 +45,6 @@ Other concerns:
 ## Why not use other date/time Rust crates `chrono`, `time` and `hifitime`?
 
 These crates provide fantastic APIs for their intended goal, but most
-are designed for use with the propoleptic Gregorian calendar.
+are designed for use with the proleptic Gregorian calendar.
+
+[ecma402-spec]: https://tc39.es/ecma402/
