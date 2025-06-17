@@ -51,7 +51,7 @@ use tzif::{
 
 use crate::{
     iso::IsoDateTime,
-    provider::{TimeZoneOffset, TimeZoneProvider, TransitionDirection},
+    provider::{TimeZoneProvider, TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds},
     unix_time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
@@ -61,37 +61,15 @@ timezone_provider::iana_normalizer_singleton!();
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
-/// `LocalTimeRecord` represents an local time offset record.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LocalTimeRecord {
-    /// Whether the local time record is a Daylight Savings Time.
-    pub is_dst: bool,
-    /// The time zone offset in seconds.
-    pub offset: i64,
-}
-
-impl LocalTimeRecord {
-    fn from_daylight_savings_time(info: &ZoneVariantInfo) -> Self {
-        Self {
-            is_dst: true,
-            offset: -info.offset.0,
-        }
-    }
-
-    fn from_standard_time(info: &ZoneVariantInfo) -> Self {
-        Self {
-            is_dst: false,
-            offset: -info.offset.0,
-        }
+impl From<&ZoneVariantInfo> for UtcOffsetSeconds {
+    fn from(value: &ZoneVariantInfo) -> Self {
+        Self(-value.offset.0)
     }
 }
 
-impl From<LocalTimeTypeRecord> for LocalTimeRecord {
+impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
     fn from(value: LocalTimeTypeRecord) -> Self {
-        Self {
-            is_dst: value.is_dst,
-            offset: value.utoff.0,
-        }
+        Self(value.utoff.0)
     }
 }
 
@@ -106,17 +84,14 @@ impl From<LocalTimeTypeRecord> for LocalTimeRecord {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalTimeRecordResult {
     Empty,
-    Single(LocalTimeRecord),
+    Single(UtcOffsetSeconds),
     // Note(nekevss): it may be best to switch this to initial, need to double check
     // disambiguation ops with inverse DST-STD relationship
-    Ambiguous {
-        std: LocalTimeRecord,
-        dst: LocalTimeRecord,
-    },
+    Ambiguous { std: UtcOffsetSeconds, dst: UtcOffsetSeconds },
 }
 
-impl From<LocalTimeRecord> for LocalTimeRecordResult {
-    fn from(value: LocalTimeRecord) -> Self {
+impl From<UtcOffsetSeconds> for LocalTimeRecordResult {
+    fn from(value: UtcOffsetSeconds) -> Self {
         Self::Single(value)
     }
 }
@@ -210,7 +185,7 @@ impl Tzif {
             .ok_or(TemporalError::general("Only Tzif V2+ is supported."))
     }
 
-    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<TimeZoneOffset> {
+    pub fn get(&self, epoch_seconds: &Seconds) -> TemporalResult<TimeZoneTransitionInfo> {
         let db = self.get_data_block2()?;
 
         let result = db.transition_times.binary_search(epoch_seconds);
@@ -225,8 +200,8 @@ impl Tzif {
                 if let Some(posix_tz_string) = self.posix_tz_string() {
                     resolve_posix_tz_string_for_epoch_seconds(posix_tz_string, epoch_seconds.0)
                 } else {
-                    Ok(TimeZoneOffset {
-                        offset: db.local_time_type_records[0].utoff.0,
+                    Ok(TimeZoneTransitionInfo {
+                        offset: db.local_time_type_records[0].into(),
                         transition_epoch: None,
                     })
                 }
@@ -317,7 +292,9 @@ impl Tzif {
         // Adjust for offset inversion from northern/southern hemisphere.
         let offset_range = offset_range(initial_record.utoff.0, next_record.utoff.0);
         match offset_range.contains(&current_diff.0) {
-            true if next_record.is_dst => Ok(LocalTimeRecordResult::Empty),
+            true if initial_record.utoff.0 < next_record.utoff.0 => {
+                Ok(LocalTimeRecordResult::Empty)
+            }
             true => Ok((next_record, initial_record).into()),
             false if current_diff <= initial_record.utoff => Ok(initial_record.into()),
             false => Ok(next_record.into()),
@@ -326,13 +303,13 @@ impl Tzif {
 }
 
 #[inline]
-fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneOffset {
+fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneTransitionInfo {
     // NOTE: Transition type can be empty. If no transition_type exists,
     // then use 0 as the default index of local_time_type_records.
     let offset = db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)];
-    TimeZoneOffset {
+    TimeZoneTransitionInfo {
         transition_epoch: db.transition_times.get(idx).map(|s| s.0),
-        offset: offset.utoff.0,
+        offset: offset.into(),
     }
 }
 
@@ -347,12 +324,12 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
 fn resolve_posix_tz_string_for_epoch_seconds(
     posix_tz_string: &PosixTzString,
     seconds: i64,
-) -> TemporalResult<TimeZoneOffset> {
+) -> TemporalResult<TimeZoneTransitionInfo> {
     let Some(dst_variant) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(TimeZoneOffset {
+        return Ok(TimeZoneTransitionInfo {
             transition_epoch: None,
-            offset: LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).offset,
+            offset: UtcOffsetSeconds::from(&posix_tz_string.std_info),
         });
     };
 
@@ -368,15 +345,11 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 
     let transition =
         compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant);
-    let std_offset = LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).offset;
-    let dst_offset = LocalTimeRecord::from_daylight_savings_time(&dst_variant.variant_info).offset;
-    let (old_offset, new_offset) = match transition {
-        TransitionType::Dst => (std_offset, dst_offset),
-        TransitionType::Std => (dst_offset, std_offset),
-    };
-    let transition = match transition {
-        TransitionType::Dst => start,
-        TransitionType::Std => end,
+    let std_offset = UtcOffsetSeconds::from(&posix_tz_string.std_info);
+    let dst_offset = UtcOffsetSeconds::from(&dst_variant.variant_info);
+    let (old_offset, new_offset, transition) = match transition {
+        TransitionType::Dst => (std_offset, dst_offset, start),
+        TransitionType::Std => (dst_offset, std_offset, end),
     };
     let year = utils::epoch_time_to_epoch_year(seconds * 1000);
     let year_epoch = utils::epoch_days_for_year(year) * 86400;
@@ -432,8 +405,8 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     // Transition time is on local time, so we need to add the UTC offset to get the correct UTC timestamp
     // for the transition.
     let transition_epoch =
-        i64::from(year_epoch) + i64::from(days) * 86400 + transition.time.0 - old_offset;
-    Ok(TimeZoneOffset {
+        i64::from(year_epoch) + i64::from(days) * 86400 + transition.time.0 - old_offset.0;
+    Ok(TimeZoneTransitionInfo {
         offset: new_offset,
         transition_epoch: Some(transition_epoch),
     })
@@ -450,7 +423,7 @@ fn resolve_posix_tz_string(
     let std = &posix_tz_string.std_info;
     let Some(dst) = &posix_tz_string.dst_info else {
         // Regardless of the time, there is one variant and we can return it.
-        return Ok(LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).into());
+        return Ok(UtcOffsetSeconds::from(&posix_tz_string.std_info).into());
     };
 
     // TODO: Resolve safety issue around utils.
@@ -479,8 +452,8 @@ fn resolve_posix_tz_string(
             true if is_dst == TransitionType::Dst => return Ok(LocalTimeRecordResult::Empty),
             true => {
                 return Ok(LocalTimeRecordResult::Ambiguous {
-                    std: LocalTimeRecord::from_standard_time(std),
-                    dst: LocalTimeRecord::from_daylight_savings_time(&dst.variant_info),
+                    std: UtcOffsetSeconds::from(std),
+                    dst: UtcOffsetSeconds::from(&dst.variant_info),
                 })
             }
             _ => {}
@@ -488,12 +461,8 @@ fn resolve_posix_tz_string(
     }
 
     match is_dst {
-        TransitionType::Dst => {
-            Ok(LocalTimeRecord::from_daylight_savings_time(&dst.variant_info).into())
-        }
-        TransitionType::Std => {
-            Ok(LocalTimeRecord::from_standard_time(&posix_tz_string.std_info).into())
-        }
+        TransitionType::Dst => Ok(UtcOffsetSeconds::from(&dst.variant_info).into()),
+        TransitionType::Std => Ok(UtcOffsetSeconds::from(&posix_tz_string.std_info).into()),
     }
 }
 
@@ -674,14 +643,14 @@ impl TimeZoneProvider for CompiledTzdbProvider {
             LocalTimeRecordResult::Empty => Vec::default(),
             LocalTimeRecordResult::Single(r) => {
                 let epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.0))?;
                 vec![epoch_ns]
             }
             LocalTimeRecordResult::Ambiguous { std, dst } => {
                 let std_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.0))?;
                 let dst_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0))?;
                 vec![std_epoch_ns, dst_epoch_ns]
             }
         };
@@ -692,7 +661,7 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TemporalResult<TimeZoneOffset> {
+    ) -> TemporalResult<TimeZoneTransitionInfo> {
         let tzif = self.get(identifier)?;
         let seconds = (utc_epoch / 1_000_000_000) as i64;
         tzif.get(&Seconds(seconds))
@@ -770,14 +739,14 @@ impl TimeZoneProvider for FsTzdbProvider {
             LocalTimeRecordResult::Empty => Vec::default(),
             LocalTimeRecordResult::Single(r) => {
                 let epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.0))?;
                 vec![epoch_ns]
             }
             LocalTimeRecordResult::Ambiguous { std, dst } => {
                 let std_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.0))?;
                 let dst_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.offset))?;
+                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0))?;
                 vec![std_epoch_ns, dst_epoch_ns]
             }
         };
@@ -788,7 +757,7 @@ impl TimeZoneProvider for FsTzdbProvider {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TemporalResult<TimeZoneOffset> {
+    ) -> TemporalResult<TimeZoneTransitionInfo> {
         let tzif = self.get(identifier)?;
         let seconds = (utc_epoch / 1_000_000_000) as i64;
         tzif.get(&Seconds(seconds))
@@ -815,7 +784,7 @@ mod tests {
 
     use crate::{
         iso::IsoDateTime,
-        tzdb::{LocalTimeRecord, LocalTimeRecordResult, TimeZoneProvider},
+        tzdb::{LocalTimeRecordResult, TimeZoneProvider, UtcOffsetSeconds},
     };
 
     use super::{FsTzdbProvider, Tzif, SINGLETON_IANA_NORMALIZER};
@@ -994,14 +963,8 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: LocalTimeRecord {
-                    is_dst: false,
-                    offset: -18000
-                },
-                dst: LocalTimeRecord {
-                    is_dst: true,
-                    offset: -14400,
-                },
+                std: UtcOffsetSeconds(-18000),
+                dst: UtcOffsetSeconds(-14400),
             }
         );
     }
@@ -1041,14 +1004,8 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: LocalTimeRecord {
-                    is_dst: false,
-                    offset: 36000
-                },
-                dst: LocalTimeRecord {
-                    is_dst: true,
-                    offset: 39600,
-                },
+                std: UtcOffsetSeconds(36000),
+                dst: UtcOffsetSeconds(39600),
             }
         );
     }
@@ -1083,14 +1040,8 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: LocalTimeRecord {
-                    is_dst: false,
-                    offset: -18000
-                },
-                dst: LocalTimeRecord {
-                    is_dst: true,
-                    offset: -14400,
-                },
+                std: UtcOffsetSeconds(-18000),
+                dst: UtcOffsetSeconds(-14400),
             }
         );
     }
@@ -1124,14 +1075,8 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: LocalTimeRecord {
-                    is_dst: false,
-                    offset: 36000
-                },
-                dst: LocalTimeRecord {
-                    is_dst: true,
-                    offset: 39600,
-                },
+                std: UtcOffsetSeconds(36000),
+                dst: UtcOffsetSeconds(39600),
             }
         );
     }
