@@ -91,7 +91,7 @@ impl<'a> IxdtfStringBuilder<'a> {
     }
 }
 
-impl<'a> Writeable for IxdtfStringBuilder<'a> {
+impl Writeable for IxdtfStringBuilder<'_> {
     fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
         self.inner.write_to(sink)
     }

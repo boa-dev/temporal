@@ -108,6 +108,14 @@ impl TemporalError {
         self
     }
 
+    /// Add a message enum to the error.
+    #[inline]
+    #[must_use]
+    pub(crate) fn with_enum(mut self, msg: ErrorMessage) -> Self {
+        self.msg = msg.to_string().into();
+        self
+    }
+
     /// Returns this error's kind.
     #[inline]
     #[must_use]
@@ -144,5 +152,56 @@ impl fmt::Display for TemporalError {
         }
 
         Ok(())
+    }
+}
+
+/// The error message
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ErrorMessage {
+    InstantOutOfRange,
+
+    NumberNotFinite,
+    NumberNotIntegral,
+    NumberNotPositive,
+    NumberOutOfRange,
+
+    FractionalDigitsPrecisionInvalid,
+
+    SmallestUnitNotTimeUnit,
+    SmallestUnitLargerThanLargestUnit,
+    UnitNotDate,
+    UnitNotTime,
+    UnitRequired,
+    UnitNoAutoDuringComparison,
+    RoundToUnitInvalid,
+    RoundingModeInvalid,
+    CalendarNameInvalid,
+    OffsetOptionInvalid,
+    TimeZoneNameInvalid,
+}
+
+impl ErrorMessage {
+    pub fn to_string(self) -> &'static str {
+        match self {
+            Self::InstantOutOfRange => "Instant nanoseconds are not within a valid epoch range.",
+            Self::NumberNotFinite => "number value is not a finite value.",
+            Self::NumberNotIntegral => "value must be integral.",
+            Self::NumberNotPositive => "integer must be positive.",
+            Self::NumberOutOfRange => "number exceeded a valid range.",
+            Self::FractionalDigitsPrecisionInvalid => "Invalid fractionalDigits precision value",
+            Self::SmallestUnitNotTimeUnit => "smallestUnit must be a valid time unit.",
+            Self::SmallestUnitLargerThanLargestUnit => {
+                "smallestUnit was larger than largestunit in DifferenceeSettings"
+            }
+            Self::UnitNotDate => "Unit was not part of the date unit group.",
+            Self::UnitNotTime => "Unit was not part of the time unit group.",
+            Self::UnitRequired => "Unit is required",
+            Self::UnitNoAutoDuringComparison => "'auto' units are not allowed during comparison",
+            Self::RoundToUnitInvalid => "Invalid roundTo unit provided.",
+            Self::RoundingModeInvalid => "Invalid roundingMode option provided",
+            Self::CalendarNameInvalid => "Invalid calendarName option provided",
+            Self::OffsetOptionInvalid => "Invalid offsetOption option provided",
+            Self::TimeZoneNameInvalid => "Invalid timeZoneName option provided",
+        }
     }
 }
