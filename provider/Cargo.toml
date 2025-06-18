@@ -20,7 +20,7 @@ default = []
 datagen = ["std", "dep:parse-zoneinfo", "dep:serde", "dep:databake",
            "dep:yoke", "dep:serde_json",
            "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake"]
-zoneinfo64-provider = ["dep:serde", "zerovec/serde", "zerovec/derive", "zerovec/databake", "writeable"]
+zoneinfo64-provider = ["dep:serde", "zerovec/serde", "zerovec/derive", "zerovec/databake", "writeable", "resb", "rustc-hash"]
 std = []
 
 
@@ -41,6 +41,6 @@ yoke = { version = "0.8.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0.140", optional = true }
 
 # ZoneInfo64 dependencies
-resb = { git = "https://github.com/unicode-org/icu4x.git" }
-rustc-hash.workspace = true
+resb = { git = "https://github.com/unicode-org/icu4x.git", optional = true }
+rustc-hash = { workspace = true, optional = true }
 writeable = { workspace = true, optional = true }
