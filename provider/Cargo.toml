@@ -16,7 +16,7 @@ include = [
 ]
 
 [features]
-default = ["zoneinfo64-provider"]
+default = []
 datagen = ["std", "dep:parse-zoneinfo", "dep:serde", "dep:databake",
            "dep:yoke", "dep:serde_json",
            "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake"]
