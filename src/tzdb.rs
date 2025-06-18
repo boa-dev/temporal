@@ -87,7 +87,10 @@ pub enum LocalTimeRecordResult {
     Single(UtcOffsetSeconds),
     // Note(nekevss): it may be best to switch this to initial, need to double check
     // disambiguation ops with inverse DST-STD relationship
-    Ambiguous { std: UtcOffsetSeconds, dst: UtcOffsetSeconds },
+    Ambiguous {
+        std: UtcOffsetSeconds,
+        dst: UtcOffsetSeconds,
+    },
 }
 
 impl From<UtcOffsetSeconds> for LocalTimeRecordResult {

@@ -97,7 +97,11 @@ impl TimeZoneProvider for NeverProvider {
         unimplemented!()
     }
 
-    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<TimeZoneTransitionInfo> {
+    fn get_named_tz_offset_nanoseconds(
+        &self,
+        _: &str,
+        _: i128,
+    ) -> TemporalResult<TimeZoneTransitionInfo> {
         unimplemented!()
     }
 
