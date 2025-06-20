@@ -25,6 +25,8 @@ temporal_rs_TimeZone_try_from_offset_str_result temporal_rs_TimeZone_try_from_of
 typedef struct temporal_rs_TimeZone_try_from_str_result {union {TimeZone* ok; TemporalError err;}; bool is_ok;} temporal_rs_TimeZone_try_from_str_result;
 temporal_rs_TimeZone_try_from_str_result temporal_rs_TimeZone_try_from_str(DiplomatStringView ident);
 
+TimeZone* temporal_rs_TimeZone_utc(void);
+
 bool temporal_rs_TimeZone_is_valid(const TimeZone* self);
 
 void temporal_rs_TimeZone_destroy(TimeZone* self);
