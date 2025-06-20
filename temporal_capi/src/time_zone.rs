@@ -33,6 +33,9 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        pub fn utc() -> Box<Self> {
+            Box::new(Self(temporal_rs::TimeZone::IanaIdentifier("UTC".into())))
+        }
         #[cfg(feature = "compiled_data")]
         pub fn is_valid(&self) -> bool {
             self.0.is_valid()
