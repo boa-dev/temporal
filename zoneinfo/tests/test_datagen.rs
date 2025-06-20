@@ -98,8 +98,9 @@ fn generate_test_data(tzdata_dir: PathBuf, identifier: &str) {
 // #[test]
 // #[cfg(feature = "std")]
 // fn gen() {
-//     let path = Path::new("Europe/Dublin")
-//     generate_test_data(path);
+//     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+//     let path = manifest_dir.join("tzdata/test/");
+//     generate_test_data(path, "Antarctica/Troll");
 // }
 
 #[cfg(feature = "std")]
@@ -139,12 +140,13 @@ fn test_data_for_id(identifier: &str) {
         // support for rearguard and to test dst for Europe/Dublin
         //
         // That or the tzif source for the data is wrong ...
-        assert_eq!(computed.dst, test_data.record.is_dst); // TODO stabilize dst flags / vanguard/rearguard parsing
-                                                           // TODO: Fix bug with first transition formatting.
-                                                           //
-                                                           // When in named rule before any transition has happened,
-                                                           // value is initialized to first letter of save == 0
-                                                           // assert_eq!(computed.format, test_data.record.abbr); // TODO stabilize abbr
+        // TODO stabilize dst flags / vanguard/rearguard parsing -> Test rearguard file
+        assert_eq!(computed.dst, test_data.record.is_dst);
+        // TODO: Fix bug with first transition formatting.
+        //
+        // When in named rule before any transition has happened,
+        // value is initialized to first letter of save == 0
+        // assert_eq!(computed.format, test_data.record.abbr); // TODO stabilize abbr
     }
 }
 
