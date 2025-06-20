@@ -33,3 +33,19 @@ To update the bindings, run:
 ```bash
 cargo run -p diplomat-gen
 ```
+
+## Baked data
+
+To regenerate baked data, run:
+
+```bash
+cargo run -p bakeddata
+```
+
+## Dependency check
+
+To check the dependencies, run:
+
+```bash
+cargo run -p depcheck
+```

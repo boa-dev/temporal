@@ -1,0 +1,27 @@
+{
+  "ids": [
+    "indian/kerguelen",
+    "indian/maldives"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      0,
+      1
+    ],
+    "transitions": [
+      -2840158440,
+      -315636840
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": 17640
+      },
+      {
+        "is_dst": false,
+        "offset": 18000
+      }
+    ]
+  }
+}

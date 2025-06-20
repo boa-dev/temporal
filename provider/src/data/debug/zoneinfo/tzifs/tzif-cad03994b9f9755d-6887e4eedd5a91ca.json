@@ -1,0 +1,56 @@
+{
+  "ids": [
+    "pacific/kosrae"
+  ],
+  "tzif": {
+    "posix": "TODO",
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      4,
+      3,
+      2,
+      5,
+      2
+    ],
+    "transitions": [
+      -3944631116,
+      -2177491916,
+      -1743678000,
+      -1606813200,
+      -1041418800,
+      -907408800,
+      -770634000,
+      -7988400,
+      915105600
+    ],
+    "types": [
+      {
+        "is_dst": false,
+        "offset": -47284
+      },
+      {
+        "is_dst": false,
+        "offset": 39116
+      },
+      {
+        "is_dst": false,
+        "offset": 39600
+      },
+      {
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "is_dst": false,
+        "offset": 36000
+      },
+      {
+        "is_dst": false,
+        "offset": 43200
+      }
+    ]
+  }
+}
