@@ -127,6 +127,12 @@ inline std::string temporal_rs::PlainMonthDay::month_code() const {
     &write);
   return output;
 }
+template<typename W>
+inline void temporal_rs::PlainMonthDay::month_code_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainMonthDay_month_code(this->AsFFI(),
+    &write);
+}
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainMonthDay::to_plain_date(std::optional<temporal_rs::PartialDate> year) const {
   auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_to_plain_date(this->AsFFI(),
@@ -141,6 +147,13 @@ inline std::string temporal_rs::PlainMonthDay::to_ixdtf_string(temporal_rs::Disp
     display_calendar.AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainMonthDay::to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainMonthDay_to_ixdtf_string(this->AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
 }
 
 inline const temporal_rs::capi::PlainMonthDay* temporal_rs::PlainMonthDay::AsFFI() const {

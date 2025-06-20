@@ -9,11 +9,13 @@ pub mod ffi {
 
     #[diplomat::enum_convert(options::ArithmeticOverflow)]
     pub enum ArithmeticOverflow {
+        #[diplomat::attr(auto, default)]
         Constrain,
         Reject,
     }
     #[diplomat::enum_convert(options::Disambiguation)]
     pub enum Disambiguation {
+        #[diplomat::attr(auto, default)]
         Compatible,
         Earlier,
         Later,
@@ -22,6 +24,7 @@ pub mod ffi {
 
     #[diplomat::enum_convert(options::DisplayCalendar)]
     pub enum DisplayCalendar {
+        #[diplomat::attr(auto, default)]
         Auto,
         Always,
         Never,
@@ -30,12 +33,14 @@ pub mod ffi {
 
     #[diplomat::enum_convert(options::DisplayOffset)]
     pub enum DisplayOffset {
+        #[diplomat::attr(auto, default)]
         Auto,
         Never,
     }
 
     #[diplomat::enum_convert(options::DisplayTimeZone)]
     pub enum DisplayTimeZone {
+        #[diplomat::attr(auto, default)]
         Auto,
         Never,
         Critical,
@@ -70,6 +75,7 @@ pub mod ffi {
 
     #[diplomat::enum_convert(options::Unit)]
     pub enum Unit {
+        #[diplomat::attr(auto, default)]
         Auto = 0,
         Nanosecond = 1,
         Microsecond = 2,

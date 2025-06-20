@@ -60,6 +60,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> date_until(temporal_rs::IsoDate one, temporal_rs::IsoDate two, temporal_rs::Unit largest_unit) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> era(temporal_rs::IsoDate date) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> era_write(temporal_rs::IsoDate date, W& writeable_output) const;
 
   inline std::optional<int32_t> era_year(temporal_rs::IsoDate date) const;
 
@@ -68,6 +70,8 @@ public:
   inline uint8_t month(temporal_rs::IsoDate date) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> month_code(temporal_rs::IsoDate date) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> month_code_write(temporal_rs::IsoDate date, W& writeable_output) const;
 
   inline uint8_t day(temporal_rs::IsoDate date) const;
 

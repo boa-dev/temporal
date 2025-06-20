@@ -92,6 +92,8 @@ public:
   inline uint8_t month() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline uint8_t day() const;
 
@@ -114,6 +116,8 @@ public:
   inline bool in_leap_year() const;
 
   inline std::string era() const;
+  template<typename W>
+  inline void era_write(W& writeable_output) const;
 
   inline std::optional<int32_t> era_year() const;
 
@@ -126,6 +130,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
+  template<typename W>
+  inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
   inline const temporal_rs::capi::PlainDate* AsFFI() const;
   inline temporal_rs::capi::PlainDate* AsFFI();

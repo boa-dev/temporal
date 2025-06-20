@@ -81,6 +81,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> round(temporal_rs::Unit smallest_unit, std::optional<double> rounding_increment, std::optional<temporal_rs::RoundingMode> rounding_mode) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::ToStringRoundingOptions options) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
 
   inline const temporal_rs::capi::PlainTime* AsFFI() const;
   inline temporal_rs::capi::PlainTime* AsFFI();
