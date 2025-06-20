@@ -37,7 +37,8 @@ public:
     Assert = 4,
   };
 
-  ErrorKind() = default;
+  ErrorKind(): value(Value::Generic) {}
+
   // Implicit conversions between enum and ::Value
   constexpr ErrorKind(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

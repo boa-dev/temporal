@@ -35,7 +35,8 @@ public:
     Reject = 3,
   };
 
-  Disambiguation() = default;
+  Disambiguation(): value(Value::Compatible) {}
+
   // Implicit conversions between enum and ::Value
   constexpr Disambiguation(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

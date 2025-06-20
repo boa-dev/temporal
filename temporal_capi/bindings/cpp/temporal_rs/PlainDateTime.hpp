@@ -279,6 +279,12 @@ inline std::string temporal_rs::PlainDateTime::month_code() const {
     &write);
   return output;
 }
+template<typename W>
+inline void temporal_rs::PlainDateTime::month_code_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainDateTime_month_code(this->AsFFI(),
+    &write);
+}
 
 inline uint8_t temporal_rs::PlainDateTime::day() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDateTime_day(this->AsFFI());
@@ -336,6 +342,12 @@ inline std::string temporal_rs::PlainDateTime::era() const {
   temporal_rs::capi::temporal_rs_PlainDateTime_era(this->AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainDateTime::era_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainDateTime_era(this->AsFFI(),
+    &write);
 }
 
 inline std::optional<int32_t> temporal_rs::PlainDateTime::era_year() const {
@@ -414,6 +426,15 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Pl
     display_calendar.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::PlainDateTime::to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_to_ixdtf_string(this->AsFFI(),
+    options.AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline const temporal_rs::capi::PlainDateTime* temporal_rs::PlainDateTime::AsFFI() const {

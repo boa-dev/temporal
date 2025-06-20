@@ -230,6 +230,14 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Pl
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::PlainTime::to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_PlainTime_to_ixdtf_string(this->AsFFI(),
+    options.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
 
 inline const temporal_rs::capi::PlainTime* temporal_rs::PlainTime::AsFFI() const {
   return reinterpret_cast<const temporal_rs::capi::PlainTime*>(this);
