@@ -65,6 +65,8 @@ public:
 
   inline int64_t epoch_milliseconds() const;
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
+
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
 
   inline diplomat::result<int64_t, temporal_rs::TemporalError> offset_nanoseconds() const;
