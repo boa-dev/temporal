@@ -1,13 +1,7 @@
 #[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "std")]
-use std::{
-    format,
-    fs::{self, read_to_string},
-    path::{Path, PathBuf},
-    string::String,
-    vec::Vec,
-};
+use std::{format, fs::read_to_string, path::Path, string::String, vec::Vec};
 #[cfg(feature = "std")]
 use zoneinfo_rs::{ZoneInfoCompiler, ZoneInfoData};
 
@@ -32,76 +26,6 @@ struct LocalRecord {
     is_dst: bool,
     abbr: String,
 }
-
-// Utility function for generating example files
-#[allow(unused)]
-#[cfg(feature = "std")]
-fn generate_test_data(tzdata_dir: PathBuf, identifier: &str) {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let test_dir = manifest_dir.join("tests");
-    let filename = identifier.to_lowercase().replace("/", "-");
-    let test_data_path = test_dir.join(format!("{filename}.json"));
-
-    let tzdata = manifest_dir.join("tzdata/test/");
-    let tzif = tzif::parse_tzif_file(&tzdata_dir.join(identifier)).unwrap();
-    let tzif_block_v2 = tzif.data_block2.unwrap();
-
-    let first_record_data = tzif_block_v2.local_time_type_records[0];
-    let first_record = LocalRecord {
-        offset: first_record_data.utoff.0,
-        is_dst: first_record_data.is_dst,
-        abbr: tzif_block_v2.time_zone_designations[0].clone(),
-    };
-
-    print!("{:#?}", tzif_block_v2);
-
-    let local_records = tzif_block_v2
-        .local_time_type_records
-        .iter()
-        .enumerate()
-        .map(|(idx, r)| LocalRecord {
-            offset: r.utoff.0,
-            is_dst: r.is_dst,
-            abbr: tzif_block_v2
-                .time_zone_designations
-                .get(r.idx / 4)
-                .cloned()
-                .unwrap_or(String::from("unknown")),
-        })
-        .collect::<Vec<_>>();
-
-    let transitions = tzif_block_v2
-        .transition_times
-        .iter()
-        .zip(tzif_block_v2.transition_types)
-        .map(|(time, time_type)| TransitionRecord {
-            transition_time: time.0,
-            record: local_records[time_type].clone(),
-        })
-        .collect::<Vec<TransitionRecord>>();
-
-    let tzif_data = TzifTestData {
-        first_record,
-        transitions,
-    };
-
-    std::println!("Writing generated example data to {:?}", test_data_path);
-    fs::write(
-        test_data_path,
-        serde_json::to_string_pretty(&tzif_data).unwrap(),
-    )
-    .unwrap();
-}
-
-// Uncomment and adjust path to generate any new testing data
-//
-// #[test]
-// #[cfg(feature = "std")]
-// fn gen() {
-//     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-//     let path = manifest_dir.join("tzdata/test/");
-//     generate_test_data(path, "Antarctica/Troll");
-// }
 
 #[cfg(feature = "std")]
 fn test_data_for_id(identifier: &str) {
