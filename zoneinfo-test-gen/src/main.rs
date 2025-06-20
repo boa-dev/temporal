@@ -45,8 +45,7 @@ fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str)
     let local_records = tzif_block_v2
         .local_time_type_records
         .iter()
-        .enumerate()
-        .map(|(_idx, r)| LocalRecord {
+        .map(|r| LocalRecord {
             offset: r.utoff.0,
             is_dst: r.is_dst,
             abbr: tzif_block_v2
