@@ -41,7 +41,7 @@ namespace temporal_rs {
 class Calendar {
 public:
 
-  inline static std::unique_ptr<temporal_rs::Calendar> create(temporal_rs::AnyCalendarKind kind);
+  inline static std::unique_ptr<temporal_rs::Calendar> try_new_constrain(temporal_rs::AnyCalendarKind kind);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Calendar>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
@@ -88,6 +88,11 @@ public:
   inline uint16_t months_in_year(temporal_rs::IsoDate date) const;
 
   inline bool in_leap_year(temporal_rs::IsoDate date) const;
+
+  /**
+   * Returns the kind of this calendar
+   */
+  inline temporal_rs::AnyCalendarKind kind() const;
 
   inline const temporal_rs::capi::Calendar* AsFFI() const;
   inline temporal_rs::capi::Calendar* AsFFI();

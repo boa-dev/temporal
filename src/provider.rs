@@ -5,13 +5,17 @@ use core::str::FromStr;
 use crate::{iso::IsoDateTime, unix_time::EpochNanoseconds, TemporalResult};
 use alloc::vec::Vec;
 
-/// `TimeZoneOffset` represents the number of seconds to be added to UT in order to determine local time.
+/// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TimeZoneOffset {
+pub struct UtcOffsetSeconds(pub i64);
+
+/// `TimeZoneTransitionInfo` represents information about a timezone transition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeZoneTransitionInfo {
     /// The transition time epoch at which the offset needs to be applied.
     pub transition_epoch: Option<i64>,
     /// The time zone offset in seconds.
-    pub offset: i64,
+    pub offset: UtcOffsetSeconds,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -67,7 +71,7 @@ pub trait TimeZoneProvider {
         &self,
         identifier: &str,
         epoch_nanoseconds: i128,
-    ) -> TemporalResult<TimeZoneOffset>;
+    ) -> TemporalResult<TimeZoneTransitionInfo>;
 
     // TODO: implement and stabalize
     fn get_named_tz_transition(
@@ -93,7 +97,11 @@ impl TimeZoneProvider for NeverProvider {
         unimplemented!()
     }
 
-    fn get_named_tz_offset_nanoseconds(&self, _: &str, _: i128) -> TemporalResult<TimeZoneOffset> {
+    fn get_named_tz_offset_nanoseconds(
+        &self,
+        _: &str,
+        _: i128,
+    ) -> TemporalResult<TimeZoneTransitionInfo> {
         unimplemented!()
     }
 

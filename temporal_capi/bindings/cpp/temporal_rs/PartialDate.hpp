@@ -12,7 +12,7 @@
 #include <optional>
 #include <cstdlib>
 #include "../diplomat_runtime.hpp"
-#include "Calendar.hpp"
+#include "AnyCalendarKind.hpp"
 
 
 namespace temporal_rs {
@@ -44,7 +44,7 @@ inline temporal_rs::PartialDate temporal_rs::PartialDate::FromFFI(temporal_rs::c
     /* .day = */ c_struct.day.is_ok ? std::optional(c_struct.day.ok) : std::nullopt,
     /* .era = */ std::string_view(c_struct.era.data, c_struct.era.len),
     /* .era_year = */ c_struct.era_year.is_ok ? std::optional(c_struct.era_year.ok) : std::nullopt,
-    /* .calendar = */ *temporal_rs::Calendar::FromFFI(c_struct.calendar),
+    /* .calendar = */ temporal_rs::AnyCalendarKind::FromFFI(c_struct.calendar),
   };
 }
 

@@ -8,6 +8,9 @@ proposed for addition to the ECMAScript specification.
 crate has been externalized as we intended to make an engine agnostic
 and general usage implementation of Temporal and its algorithms.
 
+For more information on `temporal_rs`'s general position in the Rust
+date/time library ecoystem, see our [FAQ](./docs/FAQ.md).
+
 ## Example usage
 
 Below are a few examples to give an overview of `temporal_rs`'s current
@@ -49,7 +52,8 @@ assert_eq!(pdt.second(), 10);
 
 ### Create a `ZonedDateTime` for a RFC9557 IXDTF string.
 
-**Important Note:** The below API is enabled with the `compiled_data` feature flag.
+**Important Note:** The below API is enabled with the `compiled_data`
+feature flag.
 
 ```rust
 use temporal_rs::{ZonedDateTime, TimeZone};
@@ -101,8 +105,8 @@ information.
 
 <!-- TODO: Potentially update with tests if a runner can be implemented -->
 
-The `temporal_rs`'s current conformance results can be viewed on
-Boa's [test262 conformance page](https://boajs.dev/conformance).
+The `temporal_rs`'s current conformance results can be viewed on Boa's
+[test262 conformance page](https://boajs.dev/conformance).
 
 ## FFI
 

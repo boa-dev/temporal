@@ -117,7 +117,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "databake",
  "prettyplease",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.0.8"
+version = "0.0.9"
 
 [[package]]
 name = "diplomat"
@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "diplomat-tool",
 ]
@@ -649,9 +649,9 @@ dependencies = [
 
 [[package]]
 name = "prettyplease"
-version = "0.2.32"
+version = "0.2.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "664ec5419c51e34154eec046ebcba56312d5a2fc3b09a06da188e1ad21afadf6"
+checksum = "6837b9e10d61f45f987d50808f83d1ee3d206c66acf650c3e4ae2e1f6ddedf55"
 dependencies = [
  "proc-macro2",
  "syn",
@@ -788,9 +788,9 @@ checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
 
 [[package]]
 name = "syn"
-version = "2.0.101"
+version = "2.0.103"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce2b7fc941b3a24138a0a7cf8e858bfc6a992e7978a068a5c760deb0ed43caf"
+checksum = "e4307e30089d6fd6aff212f2da3a1f9e32f3223b1f010fb09b7c95f90f3ca1e8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -820,7 +820,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -828,11 +828,12 @@ dependencies = [
  "icu_locale",
  "num-traits",
  "temporal_rs",
+ "writeable",
 ]
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "combine",
  "core_maths",
@@ -852,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "timezone_provider"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "databake",
  "serde",
@@ -1246,7 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo_rs"
-version = "0.0.8"
+version = "0.0.9"
 dependencies = [
  "hashbrown",
  "indexmap",

@@ -55,7 +55,7 @@ pub mod ffi {
     pub struct Calendar(pub temporal_rs::Calendar);
 
     impl Calendar {
-        pub fn create(kind: AnyCalendarKind) -> Box<Self> {
+        pub fn try_new_constrain(kind: AnyCalendarKind) -> Box<Self> {
             Box::new(Calendar(temporal_rs::Calendar::new(kind.into())))
         }
 
@@ -187,7 +187,11 @@ pub mod ffi {
         pub fn in_leap_year(&self, date: IsoDate) -> bool {
             self.0.in_leap_year(&date.into())
         }
-
+        /// Returns the kind of this calendar
+        #[inline]
+        pub fn kind(&self) -> AnyCalendarKind {
+            self.0.kind().into()
+        }
         // TODO .fields() (need to pick a convenient way to return vectors or iterators, depending on how the API gets used)
     }
 }

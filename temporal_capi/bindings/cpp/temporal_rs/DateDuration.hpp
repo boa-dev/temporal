@@ -20,8 +20,8 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    typedef struct temporal_rs_DateDuration_new_result {union {temporal_rs::capi::DateDuration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_DateDuration_new_result;
-    temporal_rs_DateDuration_new_result temporal_rs_DateDuration_new(int64_t years, int64_t months, int64_t weeks, int64_t days);
+    typedef struct temporal_rs_DateDuration_try_new_result {union {temporal_rs::capi::DateDuration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_DateDuration_try_new_result;
+    temporal_rs_DateDuration_try_new_result temporal_rs_DateDuration_try_new(int64_t years, int64_t months, int64_t weeks, int64_t days);
 
     temporal_rs::capi::DateDuration* temporal_rs_DateDuration_abs(const temporal_rs::capi::DateDuration* self);
 
@@ -35,8 +35,8 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::DateDuration>, temporal_rs::TemporalError> temporal_rs::DateDuration::new_(int64_t years, int64_t months, int64_t weeks, int64_t days) {
-  auto result = temporal_rs::capi::temporal_rs_DateDuration_new(years,
+inline diplomat::result<std::unique_ptr<temporal_rs::DateDuration>, temporal_rs::TemporalError> temporal_rs::DateDuration::try_new(int64_t years, int64_t months, int64_t weeks, int64_t days) {
+  auto result = temporal_rs::capi::temporal_rs_DateDuration_try_new(years,
     months,
     weeks,
     days);

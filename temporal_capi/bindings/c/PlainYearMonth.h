@@ -7,9 +7,11 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
+#include "AnyCalendarKind.d.h"
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DifferenceSettings.d.h"
+#include "DisplayCalendar.d.h"
 #include "Duration.d.h"
 #include "PartialDate.d.h"
 #include "PlainDate.d.h"
@@ -22,8 +24,8 @@
 
 
 
-typedef struct temporal_rs_PlainYearMonth_create_with_overflow_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_create_with_overflow_result;
-temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, OptionU8 reference_day, const Calendar* calendar, ArithmeticOverflow overflow);
+typedef struct temporal_rs_PlainYearMonth_try_new_with_overflow_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_try_new_with_overflow_result;
+temporal_rs_PlainYearMonth_try_new_with_overflow_result temporal_rs_PlainYearMonth_try_new_with_overflow(int32_t year, uint8_t month, OptionU8 reference_day, AnyCalendarKind calendar, ArithmeticOverflow overflow);
 
 typedef struct temporal_rs_PlainYearMonth_with_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
 temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const PlainYearMonth* self, PartialDate partial, ArithmeticOverflow_option overflow);
@@ -79,6 +81,8 @@ int8_t temporal_rs_PlainYearMonth_compare(const PlainYearMonth* one, const Plain
 
 typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
 temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const PlainYearMonth* self, PartialDate_option day);
+
+void temporal_rs_PlainYearMonth_to_ixdtf_string(const PlainYearMonth* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 
 void temporal_rs_PlainYearMonth_destroy(PlainYearMonth* self);
 

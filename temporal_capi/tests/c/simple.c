@@ -6,14 +6,11 @@
 #include <stdio.h>
 
 int main() {
-    Calendar *cal = temporal_rs_Calendar_create(AnyCalendarKind_Gregorian);
-
-    temporal_rs_PlainDate_create_with_overflow_result result =
-        temporal_rs_PlainDate_create_with_overflow(2025, 1, 33, cal, ArithmeticOverflow_Constrain);
+    temporal_rs_PlainDate_try_new_with_overflow_result result =
+        temporal_rs_PlainDate_try_new_with_overflow(2025, 1, 33, AnyCalendarKind_Gregorian, ArithmeticOverflow_Constrain);
 
     if (!result.is_ok) {
         fprintf(stderr, "failed to create a PlainDate\n");
-        temporal_rs_Calendar_destroy(cal);
         return 1;
     }
 
@@ -24,14 +21,12 @@ int main() {
     temporal_rs_PlainDate_to_ixdtf_string(date, DisplayCalendar_Always, &write);
     if (write.grow_failed) {
         fprintf(stderr, "format overflowed the string\n");
-        temporal_rs_Calendar_destroy(cal);
         temporal_rs_PlainDate_destroy(date);
         return 1;
     }
 
     printf("%s\n", formatted);
 
-    temporal_rs_Calendar_destroy(cal);
     temporal_rs_PlainDate_destroy(date);
 
     return 0;

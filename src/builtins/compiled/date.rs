@@ -1,16 +1,12 @@
-use crate::{builtins::TZ_PROVIDER, TemporalError, TemporalResult, PlainDate, PlainTime};
+use crate::{builtins::TZ_PROVIDER, PlainDate, PlainTime, TemporalResult, TimeZone};
 
 impl PlainDate {
-
     /// Converts a `Date` to a `ZonedDateTime` in the UTC time zone.
     pub fn to_zoned_date_time(
-        &self, 
+        &self,
         time_zone: TimeZone,
-        plain_time: Option<PlainTime>
+        plain_time: Option<PlainTime>,
     ) -> TemporalResult<crate::ZonedDateTime> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.to_zoned_date_time_with_provider(time_zone, plain_time, &*provider)
+        self.to_zoned_date_time_with_provider(time_zone, plain_time, &*TZ_PROVIDER)
     }
 }

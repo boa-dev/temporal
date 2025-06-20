@@ -5,6 +5,8 @@ pub mod ffi {
     use crate::duration::ffi::{Duration, TimeDuration};
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::str::FromStr;
@@ -30,13 +32,7 @@ pub mod ffi {
 
     impl Instant {
         pub fn try_new(ns: I128Nanoseconds) -> Result<Box<Self>, TemporalError> {
-            let is_neg = ns.high < 0;
-            let ns_high_abs = ns.high.unsigned_abs() as u128;
-            // Stick them together
-            let total = ((ns_high_abs << 64) + ns.low as u128) as i128;
-            // Reintroduce the sign
-            let instant = if is_neg { -total } else { total };
-            temporal_rs::Instant::try_new(instant)
+            temporal_rs::Instant::try_new(ns.into())
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
@@ -134,14 +130,7 @@ pub mod ffi {
 
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
             let ns = self.0.epoch_nanoseconds().as_i128();
-            let is_neg = ns < 0;
-            let ns = ns.unsigned_abs();
-
-            let high = (ns >> 64) as i64;
-            let low = (ns & u64::MAX as u128) as u64;
-            let high = if is_neg { -high } else { high };
-
-            I128Nanoseconds { high, low }
+            ns.into()
         }
 
         #[cfg(feature = "compiled_data")]
@@ -151,14 +140,48 @@ pub mod ffi {
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            use core::fmt::Write;
-            let string = self.0.to_ixdtf_string(zone.map(|x| &x.0), options.into())?;
-            // throw away the error, this should always succeed
-            let _ = write.write_str(&string);
+            use writeable::Writeable;
+            let writeable = self
+                .0
+                .to_ixdtf_writeable(zone.map(|x| &x.0), options.into())?;
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
 
             Ok(())
         }
 
-        // TODO non-compiled data timezone APIs
+        #[cfg(feature = "compiled_data")]
+        pub fn to_zoned_date_time_iso(&self, zone: &TimeZone) -> Box<ZonedDateTime> {
+            Box::new(ZonedDateTime(self.0.to_zoned_date_time_iso(zone.0.clone())))
+        }
+    }
+}
+
+impl From<ffi::I128Nanoseconds> for i128 {
+    fn from(ns: ffi::I128Nanoseconds) -> Self {
+        let is_neg = ns.high < 0;
+        let ns_high_abs = ns.high.unsigned_abs() as u128;
+        // Stick them together
+        let total = ((ns_high_abs << 64) + ns.low as u128) as i128;
+        // Reintroduce the sign
+        if is_neg {
+            -total
+        } else {
+            total
+        }
+    }
+}
+
+impl From<i128> for ffi::I128Nanoseconds {
+    fn from(ns: i128) -> Self {
+        let is_neg = ns < 0;
+        let ns = ns.unsigned_abs();
+
+        let high = (ns >> 64) as i64;
+        let low = (ns & u64::MAX as u128) as u64;
+        let high = if is_neg { -high } else { high };
+
+        ffi::I128Nanoseconds { high, low }
     }
 }

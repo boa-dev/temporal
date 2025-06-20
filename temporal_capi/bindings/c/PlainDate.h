@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
+#include "AnyCalendarKind.d.h"
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DifferenceSettings.d.h"
@@ -18,6 +19,8 @@
 #include "PlainTime.d.h"
 #include "PlainYearMonth.d.h"
 #include "TemporalError.d.h"
+#include "TimeZone.d.h"
+#include "ZonedDateTime.d.h"
 
 #include "PlainDate.d.h"
 
@@ -26,14 +29,14 @@
 
 
 
-typedef struct temporal_rs_PlainDate_create_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_create_result;
-temporal_rs_PlainDate_create_result temporal_rs_PlainDate_create(int32_t year, uint8_t month, uint8_t day, const Calendar* calendar);
+typedef struct temporal_rs_PlainDate_try_new_constrain_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_new_constrain_result;
+temporal_rs_PlainDate_try_new_constrain_result temporal_rs_PlainDate_try_new_constrain(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar);
 
-typedef struct temporal_rs_PlainDate_try_create_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_create_result;
-temporal_rs_PlainDate_try_create_result temporal_rs_PlainDate_try_create(int32_t year, uint8_t month, uint8_t day, const Calendar* calendar);
+typedef struct temporal_rs_PlainDate_try_new_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_new_result;
+temporal_rs_PlainDate_try_new_result temporal_rs_PlainDate_try_new(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar);
 
-typedef struct temporal_rs_PlainDate_create_with_overflow_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_create_with_overflow_result;
-temporal_rs_PlainDate_create_with_overflow_result temporal_rs_PlainDate_create_with_overflow(int32_t year, uint8_t month, uint8_t day, const Calendar* calendar, ArithmeticOverflow overflow);
+typedef struct temporal_rs_PlainDate_try_new_with_overflow_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_try_new_with_overflow_result;
+temporal_rs_PlainDate_try_new_with_overflow_result temporal_rs_PlainDate_try_new_with_overflow(int32_t year, uint8_t month, uint8_t day, AnyCalendarKind calendar, ArithmeticOverflow overflow);
 
 typedef struct temporal_rs_PlainDate_from_partial_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_partial_result;
 temporal_rs_PlainDate_from_partial_result temporal_rs_PlainDate_from_partial(PartialDate partial, ArithmeticOverflow_option overflow);
@@ -42,7 +45,7 @@ typedef struct temporal_rs_PlainDate_with_result {union {PlainDate* ok; Temporal
 temporal_rs_PlainDate_with_result temporal_rs_PlainDate_with(const PlainDate* self, PartialDate partial, ArithmeticOverflow_option overflow);
 
 typedef struct temporal_rs_PlainDate_with_calendar_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_calendar_result;
-temporal_rs_PlainDate_with_calendar_result temporal_rs_PlainDate_with_calendar(const PlainDate* self, const Calendar* calendar);
+temporal_rs_PlainDate_with_calendar_result temporal_rs_PlainDate_with_calendar(const PlainDate* self, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDate_from_utf8_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf8_result;
 temporal_rs_PlainDate_from_utf8_result temporal_rs_PlainDate_from_utf8(DiplomatStringView s);
@@ -119,6 +122,9 @@ temporal_rs_PlainDate_to_plain_month_day_result temporal_rs_PlainDate_to_plain_m
 
 typedef struct temporal_rs_PlainDate_to_plain_year_month_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_plain_year_month_result;
 temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_year_month(const PlainDate* self);
+
+typedef struct temporal_rs_PlainDate_to_zoned_date_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_result;
+temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const PlainDate* self, const TimeZone* time_zone, const PlainTime* time);
 
 void temporal_rs_PlainDate_to_ixdtf_string(const PlainDate* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 

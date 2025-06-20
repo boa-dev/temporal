@@ -92,6 +92,12 @@ pub mod ffi {
         HalfEven,
     }
 
+    #[diplomat::enum_convert(temporal_rs::provider::TransitionDirection)]
+    pub enum TransitionDirection {
+        Next,
+        Previous,
+    }
+
     pub struct Precision {
         /// Sets the precision to minute precision.
         pub is_minute: bool,

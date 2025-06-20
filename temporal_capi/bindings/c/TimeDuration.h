@@ -17,8 +17,8 @@
 
 
 
-typedef struct temporal_rs_TimeDuration_new_result {union {TimeDuration* ok; TemporalError err;}; bool is_ok;} temporal_rs_TimeDuration_new_result;
-temporal_rs_TimeDuration_new_result temporal_rs_TimeDuration_new(int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
+typedef struct temporal_rs_TimeDuration_try_new_result {union {TimeDuration* ok; TemporalError err;}; bool is_ok;} temporal_rs_TimeDuration_try_new_result;
+temporal_rs_TimeDuration_try_new_result temporal_rs_TimeDuration_try_new(int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
 TimeDuration* temporal_rs_TimeDuration_abs(const TimeDuration* self);
 

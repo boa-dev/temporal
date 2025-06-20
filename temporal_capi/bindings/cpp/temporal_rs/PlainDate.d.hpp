@@ -26,9 +26,14 @@ namespace capi { struct PlainTime; }
 class PlainTime;
 namespace capi { struct PlainYearMonth; }
 class PlainYearMonth;
+namespace capi { struct TimeZone; }
+class TimeZone;
+namespace capi { struct ZonedDateTime; }
+class ZonedDateTime;
 struct DifferenceSettings;
 struct PartialDate;
 struct TemporalError;
+class AnyCalendarKind;
 class ArithmeticOverflow;
 class DisplayCalendar;
 }
@@ -44,17 +49,17 @@ namespace temporal_rs {
 class PlainDate {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> create(int32_t year, uint8_t month, uint8_t day, const temporal_rs::Calendar& calendar);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> try_new_constrain(int32_t year, uint8_t month, uint8_t day, temporal_rs::AnyCalendarKind calendar);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> try_create(int32_t year, uint8_t month, uint8_t day, const temporal_rs::Calendar& calendar);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> try_new(int32_t year, uint8_t month, uint8_t day, temporal_rs::AnyCalendarKind calendar);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> create_with_overflow(int32_t year, uint8_t month, uint8_t day, const temporal_rs::Calendar& calendar, temporal_rs::ArithmeticOverflow overflow);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> try_new_with_overflow(int32_t year, uint8_t month, uint8_t day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with_calendar(const temporal_rs::Calendar& calendar) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
@@ -117,6 +122,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> to_plain_month_day() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> to_plain_year_month() const;
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
 

@@ -4,15 +4,22 @@ use crate::error::ffi::TemporalError;
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::calendar::ffi::Calendar;
+    use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+    #[cfg(feature = "compiled_data")]
+    use crate::time_zone::ffi::TimeZone;
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
 
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
         ToStringRoundingOptions,
     };
+
+    #[cfg(feature = "compiled_data")]
+    use crate::options::ffi::Disambiguation;
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
     use alloc::string::String;
@@ -20,6 +27,7 @@ pub mod ffi {
     use core::str::FromStr;
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use writeable::Writeable;
 
     #[diplomat::opaque]
     pub struct PlainDateTime(pub(crate) temporal_rs::PlainDateTime);
@@ -30,7 +38,7 @@ pub mod ffi {
     }
 
     impl PlainDateTime {
-        pub fn create(
+        pub fn try_new_constrain(
             year: i32,
             month: u8,
             day: u8,
@@ -40,7 +48,7 @@ pub mod ffi {
             millisecond: u16,
             microsecond: u16,
             nanosecond: u16,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainDateTime::new(
                 year,
@@ -52,12 +60,12 @@ pub mod ffi {
                 millisecond,
                 microsecond,
                 nanosecond,
-                calendar.0.clone(),
+                temporal_rs::Calendar::new(calendar.into()),
             )
             .map(|x| Box::new(PlainDateTime(x)))
             .map_err(Into::into)
         }
-        pub fn try_create(
+        pub fn try_new(
             year: i32,
             month: u8,
             day: u8,
@@ -67,7 +75,7 @@ pub mod ffi {
             millisecond: u16,
             microsecond: u16,
             nanosecond: u16,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainDateTime::try_new(
                 year,
@@ -79,7 +87,7 @@ pub mod ffi {
                 millisecond,
                 microsecond,
                 nanosecond,
-                calendar.0.clone(),
+                temporal_rs::Calendar::new(calendar.into()),
             )
             .map(|x| Box::new(PlainDateTime(x)))
             .map_err(Into::into)
@@ -104,16 +112,16 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_time(&self, time: &PlainTime) -> Result<Box<Self>, TemporalError> {
+        pub fn with_time(&self, time: Option<&PlainTime>) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_time(time.0)
+                .with_time(time.map(|t| t.0))
                 .map(|x| Box::new(PlainDateTime(x)))
                 .map_err(Into::into)
         }
 
-        pub fn with_calendar(&self, calendar: &Calendar) -> Result<Box<Self>, TemporalError> {
+        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_calendar(calendar.0.clone())
+                .with_calendar(temporal_rs::Calendar::new(calendar.into()))
                 .map(|x| Box::new(PlainDateTime(x)))
                 .map_err(Into::into)
         }
@@ -312,6 +320,18 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
+        pub fn to_zoned_date_time(
+            &self,
+            time_zone: &TimeZone,
+            disambiguation: Disambiguation,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .to_zoned_date_time(&time_zone.0, disambiguation.into())
+                .map(|x| Box::new(ZonedDateTime(x)))
+                .map_err(Into::into)
+        }
+
         pub fn to_ixdtf_string(
             &self,
             options: ToStringRoundingOptions,
@@ -319,12 +339,13 @@ pub mod ffi {
             display_calendar: DisplayCalendar,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self
+            let writeable = self
                 .0
-                .to_ixdtf_string(options.into(), display_calendar.into())?;
-            // throw away the error, this should always succeed
-            let _ = write.write_str(&string);
+                .to_ixdtf_writeable(options.into(), display_calendar.into())?;
+
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
             Ok(())
         }
     }

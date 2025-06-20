@@ -7,6 +7,7 @@ pub mod ffi {
     use core::str;
 
     #[diplomat::opaque]
+    #[diplomat::transparent_convert]
     pub struct TimeZone(pub temporal_rs::TimeZone);
 
     impl TimeZone {
@@ -18,6 +19,11 @@ pub mod ffi {
                 .map(|x| Box::new(TimeZone(x)))
                 .map_err(Into::into)
         }
+        pub fn try_from_offset_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::UtcOffset::from_utf8(ident)
+                .map(|x| Box::new(TimeZone(temporal_rs::TimeZone::UtcOffset(x))))
+                .map_err(Into::into)
+        }
         pub fn try_from_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             let Ok(ident) = str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
@@ -25,6 +31,11 @@ pub mod ffi {
             temporal_rs::TimeZone::try_from_str(ident)
                 .map(|x| Box::new(TimeZone(x)))
                 .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn is_valid(&self) -> bool {
+            self.0.is_valid()
         }
     }
 }

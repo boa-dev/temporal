@@ -25,7 +25,7 @@
 
 
 
-Calendar* temporal_rs_Calendar_create(AnyCalendarKind kind);
+Calendar* temporal_rs_Calendar_try_new_constrain(AnyCalendarKind kind);
 
 typedef struct temporal_rs_Calendar_from_utf8_result {union {Calendar* ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_from_utf8_result;
 temporal_rs_Calendar_from_utf8_result temporal_rs_Calendar_from_utf8(DiplomatStringView s);
@@ -85,6 +85,8 @@ uint16_t temporal_rs_Calendar_days_in_year(const Calendar* self, IsoDate date);
 uint16_t temporal_rs_Calendar_months_in_year(const Calendar* self, IsoDate date);
 
 bool temporal_rs_Calendar_in_leap_year(const Calendar* self, IsoDate date);
+
+AnyCalendarKind temporal_rs_Calendar_kind(const Calendar* self);
 
 void temporal_rs_Calendar_destroy(Calendar* self);
 

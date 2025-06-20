@@ -12,9 +12,11 @@
 #include <optional>
 #include <cstdlib>
 #include "../diplomat_runtime.hpp"
+#include "AnyCalendarKind.hpp"
 #include "ArithmeticOverflow.hpp"
 #include "Calendar.hpp"
 #include "DifferenceSettings.hpp"
+#include "DisplayCalendar.hpp"
 #include "Duration.hpp"
 #include "PartialDate.hpp"
 #include "PlainDate.hpp"
@@ -25,8 +27,8 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    typedef struct temporal_rs_PlainYearMonth_create_with_overflow_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_create_with_overflow_result;
-    temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, const temporal_rs::capi::Calendar* calendar, temporal_rs::capi::ArithmeticOverflow overflow);
+    typedef struct temporal_rs_PlainYearMonth_try_new_with_overflow_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_try_new_with_overflow_result;
+    temporal_rs_PlainYearMonth_try_new_with_overflow_result temporal_rs_PlainYearMonth_try_new_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, temporal_rs::capi::AnyCalendarKind calendar, temporal_rs::capi::ArithmeticOverflow overflow);
 
     typedef struct temporal_rs_PlainYearMonth_with_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
     temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -83,14 +85,16 @@ namespace capi {
     typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
     temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate_option day);
 
+    void temporal_rs_PlainYearMonth_to_ixdtf_string(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
+
     void temporal_rs_PlainYearMonth_destroy(PlainYearMonth* self);
 
     } // extern "C"
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::create_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, const temporal_rs::Calendar& calendar, temporal_rs::ArithmeticOverflow overflow) {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_create_with_overflow(year,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::try_new_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow) {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_try_new_with_overflow(year,
     month,
     reference_day.has_value() ? (diplomat::capi::OptionU8{ { reference_day.value() }, true }) : (diplomat::capi::OptionU8{ {}, false }),
     calendar.AsFFI(),
@@ -233,6 +237,15 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_to_plain_date(this->AsFFI(),
     day.has_value() ? (temporal_rs::capi::PartialDate_option{ { day.value().AsFFI() }, true }) : (temporal_rs::capi::PartialDate_option{ {}, false }));
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::string temporal_rs::PlainYearMonth::to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_to_ixdtf_string(this->AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
+  return output;
 }
 
 inline const temporal_rs::capi::PlainYearMonth* temporal_rs::PlainYearMonth::AsFFI() const {

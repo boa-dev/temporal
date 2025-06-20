@@ -91,6 +91,16 @@ impl<'a> IxdtfStringBuilder<'a> {
     }
 }
 
+impl Writeable for IxdtfStringBuilder<'_> {
+    fn write_to<W: core::fmt::Write + ?Sized>(&self, sink: &mut W) -> core::fmt::Result {
+        self.inner.write_to(sink)
+    }
+
+    fn writeable_length_hint(&self) -> LengthHint {
+        self.inner.writeable_length_hint()
+    }
+}
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Precision {
     #[default]

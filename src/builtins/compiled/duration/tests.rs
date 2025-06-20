@@ -1,5 +1,3 @@
-use std::string::ToString;
-
 use crate::{
     options::{
         OffsetDisambiguation, RelativeTo, RoundingIncrement, RoundingMode, RoundingOptions, Unit,
@@ -509,55 +507,6 @@ fn round_relative_to_zoned_datetime() {
 }
 
 #[test]
-fn test_duration_compare() {
-    // TODO(#199): fix this on Windows
-    if cfg!(not(windows)) {
-        let one = Duration::from_partial_duration(PartialDuration {
-            hours: Some(79),
-            minutes: Some(10),
-            ..Default::default()
-        })
-        .unwrap();
-        let two = Duration::from_partial_duration(PartialDuration {
-            days: Some(3),
-            hours: Some(7),
-            seconds: Some(630),
-            ..Default::default()
-        })
-        .unwrap();
-        let three = Duration::from_partial_duration(PartialDuration {
-            days: Some(3),
-            hours: Some(6),
-            minutes: Some(50),
-            ..Default::default()
-        })
-        .unwrap();
-
-        let mut arr = [&one, &two, &three];
-        arr.sort_by(|a, b| Duration::compare(a, b, None).unwrap());
-        assert_eq!(
-            arr.map(ToString::to_string),
-            [&three, &one, &two].map(ToString::to_string)
-        );
-
-        // Sorting relative to a date, taking DST changes into account:
-        let zdt = ZonedDateTime::from_str(
-            "2020-11-01T00:00-07:00[America/Los_Angeles]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-        )
-        .unwrap();
-        arr.sort_by(|a, b| {
-            Duration::compare(a, b, Some(RelativeTo::ZonedDateTime(zdt.clone()))).unwrap()
-        });
-        assert_eq!(
-            arr.map(ToString::to_string),
-            [&one, &three, &two].map(ToString::to_string)
-        )
-    }
-}
-
-#[test]
 fn test_duration_total() {
     let d1 = Duration::from_partial_duration(PartialDuration {
         hours: Some(130),
@@ -798,4 +747,52 @@ fn test_duration_compare_boundary() {
     assert!(err.is_err());
     let err = min_duration.compare(&zero, Some(RelativeTo::PlainDate(relative_to.clone())));
     assert!(err.is_err());
+}
+
+#[test]
+fn rounding_cross_boundary() {
+    let relative_to = PlainDate::new(2022, 1, 1, Calendar::default()).unwrap();
+
+    let duration = Duration::from(DateDuration::new(1, 11, 0, 24).unwrap());
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Month),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = duration
+        .round(options, Some(RelativeTo::PlainDate(relative_to)))
+        .unwrap();
+    assert_duration(result, (2, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+#[test]
+fn rounding_cross_boundary_negative() {
+    let relative_to = PlainDate::new(2022, 1, 1, Calendar::default()).unwrap();
+
+    let duration = Duration::from(DateDuration::new(-1, -11, 0, -24).unwrap());
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Month),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = duration
+        .round(options, Some(RelativeTo::PlainDate(relative_to)))
+        .unwrap();
+    assert_duration(result, (-2, 0, 0, 0, 0, 0, 0, 0, 0, 0));
+}
+
+#[test]
+fn rounding_cross_boundary_time_units() {
+    let duration = Duration::new(0, 0, 0, 0, 1, 59, 59, 900, 0, 0).unwrap();
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Second),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = duration.round(options, None).unwrap();
+    assert_duration(result, (0, 0, 0, 0, 2, 0, 0, 0, 0, 0));
+
+    let neg_duration = Duration::new(0, 0, 0, 0, -1, -59, -59, -900, 0, 0).unwrap();
+    let result = neg_duration.round(options, None).unwrap();
+    assert_duration(result, (0, 0, 0, 0, -2, 0, 0, 0, 0, 0));
 }

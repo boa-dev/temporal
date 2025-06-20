@@ -10,10 +10,10 @@ pub mod ffi {
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
     use alloc::string::String;
-    use core::fmt::Write;
     use core::str::FromStr;
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use writeable::Writeable;
 
     #[diplomat::opaque]
     pub struct PlainTime(pub(crate) temporal_rs::PlainTime);
@@ -28,7 +28,7 @@ pub mod ffi {
     }
 
     impl PlainTime {
-        pub fn create(
+        pub fn try_new_constrain(
             hour: u8,
             minute: u8,
             second: u8,
@@ -40,7 +40,7 @@ pub mod ffi {
                 .map(|x| Box::new(PlainTime(x)))
                 .map_err(Into::into)
         }
-        pub fn try_create(
+        pub fn try_new(
             hour: u8,
             minute: u8,
             second: u8,
@@ -205,10 +205,10 @@ pub mod ffi {
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.to_ixdtf_string(options.into())?;
-            // throw away the error, the write itself should always succeed
-            let _ = write.write_str(&string);
+            let writeable = self.0.to_ixdtf_writeable(options.into())?;
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
 
             Ok(())
         }
