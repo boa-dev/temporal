@@ -59,7 +59,6 @@ pub struct ZeroTzif<'data> {
 #[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
 pub struct LocalTimeRecord {
     pub offset: i64,
-    pub is_dst: bool,
 }
 
 #[cfg(feature = "datagen")]
@@ -67,7 +66,6 @@ impl From<&zoneinfo_rs::tzif::LocalTimeRecord> for LocalTimeRecord {
     fn from(value: &zoneinfo_rs::tzif::LocalTimeRecord) -> Self {
         Self {
             offset: value.offset,
-            is_dst: value.is_dst,
         }
     }
 }
