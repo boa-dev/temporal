@@ -24,11 +24,11 @@ use writeable::Writeable;
 
 /// The native Rust implementation of `Temporal.PlainYearMonth`.
 ///
-/// Represents a specific month within a specific year, such as "January 2024" 
+/// Represents a specific month within a specific year, such as "January 2024"
 /// or "December 2023", without a specific day component.
 ///
-/// Useful for representing time periods at month granularity, such as billing 
-/// periods, reporting intervals, or any scenario where you need to work with 
+/// Useful for representing time periods at month granularity, such as billing
+/// periods, reporting intervals, or any scenario where you need to work with
 /// entire months rather than specific dates.
 ///
 /// ## Examples
@@ -138,6 +138,12 @@ use writeable::Writeable;
 /// assert_eq!(ym.months_in_year(), 12); // ISO calendar has 12 months
 /// assert!(ym.in_leap_year()); // 2024 is indeed a leap year
 /// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plainyearmonth].
+///
+/// [mdn-plainyearmonth]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainYearMonth
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainYearMonth {

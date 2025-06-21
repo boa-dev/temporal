@@ -85,11 +85,11 @@ impl PartialTime {
 
 /// The native Rust implementation of `Temporal.PlainTime`.
 ///
-/// Represents a time of day such as "14:30:45.123" without any date or timezone 
-/// information. Contains hour, minute, second, and subsecond components with 
+/// Represents a time of day such as "14:30:45.123" without any date or timezone
+/// information. Contains hour, minute, second, and subsecond components with
 /// nanosecond precision.
 ///
-/// Ideal for representing recurring daily events, schedules, or any time value 
+/// Ideal for representing recurring daily events, schedules, or any time value
 /// where the specific date is not relevant.
 ///
 /// ## Examples
@@ -180,6 +180,12 @@ impl PartialTime {
 /// assert_eq!(rounded.second(), 0);
 /// assert_eq!(rounded.millisecond(), 0);
 /// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plaintime].
+///
+/// [mdn-plaintime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainTime
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlainTime {

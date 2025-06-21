@@ -68,16 +68,16 @@ impl PartialDuration {
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
-/// Represents a span of time such as "2 hours and 30 minutes" or "3 years, 2 months". 
-/// Unlike `Instant` which represents a specific moment in time, Duration represents 
+/// Represents a span of time such as "2 hours and 30 minutes" or "3 years, 2 months".
+/// Unlike `Instant` which represents a specific moment in time, Duration represents
 /// the amount of time between two moments.
 ///
 /// A Duration consists of two categories of components:
 /// - Date components: years, months, weeks, and days
 /// - Time components: hours, minutes, seconds, and subsecond units (nanosecond precision)
 ///
-/// Note that date arithmetic can be complex. For example, adding "1 month" to January 31st 
-/// could result in February 28th (non-leap year), February 29th (leap year), or March 3rd 
+/// Note that date arithmetic can be complex. For example, adding "1 month" to January 31st
+/// could result in February 28th (non-leap year), February 29th (leap year), or March 3rd
 /// (if you overflow February), depending on the calendar system and overflow handling.
 ///
 /// ## Examples
@@ -107,7 +107,7 @@ impl PartialDuration {
 ///
 /// // Time-only duration
 /// let movie_length = Duration::from_str("PT2H30M").unwrap();
-/// 
+///
 /// // Negative durations
 /// let negative = Duration::from_str("-P1D").unwrap();
 /// ```
@@ -194,6 +194,12 @@ impl PartialDuration {
 /// assert_eq!(negated.months(), -2);
 /// assert_eq!(negated.days(), -3);
 /// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-duration].
+///
+/// [mdn-duration]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Duration
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Duration {

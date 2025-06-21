@@ -144,6 +144,12 @@ use writeable::Writeable;
 /// assert_eq!(christmas_2024.month(), 12);
 /// assert_eq!(christmas_2024.day(), 25);
 /// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plainmonthday].
+///
+/// [mdn-plainmonthday]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainMonthDay
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainMonthDay {

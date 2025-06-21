@@ -88,12 +88,12 @@ impl PartialZonedDateTime {
 /// `PlainDateTime` with time zone information. It is internally represented as
 /// an instant (epoch nanoseconds) along with calendar and time zone data.
 ///
-/// Since `ZonedDateTime` includes timezone information, it can handle daylight saving time 
-/// transitions and timezone offset changes automatically. The type requires a timezone 
-/// data provider (implementing `TimeZoneProvider`) for most operations, which supplies 
+/// Since `ZonedDateTime` includes timezone information, it can handle daylight saving time
+/// transitions and timezone offset changes automatically. The type requires a timezone
+/// data provider (implementing `TimeZoneProvider`) for most operations, which supplies
 /// the necessary timezone rules and historical data.
 ///
-/// Unlike `PlainDateTime` which can be ambiguous during DST transitions, `ZonedDateTime` 
+/// Unlike `PlainDateTime` which can be ambiguous during DST transitions, `ZonedDateTime`
 /// always represents an unambiguous moment in time.
 ///
 /// ## Time zone provider API

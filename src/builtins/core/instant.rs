@@ -133,6 +133,12 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 /// // Rounded to the nearest second
 /// assert_eq!(rounded.epoch_nanoseconds().as_i128() % 1_000_000_000, 0);
 /// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-instant].
+///
+/// [mdn-instant]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Instant
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(EpochNanoseconds);
