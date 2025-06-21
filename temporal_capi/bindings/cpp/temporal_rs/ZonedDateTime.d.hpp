@@ -90,6 +90,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> to_plain_time() const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::DisplayOffset display_offset, temporal_rs::DisplayTimeZone display_timezone, temporal_rs::DisplayCalendar display_calendar, temporal_rs::ToStringRoundingOptions options) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_write(temporal_rs::DisplayOffset display_offset, temporal_rs::DisplayTimeZone display_timezone, temporal_rs::DisplayCalendar display_calendar, temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
@@ -124,6 +126,8 @@ public:
   inline uint8_t month() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline uint8_t day() const;
 
@@ -146,6 +150,8 @@ public:
   inline bool in_leap_year() const;
 
   inline std::string era() const;
+  template<typename W>
+  inline void era_write(W& writeable_output) const;
 
   inline std::optional<int32_t> era_year() const;
 

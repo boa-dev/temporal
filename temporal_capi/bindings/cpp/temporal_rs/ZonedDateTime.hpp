@@ -276,6 +276,17 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Zo
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::to_ixdtf_string_write(temporal_rs::DisplayOffset display_offset, temporal_rs::DisplayTimeZone display_timezone, temporal_rs::DisplayCalendar display_calendar, temporal_rs::ToStringRoundingOptions options, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_to_ixdtf_string(this->AsFFI(),
+    display_offset.AsFFI(),
+    display_timezone.AsFFI(),
+    display_calendar.AsFFI(),
+    options.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
 
 inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::with_calendar(temporal_rs::AnyCalendarKind calendar) const {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_with_calendar(this->AsFFI(),
@@ -375,6 +386,12 @@ inline std::string temporal_rs::ZonedDateTime::month_code() const {
     &write);
   return output;
 }
+template<typename W>
+inline void temporal_rs::ZonedDateTime::month_code_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_ZonedDateTime_month_code(this->AsFFI(),
+    &write);
+}
 
 inline uint8_t temporal_rs::ZonedDateTime::day() const {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_day(this->AsFFI());
@@ -432,6 +449,12 @@ inline std::string temporal_rs::ZonedDateTime::era() const {
   temporal_rs::capi::temporal_rs_ZonedDateTime_era(this->AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::ZonedDateTime::era_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_ZonedDateTime_era(this->AsFFI(),
+    &write);
 }
 
 inline std::optional<int32_t> temporal_rs::ZonedDateTime::era_year() const {

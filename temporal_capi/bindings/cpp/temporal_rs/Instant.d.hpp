@@ -71,6 +71,8 @@ public:
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data_write(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
 
   inline std::unique_ptr<temporal_rs::ZonedDateTime> to_zoned_date_time_iso(const temporal_rs::TimeZone& zone) const;
 
