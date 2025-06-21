@@ -37,6 +37,7 @@ tzif = "0.3.0"
 jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
+writeable = "0.6.1"
 
 [package]
 name = "temporal_rs"
@@ -60,7 +61,7 @@ icu_locale.workspace = true
 ixdtf = { workspace = true, features = ["duration"]}
 num-traits.workspace = true
 tinystr.workspace = true
-writeable = "0.6.1"
+writeable.workspace = true
 
 # log feature
 log = { workspace = true, optional = true }
