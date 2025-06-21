@@ -1,6 +1,6 @@
 use num_traits::FromPrimitive;
 
-use crate::{TemporalError, NS_MAX_INSTANT};
+use crate::{error::ErrorMessage, TemporalError, NS_MAX_INSTANT};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EpochNanoseconds(pub(crate) i128);
@@ -9,8 +9,7 @@ impl TryFrom<i128> for EpochNanoseconds {
     type Error = TemporalError;
     fn try_from(value: i128) -> Result<Self, Self::Error> {
         if !is_valid_epoch_nanos(&value) {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::InstantOutOfRange));
         }
         Ok(Self(value))
     }
@@ -20,8 +19,7 @@ impl TryFrom<u128> for EpochNanoseconds {
     type Error = TemporalError;
     fn try_from(value: u128) -> Result<Self, Self::Error> {
         if (NS_MAX_INSTANT as u128) < value {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::InstantOutOfRange));
         }
         Ok(Self(value as i128))
     }
@@ -31,8 +29,7 @@ impl TryFrom<f64> for EpochNanoseconds {
     type Error = TemporalError;
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         let Some(value) = i128::from_f64(value) else {
-            return Err(TemporalError::range()
-                .with_message("Instant nanoseconds are not within a valid epoch range."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::InstantOutOfRange));
         };
         Self::try_from(value)
     }
