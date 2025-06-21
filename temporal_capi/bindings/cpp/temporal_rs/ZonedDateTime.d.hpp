@@ -81,6 +81,12 @@ public:
 
   inline int8_t compare_instant(const temporal_rs::ZonedDateTime& other) const;
 
+  inline bool equals(const temporal_rs::ZonedDateTime& other) const;
+
+  inline diplomat::result<std::string, temporal_rs::TemporalError> offset() const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> offset_write(W& writeable_output) const;
+
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> start_of_day() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> get_time_zone_transition(temporal_rs::TransitionDirection direction) const;
