@@ -54,6 +54,8 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialDateTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with(temporal_rs::PartialDateTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> with_time(const temporal_rs::PlainTime* time) const;
@@ -89,6 +91,8 @@ public:
   inline uint8_t month() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline uint8_t day() const;
 
@@ -111,6 +115,8 @@ public:
   inline bool in_leap_year() const;
 
   inline std::string era() const;
+  template<typename W>
+  inline void era_write(W& writeable_output) const;
 
   inline std::optional<int32_t> era_year() const;
 
@@ -135,6 +141,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(const temporal_rs::TimeZone& time_zone, temporal_rs::Disambiguation disambiguation) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
   inline const temporal_rs::capi::PlainDateTime* AsFFI() const;
   inline temporal_rs::capi::PlainDateTime* AsFFI();

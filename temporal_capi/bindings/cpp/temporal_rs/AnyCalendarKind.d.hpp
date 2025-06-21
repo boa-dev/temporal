@@ -67,7 +67,8 @@ public:
     Roc = 17,
   };
 
-  AnyCalendarKind() = default;
+  AnyCalendarKind(): value(Value::Buddhist) {}
+
   // Implicit conversions between enum and ::Value
   constexpr AnyCalendarKind(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

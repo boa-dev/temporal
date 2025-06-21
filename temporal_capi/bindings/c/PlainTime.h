@@ -14,6 +14,7 @@
 #include "RoundingMode.d.h"
 #include "TemporalError.d.h"
 #include "TimeDuration.d.h"
+#include "TimeZone.d.h"
 #include "ToStringRoundingOptions.d.h"
 #include "Unit.d.h"
 
@@ -32,6 +33,9 @@ temporal_rs_PlainTime_try_new_result temporal_rs_PlainTime_try_new(uint8_t hour,
 
 typedef struct temporal_rs_PlainTime_from_partial_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_partial_result;
 temporal_rs_PlainTime_from_partial_result temporal_rs_PlainTime_from_partial(PartialTime partial, ArithmeticOverflow_option overflow);
+
+typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_result;
+temporal_rs_PlainTime_from_epoch_milliseconds_result temporal_rs_PlainTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
 
 typedef struct temporal_rs_PlainTime_with_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_with_result;
 temporal_rs_PlainTime_with_result temporal_rs_PlainTime_with(const PlainTime* self, PartialTime partial, ArithmeticOverflow_option overflow);

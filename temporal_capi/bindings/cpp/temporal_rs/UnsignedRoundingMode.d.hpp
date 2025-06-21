@@ -37,7 +37,8 @@ public:
     HalfEven = 4,
   };
 
-  UnsignedRoundingMode() = default;
+  UnsignedRoundingMode(): value(Value::Infinity) {}
+
   // Implicit conversions between enum and ::Value
   constexpr UnsignedRoundingMode(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

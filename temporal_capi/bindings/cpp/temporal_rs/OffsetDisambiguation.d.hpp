@@ -35,7 +35,8 @@ public:
     Reject = 3,
   };
 
-  OffsetDisambiguation() = default;
+  OffsetDisambiguation(): value(Value::Use) {}
+
   // Implicit conversions between enum and ::Value
   constexpr OffsetDisambiguation(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

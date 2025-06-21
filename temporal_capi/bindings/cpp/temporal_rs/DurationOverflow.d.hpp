@@ -31,7 +31,8 @@ public:
     Balance = 1,
   };
 
-  DurationOverflow() = default;
+  DurationOverflow(): value(Value::Constrain) {}
+
   // Implicit conversions between enum and ::Value
   constexpr DurationOverflow(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

@@ -31,7 +31,8 @@ public:
     Previous = 1,
   };
 
-  TransitionDirection() = default;
+  TransitionDirection(): value(Value::Next) {}
+
   // Implicit conversions between enum and ::Value
   constexpr TransitionDirection(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

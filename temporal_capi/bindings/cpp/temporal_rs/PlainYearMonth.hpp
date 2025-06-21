@@ -131,6 +131,12 @@ inline std::string temporal_rs::PlainYearMonth::padded_iso_year_string() const {
     &write);
   return output;
 }
+template<typename W>
+inline void temporal_rs::PlainYearMonth::padded_iso_year_string_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_padded_iso_year_string(this->AsFFI(),
+    &write);
+}
 
 inline uint8_t temporal_rs::PlainYearMonth::iso_month() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_month(this->AsFFI());
@@ -153,6 +159,12 @@ inline std::string temporal_rs::PlainYearMonth::month_code() const {
   temporal_rs::capi::temporal_rs_PlainYearMonth_month_code(this->AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainYearMonth::month_code_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_month_code(this->AsFFI(),
+    &write);
 }
 
 inline bool temporal_rs::PlainYearMonth::in_leap_year() const {
@@ -181,6 +193,12 @@ inline std::string temporal_rs::PlainYearMonth::era() const {
   temporal_rs::capi::temporal_rs_PlainYearMonth_era(this->AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainYearMonth::era_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_era(this->AsFFI(),
+    &write);
 }
 
 inline std::optional<int32_t> temporal_rs::PlainYearMonth::era_year() const {
@@ -246,6 +264,13 @@ inline std::string temporal_rs::PlainYearMonth::to_ixdtf_string(temporal_rs::Dis
     display_calendar.AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainYearMonth::to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_to_ixdtf_string(this->AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
 }
 
 inline const temporal_rs::capi::PlainYearMonth* temporal_rs::PlainYearMonth::AsFFI() const {

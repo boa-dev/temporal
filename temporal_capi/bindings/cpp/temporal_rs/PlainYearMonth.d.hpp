@@ -50,6 +50,8 @@ public:
   inline int32_t iso_year() const;
 
   inline std::string padded_iso_year_string() const;
+  template<typename W>
+  inline void padded_iso_year_string_write(W& writeable_output) const;
 
   inline uint8_t iso_month() const;
 
@@ -58,6 +60,8 @@ public:
   inline uint8_t month() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline bool in_leap_year() const;
 
@@ -68,6 +72,8 @@ public:
   inline uint16_t months_in_year() const;
 
   inline std::string era() const;
+  template<typename W>
+  inline void era_write(W& writeable_output) const;
 
   inline std::optional<int32_t> era_year() const;
 
@@ -88,6 +94,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> day) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
+  template<typename W>
+  inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
   inline const temporal_rs::capi::PlainYearMonth* AsFFI() const;
   inline temporal_rs::capi::PlainYearMonth* AsFFI();

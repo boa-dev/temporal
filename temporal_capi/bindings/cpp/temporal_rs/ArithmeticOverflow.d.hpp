@@ -31,7 +31,8 @@ public:
     Reject = 1,
   };
 
-  ArithmeticOverflow() = default;
+  ArithmeticOverflow(): value(Value::Constrain) {}
+
   // Implicit conversions between enum and ::Value
   constexpr ArithmeticOverflow(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

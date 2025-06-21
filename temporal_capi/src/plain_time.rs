@@ -68,6 +68,18 @@ pub mod ffi {
                 .map(|x| Box::new(PlainTime(x)))
                 .map_err(Into::into)
         }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn from_epoch_milliseconds(
+            ms: i64,
+            tz: &crate::time_zone::ffi::TimeZone,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms(ms, &tz.0)?;
+            zdt.to_plain_time()
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialTime,

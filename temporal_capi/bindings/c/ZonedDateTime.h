@@ -50,7 +50,13 @@ temporal_rs_ZonedDateTime_from_utf16_result temporal_rs_ZonedDateTime_from_utf16
 
 int64_t temporal_rs_ZonedDateTime_epoch_milliseconds(const ZonedDateTime* self);
 
+typedef struct temporal_rs_ZonedDateTime_from_epoch_milliseconds_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_epoch_milliseconds_result;
+temporal_rs_ZonedDateTime_from_epoch_milliseconds_result temporal_rs_ZonedDateTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+
 I128Nanoseconds temporal_rs_ZonedDateTime_epoch_nanoseconds(const ZonedDateTime* self);
+
+typedef struct temporal_rs_ZonedDateTime_offset_nanoseconds_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_offset_nanoseconds_result;
+temporal_rs_ZonedDateTime_offset_nanoseconds_result temporal_rs_ZonedDateTime_offset_nanoseconds(const ZonedDateTime* self);
 
 Instant* temporal_rs_ZonedDateTime_to_instant(const ZonedDateTime* self);
 
@@ -63,6 +69,11 @@ temporal_rs_ZonedDateTime_with_timezone_result temporal_rs_ZonedDateTime_with_ti
 const TimeZone* temporal_rs_ZonedDateTime_timezone(const ZonedDateTime* self);
 
 int8_t temporal_rs_ZonedDateTime_compare_instant(const ZonedDateTime* self, const ZonedDateTime* other);
+
+bool temporal_rs_ZonedDateTime_equals(const ZonedDateTime* self, const ZonedDateTime* other);
+
+typedef struct temporal_rs_ZonedDateTime_offset_result {union { TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_offset_result;
+temporal_rs_ZonedDateTime_offset_result temporal_rs_ZonedDateTime_offset(const ZonedDateTime* self, DiplomatWrite* write);
 
 typedef struct temporal_rs_ZonedDateTime_start_of_day_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_start_of_day_result;
 temporal_rs_ZonedDateTime_start_of_day_result temporal_rs_ZonedDateTime_start_of_day(const ZonedDateTime* self);

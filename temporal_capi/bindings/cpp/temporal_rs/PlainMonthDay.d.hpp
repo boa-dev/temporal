@@ -57,10 +57,14 @@ public:
   inline const temporal_rs::Calendar& calendar() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> year) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
+  template<typename W>
+  inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
   inline const temporal_rs::capi::PlainMonthDay* AsFFI() const;
   inline temporal_rs::capi::PlainMonthDay* AsFFI();
