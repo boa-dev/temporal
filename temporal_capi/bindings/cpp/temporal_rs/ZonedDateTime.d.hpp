@@ -67,6 +67,8 @@ public:
 
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
 
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> offset_nanoseconds() const;
+
   inline std::unique_ptr<temporal_rs::Instant> to_instant() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with(temporal_rs::PartialZonedDateTime partial, std::optional<temporal_rs::Disambiguation> disambiguation, std::optional<temporal_rs::OffsetDisambiguation> offset_option, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;

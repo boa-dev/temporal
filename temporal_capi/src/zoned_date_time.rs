@@ -155,6 +155,10 @@ pub mod ffi {
             self.0.epoch_nanoseconds().as_i128().into()
         }
 
+        pub fn offset_nanoseconds(&self) -> Result<i64, TemporalError> {
+            self.0.offset_nanoseconds().map_err(Into::into)
+        }
+
         pub fn to_instant(&self) -> Box<Instant> {
             Box::new(Instant(self.0.to_instant()))
         }
