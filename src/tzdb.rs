@@ -43,7 +43,7 @@ use timezone_provider::prelude::*;
 use tzif::{
     self,
     data::{
-        posix::{DstTransitionInfo, PosixTzString, TransitionDay, ZoneVariantInfo},
+        posix::{DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDay},
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -61,8 +61,8 @@ timezone_provider::iana_normalizer_singleton!();
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
-impl From<&ZoneVariantInfo> for UtcOffsetSeconds {
-    fn from(value: &ZoneVariantInfo) -> Self {
+impl From<&TimeZoneVariantInfo> for UtcOffsetSeconds {
+    fn from(value: &TimeZoneVariantInfo) -> Self {
         Self(-value.offset.0)
     }
 }

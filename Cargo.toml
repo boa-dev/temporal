@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi", "depcheck"]
+members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi", "depcheck", "zoneinfo", "zoneinfo-test-gen"]
 
 [workspace.package]
 edition = "2021"
@@ -23,6 +23,7 @@ exclude = [
 # Self
 temporal_rs = { version = "~0.0.9", path = ".", default-features = false }
 timezone_provider = { version = "~0.0.9", path = "./provider" }
+zoneinfo_rs = { version = "~0.0.9", path = "./zoneinfo" }
 
 # Dependencies
 tinystr = "0.8.1"
@@ -33,7 +34,7 @@ num-traits = { version = "0.2.19", default-features = false }
 ixdtf = "0.5.0"
 iana-time-zone = "0.1.63"
 log = "0.4.27"
-tzif = "0.3.0"
+tzif = "0.4.0"
 jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
