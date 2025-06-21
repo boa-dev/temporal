@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "Precision.d.hpp"
 #include "RoundingMode.d.hpp"
@@ -27,7 +28,7 @@ namespace capi {
       temporal_rs::capi::Unit_option smallest_unit;
       temporal_rs::capi::RoundingMode_option rounding_mode;
     };
-    
+
     typedef struct ToStringRoundingOptions_option {union { ToStringRoundingOptions ok; }; bool is_ok; } ToStringRoundingOptions_option;
 } // namespace capi
 } // namespace

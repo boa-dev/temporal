@@ -10,10 +10,10 @@ pub mod ffi {
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
     use alloc::string::String;
-    use core::fmt::Write;
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use writeable::Writeable;
 
     #[diplomat::opaque]
     pub struct PlainTime(pub(crate) temporal_rs::PlainTime);
@@ -28,7 +28,7 @@ pub mod ffi {
     }
 
     impl PlainTime {
-        pub fn create(
+        pub fn try_new_constrain(
             hour: u8,
             minute: u8,
             second: u8,
@@ -40,7 +40,7 @@ pub mod ffi {
                 .map(|x| Box::new(PlainTime(x)))
                 .map_err(Into::into)
         }
-        pub fn try_create(
+        pub fn try_new(
             hour: u8,
             minute: u8,
             second: u8,
@@ -68,6 +68,18 @@ pub mod ffi {
                 .map(|x| Box::new(PlainTime(x)))
                 .map_err(Into::into)
         }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn from_epoch_milliseconds(
+            ms: i64,
+            tz: &crate::time_zone::ffi::TimeZone,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms(ms, &tz.0)?;
+            zdt.to_plain_time()
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialTime,
@@ -80,9 +92,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::PlainTime::from_str(s)
+            temporal_rs::PlainTime::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
@@ -164,6 +174,29 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
+            let tuple1 = (
+                one.hour(),
+                one.minute(),
+                one.second(),
+                one.millisecond(),
+                one.microsecond(),
+                one.nanosecond(),
+            );
+            let tuple2 = (
+                two.hour(),
+                two.minute(),
+                two.second(),
+                two.millisecond(),
+                two.microsecond(),
+                two.nanosecond(),
+            );
+
+            tuple1.cmp(&tuple2)
+        }
         pub fn round(
             &self,
             smallest_unit: Unit,
@@ -184,10 +217,10 @@ pub mod ffi {
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
-            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.to_ixdtf_string(options.into())?;
-            // throw away the error, the write itself should always succeed
-            let _ = write.write_str(&string);
+            let writeable = self.0.to_ixdtf_writeable(options.into())?;
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
 
             Ok(())
         }

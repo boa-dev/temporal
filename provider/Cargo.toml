@@ -1,26 +1,38 @@
 [package]
-name = "temporal_provider"
+name = "timezone_provider"
+description = "Time zone data providers"
 edition.workspace = true
 version.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-readme.workspace = true
-exclude.workspace = true
+include = [
+    "src/**/*",
+    "Cargo.toml",
+    "LICENSE-Apache",
+    "LICENSE-MIT",
+    "README.md"
+]
+
+[features]
+datagen = ["std", "dep:serde", "dep:databake",
+           "dep:yoke", "dep:serde_json",
+           "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake", "zerovec/derive", "zoneinfo_rs"]
+std = []
 
 [dependencies]
 
 # Provider dependency
-zerotrie = { version = "0.2.1", features = ["serde", "databake"] }
-zerovec = { version = "0.11.1", features = ["serde", "databake", "derive"] }
+zerotrie = { version = "0.2.2", features = ["serde", "databake"] }
+zerovec = { version = "0.11.2", features = ["derive", "alloc", "serde", "databake"] }
 
 # IANA dependency
-zoneinfo_rs = { workspace = true, features = ["std"] }
+zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
 
 # Databake dependencies
-serde = { version = "1.0.219", features = ["derive"] }
-databake = { version = "0.2.0", features = ["derive"] }
-yoke = { version = "0.8.0", features = ["derive"] }
-serde_json = "1.0.140"
+serde = { version = "1.0.219", features = ["derive"], optional = true }
+databake = { version = "0.2.0", features = ["derive"], optional = true }
+yoke = { version = "0.8.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0.140", optional = true }
 

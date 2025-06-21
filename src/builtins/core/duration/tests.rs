@@ -264,6 +264,67 @@ fn duration_round_negative() {
     assert_eq!(result.days(), -3);
 }
 
+#[test]
+#[cfg(feature = "compiled_data")]
+fn test_duration_compare() {
+    use crate::builtins::FS_TZ_PROVIDER;
+    use crate::options::{OffsetDisambiguation, RelativeTo};
+    use crate::ZonedDateTime;
+    use alloc::string::ToString;
+    // TODO(#199): Make this work with Windows
+    // This should also ideally use the compiled data APIs and live under builtins/compiled
+    if cfg!(not(windows)) {
+        let one = Duration::from_partial_duration(PartialDuration {
+            hours: Some(79),
+            minutes: Some(10),
+            ..Default::default()
+        })
+        .unwrap();
+        let two = Duration::from_partial_duration(PartialDuration {
+            days: Some(3),
+            hours: Some(7),
+            seconds: Some(630),
+            ..Default::default()
+        })
+        .unwrap();
+        let three = Duration::from_partial_duration(PartialDuration {
+            days: Some(3),
+            hours: Some(6),
+            minutes: Some(50),
+            ..Default::default()
+        })
+        .unwrap();
+
+        let mut arr = [&one, &two, &three];
+        arr.sort_by(|a, b| Duration::compare_with_provider(a, b, None, &*FS_TZ_PROVIDER).unwrap());
+        assert_eq!(
+            arr.map(ToString::to_string),
+            [&three, &one, &two].map(ToString::to_string)
+        );
+
+        // Sorting relative to a date, taking DST changes into account:
+        let zdt = ZonedDateTime::from_str_with_provider(
+            "2020-11-01T00:00-07:00[America/Los_Angeles]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+            &*FS_TZ_PROVIDER,
+        )
+        .unwrap();
+        arr.sort_by(|a, b| {
+            Duration::compare_with_provider(
+                a,
+                b,
+                Some(RelativeTo::ZonedDateTime(zdt.clone())),
+                &*FS_TZ_PROVIDER,
+            )
+            .unwrap()
+        });
+        assert_eq!(
+            arr.map(ToString::to_string),
+            [&one, &three, &two].map(ToString::to_string)
+        )
+    }
+}
 /*
 TODO: Uncomment
 

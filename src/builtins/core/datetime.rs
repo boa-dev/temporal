@@ -20,6 +20,7 @@ use crate::{
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
+use writeable::Writeable;
 
 /// A partial PlainDateTime record
 #[derive(Debug, Default, Clone)]
@@ -247,7 +248,9 @@ impl PlainDateTime {
 // ==== Public PlainDateTime API ====
 
 impl PlainDateTime {
-    /// Creates a new `DateTime`, constraining any arguments that into a valid range.
+    /// Creates a new `DateTime`, constraining any arguments that are invalid
+    /// into a valid range.
+    #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         year: i32,
@@ -276,7 +279,37 @@ impl PlainDateTime {
         )
     }
 
+    /// Creates a new `DateTime` with an ISO 8601 calendar, constraining any
+    /// arguments that are invalid into a valid range.
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new_iso(
+        year: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
+    ) -> TemporalResult<Self> {
+        Self::new(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+            Calendar::default(),
+        )
+    }
+
     /// Creates a new `DateTime`, rejecting any arguments that are not in a valid range.
+    #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn try_new(
         year: i32,
@@ -302,6 +335,34 @@ impl PlainDateTime {
             nanosecond,
             calendar,
             ArithmeticOverflow::Reject,
+        )
+    }
+
+    /// Creates a new `DateTime` with an ISO 8601 calendar, rejecting any arguments that are not in a valid range.
+    #[inline]
+    #[allow(clippy::too_many_arguments)]
+    pub fn try_new_iso(
+        year: i32,
+        month: u8,
+        day: u8,
+        hour: u8,
+        minute: u8,
+        second: u8,
+        millisecond: u16,
+        microsecond: u16,
+        nanosecond: u16,
+    ) -> TemporalResult<Self> {
+        Self::try_new(
+            year,
+            month,
+            day,
+            hour,
+            minute,
+            second,
+            millisecond,
+            microsecond,
+            nanosecond,
+            Calendar::default(),
         )
     }
 
@@ -389,6 +450,34 @@ impl PlainDateTime {
         Self::from_date_and_time(date, PlainTime::new_unchecked(iso_time))
     }
 
+    // Converts a UTF-8 encoded string into a `PlainDateTime`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let parse_record = parse_date_time(s)?;
+
+        let calendar = parse_record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        let time = parse_record
+            .time
+            .map(IsoTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
+
+        let parsed_date = parse_record.date.temporal_unwrap()?;
+
+        let date = IsoDate::new_with_overflow(
+            parsed_date.year,
+            parsed_date.month,
+            parsed_date.day,
+            ArithmeticOverflow::Reject,
+        )?;
+
+        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
+    }
+
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
     ///
     /// ```rust
@@ -450,7 +539,8 @@ impl PlainDateTime {
     }
 
     /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
-    pub fn with_time(&self, time: PlainTime) -> TemporalResult<Self> {
+    pub fn with_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
+        let time = time.unwrap_or_default();
         Self::try_new(
             self.iso_year(),
             self.iso_month(),
@@ -576,7 +666,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> u16 {
+    pub fn day_of_week(&self) -> TemporalResult<u16> {
         self.calendar.day_of_week(&self.iso.date)
     }
 
@@ -586,12 +676,12 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
+    pub fn week_of_year(&self) -> Option<u8> {
         self.calendar.week_of_year(&self.iso.date)
     }
 
     /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
+    pub fn year_of_week(&self) -> Option<i32> {
         self.calendar.year_of_week(&self.iso.date)
     }
 
@@ -718,11 +808,11 @@ impl PlainDateTime {
         Ok(PlainTime::new_unchecked(self.iso.time))
     }
 
-    pub fn to_ixdtf_string(
+    pub fn to_ixdtf_writeable(
         &self,
         options: ToStringRoundingOptions,
         display_calendar: DisplayCalendar,
-    ) -> TemporalResult<String> {
+    ) -> TemporalResult<impl Writeable + '_> {
         let resolved_options = options.resolve()?;
         let result = self
             .iso
@@ -732,12 +822,20 @@ impl PlainDateTime {
         if !result.is_within_limits() {
             return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
         }
-        let ixdtf_string = IxdtfStringBuilder::default()
+        let builder = IxdtfStringBuilder::default()
             .with_date(result.date)
             .with_time(result.time, resolved_options.precision)
-            .with_calendar(self.calendar.identifier(), display_calendar)
-            .build();
-        Ok(ixdtf_string)
+            .with_calendar(self.calendar.identifier(), display_calendar);
+        Ok(builder)
+    }
+
+    pub fn to_ixdtf_string(
+        &self,
+        options: ToStringRoundingOptions,
+        display_calendar: DisplayCalendar,
+    ) -> TemporalResult<String> {
+        self.to_ixdtf_writeable(options, display_calendar)
+            .map(|x| x.write_to_string().into())
     }
 }
 
@@ -756,30 +854,7 @@ impl FromStr for PlainDateTime {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = parse_date_time(s)?;
-
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        let time = parse_record
-            .time
-            .map(IsoTime::from_time_record)
-            .transpose()?
-            .unwrap_or_default();
-
-        let parsed_date = parse_record.date.temporal_unwrap()?;
-
-        let date = IsoDate::new_with_overflow(
-            parsed_date.year,
-            parsed_date.month,
-            parsed_date.day,
-            ArithmeticOverflow::Reject,
-        )?;
-
-        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
+        Self::from_utf8(s.as_bytes())
     }
 }
 

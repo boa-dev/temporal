@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
@@ -19,7 +20,7 @@ namespace capi {
       OffsetDisambiguation_Ignore = 2,
       OffsetDisambiguation_Reject = 3,
     };
-    
+
     typedef struct OffsetDisambiguation_option {union { OffsetDisambiguation ok; }; bool is_ok; } OffsetDisambiguation_option;
 } // namespace capi
 } // namespace
@@ -34,7 +35,8 @@ public:
     Reject = 3,
   };
 
-  OffsetDisambiguation() = default;
+  OffsetDisambiguation(): value(Value::Use) {}
+
   // Implicit conversions between enum and ::Value
   constexpr OffsetDisambiguation(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
@@ -17,7 +18,7 @@ namespace capi {
       ArithmeticOverflow_Constrain = 0,
       ArithmeticOverflow_Reject = 1,
     };
-    
+
     typedef struct ArithmeticOverflow_option {union { ArithmeticOverflow ok; }; bool is_ok; } ArithmeticOverflow_option;
 } // namespace capi
 } // namespace
@@ -30,7 +31,8 @@ public:
     Reject = 1,
   };
 
-  ArithmeticOverflow() = default;
+  ArithmeticOverflow(): value(Value::Constrain) {}
+
   // Implicit conversions between enum and ::Value
   constexpr ArithmeticOverflow(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

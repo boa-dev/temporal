@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
@@ -20,7 +21,7 @@ namespace capi {
       ErrorKind_Syntax = 3,
       ErrorKind_Assert = 4,
     };
-    
+
     typedef struct ErrorKind_option {union { ErrorKind ok; }; bool is_ok; } ErrorKind_option;
 } // namespace capi
 } // namespace
@@ -36,7 +37,8 @@ public:
     Assert = 4,
   };
 
-  ErrorKind() = default;
+  ErrorKind(): value(Value::Generic) {}
+
   // Implicit conversions between enum and ::Value
   constexpr ErrorKind(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

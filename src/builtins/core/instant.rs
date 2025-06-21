@@ -15,12 +15,13 @@ use crate::{
     parsers::{parse_instant, IxdtfStringBuilder},
     provider::TimeZoneProvider,
     rounding::{IncrementRounder, Round},
-    time::EpochNanoseconds,
+    unix_time::EpochNanoseconds,
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
 use ixdtf::parsers::records::UtcOffsetRecordOrZ;
 use num_traits::Euclid;
+use writeable::Writeable;
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
@@ -163,6 +164,51 @@ impl Instant {
         Self::try_new(epoch_nanos)
     }
 
+    // Converts a UTF-8 encoded string into a `Instant`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let ixdtf_record = parse_instant(s)?;
+
+        // Find the offset
+        let ns_offset = match ixdtf_record.offset {
+            UtcOffsetRecordOrZ::Offset(offset) => {
+                let ns = offset
+                    .fraction()
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
+                (offset.hour() as i64 * NANOSECONDS_PER_HOUR
+                    + i64::from(offset.minute()) * NANOSECONDS_PER_MINUTE
+                    + i64::from(offset.second().unwrap_or(0)) * NANOSECONDS_PER_SECOND
+                    + i64::from(ns))
+                    * offset.sign() as i64
+            }
+            UtcOffsetRecordOrZ::Z => 0,
+        };
+
+        let time_nanoseconds = ixdtf_record
+            .time
+            .fraction
+            .and_then(|x| x.to_nanoseconds())
+            .unwrap_or(0);
+        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
+        let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
+
+        let balanced = IsoDateTime::balance(
+            ixdtf_record.date.year,
+            ixdtf_record.date.month.into(),
+            ixdtf_record.date.day.into(),
+            ixdtf_record.time.hour.into(),
+            ixdtf_record.time.minute.into(),
+            ixdtf_record.time.second.clamp(0, 59).into(),
+            millisecond.into(),
+            microsecond.into(),
+            i128::from(nanosecond) - i128::from(ns_offset),
+        );
+
+        let nanoseconds = balanced.as_nanoseconds()?;
+
+        Ok(Self(nanoseconds))
+    }
+
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
     /// contains a `DateDuration`.
     #[inline]
@@ -244,6 +290,16 @@ impl Instant {
         options: ToStringRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<String> {
+        self.to_ixdtf_writeable_with_provider(timezone, options, provider)
+            .map(|x| x.write_to_string().into())
+    }
+
+    pub fn to_ixdtf_writeable_with_provider(
+        &self,
+        timezone: Option<&TimeZone>,
+        options: ToStringRoundingOptions,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<impl Writeable + '_> {
         let resolved_options = options.resolve()?;
         let round = self.round_instant(ResolvedRoundingOptions::from_to_string_options(
             &resolved_options,
@@ -261,12 +317,11 @@ impl Instant {
             ixdtf = ixdtf.with_z(DisplayOffset::Auto);
             TimeZone::default().get_iso_datetime_for(&rounded_instant, provider)?
         };
-        let ixdtf_string = ixdtf
+        let builder = ixdtf
             .with_date(datetime.date)
-            .with_time(datetime.time, resolved_options.precision)
-            .build();
+            .with_time(datetime.time, resolved_options.precision);
 
-        Ok(ixdtf_string)
+        Ok(builder)
     }
 }
 
@@ -274,48 +329,9 @@ impl Instant {
 
 impl FromStr for Instant {
     type Err = TemporalError;
+
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ixdtf_record = parse_instant(s)?;
-
-        // Find the offset
-        let ns_offset = match ixdtf_record.offset {
-            UtcOffsetRecordOrZ::Offset(offset) => {
-                let ns = offset
-                    .fraction
-                    .and_then(|x| x.to_nanoseconds())
-                    .unwrap_or(0);
-                (offset.hour as i64 * NANOSECONDS_PER_HOUR
-                    + i64::from(offset.minute) * NANOSECONDS_PER_MINUTE
-                    + i64::from(offset.second) * NANOSECONDS_PER_SECOND
-                    + i64::from(ns))
-                    * offset.sign as i64
-            }
-            UtcOffsetRecordOrZ::Z => 0,
-        };
-
-        let time_nanoseconds = ixdtf_record
-            .time
-            .fraction
-            .and_then(|x| x.to_nanoseconds())
-            .unwrap_or(0);
-        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
-        let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
-
-        let balanced = IsoDateTime::balance(
-            ixdtf_record.date.year,
-            ixdtf_record.date.month.into(),
-            ixdtf_record.date.day.into(),
-            ixdtf_record.time.hour.into(),
-            ixdtf_record.time.minute.into(),
-            ixdtf_record.time.second.clamp(0, 59).into(),
-            millisecond.into(),
-            microsecond.into(),
-            i128::from(nanosecond) - i128::from(ns_offset),
-        );
-
-        let nanoseconds = balanced.as_nanoseconds()?;
-
-        Ok(Self(nanoseconds))
+        Self::from_utf8(s.as_bytes())
     }
 }
 
@@ -329,7 +345,7 @@ mod tests {
     use crate::{
         builtins::core::{duration::TimeDuration, Instant},
         options::{DifferenceSettings, RoundingMode, Unit},
-        time::EpochNanoseconds,
+        unix_time::EpochNanoseconds,
         NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 

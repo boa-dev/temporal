@@ -5,9 +5,14 @@ use crate::error::ffi::TemporalError;
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::error::ffi::TemporalError;
+    use crate::options::ffi::ToStringRoundingOptions;
+    #[cfg(feature = "compiled_data")]
+    use crate::options::ffi::{RoundingOptions, Unit};
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::RelativeTo;
     use alloc::boxed::Box;
     use alloc::string::String;
-    use core::str::{self, FromStr};
+    use core::str::FromStr;
     use diplomat_runtime::DiplomatOption;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
     use num_traits::FromPrimitive;
@@ -52,7 +57,7 @@ pub mod ffi {
     }
 
     impl TimeDuration {
-        pub fn new(
+        pub fn try_new(
             hours: i64,
             minutes: i64,
             seconds: i64,
@@ -88,7 +93,7 @@ pub mod ffi {
     }
 
     impl DateDuration {
-        pub fn new(
+        pub fn try_new(
             years: i64,
             months: i64,
             weeks: i64,
@@ -111,7 +116,34 @@ pub mod ffi {
         }
     }
     impl Duration {
+        /// Temporary API until v8 can move off of it
         pub fn create(
+            years: i64,
+            months: i64,
+            weeks: i64,
+            days: i64,
+            hours: i64,
+            minutes: i64,
+            seconds: i64,
+            milliseconds: i64,
+            microseconds: f64,
+            nanoseconds: f64,
+        ) -> Result<Box<Self>, TemporalError> {
+            Self::try_new(
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+                milliseconds,
+                microseconds,
+                nanoseconds,
+            )
+        }
+
+        pub fn try_new(
             years: i64,
             months: i64,
             weeks: i64,
@@ -154,9 +186,7 @@ pub mod ffi {
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to validate
-            let s = str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::Duration::from_str(s)
+            temporal_rs::Duration::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
@@ -208,11 +238,19 @@ pub mod ffi {
         pub fn milliseconds(&self) -> i64 {
             self.0.milliseconds()
         }
-        pub fn microseconds(&self) -> Option<f64> {
-            f64::from_i128(self.0.microseconds())
+        pub fn microseconds(&self) -> f64 {
+            // The error case should never occur since
+            // duration values are clamped within range
+            //
+            // https://github.com/boa-dev/temporal/issues/189
+            f64::from_i128(self.0.microseconds()).unwrap_or(0.)
         }
-        pub fn nanoseconds(&self) -> Option<f64> {
-            f64::from_i128(self.0.nanoseconds())
+        pub fn nanoseconds(&self) -> f64 {
+            // The error case should never occur since
+            // duration values are clamped within range
+            //
+            // https://github.com/boa-dev/temporal/issues/189
+            f64::from_i128(self.0.nanoseconds()).unwrap_or(0.)
         }
 
         pub fn sign(&self) -> Sign {
@@ -244,8 +282,48 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        // TODO round_with_provider (needs time zone stuff)
-        // TODO total_with_provider (needs time zone stuff)
+        pub fn to_string(
+            &self,
+            options: ToStringRoundingOptions,
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
+            use core::fmt::Write;
+            let string = self.0.as_temporal_string(options.into())?;
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
+
+            Ok(())
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn round(
+            &self,
+            options: RoundingOptions,
+            relative_to: RelativeTo,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .round(options.try_into()?, relative_to.into())
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn compare(&self, other: &Self, relative_to: RelativeTo) -> Result<i8, TemporalError> {
+            // Ideally we'd return core::cmp::Ordering here but Diplomat
+            // isn't happy about needing to convert the contents of a result
+            self.0
+                .compare(&other.0, relative_to.into())
+                .map(|x| x as i8)
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn total(&self, unit: Unit, relative_to: RelativeTo) -> Result<f64, TemporalError> {
+            self.0
+                .total(unit.into(), relative_to.into())
+                .map(|x| x.as_inner())
+                .map_err(Into::into)
+        }
     }
 }
 

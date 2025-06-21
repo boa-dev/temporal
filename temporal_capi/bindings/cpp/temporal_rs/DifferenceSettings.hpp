@@ -10,6 +10,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 #include "RoundingMode.hpp"
 #include "Unit.hpp"
@@ -18,8 +19,7 @@
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace

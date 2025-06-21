@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
@@ -17,7 +18,7 @@ namespace capi {
       DurationOverflow_Constrain = 0,
       DurationOverflow_Balance = 1,
     };
-    
+
     typedef struct DurationOverflow_option {union { DurationOverflow ok; }; bool is_ok; } DurationOverflow_option;
 } // namespace capi
 } // namespace
@@ -30,7 +31,8 @@ public:
     Balance = 1,
   };
 
-  DurationOverflow() = default;
+  DurationOverflow(): value(Value::Constrain) {}
+
   // Implicit conversions between enum and ::Value
   constexpr DurationOverflow(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

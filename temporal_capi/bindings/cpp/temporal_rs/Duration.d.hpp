@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -18,8 +19,12 @@ class Duration;
 namespace capi { struct TimeDuration; }
 class TimeDuration;
 struct PartialDuration;
+struct RelativeTo;
+struct RoundingOptions;
 struct TemporalError;
+struct ToStringRoundingOptions;
 class Sign;
+class Unit;
 }
 
 
@@ -33,7 +38,12 @@ namespace temporal_rs {
 class Duration {
 public:
 
+  /**
+   * Temporary API until v8 can move off of it
+   */
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time);
 
@@ -65,9 +75,9 @@ public:
 
   inline int64_t milliseconds() const;
 
-  inline std::optional<double> microseconds() const;
+  inline double microseconds() const;
 
-  inline std::optional<double> nanoseconds() const;
+  inline double nanoseconds() const;
 
   inline temporal_rs::Sign sign() const;
 
@@ -80,6 +90,16 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> add(const temporal_rs::Duration& other) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> subtract(const temporal_rs::Duration& other) const;
+
+  inline diplomat::result<std::string, temporal_rs::TemporalError> to_string(temporal_rs::ToStringRoundingOptions options) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_string_write(temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options, temporal_rs::RelativeTo relative_to) const;
+
+  inline diplomat::result<int8_t, temporal_rs::TemporalError> compare(const temporal_rs::Duration& other, temporal_rs::RelativeTo relative_to) const;
+
+  inline diplomat::result<double, temporal_rs::TemporalError> total(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to) const;
 
   inline const temporal_rs::capi::Duration* AsFFI() const;
   inline temporal_rs::capi::Duration* AsFFI();

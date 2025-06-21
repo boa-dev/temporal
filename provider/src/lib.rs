@@ -1,14 +1,23 @@
-//! `temporal_provider` is a crate designed for data providers
-//! intended for `temporal_rs`
+//! Data providers for time zone data
+//!
+//! This crate aims to provide a variety of data providers
+//! for time zone data.
 //!
 
-mod tzdb;
+#![no_std]
 
+extern crate alloc;
+
+#[cfg(feature = "std")]
+extern crate std;
+
+mod tzdb;
 pub mod tzif;
 
+#[cfg(feature = "datagen")]
 pub use tzdb::{IanaDataError, IanaIdentifierNormalizer};
 
-/// A prelude of needed types for interacting with `temporal_provider` data.
+/// A prelude of needed types for interacting with `timezone_provider` data.
 pub mod prelude {
     pub use zerotrie;
     pub use zerovec;
@@ -18,7 +27,7 @@ include!("./data/mod.rs");
 
 #[cfg(test)]
 mod tests {
-    use crate as temporal_provider;
+    use crate as timezone_provider;
     extern crate alloc;
 
     iana_normalizer_singleton!();

@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -40,7 +41,7 @@ namespace temporal_rs {
 class Calendar {
 public:
 
-  inline static std::unique_ptr<temporal_rs::Calendar> create(temporal_rs::AnyCalendarKind kind);
+  inline static std::unique_ptr<temporal_rs::Calendar> try_new_constrain(temporal_rs::AnyCalendarKind kind);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Calendar>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
@@ -59,6 +60,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> date_until(temporal_rs::IsoDate one, temporal_rs::IsoDate two, temporal_rs::Unit largest_unit) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> era(temporal_rs::IsoDate date) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> era_write(temporal_rs::IsoDate date, W& writeable_output) const;
 
   inline std::optional<int32_t> era_year(temporal_rs::IsoDate date) const;
 
@@ -67,16 +70,18 @@ public:
   inline uint8_t month(temporal_rs::IsoDate date) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> month_code(temporal_rs::IsoDate date) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> month_code_write(temporal_rs::IsoDate date, W& writeable_output) const;
 
   inline uint8_t day(temporal_rs::IsoDate date) const;
 
-  inline uint16_t day_of_week(temporal_rs::IsoDate date) const;
+  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week(temporal_rs::IsoDate date) const;
 
   inline uint16_t day_of_year(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<std::optional<uint16_t>, temporal_rs::TemporalError> week_of_year(temporal_rs::IsoDate date) const;
+  inline std::optional<uint8_t> week_of_year(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<std::optional<int32_t>, temporal_rs::TemporalError> year_of_week(temporal_rs::IsoDate date) const;
+  inline std::optional<int32_t> year_of_week(temporal_rs::IsoDate date) const;
 
   inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week(temporal_rs::IsoDate date) const;
 
@@ -87,6 +92,11 @@ public:
   inline uint16_t months_in_year(temporal_rs::IsoDate date) const;
 
   inline bool in_leap_year(temporal_rs::IsoDate date) const;
+
+  /**
+   * Returns the kind of this calendar
+   */
+  inline temporal_rs::AnyCalendarKind kind() const;
 
   inline const temporal_rs::capi::Calendar* AsFFI() const;
   inline temporal_rs::capi::Calendar* AsFFI();

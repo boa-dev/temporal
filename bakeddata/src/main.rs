@@ -4,7 +4,7 @@ use std::{
     io::{self, BufWriter, Write},
     path::Path,
 };
-use temporal_provider::{tzif::ZoneInfoProvider, IanaIdentifierNormalizer};
+use timezone_provider::{tzif::ZoneInfoProvider, IanaIdentifierNormalizer};
 
 trait BakedDataProvider {
     fn write_data(&self, data_path: &Path) -> io::Result<()>;
@@ -26,9 +26,10 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
                 }
             }
         };
-        let generated = baked_macro.to_string();
+        let file = syn::parse_file(&baked_macro.to_string()).unwrap();
+        let formatted = prettyplease::unparse(&file);
         let mut file = BufWriter::new(File::create(generated_file)?);
-        write!(file, "//@generated\n\n{generated}")
+        write!(file, "//@generated\n// (by `bakeddata` binary in temporal_rs, using `databake`)\n\n{formatted}")
     }
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()> {
@@ -71,13 +72,14 @@ impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
             #[macro_export]
             macro_rules! iana_normalizer_singleton {
                 () => {
-                    pub const SINGLETON_IANA_NORMALIZER: &'static temporal_provider::IanaIdentifierNormalizer = &#baked;
+                    pub const SINGLETON_IANA_NORMALIZER: &'static timezone_provider::IanaIdentifierNormalizer = &#baked;
                 }
             }
         };
-        let generated = baked_macro.to_string();
+        let file = syn::parse_file(&baked_macro.to_string()).unwrap();
+        let formatted = prettyplease::unparse(&file);
         let mut file = BufWriter::new(File::create(generated_file)?);
-        write!(file, "//@generated\n\n{generated}")
+        write!(file, "//@generated\n// (by `bakeddata` binary in temporal_rs, using `databake`)\n\n{formatted}")
     }
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()> {

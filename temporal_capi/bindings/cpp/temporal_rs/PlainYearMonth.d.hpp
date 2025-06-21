@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
@@ -22,7 +23,9 @@ class PlainYearMonth;
 struct DifferenceSettings;
 struct PartialDate;
 struct TemporalError;
+class AnyCalendarKind;
 class ArithmeticOverflow;
+class DisplayCalendar;
 }
 
 
@@ -36,7 +39,7 @@ namespace temporal_rs {
 class PlainYearMonth {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> create_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, const temporal_rs::Calendar& calendar, temporal_rs::ArithmeticOverflow overflow);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> try_new_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow);
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
@@ -47,6 +50,8 @@ public:
   inline int32_t iso_year() const;
 
   inline std::string padded_iso_year_string() const;
+  template<typename W>
+  inline void padded_iso_year_string_write(W& writeable_output) const;
 
   inline uint8_t iso_month() const;
 
@@ -55,6 +60,8 @@ public:
   inline uint8_t month() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline bool in_leap_year() const;
 
@@ -65,6 +72,8 @@ public:
   inline uint16_t months_in_year() const;
 
   inline std::string era() const;
+  template<typename W>
+  inline void era_write(W& writeable_output) const;
 
   inline std::optional<int32_t> era_year() const;
 
@@ -78,7 +87,15 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> since(const temporal_rs::PlainYearMonth& other, temporal_rs::DifferenceSettings settings) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
+  inline bool equals(const temporal_rs::PlainYearMonth& other) const;
+
+  inline static int8_t compare(const temporal_rs::PlainYearMonth& one, const temporal_rs::PlainYearMonth& two);
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> day) const;
+
+  inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
+  template<typename W>
+  inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
   inline const temporal_rs::capi::PlainYearMonth* AsFFI() const;
   inline temporal_rs::capi::PlainYearMonth* AsFFI();

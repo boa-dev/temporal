@@ -1,6 +1,5 @@
 use crate::{
-    builtins::TZ_PROVIDER, options::ToStringRoundingOptions, Instant, TemporalError,
-    TemporalResult, TimeZone,
+    builtins::TZ_PROVIDER, options::ToStringRoundingOptions, Instant, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 
@@ -14,10 +13,18 @@ impl Instant {
         timezone: Option<&TimeZone>,
         options: ToStringRoundingOptions,
     ) -> TemporalResult<String> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
+        self.to_ixdtf_string_with_provider(timezone, options, &*TZ_PROVIDER)
+    }
 
-        self.to_ixdtf_string_with_provider(timezone, options, &*provider)
+    /// Returns the RFC9557 (IXDTF) string for this `Instant` with the
+    /// provided options as a Writeable
+    ///
+    /// Enable with the `compiled_data` feature flag.
+    pub fn to_ixdtf_writeable(
+        &self,
+        timezone: Option<&TimeZone>,
+        options: ToStringRoundingOptions,
+    ) -> TemporalResult<impl writeable::Writeable + '_> {
+        self.to_ixdtf_writeable_with_provider(timezone, options, &*TZ_PROVIDER)
     }
 }

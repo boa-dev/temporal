@@ -1,13 +1,79 @@
-## What's Changed in 0.0.6
+## What's Changed in v0.0.9
+* Cross boundary rounding fix #286 by @robot-head in [#343](https://github.com/boa-dev/temporal/pull/343)
+* Implement PlainMonthDay::with functionality by @nekevss in [#335](https://github.com/boa-dev/temporal/pull/335)
+* Add Writeable getters for some types, use in FFI by @Manishearth in [#340](https://github.com/boa-dev/temporal/pull/340)
+* Add missing FFI APIs by @Manishearth in [#339](https://github.com/boa-dev/temporal/pull/339)
+* Fill in missing Zoned APIs by @Manishearth in [#331](https://github.com/boa-dev/temporal/pull/331)
+* Add stringifiers to MonthDay/YearMonth by @Manishearth in [#338](https://github.com/boa-dev/temporal/pull/338)
+* Use AnyCalendarKind in PartialDate by @Manishearth in [#332](https://github.com/boa-dev/temporal/pull/332)
+* Add ZonedDateTime FFI by @Manishearth in [#329](https://github.com/boa-dev/temporal/pull/329)
+* Use a lock internally to FsTzdbProvider instead of externally by @Manishearth in [#327](https://github.com/boa-dev/temporal/pull/327)
+* Remove create() APIs, consistently use try_new() by @Manishearth in [#326](https://github.com/boa-dev/temporal/pull/326)
+* Switch FFI calendar APIs over to using AnyCalendarKind for input by @Manishearth in [#324](https://github.com/boa-dev/temporal/pull/324)
+* Update abstract method `7.5.37 RoundRelativeDuration` by @HalidOdat in [#323](https://github.com/boa-dev/temporal/pull/323)
+* Fix abstract method `7.5.36 BubbleRelativeDuration()` by @HalidOdat in [#322](https://github.com/boa-dev/temporal/pull/322)
+* Generate FFI bindings for C by @jedel1043 in [#321](https://github.com/boa-dev/temporal/pull/321)
+* Improve baked data formatting by @Manishearth in [#319](https://github.com/boa-dev/temporal/pull/319)
+* Correctly validate largestUnit when constructing from DifferenceSettings by @Manishearth in [#316](https://github.com/boa-dev/temporal/pull/316)
+* Align `Duration.prototype.round()` to latest specification by @HalidOdat in [#317](https://github.com/boa-dev/temporal/pull/317)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.8...v0.0.9
+
+## What's Changed in v0.0.8
+* Make duration capi getters non-optional by @Manishearth in [#314](https://github.com/boa-dev/temporal/pull/314)
+* Add to_string to Duration by @Manishearth in [#312](https://github.com/boa-dev/temporal/pull/312)
+* Add comparison methods to Instant by @Manishearth in [#311](https://github.com/boa-dev/temporal/pull/311)
+* Add LICENSEs to timezone_provider crate by @Manishearth in [#308](https://github.com/boa-dev/temporal/pull/308)
+* Prune dependencies of timezone_provider in normal mode, add depcheck by @Manishearth in [#310](https://github.com/boa-dev/temporal/pull/310)
+* Add to_plain_date to PlainMonthDay and PlainYearMonth by @HenrikTennebekk in [#287](https://github.com/boa-dev/temporal/pull/287)
+* Remove exclude and readme by @nekevss in [#304](https://github.com/boa-dev/temporal/pull/304)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.7...v0.0.8
+
+## What's Changed in v0.0.7
+* Bump ixdtf and complete changes for update by @nekevss in [#299](https://github.com/boa-dev/temporal/pull/299)
+* A few more changes to the readme by @nekevss in [#297](https://github.com/boa-dev/temporal/pull/297)
+* Implement a builder API for Now by @nekevss in [#296](https://github.com/boa-dev/temporal/pull/296)
+* Some docs cleanup and updates by @nekevss in [#294](https://github.com/boa-dev/temporal/pull/294)
+* Add `PlainMonthDay` method + clean up by @nekevss in [#284](https://github.com/boa-dev/temporal/pull/284)
+* Add Eq, Ord impls on FiniteF64 by @sffc in [#187](https://github.com/boa-dev/temporal/pull/187)
+* Allow parsers to accept unvalidated UTF8 by @HalidOdat in [#295](https://github.com/boa-dev/temporal/pull/295)
+* Bump to icu_calendar 2.0 by @nekevss in [#292](https://github.com/boa-dev/temporal/pull/292)
+* Add ISO specific constructors to builtins by @nekevss in [#263](https://github.com/boa-dev/temporal/pull/263)
+* Rename the provider crate by @nekevss in [#289](https://github.com/boa-dev/temporal/pull/289)
+* Expose equals and compare over FFI by @Magnus-Fjeldstad in [#269](https://github.com/boa-dev/temporal/pull/269)
+* Impl round_with_provider for ZonedDateTIme by @sebastianjacmatt in [#278](https://github.com/boa-dev/temporal/pull/278)
+* Add some compiled_data FFI APIs by @Manishearth in [#273](https://github.com/boa-dev/temporal/pull/273)
+* Add string conversion functions for Temporal types by @Manishearth in [#276](https://github.com/boa-dev/temporal/pull/276)
+* Make sure temporal_capi can be built no_std by @Manishearth in [#281](https://github.com/boa-dev/temporal/pull/281)
+* Make iana-time-zone dep optional by @Manishearth in [#279](https://github.com/boa-dev/temporal/pull/279)
+* Implementation of ZonedDateTime.prototype.with by @lockels in [#267](https://github.com/boa-dev/temporal/pull/267)
+* Update Duration's inner representation from floating point to integers. by @nekevss in [#268](https://github.com/boa-dev/temporal/pull/268)
+* Add all-features = true to docs.rs metadata by @Manishearth in [#271](https://github.com/boa-dev/temporal/pull/271)
+* Fix instant math in capi by @Manishearth in [#270](https://github.com/boa-dev/temporal/pull/270)
+* Remove the Temporal prefix from Unit, RoundingMode, and UnsignedRoundingMode by @nekevss in [#254](https://github.com/boa-dev/temporal/pull/254)
+* Since until by @sebastianjacmatt in [#259](https://github.com/boa-dev/temporal/pull/259)
+* Implementation of toZonedDateTimeISO for Instant by @lockels in [#258](https://github.com/boa-dev/temporal/pull/258)
+* Implement toZonedDateTime in PlainDate by @JohannesHelleve in [#192](https://github.com/boa-dev/temporal/pull/192)
+* Add intro documentation to ZonedDateTime and PlainDateTime by @nekevss in [#253](https://github.com/boa-dev/temporal/pull/253)
+* Implement IANA normalizer baked data provider by @nekevss in [#251](https://github.com/boa-dev/temporal/pull/251)
+
+## New Contributors
+* @HalidOdat made their first contribution in [#295](https://github.com/boa-dev/temporal/pull/295)
+* @JohannesHelleve made their first contribution in [#192](https://github.com/boa-dev/temporal/pull/192)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.6...v0.0.7
+
+## What's Changed in v0.0.6
 * Rename methods on `Now` and add a test by @nekevss in [#243](https://github.com/boa-dev/temporal/pull/243)
 * Add licenses to `temporal_capi` and `temporal_rs` for publish by @nekevss in [#247](https://github.com/boa-dev/temporal/pull/247)
 * Add with to PlainYearMonth by @sebastianjacmatt in [#231](https://github.com/boa-dev/temporal/pull/231)
 * initial implementation of ToZonedDateTime, ToPlainDate, ToPlainTime by @lockels in [#244](https://github.com/boa-dev/temporal/pull/244)
 * Initial implementation of Duration.prototype.total by @lockels in [#241](https://github.com/boa-dev/temporal/pull/241)
 
-**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.5...0.0.6
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.5...v0.0.6
 
-## What's Changed in 0.0.5
+## What's Changed in v0.0.5
 * Prepare temporal_capi for publish by @jedel1043 in [#238](https://github.com/boa-dev/temporal/pull/238)
 * Adjustments to `toPlainYearMonth` and `toPlainMonthDay` methods on PlainDate by @nekevss in [#237](https://github.com/boa-dev/temporal/pull/237)
 * Missed an unwrap in the README.md example by @nekevss in [#236](https://github.com/boa-dev/temporal/pull/236)
@@ -101,7 +167,7 @@
 * @HenrikTennebekk made their first contribution in [#186](https://github.com/boa-dev/temporal/pull/186)
 * @cassioneri made their first contribution in [#147](https://github.com/boa-dev/temporal/pull/147)
 
-**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.4...0.0.5
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.4...v0.0.5
 
 ## What's Changed in v0.0.4
 

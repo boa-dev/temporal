@@ -17,6 +17,7 @@ use crate::{
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
+use writeable::Writeable;
 
 use super::{
     calendar::month_to_month_code,
@@ -356,13 +357,28 @@ impl PlainDate {
 
 impl PlainDate {
     /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
+    #[inline]
     pub fn new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
     }
 
+    /// Creates a new `PlainDate` with an ISO 8601 calendar automatically constraining any
+    /// values that may be invalid into a valid range.
+    #[inline]
+    pub fn new_iso(year: i32, month: u8, day: u8) -> TemporalResult<Self> {
+        Self::new(year, month, day, Calendar::default())
+    }
+
     /// Creates a new `PlainDate` rejecting any date that may be invalid.
+    #[inline]
     pub fn try_new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
         Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Reject)
+    }
+
+    /// Creates a new `PlainDate` with an ISO 8601 calendar rejecting any date that may be invalid.
+    #[inline]
+    pub fn try_new_iso(year: i32, month: u8, day: u8) -> TemporalResult<Self> {
+        Self::try_new(year, month, day, Calendar::default())
     }
 
     /// Creates a new `PlainDate` with the specified overflow.
@@ -414,6 +430,22 @@ impl PlainDate {
 
         let overflow = overflow.unwrap_or_default();
         partial.calendar.date_from_partial(&partial, overflow)
+    }
+
+    // Converts a UTF-8 encoded string into a `PlainDate`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let parse_record = parse_date_time(s)?;
+
+        let calendar = parse_record
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        // Assertion: PlainDate must exist on a DateTime parse.
+        let date = parse_record.date.temporal_unwrap()?;
+
+        Self::try_new(date.year, date.month, date.day, calendar)
     }
 
     /// Creates a date time with values from a `PartialDate`.
@@ -548,7 +580,7 @@ impl PlainDate {
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> u16 {
+    pub fn day_of_week(&self) -> TemporalResult<u16> {
         self.calendar.day_of_week(&self.iso)
     }
 
@@ -558,12 +590,12 @@ impl PlainDate {
     }
 
     /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<Option<u16>> {
+    pub fn week_of_year(&self) -> Option<u8> {
         self.calendar.week_of_year(&self.iso)
     }
 
     /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
+    pub fn year_of_week(&self) -> Option<i32> {
         self.calendar.year_of_week(&self.iso)
     }
 
@@ -648,6 +680,13 @@ impl PlainDate {
 
     #[inline]
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        self.to_ixdtf_writeable(display_calendar)
+            .write_to_string()
+            .into()
+    }
+
+    #[inline]
+    pub fn to_ixdtf_writeable(&self, display_calendar: DisplayCalendar) -> impl Writeable + '_ {
         IxdtfStringBuilder::default()
             .with_date(self.iso)
             .with_calendar(self.calendar.identifier(), display_calendar)
@@ -711,18 +750,7 @@ impl FromStr for PlainDate {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = parse_date_time(s)?;
-
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        // Assertion: PlainDate must exist on a DateTime parse.
-        let date = parse_record.date.temporal_unwrap()?;
-
-        Self::try_new(date.year, date.month, date.day, calendar)
+        Self::from_utf8(s.as_bytes())
     }
 }
 

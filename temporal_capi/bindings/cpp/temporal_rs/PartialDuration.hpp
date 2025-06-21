@@ -10,21 +10,21 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
+
     bool temporal_rs_PartialDuration_is_empty(temporal_rs::capi::PartialDuration self);
-    
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace
 
-inline bool temporal_rs::PartialDuration::is_empty() {
+inline bool temporal_rs::PartialDuration::is_empty() const {
   auto result = temporal_rs::capi::temporal_rs_PartialDuration_is_empty(this->AsFFI());
   return result;
 }

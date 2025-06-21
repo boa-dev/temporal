@@ -10,14 +10,14 @@
 #include <memory>
 #include <functional>
 #include <optional>
+#include <cstdlib>
 #include "../diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
 namespace capi {
     extern "C" {
-    
-    
+
     } // extern "C"
 } // namespace capi
 } // namespace
@@ -39,7 +39,7 @@ inline temporal_rs::RoundingMode temporal_rs::RoundingMode::FromFFI(temporal_rs:
     case temporal_rs::capi::RoundingMode_HalfEven:
       return static_cast<temporal_rs::RoundingMode::Value>(c_enum);
     default:
-      abort();
+      std::abort();
   }
 }
 #endif // temporal_rs_RoundingMode_HPP

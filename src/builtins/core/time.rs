@@ -12,6 +12,7 @@ use crate::{
 };
 use alloc::string::String;
 use core::str::FromStr;
+use writeable::Writeable;
 
 use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
 
@@ -105,7 +106,9 @@ impl PlainTime {
         self.iso.is_valid()
     }
 
-    /// Specification equivalent to `AddTime`
+    /// Specification equivalent to `4.5.15 AddTime ( time, timeDuration )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-addtime>
     pub(crate) fn add_normalized_time_duration(&self, norm: NormalizedTimeDuration) -> (i64, Self) {
         // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
         let second = i64::from(self.second()) + norm.seconds();
@@ -306,6 +309,13 @@ impl PlainTime {
         Ok(Self::new_unchecked(iso))
     }
 
+    // Converts a UTF-8 encoded string into a `PlainTime`.
+    pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
+        let result = parse_time(s)?;
+        let iso = IsoTime::from_time_record(result)?;
+        Ok(Self::new_unchecked(iso))
+    }
+
     /// Creates a new `PlainTime` using the current `PlainTime` fields as a fallback.
     ///
     /// ```rust
@@ -465,14 +475,21 @@ impl PlainTime {
     }
 
     pub fn to_ixdtf_string(&self, options: ToStringRoundingOptions) -> TemporalResult<String> {
+        self.to_ixdtf_writeable(options)
+            .map(|x| x.write_to_string().into())
+    }
+
+    #[inline]
+    pub fn to_ixdtf_writeable(
+        &self,
+        options: ToStringRoundingOptions,
+    ) -> TemporalResult<impl Writeable + '_> {
         let resolved = options.resolve()?;
         let (_, result) = self
             .iso
             .round(ResolvedRoundingOptions::from_to_string_options(&resolved))?;
-        let ixdtf_string = IxdtfStringBuilder::default()
-            .with_time(result, resolved.precision)
-            .build();
-        Ok(ixdtf_string)
+        let builder = IxdtfStringBuilder::default().with_time(result, resolved.precision);
+        Ok(builder)
     }
 }
 
@@ -486,9 +503,7 @@ impl FromStr for PlainTime {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let result = parse_time(s)?;
-        let iso = IsoTime::from_time_record(result)?;
-        Ok(Self::new_unchecked(iso))
+        Self::from_utf8(s.as_bytes())
     }
 }
 

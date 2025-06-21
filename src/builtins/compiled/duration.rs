@@ -2,7 +2,7 @@ use crate::{
     builtins::TZ_PROVIDER,
     options::{RelativeTo, RoundingOptions, Unit},
     primitive::FiniteF64,
-    Duration, TemporalError, TemporalResult,
+    Duration, TemporalResult,
 };
 
 use core::cmp::Ordering;
@@ -20,10 +20,7 @@ impl Duration {
         options: RoundingOptions,
         relative_to: Option<RelativeTo>,
     ) -> TemporalResult<Self> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.round_with_provider(options, relative_to, &*provider)
+        self.round_with_provider(options, relative_to, &*TZ_PROVIDER)
     }
 
     /// Returns the ordering between two [`Duration`], takes an optional
@@ -35,16 +32,10 @@ impl Duration {
         two: &Duration,
         relative_to: Option<RelativeTo>,
     ) -> TemporalResult<Ordering> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.compare_with_provider(two, relative_to, &*provider)
+        self.compare_with_provider(two, relative_to, &*TZ_PROVIDER)
     }
 
     pub fn total(&self, unit: Unit, relative_to: Option<RelativeTo>) -> TemporalResult<FiniteF64> {
-        let provider = TZ_PROVIDER
-            .lock()
-            .map_err(|_| TemporalError::general("Unable to acquire lock"))?;
-        self.total_with_provider(unit, relative_to, &*provider)
+        self.total_with_provider(unit, relative_to, &*TZ_PROVIDER)
     }
 }
