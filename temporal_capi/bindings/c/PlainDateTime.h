@@ -39,6 +39,9 @@ temporal_rs_PlainDateTime_try_new_result temporal_rs_PlainDateTime_try_new(int32
 typedef struct temporal_rs_PlainDateTime_from_partial_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_partial_result;
 temporal_rs_PlainDateTime_from_partial_result temporal_rs_PlainDateTime_from_partial(PartialDateTime partial, ArithmeticOverflow_option overflow);
 
+typedef struct temporal_rs_PlainDateTime_from_epoch_milliseconds_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_milliseconds_result;
+temporal_rs_PlainDateTime_from_epoch_milliseconds_result temporal_rs_PlainDateTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+
 typedef struct temporal_rs_PlainDateTime_with_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_result;
 temporal_rs_PlainDateTime_with_result temporal_rs_PlainDateTime_with(const PlainDateTime* self, PartialDateTime partial, ArithmeticOverflow_option overflow);
 
