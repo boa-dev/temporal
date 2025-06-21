@@ -204,6 +204,16 @@ pub mod ffi {
             self.0 == other.0
         }
 
+
+        pub fn offset(&self, 
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
+            let string = self.0.offset()?;
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
+            Ok(())
+        }
+
         pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.0
                 .start_of_day()

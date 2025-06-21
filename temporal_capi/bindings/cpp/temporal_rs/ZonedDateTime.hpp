@@ -75,6 +75,9 @@ namespace capi {
 
     bool temporal_rs_ZonedDateTime_equals(const temporal_rs::capi::ZonedDateTime* self, const temporal_rs::capi::ZonedDateTime* other);
 
+    typedef struct temporal_rs_ZonedDateTime_offset_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_offset_result;
+    temporal_rs_ZonedDateTime_offset_result temporal_rs_ZonedDateTime_offset(const temporal_rs::capi::ZonedDateTime* self, diplomat::capi::DiplomatWrite* write);
+
     typedef struct temporal_rs_ZonedDateTime_start_of_day_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_start_of_day_result;
     temporal_rs_ZonedDateTime_start_of_day_result temporal_rs_ZonedDateTime_start_of_day(const temporal_rs::capi::ZonedDateTime* self);
 
@@ -257,6 +260,21 @@ inline bool temporal_rs::ZonedDateTime::equals(const temporal_rs::ZonedDateTime&
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_equals(this->AsFFI(),
     other.AsFFI());
   return result;
+}
+
+inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::offset() const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_offset(this->AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::offset_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_offset(this->AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::start_of_day() const {
