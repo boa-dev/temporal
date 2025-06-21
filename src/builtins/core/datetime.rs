@@ -54,12 +54,107 @@ impl PartialDateTime {
     }
 }
 
-// TODO: Example doctest
 /// The native Rust implementation of a Temporal `PlainDateTime`.
 ///
-/// The `PlainDateTime` represents a date and time without a
-/// time zone. The fundemental represenation of a `PlainDateTime`
-/// is it's internal ISO date and time fields and a calendar.
+/// Combines a date and time into a single value representing a specific moment
+/// in calendar time, such as "March 15th, 2024 at 14:30:45". Unlike `Instant`,
+/// a `PlainDateTime` does not include timezone information.
+///
+/// Use `PlainDateTime` when you need to represent a specific date and time but
+/// timezone handling is not required, or when working with local times that
+/// don't need to be converted across timezones.
+///
+/// ## Examples
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, Calendar};
+///
+/// // Create a specific date and time
+/// let meeting = PlainDateTime::try_new_iso(
+///     2024, 3, 15,     // March 15th, 2024
+///     14, 30, 45,      // 2:30:45 PM
+///     123, 456, 789    // subsecond precision
+/// ).unwrap();
+/// ```
+///
+/// ### Parsing from strings
+///
+/// ```rust
+/// use temporal_rs::PlainDateTime;
+/// use std::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-03-15T14:30:45.123456789").unwrap();
+/// assert_eq!(dt.year(), 2024);
+/// assert_eq!(dt.month(), 3);
+/// assert_eq!(dt.day(), 15);
+/// assert_eq!(dt.hour(), 14);
+/// assert_eq!(dt.minute(), 30);
+/// assert_eq!(dt.second(), 45);
+/// assert_eq!(dt.millisecond(), 123);
+/// assert_eq!(dt.microsecond(), 456);
+/// assert_eq!(dt.nanosecond(), 789);
+/// ```
+///
+/// ### DateTime arithmetic
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, Duration};
+/// use std::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-01-15T12:00:00").unwrap();
+///
+/// // Add duration
+/// let later = dt.add(&Duration::from_str("P1M2DT3H4M").unwrap(), None).unwrap();
+/// assert_eq!(later.month(), 2);
+/// assert_eq!(later.day(), 17);
+/// assert_eq!(later.hour(), 15);
+/// assert_eq!(later.minute(), 4);
+///
+/// // Calculate difference
+/// let earlier = PlainDateTime::from_str("2024-01-10T10:30:00").unwrap();
+/// let duration = earlier.until(&dt, Default::default()).unwrap();
+/// assert_eq!(duration.days(), 5);
+/// assert_eq!(duration.hours(), 1);
+/// assert_eq!(duration.minutes(), 30);
+/// ```
+///
+/// ### Working with partial fields
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, partial::{PartialDateTime, PartialDate, PartialTime}};
+/// use std::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-01-15T12:30:45").unwrap();
+///
+/// // Change only the hour
+/// let partial = PartialDateTime::new()
+///     .with_partial_time(PartialTime::new().with_hour(Some(18)));
+/// let modified = dt.with(partial, None).unwrap();
+/// assert_eq!(modified.hour(), 18);
+/// assert_eq!(modified.minute(), 30); // unchanged
+/// assert_eq!(modified.second(), 45); // unchanged
+/// ```
+///
+/// ### Converting to other types
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, PlainTime};
+/// use std::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-03-15T14:30:45").unwrap();
+///
+/// // Extract date component
+/// let date = dt.to_plain_date().unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 3);
+/// assert_eq!(date.day(), 15);
+///
+/// // Extract time component
+/// let time = dt.to_plain_time().unwrap();
+/// assert_eq!(time.hour(), 14);
+/// assert_eq!(time.minute(), 30);
+/// assert_eq!(time.second(), 45);
+/// ```
 ///
 /// ## Reference
 ///

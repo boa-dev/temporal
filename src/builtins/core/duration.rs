@@ -68,8 +68,132 @@ impl PartialDuration {
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
-/// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
-/// defined by Abtract Operation 7.5.1-5.
+/// Represents a span of time such as "2 hours and 30 minutes" or "3 years, 2 months". 
+/// Unlike `Instant` which represents a specific moment in time, Duration represents 
+/// the amount of time between two moments.
+///
+/// A Duration consists of two categories of components:
+/// - Date components: years, months, weeks, and days
+/// - Time components: hours, minutes, seconds, and subsecond units (nanosecond precision)
+///
+/// Note that date arithmetic can be complex. For example, adding "1 month" to January 31st 
+/// could result in February 28th (non-leap year), February 29th (leap year), or March 3rd 
+/// (if you overflow February), depending on the calendar system and overflow handling.
+///
+/// ## Examples
+///
+/// ```rust
+/// use temporal_rs::Duration;
+///
+/// // Create a duration with specific components
+/// let vacation_duration = Duration::new(
+///     0, 0, 2, 3,    // 2 weeks and 3 days
+///     0, 0, 0,       // no time components
+///     0, 0, 0        // no subsecond components
+/// ).unwrap();
+///
+/// assert_eq!(vacation_duration.weeks(), 2);
+/// assert_eq!(vacation_duration.days(), 3);
+/// ```
+///
+/// Parsing ISO 8601 duration strings:
+///
+/// ```rust
+/// use temporal_rs::Duration;
+/// use std::str::FromStr;
+///
+/// // Complex duration with multiple components
+/// let complex = Duration::from_str("P1Y2M3DT4H5M6.789S").unwrap();
+///
+/// // Time-only duration
+/// let movie_length = Duration::from_str("PT2H30M").unwrap();
+/// 
+/// // Negative durations
+/// let negative = Duration::from_str("-P1D").unwrap();
+/// ```
+///
+/// Duration arithmetic:
+///
+/// ```rust
+/// use temporal_rs::Duration;
+/// use std::str::FromStr;
+///
+/// let commute_time = Duration::from_str("PT45M").unwrap();
+/// let lunch_break = Duration::from_str("PT1H").unwrap();
+///
+/// // Add durations together
+/// let total_time = commute_time.add(&lunch_break).unwrap();
+/// // Results in 1 hour 45 minutes
+///
+/// // Subtract duration components
+/// let shortened = lunch_break.subtract(&Duration::from_str("PT15M").unwrap()).unwrap();
+/// assert_eq!(shortened.minutes(), 45);
+/// ```
+///
+/// ```rust
+/// use temporal_rs::{PlainDate, Duration, options::ArithmeticOverflow};
+/// use std::str::FromStr;
+///
+/// // January 31st in different years
+/// let jan_31_2023 = PlainDate::try_new_iso(2023, 1, 31).unwrap();
+/// let jan_31_2024 = PlainDate::try_new_iso(2024, 1, 31).unwrap(); // leap year
+///
+/// let one_month = Duration::from_str("P1M").unwrap();
+///
+/// // Adding 1 month to Jan 31st gives different results:
+/// let feb_2023 = jan_31_2023.add(&one_month, Some(ArithmeticOverflow::Constrain)).unwrap();
+/// let feb_2024 = jan_31_2024.add(&one_month, Some(ArithmeticOverflow::Constrain)).unwrap();
+///
+/// // 2023: Jan 31 + 1 month = Feb 28 (no Feb 31st exists)
+/// assert_eq!(feb_2023.day(), 28);
+/// // 2024: Jan 31 + 1 month = Feb 29 (leap year)  
+/// assert_eq!(feb_2024.day(), 29);
+/// ```
+///
+/// ### Working with partial durations
+///
+/// ```rust
+/// use temporal_rs::{Duration, partial::PartialDuration};
+///
+/// let partial = PartialDuration {
+///     hours: Some(3),
+///     minutes: Some(45),
+///     ..Default::default()
+/// };
+///
+/// let duration = Duration::from_partial_duration(partial).unwrap();
+/// assert_eq!(duration.hours(), 3);
+/// assert_eq!(duration.minutes(), 45);
+/// assert_eq!(duration.days(), 0); // other fields default to 0
+/// ```
+///
+/// ### Duration properties
+///
+/// ```rust
+/// use temporal_rs::Duration;
+/// use std::str::FromStr;
+///
+/// let duration = Duration::from_str("P1Y2M3D").unwrap();
+///
+/// // Check if duration is zero
+/// assert!(!duration.is_zero());
+///
+/// // Get the sign of the duration
+/// let sign = duration.sign();
+/// // Note: This particular duration has mixed signs which affects the overall sign
+///
+/// // Get absolute value
+/// let abs_duration = duration.abs();
+/// assert_eq!(abs_duration.years(), 1);
+/// assert_eq!(abs_duration.months(), 2);
+/// assert_eq!(abs_duration.days(), 3);
+///
+/// // Negate duration
+/// let negated = duration.negated();
+/// assert_eq!(negated.years(), -1);
+/// assert_eq!(negated.months(), -2);
+/// assert_eq!(negated.days(), -3);
+/// ```
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Duration {

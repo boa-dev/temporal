@@ -83,38 +83,139 @@ impl PartialZonedDateTime {
 
 /// The native Rust implementation of a Temporal `ZonedDateTime`.
 ///
-/// A `ZonedDateTime` represents a date and time in a specific time
-/// zone and calendar. A `ZonedDateTime` is represented as an instant
-/// of unix epoch nanoseconds with a calendar, and a time zone.
+/// A `ZonedDateTime` represents a date and time in a specific time zone and calendar.
+/// Unlike `PlainDateTime`, it represents an exact moment in time by combining a
+/// `PlainDateTime` with time zone information. It is internally represented as
+/// an instant (epoch nanoseconds) along with calendar and time zone data.
 ///
-/// ## Time zone provider` API
+/// Since `ZonedDateTime` includes timezone information, it can handle daylight saving time 
+/// transitions and timezone offset changes automatically. The type requires a timezone 
+/// data provider (implementing `TimeZoneProvider`) for most operations, which supplies 
+/// the necessary timezone rules and historical data.
 ///
-/// The core implementation of `ZonedDateTime` are primarily time zone
-/// provider APIs denoted by a `*_with_provider` suffix. This means a
-/// provider that implements the `TimeZoneProvider` trait must be provided.
+/// Unlike `PlainDateTime` which can be ambiguous during DST transitions, `ZonedDateTime` 
+/// always represents an unambiguous moment in time.
 ///
-/// A default file system time zone provider, `FsTzdbProvider`, can be
-/// enabled with the `tzdb` feature flag.
+/// ## Time zone provider API
 ///
-/// The non time zone provider API, which is a default implementation of the
-/// methods using `FsTzdbProvider` can be enabled with the `compiled_data`
-/// feature flag.
+/// The core implementation of `ZonedDateTime` uses time zone provider APIs denoted by
+/// a `*_with_provider` suffix. This means a provider that implements the `TimeZoneProvider`
+/// trait must be provided for timezone-aware operations.
 ///
-/// ## Example
+/// Time zone providers available:
+/// - **File system provider**: `FsTzdbProvider` (enabled with `tzdb` feature)
+/// - **Compiled data provider**: Default implementation (enabled with `compiled_data` feature)
+///
+/// ## Examples
+///
+/// ### Creating a ZonedDateTime
 ///
 /// ```rust
 /// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime};
 ///
-/// let zoned_date_time = ZonedDateTime::try_new(
-///     0,
-///     Calendar::default(),
-///     TimeZone::default(),
+/// // Create from epoch nanoseconds
+/// let zdt = ZonedDateTime::try_new(
+///     0,                    // epoch nanoseconds (Unix epoch)
+///     Calendar::default(),  // ISO 8601 calendar
+///     TimeZone::default(),  // UTC timezone
 /// ).unwrap();
 ///
-/// assert_eq!(zoned_date_time.epoch_milliseconds(), 0);
-/// assert_eq!(zoned_date_time.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zoned_date_time.timezone().identifier().unwrap(), "UTC");
-/// assert_eq!(zoned_date_time.calendar().identifier(), "iso8601");
+/// assert_eq!(zdt.epoch_milliseconds(), 0);
+/// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
+/// assert_eq!(zdt.calendar().identifier(), "iso8601");
+/// ```
+///
+/// ### Working with timezones (requires provider)
+///
+/// ```rust,ignore
+/// use temporal_rs::{ZonedDateTime, TimeZone, tzdb::FsTzdbProvider};
+///
+/// let provider = FsTzdbProvider::default();
+/// let tz = TimeZone::try_from_str("America/New_York").unwrap();
+/// let zdt = ZonedDateTime::try_new(
+///     1609459200000000000, // 2021-01-01T00:00:00Z
+///     Calendar::default(),
+///     tz,
+/// ).unwrap();
+///
+/// // Get local time in New York timezone
+/// let year = zdt.year_with_provider(&provider).unwrap();
+/// let month = zdt.month_with_provider(&provider).unwrap();
+/// let day = zdt.day_with_provider(&provider).unwrap();
+/// let hour = zdt.hour_with_provider(&provider).unwrap();
+///
+/// // Note: This would be December 31, 2020 19:00 in New York (EST)
+/// assert_eq!(year, 2020);
+/// assert_eq!(month, 12);
+/// assert_eq!(day, 31);
+/// assert_eq!(hour, 19);
+/// ```
+///
+/// ### ZonedDateTime arithmetic (requires provider)
+///
+/// ```rust,ignore
+/// use temporal_rs::{ZonedDateTime, Duration, TimeZone, tzdb::FsTzdbProvider};
+///
+/// let provider = FsTzdbProvider::default();
+/// let tz = TimeZone::try_from_str("Europe/London").unwrap();
+/// let zdt = ZonedDateTime::try_new(
+///     1609459200000000000, // 2021-01-01T00:00:00Z
+///     Calendar::default(),
+///     tz,
+/// ).unwrap();
+///
+/// // Add 6 months
+/// let later = zdt.add_with_provider(
+///     &Duration::from_str("P6M").unwrap(),
+///     None,
+///     &provider
+/// ).unwrap();
+///
+/// let later_month = later.month_with_provider(&provider).unwrap();
+/// assert_eq!(later_month, 7); // July
+/// ```
+///
+/// ### Converting from PlainDateTime
+///
+/// ```rust,ignore
+/// use temporal_rs::{PlainDateTime, ZonedDateTime, TimeZone, options::Disambiguation, tzdb::FsTzdbProvider};
+///
+/// let provider = FsTzdbProvider::default();
+/// let dt = PlainDateTime::from_str("2024-03-15T14:30:00").unwrap();
+/// let tz = TimeZone::try_from_str("America/Los_Angeles").unwrap();
+///
+/// let zdt = dt.to_zoned_date_time_with_provider(
+///     &tz,
+///     Disambiguation::Compatible,
+///     &provider
+/// ).unwrap();
+///
+/// // Now we have an exact moment in time in the LA timezone
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
+/// ```
+///
+/// ### String formatting (requires provider)
+///
+/// ```rust,ignore
+/// use temporal_rs::{ZonedDateTime, TimeZone, options::ToStringRoundingOptions, tzdb::FsTzdbProvider};
+///
+/// let provider = FsTzdbProvider::default();
+/// let zdt = ZonedDateTime::try_new(
+///     1609459200000000000,
+///     Calendar::default(),
+///     TimeZone::try_from_str("Asia/Tokyo").unwrap(),
+/// ).unwrap();
+///
+/// let iso_string = zdt.to_ixdtf_string_with_provider(
+///     ToStringRoundingOptions::default(),
+///     &provider
+/// ).unwrap();
+///
+/// // Results in something like "2021-01-01T09:00:00+09:00[Asia/Tokyo]"
+/// assert!(iso_string.contains("2021-01-01"));
+/// assert!(iso_string.contains("+09:00"));
+/// assert!(iso_string.contains("[Asia/Tokyo]"));
 /// ```
 ///
 /// ## Reference

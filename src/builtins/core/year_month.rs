@@ -22,7 +22,122 @@ use super::{
 };
 use writeable::Writeable;
 
-/// The native Rust implementation of `Temporal.YearMonth`.
+/// The native Rust implementation of `Temporal.PlainYearMonth`.
+///
+/// Represents a specific month within a specific year, such as "January 2024" 
+/// or "December 2023", without a specific day component.
+///
+/// Useful for representing time periods at month granularity, such as billing 
+/// periods, reporting intervals, or any scenario where you need to work with 
+/// entire months rather than specific dates.
+///
+/// ## Examples
+///
+/// ### Creating a PlainYearMonth
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, Calendar};
+///
+/// // Create with ISO 8601 calendar
+/// let ym = PlainYearMonth::try_new_iso(2024, 3, None).unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+/// assert_eq!(ym.calendar().identifier(), "iso8601");
+///
+/// // Create with explicit calendar and reference day
+/// let ym = PlainYearMonth::try_new(2024, 3, Some(15), Calendar::default()).unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+/// // Reference day helps with calendar calculations but doesn't affect the YearMonth itself
+/// ```
+///
+/// ### Parsing from strings
+///
+/// ```rust
+/// use temporal_rs::PlainYearMonth;
+/// use std::str::FromStr;
+///
+/// // Parse year-month strings
+/// let ym = PlainYearMonth::from_str("2024-03").unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+///
+/// // Also accepts full date strings (day is ignored for YearMonth semantics)
+/// let ym = PlainYearMonth::from_str("2024-03-15").unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+/// ```
+///
+/// ### YearMonth arithmetic
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, Duration, options::DifferenceSettings};
+/// use std::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-01").unwrap();
+///
+/// // Add duration (only years and months are meaningful)
+/// let later = ym.add(&Duration::from_str("P1Y3M").unwrap(), Default::default()).unwrap();
+/// assert_eq!(later.year(), 2025);
+/// assert_eq!(later.month(), 4);
+///
+/// // Calculate difference between year-months
+/// let earlier = PlainYearMonth::from_str("2023-10").unwrap();
+/// let duration = earlier.until(&ym, Default::default()).unwrap();
+/// assert_eq!(duration.months(), 3); // October to January = 3 months
+/// ```
+///
+/// ### Working with partial fields
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, partial::PartialDate};
+/// use std::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-01").unwrap();
+///
+/// // Change only the year
+/// let partial = PartialDate::new().with_year(Some(2025));
+/// let modified = ym.with(partial, None).unwrap();
+/// assert_eq!(modified.year(), 2025);
+/// assert_eq!(modified.month(), 1); // unchanged
+///
+/// // Change only the month
+/// let partial = PartialDate::new().with_month(Some(6));
+/// let modified = ym.with(partial, None).unwrap();
+/// assert_eq!(modified.year(), 2024); // unchanged
+/// assert_eq!(modified.month(), 6);
+/// ```
+///
+/// ### Converting to PlainDate
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, partial::PartialDate};
+/// use std::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-03").unwrap();
+///
+/// // Convert to a specific date by providing a day
+/// let day_partial = PartialDate::new().with_day(Some(15));
+/// let date = ym.to_plain_date(Some(day_partial)).unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 3);
+/// assert_eq!(date.day(), 15);
+/// ```
+///
+/// ### Calendar properties
+///
+/// ```rust
+/// use temporal_rs::PlainYearMonth;
+/// use std::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-02").unwrap(); // February 2024
+///
+/// // Get calendar-specific properties
+/// assert_eq!(ym.days_in_month(), 29); // 2024 is a leap year
+/// assert_eq!(ym.days_in_year(), 366); // leap year has 366 days
+/// assert_eq!(ym.months_in_year(), 12); // ISO calendar has 12 months
+/// assert!(ym.in_leap_year()); // 2024 is indeed a leap year
+/// ```
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainYearMonth {

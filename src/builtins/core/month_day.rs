@@ -13,7 +13,137 @@ use crate::{
 use super::{calendar::month_to_month_code, PartialDate, PlainDate};
 use writeable::Writeable;
 
-/// The native Rust implementation of `Temporal.PlainMonthDay`
+/// The native Rust implementation of `Temporal.PlainMonthDay`.
+///
+/// Represents a calendar month and day without a specific year, such as
+/// "December 25th" or "March 15th". Useful for representing recurring annual
+/// events where the year is not specified or relevant.
+///
+/// Commonly used for holidays, birthdays, anniversaries, and other events
+/// that occur on the same date each year. Special handling is required for
+/// February 29th when working with non-leap years.
+///
+/// ## Examples
+///
+/// ### Creating a PlainMonthDay
+///
+/// ```rust
+/// use temporal_rs::{PlainMonthDay, Calendar, MonthCode, options::ArithmeticOverflow};
+///
+/// // Create March 15th
+/// let md = PlainMonthDay::new_with_overflow(
+///     3, 15,                           // month, day
+///     Calendar::default(),             // ISO 8601 calendar  
+///     ArithmeticOverflow::Reject,      // reject invalid dates
+///     None                             // no reference year
+/// ).unwrap();
+///
+/// assert_eq!(md.month_code(), MonthCode::try_from_utf8("M03".as_bytes()).unwrap());
+/// assert_eq!(md.day(), 15);
+/// assert_eq!(md.calendar().identifier(), "iso8601");
+/// ```
+///
+/// ### Parsing from strings
+///
+/// ```rust
+/// use temporal_rs::{PlainMonthDay, MonthCode};
+/// use std::str::FromStr;
+///
+/// // Parse month-day strings
+/// let md = PlainMonthDay::from_str("03-15").unwrap();
+/// assert_eq!(md.month_code(), MonthCode::try_from_utf8("M03".as_bytes()).unwrap());
+/// assert_eq!(md.day(), 15);
+///
+/// // Also supports various formats
+/// let md = PlainMonthDay::from_str("--03-15").unwrap(); // RFC 3339 format
+/// assert_eq!(md.month_code(), MonthCode::try_from_utf8("M03".as_bytes()).unwrap());
+/// assert_eq!(md.day(), 15);
+/// ```
+///
+/// ### Working with partial fields
+///
+/// ```rust
+/// use temporal_rs::{PlainMonthDay, MonthCode, partial::PartialDate};
+/// use std::str::FromStr;
+///
+/// let md = PlainMonthDay::from_str("03-15").unwrap(); // March 15th
+///
+/// // Change the month
+/// let partial = PartialDate::new().with_month(Some(12));
+/// let modified = md.with(partial, None).unwrap();
+/// assert_eq!(modified.month_code(), MonthCode::try_from_utf8("M12".as_bytes()).unwrap());
+/// assert_eq!(modified.day(), 15); // unchanged
+///
+/// // Change the day
+/// let partial = PartialDate::new().with_day(Some(25));
+/// let modified = md.with(partial, None).unwrap();
+/// assert_eq!(modified.month_code(), MonthCode::try_from_utf8("M03".as_bytes()).unwrap()); // unchanged  
+/// assert_eq!(modified.day(), 25);
+/// ```
+///
+/// ### Converting to PlainDate
+///
+/// ```rust
+/// use temporal_rs::{PlainMonthDay, partial::PartialDate};
+/// use std::str::FromStr;
+///
+/// let md = PlainMonthDay::from_str("12-25").unwrap(); // December 25th
+///
+/// // Convert to a specific date by providing a year
+/// let year_partial = PartialDate::new().with_year(Some(2024));
+/// let date = md.to_plain_date(Some(year_partial)).unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 12);
+/// assert_eq!(date.day(), 25);
+/// // This represents December 25th, 2024
+/// ```
+///
+/// ### Handling leap year dates
+///
+/// ```rust
+/// use temporal_rs::{PlainMonthDay, MonthCode, partial::PartialDate, Calendar, options::ArithmeticOverflow};
+///
+/// // February 29th (leap day)
+/// let leap_day = PlainMonthDay::new_with_overflow(
+///     2, 29,
+///     Calendar::default(),
+///     ArithmeticOverflow::Reject,
+///     Some(2024) // reference year 2024 (a leap year)
+/// ).unwrap();
+///
+/// assert_eq!(leap_day.month_code(), MonthCode::try_from_utf8("M02".as_bytes()).unwrap());
+/// assert_eq!(leap_day.day(), 29);
+///
+/// // Convert to non-leap year - this would need special handling
+/// let year_partial = PartialDate::new().with_year(Some(2023)); // non-leap year
+/// let result = leap_day.to_plain_date(Some(year_partial));
+/// // This might fail or be adjusted depending on the calendar's rules
+/// ```
+///
+/// ### Practical use cases
+///
+/// ```rust
+/// use temporal_rs::{PlainMonthDay, partial::PartialDate};
+/// use std::str::FromStr;
+///
+/// // Birthday (recurring annually)
+/// let birthday = PlainMonthDay::from_str("07-15").unwrap(); // July 15th
+///
+/// // Calculate this year's birthday
+/// let this_year = 2024;
+/// let year_partial = PartialDate::new().with_year(Some(this_year));
+/// let birthday_2024 = birthday.to_plain_date(Some(year_partial)).unwrap();
+/// assert_eq!(birthday_2024.year(), 2024);
+/// assert_eq!(birthday_2024.month(), 7);
+/// assert_eq!(birthday_2024.day(), 15);
+///
+/// // Holiday (Christmas)
+/// let christmas = PlainMonthDay::from_str("12-25").unwrap();
+/// let year_partial = PartialDate::new().with_year(Some(this_year));
+/// let christmas_2024 = christmas.to_plain_date(Some(year_partial)).unwrap();
+/// assert_eq!(christmas_2024.month(), 12);
+/// assert_eq!(christmas_2024.day(), 25);
+/// ```
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainMonthDay {

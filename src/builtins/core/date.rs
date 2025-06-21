@@ -180,6 +180,62 @@ impl PartialDate {
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.
+///
+/// Represents a calendar date like "March 15th, 2024" without any time or timezone 
+/// information. Useful for dates where the specific time of day doesn't matter,
+/// such as deadlines, birth dates, or historical events.
+///
+/// Uses the ISO 8601 calendar (standard Gregorian calendar) by default, with 
+/// support for other calendar systems when needed.
+/// 
+/// ## Examples
+/// 
+/// ```rust
+/// use temporal_rs::{PlainDate, Calendar};
+/// 
+/// // Create a date using the ISO calendar
+/// let christmas = PlainDate::try_new_iso(2024, 12, 25).unwrap();
+/// 
+/// // Explicit calendar specification
+/// let date = PlainDate::try_new(2024, 12, 25, Calendar::default()).unwrap();
+/// ```
+/// 
+/// Date arithmetic operations:
+/// 
+/// ```rust
+/// use temporal_rs::{PlainDate, Duration};
+/// use std::str::FromStr;
+/// 
+/// let start = PlainDate::try_new_iso(2024, 1, 15).unwrap();
+/// 
+/// // Add one month
+/// let later = start.add(&Duration::from_str("P1M").unwrap(), None).unwrap();
+/// // Results in February 15th, 2024
+/// 
+/// // Calculate duration between dates
+/// let new_year = PlainDate::try_new_iso(2024, 1, 1).unwrap();
+/// let diff = new_year.until(&start, Default::default()).unwrap();
+/// assert_eq!(diff.days(), 14);
+/// ```
+/// 
+/// Parsing from ISO 8601 strings:
+/// 
+/// ```rust
+/// use temporal_rs::PlainDate;
+/// use std::str::FromStr;
+/// 
+/// // Standard ISO date format
+/// let date = PlainDate::from_str("2024-03-15").unwrap();
+/// 
+/// // With explicit calendar annotation
+/// let date2 = PlainDate::from_str("2024-03-15[u-ca=iso8601]").unwrap();
+/// ```
+/// 
+/// ## Reference
+/// 
+/// For more information, see the [MDN documentation][mdn-plaindate].
+/// 
+/// [mdn-plaindate]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainDate
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainDate {
