@@ -73,6 +73,8 @@ namespace capi {
 
     int8_t temporal_rs_ZonedDateTime_compare_instant(const temporal_rs::capi::ZonedDateTime* self, const temporal_rs::capi::ZonedDateTime* other);
 
+    bool temporal_rs_ZonedDateTime_equals(const temporal_rs::capi::ZonedDateTime* self, const temporal_rs::capi::ZonedDateTime* other);
+
     typedef struct temporal_rs_ZonedDateTime_start_of_day_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_start_of_day_result;
     temporal_rs_ZonedDateTime_start_of_day_result temporal_rs_ZonedDateTime_start_of_day(const temporal_rs::capi::ZonedDateTime* self);
 
@@ -247,6 +249,12 @@ inline const temporal_rs::TimeZone& temporal_rs::ZonedDateTime::timezone() const
 
 inline int8_t temporal_rs::ZonedDateTime::compare_instant(const temporal_rs::ZonedDateTime& other) const {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_compare_instant(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline bool temporal_rs::ZonedDateTime::equals(const temporal_rs::ZonedDateTime& other) const {
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_equals(this->AsFFI(),
     other.AsFFI());
   return result;
 }

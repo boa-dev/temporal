@@ -81,6 +81,8 @@ public:
 
   inline int8_t compare_instant(const temporal_rs::ZonedDateTime& other) const;
 
+  inline bool equals(const temporal_rs::ZonedDateTime& other) const;
+
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> start_of_day() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> get_time_zone_transition(temporal_rs::TransitionDirection direction) const;

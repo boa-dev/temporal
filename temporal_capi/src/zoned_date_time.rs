@@ -200,6 +200,10 @@ pub mod ffi {
             self.0.compare_instant(&other.0)
         }
 
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+
         pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.0
                 .start_of_day()
