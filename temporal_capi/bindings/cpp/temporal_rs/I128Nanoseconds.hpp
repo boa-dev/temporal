@@ -18,9 +18,16 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
+    bool temporal_rs_I128Nanoseconds_is_valid(temporal_rs::capi::I128Nanoseconds self);
+
     } // extern "C"
 } // namespace capi
 } // namespace
+
+inline bool temporal_rs::I128Nanoseconds::is_valid() const {
+  auto result = temporal_rs::capi::temporal_rs_I128Nanoseconds_is_valid(this->AsFFI());
+  return result;
+}
 
 
 inline temporal_rs::capi::I128Nanoseconds temporal_rs::I128Nanoseconds::AsFFI() const {
