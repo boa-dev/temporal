@@ -30,6 +30,13 @@ pub mod ffi {
         pub low: u64,
     }
 
+    impl I128Nanoseconds {
+        pub fn is_valid(self) -> bool {
+            let ns = i128::from(self);
+            temporal_rs::unix_time::EpochNanoseconds::try_from(ns).is_ok()
+        }
+    }
+
     impl Instant {
         pub fn try_new(ns: I128Nanoseconds) -> Result<Box<Self>, TemporalError> {
             temporal_rs::Instant::try_new(ns.into())

@@ -33,7 +33,8 @@ public:
     Negative = -1,
   };
 
-  Sign() = default;
+  Sign(): value(Value::Zero) {}
+
   // Implicit conversions between enum and ::Value
   constexpr Sign(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

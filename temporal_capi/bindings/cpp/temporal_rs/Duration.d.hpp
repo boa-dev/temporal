@@ -92,6 +92,8 @@ public:
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> subtract(const temporal_rs::Duration& other) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_string(temporal_rs::ToStringRoundingOptions options) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_string_write(temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options, temporal_rs::RelativeTo relative_to) const;
 

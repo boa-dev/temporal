@@ -11,7 +11,7 @@ use crate::builtins::core::duration::DateDuration;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
-use crate::provider::{TimeZoneOffset, TimeZoneProvider};
+use crate::provider::{TimeZoneProvider, TimeZoneTransitionInfo};
 use crate::{
     builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -177,7 +177,7 @@ impl TimeZone {
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => provider
                 .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
-                .map(|offset| i128::from(offset.offset) * 1_000_000_000),
+                .map(|transition| i128::from(transition.offset.0) * 1_000_000_000),
         }
     }
 
@@ -428,7 +428,7 @@ impl TimeZone {
                 .with_message("Could not determine the start of day for the provided date."));
         };
 
-        let TimeZoneOffset {
+        let TimeZoneTransitionInfo {
             transition_epoch: Some(transition_epoch),
             ..
         } = provider.get_named_tz_offset_nanoseconds(identifier, after_epoch.0)?

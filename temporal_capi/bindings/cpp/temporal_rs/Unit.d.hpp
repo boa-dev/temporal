@@ -49,7 +49,8 @@ public:
     Year = 10,
   };
 
-  Unit() = default;
+  Unit(): value(Value::Auto) {}
+
   // Implicit conversions between enum and ::Value
   constexpr Unit(Value v) : value(v) {}
   constexpr operator Value() const { return value; }
