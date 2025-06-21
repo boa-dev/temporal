@@ -34,6 +34,8 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_str(std::string_view ident);
 
+  inline static std::unique_ptr<temporal_rs::TimeZone> utc();
+
   inline bool is_valid() const;
 
   inline const temporal_rs::capi::TimeZone* AsFFI() const;
