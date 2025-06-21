@@ -725,6 +725,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b15c43186be67a4fd63bee50d0303afffcef381492ebe2c5d87f324e1b8815c"
 
 [[package]]
+name = "resb"
+version = "0.1.0"
+source = "git+https://github.com/unicode-org/icu4x.git#c8927f8b85f72b1510a67ad2480793c621b83104"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "2.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -887,9 +895,13 @@ version = "0.0.9"
 dependencies = [
  "databake",
  "parse-zoneinfo",
+ "resb",
+ "rustc-hash",
  "serde",
  "serde_json",
+ "writeable",
  "yoke",
+ "zerofrom",
  "zerotrie",
  "zerovec",
 ]
