@@ -65,7 +65,11 @@ public:
 
   inline int64_t epoch_milliseconds() const;
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
+
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
+
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> offset_nanoseconds() const;
 
   inline std::unique_ptr<temporal_rs::Instant> to_instant() const;
 
@@ -76,6 +80,12 @@ public:
   inline const temporal_rs::TimeZone& timezone() const;
 
   inline int8_t compare_instant(const temporal_rs::ZonedDateTime& other) const;
+
+  inline bool equals(const temporal_rs::ZonedDateTime& other) const;
+
+  inline diplomat::result<std::string, temporal_rs::TemporalError> offset() const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> offset_write(W& writeable_output) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> start_of_day() const;
 

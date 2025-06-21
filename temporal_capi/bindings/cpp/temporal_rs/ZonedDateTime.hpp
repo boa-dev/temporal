@@ -53,7 +53,13 @@ namespace capi {
 
     int64_t temporal_rs_ZonedDateTime_epoch_milliseconds(const temporal_rs::capi::ZonedDateTime* self);
 
+    typedef struct temporal_rs_ZonedDateTime_from_epoch_milliseconds_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_epoch_milliseconds_result;
+    temporal_rs_ZonedDateTime_from_epoch_milliseconds_result temporal_rs_ZonedDateTime_from_epoch_milliseconds(int64_t ms, const temporal_rs::capi::TimeZone* tz);
+
     temporal_rs::capi::I128Nanoseconds temporal_rs_ZonedDateTime_epoch_nanoseconds(const temporal_rs::capi::ZonedDateTime* self);
+
+    typedef struct temporal_rs_ZonedDateTime_offset_nanoseconds_result {union {int64_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_offset_nanoseconds_result;
+    temporal_rs_ZonedDateTime_offset_nanoseconds_result temporal_rs_ZonedDateTime_offset_nanoseconds(const temporal_rs::capi::ZonedDateTime* self);
 
     temporal_rs::capi::Instant* temporal_rs_ZonedDateTime_to_instant(const temporal_rs::capi::ZonedDateTime* self);
 
@@ -66,6 +72,11 @@ namespace capi {
     const temporal_rs::capi::TimeZone* temporal_rs_ZonedDateTime_timezone(const temporal_rs::capi::ZonedDateTime* self);
 
     int8_t temporal_rs_ZonedDateTime_compare_instant(const temporal_rs::capi::ZonedDateTime* self, const temporal_rs::capi::ZonedDateTime* other);
+
+    bool temporal_rs_ZonedDateTime_equals(const temporal_rs::capi::ZonedDateTime* self, const temporal_rs::capi::ZonedDateTime* other);
+
+    typedef struct temporal_rs_ZonedDateTime_offset_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_offset_result;
+    temporal_rs_ZonedDateTime_offset_result temporal_rs_ZonedDateTime_offset(const temporal_rs::capi::ZonedDateTime* self, diplomat::capi::DiplomatWrite* write);
 
     typedef struct temporal_rs_ZonedDateTime_start_of_day_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_start_of_day_result;
     temporal_rs_ZonedDateTime_start_of_day_result temporal_rs_ZonedDateTime_start_of_day(const temporal_rs::capi::ZonedDateTime* self);
@@ -198,9 +209,20 @@ inline int64_t temporal_rs::ZonedDateTime::epoch_milliseconds() const {
   return result;
 }
 
+inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz) {
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_from_epoch_milliseconds(ms,
+    tz.AsFFI());
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::ZonedDateTime>>(std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
 inline temporal_rs::I128Nanoseconds temporal_rs::ZonedDateTime::epoch_nanoseconds() const {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_epoch_nanoseconds(this->AsFFI());
   return temporal_rs::I128Nanoseconds::FromFFI(result);
+}
+
+inline diplomat::result<int64_t, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::offset_nanoseconds() const {
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_offset_nanoseconds(this->AsFFI());
+  return result.is_ok ? diplomat::result<int64_t, temporal_rs::TemporalError>(diplomat::Ok<int64_t>(result.ok)) : diplomat::result<int64_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline std::unique_ptr<temporal_rs::Instant> temporal_rs::ZonedDateTime::to_instant() const {
@@ -232,6 +254,27 @@ inline int8_t temporal_rs::ZonedDateTime::compare_instant(const temporal_rs::Zon
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_compare_instant(this->AsFFI(),
     other.AsFFI());
   return result;
+}
+
+inline bool temporal_rs::ZonedDateTime::equals(const temporal_rs::ZonedDateTime& other) const {
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_equals(this->AsFFI(),
+    other.AsFFI());
+  return result;
+}
+
+inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::offset() const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_offset(this->AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::offset_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_offset(this->AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::start_of_day() const {
