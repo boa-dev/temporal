@@ -36,6 +36,8 @@ struct I128Nanoseconds {
   int64_t high;
   uint64_t low;
 
+  inline bool is_valid() const;
+
   inline temporal_rs::capi::I128Nanoseconds AsFFI() const;
   inline static temporal_rs::I128Nanoseconds FromFFI(temporal_rs::capi::I128Nanoseconds c_struct);
 };
