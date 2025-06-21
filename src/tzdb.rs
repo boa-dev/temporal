@@ -168,8 +168,8 @@ impl Tzif {
     #[cfg(target_family = "unix")]
     pub fn read_tzif(identifier: &str) -> TemporalResult<Self> {
         // Protect from path traversal attacks
-        if (identifier.starts_with('/') || identifier.contains('.')) {
-            return Err(TemporalError::range("Ill-formed timezone identifier"));
+        if identifier.starts_with('/') || identifier.contains('.') {
+            return Err(TemporalError::range().with_message("Ill-formed timezone identifier"));
         }
         let mut path = PathBuf::from(ZONEINFO_DIR);
         path.push(identifier);
@@ -178,7 +178,7 @@ impl Tzif {
 
     pub fn from_path(path: &Path) -> TemporalResult<Self> {
         if !path.exists() {
-            return Err(TemporalError::range("Unknown timezone identifier"));
+            return Err(TemporalError::range().with_message("Unknown timezone identifier"));
         }
         tzif::parse_tzif_file(path)
             .map(Into::into)
