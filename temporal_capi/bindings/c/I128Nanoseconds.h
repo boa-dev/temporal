@@ -15,6 +15,8 @@
 
 
 
+bool temporal_rs_I128Nanoseconds_is_valid(I128Nanoseconds self);
+
 
 
 
