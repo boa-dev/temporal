@@ -151,6 +151,10 @@ pub mod ffi {
             self.0.epoch_milliseconds()
         }
 
+        pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
+            super::zdt_from_epoch_ms(ms, &tz.0).map(|c| Box::new(Self(c)))
+        }
+
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
             self.0.epoch_nanoseconds().as_i128().into()
         }
@@ -428,6 +432,15 @@ pub mod ffi {
             self.0.era_year().unwrap_or_default()
         }
     }
+}
+
+#[cfg(feature = "compiled_data")]
+pub(crate) fn zdt_from_epoch_ms(
+    ms: i64,
+    time_zone: &temporal_rs::TimeZone,
+) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
+    let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
+    Ok(instant.to_zoned_date_time_iso(time_zone.clone()))
 }
 
 #[cfg(feature = "compiled_data")]
