@@ -14,9 +14,10 @@ extern crate std;
 mod tzdb;
 pub mod tzif;
 
+pub use tzdb::IanaIdentifierNormalizer;
+
 #[cfg(feature = "datagen")]
 pub use tzdb::IanaDataError;
-pub use tzdb::IanaIdentifierNormalizer;
 
 /// A prelude of needed types for interacting with `timezone_provider` data.
 pub mod prelude {

@@ -73,8 +73,8 @@ impl From<&zoneinfo_rs::tzif::LocalTimeRecord> for LocalTimeRecord {
     }
 }
 
+#[cfg(feature = "datagen")]
 impl ZeroTzif<'_> {
-    #[cfg(feature = "datagen")]
     fn from_transition_data(data: &CompiledTransitions) -> Self {
         let tzif = data.to_v2_data_block();
         let transitions = ZeroVec::alloc_from_slice(&tzif.transition_times);
