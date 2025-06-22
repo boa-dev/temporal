@@ -99,7 +99,7 @@ pub struct CompiledTransitions {
     /// The POSIX time zone string
     ///
     /// This string should be used to calculate the time zone beyond the last available transition.
-    pub posix_string: String, // TODO: Implement POSIX string building
+    pub posix_time_zone: PosixTimeZone,
 }
 
 // NOTE: candidate for removal? Should this library offer TZif structs long term?
@@ -186,15 +186,12 @@ impl ZoneInfoCompiler {
             }
         }
 
-        let posix_string = zone_table
-            .get_posix_time_zone()
-            .to_string()
-            .expect("to_string only throws when a `write!` fails.");
+        let posix_time_zone = zone_table.get_posix_time_zone();
 
         CompiledTransitions {
             initial_record,
             transitions,
-            posix_string,
+            posix_time_zone,
         }
     }
 

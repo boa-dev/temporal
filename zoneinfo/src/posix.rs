@@ -7,78 +7,12 @@ use crate::{
 use alloc::string::String;
 use core::fmt::Write;
 
-#[derive(Debug)]
-pub struct MonthWeekDay(pub Month, pub u8, pub WeekDay);
-
-#[derive(Debug)]
-pub enum PosixDate {
-    JulianNoLeap(u16),
-    JulianLeap(u16),
-    MonthWeekDay(MonthWeekDay),
-}
-
-impl PosixDate {
-    pub(crate) fn from_rule(rule: &Rule) -> Self {
-        match rule.on_date {
-            DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => {
-                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
-            }
-            DayOfMonth::Day(day) => {
-                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
-            }
-            DayOfMonth::Last(wd) => PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, 5, wd)),
-            DayOfMonth::WeekDayGEThanMonthDay(week_day, day_of_month) => {
-                let week = 1 + (day_of_month - 1) / 7;
-                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day))
-            }
-            DayOfMonth::WeekDayLEThanMonthDay(week_day, day_of_month) => {
-                let week = day_of_month / 7;
-                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day))
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct PosixDateTime {
-    pub date: PosixDate,
-    pub time: Time,
-}
-
-impl PosixDateTime {
-    pub(crate) fn from_rule_and_transition_info(rule: &Rule, offset: Time, savings: Time) -> Self {
-        let date = PosixDate::from_rule(rule);
-        let time = match rule.at {
-            QualifiedTime::Local(time) => time,
-            QualifiedTime::Standard(standard_time) => standard_time.add(rule.save),
-            QualifiedTime::Universal(universal_time) => universal_time.add(offset).add(savings),
-        };
-        Self { date, time }
-    }
-}
-
 #[non_exhaustive]
-#[derive(Debug)]
-pub struct PosixTransition {
-    pub abbr: PosixAbbreviation,
-    pub savings: Time,
-    pub start: PosixDateTime,
-    pub end: PosixDateTime,
-}
-
-#[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct PosixTimeZone {
     pub abbr: PosixAbbreviation,
     pub offset: Time,
     pub transition_info: Option<PosixTransition>,
-}
-
-#[non_exhaustive]
-#[derive(Debug)]
-pub struct PosixAbbreviation {
-    is_numeric: bool,
-    formatted: String,
 }
 
 impl PosixTimeZone {
@@ -166,6 +100,73 @@ impl PosixTimeZone {
         Ok(posix_string)
     }
 }
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq)]
+pub struct PosixTransition {
+    pub abbr: PosixAbbreviation,
+    pub savings: Time,
+    pub start: PosixDateTime,
+    pub end: PosixDateTime,
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq)]
+pub struct PosixAbbreviation {
+    is_numeric: bool,
+    formatted: String,
+}
+#[derive(Debug, PartialEq)]
+pub struct MonthWeekDay(pub Month, pub u8, pub WeekDay);
+
+#[derive(Debug, PartialEq)]
+pub enum PosixDate {
+    JulianNoLeap(u16),
+    JulianLeap(u16),
+    MonthWeekDay(MonthWeekDay),
+}
+
+impl PosixDate {
+    pub(crate) fn from_rule(rule: &Rule) -> Self {
+        match rule.on_date {
+            DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => {
+                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
+            }
+            DayOfMonth::Day(day) => {
+                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
+            }
+            DayOfMonth::Last(wd) => PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, 5, wd)),
+            DayOfMonth::WeekDayGEThanMonthDay(week_day, day_of_month) => {
+                let week = 1 + (day_of_month - 1) / 7;
+                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day))
+            }
+            DayOfMonth::WeekDayLEThanMonthDay(week_day, day_of_month) => {
+                let week = day_of_month / 7;
+                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day))
+            }
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct PosixDateTime {
+    pub date: PosixDate,
+    pub time: Time,
+}
+
+impl PosixDateTime {
+    pub(crate) fn from_rule_and_transition_info(rule: &Rule, offset: Time, savings: Time) -> Self {
+        let date = PosixDate::from_rule(rule);
+        let time = match rule.at {
+            QualifiedTime::Local(time) => time,
+            QualifiedTime::Standard(standard_time) => standard_time.add(rule.save),
+            QualifiedTime::Universal(universal_time) => universal_time.add(offset).add(savings),
+        };
+        Self { date, time }
+    }
+}
+
+// ==== Helper functions ====
 
 fn is_numeric(str: &str) -> bool {
     str.parse::<i16>().is_ok()

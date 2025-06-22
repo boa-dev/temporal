@@ -82,7 +82,13 @@ impl ZeroTzif<'_> {
         let mapped_local_records: Vec<LocalTimeRecord> =
             tzif.local_time_types.iter().map(Into::into).collect();
         let types = ZeroVec::alloc_from_slice(&mapped_local_records);
-        let posix = ZeroVec::alloc_from_slice(data.posix_string.as_bytes());
+        // TODO: handle this much better.
+        let posix = ZeroVec::alloc_from_slice(
+            data.posix_time_zone
+                .to_string()
+                .expect("to_string should only fail on write failures")
+                .as_bytes(),
+        );
 
         Self {
             transitions,
