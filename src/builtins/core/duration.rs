@@ -181,27 +181,26 @@ impl Duration {
             duration_record.normalized_time_duration(),
             largest_unit,
         )?;
-        Self::new(
-            duration_record.date().years.into(),
-            duration_record.date().months.into(),
-            duration_record.date().weeks.into(),
+        let sign = duration_record.sign()?;
+        let mut duration = Self::new(
+            i64::from(duration_record.date().years),
+            i64::from(duration_record.date().months),
+            i64::from(duration_record.date().weeks),
             i64::try_from(duration_record.date().days)
                 .or(Err(TemporalError::range()))?
                 .checked_add(overflow_day)
                 .ok_or(TemporalError::range())?,
-            time.hours.try_into().or(Err(TemporalError::range()))?,
-            time.minutes.try_into().or(Err(TemporalError::range()))?,
-            time.seconds.try_into().or(Err(TemporalError::range()))?,
-            time.milliseconds
-                .try_into()
-                .or(Err(TemporalError::range()))?,
-            time.microseconds
-                .try_into()
-                .or(Err(TemporalError::range()))?,
-            time.nanoseconds
-                .try_into()
-                .or(Err(TemporalError::range()))?,
-        )
+            i64::try_from(time.hours).or(Err(TemporalError::range()))?,
+            i64::try_from(time.minutes).or(Err(TemporalError::range()))?,
+            i64::try_from(time.seconds).or(Err(TemporalError::range()))?,
+            i64::try_from(time.milliseconds).or(Err(TemporalError::range()))?,
+            i128::try_from(time.microseconds).or(Err(TemporalError::range()))?,
+            i128::try_from(time.nanoseconds).or(Err(TemporalError::range()))?,
+        )?;
+        if sign == Sign::Negative {
+            duration = duration.negated();
+        }
+        Ok(duration)
     }
 
     /// Returns this `Duration` as a `NormalizedTimeDuration`.
@@ -1519,19 +1518,27 @@ impl FromStr for Duration {
             (0, 0, 0, 0)
         };
 
-        let sign = parse_record.sign as i64;
+        let sign = if parse_record.sign == ixdtf::parsers::records::Sign::Negative {
+            Sign::Negative
+        } else {
+            Sign::Positive
+        };
 
-        Self::new(
-            years as i64 * sign,
-            months as i64 * sign,
-            weeks as i64 * sign,
-            days as i64 * sign,
-            hours as i64 * sign,
-            minutes as i64 * sign,
-            seconds as i64 * sign,
-            millis as i64 * sign,
-            micros as i128 * sign as i128,
-            nanos as i128 * sign as i128,
-        )
+        let mut duration = Self::new(
+            years as i64,
+            months as i64,
+            weeks as i64,
+            days as i64,
+            hours as i64,
+            minutes as i64,
+            seconds as i64,
+            millis as i64,
+            micros as i128,
+            nanos as i128,
+        )?;
+        if sign == Sign::Negative {
+            duration = duration.negated();
+        }
+        Ok(duration)
     }
 }
