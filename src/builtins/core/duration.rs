@@ -327,19 +327,19 @@ impl Duration {
 
         // NOTE: days may have the potentially to exceed i64
         // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
-        let days = i64::try_from(days).map_err(|_| TemporalError::range())? * sign;
+        let days = i64::try_from(days).map_err(|_| TemporalError::range())? * i64::from(sign);
 
         if !is_valid_duration(
             0,
             0,
             0,
             days,
-            hours as i64 * sign,
-            minutes as i64 * sign,
-            seconds as i64 * sign,
-            milliseconds as i64 * sign,
-            microseconds * sign as i128,
-            nanoseconds * sign as i128,
+            hours as i64 * i64::from(sign),
+            minutes as i64 * i64::from(sign),
+            seconds as i64 * i64::from(sign),
+            milliseconds as i64 * i64::from(sign),
+            microseconds * i128::from(sign),
+            nanoseconds * i128::from(sign),
         ) {
             return Err(TemporalError::range().with_message("Invalid balance Duration."));
         }
