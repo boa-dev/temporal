@@ -73,7 +73,7 @@ type U40 = BUintD8<5>; // 40 / 8 = 5
 ///
 /// primarily defined by Abtract Operation 7.5.1-5.
 // #[non_exhaustive]
-#[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Duration {
     sign: Sign,
     pub(crate) years: u32,
@@ -86,6 +86,24 @@ pub struct Duration {
     pub(crate) milliseconds: u64,
     pub(crate) microseconds: U80,
     pub(crate) nanoseconds: U88,
+}
+
+impl Default for Duration {
+    fn default() -> Self {
+        Self {
+            sign: Sign::Zero,
+            years: 0,
+            months: 0,
+            weeks: 0,
+            days: U40::from(0u8),
+            hours: U48::from(0u8),
+            minutes: U48::from(0u8),
+            seconds: U56::from(0u8),
+            milliseconds: 0,
+            microseconds: U80::from(0u8),
+            nanoseconds: U88::from(0u8),
+        }
+    }
 }
 
 impl core::fmt::Display for Duration {
@@ -770,7 +788,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> Sign {
-        duration_sign(&self.fields_signum())
+        self.sign
     }
 
     /// Returns whether the current `Duration` is zero.
@@ -787,8 +805,17 @@ impl Duration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            sign: self.sign().negate(),
-            ..Default::default()
+            sign: self.sign.negate(),
+            years: self.years,
+            months: self.months,
+            weeks: self.weeks,
+            days: self.days,
+            hours: self.hours,
+            minutes: self.minutes,
+            seconds: self.seconds,
+            milliseconds: self.milliseconds,
+            microseconds: self.microseconds,
+            nanoseconds: self.nanoseconds,
         }
     }
 
@@ -797,8 +824,21 @@ impl Duration {
     #[must_use]
     pub fn abs(&self) -> Self {
         Self {
-            sign: self.sign().as_sign_multiplier().abs().into(),
-            ..Default::default()
+            sign: if self.sign == Sign::Zero {
+                Sign::Zero
+            } else {
+                Sign::Positive
+            },
+            years: self.years,
+            months: self.months,
+            weeks: self.weeks,
+            days: self.days,
+            hours: self.hours,
+            minutes: self.minutes,
+            seconds: self.seconds,
+            milliseconds: self.milliseconds,
+            microseconds: self.microseconds,
+            nanoseconds: self.nanoseconds,
         }
     }
 

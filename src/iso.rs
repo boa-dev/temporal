@@ -728,18 +728,20 @@ impl IsoTime {
         let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
+        let sign = duration_sign(&[h, m, s, ms, mis as i64, ns as i64]);
+
         Duration::new_unchecked(
-            duration_sign(&[h, m, s, ms, mis as i64, ns as i64]),
+            sign,
             0,
             0,
             0,
             0u8.into(),
-            h.try_into().expect("hour overflow"),
-            m.try_into().expect("minute overflow"),
-            s.try_into().expect("second overflow"),
-            ms.try_into().expect("millisecond overflow"),
-            mis.try_into().expect("microsecond overflow"),
-            ns.try_into().expect("nanosecond overflow"),
+            h.unsigned_abs().try_into().expect("hour overflow"),
+            m.unsigned_abs().try_into().expect("minute overflow"),
+            s.unsigned_abs().try_into().expect("second overflow"),
+            ms.unsigned_abs().try_into().expect("millisecond overflow"),
+            mis.unsigned_abs().try_into().expect("microsecond overflow"),
+            ns.unsigned_abs().try_into().expect("nanosecond overflow"),
         )
     }
 
