@@ -48,10 +48,19 @@ impl DateDuration {
     pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
             sign: duration_sign(&[years, months, weeks, days]),
-            years: years.unsigned_abs().try_into().expect("years must fit in u32"),
-            months: months.unsigned_abs().try_into().expect("months must fit in u32"),
-            weeks: weeks.unsigned_abs().try_into().expect("weeks must fit in u32"),
-            days: days.unsigned_abs().try_into().expect("days must fit in u40"),
+            years: years
+                .unsigned_abs()
+                .try_into()
+                .expect("years must fit in u32"),
+            months: months
+                .unsigned_abs()
+                .try_into()
+                .expect("months must fit in u32"),
+            weeks: weeks
+                .unsigned_abs()
+                .try_into()
+                .expect("weeks must fit in u32"),
+            days: days.unsigned_abs().into(),
         }
     }
 

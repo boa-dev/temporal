@@ -806,16 +806,7 @@ impl Duration {
     pub fn negated(&self) -> Self {
         Self {
             sign: self.sign.negate(),
-            years: self.years,
-            months: self.months,
-            weeks: self.weeks,
-            days: self.days,
-            hours: self.hours,
-            minutes: self.minutes,
-            seconds: self.seconds,
-            milliseconds: self.milliseconds,
-            microseconds: self.microseconds,
-            nanoseconds: self.nanoseconds,
+            ..*self
         }
     }
 
@@ -829,16 +820,7 @@ impl Duration {
             } else {
                 Sign::Positive
             },
-            years: self.years,
-            months: self.months,
-            weeks: self.weeks,
-            days: self.days,
-            hours: self.hours,
-            minutes: self.minutes,
-            seconds: self.seconds,
-            milliseconds: self.milliseconds,
-            microseconds: self.microseconds,
-            nanoseconds: self.nanoseconds,
+            ..*self
         }
     }
 

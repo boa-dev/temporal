@@ -736,12 +736,12 @@ impl IsoTime {
             0,
             0,
             0u8.into(),
-            h.unsigned_abs().try_into().expect("hour overflow"),
-            m.unsigned_abs().try_into().expect("minute overflow"),
-            s.unsigned_abs().try_into().expect("second overflow"),
-            ms.unsigned_abs().try_into().expect("millisecond overflow"),
-            mis.unsigned_abs().try_into().expect("microsecond overflow"),
-            ns.unsigned_abs().try_into().expect("nanosecond overflow"),
+            h.unsigned_abs().into(),
+            m.unsigned_abs().into(),
+            s.unsigned_abs().into(),
+            ms.unsigned_abs(),
+            mis.unsigned_abs().into(),
+            ns.unsigned_abs().into(),
         )
     }
 
