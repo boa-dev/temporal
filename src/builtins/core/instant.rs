@@ -335,10 +335,10 @@ mod tests {
     use core::str::FromStr;
 
     use crate::{
-        builtins::core::Instant,
+        builtins::{core::Instant, duration::duration_sign},
         options::{DifferenceSettings, RoundingMode, Unit},
         unix_time::EpochNanoseconds,
-        Duration, Sign, NS_MAX_INSTANT, NS_MIN_INSTANT,
+        Duration, NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
     #[test]
@@ -443,7 +443,14 @@ mod tests {
             assert_eq!(
                 td,
                 &Duration::new_unchecked(
-                    Sign::from(expected.0),
+                    duration_sign(&[
+                        expected.0,
+                        expected.1,
+                        expected.2,
+                        expected.3,
+                        expected.4 as i64,
+                        expected.5 as i64
+                    ]),
                     0,
                     0,
                     0,
@@ -521,7 +528,14 @@ mod tests {
             assert_eq!(
                 td,
                 &Duration::new_unchecked(
-                    Sign::from(expected.0),
+                    duration_sign(&[
+                        expected.0,
+                        expected.1,
+                        expected.2,
+                        expected.3,
+                        expected.4 as i64,
+                        expected.5 as i64
+                    ]),
                     0,
                     0,
                     0,

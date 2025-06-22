@@ -26,20 +26,23 @@ use core::num::NonZeroU128;
 use ixdtf::parsers::records::TimeRecord;
 
 use crate::{
-    builtins::core::{
-        calendar::Calendar,
-        duration::{
-            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-            DateDuration,
+    builtins::{
+        core::{
+            calendar::Calendar,
+            duration::{
+                normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+                DateDuration,
+            },
+            Duration, PartialTime, PlainDate,
         },
-        Duration, PartialTime, PlainDate,
+        duration::duration_sign,
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
     rounding::{IncrementRounder, Round},
     temporal_assert,
     unix_time::EpochNanoseconds,
-    utils, Sign, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_traits::{cast::FromPrimitive, Euclid};
@@ -726,7 +729,7 @@ impl IsoTime {
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
         Duration::new_unchecked(
-            Sign::from(h),
+            duration_sign(&[h, m, s, ms, mis as i64, ns as i64]),
             0,
             0,
             0,

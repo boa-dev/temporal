@@ -35,7 +35,7 @@ impl DateDuration {
     #[must_use]
     pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
-            sign: Sign::from(years),
+            sign: duration_sign(&[years, months, weeks, days]),
             years: years.try_into().expect("years must fit in u32"),
             months: months.try_into().expect("months must fit in u32"),
             weeks: weeks.try_into().expect("weeks must fit in u32"),
@@ -124,7 +124,11 @@ impl DateDuration {
     #[must_use]
     pub fn abs(&self) -> Self {
         Self {
-            sign: Sign::Positive,
+            sign: if self.sign == Sign::Zero {
+                Sign::Zero
+            } else {
+                Sign::Positive
+            },
             ..*self
         }
     }

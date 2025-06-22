@@ -154,7 +154,7 @@ impl Duration {
         }
     }
 
-    #[inline]
+    // #[inline]
     pub(crate) fn from_normalized(
         duration_record: NormalizedDurationRecord,
         largest_unit: Unit,
@@ -212,7 +212,7 @@ impl Duration {
         let mut microseconds = 0;
 
         // 2. Let sign be NormalizedTimeDurationSign(norm).
-        let sign = i64::from(norm.sign() as i8);
+        let sign = norm.sign().as_sign_multiplier();
         // 3. Let nanoseconds be NormalizedTimeDurationAbs(norm).[[TotalNanoseconds]].
         let mut nanoseconds = norm.0.abs();
 
@@ -436,7 +436,18 @@ impl Duration {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
         Ok(Duration {
-            sign: Sign::from(years),
+            sign: duration_sign(&[
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+                milliseconds,
+                microseconds as i64,
+                nanoseconds as i64,
+            ]),
             years: u32::try_from(years).or(Err(TemporalError::range()))?,
             months: u32::try_from(months).or(Err(TemporalError::range()))?,
             weeks: u32::try_from(weeks).or(Err(TemporalError::range()))?,
@@ -678,76 +689,77 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn years(&self) -> i64 {
-        self.years.into()
+        i64::from(self.years) * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `months` field of duration.
     #[inline]
     #[must_use]
     pub fn months(&self) -> i64 {
-        self.months.into()
+        i64::from(self.months) * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `weeks` field of duration.
     #[inline]
     #[must_use]
     pub fn weeks(&self) -> i64 {
-        self.weeks.into()
+        i64::from(self.weeks) * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `days` field of duration.
     #[inline]
     #[must_use]
     pub fn days(&self) -> i64 {
-        self.days.try_into().expect("Days must fit into i64")
+        i64::try_from(self.days).expect("Days must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
     pub fn hours(&self) -> i64 {
-        self.hours.try_into().expect("Hours must fit into i64")
+        i64::try_from(self.hours).expect("Hours must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `minutes` field of duration.
     #[inline]
     #[must_use]
     pub fn minutes(&self) -> i64 {
-        self.minutes.try_into().expect("Minutes must fit into i64")
+        i64::try_from(self.minutes).expect("Minutes must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `seconds` field of duration.
     #[inline]
     #[must_use]
     pub fn seconds(&self) -> i64 {
-        self.seconds.try_into().expect("Seconds must fit into i64")
+        i64::try_from(self.seconds).expect("Seconds must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
     pub fn milliseconds(&self) -> i64 {
-        self.milliseconds
-            .try_into()
-            .expect("Milliseconds must fit into i64")
+        i64::try_from(self.milliseconds).expect("Milliseconds must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `microseconds` field of duration.
     #[inline]
     #[must_use]
     pub fn microseconds(&self) -> i128 {
-        self.microseconds
-            .try_into()
-            .expect("Microseconds must fit into i128")
+        i128::try_from(self.microseconds).expect("Microseconds must fit into i128")
+            * i128::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `nanoseconds` field of duration.
     #[inline]
     #[must_use]
     pub fn nanoseconds(&self) -> i128 {
-        self.nanoseconds
-            .try_into()
-            .expect("Nanoseconds must fit into i128")
+        i128::try_from(self.nanoseconds).expect("Nanoseconds must fit into i128")
+            * i128::from(self.sign.as_sign_multiplier())
     }
 }
 
@@ -1344,7 +1356,7 @@ pub(crate) fn is_valid_duration(
 /// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
-fn duration_sign(set: &[i64]) -> Sign {
+pub fn duration_sign(set: &[i64]) -> Sign {
     // 1. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If v < 0, return -1.
