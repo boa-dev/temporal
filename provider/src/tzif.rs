@@ -7,12 +7,16 @@
 #[cfg(feature = "datagen")]
 use alloc::vec::Vec;
 
-#[cfg(feature = "datagen")]
-use std::{borrow::Cow, collections::BTreeMap, path::Path};
+use alloc::borrow::Cow;
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
+use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
+
+#[cfg(feature = "datagen")]
+use alloc::collections::BTreeMap;
+#[cfg(feature = "datagen")]
+use std::path::Path;
 #[cfg(feature = "datagen")]
 use zerotrie::ZeroTrieBuildError;
-use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 #[cfg(feature = "datagen")]
 use zoneinfo_rs::{compiler::CompiledTransitions, ZoneInfoCompiler, ZoneInfoData};
 
