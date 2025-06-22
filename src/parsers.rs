@@ -754,7 +754,7 @@ pub(crate) struct IxdtfParseInstantRecord {
 
 /// A utility function for parsing an `Instant` string
 #[inline]
-pub(crate) fn parse_instant<'a>(source: &'a [u8]) -> TemporalResult<IxdtfParseInstantRecord> {
+pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     let IxdtfParseRecord {
@@ -803,7 +803,7 @@ pub(crate) fn parse_month_day<'a>(source: &'a [u8]) -> TemporalResult<IxdtfParse
 }
 
 #[inline]
-pub(crate) fn parse_time<'a>(source: &'a [u8]) -> TemporalResult<TimeRecord> {
+pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     let time_record = parse_ixdtf(source, ParseVariant::Time);
 
     let time_err = match time_record {
