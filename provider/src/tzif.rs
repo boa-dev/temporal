@@ -7,7 +7,6 @@
 #[cfg(feature = "datagen")]
 use alloc::vec::Vec;
 
-use alloc::borrow::Cow;
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 
@@ -51,7 +50,7 @@ pub struct ZeroTzif<'data> {
     pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
     pub types: ZeroVec<'data, LocalTimeRecord>,
-    pub posix: Cow<'data, str>,
+    pub posix: ZeroVec<'data, u8>,
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
@@ -83,7 +82,7 @@ impl ZeroTzif<'_> {
         let mapped_local_records: Vec<LocalTimeRecord> =
             tzif.local_time_types.iter().map(Into::into).collect();
         let types = ZeroVec::alloc_from_slice(&mapped_local_records);
-        let posix = Cow::from(data.posix_string.clone());
+        let posix = ZeroVec::alloc_from_slice(data.posix_string.as_bytes());
 
         Self {
             transitions,

@@ -18,7 +18,6 @@ pub mod tzif;
 pub use tzdb::IanaDataError;
 pub use tzdb::IanaIdentifierNormalizer;
 
-
 /// A prelude of needed types for interacting with `timezone_provider` data.
 pub mod prelude {
     pub use zerotrie;
