@@ -174,11 +174,10 @@ impl IsoDateTime {
             i64::from(date_duration.years) * i64::from(sign),
             i64::from(date_duration.months) * i64::from(sign),
             i64::from(date_duration.weeks) * i64::from(sign),
-            i64::try_from(date_duration.days)
-                .or(Err(TemporalError::range()))?
+            i64::try_from(date_duration.days).or(Err(TemporalError::range()))?
                 * i64::from(sign)
-                .checked_add(t_result.0)
-                .ok_or(TemporalError::range())?,
+                    .checked_add(t_result.0)
+                    .ok_or(TemporalError::range())?,
         )?;
         let duration = Duration::from(date_duration);
 
@@ -401,10 +400,9 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
-        let year_offset = i64::from(duration.years)
-            * i64::from(duration.sign.as_sign_multiplier());
-        let month_offset = i64::from(duration.months)
-            * i64::from(duration.sign.as_sign_multiplier());
+        let year_offset = i64::from(duration.years) * i64::from(duration.sign.as_sign_multiplier());
+        let month_offset =
+            i64::from(duration.months) * i64::from(duration.sign.as_sign_multiplier());
         let intermediate = balance_iso_year_month_with_clamp(
             i64::from(self.year) + year_offset,
             i64::from(self.month) + month_offset,
@@ -417,8 +415,7 @@ impl IsoDate {
         // 5. Set days to days + 7 × weeks.
         let additional_days = i64::try_from(duration.days).or(Err(TemporalError::range()))?
             * i64::from(duration.sign.as_sign_multiplier())
-            + (7 * i64::from(duration.weeks)
-                * i64::from(duration.sign.as_sign_multiplier()));
+            + (7 * i64::from(duration.weeks) * i64::from(duration.sign.as_sign_multiplier()));
 
         // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;
