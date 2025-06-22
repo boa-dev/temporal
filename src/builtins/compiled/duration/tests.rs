@@ -373,7 +373,20 @@ fn basic_negative_expand_rounding() {
 
 #[test]
 fn rounding_to_fractional_day_tests() {
-    let twenty_five_hours = Duration::from(TimeDuration::new(25, 0, 0, 0, 0, 0).unwrap());
+    let twenty_five_hours = Duration::new_unchecked(
+        Default::default(),
+        0,
+        0,
+        0,
+        0u8.into(),
+        25u8.into(),
+        0u8.into(),
+        0u8.into(),
+        0u8.into(),
+        0u8.into(),
+        0u8.into(),
+    );
+
     let options = RoundingOptions {
         largest_unit: Some(Unit::Day),
         smallest_unit: None,
@@ -485,7 +498,19 @@ fn basic_subtract_duration() {
 // days-24-hours-relative-to-zoned-date-time.js
 #[test]
 fn round_relative_to_zoned_datetime() {
-    let duration = Duration::from(TimeDuration::new(25, 0, 0, 0, 0, 0).unwrap());
+    let duration = Duration::new_unchecked(
+        Default::default(),
+        0,
+        0,
+        0,
+        0u8.into(),
+        25u8.into(),
+        0u8.into(),
+        0u8.into(),
+        0u8.into(),
+        0u8.into(),
+        0u8.into(),
+    );
     let zdt = ZonedDateTime::try_new(
         1_000_000_000_000_000_000,
         Calendar::default(),

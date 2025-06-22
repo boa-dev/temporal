@@ -116,9 +116,8 @@ impl NormalizedTimeDuration {
     pub(crate) fn checked_sub(&self, other: &Self) -> TemporalResult<Self> {
         let result = self.0 - other.0;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range().with_message(
-                "SubtractNormalizedTimeDuration exceeded a valid TimeDuration range.",
-            ));
+            return Err(TemporalError::range()
+                .with_message("SubtractNormalizedTimeDuration exceeded a valid Duration range."));
         }
         Ok(Self(result))
     }
