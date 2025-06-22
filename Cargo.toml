@@ -75,6 +75,7 @@ timezone_provider = { workspace = true, optional = true}
 # System time feature
 web-time = { workspace = true, optional =  true }
 iana-time-zone = { workspace = true, optional = true }
+bnum = "0.13.0"
 
 [features]
 default = ["sys"]

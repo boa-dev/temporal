@@ -14,6 +14,7 @@ use crate::{
 };
 use alloc::format;
 use alloc::string::String;
+use bnum::{BUintD16, BUintD8};
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
 use normalized::NormalizedDurationRecord;
@@ -75,6 +76,25 @@ impl PartialDuration {
 pub struct Duration {
     date: DateDuration,
     time: TimeDuration,
+}
+
+type u80 = BUintD16<5>; // 80 / 16 = 5
+type u88 = BUintD8<11>; // 88 / 8 = 11
+type u56 = BUintD8<7>; // 56 / 8 = 7
+type u48 = BUintD8<6>; // 48 / 8 = 6
+type u40 = BUintD8<5>; // 40 / 8 = 5
+struct InternalDuration {
+    years: u32,
+    months: u32,
+    weeks: u32,
+    days: u40,
+    hours: u48,
+    minutes: u48,
+    seconds: u56,
+    milliseconds: u64,
+    microseconds: u80,
+    nanoseconds: u88,
+    sign: bool,
 }
 
 impl core::fmt::Display for Duration {
