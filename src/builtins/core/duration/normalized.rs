@@ -53,7 +53,7 @@ impl NormalizedTimeDuration {
         nanoseconds += i128::try_from(duration.nanoseconds).expect("nanosecond overflow");
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
-        Self(nanoseconds)
+        Self(nanoseconds * duration.sign().as_sign_multiplier() as i128)
     }
 
     /// Equivalent to 7.5.27 NormalizedTimeDurationFromEpochNanosecondsDifference ( one, two )
