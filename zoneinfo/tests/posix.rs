@@ -1,7 +1,10 @@
+#[cfg(feature = "std")]
 use std::path::Path;
+#[cfg(feature = "std")]
 use zoneinfo_rs::{ZoneInfoCompiler, ZoneInfoData};
 
 #[test]
+#[cfg(feature = "std")]
 fn posix_string_test() {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let zoneinfo = ZoneInfoData::from_filepath(manifest_dir.join("tests/zoneinfo")).unwrap();
