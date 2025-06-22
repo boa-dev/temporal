@@ -171,7 +171,7 @@ impl IsoDateTime {
             date_duration.months.into(),
             date_duration.weeks.into(),
             i64::try_from(date_duration.days)
-                .unwrap()
+                .or(Err(TemporalError::range()))?
                 .checked_add(t_result.0)
                 .ok_or(TemporalError::range())?,
         )?;
@@ -406,9 +406,10 @@ impl IsoDate {
             Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days =
-            i64::try_from(duration.days).unwrap() + (7 * i64::from(duration.weeks)); // Verify
-                                                                                     // 6. Let d be intermediate.[[Day]] + days.
+        let additional_days = i64::try_from(duration.days).or(Err(TemporalError::range()))?
+            + (7 * i64::from(duration.weeks)); // Verify
+
+        // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
@@ -730,12 +731,12 @@ impl IsoTime {
             0,
             0,
             0u8.into(),
-            h.try_into().unwrap(),
-            m.try_into().unwrap(),
-            s.try_into().unwrap(),
-            ms.try_into().unwrap(),
-            mis.try_into().unwrap(),
-            ns.try_into().unwrap(),
+            h.try_into().expect("hour overflow"),
+            m.try_into().expect("minute overflow"),
+            s.try_into().expect("second overflow"),
+            ms.try_into().expect("millisecond overflow"),
+            mis.try_into().expect("microsecond overflow"),
+            ns.try_into().expect("nanosecond overflow"),
         )
     }
 

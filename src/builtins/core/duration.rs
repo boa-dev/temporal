@@ -125,6 +125,7 @@ impl Duration {
 impl Duration {
     /// Creates a new `Duration` with provided fields.
     #[inline]
+    #[allow(clippy::too_many_arguments)]
     pub(crate) const fn new_unchecked(
         sign: Sign,
         years: u32,
@@ -167,15 +168,21 @@ impl Duration {
             duration_record.date().months.into(),
             duration_record.date().weeks.into(),
             i64::try_from(duration_record.date().days)
-                .unwrap()
+                .or(Err(TemporalError::range()))?
                 .checked_add(overflow_day)
                 .ok_or(TemporalError::range())?,
-            time.hours.try_into().unwrap(),
-            time.minutes.try_into().unwrap(),
-            time.seconds.try_into().unwrap(),
-            time.milliseconds.try_into().unwrap(),
-            time.microseconds.try_into().unwrap(),
-            time.nanoseconds.try_into().unwrap(),
+            time.hours.try_into().or(Err(TemporalError::range()))?,
+            time.minutes.try_into().or(Err(TemporalError::range()))?,
+            time.seconds.try_into().or(Err(TemporalError::range()))?,
+            time.milliseconds
+                .try_into()
+                .or(Err(TemporalError::range()))?,
+            time.microseconds
+                .try_into()
+                .or(Err(TemporalError::range()))?,
+            time.nanoseconds
+                .try_into()
+                .or(Err(TemporalError::range()))?,
         )
     }
 
@@ -430,35 +437,34 @@ impl Duration {
         }
         Ok(Duration {
             sign: Sign::from(years),
-            years: u32::try_from(years).unwrap(),
-            months: u32::try_from(months).unwrap(),
-            weeks: u32::try_from(weeks).unwrap(),
-            days: U40::try_from(days).unwrap(),
-            hours: U48::try_from(hours).unwrap(),
-            minutes: U48::try_from(minutes).unwrap(),
-            seconds: U56::try_from(seconds).unwrap(),
-            milliseconds: u64::try_from(milliseconds).unwrap(),
-            microseconds: U80::try_from(microseconds).unwrap(),
-            nanoseconds: U88::try_from(nanoseconds).unwrap(),
+            years: u32::try_from(years).or(Err(TemporalError::range()))?,
+            months: u32::try_from(months).or(Err(TemporalError::range()))?,
+            weeks: u32::try_from(weeks).or(Err(TemporalError::range()))?,
+            days: U40::try_from(days).or(Err(TemporalError::range()))?,
+            hours: U48::try_from(hours).or(Err(TemporalError::range()))?,
+            minutes: U48::try_from(minutes).or(Err(TemporalError::range()))?,
+            seconds: U56::try_from(seconds).or(Err(TemporalError::range()))?,
+            milliseconds: u64::try_from(milliseconds).or(Err(TemporalError::range()))?,
+            microseconds: U80::try_from(microseconds).or(Err(TemporalError::range()))?,
+            nanoseconds: U88::try_from(nanoseconds).or(Err(TemporalError::range()))?,
         })
     }
 
     /// Creates a `Duration` from a provided a day and a `Duration`.
     ///
     /// Note: `Duration` records can store a day value to deal with overflow.
-    #[must_use]
-    pub fn from_day_and_time(day: i64, time: &Duration) -> Self {
-        Self {
+    pub fn from_day_and_time(day: i64, time: &Duration) -> TemporalResult<Self> {
+        Ok(Self {
             sign: time.sign(),
-            days: day.try_into().unwrap(),
-            hours: time.hours.try_into().unwrap(),
-            minutes: time.minutes.try_into().unwrap(),
-            seconds: time.seconds.try_into().unwrap(),
-            milliseconds: time.milliseconds.try_into().unwrap(),
-            microseconds: time.microseconds.try_into().unwrap(),
-            nanoseconds: time.nanoseconds.try_into().unwrap(),
+            days: day.try_into().or(Err(TemporalError::range()))?,
+            hours: time.hours,
+            minutes: time.minutes,
+            seconds: time.seconds,
+            milliseconds: time.milliseconds,
+            microseconds: time.microseconds,
+            nanoseconds: time.nanoseconds,
             ..Default::default()
-        }
+        })
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
@@ -645,8 +651,8 @@ impl Duration {
                 (days1, days2)
             } else {
                 (
-                    self.days.try_into().unwrap(),
-                    other.days.try_into().unwrap(),
+                    self.days.try_into().or(Err(TemporalError::range()))?,
+                    other.days.try_into().or(Err(TemporalError::range()))?,
                 )
             };
         // 15. Let timeDuration1 be ? Add24HourDaysToTimeDuration(duration1.[[Time]], days1).
@@ -693,49 +699,55 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn days(&self) -> i64 {
-        self.days.try_into().unwrap()
+        self.days.try_into().expect("Days must fit into i64")
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
     pub fn hours(&self) -> i64 {
-        self.hours.try_into().unwrap()
+        self.hours.try_into().expect("Hours must fit into i64")
     }
 
-    /// Returns the `hours` field of duration.
+    /// Returns the `minutes` field of duration.
     #[inline]
     #[must_use]
     pub fn minutes(&self) -> i64 {
-        self.minutes.try_into().unwrap()
+        self.minutes.try_into().expect("Minutes must fit into i64")
     }
 
     /// Returns the `seconds` field of duration.
     #[inline]
     #[must_use]
     pub fn seconds(&self) -> i64 {
-        self.seconds.try_into().unwrap()
+        self.seconds.try_into().expect("Seconds must fit into i64")
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
     pub fn milliseconds(&self) -> i64 {
-        self.milliseconds.try_into().unwrap()
+        self.milliseconds
+            .try_into()
+            .expect("Milliseconds must fit into i64")
     }
 
     /// Returns the `microseconds` field of duration.
     #[inline]
     #[must_use]
     pub fn microseconds(&self) -> i128 {
-        self.microseconds.try_into().unwrap()
+        self.microseconds
+            .try_into()
+            .expect("Microseconds must fit into i128")
     }
 
     /// Returns the `nanoseconds` field of duration.
     #[inline]
     #[must_use]
     pub fn nanoseconds(&self) -> i128 {
-        self.nanoseconds.try_into().unwrap()
+        self.nanoseconds
+            .try_into()
+            .expect("Nanoseconds must fit into i128")
     }
 }
 
@@ -818,7 +830,7 @@ impl Duration {
 
         // 32. Return ! CreateTemporalDuration(0, 0, 0, result.[[Days]], result.[[Hours]], result.[[Minutes]],
         // result.[[Seconds]], result.[[Milliseconds]], result.[[Microseconds]], result.[[Nanoseconds]]).
-        Ok(Duration::from_day_and_time(result_days, &result_time))
+        Duration::from_day_and_time(result_days, &result_time)
     }
 
     /// Returns the result of subtracting a `Duration` from the current `Duration`
@@ -1167,7 +1179,7 @@ impl Duration {
         // 12. Let internalDuration be ToInternalDurationRecord(duration).
         let norm = NormalizedDurationRecord::new(
             self.date(),
-            NormalizedTimeDuration::from_duration(&self),
+            NormalizedTimeDuration::from_duration(self),
         )?;
         // 13. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], precision.[[Increment]], precision.[[Unit]], roundingMode).
         let time = norm.normalized_time_duration().round(rounding_options)?;

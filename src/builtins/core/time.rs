@@ -132,13 +132,38 @@ impl PlainTime {
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
     pub(crate) fn add_to_time(&self, duration: &Duration) -> TemporalResult<Self> {
         let (_, result) = IsoTime::balance(
-            i64::from(self.hour()).saturating_add(duration.hours.try_into().unwrap()),
-            i64::from(self.minute()).saturating_add(duration.minutes.try_into().unwrap()),
-            i64::from(self.second()).saturating_add(duration.seconds.try_into().unwrap()),
-            i64::from(self.millisecond()).saturating_add(duration.milliseconds.try_into().unwrap()),
-            i128::from(self.microsecond())
-                .saturating_add(duration.microseconds.try_into().unwrap()),
-            i128::from(self.nanosecond()).saturating_add(duration.nanoseconds.try_into().unwrap()),
+            i64::from(self.hour())
+                .saturating_add(duration.hours.try_into().or(Err(TemporalError::range()))?),
+            i64::from(self.minute()).saturating_add(
+                duration
+                    .minutes
+                    .try_into()
+                    .or(Err(TemporalError::range()))?,
+            ),
+            i64::from(self.second()).saturating_add(
+                duration
+                    .seconds
+                    .try_into()
+                    .or(Err(TemporalError::range()))?,
+            ),
+            i64::from(self.millisecond()).saturating_add(
+                duration
+                    .milliseconds
+                    .try_into()
+                    .or(Err(TemporalError::range()))?,
+            ),
+            i128::from(self.microsecond()).saturating_add(
+                duration
+                    .microseconds
+                    .try_into()
+                    .or(Err(TemporalError::range()))?,
+            ),
+            i128::from(self.nanosecond()).saturating_add(
+                duration
+                    .nanoseconds
+                    .try_into()
+                    .or(Err(TemporalError::range()))?,
+            ),
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`
@@ -186,8 +211,8 @@ impl PlainTime {
 
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
         match op {
-            DifferenceOperation::Until => Ok(Duration::from(result)),
-            DifferenceOperation::Since => Ok(Duration::from(result.negated())),
+            DifferenceOperation::Until => Ok(result),
+            DifferenceOperation::Since => Ok(result.negated()),
         }
     }
 }

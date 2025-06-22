@@ -43,12 +43,14 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_duration(duration: &Duration) -> Self {
         // Note: Calculations must be done after casting to `i128` in order to preserve precision
-        let mut nanoseconds: i128 = i128::try_from(duration.hours).unwrap() * NANOSECONDS_PER_HOUR;
-        nanoseconds += i128::try_from(duration.minutes).unwrap() * NANOSECONDS_PER_MINUTE;
-        nanoseconds += i128::try_from(duration.seconds).unwrap() * 1_000_000_000;
-        nanoseconds += i128::try_from(duration.milliseconds).unwrap() * 1_000_000;
-        nanoseconds += i128::try_from(duration.microseconds).unwrap() * 1_000;
-        nanoseconds += i128::try_from(duration.nanoseconds).unwrap();
+        let mut nanoseconds: i128 =
+            i128::try_from(duration.hours).expect("hour overflow") * NANOSECONDS_PER_HOUR;
+        nanoseconds +=
+            i128::try_from(duration.minutes).expect("minute overflow") * NANOSECONDS_PER_MINUTE;
+        nanoseconds += i128::try_from(duration.seconds).expect("second overflow") * 1_000_000_000;
+        nanoseconds += i128::from(duration.milliseconds) * 1_000_000;
+        nanoseconds += i128::try_from(duration.microseconds).expect("microsecond overflow") * 1_000;
+        nanoseconds += i128::try_from(duration.nanoseconds).expect("nanosecond overflow");
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
         Self(nanoseconds)
@@ -259,7 +261,7 @@ impl NormalizedDurationRecord {
     pub(crate) fn from_duration_with_24_hour_days(duration: &Duration) -> TemporalResult<Self> {
         // 1. Let timeDuration be TimeDurationFromComponents(duration.[[Hours]], duration.[[Minutes]],
         // duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-        let normalized_time = NormalizedTimeDuration::from_duration(&duration);
+        let normalized_time = NormalizedTimeDuration::from_duration(duration);
         // 2. Set timeDuration to ! Add24HourDaysToTimeDuration(timeDuration, duration.[[Days]]).
         let normalized_time = normalized_time.add_days(duration.days())?;
         // 3. Let dateDuration be ! CreateDateDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], 0).
@@ -405,7 +407,8 @@ impl NormalizedDurationRecord {
                 let iso_two = IsoDate::try_balance(
                     dt.iso_year() + self.date().years as i32,
                     i32::from(dt.iso_month()) + self.date().months as i32,
-                    i64::from(dt.iso_day()) + i64::try_from(self.date().days).unwrap(),
+                    i64::from(dt.iso_day())
+                        + i64::try_from(self.date().days).or(Err(TemporalError::range()))?,
                 )?;
 
                 // c. Let weeksStart be ! CreateTemporalDate(isoResult1.[[Year]], isoResult1.[[Month]], isoResult1.[[Day]],
@@ -468,7 +471,7 @@ impl NormalizedDurationRecord {
                 // a. Assert: unit is "day".
                 // b. Let days be RoundNumberToIncrement(duration.[[Days]], increment, "trunc").
                 let days = IncrementRounder::from_signed_num(
-                    i64::try_from(self.date().days).unwrap(),
+                    i64::try_from(self.date().days).or(Err(TemporalError::range()))?,
                     options.increment.as_extended_increment(),
                 )?
                 .round(RoundingMode::Trunc);
@@ -683,7 +686,7 @@ impl NormalizedDurationRecord {
             i64::from(self.date.months),
             i64::from(self.date.weeks),
             i64::try_from(self.date.days)
-                .unwrap()
+                .or(Err(TemporalError::range()))?
                 .checked_add(day_delta.into())
                 .ok_or(TemporalError::range())?,
         )?;
@@ -823,7 +826,11 @@ impl NormalizedDurationRecord {
                         let years = self
                             .date()
                             .years
-                            .checked_add(sign.as_sign_multiplier().try_into().unwrap())
+                            .checked_add(
+                                sign.as_sign_multiplier()
+                                    .try_into()
+                                    .or(Err(TemporalError::range()))?,
+                            )
                             .ok_or(TemporalError::range())?;
 
                         // 2. Let endDuration be ? CreateDateDurationRecord(years, 0, 0, 0).
@@ -835,7 +842,11 @@ impl NormalizedDurationRecord {
                         let months = self
                             .date()
                             .months
-                            .checked_add(sign.as_sign_multiplier().try_into().unwrap())
+                            .checked_add(
+                                sign.as_sign_multiplier()
+                                    .try_into()
+                                    .or(Err(TemporalError::range()))?,
+                            )
                             .ok_or(TemporalError::range())?;
 
                         // 2. Let endDuration be ? AdjustDateDurationRecord(duration.[[Date]], 0, 0, months).
@@ -850,7 +861,11 @@ impl NormalizedDurationRecord {
                         let weeks = self
                             .date()
                             .weeks
-                            .checked_add(sign.as_sign_multiplier().try_into().unwrap())
+                            .checked_add(
+                                sign.as_sign_multiplier()
+                                    .try_into()
+                                    .or(Err(TemporalError::range()))?,
+                            )
                             .ok_or(TemporalError::range())?;
 
                         // 3. Let endDuration be ? AdjustDateDurationRecord(duration.[[Date]], 0, weeks).

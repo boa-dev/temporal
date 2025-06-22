@@ -36,10 +36,10 @@ impl DateDuration {
     pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
             sign: Sign::from(years),
-            years: years.try_into().unwrap(),
-            months: months.try_into().unwrap(),
-            weeks: weeks.try_into().unwrap(),
-            days: days.try_into().unwrap(),
+            years: years.try_into().expect("years must fit in u32"),
+            months: months.try_into().expect("months must fit in u32"),
+            weeks: weeks.try_into().expect("weeks must fit in u32"),
+            days: days.try_into().expect("days must fit in u40"),
         }
     }
 
@@ -51,7 +51,7 @@ impl DateDuration {
             self.years.into(),
             self.months.into(),
             self.weeks.into(),
-            self.days.try_into().unwrap(),
+            self.days.try_into().expect("days must fit in i64"),
         ]
     }
 }
@@ -142,7 +142,7 @@ impl DateDuration {
         let ymw_duration = self.adjust(0, None, None)?;
         // 2. If DateDurationSign(yearsMonthsWeeksDuration) = 0, return dateDuration.[[Days]].
         if ymw_duration.sign() == Sign::Zero {
-            return Ok(self.days.try_into().unwrap());
+            return self.days.try_into().or(Err(TemporalError::range()));
         }
         // 3. Let later be ? CalendarDateAdd(plainRelativeTo.[[Calendar]], plainRelativeTo.[[ISODate]], yearsMonthsWeeksDuration, constrain).
         let later = relative_to.add(
@@ -170,7 +170,7 @@ impl DateDuration {
         // 6. Let yearsMonthsWeeksInDays be epochDays2 - epochDays1.
         let ymd_in_days = epoch_days_2 - epoch_days_1;
         // 7. Return dateDuration.[[Days]] + yearsMonthsWeeksInDays.
-        Ok(i64::try_from(self.days).unwrap() + ymd_in_days)
+        Ok(i64::try_from(self.days).or(Err(TemporalError::range()))? + ymd_in_days)
     }
 
     /// `7.5.10 AdjustDateDurationRecord ( dateDuration, days [ , weeks [ , months ] ] )`
