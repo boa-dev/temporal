@@ -166,7 +166,7 @@ pub mod ffi {
 
         // set_time_duration is NOT safe to expose over FFI if the date()/time() methods are available
         // Diplomat plans to make this a hard error.
-        // If needed, implement it as with_time_duration(&self, TimeDuration) -> Self
+        // If needed, implement it as with_time_duration(&self, Duration) -> Self
 
         pub fn years(&self) -> i64 {
             self.0.years()

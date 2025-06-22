@@ -3,7 +3,7 @@ use crate::{
         OffsetDisambiguation, RelativeTo, RoundingIncrement, RoundingMode, RoundingOptions, Unit,
     },
     partial::PartialDuration,
-    Calendar, DateDuration, PlainDate, TimeDuration, TimeZone, ZonedDateTime,
+    Calendar, DateDuration, PlainDate, TimeZone, ZonedDateTime,
 };
 
 use core::{num::NonZeroU32, str::FromStr};

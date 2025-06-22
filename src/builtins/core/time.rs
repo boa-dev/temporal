@@ -127,7 +127,7 @@ impl PlainTime {
         (day, Self::new_unchecked(balance_result))
     }
 
-    /// Adds a `TimeDuration` to the current `Time`.
+    /// Adds a `Duration` to the current `Time`.
     ///
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
     pub(crate) fn add_to_time(&self, duration: &Duration) -> TemporalResult<Self> {
@@ -406,7 +406,7 @@ impl PlainTime {
         self.add_time_duration(duration)
     }
 
-    /// Adds a `TimeDuration` to the current `Time`.
+    /// Adds a `Duration` to the current `Time`.
     #[inline]
     pub fn add_time_duration(&self, duration: &Duration) -> TemporalResult<Self> {
         self.add_to_time(duration)
@@ -421,7 +421,7 @@ impl PlainTime {
         self.subtract_time_duration(duration)
     }
 
-    /// Adds a `TimeDuration` to the current `Time`.
+    /// Adds a `Duration` to the current `Time`.
     #[inline]
     pub fn subtract_time_duration(&self, duration: &Duration) -> TemporalResult<Self> {
         self.add_to_time(&duration.negated())

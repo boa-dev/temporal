@@ -35,7 +35,7 @@ const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 //
 // nanoseconds.abs() <= MAX_TIME_DURATION
 
-/// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
+/// A Normalized `Duration` that represents the current `Duration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord)]
 pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
 

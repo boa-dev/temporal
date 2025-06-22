@@ -45,7 +45,7 @@ impl From<EpochNanoseconds> for Instant {
 
 impl Instant {
     // TODO: Update to `i128`?
-    /// Adds a `TimeDuration` to the current `Instant`.
+    /// Adds a `Duration` to the current `Instant`.
     ///
     /// Temporal-Proposal equivalent: `AddInstant`.
     pub fn add_to_instant(&self, duration: &Duration) -> TemporalResult<Self> {
@@ -235,13 +235,13 @@ impl Instant {
         self.add_to_instant(&duration.negated())
     }
 
-    /// Returns a `TimeDuration` representing the duration since provided `Instant`
+    /// Returns a `Duration` representing the duration since provided `Instant`
     #[inline]
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_instant(DifferenceOperation::Since, other, settings)
     }
 
-    /// Returns a `TimeDuration` representing the duration until provided `Instant`
+    /// Returns a `Duration` representing the duration until provided `Instant`
     #[inline]
     pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_instant(DifferenceOperation::Until, other, settings)

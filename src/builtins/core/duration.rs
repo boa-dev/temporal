@@ -29,9 +29,6 @@ pub(crate) mod normalized;
 #[cfg(test)]
 mod tests;
 
-// #[doc(inline)]
-// pub use time::TimeDuration;
-
 /// A `PartialDuration` is a Duration that may have fields not set.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct PartialDuration {
@@ -74,8 +71,7 @@ type U40 = BUintD8<5>; // 40 / 8 = 5
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
-/// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
-/// defined by Abtract Operation 7.5.1-5.
+/// primarily defined by Abtract Operation 7.5.1-5.
 // #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd)]
 pub struct Duration {
@@ -183,14 +179,14 @@ impl Duration {
         )
     }
 
-    /// Returns this `TimeDuration` as a `NormalizedTimeDuration`.
+    /// Returns this `Duration` as a `NormalizedTimeDuration`.
     #[inline]
     pub(crate) fn to_normalized(self) -> NormalizedTimeDuration {
         NormalizedTimeDuration::from_duration(&self)
     }
 
-    /// Balances and creates `TimeDuration` from a `NormalizedTimeDuration`. This method will return
-    /// a tuple (f64, TimeDuration) where f64 is the overflow day value from balancing.
+    /// Balances and creates `Duration` from a `NormalizedTimeDuration`. This method will return
+    /// a tuple (f64, Duration) where f64 is the overflow day value from balancing.
     ///
     /// Equivalent: `BalanceTimeDuration`
     ///
@@ -338,7 +334,7 @@ impl Duration {
             microseconds * sign as i128,
             nanoseconds * sign as i128,
         ) {
-            return Err(TemporalError::range().with_message("Invalid balance TimeDuration."));
+            return Err(TemporalError::range().with_message("Invalid balance Duration."));
         }
 
         // TODO: Remove cast below.
@@ -382,7 +378,7 @@ impl Duration {
         ]
     }
 
-    /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
+    /// Returns whether `Duration`'s `DateDuration` is empty.
     #[inline]
     #[must_use]
     pub(crate) fn is_time_duration(&self) -> bool {
@@ -434,48 +430,33 @@ impl Duration {
         }
         Ok(Duration {
             sign: Sign::from(years),
-            years: u32::try_from(years).expect("Years must be within range."),
-            months: u32::try_from(months).expect("Months must be within range."),
-            weeks: u32::try_from(weeks).expect("Weeks must be within range."),
-            days: U40::try_from(days).expect("Days must be within range."),
-            hours: U48::try_from(hours).expect("Hours must be within range."),
-            minutes: U48::try_from(minutes).expect("Minutes must be within range."),
-            seconds: U56::try_from(seconds).expect("Seconds must be within range."),
-            milliseconds: u64::try_from(milliseconds).expect("Milliseconds must be within range."),
-            microseconds: U80::try_from(microseconds).expect("Microseconds must be within range."),
-            nanoseconds: U88::try_from(nanoseconds).expect("Nanoseconds must be within range."),
+            years: u32::try_from(years).unwrap(),
+            months: u32::try_from(months).unwrap(),
+            weeks: u32::try_from(weeks).unwrap(),
+            days: U40::try_from(days).unwrap(),
+            hours: U48::try_from(hours).unwrap(),
+            minutes: U48::try_from(minutes).unwrap(),
+            seconds: U56::try_from(seconds).unwrap(),
+            milliseconds: u64::try_from(milliseconds).unwrap(),
+            microseconds: U80::try_from(microseconds).unwrap(),
+            nanoseconds: U88::try_from(nanoseconds).unwrap(),
         })
     }
 
-    /// Creates a `Duration` from a provided a day and a `TimeDuration`.
+    /// Creates a `Duration` from a provided a day and a `Duration`.
     ///
-    /// Note: `TimeDuration` records can store a day value to deal with overflow.
+    /// Note: `Duration` records can store a day value to deal with overflow.
     #[must_use]
     pub fn from_day_and_time(day: i64, time: &Duration) -> Self {
         Self {
             sign: time.sign(),
-            days: day.try_into().expect("Days must be within range."),
-            hours: time.hours.try_into().expect("Hours must be within range."),
-            minutes: time
-                .minutes
-                .try_into()
-                .expect("Minutes must be within range."),
-            seconds: time
-                .seconds
-                .try_into()
-                .expect("Seconds must be within range."),
-            milliseconds: time
-                .milliseconds
-                .try_into()
-                .expect("Milliseconds must be within range."),
-            microseconds: time
-                .microseconds
-                .try_into()
-                .expect("Microseconds must be within range."),
-            nanoseconds: time
-                .nanoseconds
-                .try_into()
-                .expect("Nanoseconds must be within range."),
+            days: day.try_into().unwrap(),
+            hours: time.hours.try_into().unwrap(),
+            minutes: time.minutes.try_into().unwrap(),
+            seconds: time.seconds.try_into().unwrap(),
+            milliseconds: time.milliseconds.try_into().unwrap(),
+            microseconds: time.microseconds.try_into().unwrap(),
+            nanoseconds: time.nanoseconds.try_into().unwrap(),
             ..Default::default()
         }
     }
@@ -680,13 +661,6 @@ impl Duration {
 // ==== Public `Duration` Getters/Setters ====
 
 impl Duration {
-    // /// Returns a reference to the inner `TimeDuration`
-    // #[inline]
-    // #[must_use]
-    // pub fn time(&self) -> &TimeDuration {
-    //     &self.time
-    // }
-
     /// Returns the inner `DateDuration` as an owned value
     #[inline]
     #[must_use]
