@@ -20,8 +20,8 @@ use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
 use super::{
-    calendar::month_to_month_code, duration::normalized::NormalizedDurationRecord, PartialYearMonth,
-    PlainMonthDay, PlainYearMonth,
+    calendar::month_to_month_code, duration::normalized::NormalizedDurationRecord,
+    PartialYearMonth, PlainMonthDay, PlainYearMonth,
 };
 use tinystr::TinyAsciiStr;
 
