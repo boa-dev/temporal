@@ -160,8 +160,8 @@ pub mod ffi {
             self.0.is_time_within_range()
         }
 
-        pub fn date<'a>(&'a self) -> &'a DateDuration {
-            DateDuration::transparent_convert(&self.0.date())
+        pub fn date(&self) -> Box<DateDuration> {
+            Box::new(DateDuration(self.0.date()))
         }
 
         // set_time_duration is NOT safe to expose over FFI if the date()/time() methods are available
