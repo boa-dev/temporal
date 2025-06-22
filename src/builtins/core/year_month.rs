@@ -115,7 +115,7 @@ impl PlainYearMonth {
             .date_until(&self.iso, &other.iso, resolved.largest_unit)?;
 
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
-        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+        let mut duration = NormalizedDurationRecord::from_date_duration(result.date())?;
 
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
         if resolved.smallest_unit != Unit::Month || resolved.increment != RoundingIncrement::ONE {

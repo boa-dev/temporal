@@ -153,7 +153,7 @@ impl ZonedDateTime {
         // 1. If DateDurationSign(duration.[[Date]]) = 0, then
         if duration.date().sign() == Sign::Zero {
             // a. Return ? AddInstant(epochNanoseconds, duration.[[Time]]).
-            return self.instant.add_to_instant(duration.time());
+            return self.instant.add_to_instant(duration);
         }
         // 2. Let isoDateTime be GetISODateTimeFor(timeZone, epochNanoseconds).
         let iso_datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
@@ -176,7 +176,7 @@ impl ZonedDateTime {
         )?;
 
         // 7. Return ? AddInstant(intermediateNs, duration.[[Time]]).
-        Instant::from(intermediate_ns).add_to_instant(duration.time())
+        Instant::from(intermediate_ns).add_to_instant(duration)
     }
 
     /// Adds a duration to the current `ZonedDateTime`, returning the resulting `ZonedDateTime`.
@@ -350,7 +350,7 @@ impl ZonedDateTime {
         let date_diff =
             self.calendar()
                 .date_until(&start.date, &intermediate_dt.date, date_largest)?;
-        NormalizedDurationRecord::new(*date_diff.date(), time_duration)
+        NormalizedDurationRecord::new(date_diff.date(), time_duration)
     }
 
     /// `temporal_rs` equivalent to `DifferenceTemporalZonedDateTime`.

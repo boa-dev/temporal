@@ -186,7 +186,7 @@ pub use crate::builtins::{
     core::timezone::{TimeZone, UtcOffset},
     core::DateDuration,
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
-    TimeDuration, ZonedDateTime,
+    ZonedDateTime,
 };
 
 /// A library specific trait for unwrapping assertions.
@@ -238,6 +238,15 @@ pub enum Sign {
 
 impl From<i8> for Sign {
     fn from(value: i8) -> Self {
+        match value.cmp(&0) {
+            Ordering::Greater => Self::Positive,
+            Ordering::Equal => Self::Zero,
+            Ordering::Less => Self::Negative,
+        }
+    }
+}
+impl From<i64> for Sign {
+    fn from(value: i64) -> Self {
         match value.cmp(&0) {
             Ordering::Greater => Self::Positive,
             Ordering::Equal => Self::Zero,

@@ -1,8 +1,10 @@
 //! Implementation of a `DateDuration`
 
 use crate::{
-    iso::iso_date_to_epoch_days, options::ArithmeticOverflow, Duration, PlainDate, Sign,
-    TemporalError, TemporalResult,
+    builtins::{duration::U40, Duration},
+    iso::iso_date_to_epoch_days,
+    options::ArithmeticOverflow,
+    PlainDate, Sign, TemporalError, TemporalResult,
 };
 
 use super::duration_sign;
@@ -16,26 +18,28 @@ use super::duration_sign;
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DateDuration {
+    pub sign: Sign,
     /// `DateDuration`'s internal year value.
-    pub years: i64,
+    pub years: u32,
     /// `DateDuration`'s internal month value.
-    pub months: i64,
+    pub months: u32,
     /// `DateDuration`'s internal week value.
-    pub weeks: i64,
+    pub weeks: u32,
     /// `DateDuration`'s internal day value.
-    pub days: i64,
+    pub days: U40,
 }
 
 impl DateDuration {
     /// Creates a new, non-validated `DateDuration`.
     #[inline]
     #[must_use]
-    pub(crate) const fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
+    pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
-            years,
-            months,
-            weeks,
-            days,
+            sign: Sign::from(years),
+            years: years.try_into().unwrap(),
+            months: months.try_into().unwrap(),
+            weeks: weeks.try_into().unwrap(),
+            days: days.try_into().unwrap(),
         }
     }
 
@@ -43,7 +47,46 @@ impl DateDuration {
     #[inline]
     #[must_use]
     pub(crate) fn fields(&self) -> [i64; 4] {
-        [self.years, self.months, self.weeks, self.days]
+        [
+            self.years.into(),
+            self.months.into(),
+            self.weeks.into(),
+            self.days.try_into().unwrap(),
+        ]
+    }
+}
+
+impl From<Duration> for DateDuration {
+    /// Converts a `Duration` into a `DateDuration`.
+    ///
+    /// This conversion is lossy, as `Duration` can represent time durations
+    /// that are not strictly date durations.
+    #[inline]
+    fn from(duration: Duration) -> Self {
+        Self {
+            sign: duration.sign,
+            years: duration.years,
+            months: duration.months,
+            weeks: duration.weeks,
+            days: duration.days,
+        }
+    }
+}
+
+impl From<&Duration> for DateDuration {
+    /// Converts a `Duration` into a `DateDuration`.
+    ///
+    /// This conversion is lossy, as `Duration` can represent time durations
+    /// that are not strictly date durations.
+    #[inline]
+    fn from(duration: &Duration) -> Self {
+        Self {
+            sign: duration.sign,
+            years: duration.years,
+            months: duration.months,
+            weeks: duration.weeks,
+            days: duration.days,
+        }
     }
 }
 
@@ -71,10 +114,8 @@ impl DateDuration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            years: self.years.saturating_neg(),
-            months: self.months.saturating_neg(),
-            weeks: self.weeks.saturating_neg(),
-            days: self.days.saturating_neg(),
+            sign: self.sign.negate(),
+            ..*self
         }
     }
 
@@ -83,10 +124,8 @@ impl DateDuration {
     #[must_use]
     pub fn abs(&self) -> Self {
         Self {
-            years: self.years.abs(),
-            months: self.months.abs(),
-            weeks: self.weeks.abs(),
-            days: self.days.abs(),
+            sign: Sign::Positive,
+            ..*self
         }
     }
 
@@ -103,13 +142,16 @@ impl DateDuration {
         let ymw_duration = self.adjust(0, None, None)?;
         // 2. If DateDurationSign(yearsMonthsWeeksDuration) = 0, return dateDuration.[[Days]].
         if ymw_duration.sign() == Sign::Zero {
-            return Ok(self.days);
+            return Ok(self.days.try_into().unwrap());
         }
         // 3. Let later be ? CalendarDateAdd(plainRelativeTo.[[Calendar]], plainRelativeTo.[[ISODate]], yearsMonthsWeeksDuration, constrain).
         let later = relative_to.add(
             &Duration {
-                date: *self,
-                time: Default::default(),
+                years: self.years,
+                months: self.months,
+                weeks: self.weeks,
+                days: self.days,
+                ..Default::default()
             },
             Some(ArithmeticOverflow::Constrain),
         )?;
@@ -128,7 +170,7 @@ impl DateDuration {
         // 6. Let yearsMonthsWeeksInDays be epochDays2 - epochDays1.
         let ymd_in_days = epoch_days_2 - epoch_days_1;
         // 7. Return dateDuration.[[Days]] + yearsMonthsWeeksInDays.
-        Ok(self.days + ymd_in_days)
+        Ok(i64::try_from(self.days).unwrap() + ymd_in_days)
     }
 
     /// `7.5.10 AdjustDateDurationRecord ( dateDuration, days [ , weeks [ , months ] ] )`
@@ -143,17 +185,22 @@ impl DateDuration {
         months: Option<i64>,
     ) -> TemporalResult<Self> {
         // 1. If weeks is not present, set weeks to dateDuration.[[Weeks]].
-        let weeks = weeks.unwrap_or(self.weeks);
+        let weeks = weeks
+            .map(|w| w.try_into().expect("weeks must fit in U40"))
+            .unwrap_or(self.weeks);
 
         // 2. If months is not present, set months to dateDuration.[[Months]].
-        let months = months.unwrap_or(self.months);
+        let months = months
+            .map(|m| m.try_into().expect("months must fit in U40"))
+            .unwrap_or(self.months);
 
         // 3. Return ? CreateDateDurationRecord(dateDuration.[[Years]], months, weeks, days).
         Ok(Self {
+            sign: self.sign,
             years: self.years,
             months,
             weeks,
-            days,
+            days: days.try_into().expect("days must fit in U40"),
         })
     }
 }

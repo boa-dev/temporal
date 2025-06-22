@@ -20,9 +20,8 @@ use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
 use super::{
-    calendar::month_to_month_code,
-    duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    PlainMonthDay, PlainYearMonth,
+    calendar::month_to_month_code, duration::normalized::NormalizedDurationRecord, PlainMonthDay,
+    PlainYearMonth,
 };
 use tinystr::TinyAsciiStr;
 
@@ -232,9 +231,7 @@ impl PlainDate {
         //    "day").[[Days]].
         let days = duration
             .days()
-            .checked_add(
-                TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
-            )
+            .checked_add(Duration::from_normalized_time(duration.to_normalized(), Unit::Day)?.0)
             .ok_or(TemporalError::range())?;
 
         // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
@@ -314,7 +311,7 @@ impl PlainDate {
         let result = self.internal_diff_date(other, resolved.largest_unit)?;
 
         // 10. Let duration be ! CreateNormalizedDurationRecord(result.[[Years]], result.[[Months]], result.[[Weeks]], result.[[Days]], ZeroTimeDuration()).
-        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+        let mut duration = NormalizedDurationRecord::from_date_duration(result.date())?;
         // 11. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
         let rounding_granularity_is_noop =
             resolved.smallest_unit == Unit::Day && resolved.increment.get() == 1;

@@ -118,13 +118,16 @@ impl PlainDateTime {
         // 4. Let calendarRec be ? CreateCalendarMethodsRecord(dateTime.[[Calendar]], « date-add »).
 
         // 5. Let norm be NormalizeTimeDuration(sign × duration.[[Hours]], sign × duration.[[Minutes]], sign × duration.[[Seconds]], sign × duration.[[Milliseconds]], sign × duration.[[Microseconds]], sign × duration.[[Nanoseconds]]).
-        let norm = NormalizedTimeDuration::from_time_duration(duration.time());
+        let norm = NormalizedTimeDuration::from_duration(duration);
 
         // TODO: validate Constrain is default with all the recent changes.
         // 6. Let result be ? AddDateTime(dateTime.[[ISOYear]], dateTime.[[ISOMonth]], dateTime.[[ISODay]], dateTime.[[ISOHour]], dateTime.[[ISOMinute]], dateTime.[[ISOSecond]], dateTime.[[ISOMillisecond]], dateTime.[[ISOMicrosecond]], dateTime.[[ISONanosecond]], calendarRec, sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], norm, options).
-        let result =
-            self.iso
-                .add_date_duration(self.calendar().clone(), duration.date(), norm, overflow)?;
+        let result = self.iso.add_date_duration(
+            self.calendar().clone(),
+            &duration.date(),
+            norm,
+            overflow,
+        )?;
 
         // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
         // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]],

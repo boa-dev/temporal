@@ -4,14 +4,11 @@
 //! Temporal compatible calendar implementations.
 
 use crate::{
-    builtins::core::{
-        duration::{DateDuration, TimeDuration},
-        Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
-    },
+    builtins::core::{Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth},
     iso::IsoDate,
     options::{ArithmeticOverflow, Unit},
     parsers::parse_allowed_calendar_formats,
-    TemporalError, TemporalResult,
+    DateDuration, TemporalError, TemporalResult,
 };
 use alloc::string::ToString;
 use core::str::FromStr;
@@ -296,7 +293,7 @@ impl Calendar {
             // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
             // 9. Let balanceResult be BalanceTimeDuration(norm, "day").
             let (balance_days, _) =
-                TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?;
+                Duration::from_normalized_time(duration.to_normalized(), Unit::Day)?;
 
             // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
             // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).

@@ -1,7 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    builtins::core::{duration::TimeDuration, Duration},
+    builtins::core::Duration,
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
@@ -130,14 +130,15 @@ impl PlainTime {
     /// Adds a `TimeDuration` to the current `Time`.
     ///
     /// Spec Equivalent: `AddDurationToOrSubtractDurationFromPlainTime`.
-    pub(crate) fn add_to_time(&self, duration: &TimeDuration) -> TemporalResult<Self> {
+    pub(crate) fn add_to_time(&self, duration: &Duration) -> TemporalResult<Self> {
         let (_, result) = IsoTime::balance(
-            i64::from(self.hour()).saturating_add(duration.hours),
-            i64::from(self.minute()).saturating_add(duration.minutes),
-            i64::from(self.second()).saturating_add(duration.seconds),
-            i64::from(self.millisecond()).saturating_add(duration.milliseconds),
-            i128::from(self.microsecond()).saturating_add(duration.microseconds),
-            i128::from(self.nanosecond()).saturating_add(duration.nanoseconds),
+            i64::from(self.hour()).saturating_add(duration.hours.try_into().unwrap()),
+            i64::from(self.minute()).saturating_add(duration.minutes.try_into().unwrap()),
+            i64::from(self.second()).saturating_add(duration.seconds.try_into().unwrap()),
+            i64::from(self.millisecond()).saturating_add(duration.milliseconds.try_into().unwrap()),
+            i128::from(self.microsecond())
+                .saturating_add(duration.microseconds.try_into().unwrap()),
+            i128::from(self.nanosecond()).saturating_add(duration.nanoseconds.try_into().unwrap()),
         );
 
         // NOTE (nekevss): IsoTime::balance should never return an invalid `IsoTime`
@@ -181,7 +182,7 @@ impl PlainTime {
         };
 
         // 7. Let result be BalanceTimeDuration(norm, settings.[[LargestUnit]]).
-        let result = TimeDuration::from_normalized(normalized_time, resolved.largest_unit)?.1;
+        let result = Duration::from_normalized_time(normalized_time, resolved.largest_unit)?.1;
 
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
         match op {
@@ -402,12 +403,12 @@ impl PlainTime {
             return Err(TemporalError::range()
                 .with_message("DateDuration values cannot be added to `Time`."));
         }
-        self.add_time_duration(duration.time())
+        self.add_time_duration(duration)
     }
 
     /// Adds a `TimeDuration` to the current `Time`.
     #[inline]
-    pub fn add_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
+    pub fn add_time_duration(&self, duration: &Duration) -> TemporalResult<Self> {
         self.add_to_time(duration)
     }
 
@@ -417,12 +418,12 @@ impl PlainTime {
             return Err(TemporalError::range()
                 .with_message("DateDuration values cannot be added to `Time` component."));
         }
-        self.subtract_time_duration(duration.time())
+        self.subtract_time_duration(duration)
     }
 
     /// Adds a `TimeDuration` to the current `Time`.
     #[inline]
-    pub fn subtract_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
+    pub fn subtract_time_duration(&self, duration: &Duration) -> TemporalResult<Self> {
         self.add_to_time(&duration.negated())
     }
 

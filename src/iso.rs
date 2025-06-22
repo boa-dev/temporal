@@ -30,7 +30,7 @@ use crate::{
         calendar::Calendar,
         duration::{
             normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-            DateDuration, TimeDuration,
+            DateDuration,
         },
         Duration, PartialTime, PlainDate,
     },
@@ -39,7 +39,7 @@ use crate::{
     rounding::{IncrementRounder, Round},
     temporal_assert,
     unix_time::EpochNanoseconds,
-    utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    utils, Sign, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_traits::{cast::FromPrimitive, Euclid};
@@ -167,11 +167,11 @@ impl IsoDateTime {
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
         let date_duration = DateDuration::new(
-            date_duration.years,
-            date_duration.months,
-            date_duration.weeks,
-            date_duration
-                .days
+            date_duration.years.into(),
+            date_duration.months.into(),
+            date_duration.weeks.into(),
+            i64::try_from(date_duration.days)
+                .unwrap()
                 .checked_add(t_result.0)
                 .ok_or(TemporalError::range())?,
         )?;
@@ -211,8 +211,7 @@ impl IsoDateTime {
         // is not "day", CalendarMethodsRecordHasLookedUp(calendarRec, date-until) is true.
 
         // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
-        let mut time_duration =
-            NormalizedTimeDuration::from_time_duration(&self.time.diff(&other.time));
+        let mut time_duration = NormalizedTimeDuration::from_duration(&self.time.diff(&other.time));
 
         // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
         let time_sign = time_duration.sign() as i8;
@@ -398,8 +397,8 @@ impl IsoDate {
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
         let intermediate = balance_iso_year_month_with_clamp(
-            i64::from(self.year) + duration.years,
-            i64::from(self.month) + duration.months,
+            i64::from(self.year) + i64::from(duration.years),
+            i64::from(self.month) + i64::from(duration.months),
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
@@ -407,8 +406,9 @@ impl IsoDate {
             Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days = duration.days + (7 * duration.weeks); // Verify
-                                                                    // 6. Let d be intermediate.[[Day]] + days.
+        let additional_days =
+            i64::try_from(duration.days).unwrap() + (7 * i64::from(duration.weeks)); // Verify
+                                                                                     // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
@@ -715,8 +715,8 @@ impl IsoTime {
         (days, time)
     }
 
-    /// Difference this `IsoTime` against another and returning a `TimeDuration`.
-    pub(crate) fn diff(&self, other: &Self) -> TimeDuration {
+    /// Difference this `IsoTime` against another and returning a `Duration`.
+    pub(crate) fn diff(&self, other: &Self) -> Duration {
         let h = i64::from(other.hour) - i64::from(self.hour);
         let m = i64::from(other.minute) - i64::from(self.minute);
         let s = i64::from(other.second) - i64::from(self.second);
@@ -724,7 +724,19 @@ impl IsoTime {
         let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
-        TimeDuration::new_unchecked(h, m, s, ms, mis, ns)
+        Duration::new_unchecked(
+            Sign::from(h),
+            0,
+            0,
+            0,
+            0u8.into(),
+            h.try_into().unwrap(),
+            m.try_into().unwrap(),
+            s.try_into().unwrap(),
+            ms.try_into().unwrap(),
+            mis.try_into().unwrap(),
+            ns.try_into().unwrap(),
+        )
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the
