@@ -9,6 +9,7 @@ use alloc::format;
 use ixdtf::{
     parsers::IxdtfParser,
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
+    encoding::Utf8,
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
@@ -658,19 +659,22 @@ enum ParseVariant {
 }
 
 #[inline]
-fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfParseRecord> {
-    fn cast_handler<'a>(
-        _: &mut IxdtfParser<'a>,
-        handler: impl FnMut(Annotation<'a>) -> Option<Annotation<'a>>,
-    ) -> impl FnMut(Annotation<'a>) -> Option<Annotation<'a>> {
+fn parse_ixdtf<'a>(
+    source: &'a [u8],
+    variant: ParseVariant,
+) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
+    fn cast_handler<'b>(
+        _: &mut IxdtfParser<'b, Utf8>,
+        handler: impl FnMut(Annotation<'b, Utf8>) -> Option<Annotation<'b, Utf8>>,
+    ) -> impl FnMut(Annotation<'b, Utf8>) -> Option<Annotation<'b, Utf8>> {
         handler
     }
 
-    let mut first_calendar: Option<Annotation> = None;
+    let mut first_calendar: Option<Annotation<'a, Utf8>> = None;
     let mut critical_duplicate_calendar = false;
     let mut parser = IxdtfParser::from_utf8(source);
 
-    let handler = cast_handler(&mut parser, |annotation: Annotation<'_>| {
+    let handler = cast_handler(&mut parser, |annotation: Annotation<'a, Utf8>| {
         if annotation.key == "u-ca".as_bytes() {
             match first_calendar {
                 Some(ref cal) => {
@@ -716,7 +720,9 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
 
 /// A utility function for parsing a `DateTime` string
 #[inline]
-pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_date_time<'a>(
+    source: &'a [u8],
+) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
@@ -728,7 +734,9 @@ pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord>
 }
 
 #[inline]
-pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_zoned_date_time<'a>(
+    source: &'a str,
+) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let record = parse_ixdtf(source.as_bytes(), ParseVariant::DateTime)?;
 
     // TODO: Support rejecting subminute precision in time zone annootations
@@ -748,7 +756,9 @@ pub(crate) struct IxdtfParseInstantRecord {
 
 /// A utility function for parsing an `Instant` string
 #[inline]
-pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRecord> {
+pub(crate) fn parse_instant<'a>(
+    source: &'a [u8],
+) -> TemporalResult<IxdtfParseInstantRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     let IxdtfParseRecord {
@@ -768,7 +778,9 @@ pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRe
 
 /// A utility function for parsing a `YearMonth` string
 #[inline]
-pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_year_month<'a>(
+    source: &'a [u8],
+) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
     if let Ok(ym) = ym_record {
@@ -790,14 +802,16 @@ pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord
 
 /// A utilty function for parsing a `MonthDay` String.
 #[inline]
-pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_month_day<'a>(
+    source: &'a [u8],
+) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
     // Error needs to be a RangeError
     md_record.map_err(|e| TemporalError::range().with_message(format!("{e}")))
 }
 
 #[inline]
-pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
+pub(crate) fn parse_time<'a>(source: &'a [u8]) -> TemporalResult<TimeRecord> {
     let time_record = parse_ixdtf(source, ParseVariant::Time);
 
     let time_err = match time_record {
