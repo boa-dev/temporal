@@ -7,9 +7,9 @@ use crate::{
 };
 use alloc::format;
 use ixdtf::{
+    encoding::Utf8,
     parsers::IxdtfParser,
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
-    encoding::Utf8,
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
@@ -720,9 +720,7 @@ fn parse_ixdtf<'a>(
 
 /// A utility function for parsing a `DateTime` string
 #[inline]
-pub(crate) fn parse_date_time<'a>(
-    source: &'a [u8],
-) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
+pub(crate) fn parse_date_time<'a>(source: &'a [u8]) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
@@ -756,9 +754,7 @@ pub(crate) struct IxdtfParseInstantRecord {
 
 /// A utility function for parsing an `Instant` string
 #[inline]
-pub(crate) fn parse_instant<'a>(
-    source: &'a [u8],
-) -> TemporalResult<IxdtfParseInstantRecord> {
+pub(crate) fn parse_instant<'a>(source: &'a [u8]) -> TemporalResult<IxdtfParseInstantRecord> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     let IxdtfParseRecord {
@@ -778,9 +774,7 @@ pub(crate) fn parse_instant<'a>(
 
 /// A utility function for parsing a `YearMonth` string
 #[inline]
-pub(crate) fn parse_year_month<'a>(
-    source: &'a [u8],
-) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
+pub(crate) fn parse_year_month<'a>(source: &'a [u8]) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
     if let Ok(ym) = ym_record {
@@ -802,9 +796,7 @@ pub(crate) fn parse_year_month<'a>(
 
 /// A utilty function for parsing a `MonthDay` String.
 #[inline]
-pub(crate) fn parse_month_day<'a>(
-    source: &'a [u8],
-) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
+pub(crate) fn parse_month_day<'a>(source: &'a [u8]) -> TemporalResult<IxdtfParseRecord<'a, Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
     // Error needs to be a RangeError
     md_record.map_err(|e| TemporalError::range().with_message(format!("{e}")))
