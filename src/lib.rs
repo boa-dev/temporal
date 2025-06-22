@@ -166,8 +166,9 @@ pub mod partial {
     //!
     //! The partial records are `temporal_rs`'s method of addressing
     //! `TemporalFields` in the specification.
-    pub use crate::builtins::{
-        core::PartialDuration, PartialDate, PartialDateTime, PartialTime, PartialZonedDateTime,
+    pub use crate::builtins::core::{
+        PartialDate, PartialDateTime, PartialDuration, PartialTime, PartialYearMonth,
+        PartialZonedDateTime,
     };
 }
 

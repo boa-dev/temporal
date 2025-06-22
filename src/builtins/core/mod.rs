@@ -36,6 +36,6 @@ pub use month_day::PlainMonthDay;
 #[doc(inline)]
 pub use time::{PartialTime, PlainTime};
 #[doc(inline)]
-pub use year_month::PlainYearMonth;
+pub use year_month::{PartialYearMonth, PlainYearMonth};
 #[doc(inline)]
 pub use zoneddatetime::{PartialZonedDateTime, ZonedDateTime};
