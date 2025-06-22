@@ -16,8 +16,6 @@ namespace capi { struct Duration; }
 class Duration;
 namespace capi { struct PlainTime; }
 class PlainTime;
-namespace capi { struct TimeDuration; }
-class TimeDuration;
 namespace capi { struct TimeZone; }
 class TimeZone;
 struct DifferenceSettings;
@@ -70,9 +68,9 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> subtract(const temporal_rs::Duration& duration) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> add_time_duration(const temporal_rs::TimeDuration& duration) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> add_time_duration(const temporal_rs::Duration& duration) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> subtract_time_duration(const temporal_rs::TimeDuration& duration) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> subtract_time_duration(const temporal_rs::Duration& duration) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> until(const temporal_rs::PlainTime& other, temporal_rs::DifferenceSettings settings) const;
 

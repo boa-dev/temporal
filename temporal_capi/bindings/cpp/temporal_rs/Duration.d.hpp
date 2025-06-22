@@ -16,8 +16,6 @@ namespace capi { struct DateDuration; }
 class DateDuration;
 namespace capi { struct Duration; }
 class Duration;
-namespace capi { struct TimeDuration; }
-class TimeDuration;
 struct PartialDuration;
 struct RelativeTo;
 struct RoundingOptions;
@@ -45,7 +43,7 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_day_and_time(int64_t day, const temporal_rs::Duration& time);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_partial_duration(temporal_rs::PartialDuration partial);
 
@@ -55,9 +53,7 @@ public:
 
   inline bool is_time_within_range() const;
 
-  inline const temporal_rs::TimeDuration& time() const;
-
-  inline const temporal_rs::DateDuration& date() const;
+  inline std::unique_ptr<temporal_rs::DateDuration> date() const;
 
   inline int64_t years() const;
 

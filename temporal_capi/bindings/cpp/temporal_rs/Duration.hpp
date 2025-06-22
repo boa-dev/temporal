@@ -18,7 +18,6 @@
 #include "RoundingOptions.hpp"
 #include "Sign.hpp"
 #include "TemporalError.hpp"
-#include "TimeDuration.hpp"
 #include "ToStringRoundingOptions.hpp"
 #include "Unit.hpp"
 
@@ -34,7 +33,7 @@ namespace capi {
     temporal_rs_Duration_try_new_result temporal_rs_Duration_try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
     typedef struct temporal_rs_Duration_from_day_and_time_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
-    temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::TimeDuration* time);
+    temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::Duration* time);
 
     typedef struct temporal_rs_Duration_from_partial_duration_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
     temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(temporal_rs::capi::PartialDuration partial);
@@ -47,9 +46,7 @@ namespace capi {
 
     bool temporal_rs_Duration_is_time_within_range(const temporal_rs::capi::Duration* self);
 
-    const temporal_rs::capi::TimeDuration* temporal_rs_Duration_time(const temporal_rs::capi::Duration* self);
-
-    const temporal_rs::capi::DateDuration* temporal_rs_Duration_date(const temporal_rs::capi::Duration* self);
+    temporal_rs::capi::DateDuration* temporal_rs_Duration_date(const temporal_rs::capi::Duration* self);
 
     int64_t temporal_rs_Duration_years(const temporal_rs::capi::Duration* self);
 
@@ -131,7 +128,7 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time) {
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_day_and_time(int64_t day, const temporal_rs::Duration& time) {
   auto result = temporal_rs::capi::temporal_rs_Duration_from_day_and_time(day,
     time.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
@@ -157,14 +154,9 @@ inline bool temporal_rs::Duration::is_time_within_range() const {
   return result;
 }
 
-inline const temporal_rs::TimeDuration& temporal_rs::Duration::time() const {
-  auto result = temporal_rs::capi::temporal_rs_Duration_time(this->AsFFI());
-  return *temporal_rs::TimeDuration::FromFFI(result);
-}
-
-inline const temporal_rs::DateDuration& temporal_rs::Duration::date() const {
+inline std::unique_ptr<temporal_rs::DateDuration> temporal_rs::Duration::date() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_date(this->AsFFI());
-  return *temporal_rs::DateDuration::FromFFI(result);
+  return std::unique_ptr<temporal_rs::DateDuration>(temporal_rs::DateDuration::FromFFI(result));
 }
 
 inline int64_t temporal_rs::Duration::years() const {
