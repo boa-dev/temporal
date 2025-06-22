@@ -15,7 +15,7 @@ use crate::{
 use alloc::format;
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
-use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use ixdtf::{encoding::Utf8, parsers::IsoDurationParser, records::TimeDurationRecord};
 use normalized::NormalizedDurationRecord;
 
 use self::normalized::NormalizedTimeDuration;
@@ -259,7 +259,7 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = IsoDurationParser::from_utf8(s)
+        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s)
             .parse()
             .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 

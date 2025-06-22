@@ -6,9 +6,9 @@ use crate::{
     Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 use alloc::format;
-use ixdtf::parsers::{
+use ixdtf::{
+    parsers::IxdtfParser,
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
-    IxdtfParser,
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 

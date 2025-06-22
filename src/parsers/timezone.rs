@@ -1,8 +1,8 @@
 use alloc::borrow::ToOwned;
 use core::{iter::Peekable, str::Chars};
-use ixdtf::parsers::{
+use ixdtf::{
+    parsers::IxdtfParser,
     records::{UtcOffsetRecord, UtcOffsetRecordOrZ},
-    IxdtfParser,
 };
 
 use crate::{builtins::timezone::UtcOffset, TemporalError, TemporalResult, TimeZone};

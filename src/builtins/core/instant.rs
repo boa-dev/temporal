@@ -19,7 +19,7 @@ use crate::{
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
-use ixdtf::parsers::records::UtcOffsetRecordOrZ;
+use ixdtf::records::UtcOffsetRecordOrZ;
 use num_traits::Euclid;
 use writeable::Writeable;
 
