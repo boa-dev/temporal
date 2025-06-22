@@ -16,7 +16,7 @@ use super::duration_sign;
 /// [spec]: https://tc39.es/proposal-temporal/#sec-temporal-date-duration-records
 /// [field spec]: https://tc39.es/proposal-temporal/#sec-properties-of-temporal-duration-instances
 #[non_exhaustive]
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DateDuration {
     pub sign: Sign,
     /// `DateDuration`'s internal year value.
@@ -29,6 +29,18 @@ pub struct DateDuration {
     pub days: U40,
 }
 
+impl Default for DateDuration {
+    fn default() -> Self {
+        Self {
+            sign: Sign::Zero,
+            years: 0,
+            months: 0,
+            weeks: 0,
+            days: U40::from(0u8),
+        }
+    }
+}
+
 impl DateDuration {
     /// Creates a new, non-validated `DateDuration`.
     #[inline]
@@ -36,10 +48,10 @@ impl DateDuration {
     pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
             sign: duration_sign(&[years, months, weeks, days]),
-            years: years.try_into().expect("years must fit in u32"),
-            months: months.try_into().expect("months must fit in u32"),
-            weeks: weeks.try_into().expect("weeks must fit in u32"),
-            days: days.try_into().expect("days must fit in u40"),
+            years: years.unsigned_abs().try_into().expect("years must fit in u32"),
+            months: months.unsigned_abs().try_into().expect("months must fit in u32"),
+            weeks: weeks.unsigned_abs().try_into().expect("weeks must fit in u32"),
+            days: days.unsigned_abs().try_into().expect("days must fit in u40"),
         }
     }
 
@@ -137,7 +149,7 @@ impl DateDuration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> Sign {
-        duration_sign(self.fields().as_slice())
+        self.sign
     }
 
     /// DateDurationDays
