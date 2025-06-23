@@ -9,13 +9,12 @@ use crate::{
         RoundingOptions, ToStringRoundingOptions, Unit,
     },
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
-    primitive::FiniteF64,
+    primitive::{FiniteF64, U40, U48, U56, U80, U88},
     provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult, NS_PER_DAY,
 };
 use alloc::format;
 use alloc::string::String;
-use bnum::{BUintD16, BUintD8};
 use core::{cmp::Ordering, str::FromStr};
 pub use date::DateDuration;
 use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
@@ -62,12 +61,6 @@ impl PartialDuration {
         self == &Self::default()
     }
 }
-
-type U80 = BUintD16<5>; // 80 / 16 = 5
-type U88 = BUintD8<11>; // 88 / 8 = 11
-type U56 = BUintD8<7>; // 56 / 8 = 7
-type U48 = BUintD8<6>; // 48 / 8 = 6
-type U40 = BUintD8<5>; // 40 / 8 = 5
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
@@ -131,7 +124,7 @@ impl core::fmt::Display for Duration {
 impl Duration {
     pub(crate) fn hour(value: i64) -> Self {
         Self {
-            sign: Sign::from(value),
+            sign: Sign::from(value.signum()),
             hours: U48::try_from(value.abs()).expect("Hours must be within range."),
             ..Default::default()
         }

@@ -215,7 +215,7 @@ impl IsoDateTime {
         // is not "day", CalendarMethodsRecordHasLookedUp(calendarRec, date-until) is true.
 
         // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
-        let mut time_duration = NormalizedTimeDuration::from_duration(&self.time.diff(&other.time));
+        let mut time_duration = self.time.diff(&other.time);
 
         // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
         let time_sign = time_duration.sign() as i8;
@@ -724,8 +724,8 @@ impl IsoTime {
         (days, time)
     }
 
-    /// Difference this `IsoTime` against another and returning a `Duration`.
-    pub(crate) fn diff(&self, other: &Self) -> Duration {
+    /// Difference this `IsoTime` against another and returning a `NormalizedTimeDuration`.
+    pub(crate) fn diff(&self, other: &Self) -> NormalizedTimeDuration {
         let h = i64::from(other.hour) - i64::from(self.hour);
         let m = i64::from(other.minute) - i64::from(self.minute);
         let s = i64::from(other.second) - i64::from(self.second);
@@ -735,7 +735,7 @@ impl IsoTime {
 
         let sign = duration_sign(&[h, m, s, ms, mis as i64, ns as i64]);
 
-        Duration::new_unchecked(
+        NormalizedTimeDuration::from_duration(&Duration::new_unchecked(
             sign,
             0,
             0,
@@ -747,7 +747,7 @@ impl IsoTime {
             ms.unsigned_abs(),
             mis.unsigned_abs().into(),
             ns.unsigned_abs().into(),
-        )
+        ))
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the

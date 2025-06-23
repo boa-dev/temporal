@@ -195,7 +195,7 @@ impl PlainTime {
         // temporalTime.[[ISOSecond]], temporalTime.[[ISOMillisecond]], temporalTime.[[ISOMicrosecond]],
         // temporalTime.[[ISONanosecond]], other.[[ISOHour]], other.[[ISOMinute]], other.[[ISOSecond]],
         // other.[[ISOMillisecond]], other.[[ISOMicrosecond]], other.[[ISONanosecond]]).
-        let mut normalized_time = self.iso.diff(&other.iso).to_normalized();
+        let mut normalized_time = self.iso.diff(&other.iso);
 
         // 6. If settings.[[SmallestUnit]] is not "nanosecond" or settings.[[RoundingIncrement]] ≠ 1, then
         if resolved.smallest_unit != Unit::Nanosecond

@@ -43,17 +43,25 @@ impl NormalizedTimeDuration {
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_duration(duration: &Duration) -> Self {
         // Note: Calculations must be done after casting to `i128` in order to preserve precision
-        let mut nanoseconds: i128 =
-            i128::try_from(duration.hours).expect("hour overflow") * NANOSECONDS_PER_HOUR;
+        let sign_multiplier = duration.sign().as_sign_multiplier() as i128;
+        let mut nanoseconds: i128 = i128::try_from(duration.hours).expect("hour overflow")
+            * NANOSECONDS_PER_HOUR
+            * sign_multiplier;
+        nanoseconds += i128::try_from(duration.minutes).expect("minute overflow")
+            * NANOSECONDS_PER_MINUTE
+            * sign_multiplier;
+        nanoseconds += i128::try_from(duration.seconds).expect("second overflow")
+            * 1_000_000_000
+            * sign_multiplier;
+        nanoseconds += i128::from(duration.milliseconds) * 1_000_000 * sign_multiplier;
+        nanoseconds += i128::try_from(duration.microseconds).expect("microsecond overflow")
+            * 1_000
+            * sign_multiplier;
         nanoseconds +=
-            i128::try_from(duration.minutes).expect("minute overflow") * NANOSECONDS_PER_MINUTE;
-        nanoseconds += i128::try_from(duration.seconds).expect("second overflow") * 1_000_000_000;
-        nanoseconds += i128::from(duration.milliseconds) * 1_000_000;
-        nanoseconds += i128::try_from(duration.microseconds).expect("microsecond overflow") * 1_000;
-        nanoseconds += i128::try_from(duration.nanoseconds).expect("nanosecond overflow");
+            i128::try_from(duration.nanoseconds).expect("nanosecond overflow") * sign_multiplier;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
-        Self(nanoseconds * duration.sign().as_sign_multiplier() as i128)
+        Self(nanoseconds)
     }
 
     /// Equivalent to 7.5.27 NormalizedTimeDurationFromEpochNanosecondsDifference ( one, two )
