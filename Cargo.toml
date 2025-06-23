@@ -6,10 +6,7 @@ members = [
     "zoneinfo",
 
     # Tools
-    "tools/bakeddata",
-    "tools/depcheck",
-    "tools/diplomat-gen",
-    "tools/zoneinfo-test-gen",
+    "tools/*",
 ]
 
 [workspace.package]
