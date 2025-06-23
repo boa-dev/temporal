@@ -187,7 +187,7 @@ pub use crate::builtins::{
     core::timezone::{TimeZone, UtcOffset},
     core::DateDuration,
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
-    TimeDuration, ZonedDateTime,
+    ZonedDateTime,
 };
 
 /// A library specific trait for unwrapping assertions.
@@ -246,14 +246,24 @@ impl From<i8> for Sign {
         }
     }
 }
+impl From<i64> for Sign {
+    fn from(value: i64) -> Self {
+        match value.cmp(&0) {
+            Ordering::Greater => Self::Positive,
+            Ordering::Equal => Self::Zero,
+            Ordering::Less => Self::Negative,
+        }
+    }
+}
 
 impl Sign {
     /// Coerces the current `Sign` to be either negative or positive.
     pub(crate) fn as_sign_multiplier(&self) -> i8 {
-        if matches!(self, Self::Zero) {
-            return 1;
+        match self {
+            Self::Positive => 1,
+            Self::Negative => -1,
+            Self::Zero => 0,
         }
-        *self as i8
     }
 
     pub(crate) fn negate(&self) -> Sign {
