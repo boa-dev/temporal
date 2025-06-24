@@ -22,7 +22,7 @@ use writeable::Writeable;
 use super::{
     calendar::month_to_month_code,
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    PlainMonthDay, PlainYearMonth,
+    PartialYearMonth, PlainMonthDay, PlainYearMonth,
 };
 use tinystr::TinyAsciiStr;
 
@@ -54,32 +54,6 @@ impl PartialDate {
         *self == Self::default()
     }
 
-    pub(crate) fn try_from_year_month(year_month: &PlainYearMonth) -> TemporalResult<Self> {
-        let (year, era, era_year) = if year_month.era().is_some() {
-            (
-                None,
-                year_month
-                    .era()
-                    .map(|t| TinyAsciiStr::<19>::try_from_utf8(t.as_bytes()))
-                    .transpose()
-                    .map_err(|e| TemporalError::general(format!("{e}")))?,
-                year_month.era_year(),
-            )
-        } else {
-            (Some(year_month.year()), None, None)
-        };
-        Ok(Self {
-            year,
-            month: Some(year_month.month()),
-            month_code: Some(year_month.month_code()),
-            day: Some(1),
-            era,
-            era_year,
-            calendar: year_month.calendar().clone(),
-        })
-    }
-
-    crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth); // excludes day
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
 }
@@ -719,7 +693,6 @@ impl PlainDate {
     /// Converts the current `Date` into a `PlainYearMonth`
     #[inline]
     pub fn to_plain_year_month(&self) -> TemporalResult<PlainYearMonth> {
-        // TODO: Migrate to `PartialYearMonth`
         let era = self
             .era()
             .map(|e| {
@@ -727,7 +700,7 @@ impl PlainDate {
                     .map_err(|e| TemporalError::general(format!("{e}")))
             })
             .transpose()?;
-        let partial = PartialDate::new()
+        let partial = PartialYearMonth::new()
             .with_year(Some(self.year()))
             .with_era(era)
             .with_era_year(self.era_year())
