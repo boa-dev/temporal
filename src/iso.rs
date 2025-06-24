@@ -44,6 +44,34 @@ use crate::{
 use icu_calendar::{Date as IcuDate, Iso};
 use num_traits::{cast::FromPrimitive, Euclid};
 
+// ISO/Temporal specification limits
+//
+// Year limits are defined by the ECMAScript Temporal specification:
+// https://tc39.es/proposal-temporal/#sec-temporal-date-objects
+// These limits ensure compatibility with ISO 8601 extended year format
+// and avoid issues with JavaScript's Date object limitations.
+//
+// Time component limits follow ISO 8601 standard:
+// https://www.iso.org/iso-8601-date-and-time-format.html
+// See also RFC 3339: https://tools.ietf.org/html/rfc3339
+
+/// Minimum supported year (-271821-04-19T00:00:00Z corresponds to ECMAScript's minimum time value)
+pub(crate) const MIN_ISO_YEAR: i32 = -271821;
+/// Maximum supported year (275760-09-13T00:00:00Z corresponds to ECMAScript's maximum time value)
+pub(crate) const MAX_ISO_YEAR: i32 = 275760;
+/// Minimum month value per ISO 8601
+pub(crate) const MIN_ISO_MONTH: u8 = 1;
+/// Maximum month value per ISO 8601
+pub(crate) const MAX_ISO_MONTH: u8 = 12;
+/// Minimum day value per ISO 8601
+pub(crate) const MIN_ISO_DAY: u8 = 1;
+/// Maximum hour value per ISO 8601 (24-hour format, 0-23)
+pub(crate) const MAX_ISO_HOUR: u8 = 23;
+/// Maximum minute value per ISO 8601
+pub(crate) const MAX_ISO_MINUTE: u8 = 59;
+/// Maximum second value per ISO 8601
+pub(crate) const MAX_ISO_SECOND: u8 = 59;
+
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
