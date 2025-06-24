@@ -14,6 +14,7 @@
 
 typedef struct TemporalError {
   ErrorKind kind;
+  OptionStringView msg;
 } TemporalError;
 
 typedef struct TemporalError_option {union { TemporalError ok; }; bool is_ok; } TemporalError_option;
