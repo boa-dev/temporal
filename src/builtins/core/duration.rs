@@ -82,6 +82,8 @@ impl PartialDuration {
 ///
 /// ## Examples
 ///
+/// ### Creating durations
+///
 /// ```rust
 /// use temporal_rs::Duration;
 ///
@@ -96,43 +98,55 @@ impl PartialDuration {
 /// assert_eq!(vacation_duration.days(), 3);
 /// ```
 ///
-/// Parsing ISO 8601 duration strings:
+/// ### Parsing ISO 8601 duration strings
 ///
 /// ```rust
 /// use temporal_rs::Duration;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// // Complex duration with multiple components
 /// let complex = Duration::from_str("P1Y2M3DT4H5M6.789S").unwrap();
+/// assert_eq!(complex.years(), 1);
+/// assert_eq!(complex.months(), 2);
+/// assert_eq!(complex.days(), 3);
+/// assert_eq!(complex.hours(), 4);
+/// assert_eq!(complex.minutes(), 5);
+/// assert_eq!(complex.seconds(), 6);
 ///
 /// // Time-only duration
 /// let movie_length = Duration::from_str("PT2H30M").unwrap();
+/// assert_eq!(movie_length.hours(), 2);
+/// assert_eq!(movie_length.minutes(), 30);
 ///
 /// // Negative durations
 /// let negative = Duration::from_str("-P1D").unwrap();
+/// assert_eq!(negative.days(), -1);
 /// ```
 ///
-/// Duration arithmetic:
+/// ### Duration arithmetic
 ///
 /// ```rust
 /// use temporal_rs::Duration;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let commute_time = Duration::from_str("PT45M").unwrap();
 /// let lunch_break = Duration::from_str("PT1H").unwrap();
 ///
 /// // Add durations together
 /// let total_time = commute_time.add(&lunch_break).unwrap();
-/// // Results in 1 hour 45 minutes
+/// assert_eq!(total_time.hours(), 1);    // Results in 1 hour 45 minutes
+/// assert_eq!(total_time.minutes(), 45);
 ///
 /// // Subtract duration components
 /// let shortened = lunch_break.subtract(&Duration::from_str("PT15M").unwrap()).unwrap();
 /// assert_eq!(shortened.minutes(), 45);
 /// ```
 ///
+/// ### Date arithmetic with durations
+///
 /// ```rust
 /// use temporal_rs::{PlainDate, Duration, options::ArithmeticOverflow};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// // January 31st in different years
 /// let jan_31_2023 = PlainDate::try_new_iso(2023, 1, 31).unwrap();
@@ -171,7 +185,7 @@ impl PartialDuration {
 ///
 /// ```rust
 /// use temporal_rs::Duration;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let duration = Duration::from_str("P1Y2M3D").unwrap();
 ///

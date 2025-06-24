@@ -51,11 +51,11 @@ use writeable::Writeable;
 /// // Reference day helps with calendar calculations but doesn't affect the YearMonth itself
 /// ```
 ///
-/// ### Parsing from strings
+/// ### Parsing ISO 8601 year-month strings
 ///
 /// ```rust
 /// use temporal_rs::PlainYearMonth;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// // Parse year-month strings
 /// let ym = PlainYearMonth::from_str("2024-03").unwrap();
@@ -63,16 +63,17 @@ use writeable::Writeable;
 /// assert_eq!(ym.month(), 3);
 ///
 /// // Also accepts full date strings (day is ignored for YearMonth semantics)
-/// let ym = PlainYearMonth::from_str("2024-03-15").unwrap();
-/// assert_eq!(ym.year(), 2024);
-/// assert_eq!(ym.month(), 3);
+/// let ym2 = PlainYearMonth::from_str("2024-03-15").unwrap();
+/// assert_eq!(ym2.year(), 2024);
+/// assert_eq!(ym2.month(), 3);
+/// assert_eq!(ym, ym2); // equivalent
 /// ```
 ///
 /// ### YearMonth arithmetic
 ///
 /// ```rust
 /// use temporal_rs::{PlainYearMonth, Duration, options::DifferenceSettings};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-01").unwrap();
 ///
@@ -91,7 +92,7 @@ use writeable::Writeable;
 ///
 /// ```rust
 /// use temporal_rs::{PlainYearMonth, partial::PartialDate};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-01").unwrap();
 ///
@@ -112,7 +113,7 @@ use writeable::Writeable;
 ///
 /// ```rust
 /// use temporal_rs::{PlainYearMonth, partial::PartialDate};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-03").unwrap();
 ///
@@ -128,7 +129,7 @@ use writeable::Writeable;
 ///
 /// ```rust
 /// use temporal_rs::PlainYearMonth;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-02").unwrap(); // February 2024
 ///

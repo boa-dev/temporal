@@ -57,7 +57,7 @@ impl PartialDateTime {
 /// The native Rust implementation of a Temporal `PlainDateTime`.
 ///
 /// Combines a date and time into a single value representing a specific moment
-/// in calendar time, such as "March 15th, 2024 at 14:30:45". Unlike `Instant`,
+/// in calendar time, such as "2024-03-15T14:30:45". Unlike `Instant`,
 /// a `PlainDateTime` does not include timezone information.
 ///
 /// Use `PlainDateTime` when you need to represent a specific date and time but
@@ -66,22 +66,27 @@ impl PartialDateTime {
 ///
 /// ## Examples
 ///
+/// ### Creating date and time values
+///
 /// ```rust
 /// use temporal_rs::{PlainDateTime, Calendar};
 ///
 /// // Create a specific date and time
 /// let meeting = PlainDateTime::try_new_iso(
-///     2024, 3, 15,     // March 15th, 2024
-///     14, 30, 45,      // 2:30:45 PM
+///     2024, 3, 15,     // 2024-03-15
+///     14, 30, 45,      // 14:30:45
 ///     123, 456, 789    // subsecond precision
 /// ).unwrap();
+/// assert_eq!(meeting.year(), 2024);
+/// assert_eq!(meeting.hour(), 14);
+/// assert_eq!(meeting.minute(), 30);
 /// ```
 ///
-/// ### Parsing from strings
+/// ### Parsing ISO 8601 datetime strings
 ///
 /// ```rust
 /// use temporal_rs::PlainDateTime;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let dt = PlainDateTime::from_str("2024-03-15T14:30:45.123456789").unwrap();
 /// assert_eq!(dt.year(), 2024);
@@ -99,7 +104,7 @@ impl PartialDateTime {
 ///
 /// ```rust
 /// use temporal_rs::{PlainDateTime, Duration};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let dt = PlainDateTime::from_str("2024-01-15T12:00:00").unwrap();
 ///
@@ -122,7 +127,7 @@ impl PartialDateTime {
 ///
 /// ```rust
 /// use temporal_rs::{PlainDateTime, partial::{PartialDateTime, PartialDate, PartialTime}};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let dt = PlainDateTime::from_str("2024-01-15T12:30:45").unwrap();
 ///
@@ -139,7 +144,7 @@ impl PartialDateTime {
 ///
 /// ```rust
 /// use temporal_rs::{PlainDateTime, PlainTime};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let dt = PlainDateTime::from_str("2024-03-15T14:30:45").unwrap();
 ///

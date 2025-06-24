@@ -94,6 +94,8 @@ impl PartialTime {
 ///
 /// ## Examples
 ///
+/// ### Creating time values
+///
 /// ```rust
 /// use temporal_rs::PlainTime;
 ///
@@ -102,16 +104,19 @@ impl PartialTime {
 ///     14, 30, 45,      // 2:30:45 PM
 ///     123, 456, 789    // subsecond components
 /// ).unwrap();
+/// assert_eq!(precise_time.hour(), 14);
+/// assert_eq!(precise_time.millisecond(), 123);
 ///
 /// // Simple time without subseconds
 /// let simple = PlainTime::try_new(9, 0, 0, 0, 0, 0).unwrap();
+/// assert_eq!(simple.hour(), 9);
 /// ```
 ///
-/// ### Parsing from strings
+/// ### Parsing ISO 8601 time strings
 ///
 /// ```rust
 /// use temporal_rs::PlainTime;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let time = PlainTime::from_str("14:30:45.123456789").unwrap();
 /// assert_eq!(time.hour(), 14);
@@ -132,7 +137,7 @@ impl PartialTime {
 ///
 /// ```rust
 /// use temporal_rs::{PlainTime, Duration};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let time = PlainTime::from_str("12:30:00").unwrap();
 ///
@@ -153,7 +158,7 @@ impl PartialTime {
 ///
 /// ```rust
 /// use temporal_rs::{PlainTime, partial::PartialTime};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let time = PlainTime::from_str("12:30:45").unwrap();
 ///
@@ -169,7 +174,7 @@ impl PartialTime {
 ///
 /// ```rust
 /// use temporal_rs::{PlainTime, options::{Unit, RoundingMode}};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let time = PlainTime::from_str("14:23:47.789").unwrap();
 ///

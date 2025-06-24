@@ -43,11 +43,11 @@ use writeable::Writeable;
 /// assert_eq!(md.calendar().identifier(), "iso8601");
 /// ```
 ///
-/// ### Parsing from strings
+/// ### Parsing ISO 8601 month-day strings
 ///
 /// ```rust
 /// use temporal_rs::{PlainMonthDay, MonthCode};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// // Parse month-day strings
 /// let md = PlainMonthDay::from_str("03-15").unwrap();
@@ -55,16 +55,17 @@ use writeable::Writeable;
 /// assert_eq!(md.day(), 15);
 ///
 /// // Also supports various formats
-/// let md = PlainMonthDay::from_str("--03-15").unwrap(); // RFC 3339 format
-/// assert_eq!(md.month_code(), MonthCode::try_from_utf8("M03".as_bytes()).unwrap());
-/// assert_eq!(md.day(), 15);
+/// let md2 = PlainMonthDay::from_str("--03-15").unwrap(); // RFC 3339 format
+/// assert_eq!(md2.month_code(), MonthCode::try_from_utf8("M03".as_bytes()).unwrap());
+/// assert_eq!(md2.day(), 15);
+/// assert_eq!(md, md2); // equivalent
 /// ```
 ///
 /// ### Working with partial fields
 ///
 /// ```rust
 /// use temporal_rs::{PlainMonthDay, MonthCode, partial::PartialDate};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let md = PlainMonthDay::from_str("03-15").unwrap(); // March 15th
 ///
@@ -85,7 +86,7 @@ use writeable::Writeable;
 ///
 /// ```rust
 /// use temporal_rs::{PlainMonthDay, partial::PartialDate};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let md = PlainMonthDay::from_str("12-25").unwrap(); // December 25th
 ///
@@ -124,7 +125,7 @@ use writeable::Writeable;
 ///
 /// ```rust
 /// use temporal_rs::{PlainMonthDay, partial::PartialDate};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// // Birthday (recurring annually)
 /// let birthday = PlainMonthDay::from_str("07-15").unwrap(); // July 15th

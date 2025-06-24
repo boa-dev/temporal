@@ -35,7 +35,7 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 /// The native Rust implementation of `Temporal.Instant`.
 ///
 /// Represents a precise moment in time measured as nanoseconds since the Unix epoch
-/// (January 1st, 1970 at midnight UTC). An `Instant` provides a universal timestamp
+/// (1970-01-01T00:00:00[UTC]). An `Instant` provides a universal timestamp
 /// that represents the same moment regardless of timezone or calendar system.
 ///
 /// Use `Instant` when you need to record exact moments in time, measure elapsed time,
@@ -44,36 +44,42 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 ///
 /// ## Examples
 ///
+/// ### Creating instants
+///
 /// ```rust
 /// use temporal_rs::Instant;
 ///
 /// // From epoch nanoseconds (high-precision timestamps)
 /// let precise_moment = Instant::try_new(1609459200000000000).unwrap();
+/// assert_eq!(precise_moment.epoch_milliseconds(), 1609459200000);
 ///
 /// // From epoch milliseconds (common in web applications)
 /// let web_timestamp = Instant::from_epoch_milliseconds(1609459200000).unwrap();
+/// assert_eq!(web_timestamp.epoch_nanoseconds().as_i128(), 1609459200000000000);
 /// ```
 ///
-/// ### Parsing from strings
+/// ### Parsing ISO 8601 instant strings
 ///
 /// ```rust
 /// use temporal_rs::Instant;
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// // Parse ISO 8601 instant strings (must include timezone info)
 /// let instant = Instant::from_str("2024-03-15T14:30:45.123Z").unwrap();
 /// assert_eq!(instant.epoch_milliseconds(), 1710513045123);
 ///
 /// // Parse instants with different timezone notations
-/// let _instant2 = Instant::from_str("2024-03-15T14:30:45.123+00:00").unwrap();
-/// let _instant3 = Instant::from_str("2024-03-15T14:30:45.123-00:00").unwrap();
+/// let instant2 = Instant::from_str("2024-03-15T14:30:45.123+00:00").unwrap();
+/// let instant3 = Instant::from_str("2024-03-15T14:30:45.123-00:00").unwrap();
+/// assert_eq!(instant, instant2);
+/// assert_eq!(instant2, instant3);
 /// ```
 ///
 /// ### Instant arithmetic
 ///
 /// ```rust
 /// use temporal_rs::{Instant, Duration};
-/// use std::str::FromStr;
+/// use core::str::FromStr;
 ///
 /// let instant = Instant::try_new(1609459200000000000).unwrap(); // 2021-01-01T00:00:00Z
 ///
