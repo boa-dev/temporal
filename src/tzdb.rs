@@ -43,7 +43,7 @@ use timezone_provider::prelude::*;
 use tzif::{
     self,
     data::{
-        posix::{DstTransitionInfo, PosixTzString, TransitionDay, ZoneVariantInfo},
+        posix::{DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDay},
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -61,8 +61,8 @@ timezone_provider::iana_normalizer_singleton!();
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
-impl From<&ZoneVariantInfo> for UtcOffsetSeconds {
-    fn from(value: &ZoneVariantInfo) -> Self {
+impl From<&TimeZoneVariantInfo> for UtcOffsetSeconds {
+    fn from(value: &TimeZoneVariantInfo) -> Self {
         Self(-value.offset.0)
     }
 }
@@ -167,12 +167,19 @@ impl Tzif {
 
     #[cfg(target_family = "unix")]
     pub fn read_tzif(identifier: &str) -> TemporalResult<Self> {
+        // Protect from path traversal attacks
+        if identifier.starts_with('/') || identifier.contains('.') {
+            return Err(TemporalError::range().with_message("Ill-formed timezone identifier"));
+        }
         let mut path = PathBuf::from(ZONEINFO_DIR);
         path.push(identifier);
         Self::from_path(&path)
     }
 
     pub fn from_path(path: &Path) -> TemporalResult<Self> {
+        if !path.exists() {
+            return Err(TemporalError::range().with_message("Unknown timezone identifier"));
+        }
         tzif::parse_tzif_file(path)
             .map(Into::into)
             .map_err(|e| TemporalError::general(e.to_string()))

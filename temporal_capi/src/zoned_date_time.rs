@@ -151,8 +151,16 @@ pub mod ffi {
             self.0.epoch_milliseconds()
         }
 
+        pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
+            super::zdt_from_epoch_ms(ms, &tz.0).map(|c| Box::new(Self(c)))
+        }
+
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
             self.0.epoch_nanoseconds().as_i128().into()
+        }
+
+        pub fn offset_nanoseconds(&self) -> Result<i64, TemporalError> {
+            self.0.offset_nanoseconds().map_err(Into::into)
         }
 
         pub fn to_instant(&self) -> Box<Instant> {
@@ -190,6 +198,17 @@ pub mod ffi {
 
         pub fn compare_instant(&self, other: &Self) -> core::cmp::Ordering {
             self.0.compare_instant(&other.0)
+        }
+
+        pub fn equals(&self, other: &Self) -> bool {
+            self.0 == other.0
+        }
+
+        pub fn offset(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
+            let string = self.0.offset()?;
+            // throw away the error, this should always succeed
+            let _ = write.write_str(&string);
+            Ok(())
         }
 
         pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
@@ -424,6 +443,15 @@ pub mod ffi {
             self.0.era_year().unwrap_or_default()
         }
     }
+}
+
+#[cfg(feature = "compiled_data")]
+pub(crate) fn zdt_from_epoch_ms(
+    ms: i64,
+    time_zone: &temporal_rs::TimeZone,
+) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
+    let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
+    Ok(instant.to_zoned_date_time_iso(time_zone.clone()))
 }
 
 #[cfg(feature = "compiled_data")]

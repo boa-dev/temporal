@@ -12,7 +12,7 @@
 
 
 typedef struct I128Nanoseconds {
-  int64_t high;
+  uint64_t high;
   uint64_t low;
 } I128Nanoseconds;
 

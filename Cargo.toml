@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["diplomat-gen", "bakeddata", "provider", "temporal_capi", "depcheck"]
+members = [
+    "provider",
+    "temporal_capi",
+    "zoneinfo",
+
+    # Tools
+    "tools/*",
+]
 
 [workspace.package]
 edition = "2021"
@@ -23,6 +30,7 @@ exclude = [
 # Self
 temporal_rs = { version = "~0.0.9", path = ".", default-features = false }
 timezone_provider = { version = "~0.0.9", path = "./provider" }
+zoneinfo_rs = { version = "~0.0.9", path = "./zoneinfo" }
 
 # Dependencies
 tinystr = "0.8.1"
@@ -33,7 +41,7 @@ num-traits = { version = "0.2.19", default-features = false }
 ixdtf = "0.5.0"
 iana-time-zone = "0.1.63"
 log = "0.4.27"
-tzif = "0.3.0"
+tzif = "0.4.0"
 jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
@@ -57,7 +65,7 @@ exclude.workspace = true
 core_maths = "0.1.1"
 icu_calendar = { workspace = true, features = ["compiled_data"] }
 icu_locale.workspace = true
-ixdtf = { workspace = true, features = ["duration"]}
+ixdtf = { workspace = true, features = ["duration"] }
 num-traits.workspace = true
 tinystr.workspace = true
 writeable = "0.6.1"
@@ -69,10 +77,10 @@ log = { workspace = true, optional = true }
 tzif = { workspace = true, optional = true }
 jiff-tzdb = { workspace = true, optional = true }
 combine = { workspace = true, optional = true }
-timezone_provider = { workspace = true, optional = true}
+timezone_provider = { workspace = true, optional = true }
 
 # System time feature
-web-time = { workspace = true, optional =  true }
+web-time = { workspace = true, optional = true }
 iana-time-zone = { workspace = true, optional = true }
 
 [features]
@@ -80,7 +88,13 @@ default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
 sys = ["std", "dep:web-time", "dep:iana-time-zone"]
-tzdb = ["dep:tzif", "std", "dep:jiff-tzdb", "dep:combine", "dep:timezone_provider"]
+tzdb = [
+    "dep:tzif",
+    "std",
+    "dep:jiff-tzdb",
+    "dep:combine",
+    "dep:timezone_provider",
+]
 std = []
 
 [package.metadata.cargo-all-features]
