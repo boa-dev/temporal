@@ -129,6 +129,8 @@ jobs:
           pushd temporal_capi/tests/c && make && popd
           pushd temporal_capi/tests/cpp && make && popd
 
+      - name: temporal_capi tests
+        run: cargo test -p temporal_capi --all-features
       # There's no guarantee that dependencies are no_std unless you test with a toolchain without `std`
       - name: Install no_std toolchain
         run: rustup target add thumbv7m-none-eabi
