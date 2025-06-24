@@ -7,7 +7,12 @@ fn main() -> std::io::Result<()> {
 
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
 
-    let capi = manifest.parent().unwrap().join("temporal_capi");
+    let capi = manifest
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join("temporal_capi");
 
     let library_config = Config::default();
 
