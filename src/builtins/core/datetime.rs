@@ -69,14 +69,11 @@ impl PartialDateTime {
 /// ### Creating date and time values
 ///
 /// ```rust
-/// use temporal_rs::{PlainDateTime, Calendar};
+/// use temporal_rs::PlainDateTime;
+/// use core::str::FromStr;
 ///
-/// // Create a specific date and time
-/// let meeting = PlainDateTime::try_new_iso(
-///     2024, 3, 15,     // 2024-03-15
-///     14, 30, 45,      // 14:30:45
-///     123, 456, 789    // subsecond precision
-/// ).unwrap();
+/// // Create a specific date and time from IXDTF string
+/// let meeting = PlainDateTime::from_str("2024-03-15T14:30:45.123456789").unwrap();
 /// assert_eq!(meeting.year(), 2024);
 /// assert_eq!(meeting.hour(), 14);
 /// assert_eq!(meeting.minute(), 30);
