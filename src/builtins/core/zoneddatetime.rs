@@ -13,6 +13,7 @@ use crate::{
         timezone::{TimeZone, UtcOffset},
         Duration, Instant, PlainDate, PlainDateTime, PlainTime,
     },
+    error::ErrorMessage,
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
@@ -266,8 +267,9 @@ impl ZonedDateTime {
         let intermediate = IsoDateTime::new_unchecked(added_date.iso, iso_datetime.time);
         // 5. If ISODateTimeWithinLimits(intermediateDateTime) is false, throw a RangeError exception.
         if !intermediate.is_within_limits() {
-            return Err(TemporalError::range()
-                .with_message("Intermediate ISO datetime was not within a valid range."));
+            return Err(
+                TemporalError::range().with_enum(ErrorMessage::IntermediateDateTimeOutOfRange)
+            );
         }
         // 6. Let intermediateNs be ! GetEpochNanosecondsFor(timeZone, intermediateDateTime, compatible).
         let intermediate_ns = self.timezone().get_epoch_nanoseconds_for(
@@ -465,8 +467,7 @@ impl ZonedDateTime {
         // NOTE: for order of operations, this should be asserted prior to this point
         // by any engine implementors, but asserting out of caution.
         if self.calendar != other.calendar {
-            return Err(TemporalError::range()
-                .with_message("Calendar must be the same when diffing two ZonedDateTimes"));
+            return Err(TemporalError::range().with_enum(ErrorMessage::CalendarMismatch));
         }
 
         // 4. Set settings be ? GetDifferenceSettings(operation, resolvedOptions, datetime, « », nanosecond, hour).
@@ -500,8 +501,7 @@ impl ZonedDateTime {
         // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
         if self.tz != other.tz {
             // a. Throw a RangeError exception.
-            return Err(TemporalError::range()
-                .with_message("Time zones cannot be different if unit is a date unit."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::TzMismatch));
         }
 
         // 8. If zonedDateTime.[[EpochNanoseconds]] = other.[[EpochNanoseconds]], then
@@ -1193,8 +1193,7 @@ impl ZonedDateTime {
             let start_ns = self.tz.get_start_of_day(&iso_start.date, provider)?;
             let end_ns = self.tz.get_start_of_day(&iso_end, provider)?;
             if !(this_ns.0 >= start_ns.0 && this_ns.0 < end_ns.0) {
-                return Err(TemporalError::range()
-                    .with_message("ZonedDateTime is outside the expected day bounds"));
+                return Err(TemporalError::range().with_enum(ErrorMessage::ZDTOutOfDayBounds));
             }
             // g. Let dayLengthNs be ℝ(endNs - startNs).
             // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
@@ -1324,9 +1323,7 @@ impl ZonedDateTime {
             .transpose()?;
 
         let Some(parsed_date) = parse_result.date else {
-            return Err(
-                TemporalError::range().with_message("No valid DateRecord Parse Node was found.")
-            );
+            return Err(TemporalError::range().with_enum(ErrorMessage::ParserNeedsDate));
         };
 
         let date = IsoDate::new_with_overflow(
@@ -1446,8 +1443,9 @@ pub(crate) fn interpret_isodatetime_offset(
 
             // 11. If offsetOption is reject, throw a RangeError exception.
             if offset_option == OffsetDisambiguation::Reject {
-                return Err(TemporalError::range()
-                    .with_message("Offsets could not be determined without disambiguation"));
+                return Err(
+                    TemporalError::range().with_enum(ErrorMessage::OffsetNeedsDisambiguation)
+                );
             }
             // 12. Return ? DisambiguatePossibleEpochNanoseconds(possibleEpochNs, timeZone, isoDateTime, disambiguation).
             timezone.disambiguate_possible_epoch_nanos(
