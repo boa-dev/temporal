@@ -140,7 +140,124 @@ impl PartialYearMonth {
     }
 }
 
-/// The native Rust implementation of `Temporal.YearMonth`.
+/// The native Rust implementation of `Temporal.PlainYearMonth`.
+///
+/// Represents a specific month within a specific year, such as "January 2024"
+/// or "December 2023", without a specific day component.
+///
+/// Useful for representing time periods at month granularity, such as billing
+/// periods, reporting intervals, or any scenario where you need to work with
+/// entire months rather than specific dates.
+///
+/// ## Examples
+///
+/// ### Creating a PlainYearMonth
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, Calendar};
+///
+/// // Create with ISO 8601 calendar
+/// let ym = PlainYearMonth::try_new_iso(2024, 3, None).unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+/// assert_eq!(ym.calendar().identifier(), "iso8601");
+///
+/// // Create with explicit calendar and reference day
+/// let ym = PlainYearMonth::try_new(2024, 3, Some(15), Calendar::default()).unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+/// // Reference day helps with calendar calculations but doesn't affect the YearMonth itself
+/// ```
+///
+/// ### Parsing ISO 8601 year-month strings
+///
+/// ```rust
+/// use temporal_rs::PlainYearMonth;
+/// use core::str::FromStr;
+///
+/// // Parse year-month strings
+/// let ym = PlainYearMonth::from_str("2024-03").unwrap();
+/// assert_eq!(ym.year(), 2024);
+/// assert_eq!(ym.month(), 3);
+///
+/// // Also accepts full date strings (day is ignored for YearMonth semantics)
+/// let ym2 = PlainYearMonth::from_str("2024-03-15").unwrap();
+/// assert_eq!(ym2.year(), 2024);
+/// assert_eq!(ym2.month(), 3);
+/// assert_eq!(ym, ym2); // equivalent
+/// ```
+///
+/// ### YearMonth arithmetic
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, options::DifferenceSettings};
+/// use core::str::FromStr;
+///
+/// let ym1 = PlainYearMonth::from_str("2024-01").unwrap();
+/// let ym2 = PlainYearMonth::from_str("2024-04").unwrap();
+///
+/// // Calculate difference between year-months  
+/// let duration = ym1.until(&ym2, DifferenceSettings::default()).unwrap();
+/// assert_eq!(duration.months(), 3); // January to April = 3 months
+/// ```
+///
+/// ### Working with partial fields
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, partial::PartialYearMonth};
+/// use core::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-01").unwrap();
+///
+/// // Change only the year
+/// let partial = PartialYearMonth::new().with_year(Some(2025));
+/// let modified = ym.with(partial, None).unwrap();
+/// assert_eq!(modified.year(), 2025);
+/// assert_eq!(modified.month(), 1); // unchanged
+///
+/// // Change only the month
+/// let partial = PartialYearMonth::new().with_month(Some(6));
+/// let modified = ym.with(partial, None).unwrap();
+/// assert_eq!(modified.year(), 2024); // unchanged
+/// assert_eq!(modified.month(), 6);
+/// ```
+///
+/// ### Converting to PlainDate
+///
+/// ```rust
+/// use temporal_rs::{PlainYearMonth, partial::PartialDate};
+/// use core::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-03").unwrap();
+///
+/// // Convert to a specific date by providing a day
+/// let day_partial = PartialDate::new().with_day(Some(15));
+/// let date = ym.to_plain_date(Some(day_partial)).unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 3);
+/// assert_eq!(date.day(), 15);
+/// ```
+///
+/// ### Calendar properties
+///
+/// ```rust
+/// use temporal_rs::PlainYearMonth;
+/// use core::str::FromStr;
+///
+/// let ym = PlainYearMonth::from_str("2024-02").unwrap(); // February 2024
+///
+/// // Get calendar-specific properties
+/// assert_eq!(ym.days_in_month(), 29); // 2024 is a leap year
+/// assert_eq!(ym.days_in_year(), 366); // leap year has 366 days
+/// assert_eq!(ym.months_in_year(), 12); // ISO calendar has 12 months
+/// assert!(ym.in_leap_year()); // 2024 is indeed a leap year
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plainyearmonth].
+///
+/// [mdn-plainyearmonth]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainYearMonth
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainYearMonth {
