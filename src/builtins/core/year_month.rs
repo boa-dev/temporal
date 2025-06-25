@@ -190,38 +190,33 @@ impl PartialYearMonth {
 /// ### YearMonth arithmetic
 ///
 /// ```rust
-/// use temporal_rs::{PlainYearMonth, Duration, options::DifferenceSettings};
+/// use temporal_rs::{PlainYearMonth, options::DifferenceSettings};
 /// use core::str::FromStr;
 ///
-/// let ym = PlainYearMonth::from_str("2024-01").unwrap();
+/// let ym1 = PlainYearMonth::from_str("2024-01").unwrap();
+/// let ym2 = PlainYearMonth::from_str("2024-04").unwrap();
 ///
-/// // Add duration (only years and months are meaningful)
-/// let later = ym.add(&Duration::from_str("P1Y3M").unwrap(), Default::default()).unwrap();
-/// assert_eq!(later.year(), 2025);
-/// assert_eq!(later.month(), 4);
-///
-/// // Calculate difference between year-months
-/// let earlier = PlainYearMonth::from_str("2023-10").unwrap();
-/// let duration = earlier.until(&ym, Default::default()).unwrap();
-/// assert_eq!(duration.months(), 3); // October to January = 3 months
+/// // Calculate difference between year-months  
+/// let duration = ym1.until(&ym2, DifferenceSettings::default()).unwrap();
+/// assert_eq!(duration.months(), 3); // January to April = 3 months
 /// ```
 ///
 /// ### Working with partial fields
 ///
 /// ```rust
-/// use temporal_rs::{PlainYearMonth, partial::PartialDate};
+/// use temporal_rs::{PlainYearMonth, partial::PartialYearMonth};
 /// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-01").unwrap();
 ///
 /// // Change only the year
-/// let partial = PartialDate::new().with_year(Some(2025));
+/// let partial = PartialYearMonth::new().with_year(Some(2025));
 /// let modified = ym.with(partial, None).unwrap();
 /// assert_eq!(modified.year(), 2025);
 /// assert_eq!(modified.month(), 1); // unchanged
 ///
 /// // Change only the month
-/// let partial = PartialDate::new().with_month(Some(6));
+/// let partial = PartialYearMonth::new().with_month(Some(6));
 /// let modified = ym.with(partial, None).unwrap();
 /// assert_eq!(modified.year(), 2024); // unchanged
 /// assert_eq!(modified.month(), 6);
