@@ -1,4 +1,5 @@
 ## What's Changed in v0.0.10
+* Add documentation and doctests for builtins by @blarfoon in [#360](https://github.com/boa-dev/temporal/pull/360)
 * More error enums by @Manishearth in [#373](https://github.com/boa-dev/temporal/pull/373)
 * [capi] Add stringifier/cloning to timezones by @Manishearth in [#344](https://github.com/boa-dev/temporal/pull/344)
 * Handle unknown timezone identifiers in FsTzdbProvider by @Manishearth in [#345](https://github.com/boa-dev/temporal/pull/345)
@@ -17,6 +18,9 @@
 * Add some FAQ style docs for temporal_rs by @nekevss in [#350](https://github.com/boa-dev/temporal/pull/350)
 * Add try_from_offset_str ctor for TimeZone by @Manishearth in [#348](https://github.com/boa-dev/temporal/pull/348)
 * Switch compiled_data APIs to new CompiledTzdbProvider by @Manishearth in [#346](https://github.com/boa-dev/temporal/pull/346)
+
+## New Contributors
+* @blarfoon made their first contribution in [#360](https://github.com/boa-dev/temporal/pull/360)
 
 **Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.9...v0.0.10
 
