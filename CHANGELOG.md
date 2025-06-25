@@ -1,4 +1,10 @@
 ## What's Changed in v0.0.10
+* More error enums by @Manishearth in [#373](https://github.com/boa-dev/temporal/pull/373)
+* [capi] Add stringifier/cloning to timezones by @Manishearth in [#344](https://github.com/boa-dev/temporal/pull/344)
+* Handle unknown timezone identifiers in FsTzdbProvider by @Manishearth in [#345](https://github.com/boa-dev/temporal/pull/345)
+* [capi] Fix i128Nanoseconds by @Manishearth in [#372](https://github.com/boa-dev/temporal/pull/372)
+* [capi] expose error strings by @Manishearth in [#364](https://github.com/boa-dev/temporal/pull/364)
+* Consolidate tools into a single `tool` directory by @nekevss in [#368](https://github.com/boa-dev/temporal/pull/368)
 * Add a new PartialYearMonth to available partial structs (#288) by @robot-head in [#342](https://github.com/boa-dev/temporal/pull/342)
 * Implement zoneinfo parsing/compilation and add TZif structs by @nekevss in [#257](https://github.com/boa-dev/temporal/pull/257)
 * Add ErrorMessage enum, start using it by @Manishearth in [#355](https://github.com/boa-dev/temporal/pull/355)
