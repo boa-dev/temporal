@@ -1,5 +1,7 @@
 #[cfg(feature = "compiled_data")]
 use crate::error::ffi::TemporalError;
+#[cfg(feature = "compiled_data")]
+use temporal_rs::options::RelativeTo;
 
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
@@ -53,24 +55,27 @@ pub mod ffi {
     }
 
     impl OwnedRelativeTo {
-        pub fn try_from_str(source: &DiplomatStr) -> Result<Self, TemporalError> {
-            use temporal_rs::options::RelativeTo;
+        // Retained for compatability
+        // TODO remove in any version after 0.0.10
+        pub fn try_from_str(s: &DiplomatStr) -> Result<Self, TemporalError> {
+            Self::from_utf8(s)
+        }
+
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Self, TemporalError> {
             // TODO(#275) This should not need to check
-            let s =
-                core::str::from_utf8(source).map_err(|_| temporal_rs::TemporalError::range())?;
+            let s = core::str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
 
-            let converted = RelativeTo::try_from_str(s).map_err(Into::<TemporalError>::into)?;
+            super::RelativeTo::try_from_str(s)
+                .map(Into::into)
+                .map_err(Into::<TemporalError>::into)
+        }
 
-            match converted {
-                RelativeTo::PlainDate(d) => Ok(Self {
-                    date: Some(Box::new(PlainDate(d))),
-                    zoned: None,
-                }),
-                RelativeTo::ZonedDateTime(d) => Ok(Self {
-                    zoned: Some(Box::new(ZonedDateTime(d))),
-                    date: None,
-                }),
-            }
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Self, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+            super::RelativeTo::try_from_str(&s)
+                .map(Into::into)
+                .map_err(Into::<TemporalError>::into)
         }
 
         pub fn empty() -> Self {
@@ -480,6 +485,23 @@ impl From<ffi::RelativeTo<'_>> for Option<temporal_rs::options::RelativeTo> {
             other
                 .zoned
                 .map(|z| temporal_rs::options::RelativeTo::ZonedDateTime(z.0.clone()))
+        }
+    }
+}
+
+#[cfg(feature = "compiled_data")]
+impl From<RelativeTo> for ffi::OwnedRelativeTo {
+    fn from(other: RelativeTo) -> Self {
+        use alloc::boxed::Box;
+        match other {
+            RelativeTo::PlainDate(d) => Self {
+                date: Some(Box::new(crate::plain_date::ffi::PlainDate(d))),
+                zoned: None,
+            },
+            RelativeTo::ZonedDateTime(d) => Self {
+                zoned: Some(Box::new(ffi::ZonedDateTime(d))),
+                date: None,
+            },
         }
     }
 }
