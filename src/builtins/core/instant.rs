@@ -35,7 +35,7 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 /// The native Rust implementation of `Temporal.Instant`.
 ///
 /// Represents a precise moment in time measured as nanoseconds since the Unix epoch
-/// (1970-01-01T00:00:00[UTC]). An `Instant` provides a universal timestamp
+/// (1970-01-01T00:00:00\[UTC\]). An `Instant` provides a universal timestamp
 /// that represents the same moment regardless of timezone or calendar system.
 ///
 /// Use `Instant` when you need to record exact moments in time, measure elapsed time,
