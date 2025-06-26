@@ -117,7 +117,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "databake",
  "prettyplease",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.0.9"
+version = "0.0.10"
 
 [[package]]
 name = "diplomat"
@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "diplomat-tool",
 ]
@@ -820,7 +820,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "combine",
  "core_maths",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "timezone_provider"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "databake",
  "serde",
@@ -1247,7 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo-test-gen"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "clap",
  "serde",
@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo_rs"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "hashbrown",
  "indexmap",
