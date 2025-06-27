@@ -79,7 +79,6 @@ jobs:
       # NOTE: Boa comment mentions a small tool to handle this ... would be nice.
       CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
       CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
-      CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
     strategy:
       matrix:
         rust:
@@ -88,11 +87,6 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Set environment
-        run: |
-          target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
-
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
