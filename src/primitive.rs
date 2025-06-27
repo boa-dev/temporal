@@ -29,7 +29,7 @@ impl FiniteF64 {
     #[inline]
     pub fn negate(&self) -> Self {
         if !self.is_zero() {
-            Self(self.0 * -1.0)
+            Self(-self.0)
         } else {
             *self
         }
