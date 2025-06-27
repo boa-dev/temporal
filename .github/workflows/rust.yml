@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
+  FLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         # Track https://github.com/rust-lang/cargo/issues/5376
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -54,7 +54,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -136,7 +136,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
