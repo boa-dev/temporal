@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUSTFLAGS: -Dwarnings
+  RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -26,7 +26,7 @@ jobs:
         # Track https://github.com/rust-lang/cargo/issues/5376
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$W_FLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -54,7 +54,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$W_FLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -74,6 +74,12 @@ jobs:
 
   build-test:
     name: Test (${{ matrix.rust.name }}, ${{ matrix.os }})
+    env:
+      RUSTUP_WINDOWS_PATH_ADD_BIN: 1
+      # NOTE: Boa comment mentions a small tool to handle this ... would be nice.
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
+      CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
+      CARGO_TARGET_X86_64_APPLE_DARWIN_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
     strategy:
       matrix:
         rust:
@@ -85,7 +91,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$W_FLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -107,7 +113,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$W_FLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -136,7 +142,7 @@ jobs:
       - name: Set environment
         run: |
           target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
-          echo "CARGO_TARGET_${target}_RUSTFLAGS=$W_FLAGS" >> $GITHUB_ENV
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$RUSTFLAGS" >> $GITHUB_ENV
 
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
