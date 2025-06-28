@@ -8,7 +8,7 @@ use crate::parsers::parse_date_time;
 use crate::provider::TimeZoneProvider;
 use crate::{TemporalResult, TemporalUnwrap};
 
-use ixdtf::parsers::records::UtcOffsetRecordOrZ;
+use ixdtf::records::UtcOffsetRecordOrZ;
 
 // ==== RelativeTo Object ====
 

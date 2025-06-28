@@ -3,7 +3,7 @@
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
-use ixdtf::parsers::records::UtcOffsetRecordOrZ;
+use ixdtf::records::UtcOffsetRecordOrZ;
 use tinystr::TinyAsciiStr;
 
 use crate::{
