@@ -7,12 +7,15 @@
 #[cfg(feature = "datagen")]
 use alloc::vec::Vec;
 
-#[cfg(feature = "datagen")]
-use std::{collections::BTreeMap, path::Path};
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
+use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
+
+#[cfg(feature = "datagen")]
+use alloc::collections::BTreeMap;
+#[cfg(feature = "datagen")]
+use std::path::Path;
 #[cfg(feature = "datagen")]
 use zerotrie::ZeroTrieBuildError;
-use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 #[cfg(feature = "datagen")]
 use zoneinfo_rs::{compiler::CompiledTransitions, ZoneInfoCompiler, ZoneInfoData};
 
@@ -47,7 +50,7 @@ pub struct ZeroTzif<'data> {
     pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
     pub types: ZeroVec<'data, LocalTimeRecord>,
-    pub posix: &'data str,
+    pub posix: ZeroVec<'data, u8>,
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
@@ -70,8 +73,8 @@ impl From<&zoneinfo_rs::tzif::LocalTimeRecord> for LocalTimeRecord {
     }
 }
 
+#[cfg(feature = "datagen")]
 impl ZeroTzif<'_> {
-    #[cfg(feature = "datagen")]
     fn from_transition_data(data: &CompiledTransitions) -> Self {
         let tzif = data.to_v2_data_block();
         let transitions = ZeroVec::alloc_from_slice(&tzif.transition_times);
@@ -79,7 +82,13 @@ impl ZeroTzif<'_> {
         let mapped_local_records: Vec<LocalTimeRecord> =
             tzif.local_time_types.iter().map(Into::into).collect();
         let types = ZeroVec::alloc_from_slice(&mapped_local_records);
-        let posix = "TODO";
+        // TODO: handle this much better.
+        let posix = ZeroVec::alloc_from_slice(
+            data.posix_time_zone
+                .to_string()
+                .expect("to_string should only fail on write failures")
+                .as_bytes(),
+        );
 
         Self {
             transitions,
@@ -96,8 +105,8 @@ pub enum ZoneInfoDataError {
     Build(ZeroTrieBuildError),
 }
 
+#[cfg(feature = "datagen")]
 impl ZoneInfoProvider<'_> {
-    #[cfg(feature = "datagen")]
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
         let tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
         let compiled_transitions = ZoneInfoCompiler::new(tzdb_source.data.clone()).build();

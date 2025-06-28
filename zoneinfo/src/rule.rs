@@ -23,6 +23,12 @@ pub(crate) struct ApplicableRules {
     pub(crate) transitions: BTreeSet<Transition>,
 }
 
+#[derive(Debug)]
+pub struct LastRules {
+    pub standard: Rule,
+    pub saving: Option<Rule>,
+}
+
 /// The `Rule` is a collection of zone info rules under the same
 /// rule name.
 ///
@@ -145,6 +151,52 @@ impl Rules {
 
         rule_savings.1
     }
+
+    pub(crate) fn get_last_rules(&self) -> LastRules {
+        let mut final_epoch_days = i32::MIN;
+        let mut final_rule = None;
+        let mut std_max = None;
+        let mut savings_max = None;
+
+        for rule in &self.rules {
+            let calc_to_year = rule
+                .to
+                .map(|y| {
+                    if let ToYear::Year(y) = y {
+                        Some(y)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or(Some(rule.from));
+            if let Some(year) = calc_to_year {
+                let epoch_days = epoch_days_for_rule_date(year as i32, rule.in_month, rule.on_date);
+                if final_epoch_days < epoch_days {
+                    final_epoch_days = epoch_days;
+                    final_rule = Some(rule.clone());
+                }
+            }
+
+            if rule.to == Some(ToYear::Max) {
+                if rule.is_dst() {
+                    savings_max = Some(rule.clone())
+                } else {
+                    std_max = Some(rule.clone())
+                }
+            }
+        }
+
+        let standard = if let Some(max_rule) = std_max {
+            max_rule
+        } else {
+            final_rule.expect("must be set")
+        };
+
+        LastRules {
+            standard,
+            saving: savings_max,
+        }
+    }
 }
 
 /// A zone info rule.
@@ -164,7 +216,7 @@ impl Rule {
         i32::from(self.from)..=self.to.map(ToYear::to_i32).unwrap_or(self.from as i32)
     }
 
-    fn is_dst(&self) -> bool {
+    pub(crate) fn is_dst(&self) -> bool {
         self.save != Time::default()
     }
 
