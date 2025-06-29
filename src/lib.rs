@@ -48,6 +48,39 @@
 //!
 //! ```
 //!
+//! ### Parse timestamps with the public `TemporalParser` API
+//!
+//! The `TemporalParser` provides a high-level, public API for parsing IXDTF strings
+//! with built-in validation and invariant checking.
+//!
+//! ```rust
+//! use temporal_rs::parsers::TemporalParser;
+//!
+//! let parser = TemporalParser::new();
+//!
+//! // Parse a PlainDateTime with validation
+//! let dt_result = parser.parse_date_time("2025-01-15T14:30:00[u-ca=gregory]");
+//! assert!(dt_result.is_ok());
+//! let parsed = dt_result.unwrap();
+//! assert_eq!(parsed.iso.date.year, 2025);
+//! assert_eq!(parsed.iso.time.hour, 14);
+//! assert!(parsed.calendar.is_some());
+//!
+//! // Parse an Instant
+//! let instant_result = parser.parse_instant("2025-01-15T14:30:00Z");
+//! assert!(instant_result.is_ok());
+//!
+//! // Parse a ZonedDateTime
+//! let zdt_result = parser.parse_zoned_date_time("2025-01-15T14:30:00Z[America/New_York]");
+//! assert!(zdt_result.is_ok());
+//! let zdt_parsed = zdt_result.unwrap();
+//! assert_eq!(zdt_parsed.timezone(), "America/New_York");
+//!
+//! // Invalid dates are properly rejected
+//! let invalid_result = parser.parse_date_time("2025-02-30T14:30:00"); // Feb 30th doesn't exist
+//! assert!(invalid_result.is_err());
+//! ```
+//!
 //! ### Create a `ZonedDateTime` for a RFC9557 IXDTF string.
 //!
 //! **Important Note:** The below API is enabled with the
