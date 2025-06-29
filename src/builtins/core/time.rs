@@ -419,8 +419,10 @@ impl PlainTime {
     // Converts a UTF-8 encoded string into a `PlainTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parser = TemporalParser::new();
-        let parsed = parser.parse_time(core::str::from_utf8(s)
-            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in time string"))?)?;
+        let parsed =
+            parser.parse_time(core::str::from_utf8(s).map_err(|_| {
+                TemporalError::syntax().with_message("Invalid UTF-8 in time string")
+            })?)?;
         Ok(Self::new_unchecked(parsed.iso))
     }
 
