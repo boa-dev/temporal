@@ -12,10 +12,10 @@ use crate::{
         DisplayCalendar, ResolvedRoundingOptions, RoundingOptions, ToStringRoundingOptions, Unit,
         UnitGroup,
     },
-    parsers::{parse_date_time, IxdtfStringBuilder},
+    parsers::{IxdtfStringBuilder, TemporalParser},
     primitive::FiniteF64,
     provider::{NeverProvider, TimeZoneProvider},
-    temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    temporal_assert, MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
@@ -549,30 +549,17 @@ impl PlainDateTime {
 
     // Converts a UTF-8 encoded string into a `PlainDateTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = parse_date_time(s)?;
+        let parser = TemporalParser::new();
+        let parsed = parser.parse_date_time(core::str::from_utf8(s)
+            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in datetime string"))?)?;
 
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
+        let calendar = if let Some(cal_str) = &parsed.calendar {
+            Calendar::try_from_utf8(cal_str.as_bytes())?
+        } else {
+            Calendar::default()
+        };
 
-        let time = parse_record
-            .time
-            .map(IsoTime::from_time_record)
-            .transpose()?
-            .unwrap_or_default();
-
-        let parsed_date = parse_record.date.temporal_unwrap()?;
-
-        let date = IsoDate::new_with_overflow(
-            parsed_date.year,
-            parsed_date.month,
-            parsed_date.day,
-            ArithmeticOverflow::Reject,
-        )?;
-
-        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
+        Ok(Self::new_unchecked(parsed.iso, calendar))
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
