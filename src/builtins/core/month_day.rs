@@ -6,8 +6,8 @@ use core::str::FromStr;
 use crate::{
     iso::IsoDate,
     options::{ArithmeticOverflow, DisplayCalendar},
-    parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
-    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap,
+    parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay, TemporalParser},
+    Calendar, MonthCode, TemporalError, TemporalResult,
 };
 
 use super::{calendar::month_to_month_code, PartialDate, PlainDate};
@@ -189,13 +189,15 @@ impl PlainMonthDay {
 
     // Converts a UTF-8 encoded string into a `PlainMonthDay`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let record = crate::parsers::parse_month_day(s)?;
+        let parser = TemporalParser::new();
+        let parsed = parser.parse_month_day(core::str::from_utf8(s)
+            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in month-day string"))?)?;
 
-        let calendar = record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
+        let calendar = if let Some(cal_str) = &parsed.calendar {
+            Calendar::try_from_utf8(cal_str.as_bytes())?
+        } else {
+            Calendar::default()
+        };
 
         // ParseISODateTime
         // Step 4.a.ii.3
@@ -206,13 +208,9 @@ impl PlainMonthDay {
             return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
         }
 
-        let date = record.date;
-
-        let date = date.temporal_unwrap()?;
-
         Self::new_with_overflow(
-            date.month,
-            date.day,
+            parsed.iso.month,
+            parsed.iso.day,
             calendar,
             ArithmeticOverflow::Reject,
             None,

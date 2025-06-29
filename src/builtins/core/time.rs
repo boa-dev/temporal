@@ -7,7 +7,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
         RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit, UnitGroup,
     },
-    parsers::{parse_time, IxdtfStringBuilder},
+    parsers::{IxdtfStringBuilder, TemporalParser},
     TemporalError, TemporalResult,
 };
 use alloc::string::String;
@@ -418,9 +418,10 @@ impl PlainTime {
 
     // Converts a UTF-8 encoded string into a `PlainTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let result = parse_time(s)?;
-        let iso = IsoTime::from_time_record(result)?;
-        Ok(Self::new_unchecked(iso))
+        let parser = TemporalParser::new();
+        let parsed = parser.parse_time(core::str::from_utf8(s)
+            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in time string"))?)?;
+        Ok(Self::new_unchecked(parsed.iso))
     }
 
     /// Creates a new `PlainTime` using the current `PlainTime` fields as a fallback.
