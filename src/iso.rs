@@ -59,18 +59,6 @@ use num_traits::{cast::FromPrimitive, Euclid};
 pub(crate) const MIN_ISO_YEAR: i32 = -271821;
 /// Maximum supported year (275760-09-13T00:00:00Z corresponds to ECMAScript's maximum time value)
 pub(crate) const MAX_ISO_YEAR: i32 = 275760;
-/// Minimum month value per ISO 8601
-pub(crate) const MIN_ISO_MONTH: u8 = 1;
-/// Maximum month value per ISO 8601
-pub(crate) const MAX_ISO_MONTH: u8 = 12;
-/// Minimum day value per ISO 8601
-pub(crate) const MIN_ISO_DAY: u8 = 1;
-/// Maximum hour value per ISO 8601 (24-hour format, 0-23)
-pub(crate) const MAX_ISO_HOUR: u8 = 23;
-/// Maximum minute value per ISO 8601
-pub(crate) const MAX_ISO_MINUTE: u8 = 59;
-/// Maximum second value per ISO 8601
-pub(crate) const MAX_ISO_SECOND: u8 = 59;
 
 /// `IsoDateTime` is the record of the `IsoDate` and `IsoTime` internal slots.
 #[non_exhaustive]
