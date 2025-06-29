@@ -190,8 +190,9 @@ impl PlainMonthDay {
     // Converts a UTF-8 encoded string into a `PlainMonthDay`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parser = TemporalParser::new();
-        let parsed = parser.parse_month_day(core::str::from_utf8(s)
-            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in month-day string"))?)?;
+        let parsed = parser.parse_month_day(core::str::from_utf8(s).map_err(|_| {
+            TemporalError::syntax().with_message("Invalid UTF-8 in month-day string")
+        })?)?;
 
         let calendar = if let Some(cal_str) = &parsed.calendar {
             Calendar::try_from_utf8(cal_str.as_bytes())?

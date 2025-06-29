@@ -526,8 +526,9 @@ impl PlainYearMonth {
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parser = TemporalParser::new();
-        let parsed = parser.parse_year_month(core::str::from_utf8(s)
-            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in year-month string"))?)?;
+        let parsed = parser.parse_year_month(core::str::from_utf8(s).map_err(|_| {
+            TemporalError::syntax().with_message("Invalid UTF-8 in year-month string")
+        })?)?;
 
         let calendar = if let Some(cal_str) = &parsed.calendar {
             Calendar::try_from_utf8(cal_str.as_bytes())?

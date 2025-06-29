@@ -279,10 +279,11 @@ impl Instant {
     // Converts a UTF-8 encoded string into a `Instant`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parser = TemporalParser::new();
-        let parsed = parser.parse_instant(core::str::from_utf8(s)
-            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in instant string"))?)?;
+        let parsed = parser.parse_instant(core::str::from_utf8(s).map_err(|_| {
+            TemporalError::syntax().with_message("Invalid UTF-8 in instant string")
+        })?)?;
 
-        // Find the offset  
+        // Find the offset
         let ns_offset = match parsed.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
                 let ns = offset
