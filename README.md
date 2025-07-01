@@ -88,11 +88,10 @@ Relevant links and information regarding Temporal can be found below.
 
 ## Core maintainers
 
-- Jason Williams
-  ([jasonwilliams](https://github.com/orgs/boa-dev/people/jasonwilliams))
+- Kevin Ness ([nekevss](https://github.com/orgs/boa-dev/people/nekevss))
+- Manish Goregaokar ([Manishearth](https://github.com/Manishearth))
 - José Julián Espina
   ([jedel1043](https://github.com/orgs/boa-dev/people/jedel1043))
-- Kevin Ness ([nekevss](https://github.com/orgs/boa-dev/people/nekevss))
 - Boa Developers
 
 ## Contributing
