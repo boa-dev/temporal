@@ -323,6 +323,21 @@ impl Duration {
             .map(|x| Unit::from(10 - x.0))
             .unwrap_or(Unit::Nanosecond)
     }
+
+    /// Equivalent of [`7.5.7 ToDateDurationRecordWithoutTime ( duration )`][spec]
+    ///
+    /// [spec]: <https://tc39.es/proposal-temporal/#sec-temporal-tointernaldurationrecordwith24hourdays>
+    ///
+    // spec(2025-06-23): https://github.com/tc39/proposal-temporal/tree/ed49b0b482981119c9b5e28b0686d877d4a9bae0
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn to_date_duration_record_without_time(&self) -> TemporalResult<DateDuration> {
+        // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+
+        // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
+        // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
+        internal_duration.to_date_duration_record_without_time()
+    }
 }
 
 // ==== Public Duration API ====
