@@ -13,14 +13,15 @@ use crate::{
     },
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     provider::NeverProvider,
+    temporal_assert,
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use icu_calendar::AnyCalendarKind;
 
 use super::{
-    calendar::month_to_month_code, duration::normalized::NormalizedDurationRecord, Duration,
-    PartialDate, PlainDate, PlainDateTime,
+    calendar::month_to_month_code, duration::normalized::NormalizedDurationRecord, DateDuration,
+    Duration, PartialDate, PlainDate, PlainDateTime,
 };
 use writeable::Writeable;
 
@@ -279,25 +280,89 @@ impl PlainYearMonth {
         Self { iso, calendar }
     }
 
+    /// [`9.5.8 AddDurationToYearMonth(operation, yearMonth, temporalDurationLike, options)`][spec]
+    ///
     /// Internal addition method for adding `Duration` to a `PlainYearMonth`
-    pub(crate) fn add_or_subtract_duration(
+    ///
+    /// [spec]: <https://tc39.es/proposal-temporal/#sec-temporal-adddurationtoyearmonth>
+    ///
+    // spec(2025-06-23): https://github.com/tc39/proposal-temporal/tree/ed49b0b482981119c9b5e28b0686d877d4a9bae0
+    pub(crate) fn add_duration(
         &self,
         duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        // Potential TODO: update to current Temporal specification
-        let partial = PartialYearMonth::try_from_year_month(self)?;
+        // NOTE: The following are engine specific:
+        //    SKIP: 1. Let duration be ? ToTemporalDuration(temporalDurationLike).
 
-        let mut intermediate_date = self
-            .calendar()
-            .date_from_partial(&PartialDate::from(&partial), overflow)?;
+        // NOTE: The following operation has been moved to the caller.
+        //    MOVE: 2. If operation is subtract, set duration to CreateNegatedTemporalDuration(duration).
 
-        intermediate_date = intermediate_date.add_date(duration, Some(overflow))?;
+        // NOTE: The following are engine specific:
+        //    SKIP: 3. Let resolvedOptions be ? GetOptionsObject(options).
+        //    SKIP: 4. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
 
-        let result_fields = PartialDate::default().with_fallback_date(&intermediate_date)?;
+        // 5. Let sign be DurationSign(duration).
+        let sign = duration.sign();
 
-        self.calendar()
-            .year_month_from_partial(&PartialYearMonth::from(&result_fields), overflow)
+        // 6. Let calendar be yearMonth.[[Calendar]].
+        let calendar = self.calendar();
+
+        // 7. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
+        let fields = PartialDate::from(&PartialYearMonth::try_from_year_month(self)?);
+
+        // 8. Set fields.[[Day]] to 1.
+        let fields = fields.with_day(Some(1));
+
+        // 9. Let intermediateDate be ? CalendarDateFromFields(calendar, fields, constrain).
+        let intermediate_date = calendar.date_from_partial(&fields, overflow)?;
+
+        // 10. If sign < 0, then
+        let date = if sign.as_sign_multiplier() < 0 {
+            // a. Let oneMonthDuration be ! CreateDateDurationRecord(0, 1, 0, 0).
+            let one_month_duration = DateDuration::new_unchecked(0, 1, 0, 0);
+
+            // b. Let nextMonth be ? CalendarDateAdd(calendar, intermediateDate, oneMonthDuration, constrain).
+            let next_month = calendar.date_add(
+                &intermediate_date.iso,
+                &Duration::from(one_month_duration),
+                ArithmeticOverflow::Constrain,
+            )?;
+
+            // c. Let date be BalanceISODate(nextMonth.[[Year]], nextMonth.[[Month]], nextMonth.[[Day]] - 1).
+            let date = IsoDate::balance(
+                next_month.year(),
+                i32::from(next_month.month()),
+                i32::from(next_month.day())
+                    .checked_sub(1)
+                    .temporal_unwrap()?,
+            );
+
+            // d. Assert: ISODateWithinLimits(date) is true.
+            temporal_assert!(date.is_valid());
+
+            date
+        } else {
+            // 11. Else,
+            //    a. Let date be intermediateDate.
+            intermediate_date.iso
+        };
+
+        // 12. Let durationToAdd be ToDateDurationRecordWithoutTime(duration).
+        let duration_to_add = duration.to_date_duration_record_without_time()?;
+
+        // 13. Let addedDate be ? CalendarDateAdd(calendar, date, durationToAdd, overflow).
+        let added_date = calendar.date_add(&date, &Duration::from(duration_to_add), overflow)?;
+
+        // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
+        let added_date_fields =
+            PartialYearMonth::from(&PartialDate::default().with_fallback_date(&added_date)?);
+
+        // 15. Let isoDate be ? CalendarYearMonthFromFields(calendar, addedDateFields, overflow).
+        let iso_date = calendar.year_month_from_partial(&added_date_fields, overflow)?;
+
+        // 16. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        Ok(iso_date)
     }
 
     /// The internal difference operation of `PlainYearMonth`.
@@ -622,7 +687,7 @@ impl PlainYearMonth {
     /// Adds a [`Duration`] from the current `PlainYearMonth`.
     #[inline]
     pub fn add(&self, duration: &Duration, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
-        self.add_or_subtract_duration(duration, overflow)
+        self.add_duration(duration, overflow)
     }
 
     /// Subtracts a [`Duration`] from the current `PlainYearMonth`.
@@ -632,7 +697,7 @@ impl PlainYearMonth {
         duration: &Duration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<Self> {
-        self.add_or_subtract_duration(&duration.negated(), overflow)
+        self.add_duration(&duration.negated(), overflow)
     }
 
     /// Returns a `Duration` representing the period of time from this `PlainYearMonth` until the other `PlainYearMonth`.
