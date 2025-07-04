@@ -3,6 +3,7 @@
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 
+use core::str::from_utf8;
 use ixdtf::encoding::Utf8;
 use ixdtf::{
     parsers::TimeZoneParser,
@@ -113,7 +114,19 @@ impl TimeZone {
         if identifier == "Z" {
             return Ok(TimeZone::UtcOffset(UtcOffset(0)));
         }
-        parse_identifier(identifier)
+        parse_identifier(identifier).map(|tz| match tz {
+            TimeZoneRecord::Name(items) => Ok(TimeZone::IanaIdentifier(
+                from_utf8(items)
+                    .or(Err(
+                        TemporalError::range().with_message("Invalid TimeZone Identifier")
+                    ))?
+                    .to_string(),
+            )),
+            TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
+                UtcOffset::from_ixdtf_record(minute_precision_offset),
+            )),
+            _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
+        })?
     }
 
     pub fn try_from_str(src: &str) -> TemporalResult<Self> {
