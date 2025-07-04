@@ -6,9 +6,10 @@ use crate::{
     Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
-use ixdtf::parsers::{
+use ixdtf::{
+    encoding::Utf8,
+    parsers::IxdtfParser,
     records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, UtcOffsetRecordOrZ},
-    IxdtfParser,
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
@@ -658,19 +659,19 @@ enum ParseVariant {
 }
 
 #[inline]
-fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfParseRecord> {
+fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     fn cast_handler<'a>(
-        _: &mut IxdtfParser<'a>,
-        handler: impl FnMut(Annotation<'a>) -> Option<Annotation<'a>>,
-    ) -> impl FnMut(Annotation<'a>) -> Option<Annotation<'a>> {
+        _: &mut IxdtfParser<'a, Utf8>,
+        handler: impl FnMut(Annotation<'a, Utf8>) -> Option<Annotation<'a, Utf8>>,
+    ) -> impl FnMut(Annotation<'a, Utf8>) -> Option<Annotation<'a, Utf8>> {
         handler
     }
 
-    let mut first_calendar: Option<Annotation> = None;
+    let mut first_calendar: Option<Annotation<Utf8>> = None;
     let mut critical_duplicate_calendar = false;
     let mut parser = IxdtfParser::from_utf8(source);
 
-    let handler = cast_handler(&mut parser, |annotation: Annotation<'_>| {
+    let handler = cast_handler(&mut parser, |annotation: Annotation<Utf8>| {
         if annotation.key == "u-ca".as_bytes() {
             match first_calendar {
                 Some(ref cal) => {
@@ -716,7 +717,7 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
 
 /// A utility function for parsing a `DateTime` string
 #[inline]
-pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
@@ -728,7 +729,7 @@ pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord>
 }
 
 #[inline]
-pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let record = parse_ixdtf(source.as_bytes(), ParseVariant::DateTime)?;
 
     // TODO: Support rejecting subminute precision in time zone annootations
@@ -769,7 +770,7 @@ pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRe
 // Ensure that the record does not have an offset element.
 //
 // This handles the [~Zoned] in TemporalFooString productions
-fn check_offset(record: IxdtfParseRecord) -> TemporalResult<IxdtfParseRecord> {
+fn check_offset(record: IxdtfParseRecord<Utf8>) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
         return Err(TemporalError::range()
             .with_message("UTC designator is not valid for plain date/time parsing."));
@@ -779,7 +780,7 @@ fn check_offset(record: IxdtfParseRecord) -> TemporalResult<IxdtfParseRecord> {
 
 /// A utility function for parsing a `YearMonth` string
 #[inline]
-pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
     let Err(ref e) = ym_record else {
@@ -796,7 +797,7 @@ pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord
 }
 
 /// A utilty function for parsing a `MonthDay` String.
-pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord> {
+pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
     let Err(ref e) = md_record else {
         return md_record.and_then(check_offset);
@@ -812,7 +813,7 @@ pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord>
 }
 
 // Ensures that an IxdtfParseRecord was parsed with [~Zoned][+TimeRequired]
-fn check_time_record(record: IxdtfParseRecord) -> TemporalResult<TimeRecord> {
+fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecord> {
     // Handle [~Zoned]
     let record = check_offset(record)?;
     // Handle [+TimeRequired]

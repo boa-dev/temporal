@@ -3,8 +3,12 @@
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 
-use ixdtf::parsers::records::{MinutePrecisionOffset, TimeZoneRecord, UtcOffsetRecord};
-use ixdtf::parsers::TimeZoneParser;
+use core::str::from_utf8;
+use ixdtf::encoding::Utf8;
+use ixdtf::{
+    parsers::TimeZoneParser,
+    records::{MinutePrecisionOffset, TimeZoneRecord, UtcOffsetRecord},
+};
 use num_traits::ToPrimitive;
 
 use crate::builtins::core::duration::DateDuration;
@@ -88,11 +92,12 @@ pub enum TimeZone {
 impl TimeZone {
     // Create a `TimeZone` from an ixdtf `TimeZoneRecord`.
     #[inline]
-    pub(crate) fn from_time_zone_record(record: TimeZoneRecord) -> TemporalResult<Self> {
+    pub(crate) fn from_time_zone_record(record: TimeZoneRecord<Utf8>) -> TemporalResult<Self> {
         let timezone = match record {
-            TimeZoneRecord::Name(s) => {
-                TimeZone::IanaIdentifier(String::from_utf8_lossy(s).into_owned())
-            }
+            TimeZoneRecord::Name(s) => TimeZone::IanaIdentifier(
+                String::from_utf8(s.to_vec())
+                    .map_err(|e| TemporalError::range().with_message(e.to_string()))?,
+            ),
             TimeZoneRecord::Offset(offset_record) => {
                 let offset = UtcOffset::from_ixdtf_record(offset_record);
                 TimeZone::UtcOffset(offset)
@@ -109,7 +114,19 @@ impl TimeZone {
         if identifier == "Z" {
             return Ok(TimeZone::UtcOffset(UtcOffset(0)));
         }
-        parse_identifier(identifier)
+        parse_identifier(identifier).map(|tz| match tz {
+            TimeZoneRecord::Name(items) => Ok(TimeZone::IanaIdentifier(
+                from_utf8(items)
+                    .or(Err(
+                        TemporalError::range().with_message("Invalid TimeZone Identifier")
+                    ))?
+                    .to_string(),
+            )),
+            TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
+                UtcOffset::from_ixdtf_record(minute_precision_offset),
+            )),
+            _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
+        })?
     }
 
     pub fn try_from_str(src: &str) -> TemporalResult<Self> {
