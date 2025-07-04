@@ -270,6 +270,28 @@ impl NormalizedDurationRecord {
         Self::new(date, normalized_time)
     }
 
+    /// Equivalent of [`7.5.7 ToDateDurationRecordWithoutTime ( duration )`][spec]
+    ///
+    /// [spec]: <https://tc39.es/proposal-temporal/#sec-temporal-tointernaldurationrecordwith24hourdays>
+    ///
+    // spec(2025-06-23): https://github.com/tc39/proposal-temporal/tree/ed49b0b482981119c9b5e28b0686d877d4a9bae0
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn to_date_duration_record_without_time(&self) -> TemporalResult<DateDuration> {
+        // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration = self;
+
+        // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
+        let days = internal_duration.normalized_time_duration().0 / i128::from(NS_PER_DAY);
+
+        // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
+        Ok(DateDuration::new_unchecked(
+            internal_duration.date().years,
+            internal_duration.date().months,
+            internal_duration.date().weeks,
+            days.try_into().ok().temporal_unwrap()?,
+        ))
+    }
+
     pub(crate) fn from_date_duration(date: DateDuration) -> TemporalResult<Self> {
         Self::new(date, NormalizedTimeDuration::default())
     }
