@@ -841,6 +841,8 @@ pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     }
 }
 
+/// Consider this API to be unstable: it is used internally by temporal_capi but
+/// will likely be replaced with a proper TemporalParser API at some point.
 #[inline]
 pub fn parse_allowed_calendar_formats(s: &[u8]) -> Option<&[u8]> {
     if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
