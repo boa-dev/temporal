@@ -89,12 +89,12 @@ impl ZonedDateTime {
 
     /// Enable with the `compiled_data` feature flag.
     pub fn microsecond(&self) -> TemporalResult<u16> {
-        self.millisecond_with_provider(&*TZ_PROVIDER)
+        self.microsecond_with_provider(&*TZ_PROVIDER)
     }
 
     /// Enable with the `compiled_data` feature flag.
     pub fn nanosecond(&self) -> TemporalResult<u16> {
-        self.millisecond_with_provider(&*TZ_PROVIDER)
+        self.nanosecond_with_provider(&*TZ_PROVIDER)
     }
 
     /// Returns the current offset as a formatted offset string.

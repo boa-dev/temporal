@@ -30,7 +30,7 @@ fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str)
     let test_data_path = output_dir.join(format!("{filename}.json"));
 
     let tzif_path = input_dir.join(identifier);
-    std::println!("Parsing tzif from {:?}", tzif_path);
+    std::println!("Parsing tzif from {tzif_path:?}");
     let tzif = tzif::parse_tzif_file(&tzif_path).unwrap();
 
     let tzif_block_v2 = tzif.data_block2.unwrap();
@@ -71,7 +71,7 @@ fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str)
         transitions,
     };
 
-    std::println!("Writing generated example data to {:?}", test_data_path);
+    std::println!("Writing generated example data to {test_data_path:?}");
     fs::write(
         test_data_path,
         serde_json::to_string_pretty(&tzif_data).unwrap(),

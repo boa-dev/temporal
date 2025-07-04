@@ -1,3 +1,29 @@
+## What's Changed in v0.0.10
+* Add documentation and doctests for builtins by @blarfoon in [#360](https://github.com/boa-dev/temporal/pull/360)
+* More error enums by @Manishearth in [#373](https://github.com/boa-dev/temporal/pull/373)
+* [capi] Add stringifier/cloning to timezones by @Manishearth in [#344](https://github.com/boa-dev/temporal/pull/344)
+* Handle unknown timezone identifiers in FsTzdbProvider by @Manishearth in [#345](https://github.com/boa-dev/temporal/pull/345)
+* [capi] Fix i128Nanoseconds by @Manishearth in [#372](https://github.com/boa-dev/temporal/pull/372)
+* [capi] expose error strings by @Manishearth in [#364](https://github.com/boa-dev/temporal/pull/364)
+* Consolidate tools into a single `tool` directory by @nekevss in [#368](https://github.com/boa-dev/temporal/pull/368)
+* Add a new PartialYearMonth to available partial structs (#288) by @robot-head in [#342](https://github.com/boa-dev/temporal/pull/342)
+* Implement zoneinfo parsing/compilation and add TZif structs by @nekevss in [#257](https://github.com/boa-dev/temporal/pull/257)
+* Add ErrorMessage enum, start using it by @Manishearth in [#355](https://github.com/boa-dev/temporal/pull/355)
+* [capi] Add is_valid() to I128Nanoseconds by @Manishearth in [#363](https://github.com/boa-dev/temporal/pull/363)
+* [capi] Add ZonedDateTime::{equals,offset} by @Manishearth in [#362](https://github.com/boa-dev/temporal/pull/362)
+* Add convenience methods for constructing FFI datetime types from milliseconds by @Manishearth in [#359](https://github.com/boa-dev/temporal/pull/359)
+* [capi] Add offset_nanoseconds() to ZDT FFI by @Manishearth in [#361](https://github.com/boa-dev/temporal/pull/361)
+* Update diplomat by @Manishearth in [#357](https://github.com/boa-dev/temporal/pull/357)
+* Stop depending on `is_dst` for calculations by @jedel1043 in [#356](https://github.com/boa-dev/temporal/pull/356)
+* Add some FAQ style docs for temporal_rs by @nekevss in [#350](https://github.com/boa-dev/temporal/pull/350)
+* Add try_from_offset_str ctor for TimeZone by @Manishearth in [#348](https://github.com/boa-dev/temporal/pull/348)
+* Switch compiled_data APIs to new CompiledTzdbProvider by @Manishearth in [#346](https://github.com/boa-dev/temporal/pull/346)
+
+## New Contributors
+* @blarfoon made their first contribution in [#360](https://github.com/boa-dev/temporal/pull/360)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.9...v0.0.10
+
 ## What's Changed in v0.0.9
 * Cross boundary rounding fix #286 by @robot-head in [#343](https://github.com/boa-dev/temporal/pull/343)
 * Implement PlainMonthDay::with functionality by @nekevss in [#335](https://github.com/boa-dev/temporal/pull/335)

@@ -117,7 +117,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "databake",
  "prettyplease",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.0.9"
+version = "0.0.10"
 
 [[package]]
 name = "diplomat"
@@ -299,7 +299,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "diplomat-tool",
 ]
@@ -523,9 +523,9 @@ checksum = "ce23b50ad8242c51a442f3ff322d56b02f08852c77e4c0b4d3fd684abc89c683"
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown",
@@ -820,7 +820,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -833,7 +833,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "combine",
  "core_maths",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "timezone_provider"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "databake",
  "serde",
@@ -1247,7 +1247,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo-test-gen"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "clap",
  "serde",
@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo_rs"
-version = "0.0.9"
+version = "0.0.10"
 dependencies = [
  "hashbrown",
  "indexmap",

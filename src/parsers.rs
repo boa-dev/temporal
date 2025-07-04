@@ -3,7 +3,7 @@
 use crate::{
     iso::{IsoDate, IsoTime},
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
-    Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    Sign, TemporalError, TemporalResult,
 };
 use alloc::format;
 use ixdtf::{
@@ -767,57 +767,77 @@ pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRe
     Ok(IxdtfParseInstantRecord { date, time, offset })
 }
 
+// Ensure that the record does not have an offset element.
+//
+// This handles the [~Zoned] in TemporalFooString productions
+fn check_offset(record: IxdtfParseRecord) -> TemporalResult<IxdtfParseRecord> {
+    if record.offset == Some(UtcOffsetRecordOrZ::Z) {
+        return Err(TemporalError::range()
+            .with_message("UTC designator is not valid for plain date/time parsing."));
+    }
+    Ok(record)
+}
+
 /// A utility function for parsing a `YearMonth` string
 #[inline]
 pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
-    if let Ok(ym) = ym_record {
-        if ym.offset == Some(UtcOffsetRecordOrZ::Z) {
-            return Err(TemporalError::range()
-                .with_message("UTC designator is not valid for DateTime parsing."));
-        }
-        return Ok(ym);
-    }
+    let Err(ref e) = ym_record else {
+        return ym_record.and_then(check_offset);
+    };
 
     let dt_parse = parse_date_time(source);
 
     match dt_parse {
-        Ok(dt) => Ok(dt),
+        Ok(dt) => check_offset(dt),
         // Format and return the error from parsing YearMonth.
-        _ => ym_record.map_err(|e| TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(TemporalError::range().with_message(format!("{e}"))),
     }
 }
 
 /// A utilty function for parsing a `MonthDay` String.
-#[inline]
 pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
-    // Error needs to be a RangeError
-    md_record.map_err(|e| TemporalError::range().with_message(format!("{e}")))
+    let Err(ref e) = md_record else {
+        return md_record.and_then(check_offset);
+    };
+
+    let dt_parse = parse_date_time(source);
+
+    match dt_parse {
+        Ok(dt) => check_offset(dt),
+        // Format and return the error from parsing MonthDay.
+        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+    }
+}
+
+// Ensures that an IxdtfParseRecord was parsed with [~Zoned][+TimeRequired]
+fn check_time_record(record: IxdtfParseRecord) -> TemporalResult<TimeRecord> {
+    // Handle [~Zoned]
+    let record = check_offset(record)?;
+    // Handle [+TimeRequired]
+    let Some(time) = record.time else {
+        return Err(TemporalError::range()
+            .with_message("PlainTime can only be parsed from strings with a time component."));
+    };
+    Ok(time)
 }
 
 #[inline]
 pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     let time_record = parse_ixdtf(source, ParseVariant::Time);
 
-    let time_err = match time_record {
-        Ok(time) => {
-            if time.offset == Some(UtcOffsetRecordOrZ::Z) {
-                return Err(TemporalError::range()
-                    .with_message("UTC designator is not valid for DateTime parsing."));
-            }
-            return time.time.temporal_unwrap();
-        }
-        Err(e) => TemporalError::range().with_message(format!("{e}")),
+    let Err(ref e) = time_record else {
+        return time_record.and_then(check_time_record);
     };
 
     let dt_parse = parse_date_time(source);
 
     match dt_parse {
-        Ok(dt) if dt.time.is_some() => Ok(dt.time.temporal_unwrap()?),
-        // Format and return the error from parsing Time.
-        _ => Err(time_err),
+        Ok(dt) => check_time_record(dt),
+        // Format and return the error from parsing MonthDay.
+        _ => Err(TemporalError::range().with_message(format!("{e}"))),
     }
 }
 
