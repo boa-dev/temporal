@@ -1,10 +1,7 @@
 //! This module implements `Date` and any directly related algorithms.
 
 use crate::{
-    builtins::core::{
-        calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime,
-        ZonedDateTime,
-    },
+    builtins::core::{calendar::Calendar, Duration, PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
@@ -12,7 +9,7 @@ use crate::{
     },
     parsers::{parse_date_time, IxdtfStringBuilder},
     provider::{NeverProvider, TimeZoneProvider},
-    MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    DateDuration, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};

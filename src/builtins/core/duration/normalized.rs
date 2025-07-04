@@ -294,9 +294,9 @@ impl NormalizedDurationRecord {
 
         // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
         Ok(DateDuration::new_unchecked(
-            internal_duration.date().years,
-            internal_duration.date().months,
-            internal_duration.date().weeks,
+            internal_duration.date().years.into(),
+            internal_duration.date().months.into(),
+            internal_duration.date().weeks.into(),
             days.try_into().ok().temporal_unwrap()?,
         ))
     }

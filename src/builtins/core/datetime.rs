@@ -964,8 +964,8 @@ mod tests {
 
     use crate::{
         builtins::core::{
-            calendar::Calendar, duration::DateDuration, Duration, PartialDate, PartialDateTime,
-            PartialTime, PlainDateTime,
+            calendar::Calendar, DateDuration, Duration, PartialDate, PartialDateTime, PartialTime,
+            PlainDateTime,
         },
         iso::{IsoDate, IsoDateTime, IsoTime},
         options::{

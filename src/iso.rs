@@ -29,10 +29,7 @@ use crate::{
     builtins::{
         core::{
             calendar::Calendar,
-            duration::{
-                normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-                DateDuration,
-            },
+            duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
             Duration, PartialTime, PlainDate,
         },
         duration::duration_sign,
@@ -42,7 +39,7 @@ use crate::{
     rounding::{IncrementRounder, Round},
     temporal_assert,
     unix_time::EpochNanoseconds,
-    utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    utils, DateDuration, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_traits::{cast::FromPrimitive, Euclid};
