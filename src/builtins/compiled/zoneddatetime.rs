@@ -378,7 +378,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("Z").unwrap(),
+            TimeZone::try_from_str("UTC").unwrap(),
         )
         .unwrap();
 

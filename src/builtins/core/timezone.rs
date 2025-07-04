@@ -111,9 +111,6 @@ impl TimeZone {
 
     /// Parses a `TimeZone` from a provided `&str`.
     pub fn try_from_identifier_str(identifier: &str) -> TemporalResult<Self> {
-        if identifier == "Z" {
-            return Ok(TimeZone::UtcOffset(UtcOffset(0)));
-        }
         parse_identifier(identifier).map(|tz| match tz {
             TimeZoneRecord::Name(items) => Ok(TimeZone::IanaIdentifier(
                 from_utf8(items)
@@ -129,11 +126,13 @@ impl TimeZone {
         })?
     }
 
+    /// Parse a `TimeZone` from a `&str`
+    ///
+    /// This is the equivalent to [`ParseTemporalTimeZoneString`](https://tc39.es/proposal-temporal/#sec-temporal-parsetemporaltimezonestring)
     pub fn try_from_str(src: &str) -> TemporalResult<Self> {
         if let Ok(timezone) = Self::try_from_identifier_str(src) {
             return Ok(timezone);
         }
-
         parse_allowed_timezone_formats(src)
             .ok_or_else(|| TemporalError::range().with_message("Not a valid time zone string"))
     }
