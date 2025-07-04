@@ -19,6 +19,7 @@ use zerotrie::ZeroTrieBuildError;
 #[cfg(feature = "datagen")]
 use zoneinfo_rs::{compiler::CompiledTransitions, ZoneInfoCompiler, ZoneInfoData};
 
+use crate::posix::PosixZone;
 #[cfg(feature = "datagen")]
 use crate::tzdb::TzdbDataSource;
 
@@ -50,7 +51,7 @@ pub struct ZeroTzif<'data> {
     pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
     pub types: ZeroVec<'data, LocalTimeRecord>,
-    pub posix: ZeroVec<'data, u8>,
+    pub posix: PosixZone,
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
@@ -83,12 +84,7 @@ impl ZeroTzif<'_> {
             tzif.local_time_types.iter().map(Into::into).collect();
         let types = ZeroVec::alloc_from_slice(&mapped_local_records);
         // TODO: handle this much better.
-        let posix = ZeroVec::alloc_from_slice(
-            data.posix_time_zone
-                .to_string()
-                .expect("to_string should only fail on write failures")
-                .as_bytes(),
-        );
+        let posix = PosixZone::from(&data.posix_time_zone);
 
         Self {
             transitions,

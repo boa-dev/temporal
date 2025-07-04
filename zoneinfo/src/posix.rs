@@ -7,7 +7,9 @@ use crate::{
 use alloc::string::String;
 use core::fmt::Write;
 
-#[non_exhaustive]
+/// The POSIX time zone designated by the [GNU documentation][gnu-docs]
+///
+/// [gnu-docs]: https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
 #[derive(Debug, PartialEq)]
 pub struct PosixTimeZone {
     pub abbr: PosixAbbreviation,
@@ -101,25 +103,32 @@ impl PosixTimeZone {
     }
 }
 
+/// The representation of a POSIX time zone transition
 #[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub struct PosixTransition {
+    /// The transitions designated abbreviation
     pub abbr: PosixAbbreviation,
+    /// The savings value to be added to the offset
     pub savings: Time,
+    /// The start time for the transition
     pub start: PosixDateTime,
+    /// The end time for the transition
     pub end: PosixDateTime,
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct PosixAbbreviation {
-    is_numeric: bool,
-    formatted: String,
+    /// Flag whether formatted abbreviation is numeric
+    pub is_numeric: bool,
+    /// The formatted abbreviation
+    pub formatted: String,
 }
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct MonthWeekDay(pub Month, pub u8, pub WeekDay);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PosixDate {
     JulianNoLeap(u16),
     JulianLeap(u16),
@@ -148,7 +157,7 @@ impl PosixDate {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PosixDateTime {
     pub date: PosixDate,
     pub time: Time,
