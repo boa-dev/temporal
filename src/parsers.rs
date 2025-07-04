@@ -770,7 +770,7 @@ pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRe
 // Ensure that the record does not have an offset element.
 //
 // This handles the [~Zoned] in TemporalFooString productions
-fn check_offset(record: IxdtfParseRecord) -> TemporalResult<IxdtfParseRecord> {
+fn check_offset(record: IxdtfParseRecord<Utf8>) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
         return Err(TemporalError::range()
             .with_message("UTC designator is not valid for plain date/time parsing."));
@@ -813,7 +813,7 @@ pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<
 }
 
 // Ensures that an IxdtfParseRecord was parsed with [~Zoned][+TimeRequired]
-fn check_time_record(record: IxdtfParseRecord) -> TemporalResult<TimeRecord> {
+fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecord> {
     // Handle [~Zoned]
     let record = check_offset(record)?;
     // Handle [+TimeRequired]
