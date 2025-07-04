@@ -21,6 +21,9 @@ namespace capi {
     typedef struct temporal_rs_AnyCalendarKind_get_for_str_result {union {temporal_rs::capi::AnyCalendarKind ok; }; bool is_ok;} temporal_rs_AnyCalendarKind_get_for_str_result;
     temporal_rs_AnyCalendarKind_get_for_str_result temporal_rs_AnyCalendarKind_get_for_str(diplomat::capi::DiplomatStringView s);
 
+    typedef struct temporal_rs_AnyCalendarKind_parse_temporal_calendar_string_result {union {temporal_rs::capi::AnyCalendarKind ok; }; bool is_ok;} temporal_rs_AnyCalendarKind_parse_temporal_calendar_string_result;
+    temporal_rs_AnyCalendarKind_parse_temporal_calendar_string_result temporal_rs_AnyCalendarKind_parse_temporal_calendar_string(diplomat::capi::DiplomatStringView s);
+
     } // extern "C"
 } // namespace capi
 } // namespace
@@ -57,6 +60,11 @@ inline temporal_rs::AnyCalendarKind temporal_rs::AnyCalendarKind::FromFFI(tempor
 
 inline std::optional<temporal_rs::AnyCalendarKind> temporal_rs::AnyCalendarKind::get_for_str(std::string_view s) {
   auto result = temporal_rs::capi::temporal_rs_AnyCalendarKind_get_for_str({s.data(), s.size()});
+  return result.is_ok ? std::optional<temporal_rs::AnyCalendarKind>(temporal_rs::AnyCalendarKind::FromFFI(result.ok)) : std::nullopt;
+}
+
+inline std::optional<temporal_rs::AnyCalendarKind> temporal_rs::AnyCalendarKind::parse_temporal_calendar_string(std::string_view s) {
+  auto result = temporal_rs::capi::temporal_rs_AnyCalendarKind_parse_temporal_calendar_string({s.data(), s.size()});
   return result.is_ok ? std::optional<temporal_rs::AnyCalendarKind>(temporal_rs::AnyCalendarKind::FromFFI(result.ok)) : std::nullopt;
 }
 #endif // temporal_rs_AnyCalendarKind_HPP

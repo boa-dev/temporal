@@ -842,14 +842,14 @@ pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
 }
 
 #[inline]
-pub(crate) fn parse_allowed_calendar_formats(s: &str) -> Option<&[u8]> {
-    if let Ok(r) = parse_ixdtf(s.as_bytes(), ParseVariant::DateTime).map(|r| r.calendar) {
+pub fn parse_allowed_calendar_formats(s: &[u8]) -> Option<&[u8]> {
+    if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
         return Some(r.unwrap_or(&[]));
-    } else if let Ok(r) = IxdtfParser::from_str(s).parse_time().map(|r| r.calendar) {
+    } else if let Ok(r) = IxdtfParser::from_utf8(s).parse_time().map(|r| r.calendar) {
         return Some(r.unwrap_or(&[]));
-    } else if let Ok(r) = parse_ixdtf(s.as_bytes(), ParseVariant::YearMonth).map(|r| r.calendar) {
+    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar) {
         return Some(r.unwrap_or(&[]));
-    } else if let Ok(r) = parse_ixdtf(s.as_bytes(), ParseVariant::MonthDay).map(|r| r.calendar) {
+    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
         return Some(r.unwrap_or(&[]));
     }
     None
