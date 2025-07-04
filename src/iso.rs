@@ -23,7 +23,7 @@
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
 use core::num::NonZeroU128;
-use ixdtf::parsers::records::TimeRecord;
+use ixdtf::records::TimeRecord;
 
 use crate::{
     builtins::{

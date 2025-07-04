@@ -158,7 +158,7 @@ impl FromStr for Calendar {
 
     // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_allowed_calendar_formats(s) {
+        match parse_allowed_calendar_formats(s.as_bytes()) {
             Some([]) => Ok(Calendar::ISO),
             Some(result) => Calendar::try_from_utf8(result),
             None => Calendar::try_from_utf8(s.as_bytes()),

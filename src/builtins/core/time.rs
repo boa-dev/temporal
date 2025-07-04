@@ -84,6 +84,113 @@ impl PartialTime {
 }
 
 /// The native Rust implementation of `Temporal.PlainTime`.
+///
+/// Represents a time of day such as "14:30:45.123" without any date or timezone
+/// information. Contains hour, minute, second, and subsecond components with
+/// nanosecond precision.
+///
+/// Ideal for representing recurring daily events, schedules, or any time value
+/// where the specific date is not relevant.
+///
+/// ## Examples
+///
+/// ### Creating time values
+///
+/// ```rust
+/// use temporal_rs::PlainTime;
+///
+/// // High-precision time
+/// let precise_time = PlainTime::try_new(
+///     14, 30, 45,      // 2:30:45 PM
+///     123, 456, 789    // subsecond components
+/// ).unwrap();
+/// assert_eq!(precise_time.hour(), 14);
+/// assert_eq!(precise_time.millisecond(), 123);
+///
+/// // Simple time without subseconds
+/// let simple = PlainTime::try_new(9, 0, 0, 0, 0, 0).unwrap();
+/// assert_eq!(simple.hour(), 9);
+/// ```
+///
+/// ### Parsing ISO 8601 time strings
+///
+/// ```rust
+/// use temporal_rs::PlainTime;
+/// use core::str::FromStr;
+///
+/// let time = PlainTime::from_str("14:30:45.123456789").unwrap();
+/// assert_eq!(time.hour(), 14);
+/// assert_eq!(time.minute(), 30);
+/// assert_eq!(time.second(), 45);
+/// assert_eq!(time.millisecond(), 123);
+/// assert_eq!(time.microsecond(), 456);
+/// assert_eq!(time.nanosecond(), 789);
+///
+/// // Also supports time-only portions of ISO 8601 strings
+/// let time = PlainTime::from_str("T09:15:30").unwrap();
+/// assert_eq!(time.hour(), 9);
+/// assert_eq!(time.minute(), 15);
+/// assert_eq!(time.second(), 30);
+/// ```
+///
+/// ### Time arithmetic
+///
+/// ```rust
+/// use temporal_rs::{PlainTime, Duration};
+/// use core::str::FromStr;
+///
+/// let time = PlainTime::from_str("12:30:00").unwrap();
+///
+/// // Add 2 hours and 30 minutes
+/// let later = time.add(&Duration::from_str("PT2H30M").unwrap()).unwrap();
+/// assert_eq!(later.hour(), 15);
+/// assert_eq!(later.minute(), 0);
+/// assert_eq!(later.second(), 0);
+///
+/// // Calculate difference between times
+/// let earlier = PlainTime::from_str("10:00:00").unwrap();
+/// let duration = earlier.until(&time, Default::default()).unwrap();
+/// assert_eq!(duration.hours(), 2);
+/// assert_eq!(duration.minutes(), 30);
+/// ```
+///
+/// ### Working with partial time fields
+///
+/// ```rust
+/// use temporal_rs::{PlainTime, partial::PartialTime};
+/// use core::str::FromStr;
+///
+/// let time = PlainTime::from_str("12:30:45").unwrap();
+///
+/// // Change only the minute
+/// let partial = PartialTime::new().with_minute(Some(15));
+/// let modified = time.with(partial, None).unwrap();
+/// assert_eq!(modified.hour(), 12); // unchanged
+/// assert_eq!(modified.minute(), 15); // changed
+/// assert_eq!(modified.second(), 45); // unchanged
+/// ```
+///
+/// ### Rounding times
+///
+/// ```rust
+/// use temporal_rs::{PlainTime, options::{Unit, RoundingMode}};
+/// use core::str::FromStr;
+///
+/// let time = PlainTime::from_str("14:23:47.789").unwrap();
+///
+/// // Round to nearest minute
+/// let rounded = time.round(Unit::Minute, None, None).unwrap();
+/// assert_eq!(rounded.hour(), 14);
+/// assert_eq!(rounded.minute(), 24);
+/// assert_eq!(rounded.second(), 0);
+/// assert_eq!(rounded.millisecond(), 0);
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plaintime].
+///
+/// [mdn-plaintime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainTime
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct PlainTime {

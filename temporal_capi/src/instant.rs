@@ -20,13 +20,15 @@ pub mod ffi {
     #[diplomat::opaque]
     pub struct Instant(pub temporal_rs::Instant);
 
-    /// For portability, we use two i64s instead of an i128.
-    /// The sign is extracted first before
-    /// appending the high/low segments to each other.
+    /// For portability, we use two u64s instead of an i128.
+    /// The high bit of the u64 is the sign.
+    /// This cannot represent i128::MIN, and has a -0, but those are largely
+    /// irrelevant for this purpose.
     ///
     /// This could potentially instead be a bit-by-bit split, or something else
+    #[derive(Debug, Copy, Clone)]
     pub struct I128Nanoseconds {
-        pub high: i64,
+        pub high: u64,
         pub low: u64,
     }
 
@@ -162,12 +164,15 @@ pub mod ffi {
     }
 }
 
+const U64_HIGH_BIT_MASK: u64 = 1 << 63;
+
 impl From<ffi::I128Nanoseconds> for i128 {
     fn from(ns: ffi::I128Nanoseconds) -> Self {
-        let is_neg = ns.high < 0;
-        let ns_high_abs = ns.high.unsigned_abs() as u128;
+        let is_neg = (ns.high & U64_HIGH_BIT_MASK) != 0;
+        // Remove the bitflag
+        let ns_high = (ns.high & !U64_HIGH_BIT_MASK) as u128;
         // Stick them together
-        let total = ((ns_high_abs << 64) + ns.low as u128) as i128;
+        let total = ((ns_high << 64) + ns.low as u128) as i128;
         // Reintroduce the sign
         if is_neg {
             -total
@@ -179,13 +184,47 @@ impl From<ffi::I128Nanoseconds> for i128 {
 
 impl From<i128> for ffi::I128Nanoseconds {
     fn from(ns: i128) -> Self {
+        debug_assert!(
+            ns != i128::MIN,
+            "temporal_rs should never produce i128::MIN, it is out of valid range"
+        );
         let is_neg = ns < 0;
         let ns = ns.unsigned_abs();
 
-        let high = (ns >> 64) as i64;
+        let high = (ns >> 64) as u64;
         let low = (ns & u64::MAX as u128) as u64;
-        let high = if is_neg { -high } else { high };
+        let high = if (is_neg) {
+            high | U64_HIGH_BIT_MASK
+        } else {
+            high
+        };
 
         ffi::I128Nanoseconds { high, low }
     }
+}
+
+#[test]
+fn test_i128_roundtrip() {
+    #[track_caller]
+    fn roundtrip(x: i128) {
+        let ns = ffi::I128Nanoseconds::from(x);
+        let round = i128::from(ns);
+        assert_eq!(x, round, "{x} does not roundtrip via {ns:?}");
+    }
+
+    roundtrip(0);
+    roundtrip(-1);
+    roundtrip(1);
+    roundtrip(100);
+    roundtrip(1000);
+    roundtrip(-1000);
+    roundtrip(1000000000);
+    roundtrip(-100000000);
+    roundtrip(u64::MAX as i128);
+    roundtrip(-(u64::MIN as i128));
+    roundtrip(100 * (u64::MAX as i128));
+    roundtrip(-100 * (u64::MAX as i128));
+    roundtrip(i128::MIN + 1);
+    roundtrip(i128::MAX);
+    roundtrip(i128::MAX - 10);
 }

@@ -153,6 +153,74 @@ impl PartialDate {
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.
+///
+/// Represents a calendar date without any time or timezone
+/// information. Useful for dates where the specific time of day doesn't matter,
+/// such as deadlines, birth dates, or historical events.
+///
+/// Uses the ISO 8601 calendar (proleptic Gregorian calendar) by default, with
+/// support for other calendar systems when needed.
+///
+/// ## Examples
+///
+/// ### Creating dates
+///
+/// ```rust
+/// use temporal_rs::{PlainDate, Calendar};
+///
+/// // Create a date using the ISO calendar
+/// let christmas = PlainDate::try_new_iso(2024, 12, 25).unwrap();
+/// assert_eq!(christmas.year(), 2024);
+/// assert_eq!(christmas.month(), 12);
+/// assert_eq!(christmas.day(), 25);
+///
+/// // Explicit calendar specification
+/// let date = PlainDate::try_new(2024, 12, 25, Calendar::default()).unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(christmas, date); // Both represent the same date
+/// ```
+///
+/// ### Date arithmetic operations
+///
+/// ```rust
+/// use temporal_rs::{PlainDate, Duration};
+/// use core::str::FromStr;
+///
+/// let start = PlainDate::try_new_iso(2024, 1, 15).unwrap();
+///
+/// // Add one month
+/// let later = start.add(&Duration::from_str("P1M").unwrap(), None).unwrap();
+/// assert_eq!(later.month(), 2); // Results in 2024-02-15
+/// assert_eq!(later.day(), 15);
+///
+/// // Calculate duration between dates
+/// let new_year = PlainDate::try_new_iso(2024, 1, 1).unwrap();
+/// let diff = new_year.until(&start, Default::default()).unwrap();
+/// assert_eq!(diff.days(), 14);
+/// ```
+///
+/// ### Parsing ISO 8601 date strings
+///
+/// ```rust
+/// use temporal_rs::PlainDate;
+/// use core::str::FromStr;
+///
+/// // Standard ISO date format
+/// let date = PlainDate::from_str("2024-03-15").unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 3);
+/// assert_eq!(date.day(), 15);
+///
+/// // With explicit calendar annotation
+/// let date2 = PlainDate::from_str("2024-03-15[u-ca=iso8601]").unwrap();
+/// assert_eq!(date, date2);
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plaindate].
+///
+/// [mdn-plaindate]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainDate
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainDate {
