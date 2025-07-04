@@ -19,7 +19,7 @@ use crate::{
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
-use ixdtf::parsers::records::UtcOffsetRecordOrZ;
+use ixdtf::records::UtcOffsetRecordOrZ;
 use num_traits::Euclid;
 use writeable::Writeable;
 
@@ -32,7 +32,119 @@ const NANOSECONDS_PER_SECOND: i64 = 1_000_000_000;
 const NANOSECONDS_PER_MINUTE: i64 = 60 * NANOSECONDS_PER_SECOND;
 const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 
-/// The native Rust implementation of `Temporal.Instant`
+/// The native Rust implementation of `Temporal.Instant`.
+///
+/// Represents a precise moment in time measured as nanoseconds since the Unix epoch
+/// (1970-01-01T00:00:00\[UTC\]). An `Instant` provides a universal timestamp
+/// that represents the same moment regardless of timezone or calendar system.
+///
+/// Use `Instant` when you need to record exact moments in time, measure elapsed time,
+/// or work with high-precision timestamps. Unlike `PlainDateTime`, an `Instant`
+/// represents an absolute point on the timeline.
+///
+/// ## Examples
+///
+/// ### Creating instants
+///
+/// ```rust
+/// use temporal_rs::Instant;
+///
+/// // From epoch nanoseconds (high-precision timestamps)
+/// let precise_moment = Instant::try_new(1609459200000000000).unwrap();
+/// assert_eq!(precise_moment.epoch_milliseconds(), 1609459200000);
+///
+/// // From epoch milliseconds (common in web applications)
+/// let web_timestamp = Instant::from_epoch_milliseconds(1609459200000).unwrap();
+/// assert_eq!(web_timestamp.epoch_nanoseconds().as_i128(), 1609459200000000000);
+/// ```
+///
+/// ### Parsing ISO 8601 instant strings
+///
+/// ```rust
+/// use temporal_rs::Instant;
+/// use core::str::FromStr;
+///
+/// // Parse ISO 8601 instant strings (must include timezone info)
+/// let instant = Instant::from_str("2024-03-15T14:30:45.123Z").unwrap();
+/// assert_eq!(instant.epoch_milliseconds(), 1710513045123);
+///
+/// // Parse instants with different timezone notations
+/// let instant2 = Instant::from_str("2024-03-15T14:30:45.123+00:00").unwrap();
+/// let instant3 = Instant::from_str("2024-03-15T14:30:45.123-00:00").unwrap();
+/// assert_eq!(instant, instant2);
+/// assert_eq!(instant2, instant3);
+/// ```
+///
+/// ### Instant arithmetic
+///
+/// ```rust
+/// use temporal_rs::{Instant, Duration};
+/// use core::str::FromStr;
+///
+/// let instant = Instant::try_new(1609459200000000000).unwrap(); // 2021-01-01T00:00:00Z
+///
+/// // Add time duration (only time durations, not date durations)
+/// let later = instant.add(Duration::from_str("PT1H30M").unwrap()).unwrap();
+/// let expected_ns = 1609459200000000000 + (1 * 3600 + 30 * 60) * 1_000_000_000;
+/// assert_eq!(later.epoch_nanoseconds().as_i128(), expected_ns);
+///
+/// // Calculate difference between instants
+/// let earlier = Instant::try_new(1609459200000000000 - 3600_000_000_000).unwrap();
+/// let duration = earlier.until(&instant, Default::default()).unwrap();
+/// assert_eq!(duration.seconds(), 3600);
+/// ```
+///
+/// ### Instant precision and limits
+///
+/// ```rust
+/// use temporal_rs::Instant;
+///
+/// // Instants have well-defined limits based on approximately 100 million days before/after Unix epoch
+/// let max_ns = 8_640_000_000_000_000_000_000i128;  // ~100M days * 24 * 60 * 60 * 1e9
+/// let min_ns = -max_ns;
+///
+/// let max_instant = Instant::try_new(max_ns).unwrap();
+/// let min_instant = Instant::try_new(min_ns).unwrap();
+///
+/// // Values outside the range will fail
+/// assert!(Instant::try_new(max_ns + 1).is_err());
+/// assert!(Instant::try_new(min_ns - 1).is_err());
+/// ```
+///
+/// ### Converting to ZonedDateTime (requires provider)
+///
+/// ```rust,ignore
+/// use temporal_rs::{Instant, TimeZone, Calendar};
+///
+/// let instant = Instant::try_new(1609459200000000000).unwrap();
+/// let timezone = TimeZone::try_from_str("America/New_York").unwrap();
+///
+/// // Convert to a zoned date-time for display in local time
+/// let zdt = instant.to_zoned_date_time_iso(timezone);
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/New_York");
+/// assert_eq!(zdt.calendar().identifier(), "iso8601");
+/// ```
+///
+/// ### Rounding instants
+///
+/// ```rust
+/// use temporal_rs::{Instant, options::{RoundingOptions, Unit}};
+///
+/// let instant = Instant::try_new(1609459245123456789).unwrap(); // some precise moment
+///
+/// let mut opts = RoundingOptions::default();
+/// opts.smallest_unit = Some(Unit::Second);
+/// let rounded = instant.round(opts).unwrap();
+///
+/// // Rounded to the nearest second
+/// assert_eq!(rounded.epoch_nanoseconds().as_i128() % 1_000_000_000, 0);
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-instant].
+///
+/// [mdn-instant]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Instant
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Instant(EpochNanoseconds);

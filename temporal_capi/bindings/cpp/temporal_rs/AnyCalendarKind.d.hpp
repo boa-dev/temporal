@@ -77,6 +77,8 @@ public:
 
   inline static std::optional<temporal_rs::AnyCalendarKind> get_for_str(std::string_view s);
 
+  inline static std::optional<temporal_rs::AnyCalendarKind> parse_temporal_calendar_string(std::string_view s);
+
   inline temporal_rs::capi::AnyCalendarKind AsFFI() const;
   inline static temporal_rs::AnyCalendarKind FromFFI(temporal_rs::capi::AnyCalendarKind c_enum);
 private:

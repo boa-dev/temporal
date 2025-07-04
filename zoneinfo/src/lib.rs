@@ -2,17 +2,16 @@
 //! time zone transition data that can be used to build
 //! TZif files or any other desired time zone format.
 //!
-//! The `zoneinfo_compiler`* offers default parsing and compiling
+//! `zoneinfo_rs` offers default parsing and compiling
 //! of zoneinfo files into time zone transition data.
 //!
-//! Why `zoneinfo-compiler`?
+//! Why `zoneinfo_rs`?
 //!
 //! In general, this library seeks to maximally expose as much
 //! data from the zoneinfo files as possible while also supporting
 //! extra time zone database features like the zone.tab, PACKRATLIST,
 //! and POSIX time zone strings.
 //!
-//! * TODO: bikeshed name
 
 // TODO list:
 //
@@ -32,7 +31,7 @@
 // this library is designed to aid with build time libraries, on
 // a limited dataset, NOT at runtime on extremely large datasets.
 
-// #![no_std]
+#![no_std]
 
 extern crate alloc;
 

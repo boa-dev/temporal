@@ -48,6 +48,15 @@ pub mod ffi {
                 Err(()) => None,
             }
         }
+
+        // https://tc39.es/proposal-temporal/#sec-temporal-parsetemporalcalendarstring
+        pub fn parse_temporal_calendar_string(s: &DiplomatStr) -> Option<Self> {
+            match temporal_rs::parsers::parse_allowed_calendar_formats(s) {
+                Some([]) => Some(AnyCalendarKind::Iso),
+                Some(result) => Self::get_for_str(result),
+                None => Self::get_for_str(s),
+            }
+        }
     }
 
     #[diplomat::opaque]
@@ -99,8 +108,12 @@ pub mod ffi {
             partial: PartialDate,
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainYearMonth>, TemporalError> {
+            let partial: temporal_rs::partial::PartialDate = partial.try_into()?;
             self.0
-                .year_month_from_partial(&partial.try_into()?, overflow.into())
+                .year_month_from_partial(
+                    &temporal_rs::partial::PartialYearMonth::from(&partial),
+                    overflow.into(),
+                )
                 .map(|c| Box::new(PlainYearMonth(c)))
                 .map_err(Into::into)
         }

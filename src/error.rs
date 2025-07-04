@@ -158,15 +158,19 @@ impl fmt::Display for TemporalError {
 /// The error message
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ErrorMessage {
+    // Range
     InstantOutOfRange,
+    IntermediateDateTimeOutOfRange,
+    ZDTOutOfDayBounds,
 
+    // Numerical errors
     NumberNotFinite,
     NumberNotIntegral,
     NumberNotPositive,
     NumberOutOfRange,
-
     FractionalDigitsPrecisionInvalid,
 
+    // Options validity
     SmallestUnitNotTimeUnit,
     SmallestUnitLargerThanLargestUnit,
     UnitNotDate,
@@ -178,12 +182,26 @@ pub(crate) enum ErrorMessage {
     CalendarNameInvalid,
     OffsetOptionInvalid,
     TimeZoneNameInvalid,
+
+    // Field mismatches
+    CalendarMismatch,
+    TzMismatch,
+
+    // Parsing
+    ParserNeedsDate,
+
+    // Other
+    OffsetNeedsDisambiguation,
 }
 
 impl ErrorMessage {
     pub fn to_string(self) -> &'static str {
         match self {
             Self::InstantOutOfRange => "Instant nanoseconds are not within a valid epoch range.",
+            Self::IntermediateDateTimeOutOfRange => {
+                "Intermediate ISO datetime was not within a valid range."
+            }
+            Self::ZDTOutOfDayBounds => "ZonedDateTime is outside the expected day bounds",
             Self::NumberNotFinite => "number value is not a finite value.",
             Self::NumberNotIntegral => "value must be integral.",
             Self::NumberNotPositive => "integer must be positive.",
@@ -202,6 +220,15 @@ impl ErrorMessage {
             Self::CalendarNameInvalid => "Invalid calendarName option provided",
             Self::OffsetOptionInvalid => "Invalid offsetOption option provided",
             Self::TimeZoneNameInvalid => "Invalid timeZoneName option provided",
+            Self::CalendarMismatch => {
+                "Calendar must be the same for operations involving two calendared types."
+            }
+            Self::TzMismatch => "Timezones must be the same if unit is a day unit.",
+
+            Self::ParserNeedsDate => "Could not find a valid DateRecord node during parsing.",
+            Self::OffsetNeedsDisambiguation => {
+                "Offsets could not be determined without disambiguation"
+            }
         }
     }
 }

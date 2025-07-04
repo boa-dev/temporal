@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RUSTFLAGS: -Dwarnings
+  FLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
   CARGO_TERM_COLOR: always
 
 jobs:
@@ -20,6 +20,14 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - name: Set environment
+        # Setting `RUSTFLAGS` overrides any flags set on .cargo/config.toml, so we need to
+        # set the target flags instead which are cumulative.
+        # Track https://github.com/rust-lang/cargo/issues/5376
+        run: |
+          target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -43,6 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      - name: Set environment
+        run: |
+          target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -61,6 +74,11 @@ jobs:
 
   build-test:
     name: Test (${{ matrix.rust.name }}, ${{ matrix.os }})
+    env:
+      RUSTUP_WINDOWS_PATH_ADD_BIN: 1
+      # NOTE: Boa comment mentions a small tool to handle this ... would be nice.
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
+      CARGO_TARGET_AARCH64_APPLE_DARWIN_RUSTFLAGS: ${{ (github.ref == 'refs/heads/main' || github.base_ref == 'main') && '-D warnings' || '' }}
     strategy:
       matrix:
         rust:
@@ -86,6 +104,11 @@ jobs:
     name: Test feature matrix
     runs-on: ubuntu-latest
     steps:
+      - name: Set environment
+        run: |
+          target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -94,7 +117,7 @@ jobs:
         with:
           key: features-test
       - name: Install cargo-all-features
-        uses: baptiste0928/cargo-install@v3.3.0
+        uses: baptiste0928/cargo-install@v3.3.1
         with:
           crate: cargo-all-features
 
@@ -110,6 +133,11 @@ jobs:
         os: [ubuntu-latest] # Todo: potentially add more if we add cpp tests
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Set environment
+        run: |
+          target=$(rustc -vV | awk '/^host/ { print $2 }' | tr [:lower:] [:upper:] | tr '-' '_')
+          echo "CARGO_TARGET_${target}_RUSTFLAGS=$FLAGS" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -129,6 +157,8 @@ jobs:
           pushd temporal_capi/tests/c && make && popd
           pushd temporal_capi/tests/cpp && make && popd
 
+      - name: temporal_capi tests
+        run: cargo test -p temporal_capi --all-features
       # There's no guarantee that dependencies are no_std unless you test with a toolchain without `std`
       - name: Install no_std toolchain
         run: rustup target add thumbv7m-none-eabi
