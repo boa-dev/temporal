@@ -761,7 +761,7 @@ impl ZonedDateTime {
         // NOTE: The below should be safe as today_ns and tomorrow_ns should be at most 25 hours.
         // TODO: Tests for the below cast.
         // 10. Return 𝔽(TotalTimeDuration(diff, hour)).
-        Ok(diff.divide(60_000_000_000) as u8)
+        Ok(diff.divide(3_600_000_000_000) as u8)
     }
 }
 
@@ -1641,6 +1641,21 @@ mod tests {
             provider,
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn zdt_hours_in_day() {
+        let provider = &FsTzdbProvider::default();
+        let zdt_str = "2025-07-04T12:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_str_with_provider(
+            zdt_str,
+            Disambiguation::Compatible,
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+
+        assert_eq!(result.hours_in_day_with_provider(provider).unwrap(), 24)
     }
 
     #[test]
