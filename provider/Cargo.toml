@@ -22,6 +22,8 @@ datagen = [
     "dep:databake",
     "dep:yoke",
     "dep:serde_json",
+    "tinystr/serde",
+    "tinystr/databake",
     "zerotrie/serde",
     "zerotrie/databake",
     "zerovec/serde",
@@ -36,6 +38,7 @@ std = []
 # Provider dependency
 zerotrie = "0.2.2"
 zerovec = { version = "0.11.2", features = ["derive", "alloc"] }
+tinystr = { workspace = true, features = ["zerovec"] }
 
 # IANA dependency
 zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
