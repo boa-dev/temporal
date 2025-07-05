@@ -742,9 +742,9 @@ impl NormalizedDurationRecord {
     ) -> TemporalResult<NudgeRecord> {
         // 1. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains smallestUnit, is time.
         // 2. Let norm be ! Add24HourDaysToNormalizedTimeDuration(duration.[[NormalizedTime]], duration.[[Days]]).
-        let norm = self
-            .normalized_time_duration()
-            .add_days(self.date().days.as_())?;
+        let norm = self.normalized_time_duration().add_days(
+            self.date().days.as_::<i64>() * i64::from(self.date.sign().as_sign_multiplier()),
+        )?;
 
         // 3. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains smallestUnit.
         let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
