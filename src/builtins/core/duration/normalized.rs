@@ -314,7 +314,10 @@ impl NormalizedDurationRecord {
     }
 
     pub(crate) fn sign(&self) -> TemporalResult<Sign> {
-        Ok(self.date.sign())
+        if self.date.sign() != Sign::Zero {
+            return Ok(self.date.sign());
+        }
+        Ok(self.norm.sign())
     }
 }
 
