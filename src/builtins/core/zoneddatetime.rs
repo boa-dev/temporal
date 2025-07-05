@@ -1256,9 +1256,10 @@ impl ZonedDateTime {
                 .round_instant(ResolvedRoundingOptions::from_to_string_options(
                     &resolved_options,
                 ))?;
+        let rounded_instant = Instant::try_new(result)?;
 
         let offset = self.tz.get_offset_nanos_for(result, provider)?;
-        let datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
         let timezone_id = self.timezone().identifier()?;
 
