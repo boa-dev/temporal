@@ -1,5 +1,6 @@
 //! This module implements `Duration` along with it's methods and components.
 
+use self::normalized::NormalizedTimeDuration;
 use crate::{
     builtins::core::{PlainDateTime, PlainTime, ZonedDateTime},
     iso::{IsoDateTime, IsoTime},
@@ -8,29 +9,23 @@ use crate::{
         RoundingOptions, ToStringRoundingOptions, Unit,
     },
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
-    primitive::FiniteF64,
+    primitive::{FiniteF64, U40, U48, U56, U80, U88},
     provider::TimeZoneProvider,
-    temporal_assert, Sign, TemporalError, TemporalResult, NS_PER_DAY,
+    temporal_assert, DateDuration, Sign, TemporalError, TemporalResult, NS_PER_DAY,
 };
 use alloc::format;
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{encoding::Utf8, parsers::IsoDurationParser, records::TimeDurationRecord};
 use normalized::NormalizedDurationRecord;
+use num_traits::Euclid;
 
-use self::normalized::NormalizedTimeDuration;
-
-mod date;
+pub mod date;
 pub(crate) mod normalized;
-mod time;
+// mod time;
 
 #[cfg(test)]
 mod tests;
-
-#[doc(inline)]
-pub use date::DateDuration;
-#[doc(inline)]
-pub use time::TimeDuration;
 
 /// A `PartialDuration` is a Duration that may have fields not set.
 #[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
@@ -215,10 +210,37 @@ impl PartialDuration {
 ///
 /// [mdn-duration]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Duration
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct Duration {
-    date: DateDuration,
-    time: TimeDuration,
+    sign: Sign,
+    pub(crate) years: u32,
+    pub(crate) months: u32,
+    pub(crate) weeks: u32,
+    pub(crate) days: U40,
+    pub(crate) hours: U48,
+    pub(crate) minutes: U48,
+    pub(crate) seconds: U56,
+    pub(crate) milliseconds: u64,
+    pub(crate) microseconds: U80,
+    pub(crate) nanoseconds: U88,
+}
+
+impl Default for Duration {
+    fn default() -> Self {
+        Self {
+            sign: Sign::Zero,
+            years: 0,
+            months: 0,
+            weeks: 0,
+            days: U40::from(0u8),
+            hours: U48::from(0u8),
+            minutes: U48::from(0u8),
+            seconds: U56::from(0u8),
+            milliseconds: 0,
+            microseconds: U80::from(0u8),
+            nanoseconds: U88::from(0u8),
+        }
+    }
 }
 
 impl core::fmt::Display for Duration {
@@ -245,47 +267,258 @@ impl core::fmt::Display for Duration {
 #[cfg(test)]
 impl Duration {
     pub(crate) fn hour(value: i64) -> Self {
-        Self::new_unchecked(
-            DateDuration::default(),
-            TimeDuration::new_unchecked(value, 0, 0, 0, 0, 0),
-        )
+        Self {
+            sign: Sign::from(value.signum()),
+            hours: U48::try_from(value.abs()).expect("Hours must be within range."),
+            ..Default::default()
+        }
     }
 }
 
 // ==== Private Creation methods ====
 
 impl Duration {
-    /// Creates a new `Duration` from a `DateDuration` and `TimeDuration`.
+    /// Creates a new `Duration` with provided fields.
     #[inline]
-    pub(crate) const fn new_unchecked(date: DateDuration, time: TimeDuration) -> Self {
-        Self { date, time }
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) const fn new_unchecked(
+        sign: Sign,
+        years: u32,
+        months: u32,
+        weeks: u32,
+        days: U40,
+        hours: U48,
+        minutes: U48,
+        seconds: U56,
+        milliseconds: u64,
+        microseconds: U80,
+        nanoseconds: U88,
+    ) -> Self {
+        Self {
+            sign,
+            years,
+            months,
+            weeks,
+            days,
+            hours,
+            minutes,
+            seconds,
+            milliseconds,
+            microseconds,
+            nanoseconds,
+        }
     }
 
-    #[inline]
+    // #[inline]
     pub(crate) fn from_normalized(
         duration_record: NormalizedDurationRecord,
         largest_unit: Unit,
     ) -> TemporalResult<Self> {
-        let (overflow_day, time) = TimeDuration::from_normalized(
+        let (overflow_day, time) = Duration::from_normalized_time(
             duration_record.normalized_time_duration(),
             largest_unit,
         )?;
-        Self::new(
-            duration_record.date().years,
-            duration_record.date().months,
-            duration_record.date().weeks,
-            duration_record
-                .date()
-                .days
+        let sign = duration_record.sign()?;
+        let mut duration = Self::new(
+            i64::from(duration_record.date().years),
+            i64::from(duration_record.date().months),
+            i64::from(duration_record.date().weeks),
+            i64::try_from(duration_record.date().days)
+                .or(Err(TemporalError::range()))?
                 .checked_add(overflow_day)
                 .ok_or(TemporalError::range())?,
-            time.hours,
-            time.minutes,
-            time.seconds,
-            time.milliseconds,
-            time.microseconds,
-            time.nanoseconds,
-        )
+            i64::try_from(time.hours).or(Err(TemporalError::range()))?,
+            i64::try_from(time.minutes).or(Err(TemporalError::range()))?,
+            i64::try_from(time.seconds).or(Err(TemporalError::range()))?,
+            i64::try_from(time.milliseconds).or(Err(TemporalError::range()))?,
+            i128::try_from(time.microseconds).or(Err(TemporalError::range()))?,
+            i128::try_from(time.nanoseconds).or(Err(TemporalError::range()))?,
+        )?;
+        if sign == Sign::Negative {
+            duration = duration.negated();
+        }
+        Ok(duration)
+    }
+
+    /// Returns this `Duration` as a `NormalizedTimeDuration`.
+    #[inline]
+    pub(crate) fn to_normalized(self) -> NormalizedTimeDuration {
+        NormalizedTimeDuration::from_duration(&self)
+    }
+
+    /// Balances and creates `Duration` from a `NormalizedTimeDuration`. This method will return
+    /// a tuple (f64, Duration) where f64 is the overflow day value from balancing.
+    ///
+    /// Equivalent: `BalanceTimeDuration`
+    ///
+    /// # Errors:
+    ///   - Will error if provided duration is invalid
+    pub(crate) fn from_normalized_time(
+        norm: NormalizedTimeDuration,
+        largest_unit: Unit,
+    ) -> TemporalResult<(i64, Duration)> {
+        // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
+        let mut days = 0;
+        let mut hours = 0;
+        let mut minutes = 0;
+        let mut seconds = 0;
+        let mut milliseconds = 0;
+        let mut microseconds = 0;
+
+        // 2. Let sign be NormalizedTimeDurationSign(norm).
+        let sign = norm.sign().as_sign_multiplier();
+        // 3. Let nanoseconds be NormalizedTimeDurationAbs(norm).[[TotalNanoseconds]].
+        let mut nanoseconds = norm.0.abs();
+
+        match largest_unit {
+            // 4. If largestUnit is "year", "month", "week", or "day", then
+            Unit::Year | Unit::Month | Unit::Week | Unit::Day => {
+                // a. Set microseconds to floor(nanoseconds / 1000).
+                // b. Set nanoseconds to nanoseconds modulo 1000.
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
+
+                // c. Set milliseconds to floor(microseconds / 1000).
+                // d. Set microseconds to microseconds modulo 1000.
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
+
+                // e. Set seconds to floor(milliseconds / 1000).
+                // f. Set milliseconds to milliseconds modulo 1000.
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
+
+                // g. Set minutes to floor(seconds / 60).
+                // h. Set seconds to seconds modulo 60.
+                (minutes, seconds) = seconds.div_rem_euclid(&60);
+
+                // i. Set hours to floor(minutes / 60).
+                // j. Set minutes to minutes modulo 60.
+                (hours, minutes) = minutes.div_rem_euclid(&60);
+
+                // k. Set days to floor(hours / 24).
+                // l. Set hours to hours modulo 24.
+                (days, hours) = hours.div_rem_euclid(&24);
+            }
+            // 5. Else if largestUnit is "hour", then
+            Unit::Hour => {
+                // a. Set microseconds to floor(nanoseconds / 1000).
+                // b. Set nanoseconds to nanoseconds modulo 1000.
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
+
+                // c. Set milliseconds to floor(microseconds / 1000).
+                // d. Set microseconds to microseconds modulo 1000.
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
+
+                // e. Set seconds to floor(milliseconds / 1000).
+                // f. Set milliseconds to milliseconds modulo 1000.
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
+
+                // g. Set minutes to floor(seconds / 60).
+                // h. Set seconds to seconds modulo 60.
+                (minutes, seconds) = seconds.div_rem_euclid(&60);
+
+                // i. Set hours to floor(minutes / 60).
+                // j. Set minutes to minutes modulo 60.
+                (hours, minutes) = minutes.div_rem_euclid(&60);
+            }
+            // 6. Else if largestUnit is "minute", then
+            Unit::Minute => {
+                // a. Set microseconds to floor(nanoseconds / 1000).
+                // b. Set nanoseconds to nanoseconds modulo 1000.
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
+
+                // c. Set milliseconds to floor(microseconds / 1000).
+                // d. Set microseconds to microseconds modulo 1000.
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
+
+                // e. Set seconds to floor(milliseconds / 1000).
+                // f. Set milliseconds to milliseconds modulo 1000.
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
+
+                // g. Set minutes to floor(seconds / 60).
+                // h. Set seconds to seconds modulo 60.
+                (minutes, seconds) = seconds.div_rem_euclid(&60);
+            }
+            // 7. Else if largestUnit is "second", then
+            Unit::Second => {
+                // a. Set microseconds to floor(nanoseconds / 1000).
+                // b. Set nanoseconds to nanoseconds modulo 1000.
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
+
+                // c. Set milliseconds to floor(microseconds / 1000).
+                // d. Set microseconds to microseconds modulo 1000.
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
+
+                // e. Set seconds to floor(milliseconds / 1000).
+                // f. Set milliseconds to milliseconds modulo 1000.
+                (seconds, milliseconds) = milliseconds.div_rem_euclid(&1_000);
+            }
+            // 8. Else if largestUnit is "millisecond", then
+            Unit::Millisecond => {
+                // a. Set microseconds to floor(nanoseconds / 1000).
+                // b. Set nanoseconds to nanoseconds modulo 1000.
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
+
+                // c. Set milliseconds to floor(microseconds / 1000).
+                // d. Set microseconds to microseconds modulo 1000.
+                (milliseconds, microseconds) = microseconds.div_rem_euclid(&1_000);
+            }
+            // 9. Else if largestUnit is "microsecond", then
+            Unit::Microsecond => {
+                // a. Set microseconds to floor(nanoseconds / 1000).
+                // b. Set nanoseconds to nanoseconds modulo 1000.
+                (microseconds, nanoseconds) = nanoseconds.div_rem_euclid(&1_000);
+            }
+            // 10. Else,
+            // a. Assert: largestUnit is "nanosecond".
+            _ => temporal_assert!(largest_unit == Unit::Nanosecond),
+        }
+
+        // NOTE(nekevss): `mul_add` is essentially the Rust's implementation of `std::fma()`, so that's handy, but
+        // this should be tested much further.
+        // 11. NOTE: When largestUnit is "millisecond", "microsecond", or "nanosecond", milliseconds, microseconds, or
+        // nanoseconds may be an unsafe integer. In this case, care must be taken when implementing the calculation
+        // using floating point arithmetic. It can be implemented in C++ using std::fma(). String manipulation will also
+        // give an exact result, since the multiplication is by a power of 10.
+
+        // NOTE: days may have the potentially to exceed i64
+        // 12. Return ! CreateTimeDurationRecord(days × sign, hours × sign, minutes × sign, seconds × sign, milliseconds × sign, microseconds × sign, nanoseconds × sign).
+        let days = i64::try_from(days).map_err(|_| TemporalError::range())? * i64::from(sign);
+
+        if !is_valid_duration(
+            0,
+            0,
+            0,
+            days,
+            hours as i64 * i64::from(sign),
+            minutes as i64 * i64::from(sign),
+            seconds as i64 * i64::from(sign),
+            milliseconds as i64 * i64::from(sign),
+            microseconds * i128::from(sign),
+            nanoseconds * i128::from(sign),
+        ) {
+            return Err(TemporalError::range().with_message("Invalid balance Duration."));
+        }
+
+        // TODO: Remove cast below.
+        Ok((
+            days,
+            Duration {
+                sign: sign.into(),
+                days: days.try_into().expect("days must fit into u40"),
+                hours: hours.try_into().expect("hours must fit into u48"),
+                minutes: minutes.try_into().expect("minutes must fit into u48"),
+                seconds: seconds.try_into().expect("seconds must fit into u56"),
+                milliseconds: milliseconds
+                    .try_into()
+                    .expect("milliseconds must fit into u64"),
+                microseconds: microseconds
+                    .try_into()
+                    .expect("microseconds must fit into u80"),
+                nanoseconds: nanoseconds
+                    .try_into()
+                    .expect("nanoseconds must fit into u88"),
+                ..Default::default()
+            },
+        ))
     }
 
     /// Returns the a `Vec` of the fields values.
@@ -306,7 +539,7 @@ impl Duration {
         ]
     }
 
-    /// Returns whether `Duration`'s `DateDuration` is empty and is therefore a `TimeDuration`.
+    /// Returns whether `Duration`'s `DateDuration` is empty.
     #[inline]
     #[must_use]
     pub(crate) fn is_time_duration(&self) -> bool {
@@ -357,17 +590,6 @@ impl Duration {
         microseconds: i128,
         nanoseconds: i128,
     ) -> TemporalResult<Self> {
-        let duration = Self::new_unchecked(
-            DateDuration::new_unchecked(years, months, weeks, days),
-            TimeDuration::new_unchecked(
-                hours,
-                minutes,
-                seconds,
-                milliseconds,
-                microseconds,
-                nanoseconds,
-            ),
-        );
         if !is_valid_duration(
             years,
             months,
@@ -382,18 +604,47 @@ impl Duration {
         ) {
             return Err(TemporalError::range().with_message("Duration was not valid."));
         }
-        Ok(duration)
+        Ok(Duration {
+            sign: duration_sign(&[
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+                milliseconds,
+                microseconds as i64,
+                nanoseconds as i64,
+            ]),
+            years: u32::try_from(years).or(Err(TemporalError::range()))?,
+            months: u32::try_from(months).or(Err(TemporalError::range()))?,
+            weeks: u32::try_from(weeks).or(Err(TemporalError::range()))?,
+            days: U40::try_from(days).or(Err(TemporalError::range()))?,
+            hours: U48::try_from(hours).or(Err(TemporalError::range()))?,
+            minutes: U48::try_from(minutes).or(Err(TemporalError::range()))?,
+            seconds: U56::try_from(seconds).or(Err(TemporalError::range()))?,
+            milliseconds: u64::try_from(milliseconds).or(Err(TemporalError::range()))?,
+            microseconds: U80::try_from(microseconds).or(Err(TemporalError::range()))?,
+            nanoseconds: U88::try_from(nanoseconds).or(Err(TemporalError::range()))?,
+        })
     }
 
-    /// Creates a `Duration` from a provided a day and a `TimeDuration`.
+    /// Creates a `Duration` from a provided a day and a `Duration`.
     ///
-    /// Note: `TimeDuration` records can store a day value to deal with overflow.
-    #[must_use]
-    pub fn from_day_and_time(day: i64, time: &TimeDuration) -> Self {
-        Self {
-            date: DateDuration::new_unchecked(0, 0, 0, day),
-            time: *time,
-        }
+    /// Note: `Duration` records can store a day value to deal with overflow.
+    pub fn from_day_and_time(day: i64, time: &Duration) -> TemporalResult<Self> {
+        Ok(Self {
+            sign: time.sign(),
+            days: day.try_into().or(Err(TemporalError::range()))?,
+            hours: time.hours,
+            minutes: time.minutes,
+            seconds: time.seconds,
+            milliseconds: time.milliseconds,
+            microseconds: time.microseconds,
+            nanoseconds: time.nanoseconds,
+            ..Default::default()
+        })
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
@@ -527,7 +778,12 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn is_time_within_range(&self) -> bool {
-        self.time.is_within_range()
+        self.hours < 24u8.into()
+            && self.minutes < 60u8.into()
+            && self.seconds < 60u8.into()
+            && self.milliseconds < 1000u16.into()
+            && self.microseconds < 1000u16.into()
+            && self.nanoseconds < 1000u16.into()
     }
 
     #[inline]
@@ -537,7 +793,7 @@ impl Duration {
         relative_to: Option<RelativeTo>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Ordering> {
-        if self.date == other.date && self.time == other.time {
+        if self == other {
             return Ok(Ordering::Equal);
         }
         // 8. Let largestUnit1 be DefaultTemporalLargestUnit(one).
@@ -570,16 +826,19 @@ impl Duration {
                 let Some(RelativeTo::PlainDate(pdt)) = relative_to.as_ref() else {
                     return Err(TemporalError::range());
                 };
-                let days1 = self.date.days(pdt)?;
-                let days2 = other.date.days(pdt)?;
+                let days1 = DateDuration::from(*self).days(pdt)?;
+                let days2 = DateDuration::from(*other).days(pdt)?;
                 (days1, days2)
             } else {
-                (self.date.days, other.date.days)
+                (
+                    self.days.try_into().or(Err(TemporalError::range()))?,
+                    other.days.try_into().or(Err(TemporalError::range()))?,
+                )
             };
         // 15. Let timeDuration1 be ? Add24HourDaysToTimeDuration(duration1.[[Time]], days1).
-        let time_duration_1 = self.time.to_normalized().add_days(days1)?;
+        let time_duration_1 = self.to_normalized().add_days(days1)?;
         // 16. Let timeDuration2 be ? Add24HourDaysToTimeDuration(duration2.[[Time]], days2).
-        let time_duration_2 = other.time.to_normalized().add_days(days2)?;
+        let time_duration_2 = other.to_normalized().add_days(days2)?;
         // 17. Return 𝔽(CompareTimeDuration(timeDuration1, timeDuration2)).
         Ok(time_duration_1.cmp(&time_duration_2))
     }
@@ -588,88 +847,88 @@ impl Duration {
 // ==== Public `Duration` Getters/Setters ====
 
 impl Duration {
-    /// Returns a reference to the inner `TimeDuration`
+    /// Returns the inner `DateDuration` as an owned value
     #[inline]
     #[must_use]
-    pub fn time(&self) -> &TimeDuration {
-        &self.time
-    }
-
-    /// Returns a reference to the inner `DateDuration`
-    #[inline]
-    #[must_use]
-    pub fn date(&self) -> &DateDuration {
-        &self.date
+    pub fn date(&self) -> DateDuration {
+        DateDuration::from(self)
     }
 
     /// Returns the `years` field of duration.
     #[inline]
     #[must_use]
-    pub const fn years(&self) -> i64 {
-        self.date.years
+    pub fn years(&self) -> i64 {
+        i64::from(self.years) * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `months` field of duration.
     #[inline]
     #[must_use]
-    pub const fn months(&self) -> i64 {
-        self.date.months
+    pub fn months(&self) -> i64 {
+        i64::from(self.months) * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `weeks` field of duration.
     #[inline]
     #[must_use]
-    pub const fn weeks(&self) -> i64 {
-        self.date.weeks
+    pub fn weeks(&self) -> i64 {
+        i64::from(self.weeks) * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `days` field of duration.
     #[inline]
     #[must_use]
-    pub const fn days(&self) -> i64 {
-        self.date.days
+    pub fn days(&self) -> i64 {
+        i64::try_from(self.days).expect("Days must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn hours(&self) -> i64 {
-        self.time.hours
+    pub fn hours(&self) -> i64 {
+        i64::try_from(self.hours).expect("Hours must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
-    /// Returns the `hours` field of duration.
+    /// Returns the `minutes` field of duration.
     #[inline]
     #[must_use]
-    pub const fn minutes(&self) -> i64 {
-        self.time.minutes
+    pub fn minutes(&self) -> i64 {
+        i64::try_from(self.minutes).expect("Minutes must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `seconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn seconds(&self) -> i64 {
-        self.time.seconds
+    pub fn seconds(&self) -> i64 {
+        i64::try_from(self.seconds).expect("Seconds must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `hours` field of duration.
     #[inline]
     #[must_use]
-    pub const fn milliseconds(&self) -> i64 {
-        self.time.milliseconds
+    pub fn milliseconds(&self) -> i64 {
+        i64::try_from(self.milliseconds).expect("Milliseconds must fit into i64")
+            * i64::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `microseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn microseconds(&self) -> i128 {
-        self.time.microseconds
+    pub fn microseconds(&self) -> i128 {
+        i128::try_from(self.microseconds).expect("Microseconds must fit into i128")
+            * i128::from(self.sign.as_sign_multiplier())
     }
 
     /// Returns the `nanoseconds` field of duration.
     #[inline]
     #[must_use]
-    pub const fn nanoseconds(&self) -> i128 {
-        self.time.nanoseconds
+    pub fn nanoseconds(&self) -> i128 {
+        i128::try_from(self.nanoseconds).expect("Nanoseconds must fit into i128")
+            * i128::from(self.sign.as_sign_multiplier())
     }
 }
 
@@ -680,7 +939,7 @@ impl Duration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> Sign {
-        duration_sign(&self.fields_signum())
+        self.sign
     }
 
     /// Returns whether the current `Duration` is zero.
@@ -697,8 +956,8 @@ impl Duration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            date: self.date().negated(),
-            time: self.time().negated(),
+            sign: self.sign.negate(),
+            ..*self
         }
     }
 
@@ -707,8 +966,12 @@ impl Duration {
     #[must_use]
     pub fn abs(&self) -> Self {
         Self {
-            date: self.date().abs(),
-            time: self.time().abs(),
+            sign: if self.sign == Sign::Zero {
+                Sign::Zero
+            } else {
+                Sign::Positive
+            },
+            ..*self
         }
     }
 
@@ -725,9 +988,9 @@ impl Duration {
         // 25. Let largestUnit be LargerOfTwoUnits(largestUnit1, largestUnit2).
         let largest_unit = largest_one.max(largest_two);
         // 26. Let norm1 be NormalizeTimeDuration(h1, min1, s1, ms1, mus1, ns1).
-        let norm_one = NormalizedTimeDuration::from_time_duration(self.time());
+        let norm_one = NormalizedTimeDuration::from_duration(self);
         // 27. Let norm2 be NormalizeTimeDuration(h2, min2, s2, ms2, mus2, ns2).
-        let norm_two = NormalizedTimeDuration::from_time_duration(other.time());
+        let norm_two = NormalizedTimeDuration::from_duration(other);
 
         // 28. If IsCalendarUnit(largestUnit), throw a RangeError exception.
         if largest_unit.is_calendar_unit() {
@@ -748,11 +1011,11 @@ impl Duration {
         )?;
 
         // 31. Let result be ? BalanceTimeDuration(normResult, largestUnit).
-        let (result_days, result_time) = TimeDuration::from_normalized(result, largest_unit)?;
+        let (result_days, result_time) = Duration::from_normalized_time(result, largest_unit)?;
 
         // 32. Return ! CreateTemporalDuration(0, 0, 0, result.[[Days]], result.[[Hours]], result.[[Minutes]],
         // result.[[Seconds]], result.[[Milliseconds]], result.[[Microseconds]], result.[[Nanoseconds]]).
-        Ok(Duration::from_day_and_time(result_days, &result_time))
+        Duration::from_day_and_time(result_days, &result_time)
     }
 
     /// Returns the result of subtracting a `Duration` from the current `Duration`
@@ -1031,7 +1294,7 @@ impl Duration {
                 // a. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
                 // b. Let targetTime be AddTime(MidnightTimeRecord(), internalDuration.[[Time]]).
                 let (balanced_days, time) =
-                    PlainTime::default().add_normalized_time_duration(self.time.to_normalized());
+                    PlainTime::default().add_normalized_time_duration(self.to_normalized());
                 // c. Let calendar be plainRelativeTo.[[Calendar]].
                 // d. Let dateDuration be ! AdjustDateDurationRecord(internalDuration.[[Date]], targetTime.[[Days]]).
                 let date_duration = DateDuration::new(
@@ -1100,8 +1363,8 @@ impl Duration {
         let largest = self.default_largest_unit();
         // 12. Let internalDuration be ToInternalDurationRecord(duration).
         let norm = NormalizedDurationRecord::new(
-            self.date,
-            NormalizedTimeDuration::from_time_duration(&self.time),
+            self.date(),
+            NormalizedTimeDuration::from_duration(self),
         )?;
         // 13. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], precision.[[Increment]], precision.[[Unit]], roundingMode).
         let time = norm.normalized_time_duration().round(rounding_options)?;
@@ -1138,14 +1401,21 @@ pub fn duration_to_formattable(
     let hours = duration.hours().abs();
     let minutes = duration.minutes().abs();
 
-    let time = NormalizedTimeDuration::from_time_duration(&TimeDuration::new_unchecked(
-        0,
-        0,
-        duration.seconds(),
-        duration.milliseconds(),
-        duration.microseconds(),
-        duration.nanoseconds(),
-    ));
+    // let time = NormalizedTimeDuration::from_duration(&Duration::new_unchecked(
+    //     0,
+    //     0,
+    //     duration.seconds(),
+    //     duration.milliseconds(),
+    //     duration.microseconds(),
+    //     duration.nanoseconds(),
+    // ));
+    let time = NormalizedTimeDuration::from_duration(&Duration {
+        seconds: duration.seconds,
+        milliseconds: duration.milliseconds,
+        microseconds: duration.microseconds,
+        nanoseconds: duration.nanoseconds,
+        ..Default::default()
+    });
 
     let seconds = time.seconds().unsigned_abs();
     let subseconds = time.subseconds().unsigned_abs();
@@ -1259,7 +1529,7 @@ pub(crate) fn is_valid_duration(
 /// Equivalent: 7.5.10 `DurationSign ( years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds )`
 #[inline]
 #[must_use]
-fn duration_sign(set: &[i64]) -> Sign {
+pub fn duration_sign(set: &[i64]) -> Sign {
     // 1. For each value v of « years, months, weeks, days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds », do
     for v in set {
         // a. If v < 0, return -1.
@@ -1274,20 +1544,15 @@ fn duration_sign(set: &[i64]) -> Sign {
     Sign::Zero
 }
 
-impl From<TimeDuration> for Duration {
-    fn from(value: TimeDuration) -> Self {
-        Self {
-            time: value,
-            date: DateDuration::default(),
-        }
-    }
-}
-
 impl From<DateDuration> for Duration {
     fn from(value: DateDuration) -> Self {
         Self {
-            date: value,
-            time: TimeDuration::default(),
+            sign: value.sign,
+            years: value.years,
+            months: value.months,
+            weeks: value.weeks,
+            days: value.days,
+            ..Default::default()
         }
     }
 }
@@ -1387,19 +1652,27 @@ impl FromStr for Duration {
             (0, 0, 0, 0)
         };
 
-        let sign = parse_record.sign as i64;
+        let sign = if parse_record.sign == ixdtf::records::Sign::Negative {
+            Sign::Negative
+        } else {
+            Sign::Positive
+        };
 
-        Self::new(
-            years as i64 * sign,
-            months as i64 * sign,
-            weeks as i64 * sign,
-            days as i64 * sign,
-            hours as i64 * sign,
-            minutes as i64 * sign,
-            seconds as i64 * sign,
-            millis as i64 * sign,
-            micros as i128 * sign as i128,
-            nanos as i128 * sign as i128,
-        )
+        let mut duration = Self::new(
+            years as i64,
+            months as i64,
+            weeks as i64,
+            days as i64,
+            hours as i64,
+            minutes as i64,
+            seconds as i64,
+            millis as i64,
+            micros as i128,
+            nanos as i128,
+        )?;
+        if sign == Sign::Negative {
+            duration = duration.negated();
+        }
+        Ok(duration)
     }
 }

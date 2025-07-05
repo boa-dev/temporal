@@ -11,7 +11,6 @@ use ixdtf::{
 };
 use num_traits::ToPrimitive;
 
-use crate::builtins::core::duration::DateDuration;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
@@ -23,7 +22,7 @@ use crate::{
     unix_time::EpochNanoseconds,
     TemporalError, TemporalResult, ZonedDateTime,
 };
-use crate::{Calendar, Sign};
+use crate::{Calendar, DateDuration, Sign};
 
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 

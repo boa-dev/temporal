@@ -26,20 +26,20 @@ use core::num::NonZeroU128;
 use ixdtf::records::TimeRecord;
 
 use crate::{
-    builtins::core::{
-        calendar::Calendar,
-        duration::{
-            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-            DateDuration, TimeDuration,
+    builtins::{
+        core::{
+            calendar::Calendar,
+            duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+            Duration, PartialTime, PlainDate,
         },
-        Duration, PartialTime, PlainDate,
+        duration::duration_sign,
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
     rounding::{IncrementRounder, Round},
     temporal_assert,
     unix_time::EpochNanoseconds,
-    utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    utils, DateDuration, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 use icu_calendar::{Date as IcuDate, Iso};
 use num_traits::{cast::FromPrimitive, Euclid};
@@ -166,14 +166,15 @@ impl IsoDateTime {
         let date = PlainDate::new_unchecked(self.date, calendar);
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
+        let sign = date_duration.sign.as_sign_multiplier();
         let date_duration = DateDuration::new(
-            date_duration.years,
-            date_duration.months,
-            date_duration.weeks,
-            date_duration
-                .days
-                .checked_add(t_result.0)
-                .ok_or(TemporalError::range())?,
+            i64::from(date_duration.years) * i64::from(sign),
+            i64::from(date_duration.months) * i64::from(sign),
+            i64::from(date_duration.weeks) * i64::from(sign),
+            i64::try_from(date_duration.days).or(Err(TemporalError::range()))?
+                * i64::from(sign)
+                    .checked_add(t_result.0)
+                    .ok_or(TemporalError::range())?,
         )?;
         let duration = Duration::from(date_duration);
 
@@ -211,8 +212,7 @@ impl IsoDateTime {
         // is not "day", CalendarMethodsRecordHasLookedUp(calendarRec, date-until) is true.
 
         // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
-        let mut time_duration =
-            NormalizedTimeDuration::from_time_duration(&self.time.diff(&other.time));
+        let mut time_duration = self.time.diff(&other.time);
 
         // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
         let time_sign = time_duration.sign() as i8;
@@ -397,9 +397,12 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
+        let year_offset = i64::from(duration.years) * i64::from(duration.sign.as_sign_multiplier());
+        let month_offset =
+            i64::from(duration.months) * i64::from(duration.sign.as_sign_multiplier());
         let intermediate = balance_iso_year_month_with_clamp(
-            i64::from(self.year) + duration.years,
-            i64::from(self.month) + duration.months,
+            i64::from(self.year) + year_offset,
+            i64::from(self.month) + month_offset,
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
@@ -407,8 +410,11 @@ impl IsoDate {
             Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days = duration.days + (7 * duration.weeks); // Verify
-                                                                    // 6. Let d be intermediate.[[Day]] + days.
+        let additional_days = i64::try_from(duration.days).or(Err(TemporalError::range()))?
+            * i64::from(duration.sign.as_sign_multiplier())
+            + (7 * i64::from(duration.weeks) * i64::from(duration.sign.as_sign_multiplier()));
+
+        // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
@@ -715,8 +721,8 @@ impl IsoTime {
         (days, time)
     }
 
-    /// Difference this `IsoTime` against another and returning a `TimeDuration`.
-    pub(crate) fn diff(&self, other: &Self) -> TimeDuration {
+    /// Difference this `IsoTime` against another and returning a `NormalizedTimeDuration`.
+    pub(crate) fn diff(&self, other: &Self) -> NormalizedTimeDuration {
         let h = i64::from(other.hour) - i64::from(self.hour);
         let m = i64::from(other.minute) - i64::from(self.minute);
         let s = i64::from(other.second) - i64::from(self.second);
@@ -724,7 +730,21 @@ impl IsoTime {
         let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
-        TimeDuration::new_unchecked(h, m, s, ms, mis, ns)
+        let sign = duration_sign(&[h, m, s, ms, mis as i64, ns as i64]);
+
+        NormalizedTimeDuration::from_duration(&Duration::new_unchecked(
+            sign,
+            0,
+            0,
+            0,
+            0u8.into(),
+            h.unsigned_abs().into(),
+            m.unsigned_abs().into(),
+            s.unsigned_abs().into(),
+            ms.unsigned_abs(),
+            mis.unsigned_abs().into(),
+            ns.unsigned_abs().into(),
+        ))
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the
