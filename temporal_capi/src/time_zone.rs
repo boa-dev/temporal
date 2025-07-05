@@ -35,15 +35,13 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn identifier(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
+        pub fn identifier(&self, write: &mut DiplomatWrite) {
             // TODO ideally this would use Writeable instead of allocating
-            let s = self.0.identifier()?;
+            let s = self.0.identifier();
 
             // This can only fail in cases where the DiplomatWriteable is capped, we
             // don't care about that.
             let _ = write.write_str(&s);
-
-            Ok(())
         }
 
         #[allow(clippy::should_implement_trait)]

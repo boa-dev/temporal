@@ -121,7 +121,7 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 ///
 /// // Convert to a zoned date-time for display in local time
 /// let zdt = instant.to_zoned_date_time_iso(timezone);
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/New_York");
+/// assert_eq!(zdt.timezone().identifier(), "America/New_York");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// ```
 ///
