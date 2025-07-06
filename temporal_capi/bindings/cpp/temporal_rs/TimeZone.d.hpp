@@ -34,9 +34,9 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_str(std::string_view ident);
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> identifier() const;
+  inline std::string identifier() const;
   template<typename W>
-  inline diplomat::result<std::monostate, temporal_rs::TemporalError> identifier_write(W& writeable_output) const;
+  inline void identifier_write(W& writeable_output) const;
 
   inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
 

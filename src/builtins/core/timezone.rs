@@ -50,7 +50,8 @@ impl UtcOffset {
         }
     }
 
-    pub fn to_string(&self) -> TemporalResult<String> {
+    #[allow(clippy::inherent_to_string)]
+    pub fn to_string(&self) -> String {
         let sign = if self.0 < 0 {
             Sign::Negative
         } else {
@@ -69,7 +70,7 @@ impl UtcOffset {
                 include_sep: true,
             },
         };
-        Ok(formattable_offset.to_string())
+        formattable_offset.to_string()
     }
 }
 
@@ -138,9 +139,9 @@ impl TimeZone {
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
-    pub fn identifier(&self) -> TemporalResult<String> {
+    pub fn identifier(&self) -> String {
         match self {
-            TimeZone::IanaIdentifier(s) => Ok(s.clone()),
+            TimeZone::IanaIdentifier(s) => s.clone(),
             TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
@@ -468,18 +469,18 @@ mod tests {
     fn from_and_to_string() {
         let src = "+09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
 
         let src = "-09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
 
         let src = "-12:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
 
         let src = "America/New_York";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
     }
 }

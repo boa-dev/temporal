@@ -123,7 +123,7 @@ impl PartialZonedDateTime {
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
+/// assert_eq!(zdt.timezone().identifier(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// ```
 ///
@@ -193,7 +193,7 @@ impl PartialZonedDateTime {
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
+/// assert_eq!(zdt.timezone().identifier(), "America/Los_Angeles");
 /// ```
 ///
 /// ### String formatting (requires provider)
@@ -1261,7 +1261,7 @@ impl ZonedDateTime {
         let offset = self.tz.get_offset_nanos_for(result, provider)?;
         let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
-        let timezone_id = self.timezone().identifier()?;
+        let timezone_id = self.timezone().identifier();
 
         let ixdtf_string = IxdtfStringBuilder::default()
             .with_date(datetime.date)
