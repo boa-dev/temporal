@@ -123,7 +123,7 @@ impl PartialZonedDateTime {
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
+/// assert_eq!(zdt.timezone().identifier(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// ```
 ///
@@ -193,7 +193,7 @@ impl PartialZonedDateTime {
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
+/// assert_eq!(zdt.timezone().identifier(), "America/Los_Angeles");
 /// ```
 ///
 /// ### String formatting (requires provider)
@@ -761,7 +761,7 @@ impl ZonedDateTime {
         // NOTE: The below should be safe as today_ns and tomorrow_ns should be at most 25 hours.
         // TODO: Tests for the below cast.
         // 10. Return 𝔽(TotalTimeDuration(diff, hour)).
-        Ok(diff.divide(60_000_000_000) as u8)
+        Ok(diff.divide(3_600_000_000_000) as u8)
     }
 }
 
@@ -1256,11 +1256,12 @@ impl ZonedDateTime {
                 .round_instant(ResolvedRoundingOptions::from_to_string_options(
                     &resolved_options,
                 ))?;
+        let rounded_instant = Instant::try_new(result)?;
 
         let offset = self.tz.get_offset_nanos_for(result, provider)?;
-        let datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
-        let timezone_id = self.timezone().identifier()?;
+        let timezone_id = self.timezone().identifier();
 
         let ixdtf_string = IxdtfStringBuilder::default()
             .with_date(datetime.date)
@@ -1641,6 +1642,21 @@ mod tests {
             provider,
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn zdt_hours_in_day() {
+        let provider = &FsTzdbProvider::default();
+        let zdt_str = "2025-07-04T12:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_str_with_provider(
+            zdt_str,
+            Disambiguation::Compatible,
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+
+        assert_eq!(result.hours_in_day_with_provider(provider).unwrap(), 24)
     }
 
     #[test]

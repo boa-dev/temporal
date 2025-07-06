@@ -304,8 +304,13 @@ impl NormalizedDurationRecord {
         self.norm
     }
 
-    pub(crate) fn sign(&self) -> TemporalResult<Sign> {
-        Ok(self.date.sign())
+    pub(crate) fn sign(&self) -> Sign {
+        let date_sign = self.date.sign();
+        if date_sign == Sign::Zero {
+            self.norm.sign()
+        } else {
+            date_sign
+        }
     }
 }
 
@@ -955,7 +960,7 @@ impl NormalizedDurationRecord {
             || (time_zone.is_some() && options.smallest_unit == Unit::Day);
 
         // 4. If InternalDurationSign(duration) < 0, let sign be -1; else let sign be 1.
-        let sign = duration.sign()?;
+        let sign = duration.sign();
 
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_length_unit {
@@ -1007,7 +1012,7 @@ impl NormalizedDurationRecord {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
         if unit.is_calendar_unit() || (tz.is_some() && unit == Unit::Day) {
             // a. Let sign be InternalDurationSign(duration).
-            let sign = self.sign()?;
+            let sign = self.sign();
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
             let record = self.nudge_calendar_unit(
                 sign,
