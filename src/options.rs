@@ -10,6 +10,9 @@ use core::{fmt, str::FromStr};
 
 mod increment;
 mod relative_to;
+mod resolved;
+
+pub use resolved::*;
 
 pub use increment::RoundingIncrement;
 pub use relative_to::RelativeTo;
