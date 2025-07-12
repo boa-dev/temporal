@@ -5,8 +5,7 @@ proposed for addition to the ECMAScript specification.
 
 `temporal_rs` is an implementation of Temporal in Rust that aims to be
 100% test compliant. While initially developed for [Boa][boa-repo], the
-crate has been externalized as we intended to make an engine agnostic
-and general usage implementation of Temporal and its algorithms.
+crate has been externalized and is being used in other engines such as [V8](https://v8.dev) and [Kiesel](https://codeberg.org/kiesel-js/kiesel).
 
 For more information on `temporal_rs`'s general position in the Rust
 date/time library ecoystem, see our [FAQ](./docs/FAQ.md).
