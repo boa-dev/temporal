@@ -1,10 +1,11 @@
 //! A module for all resolved option types
 
-use core::{fmt, str::FromStr};
 use alloc::string::ToString;
+use core::{fmt, str::FromStr};
 
 use crate::{
-    options::{RoundingIncrement, RoundingMode, Unit}, TemporalError, TemporalResult
+    options::{RoundingIncrement, RoundingMode, Unit},
+    TemporalError, TemporalResult,
 };
 
 pub struct ResolvedDurationRoundOptions {
@@ -35,10 +36,14 @@ pub struct ResolvedPlainDateSinceDifferenceSettings {
 pub struct ResolvedPlainDateLargestUnit(ResolvedUnit);
 
 impl ResolvedPlainDateLargestUnit {
-    pub fn try_from_units(unit: DateUnitOrAuto, resolved_smallest_unit: ResolvedPlainDateSmallestUnit) -> TemporalResult<Self> {
+    pub fn try_from_units(
+        unit: DateUnitOrAuto,
+        resolved_smallest_unit: ResolvedPlainDateSmallestUnit,
+    ) -> TemporalResult<Self> {
         // NOTE: Types enforce no auto invariant.
         // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
-        let default_largest = Unit::larger(Unit::Day, resolved_smallest_unit.0.0).expect("no auto");
+        let default_largest =
+            Unit::larger(Unit::Day, resolved_smallest_unit.0 .0).expect("no auto");
 
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         let largest_unit = if unit.0 == Unit::Auto {
@@ -46,16 +51,16 @@ impl ResolvedPlainDateLargestUnit {
         } else {
             ResolvedUnit::try_from_unit(unit.0)?
         };
-        
+
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if ResolvedUnit::larger(largest_unit, resolved_smallest_unit.0) != largest_unit {
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(largest_unit))
     }
 }
 
-const DATE_UNITS:[Unit; 4] = [Unit::Year, Unit::Month, Unit::Week, Unit::Day];
+const DATE_UNITS: [Unit; 4] = [Unit::Year, Unit::Month, Unit::Week, Unit::Day];
 
 #[derive(Debug, Clone, Copy)]
 #[repr(transparent)]
@@ -65,13 +70,13 @@ impl ResolvedPlainDateSmallestUnit {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if !DATE_UNITS.contains(&unit) {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(ResolvedUnit(unit)))
     }
 
     pub fn to_maximum_rounding_increment(&self) -> Option<u32> {
-        self.0.0.to_maximum_rounding_increment()
+        self.0 .0.to_maximum_rounding_increment()
     }
 }
 
@@ -84,7 +89,7 @@ impl DateUnitOrAuto {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if !DATE_UNITS.contains(&unit) && unit != Unit::Auto {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(unit))
     }
@@ -94,8 +99,8 @@ impl FromStr for DateUnitOrAuto {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let unit = Unit::from_str(s)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+        let unit =
+            Unit::from_str(s).map_err(|e| TemporalError::range().with_message(e.to_string()))?;
         Self::try_from_unit(unit)
     }
 }
@@ -127,9 +132,13 @@ pub struct ResolvedPlainDateTimeSinceDifferenceSettings {
 pub struct ResolvedPlainDateTimeLargestUnit(ResolvedUnit);
 
 impl ResolvedPlainDateTimeLargestUnit {
-    pub fn try_from_units(unit: Unit, resolved_smallest_unit: ResolvedPlainDateTimeSmallestUnit) -> TemporalResult<Self> {
+    pub fn try_from_units(
+        unit: Unit,
+        resolved_smallest_unit: ResolvedPlainDateTimeSmallestUnit,
+    ) -> TemporalResult<Self> {
         // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
-        let default_largest = ResolvedUnit::larger(ResolvedUnit(Unit::Day), resolved_smallest_unit.0);
+        let default_largest =
+            ResolvedUnit::larger(ResolvedUnit(Unit::Day), resolved_smallest_unit.0);
 
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         let largest_unit = if unit == Unit::Auto {
@@ -137,10 +146,10 @@ impl ResolvedPlainDateTimeLargestUnit {
         } else {
             ResolvedUnit::try_from_unit(unit)?
         };
-        
+
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if ResolvedUnit::larger(largest_unit, resolved_smallest_unit.0) != largest_unit {
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(largest_unit))
     }
@@ -153,7 +162,7 @@ impl ResolvedPlainDateTimeSmallestUnit {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if unit != Unit::Auto {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(ResolvedUnit(unit)))
     }
@@ -186,9 +195,13 @@ pub struct ResolvedZonedDateTimeSinceDifferenceSettings {
 pub struct ResolvedZonedDateTimeLargestUnit(ResolvedUnit);
 
 impl ResolvedZonedDateTimeLargestUnit {
-    pub fn try_from_units(unit: Unit, resolved_smallest_unit: ResolvedPlainDateTimeSmallestUnit) -> TemporalResult<Self> {
+    pub fn try_from_units(
+        unit: Unit,
+        resolved_smallest_unit: ResolvedPlainDateTimeSmallestUnit,
+    ) -> TemporalResult<Self> {
         // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
-        let default_largest = ResolvedUnit::larger(ResolvedUnit(Unit::Hour), resolved_smallest_unit.0);
+        let default_largest =
+            ResolvedUnit::larger(ResolvedUnit(Unit::Hour), resolved_smallest_unit.0);
 
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         let largest_unit = if unit == Unit::Auto {
@@ -196,10 +209,10 @@ impl ResolvedZonedDateTimeLargestUnit {
         } else {
             ResolvedUnit::try_from_unit(unit)?
         };
-        
+
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if ResolvedUnit::larger(largest_unit, resolved_smallest_unit.0) != largest_unit {
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(largest_unit))
     }
@@ -212,7 +225,7 @@ impl ResolvedZonedDateTimeSmallestUnit {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if unit != Unit::Auto {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(ResolvedUnit(unit)))
     }
@@ -254,9 +267,13 @@ const TIME_UNITS: [Unit; 6] = [
 pub struct ResolvedTimeLargestUnit(ResolvedUnit);
 
 impl ResolvedTimeLargestUnit {
-    pub fn try_from_units(unit: Unit, resolved_smallest_unit: ResolvedPlainDateTimeSmallestUnit) -> TemporalResult<Self> {
+    pub fn try_from_units(
+        unit: Unit,
+        resolved_smallest_unit: ResolvedPlainDateTimeSmallestUnit,
+    ) -> TemporalResult<Self> {
         // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
-        let default_largest = ResolvedUnit::larger(ResolvedUnit(Unit::Hour), resolved_smallest_unit.0);
+        let default_largest =
+            ResolvedUnit::larger(ResolvedUnit(Unit::Hour), resolved_smallest_unit.0);
 
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         let largest_unit = if unit == Unit::Auto {
@@ -264,10 +281,10 @@ impl ResolvedTimeLargestUnit {
         } else {
             ResolvedUnit::try_from_unit(unit)?
         };
-        
+
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if ResolvedUnit::larger(largest_unit, resolved_smallest_unit.0) != largest_unit {
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(largest_unit))
     }
@@ -280,7 +297,7 @@ impl ResolvedTimeSmallestUnit {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if !TIME_UNITS.contains(&unit) {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(ResolvedUnit(unit)))
     }
@@ -293,7 +310,7 @@ impl TimeUnitOrAuto {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if !TIME_UNITS.contains(&unit) && unit != Unit::Auto {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(unit))
     }
@@ -319,9 +336,13 @@ pub struct ResolvedYearMonthSinceDifferenceSettings {
 pub struct ResolvedYearMonthLargestUnit(ResolvedUnit);
 
 impl ResolvedYearMonthLargestUnit {
-    pub fn try_from_units(unit: YearMonthUnitOrAuto, resolved_smallest_unit: ResolvedYearMonthSmallestUnit) -> TemporalResult<Self> {
+    pub fn try_from_units(
+        unit: YearMonthUnitOrAuto,
+        resolved_smallest_unit: ResolvedYearMonthSmallestUnit,
+    ) -> TemporalResult<Self> {
         // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
-        let default_largest = ResolvedUnit::larger(ResolvedUnit(Unit::Hour), resolved_smallest_unit.0);
+        let default_largest =
+            ResolvedUnit::larger(ResolvedUnit(Unit::Hour), resolved_smallest_unit.0);
 
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         let largest_unit = if unit.0 == Unit::Auto {
@@ -329,10 +350,10 @@ impl ResolvedYearMonthLargestUnit {
         } else {
             ResolvedUnit::try_from_unit(unit.0)?
         };
-        
+
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if ResolvedUnit::larger(largest_unit, resolved_smallest_unit.0) != largest_unit {
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(largest_unit))
     }
@@ -348,7 +369,7 @@ impl YearMonthUnitOrAuto {
     pub fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if ![Unit::Year, Unit::Month].contains(&unit) && unit != Unit::Auto {
             // TODO: RangeError message.
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(unit))
     }
@@ -371,14 +392,13 @@ pub struct ResolvedUnit(Unit);
 impl ResolvedUnit {
     fn try_from_unit(unit: Unit) -> TemporalResult<Self> {
         if unit == Unit::Auto {
-            return Err(TemporalError::range())
+            return Err(TemporalError::range());
         }
         Ok(Self(unit))
     }
 
     fn larger(u1: ResolvedUnit, u2: ResolvedUnit) -> ResolvedUnit {
         Self(Unit::larger(u1.0, u2.0).expect("no auto"))
-
     }
 }
 
@@ -397,12 +417,15 @@ impl fmt::Display for ResolvedUnit {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use core::str::FromStr;
 
-    use crate::options::{DateUnitOrAuto, NegatedRoundingMode, ResolvedPlainDateLargestUnit, ResolvedPlainDateSinceDifferenceSettings, ResolvedPlainDateSmallestUnit, ResolvedPlainDateUntilDifferenceSettings, RoundingIncrement, RoundingMode, Unit};
+    use crate::options::{
+        DateUnitOrAuto, NegatedRoundingMode, ResolvedPlainDateLargestUnit,
+        ResolvedPlainDateSinceDifferenceSettings, ResolvedPlainDateSmallestUnit,
+        ResolvedPlainDateUntilDifferenceSettings, RoundingIncrement, RoundingMode, Unit,
+    };
 
     #[test]
     fn impl_plain_date_get_difference_settings() {
@@ -439,7 +462,8 @@ mod tests {
         // 9. Let defaultLargestUnit be LargerOfTwoTemporalUnits(smallestLargestDefaultUnit, smallestUnit).
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
         // 11. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
-        let largest_unit = ResolvedPlainDateLargestUnit::try_from_units(largest_unit, smallest_unit).unwrap();
+        let largest_unit =
+            ResolvedPlainDateLargestUnit::try_from_units(largest_unit, smallest_unit).unwrap();
         // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
         let maximum = smallest_unit.to_maximum_rounding_increment();
         // 13. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
