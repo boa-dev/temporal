@@ -322,7 +322,7 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
         } else {
             Some(
                 MonthCode::try_from_utf8(other.month_code.into())
-                    .map_err(|_| TemporalError::syntax())?,
+                    .map_err(TemporalError::from)?,
             )
         };
 
@@ -331,7 +331,7 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
         } else {
             Some(
                 TinyAsciiStr::try_from_utf8(other.era.into())
-                    .map_err(|_| TemporalError::syntax())?,
+                    .map_err(|_| TemporalError::range().with_message("Invalid era code."))?,
             )
         };
         Ok(Self {

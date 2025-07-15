@@ -263,7 +263,7 @@ impl MonthCode {
 
     pub fn try_from_utf8(src: &[u8]) -> TemporalResult<Self> {
         if !(3..=4).contains(&src.len()) {
-            return Err(TemporalError::range());
+            return Err(TemporalError::range().with_message("Month codes must bave 3 or 4 characters."));
         }
 
         let inner = TinyAsciiStr::<4>::try_from_utf8(src).map_err(|_e| TemporalError::range())?;
@@ -271,14 +271,14 @@ impl MonthCode {
         let bytes = inner.all_bytes();
         if bytes[0] != b'M' {
             return Err(
-                TemporalError::range().with_message("First month code character must be 'M'")
+                TemporalError::range().with_message("First month code character must be 'M'.")
             );
         }
         if !bytes[1].is_ascii_digit() || !bytes[2].is_ascii_digit() {
-            return Err(TemporalError::range().with_message("Invalid month code digit"));
+            return Err(TemporalError::range().with_message("Invalid month code digit."));
         }
         if src.len() == 4 && bytes[3] != b'L' {
-            return Err(TemporalError::range().with_message("Leap month code must end with 'L'"));
+            return Err(TemporalError::range().with_message("Leap month code must end with 'L'."));
         }
 
         Ok(Self(inner))
