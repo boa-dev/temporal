@@ -263,7 +263,9 @@ impl MonthCode {
 
     pub fn try_from_utf8(src: &[u8]) -> TemporalResult<Self> {
         if !(3..=4).contains(&src.len()) {
-            return Err(TemporalError::range().with_message("Month codes must bave 3 or 4 characters."));
+            return Err(
+                TemporalError::range().with_message("Month codes must have 3 or 4 characters.")
+            );
         }
 
         let inner = TinyAsciiStr::<4>::try_from_utf8(src).map_err(|_e| TemporalError::range())?;
