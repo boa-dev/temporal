@@ -1355,6 +1355,13 @@ impl ZonedDateTime {
 }
 
 /// InterpretISODateTimeOffset
+///
+/// offsetBehavior is:
+/// - OPTION if offset_nanos is Some
+/// - WALL if offset_nanos is None and !is_exact
+/// - EXACT if offset_nanos is None and is_exact
+///
+/// When offset_nanos is None, offsetNanoseconds is 0
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn interpret_isodatetime_offset(
     date: IsoDate,
@@ -1377,10 +1384,16 @@ pub(crate) fn interpret_isodatetime_offset(
     };
 
     // 2. Let isoDateTime be CombineISODateAndTimeRecord(isoDate, time).
-    // TODO: Deal with offsetBehavior == wall.
-    match (is_exact, offset_nanos) {
+    let iso_datetime = IsoDateTime::new_unchecked(date, time);
+    match (is_exact, offset_nanos, offset_option) {
+        // 3. If offsetBehaviour is wall, or offsetBehaviour is option and offsetOption is ignore, then
+        (false, None, _) | (_, Some(_), OffsetDisambiguation::Ignore) => {
+            // a. Return ? GetEpochNanosecondsFor(timeZone, isoDateTime, disambiguation).
+            timezone.get_epoch_nanoseconds_for(iso_datetime, disambiguation, provider)
+        }
         // 4. If offsetBehaviour is exact, or offsetBehaviour is option and offsetOption is use, then
-        (true, Some(offset)) if offset_option == OffsetDisambiguation::Use => {
+        (true, None, _) | (_, Some(_), OffsetDisambiguation::Use) => {
+            let offset = offset_nanos.unwrap_or(0);
             // a. Let balanced be BalanceISODateTime(isoDate.[[Year]], isoDate.[[Month]],
             // isoDate.[[Day]], time.[[Hour]], time.[[Minute]], time.[[Second]], time.[[Millisecond]],
             // time.[[Microsecond]], time.[[Nanosecond]] - offsetNanoseconds).
@@ -1406,10 +1419,7 @@ pub(crate) fn interpret_isodatetime_offset(
         }
         // 5. Assert: offsetBehaviour is option.
         // 6. Assert: offsetOption is prefer or reject.
-        (_, Some(offset))
-            if offset_option == OffsetDisambiguation::Prefer
-                || offset_option == OffsetDisambiguation::Reject =>
-        {
+        (_, Some(offset), OffsetDisambiguation::Prefer | OffsetDisambiguation::Reject) => {
             // 7. Perform ? CheckISODaysRange(isoDate).
             date.is_valid_day_range()?;
             let iso = IsoDateTime::new_unchecked(date, time);
@@ -1455,13 +1465,6 @@ pub(crate) fn interpret_isodatetime_offset(
                 disambiguation,
                 provider,
             )
-        }
-        // NOTE: This is inverted as the logic works better for matching against
-        // 3. If offsetBehaviour is wall, or offsetBehaviour is option and offsetOption is ignore, then
-        _ => {
-            // a. Return ? GetEpochNanosecondsFor(timeZone, isoDateTime, disambiguation).
-            let iso = IsoDateTime::new_unchecked(date, time);
-            timezone.get_epoch_nanoseconds_for(iso, disambiguation, provider)
         }
     }
 }
