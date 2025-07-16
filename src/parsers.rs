@@ -2224,14 +2224,13 @@ mod tests {
             let parser = TemporalParser::from_utf16(&input_utf16);
 
             let result = parser.parse_zoned_date_time();
-            assert!(result.is_ok(), "Failed to parse: {}", input);
+            assert!(result.is_ok(), "Failed to parse: {input}");
 
             let parsed = result.unwrap();
             assert_eq!(
                 parsed.timezone(),
                 *expected_tz,
-                "Timezone mismatch for: {}",
-                input
+                "Timezone mismatch for: {input}"
             );
 
             assert_eq!(&*parsed.timezone, expected_tz.as_bytes());
