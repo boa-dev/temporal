@@ -189,13 +189,40 @@ impl PlainMonthDay {
 
     // Converts a UTF-8 encoded string into a `PlainMonthDay`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parser = TemporalParser::new();
-        let parsed = parser.parse_month_day(core::str::from_utf8(s).map_err(|_| {
-            TemporalError::syntax().with_message("Invalid UTF-8 in month-day string")
-        })?)?;
+        let parser = TemporalParser::from_utf8(s);
+        let parsed = parser.parse_month_day()?;
 
-        let calendar = if let Some(cal_str) = &parsed.calendar {
-            Calendar::try_from_utf8(cal_str.as_bytes())?
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
+        } else {
+            Calendar::default()
+        };
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
+
+        Self::new_with_overflow(
+            parsed.iso.month,
+            parsed.iso.day,
+            calendar,
+            ArithmeticOverflow::Reject,
+            None,
+        )
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainMonthDay`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parser = TemporalParser::from_utf16(s);
+        let parsed = parser.parse_month_day()?;
+
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
         } else {
             Calendar::default()
         };

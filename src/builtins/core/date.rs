@@ -10,7 +10,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, ResolvedRoundingOptions, Unit, UnitGroup,
     },
-    parsers::{parse_date_time, IxdtfStringBuilder},
+    parsers::{parse_date_time, IxdtfStringBuilder, TemporalParser},
     provider::{NeverProvider, TimeZoneProvider},
     MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -488,6 +488,25 @@ impl PlainDate {
         let date = parse_record.date.temporal_unwrap()?;
 
         Self::try_new(date.year, date.month, date.day, calendar)
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainDate`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parser = TemporalParser::from_utf16(s);
+        let parsed = parser.parse_date_time()?;
+
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
+        } else {
+            Calendar::default()
+        };
+
+        Self::try_new(
+            parsed.iso.date.year,
+            parsed.iso.date.month,
+            parsed.iso.date.day,
+            calendar,
+        )
     }
 
     /// Creates a date time with values from a `PartialDate`.

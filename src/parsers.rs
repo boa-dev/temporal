@@ -8,13 +8,16 @@ use alloc::{
     borrow::Cow,
     format,
     string::{String, ToString},
-};
-use ixdtf::{
-    encoding::Utf8,
-    parsers::IxdtfParser,
-    records::{Annotation, DateRecord, IxdtfParseRecord, TimeRecord, TimeZoneRecord, UtcOffsetRecordOrZ},
+    vec::Vec,
 };
 use ixdtf::ParseError;
+use ixdtf::{
+    encoding::{Utf16, Utf8},
+    parsers::IxdtfParser,
+    records::{
+        Annotation, DateRecord, IxdtfParseRecord, TimeRecord, TimeZoneRecord, UtcOffsetRecordOrZ,
+    },
+};
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
 mod timezone;
@@ -90,80 +93,334 @@ fn validate_time_record_impl(record: TimeRecord) -> Result<IsoTime, TemporalVali
         .map_err(|_| TemporalValidationError::ParseError("Invalid time components".to_string()))
 }
 
+/// Parser encoding enum that specifies how temporal strings are encoded.
+#[derive(Debug)]
+pub enum ParserEncoding<'a> {
+    Utf8(&'a [u8]),
+    Utf16(&'a [u16]),
+}
+
 /// Public parser that wraps `IxdtfParser` and enforces Temporal parsing requirements.
-#[derive(Debug, Default)]
-pub struct TemporalParser;
+#[derive(Debug)]
+pub struct TemporalParser<'a> {
+    encoding: ParserEncoding<'a>,
+}
 
-impl TemporalParser {
-    /// Creates a new `TemporalParser`.
+impl<'a> TemporalParser<'a> {
+    /// Creates a new `TemporalParser` from UTF-8 bytes.
     #[inline]
-    pub const fn new() -> Self {
-        Self
+    pub const fn from_utf8(source: &'a [u8]) -> Self {
+        Self {
+            encoding: ParserEncoding::Utf8(source),
+        }
     }
 
-    /// Parses a string into a `PlainDateTime` compatible record.
-    pub fn parse_date_time<'a>(
-        &self,
-        source: impl Into<Cow<'a, str>>,
-    ) -> TemporalResult<ParsedDateTime> {
-        let source = source.into();
-        let record = parse_date_time(source.as_bytes())?;
-        self.validate_and_build_date_time(record)
+    /// Creates a new `TemporalParser` from UTF-16 code units.
+    #[inline]
+    pub const fn from_utf16(source: &'a [u16]) -> Self {
+        Self {
+            encoding: ParserEncoding::Utf16(source),
+        }
     }
 
-    /// Parses a string into a `ZonedDateTime` compatible record.
-    pub fn parse_zoned_date_time<'a>(
-        &self,
-        source: impl Into<Cow<'a, str>>,
-    ) -> TemporalResult<ParsedZonedDateTime> {
-        let source = source.into();
-        let record = parse_zoned_date_time(&source)?;
-        self.validate_and_build_zoned_date_time(record)
+    /// Creates a new `TemporalParser` from a string slice by converting to UTF-8 bytes.
+    #[inline]
+    pub fn from_str_as_utf8(source: &'a str) -> Self {
+        Self::from_utf8(source.as_bytes())
     }
 
-    /// Parses a string into an `Instant` compatible record.
-    pub fn parse_instant<'a>(
-        &self,
-        source: impl Into<Cow<'a, str>>,
-    ) -> TemporalResult<ParsedInstant> {
-        let source = source.into();
-        let record = parse_instant(source.as_bytes())?;
+    /// Parses the source into a `PlainDateTime` compatible record.
+    pub fn parse_date_time(&self) -> TemporalResult<ParsedDateTime<'a>> {
+        match &self.encoding {
+            ParserEncoding::Utf8(source) => {
+                let record = parse_date_time(source)?;
+                self.validate_and_build_date_time(record)
+            }
+            ParserEncoding::Utf16(source) => {
+                let record = self.parse_date_time_utf16(source)?;
+                self.validate_and_build_date_time_utf16(record)
+            }
+        }
+    }
+
+    /// Parses the source into a `ZonedDateTime` compatible record.
+    pub fn parse_zoned_date_time(&self) -> TemporalResult<ParsedZonedDateTime<'a>> {
+        match &self.encoding {
+            ParserEncoding::Utf8(source) => {
+                let source_str = core::str::from_utf8(source)
+                    .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-8 in source"))?;
+                let record = parse_zoned_date_time(source_str)?;
+                self.validate_and_build_zoned_date_time(record)
+            }
+            ParserEncoding::Utf16(source) => {
+                let record = self.parse_zoned_date_time_utf16(source)?;
+                self.validate_and_build_zoned_date_time_utf16(record)
+            }
+        }
+    }
+
+    /// Parses the source into an `Instant` compatible record.
+    pub fn parse_instant(&self) -> TemporalResult<ParsedInstant> {
+        let record = match &self.encoding {
+            ParserEncoding::Utf8(source) => parse_instant(source)?,
+            ParserEncoding::Utf16(source) => self.parse_instant_utf16(source)?,
+        };
         self.validate_and_build_instant(record)
     }
 
-    /// Parses a string into a `PlainTime` compatible record.
-    pub fn parse_time<'a>(&self, source: impl Into<Cow<'a, str>>) -> TemporalResult<ParsedTime> {
-        let source = source.into();
-        let record = parse_time(source.as_bytes())?;
+    /// Parses the source into a `PlainTime` compatible record.
+    pub fn parse_time(&self) -> TemporalResult<ParsedTime> {
+        let record = match &self.encoding {
+            ParserEncoding::Utf8(source) => parse_time(source)?,
+            ParserEncoding::Utf16(source) => self.parse_time_utf16(source)?,
+        };
         self.validate_and_build_time(record)
     }
 
-    /// Parses a string into a `PlainYearMonth` compatible record.
-    pub fn parse_year_month<'a>(
-        &self,
-        source: impl Into<Cow<'a, str>>,
-    ) -> TemporalResult<ParsedYearMonth> {
-        let source = source.into();
-        let record = parse_year_month(source.as_bytes())?;
-        self.validate_and_build_year_month(record)
+    /// Parses the source into a `PlainYearMonth` compatible record.
+    pub fn parse_year_month(&self) -> TemporalResult<ParsedYearMonth<'a>> {
+        match &self.encoding {
+            ParserEncoding::Utf8(source) => {
+                let record = parse_year_month(source)?;
+                self.validate_and_build_year_month(record)
+            }
+            ParserEncoding::Utf16(source) => {
+                let record = self.parse_year_month_utf16(source)?;
+                self.validate_and_build_year_month_utf16(record)
+            }
+        }
     }
 
-    /// Parses a string into a `PlainMonthDay` compatible record.
-    pub fn parse_month_day<'a>(
+    /// Parses the source into a `PlainMonthDay` compatible record.
+    pub fn parse_month_day(&self) -> TemporalResult<ParsedMonthDay<'a>> {
+        match &self.encoding {
+            ParserEncoding::Utf8(source) => {
+                let record = parse_month_day(source)?;
+                self.validate_and_build_month_day(record)
+            }
+            ParserEncoding::Utf16(source) => {
+                let record = self.parse_month_day_utf16(source)?;
+                self.validate_and_build_month_day_utf16(record)
+            }
+        }
+    }
+
+    // Private UTF-16 parsing methods
+
+    fn parse_date_time_utf16(
         &self,
-        source: impl Into<Cow<'a, str>>,
-    ) -> TemporalResult<ParsedMonthDay> {
-        let source = source.into();
-        let record = parse_month_day(source.as_bytes())?;
-        self.validate_and_build_month_day(record)
+        source: &'a [u16],
+    ) -> TemporalResult<IxdtfParseRecord<'a, Utf16>> {
+        let record = self.parse_ixdtf_utf16(source, ParseVariant::DateTime)?;
+
+        if record.offset == Some(UtcOffsetRecordOrZ::Z) {
+            return Err(TemporalError::range()
+                .with_message("UTC designator is not valid for DateTime parsing."));
+        }
+
+        if let Some(date_record) = record.date {
+            validate_date_record_impl(date_record).map_err(|e| e.into_temporal_error())?;
+        }
+        if let Some(time_record) = record.time {
+            validate_time_record_impl(time_record).map_err(|e| e.into_temporal_error())?;
+        }
+
+        Ok(record)
+    }
+
+    fn parse_zoned_date_time_utf16(
+        &self,
+        source: &'a [u16],
+    ) -> TemporalResult<IxdtfParseRecord<'a, Utf16>> {
+        let record = self.parse_ixdtf_utf16(source, ParseVariant::DateTime)?;
+
+        if record.tz.is_none() {
+            return Err(TemporalError::range()
+                .with_message("Time zone annotation is required for parsing a zoned date time."));
+        }
+
+        if let Some(date_record) = record.date {
+            validate_date_record_impl(date_record).map_err(|e| e.into_temporal_error())?;
+        }
+        if let Some(time_record) = record.time {
+            validate_time_record_impl(time_record).map_err(|e| e.into_temporal_error())?;
+        }
+
+        Ok(record)
+    }
+
+    fn parse_instant_utf16(&self, source: &'a [u16]) -> TemporalResult<IxdtfParseInstantRecord> {
+        let record = self.parse_ixdtf_utf16(source, ParseVariant::DateTime)?;
+
+        let IxdtfParseRecord {
+            date: Some(date),
+            time: Some(time),
+            offset: Some(offset),
+            ..
+        } = record
+        else {
+            return Err(
+                TemporalError::range().with_message("Required fields missing from Instant string.")
+            );
+        };
+
+        validate_date_record_impl(date).map_err(|e| e.into_temporal_error())?;
+        validate_time_record_impl(time).map_err(|e| e.into_temporal_error())?;
+
+        Ok(IxdtfParseInstantRecord { date, time, offset })
+    }
+
+    fn parse_time_utf16(&self, source: &'a [u16]) -> TemporalResult<TimeRecord> {
+        let time_record = self.parse_ixdtf_utf16(source, ParseVariant::Time);
+
+        let Err(ref e) = time_record else {
+            return time_record.and_then(|record| self.check_time_record_utf16(record));
+        };
+
+        let dt_parse = self.parse_date_time_utf16(source);
+
+        match dt_parse {
+            Ok(dt) => self.check_time_record_utf16(dt),
+            _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        }
+    }
+
+    fn parse_year_month_utf16(
+        &self,
+        source: &'a [u16],
+    ) -> TemporalResult<IxdtfParseRecord<'a, Utf16>> {
+        let ym_record = self.parse_ixdtf_utf16(source, ParseVariant::YearMonth);
+
+        let Err(ref e) = ym_record else {
+            return ym_record.and_then(|record| self.check_offset_utf16(record));
+        };
+
+        let dt_parse = self.parse_date_time_utf16(source);
+
+        match dt_parse {
+            Ok(dt) => self.check_offset_utf16(dt),
+            _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        }
+    }
+
+    fn parse_month_day_utf16(
+        &self,
+        source: &'a [u16],
+    ) -> TemporalResult<IxdtfParseRecord<'a, Utf16>> {
+        let md_record = self.parse_ixdtf_utf16(source, ParseVariant::MonthDay);
+
+        let Err(ref e) = md_record else {
+            return md_record.and_then(|record| self.check_offset_utf16(record));
+        };
+
+        let dt_parse = self.parse_date_time_utf16(source);
+
+        match dt_parse {
+            Ok(dt) => self.check_offset_utf16(dt),
+            _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        }
+    }
+
+    fn parse_ixdtf_utf16(
+        &self,
+        source: &'a [u16],
+        variant: ParseVariant,
+    ) -> TemporalResult<IxdtfParseRecord<'a, Utf16>> {
+        fn cast_handler<'a>(
+            _: &mut IxdtfParser<'a, Utf16>,
+            handler: impl FnMut(Annotation<'a, Utf16>) -> Option<Annotation<'a, Utf16>>,
+        ) -> impl FnMut(Annotation<'a, Utf16>) -> Option<Annotation<'a, Utf16>> {
+            handler
+        }
+
+        let mut first_calendar: Option<Annotation<Utf16>> = None;
+        let mut critical_duplicate_calendar = false;
+        let mut parser = IxdtfParser::from_utf16(source);
+
+        let handler = cast_handler(&mut parser, |annotation: Annotation<Utf16>| {
+            if annotation.key == "u-ca".encode_utf16().collect::<Vec<u16>>().as_slice() {
+                match first_calendar {
+                    Some(ref cal) => {
+                        if cal.critical || annotation.critical {
+                            critical_duplicate_calendar = true
+                        }
+                    }
+                    None => first_calendar = Some(annotation),
+                }
+                return None;
+            }
+            Some(annotation)
+        });
+
+        let mut record = match variant {
+            ParseVariant::YearMonth => parser.parse_year_month_with_annotation_handler(handler),
+            ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
+            ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
+            ParseVariant::Time => parser.parse_time_with_annotation_handler(handler),
+        }
+        .map_err(|e| map_parse_error(e).into_temporal_error())?;
+
+        if critical_duplicate_calendar {
+            return Err(TemporalError::range()
+                .with_message("Duplicate calendar value with critical flag found."));
+        }
+
+        if variant != ParseVariant::Time && record.date.is_none() {
+            return Err(
+                TemporalError::range().with_message("DateTime strings must contain a Date value.")
+            );
+        }
+
+        record.calendar = first_calendar.map(|v| v.value);
+
+        Ok(record)
+    }
+
+    fn check_offset_utf16(
+        &self,
+        record: IxdtfParseRecord<'a, Utf16>,
+    ) -> TemporalResult<IxdtfParseRecord<'a, Utf16>> {
+        if record.offset == Some(UtcOffsetRecordOrZ::Z) {
+            return Err(TemporalError::range()
+                .with_message("UTC designator is not valid for plain date/time parsing."));
+        }
+        Ok(record)
+    }
+
+    fn check_time_record_utf16(
+        &self,
+        record: IxdtfParseRecord<'a, Utf16>,
+    ) -> TemporalResult<TimeRecord> {
+        let record = self.check_offset_utf16(record)?;
+        let Some(time) = record.time else {
+            return Err(TemporalError::range()
+                .with_message("PlainTime can only be parsed from strings with a time component."));
+        };
+        Ok(time)
+    }
+
+    // Helper function to convert UTF-16 calendar to a Cow<[u8]>
+    fn convert_utf16_calendar_to_cow(calendar_utf16: &[u16]) -> TemporalResult<Cow<'a, [u8]>> {
+        let calendar_string = String::from_utf16(calendar_utf16)
+            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-16 in calendar"))?;
+
+        Ok(Cow::Owned(calendar_string.into_bytes()))
+    }
+
+    // Helper function to convert UTF-16 timezone to a Cow<[u8]>
+    fn convert_utf16_timezone_to_cow(timezone_utf16: &[u16]) -> TemporalResult<Cow<'a, [u8]>> {
+        let timezone_string = String::from_utf16(timezone_utf16)
+            .map_err(|_| TemporalError::syntax().with_message("Invalid UTF-16 in timezone"))?;
+
+        Ok(Cow::Owned(timezone_string.into_bytes()))
     }
 
     // Private validation methods that enforce invariants
 
     fn validate_and_build_date_time(
         &self,
-        record: IxdtfParseRecord,
-    ) -> TemporalResult<ParsedDateTime> {
+        record: IxdtfParseRecord<'a, Utf8>,
+    ) -> TemporalResult<ParsedDateTime<'a>> {
         let date_record = record.date.ok_or_else(|| {
             TemporalError::range().with_message("Date component is required for DateTime parsing")
         })?;
@@ -180,17 +437,47 @@ impl TemporalParser {
 
         Ok(ParsedDateTime {
             iso: iso_datetime,
-            calendar: record
-                .calendar
-                .map(|c| String::from_utf8_lossy(c).into_owned()),
+            calendar: record.calendar.map(Cow::Borrowed),
+            offset: record.offset,
+        })
+    }
+
+    fn validate_and_build_date_time_utf16(
+        &self,
+        record: IxdtfParseRecord<'a, Utf16>,
+    ) -> TemporalResult<ParsedDateTime<'a>> {
+        let date_record = record.date.ok_or_else(|| {
+            TemporalError::range().with_message("Date component is required for DateTime parsing")
+        })?;
+
+        let time_record = record.time.ok_or_else(|| {
+            TemporalError::range().with_message("Time component is required for DateTime parsing")
+        })?;
+
+        let iso_date = self.validate_date_record(date_record)?;
+        let iso_time = self.validate_time_record(time_record)?;
+
+        // Validate DateTime is within valid limits
+        let iso_datetime = IsoDateTime::new(iso_date, iso_time)?;
+
+        // Convert UTF-16 calendar to Cow if present
+        let calendar_cow = if let Some(calendar_utf16) = record.calendar {
+            Some(Self::convert_utf16_calendar_to_cow(calendar_utf16)?)
+        } else {
+            None
+        };
+
+        Ok(ParsedDateTime {
+            iso: iso_datetime,
+            calendar: calendar_cow,
             offset: record.offset,
         })
     }
 
     fn validate_and_build_zoned_date_time(
         &self,
-        record: IxdtfParseRecord,
-    ) -> TemporalResult<ParsedZonedDateTime> {
+        record: IxdtfParseRecord<'a, Utf8>,
+    ) -> TemporalResult<ParsedZonedDateTime<'a>> {
         let date_record = record.date.ok_or_else(|| {
             TemporalError::range()
                 .with_message("Date component is required for ZonedDateTime parsing")
@@ -201,20 +488,18 @@ impl TemporalParser {
                 .with_message("Time component is required for ZonedDateTime parsing")
         })?;
 
-        let timezone = record.tz.ok_or_else(|| {
-            TemporalError::range()
-                .with_message("TimeZone annotation is required for ZonedDateTime parsing")
-        })?;
-
         let iso_date = self.validate_date_record(date_record)?;
         let iso_time = self.validate_time_record(time_record)?;
 
-        // Validate DateTime is within valid limits
         let iso_datetime = IsoDateTime::new(iso_date, iso_time)?;
 
-        // Extract timezone identifier from the timezone record
-        let timezone_bytes = match timezone.tz {
-            TimeZoneRecord::Name(name_bytes) => name_bytes.to_vec(),
+        let timezone_record = record.tz.ok_or_else(|| {
+            TemporalError::range()
+                .with_message("Timezone component is required for ZonedDateTime parsing")
+        })?;
+
+        let timezone_bytes = match timezone_record.tz {
+            TimeZoneRecord::Name(name_bytes) => name_bytes,
             TimeZoneRecord::Offset(_) => {
                 return Err(
                     TemporalError::range().with_message("Expected timezone name but found offset")
@@ -227,11 +512,59 @@ impl TemporalParser {
 
         Ok(ParsedZonedDateTime {
             iso: iso_datetime,
-            calendar: record
-                .calendar
-                .map(|c| String::from_utf8_lossy(c).into_owned()),
+            calendar: record.calendar.map(Cow::Borrowed),
             offset: record.offset,
-            timezone: String::from_utf8_lossy(&timezone_bytes).into_owned(),
+            timezone: Cow::Borrowed(timezone_bytes),
+        })
+    }
+
+    fn validate_and_build_zoned_date_time_utf16(
+        &self,
+        record: IxdtfParseRecord<'a, Utf16>,
+    ) -> TemporalResult<ParsedZonedDateTime<'a>> {
+        let date_record = record.date.ok_or_else(|| {
+            TemporalError::range()
+                .with_message("Date component is required for ZonedDateTime parsing")
+        })?;
+
+        let time_record = record.time.ok_or_else(|| {
+            TemporalError::range()
+                .with_message("Time component is required for ZonedDateTime parsing")
+        })?;
+
+        let timezone_record = record.tz.ok_or_else(|| {
+            TemporalError::range()
+                .with_message("TimeZone annotation is required for ZonedDateTime parsing")
+        })?;
+
+        let iso_date = self.validate_date_record(date_record)?;
+        let iso_time = self.validate_time_record(time_record)?;
+
+        let iso_datetime = IsoDateTime::new(iso_date, iso_time)?;
+
+        let timezone_cow = match timezone_record.tz {
+            TimeZoneRecord::Name(name_utf16) => Self::convert_utf16_timezone_to_cow(name_utf16)?,
+            TimeZoneRecord::Offset(_) => {
+                return Err(
+                    TemporalError::range().with_message("Expected timezone name but found offset")
+                );
+            }
+            _ => {
+                return Err(TemporalError::range().with_message("Unsupported timezone record type"));
+            }
+        };
+
+        let calendar_cow = if let Some(calendar_utf16) = record.calendar {
+            Some(Self::convert_utf16_calendar_to_cow(calendar_utf16)?)
+        } else {
+            None
+        };
+
+        Ok(ParsedZonedDateTime {
+            iso: iso_datetime,
+            calendar: calendar_cow,
+            offset: record.offset,
+            timezone: timezone_cow,
         })
     }
 
@@ -242,7 +575,6 @@ impl TemporalParser {
         let iso_date = self.validate_date_record(record.date)?;
         let iso_time = self.validate_time_record(record.time)?;
 
-        // Validate DateTime is within valid limits
         let iso_datetime = IsoDateTime::new(iso_date, iso_time)?;
 
         Ok(ParsedInstant {
@@ -259,8 +591,8 @@ impl TemporalParser {
 
     fn validate_and_build_year_month(
         &self,
-        record: IxdtfParseRecord,
-    ) -> TemporalResult<ParsedYearMonth> {
+        record: IxdtfParseRecord<'a, Utf8>,
+    ) -> TemporalResult<ParsedYearMonth<'a>> {
         let date_record = record.date.ok_or_else(|| {
             TemporalError::range().with_message("Date component is required for YearMonth parsing")
         })?;
@@ -269,16 +601,36 @@ impl TemporalParser {
 
         Ok(ParsedYearMonth {
             iso: iso_date,
-            calendar: record
-                .calendar
-                .map(|c| String::from_utf8_lossy(c).into_owned()),
+            calendar: record.calendar.map(Cow::Borrowed),
+        })
+    }
+
+    fn validate_and_build_year_month_utf16(
+        &self,
+        record: IxdtfParseRecord<'a, Utf16>,
+    ) -> TemporalResult<ParsedYearMonth<'a>> {
+        let date_record = record.date.ok_or_else(|| {
+            TemporalError::range().with_message("Date component is required for YearMonth parsing")
+        })?;
+
+        let iso_date = self.validate_date_record(date_record)?;
+
+        let calendar_cow = if let Some(calendar_utf16) = record.calendar {
+            Some(Self::convert_utf16_calendar_to_cow(calendar_utf16)?)
+        } else {
+            None
+        };
+
+        Ok(ParsedYearMonth {
+            iso: iso_date,
+            calendar: calendar_cow,
         })
     }
 
     fn validate_and_build_month_day(
         &self,
-        record: IxdtfParseRecord,
-    ) -> TemporalResult<ParsedMonthDay> {
+        record: IxdtfParseRecord<'a, Utf8>,
+    ) -> TemporalResult<ParsedMonthDay<'a>> {
         let date_record = record.date.ok_or_else(|| {
             TemporalError::range().with_message("Date component is required for MonthDay parsing")
         })?;
@@ -287,9 +639,29 @@ impl TemporalParser {
 
         Ok(ParsedMonthDay {
             iso: iso_date,
-            calendar: record
-                .calendar
-                .map(|c| String::from_utf8_lossy(c).into_owned()),
+            calendar: record.calendar.map(Cow::Borrowed),
+        })
+    }
+
+    fn validate_and_build_month_day_utf16(
+        &self,
+        record: IxdtfParseRecord<'a, Utf16>,
+    ) -> TemporalResult<ParsedMonthDay<'a>> {
+        let date_record = record.date.ok_or_else(|| {
+            TemporalError::range().with_message("Date component is required for MonthDay parsing")
+        })?;
+
+        let iso_date = self.validate_date_record(date_record)?;
+
+        let calendar_cow = if let Some(calendar_utf16) = record.calendar {
+            Some(Self::convert_utf16_calendar_to_cow(calendar_utf16)?)
+        } else {
+            None
+        };
+
+        Ok(ParsedMonthDay {
+            iso: iso_date,
+            calendar: calendar_cow,
         })
     }
 
@@ -306,44 +678,50 @@ impl TemporalParser {
 
 /// Parsed result for PlainDateTime operations
 #[derive(Debug, Clone)]
-pub struct ParsedDateTime {
+pub struct ParsedDateTime<'a> {
     /// The validated ISO DateTime components
     pub iso: IsoDateTime,
-    /// Optional calendar identifier as a string
-    pub calendar: Option<String>,
+    /// Optional calendar identifier as bytes (borrowed for UTF-8, owned for UTF-16)
+    pub calendar: Option<Cow<'a, [u8]>>,
     /// Optional UTC offset information
     pub offset: Option<UtcOffsetRecordOrZ>,
 }
 
-impl ParsedDateTime {
+impl<'a> ParsedDateTime<'a> {
     /// Get the calendar identifier as a string slice, defaulting to "iso8601"
     pub fn calendar(&self) -> &str {
-        self.calendar.as_deref().unwrap_or("iso8601")
+        self.calendar
+            .as_ref()
+            .and_then(|c| core::str::from_utf8(c.as_ref()).ok())
+            .unwrap_or("iso8601")
     }
 }
 
 /// Parsed result for ZonedDateTime operations
 #[derive(Debug, Clone)]
-pub struct ParsedZonedDateTime {
+pub struct ParsedZonedDateTime<'a> {
     /// The validated ISO DateTime components
     pub iso: IsoDateTime,
-    /// Optional calendar identifier as a string
-    pub calendar: Option<String>,
+    /// Optional calendar identifier as bytes (borrowed for UTF-8, owned for UTF-16)
+    pub calendar: Option<Cow<'a, [u8]>>,
     /// Optional UTC offset information
     pub offset: Option<UtcOffsetRecordOrZ>,
-    /// Time zone identifier as a string
-    pub timezone: String,
+    /// Time zone identifier as bytes (borrowed for UTF-8, owned for UTF-16)
+    pub timezone: Cow<'a, [u8]>,
 }
 
-impl ParsedZonedDateTime {
+impl<'a> ParsedZonedDateTime<'a> {
     /// Get the calendar identifier as a string slice, defaulting to "iso8601"
     pub fn calendar(&self) -> &str {
-        self.calendar.as_deref().unwrap_or("iso8601")
+        self.calendar
+            .as_ref()
+            .and_then(|c| core::str::from_utf8(c.as_ref()).ok())
+            .unwrap_or("iso8601")
     }
 
     /// Get the timezone identifier as a string slice
     pub fn timezone(&self) -> &str {
-        &self.timezone
+        core::str::from_utf8(&self.timezone).unwrap_or("UTC")
     }
 }
 
@@ -365,33 +743,39 @@ pub struct ParsedTime {
 
 /// Parsed result for PlainYearMonth operations
 #[derive(Debug, Clone)]
-pub struct ParsedYearMonth {
+pub struct ParsedYearMonth<'a> {
     /// The validated ISO Date components
     pub iso: IsoDate,
-    /// Optional calendar identifier as a string
-    pub calendar: Option<String>,
+    /// Optional calendar identifier as bytes (borrowed for UTF-8, owned for UTF-16)
+    pub calendar: Option<Cow<'a, [u8]>>,
 }
 
-impl ParsedYearMonth {
+impl<'a> ParsedYearMonth<'a> {
     /// Get the calendar identifier as a string slice, defaulting to "iso8601"
     pub fn calendar(&self) -> &str {
-        self.calendar.as_deref().unwrap_or("iso8601")
+        self.calendar
+            .as_ref()
+            .and_then(|c| core::str::from_utf8(c.as_ref()).ok())
+            .unwrap_or("iso8601")
     }
 }
 
 /// Parsed result for PlainMonthDay operations
 #[derive(Debug, Clone)]
-pub struct ParsedMonthDay {
+pub struct ParsedMonthDay<'a> {
     /// The validated ISO Date components
     pub iso: IsoDate,
-    /// Optional calendar identifier as a string
-    pub calendar: Option<String>,
+    /// Optional calendar identifier as bytes (borrowed for UTF-8, owned for UTF-16)
+    pub calendar: Option<Cow<'a, [u8]>>,
 }
 
-impl ParsedMonthDay {
+impl<'a> ParsedMonthDay<'a> {
     /// Get the calendar identifier as a string slice, defaulting to "iso8601"
     pub fn calendar(&self) -> &str {
-        self.calendar.as_deref().unwrap_or("iso8601")
+        self.calendar
+            .as_ref()
+            .and_then(|c| core::str::from_utf8(c.as_ref()).ok())
+            .unwrap_or("iso8601")
     }
 }
 
@@ -460,7 +844,7 @@ impl<'a> IxdtfStringBuilder<'a> {
         self
     }
 
-    pub fn with_calendar(mut self, calendar: &'static str, show: DisplayCalendar) -> Self {
+    pub fn with_calendar(mut self, calendar: &'a str, show: DisplayCalendar) -> Self {
         self.inner.calendar = Some(FormattableCalendar { show, calendar });
         self
     }
@@ -1385,10 +1769,9 @@ mod tests {
 
     #[test]
     fn temporal_parser_date_time() {
-        let parser = TemporalParser::new();
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00");
 
-        // Test basic datetime parsing
-        let result = parser.parse_date_time("2025-01-15T14:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.date.year, 2025);
@@ -1398,83 +1781,81 @@ mod tests {
         assert_eq!(parsed.iso.time.minute, 30);
         assert_eq!(parsed.iso.time.second, 0);
 
-        // Test with calendar annotation
-        let result = parser.parse_date_time("2025-01-15T14:30:00[u-ca=gregory]");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00[u-ca=gregory]");
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert!(parsed.calendar.is_some());
-        assert_eq!(parsed.calendar.unwrap(), "gregory");
+        assert_eq!(&*parsed.calendar.unwrap(), b"gregory");
 
-        // Test invalid year
-        let result = parser.parse_date_time("999999-01-15T14:30:00");
+        let parser = TemporalParser::from_str_as_utf8("999999-01-15T14:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        // Test invalid month
-        let result = parser.parse_date_time("2025-13-15T14:30:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-13-15T14:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        // Test invalid day
-        let result = parser.parse_date_time("2025-02-30T14:30:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-02-30T14:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        // Test invalid hour
-        let result = parser.parse_date_time("2025-01-15T25:30:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T25:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        // Test invalid minute
-        let result = parser.parse_date_time("2025-01-15T14:60:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:60:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
     }
 
     #[test]
     fn temporal_parser_instant() {
-        let parser = TemporalParser::new();
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00Z");
 
-        // Test basic instant parsing with Z
-        let result = parser.parse_instant("2025-01-15T14:30:00Z");
+        let result = parser.parse_instant();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.date.year, 2025);
 
-        // Test instant with offset
-        let result = parser.parse_instant("2025-01-15T14:30:00+05:30");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00+05:30");
+        let result = parser.parse_instant();
         assert!(result.is_ok());
 
-        // Test instant without offset (should fail)
-        let result = parser.parse_instant("2025-01-15T14:30:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00");
+        let result = parser.parse_instant();
         assert!(result.is_err());
     }
 
     #[test]
     fn temporal_parser_zoned_date_time() {
-        let parser = TemporalParser::new();
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00Z[America/New_York]");
 
-        // Test basic zoned datetime parsing
-        let result = parser.parse_zoned_date_time("2025-01-15T14:30:00Z[America/New_York]");
+        let result = parser.parse_zoned_date_time();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.date.year, 2025);
-        assert_eq!(parsed.timezone, "America/New_York");
+        assert_eq!(&*parsed.timezone, b"America/New_York");
 
         // Test without timezone annotation (should fail)
-        let result = parser.parse_zoned_date_time("2025-01-15T14:30:00Z");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00Z");
+        let result = parser.parse_zoned_date_time();
         assert!(result.is_err());
     }
 
     #[test]
     fn temporal_parser_time() {
-        let parser = TemporalParser::new();
+        let parser = TemporalParser::from_str_as_utf8("14:30:00");
 
-        // Test basic time parsing
-        let result = parser.parse_time("14:30:00");
+        let result = parser.parse_time();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.hour, 14);
         assert_eq!(parsed.iso.minute, 30);
         assert_eq!(parsed.iso.second, 0);
 
-        // Test time with fractional seconds
-        let result = parser.parse_time("14:30:00.123456789");
+        let parser = TemporalParser::from_str_as_utf8("14:30:00.123456789");
+        let result = parser.parse_time();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.millisecond, 123);
@@ -1484,114 +1865,109 @@ mod tests {
 
     #[test]
     fn temporal_parser_year_month() {
-        let parser = TemporalParser::new();
+        let parser = TemporalParser::from_str_as_utf8("2025-01");
 
-        // Test basic year-month parsing
-        let result = parser.parse_year_month("2025-01");
+        let result = parser.parse_year_month();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.year, 2025);
         assert_eq!(parsed.iso.month, 1);
 
-        // Test with calendar
-        let result = parser.parse_year_month("2025-01[u-ca=hebrew]");
+        let parser = TemporalParser::from_str_as_utf8("2025-01[u-ca=hebrew]");
+        let result = parser.parse_year_month();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert!(parsed.calendar.is_some());
-        assert_eq!(parsed.calendar.unwrap(), "hebrew");
+        assert_eq!(&*parsed.calendar.unwrap(), b"hebrew");
     }
 
     #[test]
     fn temporal_parser_month_day() {
-        let parser = TemporalParser::new();
+        let parser = TemporalParser::from_str_as_utf8("01-15");
 
-        // Test basic month-day parsing
-        let result = parser.parse_month_day("01-15");
+        let result = parser.parse_month_day();
         assert!(result.is_ok());
         let parsed = result.unwrap();
         assert_eq!(parsed.iso.month, 1);
         assert_eq!(parsed.iso.day, 15);
 
-        // Test leap day validation
-        let result = parser.parse_month_day("02-29");
+        let parser = TemporalParser::from_str_as_utf8("02-29");
+        let result = parser.parse_month_day();
         assert!(result.is_ok()); // Should be OK as it could be valid in a leap year
     }
 
     #[test]
     fn temporal_parser_invariant_validation() {
-        let parser = TemporalParser::new();
-
-        // Test year limits - out of range years should fail
-        let result = parser.parse_date_time("-271822-01-01T00:00:00");
+        let parser = TemporalParser::from_str_as_utf8("-271822-01-01T00:00:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        let result = parser.parse_date_time("275761-01-01T00:00:00");
+        let parser = TemporalParser::from_str_as_utf8("275761-01-01T00:00:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        // Test valid dates with normal years
-        let result = parser.parse_date_time("2025-01-01T12:00:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-01T12:00:00");
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
 
-        let result = parser.parse_date_time("1970-01-01T12:00:00");
+        let parser = TemporalParser::from_str_as_utf8("1970-01-01T12:00:00");
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
 
-        // Test invalid days for specific months
-        let result = parser.parse_date_time("2025-04-31T00:00:00"); // April has only 30 days
+        let parser = TemporalParser::from_str_as_utf8("2025-04-31T00:00:00"); // April has only 30 days
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        let result = parser.parse_date_time("2025-02-29T00:00:00"); // 2025 is not a leap year
+        let parser = TemporalParser::from_str_as_utf8("2025-02-29T00:00:00"); // 2025 is not a leap year
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        let result = parser.parse_date_time("2024-02-29T00:00:00"); // 2024 is a leap year
+        let parser = TemporalParser::from_str_as_utf8("2024-02-29T00:00:00"); // 2024 is a leap year
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
     }
 
     #[test]
     fn temporal_parser_cow_strings() {
-        let parser = TemporalParser::new();
-
-        // Test with &str
-        let result = parser.parse_date_time("2025-01-15T14:30:00");
+        let parser = TemporalParser::from_str_as_utf8("2025-01-15T14:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
 
-        // Test with String
         let owned = String::from("2025-01-15T14:30:00");
-        let result = parser.parse_date_time(&owned);
+        let parser = TemporalParser::from_str_as_utf8(&owned);
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
 
-        // Test with owned String directly
         let owned = String::from("2025-01-15T14:30:00");
-        let result = parser.parse_date_time(owned);
+        let parser = TemporalParser::from_str_as_utf8(&owned);
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
 
-        // Test with Cow::Borrowed
         use alloc::borrow::Cow;
         let cow_borrowed: Cow<str> = Cow::Borrowed("2025-01-15T14:30:00");
-        let result = parser.parse_date_time(cow_borrowed);
+        let parser = TemporalParser::from_str_as_utf8(&cow_borrowed);
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
 
-        // Test with Cow::Owned
         let cow_owned: Cow<str> = Cow::Owned(String::from("2025-01-15T14:30:00"));
-        let result = parser.parse_date_time(cow_owned);
+        let parser = TemporalParser::from_str_as_utf8(&cow_owned);
+        let result = parser.parse_date_time();
         assert!(result.is_ok());
     }
 
     #[test]
     fn temporal_parser_better_error_messages() {
-        let parser = TemporalParser::new();
-
-        // Test that invalid inputs produce errors
-        let result = parser.parse_date_time("999999-01-15T14:30:00");
+        let parser = TemporalParser::from_str_as_utf8("999999-01-15T14:30:00");
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        let result = parser.parse_date_time("2025-04-31T14:30:00"); // April only has 30 days
+        let parser = TemporalParser::from_str_as_utf8("2025-04-31T14:30:00"); // April only has 30 days
+        let result = parser.parse_date_time();
         assert!(result.is_err());
 
-        // Test that our validation functions produce the expected error messages directly
         use super::validate_date_record_impl;
-        use ixdtf::parsers::records::DateRecord;
+        use ixdtf::records::DateRecord;
 
-        // Test that basic day validation is now handled by ixdtf, not our validator
         let invalid_day_record = DateRecord {
             year: 2025,
             month: 4,
@@ -1602,7 +1978,6 @@ mod tests {
         let result = validate_date_record_impl(invalid_day_record);
         assert!(result.is_ok());
 
-        // Test year validation error message
         let invalid_year_record = DateRecord {
             year: 275761, // Beyond valid range
             month: 1,
@@ -1614,5 +1989,252 @@ mod tests {
         let error_msg = format!("{error}");
         assert!(error_msg.contains("275761"));
         assert!(error_msg.contains("outside valid range"));
+    }
+
+    #[test]
+    fn temporal_parser_utf16_date_time() {
+        use alloc::vec::Vec;
+
+        let datetime_str = "2023-12-25T15:30:45.678";
+        let datetime_utf16: Vec<u16> = datetime_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&datetime_utf16);
+
+        let result = parser.parse_date_time();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.iso.date.year, 2023);
+        assert_eq!(parsed.iso.date.month, 12);
+        assert_eq!(parsed.iso.date.day, 25);
+        assert_eq!(parsed.iso.time.hour, 15);
+        assert_eq!(parsed.iso.time.minute, 30);
+        assert_eq!(parsed.iso.time.second, 45);
+        assert_eq!(parsed.iso.time.millisecond, 678);
+
+        // Calendar is None when no calendar annotation is present
+        assert!(parsed.calendar.is_none());
+    }
+
+    #[test]
+    fn temporal_parser_utf16_instant() {
+        use alloc::vec::Vec;
+
+        let instant_str = "2023-12-25T15:30:45.678Z";
+        let instant_utf16: Vec<u16> = instant_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&instant_utf16);
+
+        let result = parser.parse_instant();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.iso.date.year, 2023);
+        assert_eq!(parsed.iso.date.month, 12);
+        assert_eq!(parsed.iso.date.day, 25);
+        assert_eq!(parsed.iso.time.hour, 15);
+        assert_eq!(parsed.iso.time.minute, 30);
+        assert_eq!(parsed.iso.time.second, 45);
+        assert_eq!(parsed.iso.time.millisecond, 678);
+    }
+
+    #[test]
+    fn temporal_parser_utf16_time() {
+        use alloc::vec::Vec;
+
+        let time_str = "15:30:45.678";
+        let time_utf16: Vec<u16> = time_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&time_utf16);
+
+        let result = parser.parse_time();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.iso.hour, 15);
+        assert_eq!(parsed.iso.minute, 30);
+        assert_eq!(parsed.iso.second, 45);
+        assert_eq!(parsed.iso.millisecond, 678);
+    }
+
+    #[test]
+    fn temporal_parser_utf16_year_month() {
+        use alloc::vec::Vec;
+
+        let ym_str = "2023-12";
+        let ym_utf16: Vec<u16> = ym_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&ym_utf16);
+
+        let result = parser.parse_year_month();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.iso.year, 2023);
+        assert_eq!(parsed.iso.month, 12);
+
+        // Calendar is None when no calendar annotation is present
+        assert!(parsed.calendar.is_none());
+    }
+
+    #[test]
+    fn temporal_parser_utf16_month_day() {
+        use alloc::vec::Vec;
+
+        let md_str = "12-25";
+        let md_utf16: Vec<u16> = md_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&md_utf16);
+
+        let result = parser.parse_month_day();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.iso.month, 12);
+        assert_eq!(parsed.iso.day, 25);
+
+        // Calendar is None when no calendar annotation is present
+        assert!(parsed.calendar.is_none());
+    }
+
+    #[test]
+    fn temporal_parser_utf16_zoned_date_time() {
+        use alloc::vec::Vec;
+
+        let zdt_str = "2023-12-25T15:30:45.678Z[America/New_York]";
+        let zdt_utf16: Vec<u16> = zdt_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&zdt_utf16);
+
+        let result = parser.parse_zoned_date_time();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert_eq!(parsed.iso.date.year, 2023);
+        assert_eq!(parsed.iso.date.month, 12);
+        assert_eq!(parsed.iso.date.day, 25);
+        assert_eq!(parsed.iso.time.hour, 15);
+        assert_eq!(parsed.iso.time.minute, 30);
+        assert_eq!(parsed.iso.time.second, 45);
+        assert_eq!(parsed.iso.time.millisecond, 678);
+
+        assert_eq!(parsed.timezone(), "America/New_York");
+
+        // Calendar is None when no calendar annotation is present
+        assert!(parsed.calendar.is_none());
+    }
+
+    #[test]
+    fn temporal_parser_utf16_vs_utf8_comparison() {
+        use alloc::vec::Vec;
+
+        let datetime_str = "2023-06-15T10:20:30.456";
+        let datetime_utf16: Vec<u16> = datetime_str.encode_utf16().collect();
+
+        let parser_utf8 = TemporalParser::from_str_as_utf8(datetime_str);
+        let parser_utf16 = TemporalParser::from_utf16(&datetime_utf16);
+
+        let result_utf8 = parser_utf8.parse_date_time().unwrap();
+        let result_utf16 = parser_utf16.parse_date_time().unwrap();
+
+        // Compare ISO components (should be identical)
+        assert_eq!(result_utf8.iso.date.year, result_utf16.iso.date.year);
+        assert_eq!(result_utf8.iso.date.month, result_utf16.iso.date.month);
+        assert_eq!(result_utf8.iso.date.day, result_utf16.iso.date.day);
+        assert_eq!(result_utf8.iso.time.hour, result_utf16.iso.time.hour);
+        assert_eq!(result_utf8.iso.time.minute, result_utf16.iso.time.minute);
+        assert_eq!(result_utf8.iso.time.second, result_utf16.iso.time.second);
+        assert_eq!(
+            result_utf8.iso.time.millisecond,
+            result_utf16.iso.time.millisecond
+        );
+        assert_eq!(
+            result_utf8.iso.time.microsecond,
+            result_utf16.iso.time.microsecond
+        );
+        assert_eq!(
+            result_utf8.iso.time.nanosecond,
+            result_utf16.iso.time.nanosecond
+        );
+    }
+
+    #[test]
+    fn temporal_parser_utf16_error_handling() {
+        use alloc::vec::Vec;
+
+        let invalid_str = "2023-02-30T15:30:45"; // February 30th doesn't exist
+        let invalid_utf16: Vec<u16> = invalid_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&invalid_utf16);
+
+        let result = parser.parse_date_time();
+        assert!(result.is_err());
+
+        let invalid_year_str = "999999-01-01T00:00:00";
+        let invalid_year_utf16: Vec<u16> = invalid_year_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&invalid_year_utf16);
+
+        let result = parser.parse_date_time();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn temporal_parser_utf16_calendar_support() {
+        use alloc::vec::Vec;
+
+        let datetime_str = "2023-12-25T15:30:45[u-ca=gregory]";
+        let datetime_utf16: Vec<u16> = datetime_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&datetime_utf16);
+
+        let result = parser.parse_date_time();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+
+        assert!(parsed.calendar.is_some());
+        assert_eq!(&*parsed.calendar.unwrap(), b"gregory");
+
+        let iso_str = "2023-12-25T15:30:45[u-ca=iso8601]";
+        let iso_utf16: Vec<u16> = iso_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&iso_utf16);
+
+        let result = parser.parse_date_time();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+        assert!(parsed.calendar.is_some());
+        assert_eq!(&*parsed.calendar.unwrap(), b"iso8601");
+
+        let custom_str = "2023-12-25T15:30:45[u-ca=my-custom-calendar]";
+        let custom_utf16: Vec<u16> = custom_str.encode_utf16().collect();
+        let parser = TemporalParser::from_utf16(&custom_utf16);
+
+        let result = parser.parse_date_time();
+        assert!(result.is_ok());
+        let parsed = result.unwrap();
+
+        assert!(parsed.calendar.is_some());
+        assert_eq!(&*parsed.calendar.unwrap(), b"my-custom-calendar");
+    }
+
+    #[test]
+    fn temporal_parser_utf16_timezone_names() {
+        use alloc::vec::Vec;
+
+        let timezones = [
+            ("2023-12-25T15:30:45Z[UTC]", "UTC"),
+            ("2023-12-25T15:30:45Z[America/New_York]", "America/New_York"),
+            ("2023-12-25T15:30:45Z[Europe/London]", "Europe/London"),
+            ("2023-12-25T15:30:45Z[Asia/Tokyo]", "Asia/Tokyo"),
+            ("2023-12-25T15:30:45Z[Australia/Sydney]", "Australia/Sydney"),
+            (
+                "2023-12-25T15:30:45Z[America/Los_Angeles]",
+                "America/Los_Angeles",
+            ),
+            ("2023-12-25T15:30:45Z[Europe/Berlin]", "Europe/Berlin"),
+        ];
+
+        for (input, expected_tz) in timezones.iter() {
+            let input_utf16: Vec<u16> = input.encode_utf16().collect();
+            let parser = TemporalParser::from_utf16(&input_utf16);
+
+            let result = parser.parse_zoned_date_time();
+            assert!(result.is_ok(), "Failed to parse: {}", input);
+
+            let parsed = result.unwrap();
+            assert_eq!(
+                parsed.timezone(),
+                *expected_tz,
+                "Timezone mismatch for: {}",
+                input
+            );
+
+            assert_eq!(&*parsed.timezone, expected_tz.as_bytes());
+        }
     }
 }

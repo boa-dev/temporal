@@ -278,10 +278,52 @@ impl Instant {
 
     // Converts a UTF-8 encoded string into a `Instant`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parser = TemporalParser::new();
-        let parsed = parser.parse_instant(core::str::from_utf8(s).map_err(|_| {
-            TemporalError::syntax().with_message("Invalid UTF-8 in instant string")
-        })?)?;
+        let parser = TemporalParser::from_utf8(s);
+        let parsed = parser.parse_instant()?;
+
+        // Find the offset
+        let ns_offset = match parsed.offset {
+            UtcOffsetRecordOrZ::Offset(offset) => {
+                let ns = offset
+                    .fraction()
+                    .and_then(|x| x.to_nanoseconds())
+                    .unwrap_or(0);
+                (offset.hour() as i64 * NANOSECONDS_PER_HOUR
+                    + i64::from(offset.minute()) * NANOSECONDS_PER_MINUTE
+                    + i64::from(offset.second().unwrap_or(0)) * NANOSECONDS_PER_SECOND
+                    + i64::from(ns))
+                    * offset.sign() as i64
+            }
+            UtcOffsetRecordOrZ::Z => 0,
+        };
+
+        let time_nanoseconds = parsed.iso.time.millisecond as u32 * 1_000_000
+            + parsed.iso.time.microsecond as u32 * 1_000
+            + parsed.iso.time.nanosecond as u32;
+        let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
+        let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
+
+        let balanced = IsoDateTime::balance(
+            parsed.iso.date.year,
+            parsed.iso.date.month.into(),
+            parsed.iso.date.day.into(),
+            parsed.iso.time.hour.into(),
+            parsed.iso.time.minute.into(),
+            parsed.iso.time.second.clamp(0, 59).into(),
+            millisecond.into(),
+            microsecond.into(),
+            i128::from(nanosecond) - i128::from(ns_offset),
+        );
+
+        let nanoseconds = balanced.as_nanoseconds()?;
+
+        Ok(Self(nanoseconds))
+    }
+
+    /// Converts a UTF-16 encoded string into a `Instant`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parser = TemporalParser::from_utf16(s);
+        let parsed = parser.parse_instant()?;
 
         // Find the offset
         let ns_offset = match parsed.offset {

@@ -549,13 +549,25 @@ impl PlainDateTime {
 
     // Converts a UTF-8 encoded string into a `PlainDateTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parser = TemporalParser::new();
-        let parsed = parser.parse_date_time(core::str::from_utf8(s).map_err(|_| {
-            TemporalError::syntax().with_message("Invalid UTF-8 in datetime string")
-        })?)?;
+        let parser = TemporalParser::from_utf8(s);
+        let parsed = parser.parse_date_time()?;
 
-        let calendar = if let Some(cal_str) = &parsed.calendar {
-            Calendar::try_from_utf8(cal_str.as_bytes())?
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
+        } else {
+            Calendar::default()
+        };
+
+        Ok(Self::new_unchecked(parsed.iso, calendar))
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainDateTime`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parser = TemporalParser::from_utf16(s);
+        let parsed = parser.parse_date_time()?;
+
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
         } else {
             Calendar::default()
         };
@@ -1517,5 +1529,137 @@ mod tests {
             "1976-11-18T15:23:30.123400000",
             "pads 4 decimal places to 9"
         );
+    }
+
+    #[test]
+    fn test_utf16_datetime_parsing() {
+        use alloc::vec::Vec;
+
+        let datetime_str = "2023-05-15T14:30:45.123";
+        let datetime_utf16: Vec<u16> = datetime_str.encode_utf16().collect();
+
+        // Test UTF-16 parsing
+        let datetime_utf16_result = PlainDateTime::from_utf16(&datetime_utf16).unwrap();
+
+        // Test UTF-8 parsing for comparison
+        let datetime_utf8_result = PlainDateTime::from_utf8(datetime_str.as_bytes()).unwrap();
+
+        // Compare results
+        assert_eq!(datetime_utf16_result.year(), datetime_utf8_result.year());
+        assert_eq!(datetime_utf16_result.month(), datetime_utf8_result.month());
+        assert_eq!(datetime_utf16_result.day(), datetime_utf8_result.day());
+        assert_eq!(datetime_utf16_result.hour(), datetime_utf8_result.hour());
+        assert_eq!(
+            datetime_utf16_result.minute(),
+            datetime_utf8_result.minute()
+        );
+        assert_eq!(
+            datetime_utf16_result.second(),
+            datetime_utf8_result.second()
+        );
+        assert_eq!(
+            datetime_utf16_result.millisecond(),
+            datetime_utf8_result.millisecond()
+        );
+
+        // Test specific values
+        assert_eq!(datetime_utf16_result.year(), 2023);
+        assert_eq!(datetime_utf16_result.month(), 5);
+        assert_eq!(datetime_utf16_result.day(), 15);
+        assert_eq!(datetime_utf16_result.hour(), 14);
+        assert_eq!(datetime_utf16_result.minute(), 30);
+        assert_eq!(datetime_utf16_result.second(), 45);
+        assert_eq!(datetime_utf16_result.millisecond(), 123);
+    }
+
+    #[test]
+    fn test_temporal_parser_from_str_as_utf8() {
+        use crate::parsers::TemporalParser;
+
+        let datetime_str = "2023-05-15T14:30:45.123";
+        let parser = TemporalParser::from_str_as_utf8(datetime_str);
+
+        // Test that the parser works correctly with the renamed method
+        let parsed = parser.parse_date_time().unwrap();
+
+        assert_eq!(parsed.iso.date.year, 2023);
+        assert_eq!(parsed.iso.date.month, 5);
+        assert_eq!(parsed.iso.date.day, 15);
+        assert_eq!(parsed.iso.time.hour, 14);
+        assert_eq!(parsed.iso.time.minute, 30);
+        assert_eq!(parsed.iso.time.second, 45);
+        assert_eq!(parsed.iso.time.millisecond, 123);
+    }
+
+    #[test]
+    fn test_all_temporal_types_utf16_support() {
+        use crate::{Instant, PlainDate, PlainMonthDay, PlainTime, PlainYearMonth};
+        use alloc::vec::Vec;
+
+        // Test all temporal types have consistent UTF-16 support
+        let datetime_str = "2023-05-15T14:30:45.123";
+        let datetime_utf16: Vec<u16> = datetime_str.encode_utf16().collect();
+
+        let time_str = "14:30:45.123";
+        let time_utf16: Vec<u16> = time_str.encode_utf16().collect();
+
+        let date_str = "2023-05-15T00:00:00";
+        let date_utf16: Vec<u16> = date_str.encode_utf16().collect();
+
+        let year_month_str = "2023-05";
+        let year_month_utf16: Vec<u16> = year_month_str.encode_utf16().collect();
+
+        let month_day_str = "05-15";
+        let month_day_utf16: Vec<u16> = month_day_str.encode_utf16().collect();
+
+        let instant_str = "2023-05-15T14:30:45.123Z";
+        let instant_utf16: Vec<u16> = instant_str.encode_utf16().collect();
+
+        // Test that all types can parse UTF-16
+        let datetime = PlainDateTime::from_utf16(&datetime_utf16).unwrap();
+        assert_eq!(datetime.year(), 2023);
+        assert_eq!(datetime.month(), 5);
+        assert_eq!(datetime.day(), 15);
+        assert_eq!(datetime.hour(), 14);
+        assert_eq!(datetime.minute(), 30);
+        assert_eq!(datetime.second(), 45);
+        assert_eq!(datetime.millisecond(), 123);
+
+        let time = PlainTime::from_utf16(&time_utf16).unwrap();
+        assert_eq!(time.hour(), 14);
+        assert_eq!(time.minute(), 30);
+        assert_eq!(time.second(), 45);
+        assert_eq!(time.millisecond(), 123);
+
+        let date = PlainDate::from_utf16(&date_utf16).unwrap();
+        assert_eq!(date.year(), 2023);
+        assert_eq!(date.month(), 5);
+        assert_eq!(date.day(), 15);
+
+        let year_month = PlainYearMonth::from_utf16(&year_month_utf16).unwrap();
+        assert_eq!(year_month.year(), 2023);
+        assert_eq!(year_month.month(), 5);
+
+        let month_day = PlainMonthDay::from_utf16(&month_day_utf16).unwrap();
+        assert_eq!(month_day.iso_month(), 5);
+        assert_eq!(month_day.day(), 15);
+
+        let instant = Instant::from_utf16(&instant_utf16).unwrap();
+        assert_eq!(instant.epoch_milliseconds(), 1684161045123);
+
+        // Test UTF-16 vs UTF-8 equivalence
+        let datetime_utf8 = PlainDateTime::from_utf8(datetime_str.as_bytes()).unwrap();
+        let time_utf8 = PlainTime::from_utf8(time_str.as_bytes()).unwrap();
+        let date_utf8 = PlainDate::from_utf8(date_str.as_bytes()).unwrap();
+        let year_month_utf8 = PlainYearMonth::from_utf8(year_month_str.as_bytes()).unwrap();
+        let month_day_utf8 = PlainMonthDay::from_utf8(month_day_str.as_bytes()).unwrap();
+        let instant_utf8 = Instant::from_utf8(instant_str.as_bytes()).unwrap();
+
+        assert_eq!(datetime, datetime_utf8);
+        assert_eq!(time, time_utf8);
+        assert_eq!(date, date_utf8);
+        assert_eq!(year_month, year_month_utf8);
+        assert_eq!(month_day, month_day_utf8);
+        assert_eq!(instant, instant_utf8);
     }
 }

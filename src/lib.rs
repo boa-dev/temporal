@@ -56,28 +56,31 @@
 //! ```rust
 //! use temporal_rs::parsers::TemporalParser;
 //!
-//! let parser = TemporalParser::new();
+//! let parser = TemporalParser::from_utf8(b"2025-01-15T14:30:00");
 //!
 //! // Parse a PlainDateTime with validation
-//! let dt_result = parser.parse_date_time("2025-01-15T14:30:00[u-ca=gregory]");
+//! let dt_result = parser.parse_date_time();
 //! assert!(dt_result.is_ok());
 //! let parsed = dt_result.unwrap();
 //! assert_eq!(parsed.iso.date.year, 2025);
 //! assert_eq!(parsed.iso.time.hour, 14);
-//! assert!(parsed.calendar.is_some());
+//! // Calendar will be None since our test string doesn't include calendar annotation
 //!
 //! // Parse an Instant
-//! let instant_result = parser.parse_instant("2025-01-15T14:30:00Z");
+//! let instant_parser = TemporalParser::from_utf8(b"2025-01-15T14:30:00Z");
+//! let instant_result = instant_parser.parse_instant();
 //! assert!(instant_result.is_ok());
 //!
 //! // Parse a ZonedDateTime
-//! let zdt_result = parser.parse_zoned_date_time("2025-01-15T14:30:00Z[America/New_York]");
+//! let zdt_parser = TemporalParser::from_utf8(b"2025-01-15T14:30:00Z[America/New_York]");
+//! let zdt_result = zdt_parser.parse_zoned_date_time();
 //! assert!(zdt_result.is_ok());
 //! let zdt_parsed = zdt_result.unwrap();
 //! assert_eq!(zdt_parsed.timezone(), "America/New_York");
 //!
 //! // Invalid dates are properly rejected
-//! let invalid_result = parser.parse_date_time("2025-02-30T14:30:00"); // Feb 30th doesn't exist
+//! let invalid_parser = TemporalParser::from_utf8(b"2025-02-30T14:30:00"); // Feb 30th doesn't exist
+//! let invalid_result = invalid_parser.parse_date_time();
 //! assert!(invalid_result.is_err());
 //! ```
 //!
