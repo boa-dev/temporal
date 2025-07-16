@@ -205,7 +205,7 @@ pub enum Sign {
 }
 
 impl Time {
-    pub(crate) const fn one() -> Self {
+    pub(crate) const fn one_hour() -> Self {
         Time {
             sign: Sign::Positive,
             hour: 1,
@@ -214,7 +214,7 @@ impl Time {
         }
     }
 
-    pub(crate) const fn two() -> Self {
+    pub(crate) const fn two_hour() -> Self {
         Time {
             sign: Sign::Positive,
             hour: 2,
