@@ -142,7 +142,7 @@ impl PosixDate {
                 PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
             }
             DayOfMonth::Day(day) => {
-                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
+                PosixDate::JulianLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
             }
             DayOfMonth::Last(wd) => PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, 5, wd)),
             DayOfMonth::WeekDayGEThanMonthDay(week_day, day_of_month) => {
