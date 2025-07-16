@@ -320,19 +320,17 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
         let month_code = if other.month_code.is_empty() {
             None
         } else {
-            Some(
-                MonthCode::try_from_utf8(other.month_code.into())
-                    .map_err(|_| TemporalError::syntax())?,
-            )
+            Some(MonthCode::try_from_utf8(other.month_code.into()).map_err(TemporalError::from)?)
         };
 
         let era = if other.era.is_empty() {
             None
         } else {
-            Some(
-                TinyAsciiStr::try_from_utf8(other.era.into())
-                    .map_err(|_| TemporalError::syntax())?,
-            )
+            Some(TinyAsciiStr::try_from_utf8(other.era.into()).map_err(|_| {
+                TemporalError::from(
+                    temporal_rs::TemporalError::range().with_message("Invalid era code."),
+                )
+            })?)
         };
         Ok(Self {
             year: other.year.into(),

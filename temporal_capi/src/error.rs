@@ -22,14 +22,6 @@ pub mod ffi {
     }
 
     impl TemporalError {
-        // internal
-        pub(crate) fn syntax() -> Self {
-            TemporalError {
-                kind: ErrorKind::Syntax,
-                msg: None.into(),
-            }
-        }
-
         pub(crate) fn range() -> Self {
             TemporalError {
                 kind: ErrorKind::Range,
