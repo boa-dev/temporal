@@ -355,8 +355,9 @@ impl PlainYearMonth {
         let added_date = calendar.date_add(&date, &Duration::from(duration_to_add), overflow)?;
 
         // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
-        let added_date_fields =
-            PartialYearMonth::from(&PartialDate::default().with_fallback_date(&added_date)?);
+        let added_date_fields = PartialYearMonth::from(
+            &PartialDate::default().with_fallback_date(&added_date, overflow)?,
+        );
 
         // 15. Let isoDate be ? CalendarYearMonthFromFields(calendar, addedDateFields, overflow).
         let iso_date = calendar.year_month_from_partial(&added_date_fields, overflow)?;
@@ -664,10 +665,9 @@ impl PlainYearMonth {
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
         // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        self.calendar.year_month_from_partial(
-            &partial.with_fallback_year_month(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        self.calendar
+            .year_month_from_partial(&partial.with_fallback_year_month(self, overflow)?, overflow)
     }
 
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
