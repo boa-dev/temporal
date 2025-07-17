@@ -38,6 +38,8 @@ public:
   template<typename W>
   inline void identifier_write(W& writeable_output) const;
 
+  inline static std::unique_ptr<temporal_rs::TimeZone> utc();
+
   inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
 
   inline bool is_valid() const;
