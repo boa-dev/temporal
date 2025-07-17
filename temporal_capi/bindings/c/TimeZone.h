@@ -27,6 +27,8 @@ temporal_rs_TimeZone_try_from_str_result temporal_rs_TimeZone_try_from_str(Diplo
 
 void temporal_rs_TimeZone_identifier(const TimeZone* self, DiplomatWrite* write);
 
+TimeZone* temporal_rs_TimeZone_utc(void);
+
 TimeZone* temporal_rs_TimeZone_clone(const TimeZone* self);
 
 bool temporal_rs_TimeZone_is_valid(const TimeZone* self);
