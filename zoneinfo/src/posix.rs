@@ -93,7 +93,7 @@ impl PosixTimeZone {
 
         if let Some(transition_info) = &self.transition_info {
             write_abbr(&transition_info.abbr, &mut posix_string)?;
-            if transition_info.savings != Time::one() {
+            if transition_info.savings != Time::one_hour() {
                 write_inverted_time(&self.offset.add(transition_info.savings), &mut posix_string)?;
             }
             write_date_time(&transition_info.start, &mut posix_string)?;
@@ -220,7 +220,7 @@ fn write_date_time(datetime: &PosixDateTime, output: &mut String) -> core::fmt::
             write!(output, "M{}.{week}.{}", month as u8, day as u8)?
         }
     }
-    if datetime.time != Time::two() {
+    if datetime.time != Time::two_hour() {
         write!(output, "/")?;
         write_time(&datetime.time, output)?;
     }
