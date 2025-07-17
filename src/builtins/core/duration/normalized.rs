@@ -270,6 +270,28 @@ impl NormalizedDurationRecord {
         Self::new(date, normalized_time)
     }
 
+    /// Equivalent of [`7.5.7 ToDateDurationRecordWithoutTime ( duration )`][spec]
+    ///
+    /// [spec]: <https://tc39.es/proposal-temporal/#sec-temporal-tointernaldurationrecordwith24hourdays>
+    ///
+    // spec(2025-06-23): https://github.com/tc39/proposal-temporal/tree/ed49b0b482981119c9b5e28b0686d877d4a9bae0
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn to_date_duration_record_without_time(&self) -> TemporalResult<DateDuration> {
+        // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration = self;
+
+        // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
+        let days = internal_duration.normalized_time_duration().0 / i128::from(NS_PER_DAY);
+
+        // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
+        Ok(DateDuration::new_unchecked(
+            internal_duration.date().years,
+            internal_duration.date().months,
+            internal_duration.date().weeks,
+            days.try_into().ok().temporal_unwrap()?,
+        ))
+    }
+
     pub(crate) fn from_date_duration(date: DateDuration) -> TemporalResult<Self> {
         Self::new(date, NormalizedTimeDuration::default())
     }
@@ -282,8 +304,13 @@ impl NormalizedDurationRecord {
         self.norm
     }
 
-    pub(crate) fn sign(&self) -> TemporalResult<Sign> {
-        Ok(self.date.sign())
+    pub(crate) fn sign(&self) -> Sign {
+        let date_sign = self.date.sign();
+        if date_sign == Sign::Zero {
+            self.norm.sign()
+        } else {
+            date_sign
+        }
     }
 }
 
@@ -933,7 +960,7 @@ impl NormalizedDurationRecord {
             || (time_zone.is_some() && options.smallest_unit == Unit::Day);
 
         // 4. If InternalDurationSign(duration) < 0, let sign be -1; else let sign be 1.
-        let sign = duration.sign()?;
+        let sign = duration.sign();
 
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_length_unit {
@@ -985,7 +1012,7 @@ impl NormalizedDurationRecord {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
         if unit.is_calendar_unit() || (tz.is_some() && unit == Unit::Day) {
             // a. Let sign be InternalDurationSign(duration).
-            let sign = self.sign()?;
+            let sign = self.sign();
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
             let record = self.nudge_calendar_unit(
                 sign,

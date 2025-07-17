@@ -28,7 +28,7 @@ pub(crate) fn epoch_days_to_epoch_ms(day: i64, time: i64) -> i64 {
 /// returns a String representation of y suitable for inclusion in an ISO 8601 string
 pub(crate) fn pad_iso_year(year: i32) -> String {
     if (0..9999).contains(&year) {
-        return format!("{:04}", year);
+        return format!("{year:04}");
     }
     let year_sign = if year > 0 { "+" } else { "-" };
     let year_string = format!("{:06}", year.abs());

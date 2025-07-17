@@ -113,6 +113,8 @@ fn main() -> io::Result<()> {
     let provider = Path::new(manifest_dir)
         .parent()
         .unwrap()
+        .parent()
+        .unwrap()
         .join("provider/src");
 
     // Write identifiers

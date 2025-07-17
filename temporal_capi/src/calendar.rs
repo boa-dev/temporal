@@ -48,6 +48,15 @@ pub mod ffi {
                 Err(()) => None,
             }
         }
+
+        // https://tc39.es/proposal-temporal/#sec-temporal-parsetemporalcalendarstring
+        pub fn parse_temporal_calendar_string(s: &DiplomatStr) -> Option<Self> {
+            match temporal_rs::parsers::parse_allowed_calendar_formats(s) {
+                Some([]) => Some(AnyCalendarKind::Iso),
+                Some(result) => Self::get_for_str(result),
+                None => Self::get_for_str(s),
+            }
+        }
     }
 
     #[diplomat::opaque]

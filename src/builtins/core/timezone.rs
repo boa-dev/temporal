@@ -3,8 +3,12 @@
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 
-use ixdtf::parsers::records::{MinutePrecisionOffset, TimeZoneRecord, UtcOffsetRecord};
-use ixdtf::parsers::TimeZoneParser;
+use core::str::from_utf8;
+use ixdtf::encoding::Utf8;
+use ixdtf::{
+    parsers::TimeZoneParser,
+    records::{MinutePrecisionOffset, TimeZoneRecord, UtcOffsetRecord},
+};
 use num_traits::ToPrimitive;
 
 use crate::builtins::core::duration::DateDuration;
@@ -46,7 +50,8 @@ impl UtcOffset {
         }
     }
 
-    pub fn to_string(&self) -> TemporalResult<String> {
+    #[allow(clippy::inherent_to_string)]
+    pub fn to_string(&self) -> String {
         let sign = if self.0 < 0 {
             Sign::Negative
         } else {
@@ -65,7 +70,7 @@ impl UtcOffset {
                 include_sep: true,
             },
         };
-        Ok(formattable_offset.to_string())
+        formattable_offset.to_string()
     }
 }
 
@@ -88,11 +93,12 @@ pub enum TimeZone {
 impl TimeZone {
     // Create a `TimeZone` from an ixdtf `TimeZoneRecord`.
     #[inline]
-    pub(crate) fn from_time_zone_record(record: TimeZoneRecord) -> TemporalResult<Self> {
+    pub(crate) fn from_time_zone_record(record: TimeZoneRecord<Utf8>) -> TemporalResult<Self> {
         let timezone = match record {
-            TimeZoneRecord::Name(s) => {
-                TimeZone::IanaIdentifier(String::from_utf8_lossy(s).into_owned())
-            }
+            TimeZoneRecord::Name(s) => TimeZone::IanaIdentifier(
+                String::from_utf8(s.to_vec())
+                    .map_err(|e| TemporalError::range().with_message(e.to_string()))?,
+            ),
             TimeZoneRecord::Offset(offset_record) => {
                 let offset = UtcOffset::from_ixdtf_record(offset_record);
                 TimeZone::UtcOffset(offset)
@@ -106,25 +112,36 @@ impl TimeZone {
 
     /// Parses a `TimeZone` from a provided `&str`.
     pub fn try_from_identifier_str(identifier: &str) -> TemporalResult<Self> {
-        if identifier == "Z" {
-            return Ok(TimeZone::UtcOffset(UtcOffset(0)));
-        }
-        parse_identifier(identifier)
+        parse_identifier(identifier).map(|tz| match tz {
+            TimeZoneRecord::Name(items) => Ok(TimeZone::IanaIdentifier(
+                from_utf8(items)
+                    .or(Err(
+                        TemporalError::range().with_message("Invalid TimeZone Identifier")
+                    ))?
+                    .to_string(),
+            )),
+            TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
+                UtcOffset::from_ixdtf_record(minute_precision_offset),
+            )),
+            _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
+        })?
     }
 
+    /// Parse a `TimeZone` from a `&str`
+    ///
+    /// This is the equivalent to [`ParseTemporalTimeZoneString`](https://tc39.es/proposal-temporal/#sec-temporal-parsetemporaltimezonestring)
     pub fn try_from_str(src: &str) -> TemporalResult<Self> {
         if let Ok(timezone) = Self::try_from_identifier_str(src) {
             return Ok(timezone);
         }
-
         parse_allowed_timezone_formats(src)
             .ok_or_else(|| TemporalError::range().with_message("Not a valid time zone string"))
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
-    pub fn identifier(&self) -> TemporalResult<String> {
+    pub fn identifier(&self) -> String {
         match self {
-            TimeZone::IanaIdentifier(s) => Ok(s.clone()),
+            TimeZone::IanaIdentifier(s) => s.clone(),
             TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
@@ -452,18 +469,18 @@ mod tests {
     fn from_and_to_string() {
         let src = "+09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
 
         let src = "-09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
 
         let src = "-12:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
 
         let src = "America/New_York";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier().unwrap(), src);
+        assert_eq!(tz.identifier(), src);
     }
 }
