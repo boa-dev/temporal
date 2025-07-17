@@ -31,6 +31,7 @@ use std::path::Path;
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 
+use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
@@ -589,6 +590,18 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
     offset_two..offset_one
 }
 
+fn normalize_identifier_with_compiled(identifier: &str) -> TemporalResult<Cow<'static, str>> {
+    if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
+        return SINGLETON_IANA_NORMALIZER
+            .normalized_identifiers
+            .get(index)
+            .map(Cow::Borrowed)
+            .ok_or(TemporalError::range().with_message("Unknown time zone identifier"));
+    }
+
+    Err(TemporalError::range().with_message("Unknown time zone identifier"))
+}
+
 /// Timezone provider that uses compiled data.
 ///
 /// Currently uses jiff_tzdb and performs parsing; will eventually
@@ -640,6 +653,9 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         false
     }
 
+    fn normalize_identifier(&self, ident: &'_ str) -> TemporalResult<Cow<'_, str>> {
+        normalize_identifier_with_compiled(ident)
+    }
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
@@ -734,6 +750,10 @@ impl TimeZoneProvider for FsTzdbProvider {
                 .is_some();
         }
         false
+    }
+
+    fn normalize_identifier(&self, ident: &'_ str) -> TemporalResult<Cow<'_, str>> {
+        normalize_identifier_with_compiled(ident)
     }
 
     fn get_named_tz_epoch_nanoseconds(

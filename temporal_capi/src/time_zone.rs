@@ -57,5 +57,13 @@ pub mod ffi {
         pub fn is_valid(&self) -> bool {
             self.0.is_valid()
         }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn normalize(&self) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .normalize()
+                .map(|x| Box::new(TimeZone(x)))
+                .map_err(Into::into)
+        }
     }
 }

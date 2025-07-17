@@ -157,6 +157,24 @@ impl TimeZone {
     pub fn is_valid(&self) -> bool {
         self.is_valid_with_provider(&*crate::builtins::TZ_PROVIDER)
     }
+
+    /// <https://tc39.es/proposal-temporal/#sec-getavailablenamedtimezoneidentifier> with normalization
+    pub fn normalize_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<TimeZone> {
+        Ok(match self {
+            Self::IanaIdentifier(s) => {
+                let ident = provider.normalize_identifier(s)?;
+                Self::IanaIdentifier(ident.into())
+            }
+            Self::UtcOffset(o) => Self::UtcOffset(*o),
+        })
+    }
+    #[cfg(feature = "compiled_data")]
+    pub fn normalize(&self) -> TemporalResult<TimeZone> {
+        self.normalize_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
 }
 
 impl Default for TimeZone {
