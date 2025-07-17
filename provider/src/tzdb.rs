@@ -96,8 +96,8 @@ pub enum IanaDataError {
     Build(zerotrie::ZeroTrieBuildError),
 }
 
+#[cfg(feature = "datagen")]
 impl IanaIdentifierNormalizer<'_> {
-    #[cfg(feature = "datagen")]
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;

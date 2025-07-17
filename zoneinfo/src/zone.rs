@@ -11,6 +11,7 @@ use crate::{
     parser::{
         next_split, remove_comments, ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError,
     },
+    posix::PosixTimeZone,
     rule::Rules,
     types::{AbbreviationFormat, QualifiedTimeKind, RuleIdentifier, Time, UntilDateTime},
 };
@@ -229,6 +230,22 @@ impl IntoIterator for ZoneRecord {
 }
 
 impl ZoneRecord {
+    pub fn get_posix_time_zone(&self) -> PosixTimeZone {
+        let entry = self
+            .entries
+            .last()
+            .expect("At least one entry should exist.");
+        match &entry.rule {
+            RuleIdentifier::None => PosixTimeZone::from_zone_and_savings(entry, Time::default()),
+            RuleIdentifier::Numeric(t) => PosixTimeZone::from_zone_and_savings(entry, *t),
+            RuleIdentifier::Named(id) => {
+                let rules_table = self.associates.get(id).expect("rules must be associated");
+                let last_rules = rules_table.get_last_rules();
+                PosixTimeZone::from_zone_and_rules(entry, &last_rules)
+            }
+        }
+    }
+
     /// Associate the current `ZoneTable` with rules
     pub fn associate_rules(&mut self, rules: &HashMap<String, Rules>) {
         if self.associates.is_empty() {
