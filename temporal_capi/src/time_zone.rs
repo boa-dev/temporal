@@ -44,6 +44,10 @@ pub mod ffi {
             let _ = write.write_str(&s);
         }
 
+        pub fn utc() -> Box<Self> {
+            Box::new(Self(temporal_rs::TimeZone::IanaIdentifier("UTC".into())))
+        }
+
         #[allow(clippy::should_implement_trait)]
         pub fn clone(&self) -> Box<TimeZone> {
             Box::new(TimeZone(self.0.clone()))

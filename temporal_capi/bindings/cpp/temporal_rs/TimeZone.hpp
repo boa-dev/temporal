@@ -30,6 +30,8 @@ namespace capi {
 
     void temporal_rs_TimeZone_identifier(const temporal_rs::capi::TimeZone* self, diplomat::capi::DiplomatWrite* write);
 
+    temporal_rs::capi::TimeZone* temporal_rs_TimeZone_utc(void);
+
     temporal_rs::capi::TimeZone* temporal_rs_TimeZone_clone(const temporal_rs::capi::TimeZone* self);
 
     bool temporal_rs_TimeZone_is_valid(const temporal_rs::capi::TimeZone* self);
@@ -67,6 +69,11 @@ inline void temporal_rs::TimeZone::identifier_write(W& writeable) const {
   diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
   temporal_rs::capi::temporal_rs_TimeZone_identifier(this->AsFFI(),
     &write);
+}
+
+inline std::unique_ptr<temporal_rs::TimeZone> temporal_rs::TimeZone::utc() {
+  auto result = temporal_rs::capi::temporal_rs_TimeZone_utc();
+  return std::unique_ptr<temporal_rs::TimeZone>(temporal_rs::TimeZone::FromFFI(result));
 }
 
 inline std::unique_ptr<temporal_rs::TimeZone> temporal_rs::TimeZone::clone() const {

@@ -304,6 +304,31 @@ Rule	Russia	1984	1995	-	Sep	lastSun	 2:00s	0	-
 Rule	Russia	1985	2010	-	Mar	lastSun	 2:00s	1:00	S
 Rule	Russia	1996	2010	-	Oct	lastSun	 2:00s	0	-
 
+# Minsk and Moscow are primarily added for their POSIX tz test case
+
+Zone	Europe/Minsk	1:50:16 -	LMT	1880
+			1:50	-	MMT	1924 May  2 # Minsk Mean Time
+			2:00	-	EET	1930 Jun 21
+			3:00	-	MSK	1941 Jun 28
+			1:00	C-Eur	CE%sT	1944 Jul  3
+			3:00	Russia	MSK/MSD	1990
+			3:00	-	MSK	1991 Mar 31  2:00s
+			2:00	Russia	EE%sT	2011 Mar 27  2:00s
+			3:00	-	%z
+
+Zone Europe/Moscow	 2:30:17 -	LMT	1880
+			 2:30:17 -	MMT	1916 Jul  3 # Moscow Mean Time
+			 2:31:19 Russia	%s	1919 Jul  1  0:00u
+			 3:00	Russia	%s	1921 Oct
+			 3:00	Russia	MSK/MSD	1922 Oct
+			 2:00	-	EET	1930 Jun 21
+			 3:00	Russia	MSK/MSD	1991 Mar 31  2:00s
+			 2:00	Russia	EE%sT	1992 Jan 19  2:00s
+			 3:00	Russia	MSK/MSD	2011 Mar 27  2:00s
+			 4:00	-	MSK	2014 Oct 26  2:00s
+			 3:00	-	MSK
+
+
 # Rule	NAME	FROM	TO	-	IN	ON	AT	SAVE	LETTER/S
 Rule	France	1916	only	-	Jun	14	23:00s	1:00	S
 Rule	France	1916	1919	-	Oct	Sun>=1	23:00s	0	-
