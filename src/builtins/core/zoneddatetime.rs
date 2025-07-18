@@ -584,7 +584,6 @@ impl ZonedDateTime {
             .map(|offset| i64::from(offset.0) * 60_000_000_000);
 
         let timezone = partial.timezone.unwrap_or_default();
-        let timezone = timezone.normalize_with_provider(provider)?;
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
@@ -1288,8 +1287,7 @@ impl ZonedDateTime {
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
-        let timezone = timezone.normalize_with_provider(provider)?;
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = parse_result
             .offset

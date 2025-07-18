@@ -3,7 +3,6 @@
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 
-use core::str::from_utf8;
 use ixdtf::encoding::Utf8;
 use ixdtf::{
     parsers::TimeZoneParser,
@@ -93,12 +92,14 @@ pub enum TimeZone {
 impl TimeZone {
     // Create a `TimeZone` from an ixdtf `TimeZoneRecord`.
     #[inline]
-    pub(crate) fn from_time_zone_record(record: TimeZoneRecord<Utf8>) -> TemporalResult<Self> {
+    pub(crate) fn from_time_zone_record(
+        record: TimeZoneRecord<Utf8>,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
         let timezone = match record {
-            TimeZoneRecord::Name(s) => TimeZone::IanaIdentifier(
-                String::from_utf8(s.to_vec())
-                    .map_err(|e| TemporalError::range().with_message(e.to_string()))?,
-            ),
+            TimeZoneRecord::Name(name) => {
+                TimeZone::IanaIdentifier(provider.normalize_identifier(name)?.into())
+            }
             TimeZoneRecord::Offset(offset_record) => {
                 let offset = UtcOffset::from_ixdtf_record(offset_record);
                 TimeZone::UtcOffset(offset)
@@ -111,14 +112,13 @@ impl TimeZone {
     }
 
     /// Parses a `TimeZone` from a provided `&str`.
-    pub fn try_from_identifier_str(identifier: &str) -> TemporalResult<Self> {
+    pub fn try_from_identifier_str_with_provider(
+        identifier: &str,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
         parse_identifier(identifier).map(|tz| match tz {
-            TimeZoneRecord::Name(items) => Ok(TimeZone::IanaIdentifier(
-                from_utf8(items)
-                    .or(Err(
-                        TemporalError::range().with_message("Invalid TimeZone Identifier")
-                    ))?
-                    .to_string(),
+            TimeZoneRecord::Name(name) => Ok(TimeZone::IanaIdentifier(
+                provider.normalize_identifier(name)?.into(),
             )),
             TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
                 UtcOffset::from_ixdtf_record(minute_precision_offset),
@@ -127,15 +127,27 @@ impl TimeZone {
         })?
     }
 
+    #[cfg(feature = "compiled_data")]
+    pub fn try_from_identifier_str(src: &str) -> TemporalResult<Self> {
+        Self::try_from_identifier_str_with_provider(src, &*crate::builtins::TZ_PROVIDER)
+    }
     /// Parse a `TimeZone` from a `&str`
     ///
     /// This is the equivalent to [`ParseTemporalTimeZoneString`](https://tc39.es/proposal-temporal/#sec-temporal-parsetemporaltimezonestring)
-    pub fn try_from_str(src: &str) -> TemporalResult<Self> {
-        if let Ok(timezone) = Self::try_from_identifier_str(src) {
+    pub fn try_from_str_with_provider(
+        src: &str,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        if let Ok(timezone) = Self::try_from_identifier_str_with_provider(src, provider) {
             return Ok(timezone);
         }
-        parse_allowed_timezone_formats(src)
+        parse_allowed_timezone_formats(src, provider)
             .ok_or_else(|| TemporalError::range().with_message("Not a valid time zone string"))
+    }
+
+    #[cfg(feature = "compiled_data")]
+    pub fn try_from_str(src: &str) -> TemporalResult<Self> {
+        Self::try_from_str_with_provider(src, &*crate::builtins::TZ_PROVIDER)
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
@@ -156,24 +168,6 @@ impl TimeZone {
     #[cfg(feature = "compiled_data")]
     pub fn is_valid(&self) -> bool {
         self.is_valid_with_provider(&*crate::builtins::TZ_PROVIDER)
-    }
-
-    /// <https://tc39.es/proposal-temporal/#sec-getavailablenamedtimezoneidentifier> with normalization
-    pub fn normalize_with_provider(
-        &self,
-        provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<TimeZone> {
-        Ok(match self {
-            Self::IanaIdentifier(s) => {
-                let ident = provider.normalize_identifier(s.as_bytes())?;
-                Self::IanaIdentifier(ident.into())
-            }
-            Self::UtcOffset(o) => Self::UtcOffset(*o),
-        })
-    }
-    #[cfg(feature = "compiled_data")]
-    pub fn normalize(&self) -> TemporalResult<TimeZone> {
-        self.normalize_with_provider(&*crate::builtins::TZ_PROVIDER)
     }
 }
 

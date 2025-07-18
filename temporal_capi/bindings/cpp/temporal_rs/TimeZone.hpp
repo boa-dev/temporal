@@ -36,9 +36,6 @@ namespace capi {
 
     bool temporal_rs_TimeZone_is_valid(const temporal_rs::capi::TimeZone* self);
 
-    typedef struct temporal_rs_TimeZone_normalize_result {union {temporal_rs::capi::TimeZone* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_TimeZone_normalize_result;
-    temporal_rs_TimeZone_normalize_result temporal_rs_TimeZone_normalize(const temporal_rs::capi::TimeZone* self);
-
     void temporal_rs_TimeZone_destroy(TimeZone* self);
 
     } // extern "C"
@@ -87,11 +84,6 @@ inline std::unique_ptr<temporal_rs::TimeZone> temporal_rs::TimeZone::clone() con
 inline bool temporal_rs::TimeZone::is_valid() const {
   auto result = temporal_rs::capi::temporal_rs_TimeZone_is_valid(this->AsFFI());
   return result;
-}
-
-inline diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> temporal_rs::TimeZone::normalize() const {
-  auto result = temporal_rs::capi::temporal_rs_TimeZone_normalize(this->AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::TimeZone>>(std::unique_ptr<temporal_rs::TimeZone>(temporal_rs::TimeZone::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline const temporal_rs::capi::TimeZone* temporal_rs::TimeZone::AsFFI() const {

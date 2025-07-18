@@ -60,7 +60,7 @@ impl RelativeTo {
             .into());
         };
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = result
             .offset

@@ -13,6 +13,7 @@ pub mod ffi {
     pub struct TimeZone(pub temporal_rs::TimeZone);
 
     impl TimeZone {
+        #[cfg(feature = "compiled_data")]
         pub fn try_from_identifier_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             let Ok(ident) = str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
@@ -26,6 +27,7 @@ pub mod ffi {
                 .map(|x| Box::new(TimeZone(temporal_rs::TimeZone::UtcOffset(x))))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
         pub fn try_from_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             let Ok(ident) = str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
@@ -56,14 +58,6 @@ pub mod ffi {
         #[cfg(feature = "compiled_data")]
         pub fn is_valid(&self) -> bool {
             self.0.is_valid()
-        }
-
-        #[cfg(feature = "compiled_data")]
-        pub fn normalize(&self) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .normalize()
-                .map(|x| Box::new(TimeZone(x)))
-                .map_err(Into::into)
         }
     }
 }
