@@ -26,6 +26,7 @@ namespace capi {
     struct PartialZonedDateTime {
       temporal_rs::capi::PartialDate date;
       temporal_rs::capi::PartialTime time;
+      bool has_utc_designator;
       diplomat::capi::OptionStringView offset;
       const temporal_rs::capi::TimeZone* timezone;
     };
@@ -39,6 +40,7 @@ namespace temporal_rs {
 struct PartialZonedDateTime {
   temporal_rs::PartialDate date;
   temporal_rs::PartialTime time;
+  bool has_utc_designator;
   std::optional<std::string_view> offset;
   const temporal_rs::TimeZone* timezone;
 

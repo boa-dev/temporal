@@ -17,6 +17,7 @@ use crate::{
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
+use ixdtf::records::DateRecord;
 use writeable::Writeable;
 
 use super::{
@@ -54,6 +55,17 @@ impl PartialDate {
         *self == Self::default()
     }
 
+    pub(crate) fn from_date_record(date_record: DateRecord, calendar: Calendar) -> Self {
+        Self {
+            year: Some(date_record.year),
+            month: Some(date_record.month),
+            month_code: None,
+            day: Some(date_record.day),
+            era: None,
+            era_year: None,
+            calendar,
+        }
+    }
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
 }
