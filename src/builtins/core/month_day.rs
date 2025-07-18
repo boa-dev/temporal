@@ -221,6 +221,16 @@ impl PlainMonthDay {
         )
     }
 
+    /// Create a `PlainYearMonth` from a `PartialDate`
+    pub fn from_partial(
+        partial: PartialDate,
+        overflow: Option<ArithmeticOverflow>,
+    ) -> TemporalResult<Self> {
+        partial
+            .calendar
+            .month_day_from_partial(&partial, overflow.unwrap_or_default())
+    }
+
     /// Create a `PlainMonthDay` with the provided fields from a [`PartialDate`].
     pub fn with(
         &self,
