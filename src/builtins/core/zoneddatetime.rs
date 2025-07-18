@@ -572,11 +572,11 @@ impl ZonedDateTime {
             .calendar
             .date_from_partial(&partial.date, overflow)?
             .iso;
-        let time = if !partial.time.is_empty() {
-            Some(IsoTime::default().with(partial.time, overflow)?)
-        } else {
-            None
-        };
+
+        // None time means START-OF-DAY which has special meaning in
+        // interpret_isodatetime_offset. START-OF-DAY is only set in the parser,
+        // not in other endpoints.
+        let time = Some(IsoTime::default().with(partial.time, overflow)?);
 
         // Handle time zones
         let offset_nanos = partial
