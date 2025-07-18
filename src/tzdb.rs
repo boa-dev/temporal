@@ -643,16 +643,6 @@ impl CompiledTzdbProvider {
 }
 
 impl TimeZoneProvider for CompiledTzdbProvider {
-    fn check_identifier(&self, identifier: &str) -> bool {
-        if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
-            return SINGLETON_IANA_NORMALIZER
-                .normalized_identifiers
-                .get(index)
-                .is_some();
-        }
-        false
-    }
-
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         normalize_identifier_with_compiled(ident)
     }
@@ -742,16 +732,6 @@ impl FsTzdbProvider {
 }
 
 impl TimeZoneProvider for FsTzdbProvider {
-    fn check_identifier(&self, identifier: &str) -> bool {
-        if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
-            return SINGLETON_IANA_NORMALIZER
-                .normalized_identifiers
-                .get(index)
-                .is_some();
-        }
-        false
-    }
-
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         normalize_identifier_with_compiled(ident)
     }
@@ -835,9 +815,9 @@ mod tests {
     #[test]
     fn available_ids() {
         let provider = FsTzdbProvider::default();
-        assert!(provider.check_identifier("uTC"));
-        assert!(provider.check_identifier("Etc/uTc"));
-        assert!(provider.check_identifier("AMERIca/CHIcago"));
+        assert!(provider.normalize_identifier(b"uTC").is_ok());
+        assert!(provider.normalize_identifier(b"Etc/uTc").is_ok());
+        assert!(provider.normalize_identifier(b"AMERIca/CHIcago").is_ok());
     }
 
     #[test]

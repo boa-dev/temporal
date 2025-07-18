@@ -55,9 +55,10 @@ pub mod ffi {
             Box::new(TimeZone(self.0.clone()))
         }
 
+        // To be removed on any release after 0.0.11
         #[cfg(feature = "compiled_data")]
         pub fn is_valid(&self) -> bool {
-            self.0.is_valid()
+            true
         }
     }
 }

@@ -60,8 +60,6 @@ impl core::fmt::Display for TransitionDirection {
 /// The `TimeZoneProvider` trait provides methods required for a provider
 /// to implement in order to source time zone data from that provider.
 pub trait TimeZoneProvider {
-    fn check_identifier(&self, identifier: &str) -> bool;
-
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>>;
 
     fn get_named_tz_epoch_nanoseconds(
@@ -88,9 +86,6 @@ pub trait TimeZoneProvider {
 pub struct NeverProvider;
 
 impl TimeZoneProvider for NeverProvider {
-    fn check_identifier(&self, _: &str) -> bool {
-        unimplemented!()
-    }
     fn normalize_identifier(&self, _ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         unimplemented!()
     }
