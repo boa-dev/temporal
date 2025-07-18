@@ -17,7 +17,13 @@
 
 
 typedef struct temporal_rs_OwnedRelativeTo_try_from_str_result {union {OwnedRelativeTo ok; TemporalError err;}; bool is_ok;} temporal_rs_OwnedRelativeTo_try_from_str_result;
-temporal_rs_OwnedRelativeTo_try_from_str_result temporal_rs_OwnedRelativeTo_try_from_str(DiplomatStringView source);
+temporal_rs_OwnedRelativeTo_try_from_str_result temporal_rs_OwnedRelativeTo_try_from_str(DiplomatStringView s);
+
+typedef struct temporal_rs_OwnedRelativeTo_from_utf8_result {union {OwnedRelativeTo ok; TemporalError err;}; bool is_ok;} temporal_rs_OwnedRelativeTo_from_utf8_result;
+temporal_rs_OwnedRelativeTo_from_utf8_result temporal_rs_OwnedRelativeTo_from_utf8(DiplomatStringView s);
+
+typedef struct temporal_rs_OwnedRelativeTo_from_utf16_result {union {OwnedRelativeTo ok; TemporalError err;}; bool is_ok;} temporal_rs_OwnedRelativeTo_from_utf16_result;
+temporal_rs_OwnedRelativeTo_from_utf16_result temporal_rs_OwnedRelativeTo_from_utf16(DiplomatString16View s);
 
 OwnedRelativeTo temporal_rs_OwnedRelativeTo_empty(void);
 
