@@ -11,7 +11,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
         ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
-    parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
+    parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth, TemporalParser},
     provider::NeverProvider,
     temporal_assert,
     utils::pad_iso_year,
@@ -526,12 +526,14 @@ impl PlainYearMonth {
 
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let record = crate::parsers::parse_year_month(s)?;
-        let calendar = record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
+        let parser = TemporalParser::from_utf8(s);
+        let parsed = parser.parse_year_month()?;
+
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
+        } else {
+            Calendar::default()
+        };
 
         // ParseISODateTime
         // Step 4.a.ii.3
@@ -542,11 +544,49 @@ impl PlainYearMonth {
             return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
         }
 
-        let date = record.date.temporal_unwrap()?;
+        // The below steps are from `ToTemporalYearMonth`
+        // 10. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
+        let iso = parsed.iso;
+
+        // 11. If ISOYearMonthWithinLimits(isoDate) is false, throw a RangeError exception.
+        if !year_month_within_limits(iso.year, iso.month) {
+            return Err(TemporalError::range().with_message("Exceeded valid range."));
+        }
+
+        let intermediate = Self::new_unchecked(iso, calendar);
+        // 12. Set result to ISODateToFields(calendar, isoDate, year-month).
+        let partial = PartialYearMonth::try_from_year_month(&intermediate)?;
+        // 13. NOTE: The following operation is called with constrain regardless of the
+        // value of overflow, in order for the calendar to store a canonical value in the
+        // [[Day]] field of the [[ISODate]] internal slot of the result.
+        // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
+        // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
+        PlainYearMonth::from_partial(partial, ArithmeticOverflow::Constrain)
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainYearMonth`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parser = TemporalParser::from_utf16(s);
+        let parsed = parser.parse_year_month()?;
+
+        let calendar = if let Some(cal_bytes) = parsed.calendar {
+            Calendar::try_from_utf8(&cal_bytes)?
+        } else {
+            Calendar::default()
+        };
+
+        // ParseISODateTime
+        // Step 4.a.ii.3
+        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
+        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
+        // RangeError exception.
+        if !calendar.is_iso() {
+            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
+        }
 
         // The below steps are from `ToTemporalYearMonth`
         // 10. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
-        let iso = IsoDate::new_unchecked(date.year, date.month, date.day);
+        let iso = parsed.iso;
 
         // 11. If ISOYearMonthWithinLimits(isoDate) is false, throw a RangeError exception.
         if !year_month_within_limits(iso.year, iso.month) {
