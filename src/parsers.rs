@@ -799,10 +799,16 @@ pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord
 /// A utilty function for parsing a `MonthDay` String.
 pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
-    let Err(ref e) = md_record else {
-        return md_record.and_then(check_offset);
-    };
 
+    let e = match md_record {
+        Ok(record) => {
+            if !is_valid_month_day(&record) {
+                return Err(TemporalError::range().with_message("Invalid month/day pair for ISO."));
+            }
+            return check_offset(record);
+        }
+        Err(e) => e,
+    };
     let dt_parse = parse_date_time(source);
 
     match dt_parse {
@@ -824,12 +830,51 @@ fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecor
     Ok(time)
 }
 
+// https://tc39.es/proposal-temporal/#sec-temporal-iso8601grammar-static-semantics-isvalidmonthday
+fn is_valid_month_day(record: &IxdtfParseRecord<Utf8>) -> bool {
+    let Some(date) = record.date else {
+        return false;
+    };
+    // This should already be handled by the grammar, but the ixdtf crate is a bit more lenient.
+    if date.day > 31 || date.month > 12 || date.day == 0 || date.month == 0 {
+        return false;
+    }
+    // 1. If DateDay is "31" and DateMonth is "02", "04", "06", "09", "11", return false.
+    if date.day == 31 && matches!(date.month, 2 | 4 | 6 | 9 | 11) {
+        return false;
+    }
+
+    // 2. If DateMonth is "02" and DateDay is "30", return false.
+    if date.day == 30 && date.month == 2 {
+        return false;
+    }
+
+    true
+}
+
 #[inline]
 pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     let time_record = parse_ixdtf(source, ParseVariant::Time);
 
-    let Err(ref e) = time_record else {
-        return time_record.and_then(check_time_record);
+    let e = match time_record {
+        Ok(time) => {
+            // https://tc39.es/proposal-temporal/#sec-temporal-iso8601grammar-static-semantics-early-errors
+            // AnnotatedTime is not allowed to be ambiguous with YearMonth/MonthDay
+            if parse_ixdtf(source, ParseVariant::YearMonth).is_ok() {
+                return Err(TemporalError::range()
+                    .with_message("Time string must not be ambiguous with YearMonth."));
+            }
+            if let Ok(result) = parse_ixdtf(source, ParseVariant::MonthDay) {
+                // Additionally,
+                // It is a Syntax Error if IsValidMonthDay of DateSpecMonthDay is false.
+                if is_valid_month_day(&result) {
+                    return Err(TemporalError::range()
+                        .with_message("Time string must not be ambiguous with MonthDay."));
+                }
+            }
+            return check_time_record(time);
+        }
+        Err(ref e) => e,
     };
 
     let dt_parse = parse_date_time(source);
