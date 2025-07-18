@@ -572,11 +572,11 @@ impl ZonedDateTime {
             .calendar
             .date_from_partial(&partial.date, overflow)?
             .iso;
-        let time = if !partial.time.is_empty() {
-            Some(IsoTime::default().with(partial.time, overflow)?)
-        } else {
-            None
-        };
+
+        // None time means START-OF-DAY which has special meaning in
+        // interpret_isodatetime_offset. START-OF-DAY is only set in the parser,
+        // not in other endpoints.
+        let time = Some(IsoTime::default().with(partial.time, overflow)?);
 
         // Handle time zones
         let offset_nanos = partial
@@ -1504,7 +1504,7 @@ mod tests {
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         tzdb::FsTzdbProvider,
         unix_time::EpochNanoseconds,
-        Calendar, MonthCode, TimeZone,
+        Calendar, MonthCode, TimeZone, UtcOffset,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
@@ -1632,6 +1632,29 @@ mod tests {
         };
 
         let result = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider);
+        assert!(result.is_ok());
+
+        // This ensures that the start-of-day branch isn't hit by default time
+        let provider = &FsTzdbProvider::default();
+        let partial = PartialZonedDateTime {
+            date: PartialDate {
+                year: Some(1970),
+                month_code: Some(MonthCode(tinystr!(4, "M01"))),
+                day: Some(1),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+            offset: Some(UtcOffset(30)),
+            timezone: Some(TimeZone::default()),
+        };
+
+        let result = ZonedDateTime::from_partial_with_provider(
+            partial,
+            None,
+            None,
+            Some(OffsetDisambiguation::Use),
+            provider,
+        );
         assert!(result.is_ok());
     }
 
