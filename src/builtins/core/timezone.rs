@@ -165,7 +165,7 @@ impl TimeZone {
     ) -> TemporalResult<TimeZone> {
         Ok(match self {
             Self::IanaIdentifier(s) => {
-                let ident = provider.normalize_identifier(s)?;
+                let ident = provider.normalize_identifier(s.as_bytes())?;
                 Self::IanaIdentifier(ident.into())
             }
             Self::UtcOffset(o) => Self::UtcOffset(*o),
