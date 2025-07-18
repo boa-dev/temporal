@@ -8,12 +8,13 @@ use tinystr::TinyAsciiStr;
 use crate::{
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
-    provider::NeverProvider,
+    provider::{NeverProvider, TimeZoneProvider},
     temporal_assert,
+    unix_time::EpochNanoseconds,
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -728,6 +729,21 @@ impl PlainYearMonth {
 
         self.calendar
             .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+    }
+
+    /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
+    /// (using the reference year, and noon time)
+    ///
+    // Useful for implementing HandleDateTimeTemporalYearMonth
+    pub fn epoch_ns_for_with_provider(
+        &self,
+        time_zone: &TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<EpochNanoseconds> {
+        // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalYearMonth.[[ISODate]], NoonTimeRecord()).
+        let iso = IsoDateTime::new(self.iso, IsoTime::noon())?;
+        // 3. Let epochNs be ? GetEpochNanosecondsFor(dateTimeFormat.[[TimeZone]], isoDateTime, compatible).
+        time_zone.get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`

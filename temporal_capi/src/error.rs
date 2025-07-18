@@ -22,10 +22,16 @@ pub mod ffi {
     }
 
     impl TemporalError {
-        pub(crate) fn range() -> Self {
+        pub(crate) fn range(msg: &'static str) -> Self {
             TemporalError {
                 kind: ErrorKind::Range,
-                msg: None.into(),
+                msg: Some(DiplomatUtf8StrSlice::from(msg)).into(),
+            }
+        }
+        pub(crate) fn assert(msg: &'static str) -> Self {
+            TemporalError {
+                kind: ErrorKind::Assert,
+                msg: Some(DiplomatUtf8StrSlice::from(msg)).into(),
             }
         }
     }

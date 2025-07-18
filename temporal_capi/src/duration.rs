@@ -70,8 +70,8 @@ pub mod ffi {
                 minutes,
                 seconds,
                 milliseconds,
-                i128::from_f64(microseconds).ok_or(TemporalError::range())?,
-                i128::from_f64(nanoseconds).ok_or(TemporalError::range())?,
+                i128::from_f64(microseconds).ok_or(TemporalError::range("μs out of range"))?,
+                i128::from_f64(nanoseconds).ok_or(TemporalError::range("ns out of range"))?,
             )
             .map(|x| Box::new(TimeDuration(x)))
             .map_err(Into::into)
@@ -164,8 +164,8 @@ pub mod ffi {
                 minutes,
                 seconds,
                 milliseconds,
-                i128::from_f64(microseconds).ok_or(TemporalError::range())?,
-                i128::from_f64(nanoseconds).ok_or(TemporalError::range())?,
+                i128::from_f64(microseconds).ok_or(TemporalError::range("μs out of range"))?,
+                i128::from_f64(nanoseconds).ok_or(TemporalError::range("ms out of range"))?,
             )
             .map(|x| Box::new(Duration(x)))
             .map_err(Into::into)
@@ -343,12 +343,12 @@ impl TryFrom<ffi::PartialDuration> for temporal_rs::partial::PartialDuration {
             microseconds: other
                 .microseconds
                 .into_option()
-                .map(|v| i128::from_f64(v).ok_or(TemporalError::range()))
+                .map(|v| i128::from_f64(v).ok_or(TemporalError::range("μs out of range")))
                 .transpose()?,
             nanoseconds: other
                 .nanoseconds
                 .into_option()
-                .map(|v| i128::from_f64(v).ok_or(TemporalError::range()))
+                .map(|v| i128::from_f64(v).ok_or(TemporalError::range("ns out of range")))
                 .transpose()?,
         })
     }
