@@ -1516,7 +1516,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("UTC").unwrap(),
+            TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
         )
         .unwrap();
 
@@ -1530,7 +1530,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("America/New_York").unwrap(),
+            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
         )
         .unwrap();
 
@@ -1544,7 +1544,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("Australia/Sydney").unwrap(),
+            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
         )
         .unwrap();
 

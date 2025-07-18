@@ -463,9 +463,11 @@ impl TimeZone {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "compiled_data")]
     use super::TimeZone;
 
     #[test]
+    #[cfg(feature = "compiled_data")]
     fn from_and_to_string() {
         let src = "+09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();

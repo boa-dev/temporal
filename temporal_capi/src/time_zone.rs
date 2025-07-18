@@ -5,7 +5,6 @@ pub mod ffi {
     use crate::error::ffi::TemporalError;
     use alloc::boxed::Box;
     use core::fmt::Write;
-    use core::str;
     use diplomat_runtime::DiplomatWrite;
 
     #[diplomat::opaque]
@@ -15,7 +14,7 @@ pub mod ffi {
     impl TimeZone {
         #[cfg(feature = "compiled_data")]
         pub fn try_from_identifier_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            let Ok(ident) = str::from_utf8(ident) else {
+            let Ok(ident) = core::str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
             };
             temporal_rs::TimeZone::try_from_identifier_str(ident)
@@ -29,7 +28,7 @@ pub mod ffi {
         }
         #[cfg(feature = "compiled_data")]
         pub fn try_from_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            let Ok(ident) = str::from_utf8(ident) else {
+            let Ok(ident) = core::str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
             };
             temporal_rs::TimeZone::try_from_str(ident)
