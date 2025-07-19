@@ -83,12 +83,6 @@ pub(crate) const JAPANESE_INVERSE_ERA_IDENTIFIERS: [TinyAsciiStr<19>; 2] =
 
 // NOTE: The below currently might not align 100% with ICU4X.
 // TODO: Update to align with ICU4X depending on any Era updates.
-
-// Calendars without eras
-pub(crate) const ISO_ERA: EraInfo = valid_era!("default", i32::MIN..=i32::MAX);
-pub(crate) const CHINESE_ERA: EraInfo = valid_era!("chinese", i32::MIN..=i32::MAX);
-pub(crate) const DANGI_ERA: EraInfo = valid_era!("dangi", i32::MIN..=i32::MAX);
-
 pub(crate) const BUDDHIST_ERA: EraInfo = valid_era!("be", i32::MIN..=i32::MAX);
 pub(crate) const COPTIC_ERA: EraInfo = valid_era!("am", 1..=i32::MAX);
 pub(crate) const ETHIOPIC_ERA: EraInfo = valid_era!("am", 1..=i32::MAX);

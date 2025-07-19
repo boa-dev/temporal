@@ -207,7 +207,7 @@ impl Calendar {
         let calendar_date = self
             .0
             .from_codes(
-                Some(resolved_fields.era_year.era.0.as_str()),
+                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
                 resolved_fields.era_year.year,
                 IcuMonthCode(resolved_fields.month_code.0),
                 resolved_fields.day,
@@ -272,7 +272,7 @@ impl Calendar {
         let calendar_date = self
             .0
             .from_codes(
-                Some(resolved_fields.era_year.era.0.as_str()),
+                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
                 resolved_fields.era_year.year,
                 IcuMonthCode(resolved_fields.month_code.0),
                 resolved_fields.day,
@@ -571,9 +571,9 @@ impl Calendar {
     pub(crate) fn get_calendar_default_era(&self) -> Option<EraInfo> {
         match self.0 .0.kind() {
             AnyCalendarKind::Buddhist => Some(era::BUDDHIST_ERA),
-            AnyCalendarKind::Chinese => Some(era::CHINESE_ERA),
+            AnyCalendarKind::Chinese => None,
             AnyCalendarKind::Coptic => Some(era::COPTIC_ERA),
-            AnyCalendarKind::Dangi => Some(era::DANGI_ERA),
+            AnyCalendarKind::Dangi => None,
             AnyCalendarKind::Ethiopian => Some(era::ETHIOPIC_ERA),
             AnyCalendarKind::EthiopianAmeteAlem => Some(era::ETHIOAA_ERA),
             AnyCalendarKind::Gregorian => Some(era::GREGORY_ERA),
@@ -583,7 +583,7 @@ impl Calendar {
             AnyCalendarKind::HijriTabularTypeIIFriday => Some(era::ISLAMIC_ERA),
             AnyCalendarKind::HijriTabularTypeIIThursday => Some(era::ISLAMIC_ERA),
             AnyCalendarKind::HijriUmmAlQura => Some(era::ISLAMIC_ERA),
-            AnyCalendarKind::Iso => Some(era::ISO_ERA),
+            AnyCalendarKind::Iso => None,
             AnyCalendarKind::Japanese => Some(era::JAPANESE_ERA),
             AnyCalendarKind::Persian => Some(era::PERSIAN_ERA),
             AnyCalendarKind::Roc => Some(era::ROC_ERA),

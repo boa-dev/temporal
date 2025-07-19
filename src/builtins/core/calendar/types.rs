@@ -11,8 +11,6 @@ use crate::{TemporalError, TemporalResult};
 
 use crate::builtins::core::{calendar::Calendar, PartialDate};
 
-use super::era::ISO_ERA;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResolutionType {
     Date,
@@ -82,7 +80,7 @@ pub struct Era(pub(crate) TinyAsciiStr<16>);
 
 #[derive(Debug)]
 pub struct EraYear {
-    pub(crate) era: Era,
+    pub(crate) era: Option<Era>,
     pub(crate) year: i32,
 }
 
@@ -114,21 +112,18 @@ impl EraYear {
                 }
                 Ok(Self {
                     year: era_year,
-                    era: Era(era_info.name),
+                    era: Some(Era(era_info.name)),
                 })
             }
-            (Some(year), None, None) => {
-                let Some(era) = partial.calendar.get_calendar_default_era() else {
-                    return Err(TemporalError::r#type()
-                        .with_message("Era is required for the provided calendar."));
-                };
-                Ok(Self {
-                    era: Era(era.name),
-                    year,
-                })
-            }
+            (Some(year), None, None) => Ok(Self {
+                era: partial
+                    .calendar
+                    .get_calendar_default_era()
+                    .map(|e| Era(e.name)),
+                year,
+            }),
             (None, None, None) if resolution_type == ResolutionType::MonthDay => Ok(Self {
-                era: Era(ISO_ERA.name),
+                era: None,
                 year: 1972,
             }),
             _ => Err(TemporalError::r#type()
@@ -494,7 +489,8 @@ mod tests {
                         .expect(&expect_str);
 
                 assert_eq!(
-                    &*era_year.era.0, &*era.name,
+                    &*era_year.era.expect("only testing calendars with era").0,
+                    &*era.name,
                     "Backcalculated era must match"
                 );
                 assert_eq!(era_year.year, 1, "Backcalculated era must match");
