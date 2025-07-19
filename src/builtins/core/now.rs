@@ -142,8 +142,9 @@ mod tests {
         // 2025-03-11T10:47-06:00
         const TIME_BASE: u128 = 1_741_751_188_077_363_694;
 
-        let cdt = TimeZone::try_from_identifier_str("-05:00").unwrap();
-        let uschi = TimeZone::try_from_identifier_str("America/Chicago").unwrap();
+        let cdt = TimeZone::try_from_identifier_str_with_provider("-05:00", &provider).unwrap();
+        let uschi =
+            TimeZone::try_from_identifier_str_with_provider("America/Chicago", &provider).unwrap();
 
         let base = EpochNanoseconds::try_from(TIME_BASE).unwrap();
         let now = NowBuilder::default()
