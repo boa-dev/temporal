@@ -3,7 +3,7 @@
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
-use ixdtf::records::UtcOffsetRecordOrZ;
+use ixdtf::records::{UtcOffsetRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
 use crate::{
@@ -38,6 +38,10 @@ pub struct PartialZonedDateTime {
     pub date: PartialDate,
     /// The `PartialTime` portion of a `PartialZonedDateTime`
     pub time: PartialTime,
+    /// Whether or not the string has a UTC designator (`Z`)
+    ///
+    /// Incompatible with having an offset (you can still have a offset-format timezone)
+    pub has_utc_designator: bool,
     /// An optional offset string
     pub offset: Option<UtcOffset>,
     /// The time zone value of a partial time zone.
@@ -56,6 +60,7 @@ impl PartialZonedDateTime {
         Self {
             date: PartialDate::new(),
             time: PartialTime::new(),
+            has_utc_designator: false,
             offset: None,
             timezone: None,
         }
@@ -79,6 +84,57 @@ impl PartialZonedDateTime {
     pub fn with_timezone(mut self, timezone: Option<TimeZone>) -> Self {
         self.timezone = timezone;
         self
+    }
+
+    pub fn try_from_str(source: &str) -> TemporalResult<Self> {
+        let parse_result = parsers::parse_zoned_date_time(source)?;
+
+        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
+        let annotation = parse_result.tz.temporal_unwrap()?;
+
+        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
+
+        let (offset, has_utc_designator) = match parse_result.offset {
+            Some(UtcOffsetRecordOrZ::Z) => (None, true),
+            Some(UtcOffsetRecordOrZ::Offset(UtcOffsetRecord::MinutePrecision(offset))) => {
+                (Some(UtcOffset::from_ixdtf_record(offset)), false)
+            }
+            // `Temporal.ZonedDateTime.from("1970-01-01T00:00+01:00:01[+01:00]", {offset: "use"}`
+            // will fail here, but it should succeed. This requires changing PartialZonedDateTime.offset to allow
+            // sub-minute precision.
+            //
+            // https://github.com/boa-dev/temporal/issues/419
+            Some(_) => return Err(TemporalError::range().with_message(
+                "Currently do not support parsing ZonedDateTimes with sub-minute precision offsets",
+            )),
+            None => (None, false),
+        };
+
+        let calendar = parse_result
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        let Some(parsed_date) = parse_result.date else {
+            return Err(TemporalError::range().with_enum(ErrorMessage::ParserNeedsDate));
+        };
+
+        let time = parse_result
+            .time
+            .map(PartialTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
+
+        let date = PartialDate::from_date_record(parsed_date, calendar);
+
+        Ok(Self {
+            date,
+            time,
+            has_utc_designator,
+            offset,
+            timezone: Some(timezone),
+        })
     }
 }
 
@@ -588,7 +644,7 @@ impl ZonedDateTime {
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
-            false,
+            partial.has_utc_designator,
             offset_nanos,
             &timezone,
             disambiguation,
@@ -658,7 +714,7 @@ impl ZonedDateTime {
         let epoch_nanos = interpret_isodatetime_offset(
             result_date.iso,
             Some(time),
-            false,
+            partial.has_utc_designator,
             new_offset_nanos,
             &self.tz,
             disambiguation,
@@ -1627,6 +1683,7 @@ mod tests {
                 ..Default::default()
             },
             time: PartialTime::default(),
+            has_utc_designator: false,
             offset: None,
             timezone: Some(TimeZone::default()),
         };
@@ -1644,6 +1701,7 @@ mod tests {
                 ..Default::default()
             },
             time: PartialTime::default(),
+            has_utc_designator: false,
             offset: Some(UtcOffset(30)),
             timezone: Some(TimeZone::default()),
         };
@@ -1755,6 +1813,7 @@ mod tests {
                     ..Default::default()
                 },
                 time: PartialTime::default(),
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
@@ -1771,6 +1830,7 @@ mod tests {
                     ..Default::default()
                 },
                 time: PartialTime::default(),
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
@@ -1787,6 +1847,7 @@ mod tests {
                     hour: Some(29),
                     ..Default::default()
                 },
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
@@ -1803,6 +1864,7 @@ mod tests {
                     nanosecond: Some(9000),
                     ..Default::default()
                 },
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },

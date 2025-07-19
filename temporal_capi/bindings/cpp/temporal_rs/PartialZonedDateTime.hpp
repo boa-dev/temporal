@@ -30,6 +30,7 @@ inline temporal_rs::capi::PartialZonedDateTime temporal_rs::PartialZonedDateTime
   return temporal_rs::capi::PartialZonedDateTime {
     /* .date = */ date.AsFFI(),
     /* .time = */ time.AsFFI(),
+    /* .has_utc_designator = */ has_utc_designator,
     /* .offset = */ offset.has_value() ? (diplomat::capi::OptionStringView{ { {offset.value().data(), offset.value().size()} }, true }) : (diplomat::capi::OptionStringView{ {}, false }),
     /* .timezone = */ timezone ? timezone->AsFFI() : nullptr,
   };
@@ -39,6 +40,7 @@ inline temporal_rs::PartialZonedDateTime temporal_rs::PartialZonedDateTime::From
   return temporal_rs::PartialZonedDateTime {
     /* .date = */ temporal_rs::PartialDate::FromFFI(c_struct.date),
     /* .time = */ temporal_rs::PartialTime::FromFFI(c_struct.time),
+    /* .has_utc_designator = */ c_struct.has_utc_designator,
     /* .offset = */ c_struct.offset.is_ok ? std::optional(std::string_view(c_struct.offset.ok.data, c_struct.offset.ok.len)) : std::nullopt,
     /* .timezone = */ temporal_rs::TimeZone::FromFFI(c_struct.timezone),
   };
