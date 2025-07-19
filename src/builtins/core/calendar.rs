@@ -361,13 +361,13 @@ impl Calendar {
             .map(|era_info| era_info.year)
     }
 
-    /// `CalendarYear`
+    /// `CalendarArithmeticYear`
     pub fn year(&self, iso_date: &IsoDate) -> i32 {
         if self.is_iso() {
             return iso_date.year;
         }
         let calendar_date = self.0.from_iso(*iso_date.to_icu4x().inner());
-        self.0.year_info(&calendar_date).era_year_or_related_iso()
+        self.0.extended_year(&calendar_date)
     }
 
     /// `CalendarMonth`
@@ -493,19 +493,10 @@ impl Calendar {
 impl Calendar {
     pub(crate) fn get_era_info(&self, era_alias: &TinyAsciiStr<19>) -> Option<EraInfo> {
         match self.0 .0.kind() {
-            AnyCalendarKind::Buddhist if era::BUDDHIST_ERA_IDENTIFIERS.contains(era_alias) => {
+            AnyCalendarKind::Buddhist if *era_alias == tinystr!(19, "be") => {
                 Some(era::BUDDHIST_ERA)
             }
-            AnyCalendarKind::Chinese if *era_alias == tinystr!(19, "chinese") => {
-                Some(era::CHINESE_ERA)
-            }
-            AnyCalendarKind::Coptic if *era_alias == tinystr!(19, "coptic") => {
-                Some(era::COPTIC_ERA)
-            }
-            AnyCalendarKind::Coptic if *era_alias == tinystr!(19, "coptic-inverse") => {
-                Some(era::COPTIC_INVERSE_ERA)
-            }
-            AnyCalendarKind::Dangi if *era_alias == tinystr!(19, "dangi") => Some(era::DANGI_ERA),
+            AnyCalendarKind::Coptic if *era_alias == tinystr!(19, "am") => Some(era::COPTIC_ERA),
             AnyCalendarKind::Ethiopian if era::ETHIOPIC_ERA_IDENTIFIERS.contains(era_alias) => {
                 Some(era::ETHIOPIC_ERA)
             }
@@ -527,34 +518,24 @@ impl Calendar {
             {
                 Some(era::GREGORY_INVERSE_ERA)
             }
-            AnyCalendarKind::Hebrew if era::HEBREW_ERA_IDENTIFIERS.contains(era_alias) => {
-                Some(era::HEBREW_ERA)
-            }
-            AnyCalendarKind::Indian if era::INDIAN_ERA_IDENTIFIERS.contains(era_alias) => {
-                Some(era::INDIAN_ERA)
-            }
-            // TODO: Determine whether observational is islamic or islamic-rgsa
+            AnyCalendarKind::Hebrew if *era_alias == tinystr!(19, "am") => Some(era::HEBREW_ERA),
+            AnyCalendarKind::Indian if *era_alias == tinystr!(19, "shaka") => Some(era::INDIAN_ERA),
             AnyCalendarKind::HijriTabularTypeIIFriday
-                if era::ISLAMIC_CIVIL_ERA_IDENTIFIERS.contains(era_alias) =>
-            {
-                Some(era::ISLAMIC_CIVIL_ERA)
-            }
-            AnyCalendarKind::HijriSimulatedMecca
-                if era::ISLAMIC_ERA_IDENTIFIERS.contains(era_alias) =>
+            | AnyCalendarKind::HijriSimulatedMecca
+            | AnyCalendarKind::HijriTabularTypeIIThursday
+            | AnyCalendarKind::HijriUmmAlQura
+                if *era_alias == tinystr!(19, "ah") =>
             {
                 Some(era::ISLAMIC_ERA)
             }
-            AnyCalendarKind::HijriTabularTypeIIThursday
-                if era::ISLAMIC_TBLA_ERA_IDENTIFIERS.contains(era_alias) =>
+            AnyCalendarKind::HijriTabularTypeIIFriday
+            | AnyCalendarKind::HijriSimulatedMecca
+            | AnyCalendarKind::HijriTabularTypeIIThursday
+            | AnyCalendarKind::HijriUmmAlQura
+                if *era_alias == tinystr!(19, "bh") =>
             {
-                Some(era::ISLAMIC_TBLA_ERA)
+                Some(era::ISLAMIC_INVERSE_ERA)
             }
-            AnyCalendarKind::HijriUmmAlQura
-                if era::ISLAMIC_UMALQURA_ERA_IDENTIFIERS.contains(era_alias) =>
-            {
-                Some(era::ISLAMIC_UMALQURA_ERA)
-            }
-            AnyCalendarKind::Iso if *era_alias == tinystr!(19, "default") => Some(era::ISO_ERA),
             AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "heisei") => {
                 Some(era::HEISEI_ERA)
             }
@@ -566,8 +547,8 @@ impl Calendar {
             {
                 Some(era::JAPANESE_INVERSE_ERA)
             }
-            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "mejei") => {
-                Some(era::MEJEI_ERA)
+            AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "meiji") => {
+                Some(era::MEIJI_ERA)
             }
             AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "reiwa") => {
                 Some(era::REIWA_ERA)
@@ -578,13 +559,9 @@ impl Calendar {
             AnyCalendarKind::Japanese if *era_alias == tinystr!(19, "taisho") => {
                 Some(era::TAISHO_ERA)
             }
-            AnyCalendarKind::Persian if era::PERSIAN_ERA_IDENTIFIERS.contains(era_alias) => {
-                Some(era::PERSIAN_ERA)
-            }
-            AnyCalendarKind::Roc if era::ROC_ERA_IDENTIFIERS.contains(era_alias) => {
-                Some(era::ROC_ERA)
-            }
-            AnyCalendarKind::Roc if era::ROC_INVERSE_ERA_IDENTIFIERS.contains(era_alias) => {
+            AnyCalendarKind::Persian if *era_alias == tinystr!(19, "ap") => Some(era::PERSIAN_ERA),
+            AnyCalendarKind::Roc if *era_alias == tinystr!(19, "roc") => Some(era::ROC_ERA),
+            AnyCalendarKind::Roc if *era_alias == tinystr!(19, "broc") => {
                 Some(era::ROC_INVERSE_ERA)
             }
             _ => None,
@@ -595,16 +572,21 @@ impl Calendar {
         match self.0 .0.kind() {
             AnyCalendarKind::Buddhist => Some(era::BUDDHIST_ERA),
             AnyCalendarKind::Chinese => Some(era::CHINESE_ERA),
+            AnyCalendarKind::Coptic => Some(era::COPTIC_ERA),
             AnyCalendarKind::Dangi => Some(era::DANGI_ERA),
+            AnyCalendarKind::Ethiopian => Some(era::ETHIOPIC_ERA),
             AnyCalendarKind::EthiopianAmeteAlem => Some(era::ETHIOAA_ERA),
+            AnyCalendarKind::Gregorian => Some(era::GREGORY_ERA),
             AnyCalendarKind::Hebrew => Some(era::HEBREW_ERA),
             AnyCalendarKind::Indian => Some(era::INDIAN_ERA),
             AnyCalendarKind::HijriSimulatedMecca => Some(era::ISLAMIC_ERA),
-            AnyCalendarKind::HijriTabularTypeIIFriday => Some(era::ISLAMIC_CIVIL_ERA),
-            AnyCalendarKind::HijriTabularTypeIIThursday => Some(era::ISLAMIC_TBLA_ERA),
-            AnyCalendarKind::HijriUmmAlQura => Some(era::ISLAMIC_UMALQURA_ERA),
+            AnyCalendarKind::HijriTabularTypeIIFriday => Some(era::ISLAMIC_ERA),
+            AnyCalendarKind::HijriTabularTypeIIThursday => Some(era::ISLAMIC_ERA),
+            AnyCalendarKind::HijriUmmAlQura => Some(era::ISLAMIC_ERA),
             AnyCalendarKind::Iso => Some(era::ISO_ERA),
+            AnyCalendarKind::Japanese => Some(era::JAPANESE_ERA),
             AnyCalendarKind::Persian => Some(era::PERSIAN_ERA),
+            AnyCalendarKind::Roc => Some(era::ROC_ERA),
             _ => None,
         }
     }
