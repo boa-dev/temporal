@@ -11,8 +11,6 @@ use crate::{TemporalError, TemporalResult};
 
 use crate::builtins::core::{calendar::Calendar, PartialDate};
 
-use super::era::ISO_ERA;
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ResolutionType {
     Date,
@@ -82,7 +80,7 @@ pub struct Era(pub(crate) TinyAsciiStr<16>);
 
 #[derive(Debug)]
 pub struct EraYear {
-    pub(crate) era: Era,
+    pub(crate) era: Option<Era>,
     pub(crate) year: i32,
 }
 
@@ -92,17 +90,7 @@ impl EraYear {
         resolution_type: ResolutionType,
     ) -> TemporalResult<Self> {
         match (partial.year, partial.era, partial.era_year) {
-            (Some(year), None, None) => {
-                let Some(era) = partial.calendar.get_calendar_default_era() else {
-                    return Err(TemporalError::r#type()
-                        .with_message("Era is required for the provided calendar."));
-                };
-                Ok(Self {
-                    era: Era(era.name),
-                    year,
-                })
-            }
-            (None, Some(era), Some(era_year)) => {
+            (maybe_year, Some(era), Some(era_year)) => {
                 let Some(era_info) = partial.calendar.get_era_info(&era) else {
                     return Err(TemporalError::range().with_message("Invalid era provided."));
                 };
@@ -112,13 +100,30 @@ impl EraYear {
                         era_info.name.as_str()
                     )));
                 }
+                // or a RangeError exception if the fields are sufficient but their values are internally inconsistent
+                // within the calendar (e.g., when fields such as [[Month]] and [[MonthCode]] have conflicting non-unset values). For example:
+                if let Some(arith) = maybe_year {
+                    let calculated_arith = era_info.arithmetic_year_for(era_year);
+                    if calculated_arith != arith {
+                        return Err(
+                            TemporalError::range().with_message("Conflicting year/eraYear info")
+                        );
+                    }
+                }
                 Ok(Self {
                     year: era_year,
-                    era: Era(era_info.name),
+                    era: Some(Era(era_info.name)),
                 })
             }
+            (Some(year), None, None) => Ok(Self {
+                era: partial
+                    .calendar
+                    .get_calendar_default_era()
+                    .map(|e| Era(e.name)),
+                year,
+            }),
             (None, None, None) if resolution_type == ResolutionType::MonthDay => Ok(Self {
-                era: Era(ISO_ERA.name),
+                era: None,
                 year: 1972,
             }),
             _ => Err(TemporalError::r#type()
@@ -370,12 +375,12 @@ fn resolve_iso_month(
 mod tests {
     use core::str::FromStr;
 
-    use tinystr::tinystr;
+    use tinystr::{tinystr, TinyAsciiStr};
 
     use crate::{
         builtins::{
             calendar::types::ResolutionType,
-            core::{calendar::Calendar, PartialDate},
+            core::{calendar::Calendar, PartialDate, PlainDate},
         },
         options::ArithmeticOverflow,
     };
@@ -433,6 +438,64 @@ mod tests {
         assert!(err.is_err());
         let result = cal.date_from_partial(&bad_fields, ArithmeticOverflow::Constrain);
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn self_consistent_era_year() {
+        use crate::builtins::core::calendar::era::ALL_ALLOWED_ERAS;
+        use icu_calendar::AnyCalendarKind;
+
+        for (cal, eras) in ALL_ALLOWED_ERAS {
+            // TODO: These cases need to be fixed in ICU4X first
+            // https://github.com/unicode-org/icu4x/issues/3962
+            if *cal == AnyCalendarKind::Ethiopian || *cal == AnyCalendarKind::Roc {
+                continue;
+            }
+            for era in *eras {
+                let expect_str = alloc::format!("Trying {cal:?} with era {}", era.name);
+                let mut partial = PartialDate::new();
+
+                // We want to pick some valid date. year=1 month=1, day=1 is valid for basically
+                // all calendars except for Japanese, which has mid-year eras. For Japanese we pick December 31 instead
+                if *cal == AnyCalendarKind::Japanese {
+                    partial.month = Some(12);
+                    partial.day = Some(31);
+                } else {
+                    partial.month = Some(1);
+                    partial.day = Some(1);
+                }
+                partial.era = Some(TinyAsciiStr::from_str(&era.name).unwrap());
+                partial.era_year = Some(1);
+                partial.calendar = Calendar::new(*cal);
+
+                let plain_date =
+                    PlainDate::from_partial(partial, Some(ArithmeticOverflow::Constrain))
+                        .expect(&expect_str);
+
+                assert_eq!(
+                    plain_date.year(),
+                    era.arithmetic_year_for(1),
+                    "Mismatched year/eraYear for {cal:?} and {}",
+                    era.name
+                );
+
+                // Get the full partial date.
+                let full_partial = PartialDate::default()
+                    .with_fallback_date(&plain_date, ArithmeticOverflow::Constrain)
+                    .expect(&expect_str);
+
+                let era_year =
+                    super::EraYear::try_from_partial_date(&full_partial, ResolutionType::Date)
+                        .expect(&expect_str);
+
+                assert_eq!(
+                    &*era_year.era.expect("only testing calendars with era").0,
+                    &*era.name,
+                    "Backcalculated era must match"
+                );
+                assert_eq!(era_year.year, 1, "Backcalculated era must match");
+            }
+        }
     }
 
     #[test]
