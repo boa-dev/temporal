@@ -106,7 +106,7 @@ impl EraYear {
                     let calculated_arith = era_info.arithmetic_year_for(era_year);
                     if calculated_arith != arith {
                         return Err(
-                            TemporalError::range().with_message("Conflicting era/eraYear info")
+                            TemporalError::range().with_message("Conflicting year/eraYear info")
                         );
                     }
                 }
