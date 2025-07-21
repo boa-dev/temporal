@@ -1624,8 +1624,8 @@ mod tests {
     // https://tc39.es/proposal-temporal/docs/zoneddatetime.html#round
     fn round_with_provider_test() {
         let provider = &FsTzdbProvider::default();
-        let dt = "1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
-        let zdt = ZonedDateTime::from_str_with_provider(
+        let dt = b"1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
+        let zdt = ZonedDateTime::from_utf8_with_provider(
             dt,
             Disambiguation::default(),
             OffsetDisambiguation::Use,
@@ -1727,8 +1727,8 @@ mod tests {
     fn zdt_from_str() {
         let provider = &FsTzdbProvider::default();
 
-        let zdt_str = "1970-01-01T00:00[UTC][u-ca=iso8601]";
-        let result = ZonedDateTime::from_str_with_provider(
+        let zdt_str = b"1970-01-01T00:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_utf8_with_provider(
             zdt_str,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
@@ -1740,8 +1740,8 @@ mod tests {
     #[test]
     fn zdt_hours_in_day() {
         let provider = &FsTzdbProvider::default();
-        let zdt_str = "2025-07-04T12:00[UTC][u-ca=iso8601]";
-        let result = ZonedDateTime::from_str_with_provider(
+        let zdt_str = b"2025-07-04T12:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_utf8_with_provider(
             zdt_str,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
@@ -1756,15 +1756,15 @@ mod tests {
     // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
     fn dst_skipped_cross_midnight() {
         let provider = &FsTzdbProvider::default();
-        let start_of_day = ZonedDateTime::from_str_with_provider(
-            "1919-03-31[America/Toronto]",
+        let start_of_day = ZonedDateTime::from_utf8_with_provider(
+            b"1919-03-31[America/Toronto]",
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             provider,
         )
         .unwrap();
-        let midnight_disambiguated = ZonedDateTime::from_str_with_provider(
-            "1919-03-31T00[America/Toronto]",
+        let midnight_disambiguated = ZonedDateTime::from_utf8_with_provider(
+            b"1919-03-31T00[America/Toronto]",
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             provider,

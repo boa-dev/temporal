@@ -526,8 +526,8 @@ fn test_duration_total() {
         ..Default::default()
     })
     .unwrap();
-    let relative_to = ZonedDateTime::from_str(
-        "2020-01-01T00:00+01:00[Europe/Rome]",
+    let relative_to = ZonedDateTime::from_utf8(
+        b"2020-01-01T00:00+01:00[Europe/Rome]",
         Default::default(),
         OffsetDisambiguation::Reject,
     )

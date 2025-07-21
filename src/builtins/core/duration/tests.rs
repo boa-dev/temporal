@@ -303,8 +303,8 @@ fn test_duration_compare() {
         );
 
         // Sorting relative to a date, taking DST changes into account:
-        let zdt = ZonedDateTime::from_str_with_provider(
-            "2020-11-01T00:00-07:00[America/Los_Angeles]",
+        let zdt = ZonedDateTime::from_utf8_with_provider(
+            b"2020-11-01T00:00-07:00[America/Los_Angeles]",
             Default::default(),
             OffsetDisambiguation::Reject,
             &*FS_TZ_PROVIDER,

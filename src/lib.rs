@@ -58,7 +58,7 @@
 //! use temporal_rs::{ZonedDateTime, TimeZone};
 //! use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
 //!
-//! let zdt = ZonedDateTime::from_str("2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
+//! let zdt = ZonedDateTime::from_utf8(b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
 //! assert_eq!(zdt.year().unwrap(), 2025);
 //! assert_eq!(zdt.month().unwrap(), 3);
 //! assert_eq!(zdt.day().unwrap(), 1);
