@@ -28,6 +28,9 @@
 typedef struct temporal_rs_PlainYearMonth_try_new_with_overflow_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_try_new_with_overflow_result;
 temporal_rs_PlainYearMonth_try_new_with_overflow_result temporal_rs_PlainYearMonth_try_new_with_overflow(int32_t year, uint8_t month, OptionU8 reference_day, AnyCalendarKind calendar, ArithmeticOverflow overflow);
 
+typedef struct temporal_rs_PlainYearMonth_from_partial_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_from_partial_result;
+temporal_rs_PlainYearMonth_from_partial_result temporal_rs_PlainYearMonth_from_partial(PartialDate partial, ArithmeticOverflow_option overflow);
+
 typedef struct temporal_rs_PlainYearMonth_with_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
 temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const PlainYearMonth* self, PartialDate partial, ArithmeticOverflow_option overflow);
 
