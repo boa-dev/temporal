@@ -87,12 +87,12 @@ impl PartialZonedDateTime {
     }
 
     #[cfg(feature = "compiled_data")]
-    pub fn try_from_str(source: &str) -> TemporalResult<Self> {
+    pub fn try_from_str(source: &[u8]) -> TemporalResult<Self> {
         Self::try_from_str_with_provider(source, &*crate::builtins::TZ_PROVIDER)
     }
 
     pub fn try_from_str_with_provider(
-        source: &str,
+        source: &[u8],
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let parse_result = parsers::parse_zoned_date_time(source)?;
@@ -1340,8 +1340,8 @@ impl ZonedDateTime {
     }
 
     // TODO: Should IANA Identifier be prechecked or allow potentially invalid IANA Identifer values here?
-    pub fn from_str_with_provider(
-        source: &str,
+    pub fn from_utf8_with_provider(
+        source: &[u8],
         disambiguation: Disambiguation,
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,

@@ -91,9 +91,6 @@ pub mod ffi {
 
     impl OwnedPartialZonedDateTime {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            // TODO(#275) This should not need to check
-            let s = core::str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-
             temporal_rs::partial::PartialZonedDateTime::try_from_str(s)
                 .map(|x| Box::new(OwnedPartialZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
@@ -102,7 +99,7 @@ pub mod ffi {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
 
-            temporal_rs::partial::PartialZonedDateTime::try_from_str(&s)
+            temporal_rs::partial::PartialZonedDateTime::try_from_str(s.as_bytes())
                 .map(|x| Box::new(OwnedPartialZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }
@@ -164,8 +161,7 @@ pub mod ffi {
             offset_disambiguation: OffsetDisambiguation,
         ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to check
-            let s = core::str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::ZonedDateTime::from_str(
+            temporal_rs::ZonedDateTime::from_utf8(
                 s,
                 disambiguation.into(),
                 offset_disambiguation.into(),
@@ -181,8 +177,8 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::ZonedDateTime::from_str(
-                &s,
+            temporal_rs::ZonedDateTime::from_utf8(
+                s.as_bytes(),
                 disambiguation.into(),
                 offset_disambiguation.into(),
             )
