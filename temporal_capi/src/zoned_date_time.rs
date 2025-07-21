@@ -91,7 +91,7 @@ pub mod ffi {
 
     impl OwnedPartialZonedDateTime {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::partial::PartialZonedDateTime::try_from_str(s)
+            temporal_rs::partial::PartialZonedDateTime::try_from_utf8(s)
                 .map(|x| Box::new(OwnedPartialZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }
@@ -99,7 +99,7 @@ pub mod ffi {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
 
-            temporal_rs::partial::PartialZonedDateTime::try_from_str(s.as_bytes())
+            temporal_rs::partial::PartialZonedDateTime::try_from_utf8(s.as_bytes())
                 .map(|x| Box::new(OwnedPartialZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }

@@ -87,11 +87,11 @@ impl PartialZonedDateTime {
     }
 
     #[cfg(feature = "compiled_data")]
-    pub fn try_from_str(source: &[u8]) -> TemporalResult<Self> {
-        Self::try_from_str_with_provider(source, &*crate::builtins::TZ_PROVIDER)
+    pub fn try_from_utf8(source: &[u8]) -> TemporalResult<Self> {
+        Self::try_from_utf8_with_provider(source, &*crate::builtins::TZ_PROVIDER)
     }
 
-    pub fn try_from_str_with_provider(
+    pub fn try_from_utf8_with_provider(
         source: &[u8],
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
