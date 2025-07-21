@@ -3,6 +3,7 @@
 use core::str::FromStr;
 
 use crate::{iso::IsoDateTime, unix_time::EpochNanoseconds, TemporalResult};
+use alloc::borrow::Cow;
 use alloc::vec::Vec;
 
 /// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
@@ -59,7 +60,7 @@ impl core::fmt::Display for TransitionDirection {
 /// The `TimeZoneProvider` trait provides methods required for a provider
 /// to implement in order to source time zone data from that provider.
 pub trait TimeZoneProvider {
-    fn check_identifier(&self, identifier: &str) -> bool;
+    fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>>;
 
     fn get_named_tz_epoch_nanoseconds(
         &self,
@@ -85,10 +86,9 @@ pub trait TimeZoneProvider {
 pub struct NeverProvider;
 
 impl TimeZoneProvider for NeverProvider {
-    fn check_identifier(&self, _: &str) -> bool {
+    fn normalize_identifier(&self, _ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         unimplemented!()
     }
-
     fn get_named_tz_epoch_nanoseconds(
         &self,
         _: &str,

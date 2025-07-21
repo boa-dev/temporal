@@ -87,7 +87,7 @@ iana-time-zone = { workspace = true, optional = true }
 default = ["sys"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
-sys = ["std", "dep:web-time", "dep:iana-time-zone"]
+sys = ["std", "compiled_data", "dep:web-time", "dep:iana-time-zone"]
 tzdb = [
     "dep:tzif",
     "std",

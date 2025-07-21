@@ -640,7 +640,6 @@ impl ZonedDateTime {
             .map(|offset| i64::from(offset.0) * 60_000_000_000);
 
         let timezone = partial.timezone.unwrap_or_default();
-
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
@@ -1344,7 +1343,7 @@ impl ZonedDateTime {
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = parse_result
             .offset
@@ -1573,7 +1572,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("UTC").unwrap(),
+            TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
         )
         .unwrap();
 
@@ -1587,7 +1586,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("America/New_York").unwrap(),
+            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
         )
         .unwrap();
 
@@ -1601,7 +1600,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("Australia/Sydney").unwrap(),
+            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
         )
         .unwrap();
 

@@ -4,7 +4,7 @@ use crate::builtins::core::zoneddatetime::interpret_isodatetime_offset;
 use crate::builtins::core::{calendar::Calendar, timezone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation};
-use crate::parsers::parse_date_time;
+use crate::parsers::{parse_date_time, parse_zoned_date_time};
 use crate::provider::TimeZoneProvider;
 use crate::{TemporalResult, TemporalUnwrap};
 
@@ -40,7 +40,9 @@ impl RelativeTo {
         source: &str,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let result = parse_date_time(source.as_bytes())?;
+        // b. Let result be ? ParseISODateTime(value, « TemporalDateTimeString[+Zoned], TemporalDateTimeString[~Zoned] »).
+        let result =
+            parse_date_time(source.as_bytes()).or_else(|_| parse_zoned_date_time(source))?;
 
         let Some(annotation) = result.tz else {
             let date_record = result.date.temporal_unwrap()?;
@@ -60,7 +62,7 @@ impl RelativeTo {
             .into());
         };
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = result
             .offset

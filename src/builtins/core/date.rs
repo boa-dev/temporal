@@ -1073,9 +1073,9 @@ mod tests {
     #[test]
     fn to_zoned_date_time() {
         use crate::tzdb::FsTzdbProvider;
-        let date = PlainDate::from_str("2020-01-01").unwrap();
-        let tz = TimeZone::try_from_str("UTC").unwrap();
         let provider = &FsTzdbProvider::default();
+        let date = PlainDate::from_str("2020-01-01").unwrap();
+        let tz = TimeZone::try_from_str_with_provider("UTC", provider).unwrap();
         let zdt = date
             .to_zoned_date_time_with_provider(tz, None, provider)
             .unwrap();

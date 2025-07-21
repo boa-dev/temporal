@@ -533,10 +533,6 @@ impl PlainTime {
 
     /// Add a `Duration` to the current `Time`.
     pub fn add(&self, duration: &Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to `Time`."));
-        }
         self.add_time_duration(duration.time())
     }
 
@@ -548,10 +544,6 @@ impl PlainTime {
 
     /// Subtract a `Duration` to the current `Time`.
     pub fn subtract(&self, duration: &Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to `Time` component."));
-        }
         self.subtract_time_duration(duration.time())
     }
 
