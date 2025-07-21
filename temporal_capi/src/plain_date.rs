@@ -343,3 +343,34 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
         })
     }
 }
+
+impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialYearMonth {
+    type Error = TemporalError;
+    fn try_from(other: ffi::PartialDate<'_>) -> Result<Self, TemporalError> {
+        use temporal_rs::TinyAsciiStr;
+
+        let month_code = if other.month_code.is_empty() {
+            None
+        } else {
+            Some(MonthCode::try_from_utf8(other.month_code.into()).map_err(TemporalError::from)?)
+        };
+
+        let era = if other.era.is_empty() {
+            None
+        } else {
+            Some(TinyAsciiStr::try_from_utf8(other.era.into()).map_err(|_| {
+                TemporalError::from(
+                    temporal_rs::TemporalError::range().with_message("Invalid era code."),
+                )
+            })?)
+        };
+        Ok(Self {
+            year: other.year.into(),
+            month: other.month.into(),
+            month_code,
+            era_year: other.era_year.into(),
+            era,
+            calendar: temporal_rs::Calendar::new(other.calendar.into()),
+        })
+    }
+}

@@ -520,9 +520,11 @@ impl PlainYearMonth {
     /// Create a `PlainYearMonth` from a `PartialYearMonth`
     pub fn from_partial(
         partial: PartialYearMonth,
-        overflow: ArithmeticOverflow,
+        overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        partial.calendar.year_month_from_partial(&partial, overflow)
+        partial
+            .calendar
+            .year_month_from_partial(&partial, overflow.unwrap_or_default())
     }
 
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
@@ -562,7 +564,7 @@ impl PlainYearMonth {
         // [[Day]] field of the [[ISODate]] internal slot of the result.
         // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
         // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        PlainYearMonth::from_partial(partial, ArithmeticOverflow::Constrain)
+        PlainYearMonth::from_partial(partial, Some(ArithmeticOverflow::Constrain))
     }
 
     /// Returns the iso year value for this `YearMonth`.
