@@ -191,9 +191,9 @@ impl Date {
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct Time {
     pub sign: Sign,
-    pub hour: i8,
-    pub minute: i8,
-    pub second: i8,
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -205,8 +205,52 @@ pub enum Sign {
 }
 
 impl Time {
+    pub(crate) const fn one_hour() -> Self {
+        Time {
+            sign: Sign::Positive,
+            hour: 1,
+            minute: 0,
+            second: 0,
+        }
+    }
+
+    pub(crate) const fn two_hour() -> Self {
+        Time {
+            sign: Sign::Positive,
+            hour: 2,
+            minute: 0,
+            second: 0,
+        }
+    }
+
     pub const fn as_secs(&self) -> i64 {
         (self.hour as i64 * 3600 + self.minute as i64 * 60 + self.second as i64) * self.sign as i64
+    }
+
+    pub const fn from_seconds(seconds: i64) -> Self {
+        let sign = if seconds < 0 {
+            Sign::Negative
+        } else {
+            Sign::Positive
+        };
+        let (hour, rem) = (
+            seconds.abs().div_euclid(3600),
+            seconds.abs().rem_euclid(3600),
+        );
+        let (minute, second) = (rem.abs().div_euclid(60), rem.abs().rem_euclid(60));
+        debug_assert!(hour < u8::MAX as i64);
+        Self {
+            sign,
+            hour: hour as u8,
+            minute: minute as u8,
+            second: second as u8,
+        }
+    }
+
+    pub fn add(&self, other: Self) -> Self {
+        // NOTE: this is a nightmare. Redo
+        let result = self.as_secs() + other.as_secs();
+        Self::from_seconds(result)
     }
 }
 
@@ -220,7 +264,7 @@ impl TryFromStr<LineParseContext> for Time {
             (s, Sign::Positive)
         };
         if !s.contains(':') {
-            let hour = s.context_parse::<i8>(ctx)?;
+            let hour = s.context_parse::<u8>(ctx)?;
             ctx.exit();
             return Ok(Time {
                 sign,
@@ -232,9 +276,9 @@ impl TryFromStr<LineParseContext> for Time {
         let (hour, sub_hour) = s
             .split_once(':')
             .ok_or(ZoneInfoParseError::unknown(s, ctx))?;
-        let hour = hour.context_parse::<i8>(ctx)?;
+        let hour = hour.context_parse::<u8>(ctx)?;
         if !sub_hour.contains(':') {
-            let minute = sub_hour.context_parse::<i8>(ctx)?;
+            let minute = sub_hour.context_parse::<u8>(ctx)?;
             ctx.exit();
             return Ok(Self {
                 sign,
@@ -249,8 +293,8 @@ impl TryFromStr<LineParseContext> for Time {
                 ctx.line_number,
                 s.to_owned(),
             ))?;
-        let minute = minute.context_parse::<i8>(ctx)?;
-        let second = second.context_parse::<i8>(ctx)?;
+        let minute = minute.context_parse::<u8>(ctx)?;
+        let second = second.context_parse::<u8>(ctx)?;
         ctx.exit();
         Ok(Self {
             sign,
@@ -503,7 +547,7 @@ mod tests {
 
     use crate::types::FormattableAbbr;
 
-    use super::AbbreviationFormat;
+    use super::{AbbreviationFormat, Sign, Time};
 
     #[test]
     fn abbr_formatting() {
@@ -537,5 +581,84 @@ mod tests {
             false,
         );
         assert_eq!(abbr, "CST");
+    }
+
+    #[test]
+    fn time_add() {
+        let one = Time {
+            sign: Sign::Positive,
+            hour: 1,
+            ..Default::default()
+        };
+        let result = one.add(Time::default());
+        assert_eq!(result, one);
+
+        let two = Time {
+            sign: Sign::Positive,
+            hour: 2,
+            ..Default::default()
+        };
+        let three = one.add(two);
+        assert_eq!(
+            three,
+            Time {
+                sign: Sign::Positive,
+                hour: 3,
+                ..Default::default()
+            }
+        );
+
+        let neg_three = Time {
+            sign: Sign::Negative,
+            hour: 3,
+            ..Default::default()
+        };
+        let neg_one = neg_three.add(two);
+        assert_eq!(
+            neg_one,
+            Time {
+                sign: Sign::Negative,
+                hour: 1,
+                ..Default::default()
+            }
+        );
+
+        let neg_four = neg_one.add(neg_three);
+        assert_eq!(
+            neg_four,
+            Time {
+                sign: Sign::Negative,
+                hour: 4,
+                ..Default::default()
+            }
+        );
+
+        let one_half = Time {
+            sign: Sign::Positive,
+            hour: 1,
+            minute: 30,
+            ..Default::default()
+        };
+        let neg_one_half = neg_three.add(one_half);
+        assert_eq!(
+            neg_one_half,
+            Time {
+                sign: Sign::Negative,
+                hour: 1,
+                minute: 30,
+                ..Default::default()
+            }
+        );
+
+        let neg_half = one.add(neg_one_half);
+        assert_eq!(
+            neg_half,
+            Time {
+                sign: Sign::Negative,
+                hour: 0,
+                minute: 30,
+                ..Default::default()
+            }
+        )
     }
 }

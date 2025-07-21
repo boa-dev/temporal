@@ -618,17 +618,17 @@ impl PlainDateTime {
                 TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
             );
         }
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
 
         let result_date = self.calendar.date_from_partial(
-            &partial_datetime.date.with_fallback_datetime(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            &partial_datetime
+                .date
+                .with_fallback_datetime(self, overflow)?,
+            overflow,
         )?;
 
         // Determine the `Time` based off the partial values.
-        let time = self.iso.time.with(
-            partial_datetime.time,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )?;
+        let time = self.iso.time.with(partial_datetime.time, overflow)?;
 
         let iso_datetime = IsoDateTime::new(result_date.iso, time)?;
 

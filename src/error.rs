@@ -86,8 +86,17 @@ impl TemporalError {
     /// Creates an assertion error
     #[inline]
     #[must_use]
+    #[cfg_attr(debug_assertions, track_caller)]
     pub(crate) const fn assert() -> Self {
-        Self::new(ErrorKind::Assert)
+        #[cfg(not(debug_assertions))]
+        {
+            Self::new(ErrorKind::Assert)
+        }
+        #[cfg(debug_assertions)]
+        Self {
+            kind: ErrorKind::Assert,
+            msg: Cow::Borrowed(core::panic::Location::caller().file()),
+        }
     }
 
     /// Create an abrupt end error.

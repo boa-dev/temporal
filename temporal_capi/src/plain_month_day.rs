@@ -109,6 +109,26 @@ pub mod ffi {
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn epoch_ns_for(
+            &self,
+            time_zone: &crate::time_zone::ffi::TimeZone,
+        ) -> Result<i64, TemporalError> {
+            let ns = self
+                .0
+                .epoch_ns_for(&time_zone.0)
+                .map_err(TemporalError::from)?;
+
+            let ns_i128 = ns.as_i128();
+            let ms = ns_i128 / 1000;
+            if let Ok(ms) = i64::try_from(ms) {
+                Ok(ms)
+            } else {
+                Err(TemporalError::assert("Found an out-of-range MonthDay"))
+            }
+        }
+
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,

@@ -16,6 +16,7 @@
 #include "PartialDate.d.h"
 #include "PlainDate.d.h"
 #include "TemporalError.d.h"
+#include "TimeZone.d.h"
 
 #include "PlainYearMonth.d.h"
 
@@ -84,6 +85,9 @@ int8_t temporal_rs_PlainYearMonth_compare(const PlainYearMonth* one, const Plain
 
 typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
 temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const PlainYearMonth* self, PartialDate_option day);
+
+typedef struct temporal_rs_PlainYearMonth_epoch_ns_for_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_epoch_ns_for_result;
+temporal_rs_PlainYearMonth_epoch_ns_for_result temporal_rs_PlainYearMonth_epoch_ns_for(const PlainYearMonth* self, const TimeZone* time_zone);
 
 void temporal_rs_PlainYearMonth_to_ixdtf_string(const PlainYearMonth* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 

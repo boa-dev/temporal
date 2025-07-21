@@ -42,7 +42,11 @@ struct OwnedRelativeTo {
   std::unique_ptr<temporal_rs::PlainDate> date;
   std::unique_ptr<temporal_rs::ZonedDateTime> zoned;
 
-  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> try_from_str(std::string_view source);
+  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> try_from_str(std::string_view s);
+
+  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> from_utf8(std::string_view s);
+
+  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
 
   inline static temporal_rs::OwnedRelativeTo empty();
 

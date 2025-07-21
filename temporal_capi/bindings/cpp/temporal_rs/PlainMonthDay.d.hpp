@@ -18,6 +18,8 @@ namespace capi { struct PlainDate; }
 class PlainDate;
 namespace capi { struct PlainMonthDay; }
 class PlainMonthDay;
+namespace capi { struct TimeZone; }
+class TimeZone;
 struct PartialDate;
 struct TemporalError;
 class AnyCalendarKind;
@@ -63,6 +65,8 @@ public:
   inline void month_code_write(W& writeable_output) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> year) const;
+
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ns_for(const temporal_rs::TimeZone& time_zone) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
   template<typename W>

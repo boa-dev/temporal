@@ -572,11 +572,11 @@ impl ZonedDateTime {
             .calendar
             .date_from_partial(&partial.date, overflow)?
             .iso;
-        let time = if !partial.time.is_empty() {
-            Some(IsoTime::default().with(partial.time, overflow)?)
-        } else {
-            None
-        };
+
+        // None time means START-OF-DAY which has special meaning in
+        // interpret_isodatetime_offset. START-OF-DAY is only set in the parser,
+        // not in other endpoints.
+        let time = Some(IsoTime::default().with(partial.time, overflow)?);
 
         // Handle time zones
         let offset_nanos = partial
@@ -584,7 +584,6 @@ impl ZonedDateTime {
             .map(|offset| i64::from(offset.0) * 60_000_000_000);
 
         let timezone = partial.timezone.unwrap_or_default();
-
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
@@ -639,7 +638,9 @@ impl ZonedDateTime {
 
         // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
         let result_date = self.calendar.date_from_partial(
-            &partial.date.with_fallback_datetime(&plain_date_time)?,
+            &partial
+                .date
+                .with_fallback_datetime(&plain_date_time, overflow)?,
             overflow,
         )?;
 
@@ -1286,7 +1287,7 @@ impl ZonedDateTime {
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = parse_result
             .offset
@@ -1502,7 +1503,7 @@ mod tests {
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         tzdb::FsTzdbProvider,
         unix_time::EpochNanoseconds,
-        Calendar, MonthCode, TimeZone,
+        Calendar, MonthCode, TimeZone, UtcOffset,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
@@ -1515,7 +1516,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("UTC").unwrap(),
+            TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
         )
         .unwrap();
 
@@ -1529,7 +1530,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("America/New_York").unwrap(),
+            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
         )
         .unwrap();
 
@@ -1543,7 +1544,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("Australia/Sydney").unwrap(),
+            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
         )
         .unwrap();
 
@@ -1630,6 +1631,29 @@ mod tests {
         };
 
         let result = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider);
+        assert!(result.is_ok());
+
+        // This ensures that the start-of-day branch isn't hit by default time
+        let provider = &FsTzdbProvider::default();
+        let partial = PartialZonedDateTime {
+            date: PartialDate {
+                year: Some(1970),
+                month_code: Some(MonthCode(tinystr!(4, "M01"))),
+                day: Some(1),
+                ..Default::default()
+            },
+            time: PartialTime::default(),
+            offset: Some(UtcOffset(30)),
+            timezone: Some(TimeZone::default()),
+        };
+
+        let result = ZonedDateTime::from_partial_with_provider(
+            partial,
+            None,
+            None,
+            Some(OffsetDisambiguation::Use),
+            provider,
+        );
         assert!(result.is_ok());
     }
 

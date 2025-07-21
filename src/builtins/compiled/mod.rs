@@ -5,6 +5,8 @@ mod duration;
 mod instant;
 mod now;
 mod plain_date_time;
+mod plain_month_day;
+mod plain_year_month;
 mod zoneddatetime;
 
 mod options {

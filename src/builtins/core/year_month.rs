@@ -8,12 +8,13 @@ use tinystr::TinyAsciiStr;
 use crate::{
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
-    provider::NeverProvider,
+    provider::{NeverProvider, TimeZoneProvider},
     temporal_assert,
+    unix_time::EpochNanoseconds,
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -355,8 +356,9 @@ impl PlainYearMonth {
         let added_date = calendar.date_add(&date, &Duration::from(duration_to_add), overflow)?;
 
         // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
-        let added_date_fields =
-            PartialYearMonth::from(&PartialDate::default().with_fallback_date(&added_date)?);
+        let added_date_fields = PartialYearMonth::from(
+            &PartialDate::default().with_fallback_date(&added_date, overflow)?,
+        );
 
         // 15. Let isoDate be ? CalendarYearMonthFromFields(calendar, addedDateFields, overflow).
         let iso_date = calendar.year_month_from_partial(&added_date_fields, overflow)?;
@@ -666,10 +668,9 @@ impl PlainYearMonth {
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
         // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        self.calendar.year_month_from_partial(
-            &partial.with_fallback_year_month(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        self.calendar
+            .year_month_from_partial(&partial.with_fallback_year_month(self, overflow)?, overflow)
     }
 
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
@@ -730,6 +731,21 @@ impl PlainYearMonth {
 
         self.calendar
             .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+    }
+
+    /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
+    /// (using the reference year, and noon time)
+    ///
+    // Useful for implementing HandleDateTimeTemporalYearMonth
+    pub fn epoch_ns_for_with_provider(
+        &self,
+        time_zone: &TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<EpochNanoseconds> {
+        // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalYearMonth.[[ISODate]], NoonTimeRecord()).
+        let iso = IsoDateTime::new(self.iso, IsoTime::noon())?;
+        // 3. Let epochNs be ? GetEpochNanosecondsFor(dateTimeFormat.[[TimeZone]], isoDateTime, compatible).
+        time_zone.get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`

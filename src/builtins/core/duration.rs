@@ -15,7 +15,9 @@ use crate::{
 use alloc::format;
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
-use ixdtf::{encoding::Utf8, parsers::IsoDurationParser, records::TimeDurationRecord};
+use ixdtf::{
+    encoding::Utf8, parsers::IsoDurationParser, records::Fraction, records::TimeDurationRecord,
+};
 use normalized::NormalizedDurationRecord;
 
 use self::normalized::NormalizedTimeDuration;
@@ -422,10 +424,21 @@ impl Duration {
             .parse()
             .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
+        fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
+            if let Some(fraction) = fraction {
+                fraction.to_nanoseconds().ok_or(
+                    TemporalError::range().with_message(
+                        "Duration time part may only have up to nine fractional digits",
+                    ),
+                )
+            } else {
+                Ok(0)
+            }
+        }
+
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let unadjusted_fraction = fraction_to_unadjusted_ns(fraction)? as u64;
                 let fractional_hours_ns = unadjusted_fraction * 3600;
                 let minutes = fractional_hours_ns.div_euclid(60 * 1_000_000_000);
                 let fractional_minutes_ns = fractional_hours_ns.rem_euclid(60 * 1_000_000_000);
@@ -454,8 +467,7 @@ impl Duration {
                 minutes,
                 fraction,
             }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let unadjusted_fraction = fraction_to_unadjusted_ns(fraction)? as u64;
                 let fractional_minutes_ns = unadjusted_fraction * 60;
                 let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
                 let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
@@ -482,7 +494,7 @@ impl Duration {
                 seconds,
                 fraction,
             }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let ns = fraction_to_unadjusted_ns(fraction)?;
                 let milliseconds = ns.div_euclid(1_000_000);
                 let rem = ns.rem_euclid(1_000_000);
 
@@ -1299,108 +1311,6 @@ impl FromStr for Duration {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = IsoDurationParser::from_str(s)
-            .parse()
-            .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
-
-        let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
-            Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
-                let fractional_hours_ns = unadjusted_fraction * 3600;
-                let minutes = fractional_hours_ns.div_euclid(60 * 1_000_000_000);
-                let fractional_minutes_ns = fractional_hours_ns.rem_euclid(60 * 1_000_000_000);
-
-                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
-                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
-
-                let milliseconds = fractional_seconds.div_euclid(1_000_000);
-                let rem = fractional_seconds.rem_euclid(1_000_000);
-
-                let microseconds = rem.div_euclid(1_000);
-                let nanoseconds = rem.rem_euclid(1_000);
-
-                (
-                    hours,
-                    minutes,
-                    seconds,
-                    milliseconds,
-                    microseconds,
-                    nanoseconds,
-                )
-            }
-            // Minutes variant is defined as { hours: u32, minutes: u32, fraction: u64 }
-            Some(TimeDurationRecord::Minutes {
-                hours,
-                minutes,
-                fraction,
-            }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
-                let fractional_minutes_ns = unadjusted_fraction * 60;
-                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
-                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
-
-                let milliseconds = fractional_seconds.div_euclid(1_000_000);
-                let rem = fractional_seconds.rem_euclid(1_000_000);
-
-                let microseconds = rem.div_euclid(1_000);
-                let nanoseconds = rem.rem_euclid(1_000);
-
-                (
-                    hours,
-                    minutes,
-                    seconds,
-                    milliseconds,
-                    microseconds,
-                    nanoseconds,
-                )
-            }
-            // Seconds variant is defined as { hours: u32, minutes: u32, seconds: u32, fraction: u32 }
-            Some(TimeDurationRecord::Seconds {
-                hours,
-                minutes,
-                seconds,
-                fraction,
-            }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
-                let milliseconds = ns.div_euclid(1_000_000);
-                let rem = ns.rem_euclid(1_000_000);
-
-                let microseconds = rem.div_euclid(1_000);
-                let nanoseconds = rem.rem_euclid(1_000);
-
-                (
-                    hours,
-                    minutes,
-                    seconds,
-                    milliseconds as u64,
-                    microseconds as u64,
-                    nanoseconds as u64,
-                )
-            }
-            None => (0, 0, 0, 0, 0, 0),
-        };
-
-        let (years, months, weeks, days) = if let Some(date) = parse_record.date {
-            (date.years, date.months, date.weeks, date.days)
-        } else {
-            (0, 0, 0, 0)
-        };
-
-        let sign = parse_record.sign as i64;
-
-        Self::new(
-            years as i64 * sign,
-            months as i64 * sign,
-            weeks as i64 * sign,
-            days as i64 * sign,
-            hours as i64 * sign,
-            minutes as i64 * sign,
-            seconds as i64 * sign,
-            millis as i64 * sign,
-            micros as i128 * sign as i128,
-            nanos as i128 * sign as i128,
-        )
+        Self::from_utf8(s.as_bytes())
     }
 }
