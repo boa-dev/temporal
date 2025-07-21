@@ -37,7 +37,6 @@ pub mod ffi {
     pub struct PartialZonedDateTime<'a> {
         pub date: PartialDate<'a>,
         pub time: PartialTime,
-        pub has_utc_designator: bool,
         pub offset: DiplomatOption<DiplomatStrSlice<'a>>,
         pub timezone: Option<&'a TimeZone>,
     }
@@ -509,7 +508,8 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZon
         Ok(Self {
             date: other.date.try_into()?,
             time: other.time.into(),
-            has_utc_designator: other.has_utc_designator,
+            // This is only true when parsing
+            has_utc_designator: false,
             offset,
             timezone: other.timezone.map(|x| x.0.clone()),
         })

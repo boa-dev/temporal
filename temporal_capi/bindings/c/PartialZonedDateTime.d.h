@@ -17,7 +17,6 @@
 typedef struct PartialZonedDateTime {
   PartialDate date;
   PartialTime time;
-  bool has_utc_designator;
   OptionStringView offset;
   const TimeZone* timezone;
 } PartialZonedDateTime;
