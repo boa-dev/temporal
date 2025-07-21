@@ -41,8 +41,8 @@ impl RelativeTo {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         // b. Let result be ? ParseISODateTime(value, « TemporalDateTimeString[+Zoned], TemporalDateTimeString[~Zoned] »).
-        let result =
-            parse_date_time(source.as_bytes()).or_else(|_| parse_zoned_date_time(source))?;
+        let bytes = source.as_bytes();
+        let result = parse_date_time(bytes).or_else(|_| parse_zoned_date_time(bytes))?;
 
         let Some(annotation) = result.tz else {
             let date_record = result.date.temporal_unwrap()?;

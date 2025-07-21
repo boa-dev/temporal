@@ -746,8 +746,8 @@ pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<
 }
 
 #[inline]
-pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord<Utf8>> {
-    let record = parse_ixdtf(source.as_bytes(), ParseVariant::DateTime)?;
+pub(crate) fn parse_zoned_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     // TODO: Support rejecting subminute precision in time zone annootations
     if record.tz.is_none() {

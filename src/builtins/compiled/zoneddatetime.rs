@@ -356,12 +356,12 @@ impl ZonedDateTime {
     /// Attempts to parse and create a `ZonedDateTime` from an IXDTF formatted [`&str`].
     ///
     /// Enable with the `compiled_data` feature flag.
-    pub fn from_str(
-        source: &str,
+    pub fn from_utf8(
+        source: &[u8],
         disambiguation: Disambiguation,
         offset_option: OffsetDisambiguation,
     ) -> TemporalResult<Self> {
-        ZonedDateTime::from_str_with_provider(source, disambiguation, offset_option, &*TZ_PROVIDER)
+        ZonedDateTime::from_utf8_with_provider(source, disambiguation, offset_option, &*TZ_PROVIDER)
     }
 }
 

@@ -3,7 +3,7 @@
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
-use ixdtf::records::UtcOffsetRecordOrZ;
+use ixdtf::records::{UtcOffsetRecord, UtcOffsetRecordOrZ};
 use tinystr::TinyAsciiStr;
 
 use crate::{
@@ -38,6 +38,10 @@ pub struct PartialZonedDateTime {
     pub date: PartialDate,
     /// The `PartialTime` portion of a `PartialZonedDateTime`
     pub time: PartialTime,
+    /// Whether or not the string has a UTC designator (`Z`)
+    ///
+    /// Incompatible with having an offset (you can still have a offset-format timezone)
+    pub has_utc_designator: bool,
     /// An optional offset string
     pub offset: Option<UtcOffset>,
     /// The time zone value of a partial time zone.
@@ -56,6 +60,7 @@ impl PartialZonedDateTime {
         Self {
             date: PartialDate::new(),
             time: PartialTime::new(),
+            has_utc_designator: false,
             offset: None,
             timezone: None,
         }
@@ -79,6 +84,65 @@ impl PartialZonedDateTime {
     pub fn with_timezone(mut self, timezone: Option<TimeZone>) -> Self {
         self.timezone = timezone;
         self
+    }
+
+    #[cfg(feature = "compiled_data")]
+    pub fn try_from_utf8(source: &[u8]) -> TemporalResult<Self> {
+        Self::try_from_utf8_with_provider(source, &*crate::builtins::TZ_PROVIDER)
+    }
+
+    pub fn try_from_utf8_with_provider(
+        source: &[u8],
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        let parse_result = parsers::parse_zoned_date_time(source)?;
+
+        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
+        let annotation = parse_result.tz.temporal_unwrap()?;
+
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
+
+        let (offset, has_utc_designator) = match parse_result.offset {
+            Some(UtcOffsetRecordOrZ::Z) => (None, true),
+            Some(UtcOffsetRecordOrZ::Offset(UtcOffsetRecord::MinutePrecision(offset))) => {
+                (Some(UtcOffset::from_ixdtf_record(offset)), false)
+            }
+            // `Temporal.ZonedDateTime.from("1970-01-01T00:00+01:00:01[+01:00]", {offset: "use"}`
+            // will fail here, but it should succeed. This requires changing PartialZonedDateTime.offset to allow
+            // sub-minute precision.
+            //
+            // https://github.com/boa-dev/temporal/issues/419
+            Some(_) => return Err(TemporalError::range().with_message(
+                "Currently do not support parsing ZonedDateTimes with sub-minute precision offsets",
+            )),
+            None => (None, false),
+        };
+
+        let calendar = parse_result
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        let Some(parsed_date) = parse_result.date else {
+            return Err(TemporalError::range().with_enum(ErrorMessage::ParserNeedsDate));
+        };
+
+        let time = parse_result
+            .time
+            .map(PartialTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
+
+        let date = PartialDate::from_date_record(parsed_date, calendar);
+
+        Ok(Self {
+            date,
+            time,
+            has_utc_designator,
+            offset,
+            timezone: Some(timezone),
+        })
     }
 }
 
@@ -587,7 +651,7 @@ impl ZonedDateTime {
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
-            false,
+            partial.has_utc_designator,
             offset_nanos,
             &timezone,
             disambiguation,
@@ -657,7 +721,7 @@ impl ZonedDateTime {
         let epoch_nanos = interpret_isodatetime_offset(
             result_date.iso,
             Some(time),
-            false,
+            partial.has_utc_designator,
             new_offset_nanos,
             &self.tz,
             disambiguation,
@@ -1276,8 +1340,8 @@ impl ZonedDateTime {
     }
 
     // TODO: Should IANA Identifier be prechecked or allow potentially invalid IANA Identifer values here?
-    pub fn from_str_with_provider(
-        source: &str,
+    pub fn from_utf8_with_provider(
+        source: &[u8],
         disambiguation: Disambiguation,
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
@@ -1560,8 +1624,8 @@ mod tests {
     // https://tc39.es/proposal-temporal/docs/zoneddatetime.html#round
     fn round_with_provider_test() {
         let provider = &FsTzdbProvider::default();
-        let dt = "1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
-        let zdt = ZonedDateTime::from_str_with_provider(
+        let dt = b"1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
+        let zdt = ZonedDateTime::from_utf8_with_provider(
             dt,
             Disambiguation::default(),
             OffsetDisambiguation::Use,
@@ -1626,6 +1690,7 @@ mod tests {
                 ..Default::default()
             },
             time: PartialTime::default(),
+            has_utc_designator: false,
             offset: None,
             timezone: Some(TimeZone::default()),
         };
@@ -1643,6 +1708,7 @@ mod tests {
                 ..Default::default()
             },
             time: PartialTime::default(),
+            has_utc_designator: false,
             offset: Some(UtcOffset(30)),
             timezone: Some(TimeZone::default()),
         };
@@ -1661,8 +1727,8 @@ mod tests {
     fn zdt_from_str() {
         let provider = &FsTzdbProvider::default();
 
-        let zdt_str = "1970-01-01T00:00[UTC][u-ca=iso8601]";
-        let result = ZonedDateTime::from_str_with_provider(
+        let zdt_str = b"1970-01-01T00:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_utf8_with_provider(
             zdt_str,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
@@ -1674,8 +1740,8 @@ mod tests {
     #[test]
     fn zdt_hours_in_day() {
         let provider = &FsTzdbProvider::default();
-        let zdt_str = "2025-07-04T12:00[UTC][u-ca=iso8601]";
-        let result = ZonedDateTime::from_str_with_provider(
+        let zdt_str = b"2025-07-04T12:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_utf8_with_provider(
             zdt_str,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
@@ -1690,15 +1756,15 @@ mod tests {
     // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
     fn dst_skipped_cross_midnight() {
         let provider = &FsTzdbProvider::default();
-        let start_of_day = ZonedDateTime::from_str_with_provider(
-            "1919-03-31[America/Toronto]",
+        let start_of_day = ZonedDateTime::from_utf8_with_provider(
+            b"1919-03-31[America/Toronto]",
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             provider,
         )
         .unwrap();
-        let midnight_disambiguated = ZonedDateTime::from_str_with_provider(
-            "1919-03-31T00[America/Toronto]",
+        let midnight_disambiguated = ZonedDateTime::from_utf8_with_provider(
+            b"1919-03-31T00[America/Toronto]",
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             provider,
@@ -1754,6 +1820,7 @@ mod tests {
                     ..Default::default()
                 },
                 time: PartialTime::default(),
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
@@ -1770,6 +1837,7 @@ mod tests {
                     ..Default::default()
                 },
                 time: PartialTime::default(),
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
@@ -1786,6 +1854,7 @@ mod tests {
                     hour: Some(29),
                     ..Default::default()
                 },
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
@@ -1802,6 +1871,7 @@ mod tests {
                     nanosecond: Some(9000),
                     ..Default::default()
                 },
+                has_utc_designator: false,
                 offset: None,
                 timezone: None,
             },
