@@ -86,13 +86,21 @@ impl PartialZonedDateTime {
         self
     }
 
+    #[cfg(feature = "compiled_data")]
     pub fn try_from_str(source: &str) -> TemporalResult<Self> {
+        Self::try_from_str_with_provider(source, &*crate::builtins::TZ_PROVIDER)
+    }
+
+    pub fn try_from_str_with_provider(
+        source: &str,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
         let parse_result = parsers::parse_zoned_date_time(source)?;
 
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset, has_utc_designator) = match parse_result.offset {
             Some(UtcOffsetRecordOrZ::Z) => (None, true),
