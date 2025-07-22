@@ -343,8 +343,9 @@ impl PlainMonthDay {
                 .with_message("PartialDate must contain a year or era/era_year fields"));
         }
 
+        // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+            .date_from_partial(&partial_date, ArithmeticOverflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
