@@ -176,7 +176,7 @@ pub mod ffi {
             self.0 == other.0
         }
         pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
-            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
+            one.0.compare_iso(&two.0)
         }
         pub fn to_plain_date(
             &self,
