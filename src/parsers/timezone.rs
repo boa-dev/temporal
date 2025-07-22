@@ -1,7 +1,7 @@
 use ixdtf::{
     encoding::Utf8,
     parsers::{IxdtfParser, TimeZoneParser},
-    records::{TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ},
+    records::{TimeZoneRecord, UtcOffsetRecordOrZ},
 };
 
 use crate::provider::TimeZoneProvider;
@@ -43,13 +43,8 @@ pub(crate) fn parse_allowed_timezone_formats(
         match offset {
             UtcOffsetRecordOrZ::Z => return Some(TimeZone::default()),
             UtcOffsetRecordOrZ::Offset(offset) => {
-                let offset = match offset {
-                    UtcOffsetRecord::MinutePrecision(offset) => offset,
-                    _ => return None,
-                };
-                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_minute_record(
-                    offset,
-                )));
+                let offset = UtcOffset::from_ixdtf_record(offset).ok()?;
+                return Some(TimeZone::UtcOffset(offset));
             }
         }
     }

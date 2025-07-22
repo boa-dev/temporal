@@ -11,6 +11,7 @@ use ixdtf::{
 use num_traits::ToPrimitive;
 
 use crate::builtins::core::duration::DateDuration;
+use crate::error::ErrorMessage;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
@@ -25,6 +26,8 @@ use crate::{
 use crate::{Calendar, Sign};
 
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
+const NS_IN_S: i64 = 1_000_000_000;
+const NS_IN_MIN: i64 = 60_000_000_000;
 
 /// A UTC time zone offset stored in nanoseconds
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,17 +40,35 @@ impl UtcOffset {
         let minutes = minutes * i16::from(record.sign as i8);
         Self::from_minutes(minutes)
     }
+    pub(crate) fn from_ixdtf_record(record: UtcOffsetRecord) -> TemporalResult<Self> {
+        let hours = i64::from(record.hour());
+        let minutes = 60 * hours + i64::from(record.minute());
+        let sign = record.sign() as i64;
 
+        if let Some(second) = record.second() {
+            let seconds = 60 * minutes + i64::from(second);
+
+            let mut ns = seconds * NS_IN_S;
+
+            if let Some(frac) = record.fraction() {
+                ns += i64::from(
+                    frac.to_nanoseconds().ok_or(
+                        TemporalError::range()
+                            .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
+                    )?,
+                );
+            }
+
+            Ok(Self(ns * sign))
+        } else {
+            Ok(Self(minutes * sign * NS_IN_MIN))
+        }
+    }
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
         let record = TimeZoneParser::from_utf8(source)
             .parse_offset()
             .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
-        match record {
-            UtcOffsetRecord::MinutePrecision(offset) => Ok(Self::from_ixdtf_minute_record(offset)),
-            _ => {
-                Err(TemporalError::range().with_message("offset must be a minute precision offset"))
-            }
-        }
+        Self::from_ixdtf_record(record)
     }
 
     #[allow(clippy::inherent_to_string)]
@@ -59,8 +80,8 @@ impl UtcOffset {
         };
         let nanoseconds_total = self.0.abs();
 
-        let nanosecond = u32::try_from(nanoseconds_total % 1_000_000_000).unwrap_or(0);
-        let seconds_left = nanoseconds_total / 1_000_000_000;
+        let nanosecond = u32::try_from(nanoseconds_total % NS_IN_S).unwrap_or(0);
+        let seconds_left = nanoseconds_total / NS_IN_S;
 
         let second = u8::try_from(seconds_left % 60).unwrap_or(0);
         let minutes_left = seconds_left / 60;
@@ -88,17 +109,17 @@ impl UtcOffset {
     }
 
     pub fn from_minutes(minutes: i16) -> Self {
-        Self(i64::from(minutes) * 60_000_000_000)
+        Self(i64::from(minutes) * NS_IN_MIN)
     }
     pub fn minutes(&self) -> i16 {
-        i16::try_from(self.0 / 60_000_000_000).unwrap_or(0)
+        i16::try_from(self.0 / NS_IN_MIN).unwrap_or(0)
     }
     pub fn nanoseconds(&self) -> i64 {
-        i64::from(self.0)
+        self.0
     }
 
     pub fn is_sub_minute(&self) -> bool {
-        self.0 % 60_000_000_000 != 0
+        self.0 % NS_IN_MIN != 0
     }
 }
 
