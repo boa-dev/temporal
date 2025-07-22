@@ -105,7 +105,7 @@ impl PartialZonedDateTime {
         let (offset, has_utc_designator) = match parse_result.offset {
             Some(UtcOffsetRecordOrZ::Z) => (None, true),
             Some(UtcOffsetRecordOrZ::Offset(UtcOffsetRecord::MinutePrecision(offset))) => {
-                (Some(UtcOffset::from_ixdtf_record(offset)), false)
+                (Some(UtcOffset::from_ixdtf_minute_record(offset)), false)
             }
             // `Temporal.ZonedDateTime.from("1970-01-01T00:00+01:00:01[+01:00]", {offset: "use"}`
             // will fail here, but it should succeed. This requires changing PartialZonedDateTime.offset to allow

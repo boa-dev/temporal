@@ -31,7 +31,7 @@ const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 pub struct UtcOffset(i16);
 
 impl UtcOffset {
-    pub(crate) fn from_ixdtf_record(record: MinutePrecisionOffset) -> Self {
+    pub(crate) fn from_ixdtf_minute_record(record: MinutePrecisionOffset) -> Self {
         // NOTE: ixdtf parser restricts minute/second to 0..=60
         let minutes = i16::from(record.hour) * 60 + record.minute as i16;
         Self(minutes * i16::from(record.sign as i8))
@@ -42,7 +42,7 @@ impl UtcOffset {
             .parse_offset()
             .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
         match record {
-            UtcOffsetRecord::MinutePrecision(offset) => Ok(Self::from_ixdtf_record(offset)),
+            UtcOffsetRecord::MinutePrecision(offset) => Ok(Self::from_ixdtf_minute_record(offset)),
             _ => {
                 Err(TemporalError::range().with_message("offset must be a minute precision offset"))
             }
@@ -109,7 +109,7 @@ impl TimeZone {
                 TimeZone::IanaIdentifier(provider.normalize_identifier(name)?.into())
             }
             TimeZoneRecord::Offset(offset_record) => {
-                let offset = UtcOffset::from_ixdtf_record(offset_record);
+                let offset = UtcOffset::from_ixdtf_minute_record(offset_record);
                 TimeZone::UtcOffset(offset)
             }
             // TimeZoneRecord is non_exhaustive, but all current branches are matching.
@@ -129,7 +129,7 @@ impl TimeZone {
                 provider.normalize_identifier(name)?.into(),
             )),
             TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
-                UtcOffset::from_ixdtf_record(minute_precision_offset),
+                UtcOffset::from_ixdtf_minute_record(minute_precision_offset),
             )),
             _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
         })?
