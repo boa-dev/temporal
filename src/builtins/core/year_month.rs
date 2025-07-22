@@ -729,8 +729,9 @@ impl PlainYearMonth {
             .with_day(Some(day_value))
             .with_calendar(self.calendar.clone());
 
+        // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+            .date_from_partial(&partial_date, ArithmeticOverflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
