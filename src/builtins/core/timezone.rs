@@ -26,15 +26,16 @@ use crate::{Calendar, Sign};
 
 const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 
-/// A UTC time zone offset stored in minutes
+/// A UTC time zone offset stored in nanoseconds
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UtcOffset(i16);
+pub struct UtcOffset(i64);
 
 impl UtcOffset {
     pub(crate) fn from_ixdtf_minute_record(record: MinutePrecisionOffset) -> Self {
         // NOTE: ixdtf parser restricts minute/second to 0..=60
         let minutes = i16::from(record.hour) * 60 + record.minute as i16;
-        Self(minutes * i16::from(record.sign as i8))
+        let minutes = minutes * i16::from(record.sign as i8);
+        Self::from_minutes(minutes)
     }
 
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
@@ -56,16 +57,30 @@ impl UtcOffset {
         } else {
             Sign::Positive
         };
-        let hour = (self.0.abs() / 60) as u8;
-        let minute = (self.0.abs() % 60) as u8;
+        let nanoseconds_total = self.0.abs();
+
+        let nanosecond = u32::try_from(nanoseconds_total % 1_000_000_000).unwrap_or(0);
+        let seconds_left = nanoseconds_total / 1_000_000_000;
+
+        let second = u8::try_from(seconds_left % 60).unwrap_or(0);
+        let minutes_left = seconds_left / 60;
+
+        let minute = u8::try_from(minutes_left % 60).unwrap_or(0);
+        let hour = u8::try_from(minutes_left / 60).unwrap_or(0);
+
+        let precision = if nanosecond == 0 && second == 0 {
+            Precision::Minute
+        } else {
+            Precision::Auto
+        };
         let formattable_offset = FormattableOffset {
             sign,
             time: FormattableTime {
                 hour,
                 minute,
-                second: 0,
-                nanosecond: 0,
-                precision: Precision::Minute,
+                second,
+                nanosecond,
+                precision,
                 include_sep: true,
             },
         };
@@ -73,11 +88,17 @@ impl UtcOffset {
     }
 
     pub fn from_minutes(minutes: i16) -> Self {
-        Self(minutes)
+        Self(i64::from(minutes) * 60_000_000_000)
+    }
+    pub fn minutes(&self) -> i16 {
+        i16::try_from(self.0 / 60_000_000_000).unwrap_or(0)
+    }
+    pub fn nanoseconds(&self) -> i64 {
+        i64::from(self.0)
     }
 
-    pub fn nanoseconds(&self) -> i64 {
-        i64::from(self.0) * 60_000_000_000
+    pub fn is_sub_minute(&self) -> bool {
+        self.0 % 60_000_000_000 != 0
     }
 }
 
@@ -227,7 +248,20 @@ impl TimeZone {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let possible_nanoseconds = match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, then
-            Self::UtcOffset(UtcOffset(minutes)) => {
+            Self::UtcOffset(offset) => {
+                // This routine should not be hit with sub-minute offsets
+                //
+                // > ...takes arguments timeZone (an available time zone identifier)
+                // >
+                // > An available time zone identifier is either an available named time zone identifier or an
+                // > offset time zone identifier.
+                // >
+                // > Offset time zone identifiers are compared using the number of minutes represented (not as a String),
+                // > and are accepted as input in any the formats specified by UTCOffset[~SubMinutePrecision]
+                debug_assert!(
+                    !offset.is_sub_minute(),
+                    "Called get_possible_epoch_ns_for on a sub-minute-precision offset"
+                );
                 // a. Let balanced be
                 // BalanceISODateTime(isoDateTime.[[ISODate]].[[Year]],
                 // isoDateTime.[[ISODate]].[[Month]],
@@ -244,7 +278,7 @@ impl TimeZone {
                     iso.date.month.into(),
                     iso.date.day.into(),
                     iso.time.hour.into(),
-                    (i16::from(iso.time.minute) - minutes).into(),
+                    (i16::from(iso.time.minute) - offset.minutes()).into(),
                     iso.time.second.into(),
                     iso.time.millisecond.into(),
                     iso.time.microsecond.into(),
