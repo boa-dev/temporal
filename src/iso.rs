@@ -178,13 +178,14 @@ impl IsoDateTime {
         let duration = Duration::from(date_duration);
 
         // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
+        // The within-limits check gets handled below in Self::new
         let added_date = date.add_date(&duration, overflow)?;
 
         // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
         // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],
         // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
         // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
-        Ok(Self::new_unchecked(added_date.iso, t_result.1))
+        Self::new(added_date.iso, t_result.1)
     }
 
     pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
