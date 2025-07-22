@@ -28,7 +28,7 @@ const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 
 /// A UTC time zone offset stored in minutes
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct UtcOffset(pub(crate) i16);
+pub struct UtcOffset(i16);
 
 impl UtcOffset {
     pub(crate) fn from_ixdtf_record(record: MinutePrecisionOffset) -> Self {
@@ -70,6 +70,14 @@ impl UtcOffset {
             },
         };
         formattable_offset.to_string()
+    }
+
+    pub fn from_minutes(minutes: i16) -> Self {
+        Self(minutes)
+    }
+
+    pub fn nanoseconds(&self) -> i64 {
+        i64::from(self.0) * 60_000_000_000
     }
 }
 
@@ -190,7 +198,7 @@ impl TimeZone {
         // 1. Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, return parseResult.[[OffsetMinutes]] × (60 × 10**9).
-            Self::UtcOffset(offset) => Ok(i128::from(offset.0) * 60_000_000_000i128),
+            Self::UtcOffset(offset) => Ok(i128::from(offset.nanoseconds())),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => provider
                 .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
