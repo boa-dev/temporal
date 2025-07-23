@@ -3,7 +3,7 @@
 
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
-use ixdtf::records::{UtcOffsetRecord, UtcOffsetRecordOrZ};
+use ixdtf::records::UtcOffsetRecordOrZ;
 use tinystr::TinyAsciiStr;
 
 use crate::{
@@ -104,17 +104,9 @@ impl PartialZonedDateTime {
 
         let (offset, has_utc_designator) = match parse_result.offset {
             Some(UtcOffsetRecordOrZ::Z) => (None, true),
-            Some(UtcOffsetRecordOrZ::Offset(UtcOffsetRecord::MinutePrecision(offset))) => {
-                (Some(UtcOffset::from_ixdtf_record(offset)), false)
+            Some(UtcOffsetRecordOrZ::Offset(offset)) => {
+                (Some(UtcOffset::from_ixdtf_record(offset)?), false)
             }
-            // `Temporal.ZonedDateTime.from("1970-01-01T00:00+01:00:01[+01:00]", {offset: "use"}`
-            // will fail here, but it should succeed. This requires changing PartialZonedDateTime.offset to allow
-            // sub-minute precision.
-            //
-            // https://github.com/boa-dev/temporal/issues/419
-            Some(_) => return Err(TemporalError::range().with_message(
-                "Currently do not support parsing ZonedDateTimes with sub-minute precision offsets",
-            )),
             None => (None, false),
         };
 
@@ -643,9 +635,7 @@ impl ZonedDateTime {
         let time = Some(IsoTime::default().with(partial.time, overflow)?);
 
         // Handle time zones
-        let offset_nanos = partial
-            .offset
-            .map(|offset| i64::from(offset.0) * 60_000_000_000);
+        let offset_nanos = partial.offset.map(|offset| offset.nanoseconds());
 
         let timezone = partial.timezone.unwrap_or_default();
         let epoch_nanos = interpret_isodatetime_offset(
@@ -714,7 +704,7 @@ impl ZonedDateTime {
         let original_offset = self.offset_nanoseconds_with_provider(provider)?;
         let new_offset_nanos = partial
             .offset
-            .map(|offset| i64::from(offset.0) * 60_000_000_000)
+            .map(|offset| offset.nanoseconds())
             .or(Some(original_offset));
 
         // 25. Let epochNanoseconds be ? InterpretISODateTimeOffset(dateTimeResult.[[ISODate]], dateTimeResult.[[Time]], option, newOffsetNanoseconds, timeZone, disambiguation, offset, match-exactly).
@@ -1709,7 +1699,7 @@ mod tests {
             },
             time: PartialTime::default(),
             has_utc_designator: false,
-            offset: Some(UtcOffset(30)),
+            offset: Some(UtcOffset::from_minutes(30)),
             timezone: Some(TimeZone::default()),
         };
 

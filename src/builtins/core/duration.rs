@@ -2,6 +2,7 @@
 
 use crate::{
     builtins::core::{PlainDateTime, PlainTime, ZonedDateTime},
+    error::ErrorMessage,
     iso::{IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
@@ -427,9 +428,8 @@ impl Duration {
         fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
             if let Some(fraction) = fraction {
                 fraction.to_nanoseconds().ok_or(
-                    TemporalError::range().with_message(
-                        "Duration time part may only have up to nine fractional digits",
-                    ),
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
                 )
             } else {
                 Ok(0)

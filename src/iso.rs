@@ -34,7 +34,7 @@ use crate::{
         },
         Duration, PartialTime, PlainDate,
     },
-    error::TemporalError,
+    error::{ErrorMessage, TemporalError},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
     rounding::IncrementRounder,
     temporal_assert,
@@ -646,7 +646,8 @@ impl IsoTime {
             .fraction
             .map(|x| {
                 x.to_nanoseconds().ok_or(
-                    TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
                 )
             })
             .transpose()?
