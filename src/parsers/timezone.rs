@@ -47,7 +47,9 @@ pub(crate) fn parse_allowed_timezone_formats(
                     UtcOffsetRecord::MinutePrecision(offset) => offset,
                     _ => return None,
                 };
-                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_record(offset)));
+                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_minute_record(
+                    offset,
+                )));
             }
         }
     }
