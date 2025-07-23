@@ -2,6 +2,7 @@
 
 use crate::{
     builtins::core::{duration::TimeDuration, Duration},
+    error::ErrorMessage,
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
@@ -61,7 +62,8 @@ impl PartialTime {
             .fraction
             .map(|x| {
                 x.to_nanoseconds().ok_or(
-                    TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
                 )
             })
             .transpose()?
