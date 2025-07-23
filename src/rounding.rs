@@ -131,7 +131,7 @@ impl Roundable for f64 {
     }
 
     fn result_floor(dividend: Self, divisor: Self) -> i128 {
-        dividend.div_euclid(&divisor) as i128
+        Euclid::div_euclid(&dividend, &divisor) as i128
     }
 }
 

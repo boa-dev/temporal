@@ -248,7 +248,7 @@ impl Instant {
         };
 
         let rounded = IncrementRounder::<i128>::from_signed_num(self.as_i128(), increment)?
-            .round(resolved_options.rounding_mode);
+            .round_as_if_positive(resolved_options.rounding_mode);
 
         Ok(rounded)
     }
