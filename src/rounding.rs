@@ -30,10 +30,6 @@ pub(crate) trait Roundable:
     }
 }
 
-pub(crate) trait Round {
-    fn round(&self, mode: RoundingMode) -> i128;
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub(crate) struct IncrementRounder<T: Roundable> {
     sign: bool,
@@ -53,9 +49,9 @@ impl<T: Roundable> IncrementRounder<T> {
     }
 }
 
-impl<T: Roundable> Round for IncrementRounder<T> {
+impl<T: Roundable> IncrementRounder<T> {
     #[inline]
-    fn round(&self, mode: RoundingMode) -> i128 {
+    pub fn round(&self, mode: RoundingMode) -> i128 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
         let mut rounded =
             apply_unsigned_rounding_mode(self.dividend, self.divisor, unsigned_rounding_mode)

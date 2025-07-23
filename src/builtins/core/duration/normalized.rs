@@ -13,7 +13,7 @@ use crate::{
     },
     primitive::FiniteF64,
     provider::TimeZoneProvider,
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 

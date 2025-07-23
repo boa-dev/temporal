@@ -36,7 +36,7 @@ use crate::{
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     temporal_assert,
     unix_time::EpochNanoseconds,
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,

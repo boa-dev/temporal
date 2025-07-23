@@ -14,7 +14,7 @@ use crate::{
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     provider::TimeZoneProvider,
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     unix_time::EpochNanoseconds,
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
