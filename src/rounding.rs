@@ -196,37 +196,260 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
 mod tests {
     use core::num::NonZeroU128;
 
-    use super::{IncrementRounder, Round, RoundingMode};
+    use super::{IncrementRounder, Roundable, RoundingMode};
+    use core::fmt::Debug;
+
+    #[derive(Debug)]
+    struct TestCase<T> {
+        x: T,
+        increment: u128,
+        ceil: i128,
+        floor: i128,
+        expand: i128,
+        trunc: i128,
+        half_ceil: i128,
+        half_floor: i128,
+        half_expand: i128,
+        half_trunc: i128,
+        half_even: i128,
+    }
+
+    impl<T: Roundable + Debug> TestCase<T> {
+        fn run(&self) {
+            let rounder = IncrementRounder::from_signed_num(
+                self.x,
+                TryFrom::try_from(self.increment).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(
+                self.ceil,
+                rounder.round(RoundingMode::Ceil),
+                "Testing {:?}/{:?} with mode Ceil",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.floor,
+                rounder.round(RoundingMode::Floor),
+                "Testing {:?}/{:?} with mode Floor",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.expand,
+                rounder.round(RoundingMode::Expand),
+                "Testing {:?}/{:?} with mode Expand",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.trunc,
+                rounder.round(RoundingMode::Trunc),
+                "Testing {:?}/{:?} with mode Trunc",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_ceil,
+                rounder.round(RoundingMode::HalfCeil),
+                "Testing {:?}/{:?} with mode HalfCeil",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_floor,
+                rounder.round(RoundingMode::HalfFloor),
+                "Testing {:?}/{:?} with mode HalfFloor",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_expand,
+                rounder.round(RoundingMode::HalfExpand),
+                "Testing {:?}/{:?} with mode HalfExpand",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_trunc,
+                rounder.round(RoundingMode::HalfTrunc),
+                "Testing {:?}/{:?} with mode HalfTrunc",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_even,
+                rounder.round(RoundingMode::HalfEven),
+                "Testing {:?}/{:?} with mode HalfEven",
+                self.x,
+                self.increment
+            );
+        }
+    }
+
+    #[test]
+    fn test_basic_rounding_cases() {
+        const CASES: &[TestCase<i128>] = &[
+            TestCase {
+                x: 100,
+                increment: 10,
+                ceil: 100,
+                floor: 100,
+                expand: 100,
+                trunc: 100,
+                half_ceil: 100,
+                half_floor: 100,
+                half_expand: 100,
+                half_trunc: 100,
+                half_even: 100,
+            },
+            TestCase {
+                x: 101,
+                increment: 10,
+                ceil: 110,
+                floor: 100,
+                expand: 110,
+                trunc: 100,
+                half_ceil: 100,
+                half_floor: 100,
+                half_expand: 100,
+                half_trunc: 100,
+                half_even: 100,
+            },
+            TestCase {
+                x: 105,
+                increment: 10,
+                ceil: 110,
+                floor: 100,
+                expand: 110,
+                trunc: 100,
+                half_ceil: 110,
+                half_floor: 100,
+                half_expand: 110,
+                half_trunc: 100,
+                half_even: 100,
+            },
+            TestCase {
+                x: 107,
+                increment: 10,
+                ceil: 110,
+                floor: 100,
+                expand: 110,
+                trunc: 100,
+                half_ceil: 110,
+                half_floor: 110,
+                half_expand: 110,
+                half_trunc: 110,
+                half_even: 110,
+            },
+            TestCase {
+                x: -100,
+                increment: 10,
+                ceil: -100,
+                floor: -100,
+                expand: -100,
+                trunc: -100,
+                half_ceil: -100,
+                half_floor: -100,
+                half_expand: -100,
+                half_trunc: -100,
+                half_even: -100,
+            },
+            TestCase {
+                x: -101,
+                increment: 10,
+                ceil: -100,
+                floor: -110,
+                expand: -110,
+                trunc: -100,
+                half_ceil: -100,
+                half_floor: -100,
+                half_expand: -100,
+                half_trunc: -100,
+                half_even: -100,
+            },
+            TestCase {
+                x: -105,
+                increment: 10,
+                ceil: -100,
+                floor: -110,
+                expand: -110,
+                trunc: -100,
+                half_ceil: -100,
+                half_floor: -110,
+                half_expand: -110,
+                half_trunc: -100,
+                half_even: -100,
+            },
+            TestCase {
+                x: -107,
+                increment: 10,
+                ceil: -100,
+                floor: -110,
+                expand: -110,
+                trunc: -100,
+                half_ceil: -110,
+                half_floor: -110,
+                half_expand: -110,
+                half_trunc: -110,
+                half_even: -110,
+            },
+        ];
+
+        for case in CASES {
+            case.run();
+        }
+    }
 
     #[test]
     fn neg_i128_rounding() {
-        let result = IncrementRounder::<i128>::from_signed_num(-9, NonZeroU128::new(2).unwrap())
-            .unwrap()
-            .round(RoundingMode::Ceil);
-        assert_eq!(result, -8);
+        TestCase {
+            x: -9i128,
+            increment: 2,
+            ceil: -8,
+            floor: -10,
+            expand: -10,
+            trunc: -8,
+            half_ceil: -8,
+            half_floor: -10,
+            half_expand: -10,
+            half_trunc: -8,
+            half_even: -8,
+        }
+        .run();
 
-        let result = IncrementRounder::<i128>::from_signed_num(-9, NonZeroU128::new(2).unwrap())
-            .unwrap()
-            .round(RoundingMode::Floor);
-        assert_eq!(result, -10);
-
-        let result = IncrementRounder::<i128>::from_signed_num(-14, NonZeroU128::new(3).unwrap())
-            .unwrap()
-            .round(RoundingMode::HalfExpand);
-        assert_eq!(result, -15);
+        TestCase {
+            x: -14i128,
+            increment: 3,
+            ceil: -12,
+            floor: -15,
+            expand: -15,
+            trunc: -12,
+            half_ceil: -15,
+            half_floor: -15,
+            half_expand: -15,
+            half_trunc: -15,
+            half_even: -15,
+        }
+        .run();
     }
 
     #[test]
     fn neg_f64_rounding() {
-        let result = IncrementRounder::<f64>::from_signed_num(-8.5, NonZeroU128::new(1).unwrap())
-            .unwrap()
-            .round(RoundingMode::Ceil);
-        assert_eq!(result, -8);
-
-        let result = IncrementRounder::<f64>::from_signed_num(-8.5, NonZeroU128::new(1).unwrap())
-            .unwrap()
-            .round(RoundingMode::Floor);
-        assert_eq!(result, -9);
+        TestCase {
+            x: -8.5f64,
+            increment: 1,
+            ceil: -8,
+            floor: -9,
+            expand: -9,
+            trunc: -8,
+            half_ceil: -8,
+            half_floor: -9,
+            half_expand: -9,
+            half_trunc: -8,
+            half_even: -8,
+        }
+        .run();
     }
 
     #[test]
