@@ -89,8 +89,8 @@ namespace capi {
     typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
     temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate_option day);
 
-    typedef struct temporal_rs_PlainYearMonth_epoch_ns_for_result {union {int64_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_epoch_ns_for_result;
-    temporal_rs_PlainYearMonth_epoch_ns_for_result temporal_rs_PlainYearMonth_epoch_ns_for(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::TimeZone* time_zone);
+    typedef struct temporal_rs_PlainYearMonth_epoch_ms_for_result {union {int64_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_epoch_ms_for_result;
+    temporal_rs_PlainYearMonth_epoch_ms_for_result temporal_rs_PlainYearMonth_epoch_ms_for(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::TimeZone* time_zone);
 
     void temporal_rs_PlainYearMonth_to_ixdtf_string(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
@@ -270,8 +270,8 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<int64_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::epoch_ns_for(const temporal_rs::TimeZone& time_zone) const {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_epoch_ns_for(this->AsFFI(),
+inline diplomat::result<int64_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::epoch_ms_for(const temporal_rs::TimeZone& time_zone) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_epoch_ms_for(this->AsFFI(),
     time_zone.AsFFI());
   return result.is_ok ? diplomat::result<int64_t, temporal_rs::TemporalError>(diplomat::Ok<int64_t>(result.ok)) : diplomat::result<int64_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
