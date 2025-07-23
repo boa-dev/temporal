@@ -754,6 +754,8 @@ impl PlainDate {
             .build()
     }
 
+    /// Creates a [`ZonedDateTime`] from the current `PlainDate` with a provided [`TimeZone`] and
+    /// optional [`PlainTime`].
     #[inline]
     pub fn to_zoned_date_time_with_provider(
         &self,
@@ -761,36 +763,18 @@ impl PlainDate {
         plain_time: Option<PlainTime>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
-        // 1. Let temporalDate be the this value.
-        // 2. Perform ? RequireInternalSlot(temporalDate, [[InitializedTemporalDate]]).
-        // 3. If item is an Object, then
-        //      a. Let timeZoneLike be ? Get(item, "timeZone").
-        //      b. If timeZoneLike is undefined, then
-        //          i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
-        //          ii. Let temporalTime be undefined.
-        //      c. Else,
-        //          i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
-        //          ii. Let temporalTime be ? Get(item, "plainTime").
-        // 4. Else,
-        //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
-        //     b. Let temporalTime be undefined.
-
-        //  5. If temporalTime is undefined, then
-        //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
-        //  6. Else,
-        //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
-        //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
-        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
-        //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+        // NOTE (nekevss): Steps 1-4 are engine specific
         let epoch_ns = if let Some(time) = plain_time {
-            let result_iso = IsoDateTime::new(self.iso, time.iso);
-
-            tz.get_epoch_nanoseconds_for(
-                result_iso.unwrap_or_default(),
-                Disambiguation::Compatible,
-                provider,
-            )?
+            // 6. Else,
+            // a. Set temporalTime to ? ToTemporalTime(temporalTime).
+            // b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
+            // c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
+            let result_iso = IsoDateTime::new(self.iso, time.iso)?;
+            // d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+            tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
+        //  5. If temporalTime is undefined, then
         } else {
+            // a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
             tz.get_start_of_day(&self.iso, provider)?
         };
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
@@ -1088,6 +1072,17 @@ mod tests {
         assert_eq!(zdt.millisecond_with_provider(provider).unwrap(), 0);
         assert_eq!(zdt.microsecond_with_provider(provider).unwrap(), 0);
         assert_eq!(zdt.nanosecond_with_provider(provider).unwrap(), 0);
+    }
+
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn to_zoned_date_time_error() {
+        use crate::tzdb::FsTzdbProvider;
+        let provider = &FsTzdbProvider::default();
+        let date = PlainDate::try_new_iso(-271_821, 4, 19).unwrap();
+        let time_zone = TimeZone::try_from_str_with_provider("+00", provider).unwrap();
+        let zdt = date.to_zoned_date_time_with_provider(time_zone, None, provider);
+        assert!(zdt.is_err())
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js
