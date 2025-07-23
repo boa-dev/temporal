@@ -64,6 +64,7 @@ impl UtcOffset {
             Ok(Self(minutes * sign * NS_IN_MIN))
         }
     }
+
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
         let record = TimeZoneParser::from_utf8(source)
             .parse_offset()
@@ -111,9 +112,11 @@ impl UtcOffset {
     pub fn from_minutes(minutes: i16) -> Self {
         Self(i64::from(minutes) * NS_IN_MIN)
     }
+
     pub fn minutes(&self) -> i16 {
         i16::try_from(self.0 / NS_IN_MIN).unwrap_or(0)
     }
+
     pub fn nanoseconds(&self) -> i64 {
         self.0
     }
