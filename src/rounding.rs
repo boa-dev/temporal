@@ -51,6 +51,7 @@ impl<T: Roundable> IncrementRounder<T> {
 
 impl<T: Roundable> IncrementRounder<T> {
     #[inline]
+    /// https://tc39.es/proposal-temporal/#sec-temporal-roundnumbertoincrement
     pub fn round(&self, mode: RoundingMode) -> i128 {
         let unsigned_rounding_mode = mode.get_unsigned_round_mode(self.sign);
 
@@ -61,10 +62,24 @@ impl<T: Roundable> IncrementRounder<T> {
         };
 
         let mut rounded =
-            apply_unsigned_rounding_mode(dividend, self.divisor, unsigned_rounding_mode) as i128;
+            apply_unsigned_rounding_mode(dividend, self.divisor, unsigned_rounding_mode);
         if !self.sign {
             rounded = rounded.neg();
         }
+        // TODO: Add unit tests for the below
+        rounded
+            * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
+    }
+    #[inline]
+    /// https://tc39.es/proposal-temporal/#sec-temporal-roundnumbertoincrementasifpositive
+    pub fn round_as_if_positive(&self, mode: RoundingMode) -> i128 {
+        // 2. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, positive).
+        let unsigned_rounding_mode = mode.get_unsigned_round_mode(true);
+
+        // 5. Let rounded be ApplyUnsignedRoundingMode(quotient, r1, r2, unsignedRoundingMode).
+        let rounded =
+            apply_unsigned_rounding_mode(self.dividend, self.divisor, unsigned_rounding_mode);
+
         // TODO: Add unit tests for the below
         rounded
             * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
@@ -77,7 +92,13 @@ impl Roundable for i128 {
     }
 
     fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
-        Some((dividend.abs() % divisor).cmp(&(divisor / 2)))
+        let midway = divisor.div_euclid(2);
+        let cmp = dividend.rem_euclid(divisor).cmp(&midway);
+        if cmp == Ordering::Equal && divisor.rem_euclid(2) != 0 {
+            Some(Ordering::Less)
+        } else {
+            Some(cmp)
+        }
     }
 
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
@@ -96,22 +117,21 @@ impl Roundable for f64 {
     }
 
     fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
-        let quotient_abs = (dividend / divisor).abs();
-        let d1 = quotient_abs - FloatCore::floor(quotient_abs);
-        let d2 = FloatCore::ceil(quotient_abs) - quotient_abs;
+        let quotient = dividend / divisor;
+        let d1 = quotient - FloatCore::floor(quotient);
+        let d2 = FloatCore::ceil(quotient) - quotient;
         d1.partial_cmp(&d2)
     }
 
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
-        let quotient_abs = (dividend / divisor).abs();
-        (FloatCore::floor(quotient_abs)
-            / (FloatCore::ceil(quotient_abs) - FloatCore::floor(quotient_abs))
+        let quotient = dividend / divisor;
+        (FloatCore::floor(quotient) / (FloatCore::ceil(quotient) - FloatCore::floor(quotient))
             % 2.0)
             == 0.0
     }
 
     fn result_floor(dividend: Self, divisor: Self) -> i128 {
-        dividend.div_euclid(divisor) as i128
+        dividend.div_euclid(&divisor) as i128
     }
 }
 
@@ -121,7 +141,13 @@ impl Roundable for i64 {
     }
 
     fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
-        Some((dividend.abs() % divisor).cmp(&(divisor / 2)))
+        let midway = divisor.div_euclid(2);
+        let cmp = dividend.rem_euclid(divisor).cmp(&midway);
+        if cmp == Ordering::Equal && divisor.rem_euclid(2) != 0 {
+            Some(Ordering::Less)
+        } else {
+            Some(cmp)
+        }
     }
 
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
@@ -139,6 +165,8 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
     divisor: T,
     unsigned_rounding_mode: UnsignedRoundingMode,
 ) -> i128 {
+    // (x is dividend / divisor)
+
     // (from RoundNumberToIncrement, RoundNumberToIncrementAsIfPositive)
     // 5. Let r1 be the largest integer such that r1 ≤ quotient.
     // 6. Let r2 be the smallest integer such that r2 > quotient.
@@ -222,66 +250,136 @@ mod tests {
                 TryFrom::try_from(self.increment).unwrap(),
             )
             .unwrap();
+
             assert_eq!(
                 self.ceil,
                 rounder.round(RoundingMode::Ceil),
-                "Testing {:?}/{:?} with mode Ceil",
+                "Rounding {:?}/{:?} with mode Ceil",
                 self.x,
                 self.increment
             );
             assert_eq!(
                 self.floor,
                 rounder.round(RoundingMode::Floor),
-                "Testing {:?}/{:?} with mode Floor",
-                self.x,
-                self.increment
-            );
-            assert_eq!(
-                self.expand,
-                rounder.round(RoundingMode::Expand),
-                "Testing {:?}/{:?} with mode Expand",
+                "Rounding {:?}/{:?} with mode Floor",
                 self.x,
                 self.increment
             );
             assert_eq!(
                 self.trunc,
                 rounder.round(RoundingMode::Trunc),
-                "Testing {:?}/{:?} with mode Trunc",
+                "Rounding {:?}/{:?} with mode Trunc",
                 self.x,
                 self.increment
             );
             assert_eq!(
+                self.floor,
+                rounder.round_as_if_positive(RoundingMode::Trunc),
+                "Rounding (as if positive) {:?}/{:?} with mode Trunc",
+                self.x,
+                self.increment
+            );
+
+            assert_eq!(
                 self.half_ceil,
                 rounder.round(RoundingMode::HalfCeil),
-                "Testing {:?}/{:?} with mode HalfCeil",
+                "Rounding {:?}/{:?} with mode HalfCeil",
                 self.x,
                 self.increment
             );
             assert_eq!(
                 self.half_floor,
                 rounder.round(RoundingMode::HalfFloor),
-                "Testing {:?}/{:?} with mode HalfFloor",
+                "Rounding {:?}/{:?} with mode HalfFloor",
                 self.x,
                 self.increment
             );
             assert_eq!(
                 self.half_expand,
                 rounder.round(RoundingMode::HalfExpand),
-                "Testing {:?}/{:?} with mode HalfExpand",
+                "Rounding {:?}/{:?} with mode HalfExpand",
                 self.x,
                 self.increment
             );
             assert_eq!(
                 self.half_trunc,
                 rounder.round(RoundingMode::HalfTrunc),
-                "Testing {:?}/{:?} with mode HalfTrunc",
+                "Rounding {:?}/{:?} with mode HalfTrunc",
                 self.x,
                 self.increment
             );
             assert_eq!(
                 self.half_even,
                 rounder.round(RoundingMode::HalfEven),
-                "Testing {:?}/{:?} with mode HalfEven",
+                "Rounding {:?}/{:?} with mode HalfEven",
+                self.x,
+                self.increment
+            );
+
+            // Ceil and floor are the same for as_if_positive
+            assert_eq!(
+                self.ceil,
+                rounder.round_as_if_positive(RoundingMode::Ceil),
+                "Rounding (as if positive) {:?}/{:?} with mode Ceil",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.floor,
+                rounder.round_as_if_positive(RoundingMode::Floor),
+                "Rounding (as if positive) {:?}/{:?} with mode Floor",
+                self.x,
+                self.increment
+            );
+            // Expand and Trunc are equivalent to Ceil and Floor for as_if_positive
+            assert_eq!(
+                self.expand,
+                rounder.round(RoundingMode::Expand),
+                "Rounding {:?}/{:?} with mode Expand",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.ceil,
+                rounder.round_as_if_positive(RoundingMode::Expand),
+                "Rounding (as if positive) {:?}/{:?} with mode Expand",
+                self.x,
+                self.increment
+            );
+            // Same goes for the half ones
+            assert_eq!(
+                self.half_ceil,
+                rounder.round_as_if_positive(RoundingMode::HalfCeil),
+                "Rounding (as if positive) {:?}/{:?} with mode HalfCeil",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_floor,
+                rounder.round_as_if_positive(RoundingMode::HalfFloor),
+                "Rounding (as if positive) {:?}/{:?} with mode HalfFloor",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_ceil,
+                rounder.round_as_if_positive(RoundingMode::HalfExpand),
+                "Rounding (as if positive) {:?}/{:?} with mode HalfExpand",
+                self.x,
+                self.increment
+            );
+            assert_eq!(
+                self.half_floor,
+                rounder.round_as_if_positive(RoundingMode::HalfTrunc),
+                "Rounding (as if positive) {:?}/{:?} with mode HalfTrunc",
+                self.x,
+                self.increment
+            );
+            // HalfEven is just HalfEven
+            assert_eq!(
+                self.half_even,
+                rounder.round_as_if_positive(RoundingMode::HalfEven),
+                "Rounding (as if positive) {:?}/{:?} with mode HalfEven",
                 self.x,
                 self.increment
             );
@@ -395,62 +493,117 @@ mod tests {
                 half_trunc: -110,
                 half_even: -110,
             },
+            // More negative number tests
+            TestCase {
+                x: -9i128,
+                increment: 2,
+                ceil: -8,
+                floor: -10,
+                expand: -10,
+                trunc: -8,
+                half_ceil: -8,
+                half_floor: -10,
+                half_expand: -10,
+                half_trunc: -8,
+                half_even: -8,
+            },
+            TestCase {
+                x: -14i128,
+                increment: 3,
+                ceil: -12,
+                floor: -15,
+                expand: -15,
+                trunc: -12,
+                half_ceil: -15,
+                half_floor: -15,
+                half_expand: -15,
+                half_trunc: -15,
+                half_even: -15,
+            },
         ];
 
         for case in CASES {
             case.run();
+
+            TestCase {
+                x: case.x as f64,
+                increment: case.increment,
+                ceil: case.ceil,
+                floor: case.floor,
+                expand: case.expand,
+                trunc: case.trunc,
+                half_ceil: case.half_ceil,
+                half_floor: case.half_floor,
+                half_expand: case.half_expand,
+                half_trunc: case.half_trunc,
+                half_even: case.half_even,
+            }
+            .run();
+
+            TestCase {
+                x: case.x as i64,
+                increment: case.increment,
+                ceil: case.ceil,
+                floor: case.floor,
+                expand: case.expand,
+                trunc: case.trunc,
+                half_ceil: case.half_ceil,
+                half_floor: case.half_floor,
+                half_expand: case.half_expand,
+                half_trunc: case.half_trunc,
+                half_even: case.half_even,
+            }
+            .run();
         }
     }
 
     #[test]
-    fn neg_i128_rounding() {
-        TestCase {
-            x: -9i128,
-            increment: 2,
-            ceil: -8,
-            floor: -10,
-            expand: -10,
-            trunc: -8,
-            half_ceil: -8,
-            half_floor: -10,
-            half_expand: -10,
-            half_trunc: -8,
-            half_even: -8,
-        }
-        .run();
+    fn test_float_rounding_cases() {
+        const CASES: &[TestCase<f64>] = &[
+            TestCase {
+                x: -8.5f64,
+                increment: 1,
+                ceil: -8,
+                floor: -9,
+                expand: -9,
+                trunc: -8,
+                half_ceil: -8,
+                half_floor: -9,
+                half_expand: -9,
+                half_trunc: -8,
+                half_even: -8,
+            },
+            TestCase {
+                x: -8.5f64,
+                increment: 2,
+                ceil: -8,
+                floor: -10,
+                expand: -10,
+                trunc: -8,
+                half_ceil: -8,
+                half_floor: -8,
+                half_expand: -8,
+                half_trunc: -8,
+                half_even: -8,
+            },
+            TestCase {
+                x: -9.5f64,
+                increment: 2,
+                ceil: -8,
+                floor: -10,
+                expand: -10,
+                trunc: -8,
+                half_ceil: -10,
+                half_floor: -10,
+                half_expand: -10,
+                half_trunc: -10,
+                half_even: -10,
+            },
+        ];
 
-        TestCase {
-            x: -14i128,
-            increment: 3,
-            ceil: -12,
-            floor: -15,
-            expand: -15,
-            trunc: -12,
-            half_ceil: -15,
-            half_floor: -15,
-            half_expand: -15,
-            half_trunc: -15,
-            half_even: -15,
+        for case in CASES {
+            case.run()
         }
-        .run();
-    }
-
-    #[test]
-    fn neg_f64_rounding() {
-        TestCase {
-            x: -8.5f64,
-            increment: 1,
-            ceil: -8,
-            floor: -9,
-            expand: -9,
-            trunc: -8,
-            half_ceil: -8,
-            half_floor: -9,
-            half_expand: -9,
-            half_trunc: -8,
-            half_even: -8,
-        }
-        .run();
     }
 
     #[test]
