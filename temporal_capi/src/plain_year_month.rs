@@ -189,7 +189,7 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn epoch_ns_for(
+        pub fn epoch_ms_for(
             &self,
             time_zone: &crate::time_zone::ffi::TimeZone,
         ) -> Result<i64, TemporalError> {
@@ -199,7 +199,7 @@ pub mod ffi {
                 .map_err(TemporalError::from)?;
 
             let ns_i128 = ns.as_i128();
-            let ms = ns_i128 / 1000;
+            let ms = ns_i128 / 1_000_000;
             if let Ok(ms) = i64::try_from(ms) {
                 Ok(ms)
             } else {
