@@ -25,7 +25,7 @@ use crate::{
     partial::{PartialDate, PartialTime},
     primitive::FiniteF64,
     provider::{TimeZoneProvider, TransitionDirection},
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     temporal_assert,
     unix_time::EpochNanoseconds,
     MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
