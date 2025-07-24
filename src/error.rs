@@ -165,7 +165,7 @@ impl fmt::Display for TemporalError {
 }
 
 /// The error message
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ErrorMessage {
     // Range
     InstantOutOfRange,
