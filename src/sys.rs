@@ -64,5 +64,5 @@ pub(crate) fn get_system_nanoseconds() -> TemporalResult<EpochNanoseconds> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| TemporalError::general(e.to_string()))
-        .map(|d| EpochNanoseconds::try_from(d.as_nanos()))?
+        .map(|d| EpochNanoseconds::from(d.as_nanos() as i128))
 }

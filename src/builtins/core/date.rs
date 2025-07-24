@@ -383,7 +383,7 @@ impl PlainDate {
         // 12. If roundingGranularityIsNoop is false, then
         if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
-            let dest_epoch_ns = other.iso.as_nanoseconds()?;
+            let dest_epoch_ns = other.iso.as_nanoseconds();
             // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
             let dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new_unchecked(self.iso, IsoTime::default()),

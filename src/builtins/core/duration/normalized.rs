@@ -562,7 +562,7 @@ impl NormalizedDurationRecord {
         } else {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-            (start.as_nanoseconds()?, end.as_nanoseconds()?)
+            (start.as_nanoseconds(), end.as_nanoseconds())
         };
 
         // 9. If endEpochNs = startEpochNs, throw a RangeError exception.
@@ -900,7 +900,7 @@ impl NormalizedDurationRecord {
                     // vi. If timeZone is unset, then
                     None => {
                         // 1. Let endEpochNs be GetUTCEpochNanoseconds(endDateTime).
-                        end_date_time.as_nanoseconds()?
+                        end_date_time.as_nanoseconds()
                     }
                     // vii. Else,
                     Some((time_zone, time_zone_provider)) => {

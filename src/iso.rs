@@ -145,7 +145,7 @@ impl IsoDateTime {
     }
 
     /// Returns this `IsoDateTime` in nanoseconds
-    pub fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+    pub fn as_nanoseconds(&self) -> EpochNanoseconds {
         utc_epoch_nanos(self.date, &self.time)
     }
 
@@ -371,7 +371,7 @@ impl IsoDate {
 
     /// Returns this `IsoDate` in nanoseconds.
     #[inline]
-    pub(crate) fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+    pub(crate) fn as_nanoseconds(&self) -> EpochNanoseconds {
         utc_epoch_nanos(*self, &IsoTime::default())
     }
 
@@ -930,9 +930,9 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
 
 #[inline]
 /// Utility function to convert a `IsoDate` and `IsoTime` values into epoch nanoseconds
-fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanoseconds> {
+fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> EpochNanoseconds {
     let epoch_nanos = to_unchecked_epoch_nanoseconds(date, time);
-    EpochNanoseconds::try_from(epoch_nanos)
+    EpochNanoseconds::from(epoch_nanos)
 }
 
 #[inline]

@@ -311,7 +311,7 @@ impl TimeZone {
                 // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
                 balanced.date.is_valid_day_range()?;
                 // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
-                let epoch_ns = balanced.as_nanoseconds()?;
+                let epoch_ns = balanced.as_nanoseconds();
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
                 vec![epoch_ns]
             }
@@ -327,6 +327,9 @@ impl TimeZone {
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
         // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
+        for ns in possible_nanoseconds {
+            ns.check_validity()?;
+        }
         // 5. Return possibleEpochNanoseconds.
         Ok(possible_nanoseconds)
     }
@@ -523,7 +526,9 @@ impl TimeZone {
         // let provider.
         // 6. Assert: possibleEpochNsAfter's length = 1.
         // 7. Return possibleEpochNsAfter[0].
-        EpochNanoseconds::try_from(i128::from(transition_epoch) * 1_000_000_000)
+        Ok(EpochNanoseconds::from(
+            i128::from(transition_epoch) * 1_000_000_000,
+        ))
     }
 }
 

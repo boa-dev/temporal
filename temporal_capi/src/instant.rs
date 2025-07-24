@@ -35,7 +35,9 @@ pub mod ffi {
     impl I128Nanoseconds {
         pub fn is_valid(self) -> bool {
             let ns = i128::from(self);
-            temporal_rs::unix_time::EpochNanoseconds::try_from(ns).is_ok()
+            temporal_rs::unix_time::EpochNanoseconds::from(ns)
+                .check_validity()
+                .is_ok()
         }
     }
 
