@@ -230,7 +230,12 @@ impl TimeZone {
         instant: &Instant,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<IsoDateTime> {
+        // 1. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, epochNs).
         let nanos = self.get_offset_nanos_for(instant.as_i128(), provider)?;
+        // 2. Let result be GetISOPartsFromEpoch(ℝ(epochNs)).
+        // 3. Return BalanceISODateTime(result.[[ISODate]].[[Year]], result.[[ISODate]].[[Month]], result.[[ISODate]].[[Day]],
+        // result.[[Time]].[[Hour]], result.[[Time]].[[Minute]], result.[[Time]].[[Second]], result.[[Time]].[[Millisecond]],
+        // result.[[Time]].[[Microsecond]], result.[[Time]].[[Nanosecond]] + offsetNanoseconds).
         IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.to_i64().unwrap_or(0))
     }
 
@@ -327,7 +332,7 @@ impl TimeZone {
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
         // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
-        for ns in possible_nanoseconds {
+        for ns in &possible_nanoseconds {
             ns.check_validity()?;
         }
         // 5. Return possibleEpochNanoseconds.

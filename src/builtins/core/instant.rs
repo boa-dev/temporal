@@ -163,10 +163,13 @@ impl Instant {
     ///
     /// Temporal-Proposal equivalent: `AddInstant`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
+        // 1. Let result be AddTimeDurationToEpochNanoseconds(timeDuration, epochNanoseconds).
         let norm = NormalizedTimeDuration::from_time_duration(duration);
         let result = self.epoch_nanoseconds().0 + norm.0;
         let ns = EpochNanoseconds::from(result);
+        // 2. If IsValidEpochNanoseconds(result) is false, throw a RangeError exception.
         ns.check_validity()?;
+        // 3. Return result.
         Ok(Self::from(ns))
     }
 
@@ -321,6 +324,8 @@ impl Instant {
         );
 
         let nanoseconds = balanced.as_nanoseconds();
+
+        nanoseconds.check_validity()?;
 
         Ok(Self(nanoseconds))
     }
