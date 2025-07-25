@@ -1468,9 +1468,11 @@ pub(crate) fn interpret_isodatetime_offset(
             iso.date.is_valid_day_range()?;
 
             // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
+            let ns = iso.as_nanoseconds();
             // d. If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
+            ns.check_validity()?;
             // e. Return epochNanoseconds.
-            iso.as_nanoseconds()
+            Ok(ns)
         }
         // 5. Assert: offsetBehaviour is option.
         // 6. Assert: offsetOption is prefer or reject.
@@ -1479,7 +1481,7 @@ pub(crate) fn interpret_isodatetime_offset(
             date.is_valid_day_range()?;
             let iso = IsoDateTime::new_unchecked(date, time);
             // 8. Let utcEpochNanoseconds be GetUTCEpochNanoseconds(isoDateTime).
-            let utc_epochs = iso.as_nanoseconds()?;
+            let utc_epochs = iso.as_nanoseconds();
             // 9. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
             let possible_nanos = timezone.get_possible_epoch_ns_for(iso, provider)?;
             // 10. For each element candidate of possibleEpochNs, do

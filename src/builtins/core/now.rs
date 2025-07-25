@@ -140,13 +140,13 @@ mod tests {
         let provider = FsTzdbProvider::default();
 
         // 2025-03-11T10:47-06:00
-        const TIME_BASE: u128 = 1_741_751_188_077_363_694;
+        const TIME_BASE: i128 = 1_741_751_188_077_363_694;
 
         let cdt = TimeZone::try_from_identifier_str_with_provider("-05:00", &provider).unwrap();
         let uschi =
             TimeZone::try_from_identifier_str_with_provider("America/Chicago", &provider).unwrap();
 
-        let base = EpochNanoseconds::try_from(TIME_BASE).unwrap();
+        let base = EpochNanoseconds::from(TIME_BASE);
         let now = NowBuilder::default()
             .with_system_nanoseconds(base)
             .with_system_zone(cdt.clone())
@@ -175,7 +175,7 @@ mod tests {
         assert_eq!(cdt_datetime, uschi_datetime);
 
         let plus_5_secs = TIME_BASE + (5 * 1_000_000_000);
-        let plus_5_epoch = EpochNanoseconds::try_from(plus_5_secs).unwrap();
+        let plus_5_epoch = EpochNanoseconds::from(plus_5_secs);
         let plus_5_now = NowBuilder::default()
             .with_system_nanoseconds(plus_5_epoch)
             .with_system_zone(cdt)

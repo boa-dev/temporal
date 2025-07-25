@@ -651,22 +651,21 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         identifier: &str,
         iso_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = iso_datetime.as_nanoseconds()?;
+        let epoch_nanos = iso_datetime.as_nanoseconds();
         let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
         let tzif = self.get(identifier)?;
         let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
             LocalTimeRecordResult::Empty => Vec::default(),
             LocalTimeRecordResult::Single(r) => {
-                let epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.0))?;
+                let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
                 vec![epoch_ns]
             }
             LocalTimeRecordResult::Ambiguous { std, dst } => {
                 let std_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.0))?;
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(std.0));
                 let dst_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0))?;
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0));
                 vec![std_epoch_ns, dst_epoch_ns]
             }
         };
@@ -741,22 +740,21 @@ impl TimeZoneProvider for FsTzdbProvider {
         identifier: &str,
         iso_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = iso_datetime.as_nanoseconds()?;
+        let epoch_nanos = iso_datetime.as_nanoseconds();
         let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
         let tzif = self.get(identifier)?;
         let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
             LocalTimeRecordResult::Empty => Vec::default(),
             LocalTimeRecordResult::Single(r) => {
-                let epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(r.0))?;
+                let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
                 vec![epoch_ns]
             }
             LocalTimeRecordResult::Ambiguous { std, dst } => {
                 let std_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(std.0))?;
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(std.0));
                 let dst_epoch_ns =
-                    EpochNanoseconds::try_from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0))?;
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0));
                 vec![std_epoch_ns, dst_epoch_ns]
             }
         };
@@ -935,7 +933,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = (edge_case.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -971,7 +969,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let seconds = (today.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -1004,7 +1002,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = (edge_case.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -1047,7 +1045,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let seconds = (today.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -1092,7 +1090,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = (edge_case.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let locals = new_york
             .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
@@ -1129,7 +1127,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let seconds = (today.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
 
@@ -1163,7 +1161,7 @@ mod tests {
             nanosecond: 0,
         };
         let edge_case = IsoDateTime::new(date, time).unwrap();
-        let edge_case_seconds = (edge_case.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = (edge_case.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -1205,7 +1203,7 @@ mod tests {
             nanosecond: 0,
         };
         let today = IsoDateTime::new(date, time).unwrap();
-        let seconds = (today.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let seconds = (today.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -1243,7 +1241,7 @@ mod tests {
             nanosecond: 0,
         };
         let start_dt = IsoDateTime::new(start_date, start_time).unwrap();
-        let start_dt_secs = (start_dt.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let start_dt_secs = (start_dt.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let start_seconds = &Seconds(start_dt_secs);
 
@@ -1267,7 +1265,7 @@ mod tests {
             nanosecond: 0,
         };
         let end_dt = IsoDateTime::new(end_date, end_time).unwrap();
-        let end_dt_secs = (end_dt.as_nanoseconds().unwrap().0 / 1_000_000_000) as i64;
+        let end_dt_secs = (end_dt.as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let end_seconds = &Seconds(end_dt_secs);
 
