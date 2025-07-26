@@ -173,6 +173,8 @@ namespace capi {
     typedef struct temporal_rs_ZonedDateTime_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_ZonedDateTime_era_year_result;
     temporal_rs_ZonedDateTime_era_year_result temporal_rs_ZonedDateTime_era_year(const temporal_rs::capi::ZonedDateTime* self);
 
+    temporal_rs::capi::ZonedDateTime* temporal_rs_ZonedDateTime_clone(const temporal_rs::capi::ZonedDateTime* self);
+
     void temporal_rs_ZonedDateTime_destroy(ZonedDateTime* self);
 
     } // extern "C"
@@ -515,6 +517,11 @@ inline void temporal_rs::ZonedDateTime::era_write(W& writeable) const {
 inline std::optional<int32_t> temporal_rs::ZonedDateTime::era_year() const {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_era_year(this->AsFFI());
   return result.is_ok ? std::optional<int32_t>(result.ok) : std::nullopt;
+}
+
+inline std::unique_ptr<temporal_rs::ZonedDateTime> temporal_rs::ZonedDateTime::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result));
 }
 
 inline const temporal_rs::capi::ZonedDateTime* temporal_rs::ZonedDateTime::AsFFI() const {

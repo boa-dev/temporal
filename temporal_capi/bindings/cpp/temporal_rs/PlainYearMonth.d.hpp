@@ -59,6 +59,8 @@ public:
 
   inline uint8_t iso_month() const;
 
+  inline uint8_t iso_day() const;
+
   inline int32_t year() const;
 
   inline uint8_t month() const;
@@ -102,6 +104,8 @@ public:
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
   template<typename W>
   inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
+
+  inline std::unique_ptr<temporal_rs::PlainYearMonth> clone() const;
 
   inline const temporal_rs::capi::PlainYearMonth* AsFFI() const;
   inline temporal_rs::capi::PlainYearMonth* AsFFI();

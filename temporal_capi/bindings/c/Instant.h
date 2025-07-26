@@ -70,6 +70,8 @@ temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instan
 
 ZonedDateTime* temporal_rs_Instant_to_zoned_date_time_iso(const Instant* self, const TimeZone* zone);
 
+Instant* temporal_rs_Instant_clone(const Instant* self);
+
 void temporal_rs_Instant_destroy(Instant* self);
 
 

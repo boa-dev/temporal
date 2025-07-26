@@ -171,14 +171,6 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
-        pub fn from_day_and_time(
-            day: i64,
-            time: &TimeDuration,
-        ) -> Result<Box<Self>, TemporalError> {
-            Ok(Box::new(Duration(
-                temporal_rs::Duration::from_day_and_time(day, &time.0),
-            )))
-        }
         pub fn from_partial_duration(partial: PartialDuration) -> Result<Box<Self>, TemporalError> {
             temporal_rs::Duration::from_partial_duration(partial.try_into()?)
                 .map(|x| Box::new(Duration(x)))
@@ -323,6 +315,11 @@ pub mod ffi {
                 .total(unit.into(), relative_to.into())
                 .map(|x| x.as_inner())
                 .map_err(Into::into)
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0))
         }
     }
 }

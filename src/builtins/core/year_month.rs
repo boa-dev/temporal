@@ -588,6 +588,13 @@ impl PlainYearMonth {
         self.iso.month
     }
 
+    /// Returns the internal ISO day for this `YearMonth`.
+    #[inline]
+    #[must_use]
+    pub fn iso_reference_day(&self) -> u8 {
+        self.iso.day
+    }
+
     /// Returns the calendar era of the current `PlainYearMonth`
     pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar().era(&self.iso)
@@ -606,6 +613,11 @@ impl PlainYearMonth {
     /// Returns the calendar month of the current `PlainYearMonth`
     pub fn month(&self) -> u8 {
         self.calendar().month(&self.iso)
+    }
+
+    /// Returns the calendar reference day of the current `PlainYearMonth`
+    pub fn reference_day(&self) -> u8 {
+        self.calendar().day(&self.iso)
     }
 
     /// Returns the calendar month code of the current `PlainYearMonth`
