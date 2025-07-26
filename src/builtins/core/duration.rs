@@ -264,6 +264,27 @@ impl Duration {
         Self { date, time }
     }
 
+    pub(crate) fn try_new_from_durations(
+        date: DateDuration,
+        time: TimeDuration,
+    ) -> TemporalResult<Self> {
+        if !is_valid_duration(
+            date.years,
+            date.months,
+            date.weeks,
+            date.days,
+            time.hours,
+            time.minutes,
+            time.seconds,
+            time.milliseconds,
+            time.microseconds,
+            time.nanoseconds,
+        ) {
+            return Err(TemporalError::range().with_message("Duration was not valid."));
+        }
+        Ok(Self::new_unchecked(date, time))
+    }
+
     #[inline]
     pub(crate) fn from_normalized(
         duration_record: NormalizedDurationRecord,
@@ -391,12 +412,8 @@ impl Duration {
     /// Creates a `Duration` from a provided a day and a `TimeDuration`.
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
-    #[must_use]
-    pub fn from_day_and_time(day: i64, time: &TimeDuration) -> Self {
-        Self {
-            date: DateDuration::new_unchecked(0, 0, 0, day),
-            time: *time,
-        }
+    pub(crate) fn try_from_day_and_time(day: i64, time: &TimeDuration) -> TemporalResult<Self> {
+        Self::try_new_from_durations(DateDuration::new_unchecked(0, 0, 0, day), *time)
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
@@ -764,7 +781,7 @@ impl Duration {
 
         // 32. Return ! CreateTemporalDuration(0, 0, 0, result.[[Days]], result.[[Hours]], result.[[Minutes]],
         // result.[[Seconds]], result.[[Milliseconds]], result.[[Microseconds]], result.[[Nanoseconds]]).
-        Ok(Duration::from_day_and_time(result_days, &result_time))
+        Duration::try_from_day_and_time(result_days, &result_time)
     }
 
     /// Returns the result of subtracting a `Duration` from the current `Duration`

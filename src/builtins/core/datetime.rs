@@ -285,14 +285,16 @@ impl PlainDateTime {
         other: &Self,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
-        // 1. Assert: IsValidISODate(y1, mon1, d1) is true.
-        // 2. Assert: IsValidISODate(y2, mon2, d2) is true.
-        // 3. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
+        // 1. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
             // a. Let durationRecord be CreateDurationRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
             // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
             return Ok(NormalizedDurationRecord::default());
         }
+        // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
+        self.iso.check_validity()?;
+        other.iso.check_validity()?;
+
         // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, largestUnit).
         let diff = self
             .iso
