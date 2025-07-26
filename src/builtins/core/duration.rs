@@ -1257,6 +1257,18 @@ pub(crate) fn is_valid_duration(
         return false;
     };
 
+    // Work around https://github.com/boa-dev/temporal/issues/189
+    // For the purpose of the validity check, we should normalize the i128 values
+    // to valid floating point values. This may round up!
+    //
+    // We only need to do this seconds and below, if any of the larger
+    // values are near MAX_SAFE_INTEGER then their seconds value will without question
+    // also be near MAX_SAFE_INTEGER.
+    let seconds = seconds as f64 as i64;
+    let milliseconds = milliseconds as f64 as i64;
+    let microseconds = microseconds as f64 as i128;
+    let nanoseconds = nanoseconds as f64 as i128;
+
     // 6. Let normalizedSeconds be days × 86,400 + hours × 3600 + minutes × 60 + seconds
     // + ℝ(𝔽(milliseconds)) × 10**-3 + ℝ(𝔽(microseconds)) × 10**-6 + ℝ(𝔽(nanoseconds)) × 10**-9.
     // 7. NOTE: The above step cannot be implemented directly using floating-point arithmetic.
