@@ -72,6 +72,8 @@ public:
   template<typename W>
   inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
+  inline std::unique_ptr<temporal_rs::PlainMonthDay> clone() const;
+
   inline const temporal_rs::capi::PlainMonthDay* AsFFI() const;
   inline temporal_rs::capi::PlainMonthDay* AsFFI();
   inline static const temporal_rs::PlainMonthDay* FromFFI(const temporal_rs::capi::PlainMonthDay* ptr);

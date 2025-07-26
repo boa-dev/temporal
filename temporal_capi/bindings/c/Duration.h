@@ -94,6 +94,8 @@ temporal_rs_Duration_compare_result temporal_rs_Duration_compare(const Duration*
 typedef struct temporal_rs_Duration_total_result {union {double ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_total_result;
 temporal_rs_Duration_total_result temporal_rs_Duration_total(const Duration* self, Unit unit, RelativeTo relative_to);
 
+Duration* temporal_rs_Duration_clone(const Duration* self);
+
 void temporal_rs_Duration_destroy(Duration* self);
 
 

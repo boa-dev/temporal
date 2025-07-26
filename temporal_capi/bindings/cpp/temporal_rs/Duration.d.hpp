@@ -101,6 +101,8 @@ public:
 
   inline diplomat::result<double, temporal_rs::TemporalError> total(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to) const;
 
+  inline std::unique_ptr<temporal_rs::Duration> clone() const;
+
   inline const temporal_rs::capi::Duration* AsFFI() const;
   inline temporal_rs::capi::Duration* AsFFI();
   inline static const temporal_rs::Duration* FromFFI(const temporal_rs::capi::Duration* ptr);

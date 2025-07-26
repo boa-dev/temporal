@@ -143,6 +143,8 @@ temporal_rs_PlainDateTime_to_zoned_date_time_result temporal_rs_PlainDateTime_to
 typedef struct temporal_rs_PlainDateTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_ixdtf_string_result;
 temporal_rs_PlainDateTime_to_ixdtf_string_result temporal_rs_PlainDateTime_to_ixdtf_string(const PlainDateTime* self, ToStringRoundingOptions options, DisplayCalendar display_calendar, DiplomatWrite* write);
 
+PlainDateTime* temporal_rs_PlainDateTime_clone(const PlainDateTime* self);
+
 void temporal_rs_PlainDateTime_destroy(PlainDateTime* self);
 
 

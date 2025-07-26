@@ -144,6 +144,8 @@ public:
   template<typename W>
   inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
+  inline std::unique_ptr<temporal_rs::PlainDateTime> clone() const;
+
   inline const temporal_rs::capi::PlainDateTime* AsFFI() const;
   inline temporal_rs::capi::PlainDateTime* AsFFI();
   inline static const temporal_rs::PlainDateTime* FromFFI(const temporal_rs::capi::PlainDateTime* ptr);

@@ -359,6 +359,11 @@ pub mod ffi {
             let _ = writeable.write_to(write);
             Ok(())
         }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
+        }
     }
 }
 

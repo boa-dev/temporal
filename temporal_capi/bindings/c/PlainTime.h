@@ -86,6 +86,8 @@ temporal_rs_PlainTime_round_result temporal_rs_PlainTime_round(const PlainTime* 
 typedef struct temporal_rs_PlainTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_to_ixdtf_string_result;
 temporal_rs_PlainTime_to_ixdtf_string_result temporal_rs_PlainTime_to_ixdtf_string(const PlainTime* self, ToStringRoundingOptions options, DiplomatWrite* write);
 
+PlainTime* temporal_rs_PlainTime_clone(const PlainTime* self);
+
 void temporal_rs_PlainTime_destroy(PlainTime* self);
 
 

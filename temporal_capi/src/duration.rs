@@ -324,6 +324,11 @@ pub mod ffi {
                 .map(|x| x.as_inner())
                 .map_err(Into::into)
         }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0))
+        }
     }
 }
 

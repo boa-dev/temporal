@@ -88,6 +88,8 @@ public:
   template<typename W>
   inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
 
+  inline std::unique_ptr<temporal_rs::PlainTime> clone() const;
+
   inline const temporal_rs::capi::PlainTime* AsFFI() const;
   inline temporal_rs::capi::PlainTime* AsFFI();
   inline static const temporal_rs::PlainTime* FromFFI(const temporal_rs::capi::PlainTime* ptr);

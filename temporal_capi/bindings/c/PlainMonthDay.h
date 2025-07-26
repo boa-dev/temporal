@@ -60,6 +60,8 @@ temporal_rs_PlainMonthDay_epoch_ms_for_result temporal_rs_PlainMonthDay_epoch_ms
 
 void temporal_rs_PlainMonthDay_to_ixdtf_string(const PlainMonthDay* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 
+PlainMonthDay* temporal_rs_PlainMonthDay_clone(const PlainMonthDay* self);
+
 void temporal_rs_PlainMonthDay_destroy(PlainMonthDay* self);
 
 

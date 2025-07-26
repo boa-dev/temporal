@@ -166,6 +166,11 @@ pub mod ffi {
         pub fn to_zoned_date_time_iso(&self, zone: &TimeZone) -> Box<ZonedDateTime> {
             Box::new(ZonedDateTime(self.0.to_zoned_date_time_iso(zone.0.clone())))
         }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0))
+        }
     }
 }
 
