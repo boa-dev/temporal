@@ -14,6 +14,8 @@
 namespace temporal_rs {
 namespace capi { struct Calendar; }
 class Calendar;
+namespace capi { struct DateDuration; }
+class DateDuration;
 namespace capi { struct Duration; }
 class Duration;
 namespace capi { struct PlainDate; }
@@ -55,7 +57,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> year_month_from_partial(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> date_add(temporal_rs::IsoDate date, const temporal_rs::Duration& duration, temporal_rs::ArithmeticOverflow overflow) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> date_add(temporal_rs::IsoDate date, const temporal_rs::DateDuration& duration, temporal_rs::ArithmeticOverflow overflow) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> date_until(temporal_rs::IsoDate one, temporal_rs::IsoDate two, temporal_rs::Unit largest_unit) const;
 

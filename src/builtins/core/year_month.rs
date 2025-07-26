@@ -326,7 +326,7 @@ impl PlainYearMonth {
             // b. Let nextMonth be ? CalendarDateAdd(calendar, intermediateDate, oneMonthDuration, constrain).
             let next_month = calendar.date_add(
                 &intermediate_date.iso,
-                &Duration::from(one_month_duration),
+                &one_month_duration,
                 ArithmeticOverflow::Constrain,
             )?;
 
@@ -353,7 +353,7 @@ impl PlainYearMonth {
         let duration_to_add = duration.to_date_duration_record_without_time()?;
 
         // 13. Let addedDate be ? CalendarDateAdd(calendar, date, durationToAdd, overflow).
-        let added_date = calendar.date_add(&date, &Duration::from(duration_to_add), overflow)?;
+        let added_date = calendar.date_add(&date, &duration_to_add, overflow)?;
 
         // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
         let added_date_fields = PartialYearMonth::from(
