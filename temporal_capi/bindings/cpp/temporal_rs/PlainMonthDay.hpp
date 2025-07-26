@@ -63,6 +63,8 @@ namespace capi {
 
     void temporal_rs_PlainMonthDay_to_ixdtf_string(const temporal_rs::capi::PlainMonthDay* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
+    temporal_rs::capi::PlainMonthDay* temporal_rs_PlainMonthDay_clone(const temporal_rs::capi::PlainMonthDay* self);
+
     void temporal_rs_PlainMonthDay_destroy(PlainMonthDay* self);
 
     } // extern "C"
@@ -173,6 +175,11 @@ inline void temporal_rs::PlainMonthDay::to_ixdtf_string_write(temporal_rs::Displ
   temporal_rs::capi::temporal_rs_PlainMonthDay_to_ixdtf_string(this->AsFFI(),
     display_calendar.AsFFI(),
     &write);
+}
+
+inline std::unique_ptr<temporal_rs::PlainMonthDay> temporal_rs::PlainMonthDay::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::PlainMonthDay>(temporal_rs::PlainMonthDay::FromFFI(result));
 }
 
 inline const temporal_rs::capi::PlainMonthDay* temporal_rs::PlainMonthDay::AsFFI() const {

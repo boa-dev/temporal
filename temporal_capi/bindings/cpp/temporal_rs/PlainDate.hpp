@@ -134,6 +134,8 @@ namespace capi {
 
     void temporal_rs_PlainDate_to_ixdtf_string(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
+    temporal_rs::capi::PlainDate* temporal_rs_PlainDate_clone(const temporal_rs::capi::PlainDate* self);
+
     void temporal_rs_PlainDate_destroy(PlainDate* self);
 
     } // extern "C"
@@ -395,6 +397,11 @@ inline void temporal_rs::PlainDate::to_ixdtf_string_write(temporal_rs::DisplayCa
   temporal_rs::capi::temporal_rs_PlainDate_to_ixdtf_string(this->AsFFI(),
     display_calendar.AsFFI(),
     &write);
+}
+
+inline std::unique_ptr<temporal_rs::PlainDate> temporal_rs::PlainDate::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDate_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result));
 }
 
 inline const temporal_rs::capi::PlainDate* temporal_rs::PlainDate::AsFFI() const {

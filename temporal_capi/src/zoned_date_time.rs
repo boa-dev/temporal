@@ -481,6 +481,11 @@ pub mod ffi {
         pub fn era_year(&self) -> Option<i32> {
             self.0.era_year().unwrap_or_default()
         }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
+        }
     }
 }
 
