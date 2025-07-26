@@ -318,7 +318,7 @@ impl ZonedDateTime {
         // 3. Let addedDate be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], overflow).
         let added_date = self
             .calendar()
-            .date_add(&iso_datetime.date, duration, overflow)?;
+            .date_add(&iso_datetime.date, duration.date(), overflow)?;
         // 4. Let intermediateDateTime be CombineISODateAndTimeRecord(addedDate, isoDateTime.[[Time]]).
         let intermediate = IsoDateTime::new_unchecked(added_date.iso, iso_datetime.time);
         // 5. If ISODateTimeWithinLimits(intermediateDateTime) is false, throw a RangeError exception.

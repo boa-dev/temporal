@@ -937,7 +937,7 @@ impl Duration {
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = calendar.date_add(
                     &plain_relative_to.iso,
-                    &Duration::from(date_duration),
+                    &date_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
 
@@ -1057,7 +1057,7 @@ impl Duration {
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = plain_date.calendar().date_add(
                     &plain_date.iso,
-                    &Duration::from(date_duration),
+                    &date_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
                 // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
