@@ -190,6 +190,12 @@ fn duration_from_str() {
     assert_eq!(duration.nanoseconds(), 940);
 }
 
+#[test]
+fn duration_large_invalid() {
+    // From test262 built-ins/Temporal/Duration/prototype/subtract/result-out-of-range-3.js
+    assert!(Duration::new(0, 0, 0, 0, 0, 0, 0, 0, 9_007_199_254_740_991_926_258, 0).is_err());
+}
+
 // Temporal/Duration/max.js
 #[test]
 fn duration_max() {
