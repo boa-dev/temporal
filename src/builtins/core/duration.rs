@@ -1261,10 +1261,9 @@ pub(crate) fn is_valid_duration(
     // For the purpose of the validity check, we should normalize the i128 values
     // to valid floating point values. This may round up!
     //
-    // We only need to do this for days and below, the others have been bounds checked.
-    let days = days as f64 as i64;
-    let hours = hours as f64 as i64;
-    let minutes = minutes as f64 as i64;
+    // We only need to do this seconds and below, if any of the larger
+    // values are near MAX_SAFE_INTEGER then their seconds value will without question
+    // also be near MAX_SAFE_INTEGER.
     let seconds = seconds as f64 as i64;
     let milliseconds = milliseconds as f64 as i64;
     let microseconds = microseconds as f64 as i128;
