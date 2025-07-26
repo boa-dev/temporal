@@ -5,8 +5,7 @@
 
 use crate::{
     builtins::core::{
-        duration::{DateDuration, TimeDuration},
-        Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
+        duration::DateDuration, Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
     iso::IsoDate,
     options::{ArithmeticOverflow, Unit},
@@ -292,30 +291,12 @@ impl Calendar {
     pub fn date_add(
         &self,
         date: &IsoDate,
-        duration: &Duration,
+        duration: &DateDuration,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
+        // 1. If calendar is "iso8601", then
         if self.is_iso() {
-            // 8. Let norm be NormalizeTimeDuration(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]],
-            // duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-            // 9. Let balanceResult be BalanceTimeDuration(norm, "day").
-            let (balance_days, _) =
-                TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?;
-
-            // 10. Let result be ? AddISODate(date.[[ISOYear]], date.[[ISOMonth]], date.[[ISODay]], duration.[[Years]],
-            // duration.[[Months]], duration.[[Weeks]], duration.[[Days]] + balanceResult.[[Days]], overflow).
-            let result = date.add_date_duration(
-                &DateDuration::new_unchecked(
-                    duration.years(),
-                    duration.months(),
-                    duration.weeks(),
-                    duration
-                        .days()
-                        .checked_add(balance_days)
-                        .ok_or(TemporalError::range())?,
-                ),
-                overflow,
-            )?;
+            let result = date.add_date_duration(duration, overflow)?;
             // 11. Return ? CreateTemporalDate(result.[[Year]], result.[[Month]], result.[[Day]], "iso8601").
             return PlainDate::try_new(result.year, result.month, result.day, self.clone());
         }

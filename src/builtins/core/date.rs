@@ -282,7 +282,9 @@ impl PlainDate {
             // i. Set dateAdd to unused.
             // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
             // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
-            return self.calendar().date_add(&self.iso, duration, overflow);
+            return self
+                .calendar()
+                .date_add(&self.iso, duration.date(), overflow);
         }
 
         // 4. Let overflow be ? ToTemporalOverflow(options).

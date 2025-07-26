@@ -642,7 +642,7 @@ impl NormalizedDurationRecord {
         options: ResolvedRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NudgeRecord> {
-        let d = Duration::from(self.date());
+        let d = self.date();
         // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
         let start = dt
             .calendar()
@@ -889,7 +889,7 @@ impl NormalizedDurationRecord {
                 // iv. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
                 let end = calendar.date_add(
                     &iso_date_time.date,
-                    &Duration::from(end_duration),
+                    &end_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
 

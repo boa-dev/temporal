@@ -2,7 +2,7 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::duration::ffi::Duration;
+    use crate::duration::ffi::{DateDuration, Duration};
     use crate::error::ffi::TemporalError;
     use crate::iso::ffi::IsoDate;
     use crate::options::ffi::{ArithmeticOverflow, Unit};
@@ -120,7 +120,7 @@ pub mod ffi {
         pub fn date_add(
             &self,
             date: IsoDate,
-            duration: &Duration,
+            duration: &DateDuration,
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainDate>, TemporalError> {
             self.0

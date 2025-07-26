@@ -9,6 +9,7 @@
 
 #include "AnyCalendarKind.d.h"
 #include "ArithmeticOverflow.d.h"
+#include "DateDuration.d.h"
 #include "Duration.d.h"
 #include "IsoDate.d.h"
 #include "PartialDate.d.h"
@@ -44,7 +45,7 @@ typedef struct temporal_rs_Calendar_year_month_from_partial_result {union {Plain
 temporal_rs_Calendar_year_month_from_partial_result temporal_rs_Calendar_year_month_from_partial(const Calendar* self, PartialDate partial, ArithmeticOverflow overflow);
 
 typedef struct temporal_rs_Calendar_date_add_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_add_result;
-temporal_rs_Calendar_date_add_result temporal_rs_Calendar_date_add(const Calendar* self, IsoDate date, const Duration* duration, ArithmeticOverflow overflow);
+temporal_rs_Calendar_date_add_result temporal_rs_Calendar_date_add(const Calendar* self, IsoDate date, const DateDuration* duration, ArithmeticOverflow overflow);
 
 typedef struct temporal_rs_Calendar_date_until_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_until_result;
 temporal_rs_Calendar_date_until_result temporal_rs_Calendar_date_until(const Calendar* self, IsoDate one, IsoDate two, Unit largest_unit);
