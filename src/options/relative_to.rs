@@ -62,6 +62,9 @@ impl RelativeTo {
             .into());
         };
 
+        // iv. Set matchBehaviour to match-minutes.
+        let mut match_minutes = true;
+
         let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = result
@@ -73,6 +76,11 @@ impl RelativeTo {
                 let hours_in_ns = i64::from(offset.hour()) * 3_600_000_000_000_i64;
                 let minutes_in_ns = i64::from(offset.minute()) * 60_000_000_000_i64;
                 let seconds_in_ns = i64::from(offset.second().unwrap_or(0)) * 1_000_000_000_i64;
+                // 3. If offsetParseResult contains more than one MinuteSecond Parse Node, set matchBehaviour to match-exactly.
+                if offset.second().is_some() {
+                    match_minutes = false;
+                }
+
                 let ns = offset
                     .fraction()
                     .and_then(|x| x.to_nanoseconds())
@@ -111,10 +119,61 @@ impl RelativeTo {
             &timezone,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
-            true,
+            match_minutes,
             provider,
         )?;
 
         Ok(ZonedDateTime::try_new(epoch_ns.0, calendar, timezone)?.into())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[cfg(feature = "compiled_data")]
+    #[test]
+    fn relativeto_offset_parse() {
+        // Cases taken from intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset
+
+        let provider = &*crate::builtins::TZ_PROVIDER;
+        let _ =
+            RelativeTo::try_from_str_with_provider("1970-01-01T00:00-00:45:00[-00:45]", provider)
+                .unwrap();
+        // Rounded mm accepted
+        let _ = RelativeTo::try_from_str_with_provider(
+            "1970-01-01T00:00:00-00:45[Africa/Monrovia]",
+            provider,
+        )
+        .unwrap();
+        // unrounded mm::ss accepted
+        let _ = RelativeTo::try_from_str_with_provider(
+            "1970-01-01T00:00:00-00:44:30[Africa/Monrovia]",
+            provider,
+        )
+        .unwrap();
+        assert!(
+            RelativeTo::try_from_str_with_provider(
+                "1970-01-01T00:00:00-00:44:40[Africa/Monrovia]",
+                provider
+            )
+            .is_err(),
+            "Incorrect unrounded mm::ss rejected"
+        );
+        assert!(
+            RelativeTo::try_from_str_with_provider(
+                "1970-01-01T00:00:00-00:45:00[Africa/Monrovia]",
+                provider
+            )
+            .is_err(),
+            "Rounded mm::ss rejected"
+        );
+        assert!(
+            RelativeTo::try_from_str_with_provider(
+                "1970-01-01T00:00+00:44:30.123456789[+00:45]",
+                provider
+            )
+            .is_err(),
+            "Rounding not accepted between ISO offset and timezone"
+        );
     }
 }
