@@ -1,7 +1,7 @@
 use core::str::FromStr;
 
 use crate::{
-    options::{RoundingOptions, ToStringRoundingOptions, Unit},
+    options::{RoundingIncrement, RoundingOptions, ToStringRoundingOptions, Unit},
     parsers::Precision,
     partial::PartialDuration,
     provider::NeverProvider,
@@ -188,6 +188,79 @@ fn duration_from_str() {
     assert_eq!(duration.milliseconds(), 999);
     assert_eq!(duration.microseconds(), 999);
     assert_eq!(duration.nanoseconds(), 940);
+}
+
+#[test]
+fn duration_max_safe() {
+    const MAX_SAFE_INTEGER: i64 = 9007199254740991;
+
+    // From test262 built-ins/Temporal/Duration/prototype/subtract/result-out-of-range-3.js
+    assert!(Duration::new(0, 0, 0, 0, 0, 0, 0, 0, 9_007_199_254_740_991_926_258, 0).is_err());
+
+    // https://github.com/tc39/proposal-temporal/issues/3106#issuecomment-2849349391
+    let mut options = RoundingOptions {
+        increment: Some(RoundingIncrement::ONE),
+        largest_unit: Some(Unit::Nanosecond),
+        ..Default::default()
+    };
+    let d = Duration::new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        /* s = */ MAX_SAFE_INTEGER,
+        0,
+        0,
+        /* ns = */ 463_129_087,
+    )
+    .unwrap();
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
+    let d = Duration::new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        /* s = */ MAX_SAFE_INTEGER,
+        0,
+        0,
+        /* ns = */ 463_129_088,
+    )
+    .unwrap();
+    assert!(d
+        .round_with_provider(options, None, &NeverProvider)
+        .is_err());
+
+    options.largest_unit = Some(Unit::Microsecond);
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
+    let d = Duration::new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        /* s = */ MAX_SAFE_INTEGER,
+        0,
+        /* mis = */ 475_712,
+        0,
+    )
+    .unwrap();
+    assert!(d
+        .round_with_provider(options, None, &NeverProvider)
+        .is_err());
+
+    options.largest_unit = Some(Unit::Millisecond);
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
 }
 
 // Temporal/Duration/max.js
