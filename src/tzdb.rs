@@ -36,6 +36,7 @@ use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
 use std::sync::RwLock;
+use tzif::data::posix::TransitionDate;
 
 use combine::Parser;
 
@@ -44,7 +45,7 @@ use timezone_provider::prelude::*;
 use tzif::{
     self,
     data::{
-        posix::{DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDay},
+        posix::{PosixTzString, TimeZoneVariantInfo, TransitionDay},
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -331,6 +332,7 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
     db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)]
 }
 
+// NOTE: seconds here are epoch, so they are exact, not wall time.
 #[inline]
 fn resolve_posix_tz_string_for_epoch_seconds(
     posix_tz_string: &PosixTzString,
@@ -344,29 +346,41 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         });
     };
 
-    let start = &dst_variant.start_date;
-    let end = &dst_variant.end_date;
-
-    // TODO: Resolve safety issue around utils.
-    //   Using f64 is a hold over from early implementation days and should
-    //   be moved away from.
-
-    let (is_transition_day, transition) =
-        cmp_seconds_to_transitions(&start.day, &end.day, seconds)?;
-
-    let transition =
-        compute_tz_for_epoch_seconds(is_transition_day, transition, seconds, dst_variant);
     let std_offset = UtcOffsetSeconds::from(&posix_tz_string.std_info);
     let dst_offset = UtcOffsetSeconds::from(&dst_variant.variant_info);
-    let (old_offset, new_offset, transition) = match transition {
-        TransitionType::Dst => (std_offset, dst_offset, start),
-        TransitionType::Std => (dst_offset, std_offset, end),
+
+    let dst_start_seconds =
+        calculate_transition_seconds_for_year(seconds, dst_variant.start_date, std_offset);
+    let dst_end_seconds =
+        calculate_transition_seconds_for_year(seconds, dst_variant.end_date, dst_offset);
+
+    let (new_offset, transition_epoch) = if (dst_start_seconds..dst_end_seconds).contains(&seconds)
+    {
+        (dst_offset, Some(dst_start_seconds))
+    } else {
+        // NOTE: Return None because it's not clear whether we are before current DST or not.
+        //
+        // P.S.: we could in theory calculate this; it's not clear whether there is any benefit to doing so currently.
+        (std_offset, None)
     };
+    Ok(TimeZoneTransitionInfo {
+        offset: new_offset,
+        transition_epoch,
+    })
+}
+
+fn calculate_transition_seconds_for_year(
+    seconds: i64,
+    transition_date: TransitionDate,
+    offset: UtcOffsetSeconds,
+) -> i64 {
+    // Determine the year of the requested time.
     let year = utils::epoch_time_to_epoch_year(seconds * 1000);
-    let year_epoch = utils::epoch_days_for_year(year) * 86400;
+    let year_epoch_seconds = utils::epoch_days_for_year(year) * 86400;
     let leap_day = utils::mathematical_in_leap_year(seconds * 1000) as u16;
 
-    let days = match transition.day {
+    // Calculate the days in the year for the TransitionDate
+    let days = match transition_date.day {
         TransitionDay::NoLeap(day) if day > 59 => day - 1 + leap_day,
         TransitionDay::NoLeap(day) => day - 1,
         TransitionDay::WithLeap(day) => day,
@@ -375,10 +389,10 @@ fn resolve_posix_tz_string_for_epoch_seconds(
             let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8) - 1);
 
             // Month starts in the day...
-            let day_offset =
-                (u16::from(utils::epoch_seconds_to_day_of_week(i64::from(year_epoch)))
-                    + days_to_month)
-                    .rem_euclid(7);
+            let day_offset = (u16::from(utils::epoch_seconds_to_day_of_week(i64::from(
+                year_epoch_seconds,
+            ))) + days_to_month)
+                .rem_euclid(7);
 
             // EXAMPLE:
             //
@@ -415,12 +429,7 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 
     // Transition time is on local time, so we need to add the UTC offset to get the correct UTC timestamp
     // for the transition.
-    let transition_epoch =
-        i64::from(year_epoch) + i64::from(days) * 86400 + transition.time.0 - old_offset.0;
-    Ok(TimeZoneTransitionInfo {
-        offset: new_offset,
-        transition_epoch: Some(transition_epoch),
-    })
+    i64::from(year_epoch_seconds) + i64::from(days) * 86400 + transition_date.time.0 - offset.0
 }
 
 /// Resolve the footer of a tzif file.
@@ -475,29 +484,6 @@ fn resolve_posix_tz_string(
         TransitionType::Dst => Ok(UtcOffsetSeconds::from(&dst.variant_info).into()),
         TransitionType::Std => Ok(UtcOffsetSeconds::from(&posix_tz_string.std_info).into()),
     }
-}
-
-fn compute_tz_for_epoch_seconds(
-    is_transition_day: bool,
-    transition: TransitionType,
-    seconds: i64,
-    dst_variant: &DstTransitionInfo,
-) -> TransitionType {
-    if is_transition_day && transition == TransitionType::Dst {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) / 1_000;
-        let transition_time = dst_variant.start_date.time.0 - dst_variant.variant_info.offset.0;
-        if i64::from(time) < transition_time {
-            return TransitionType::Std;
-        }
-    } else if is_transition_day {
-        let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) / 1_000;
-        let transition_time = dst_variant.end_date.time.0 - dst_variant.variant_info.offset.0;
-        if i64::from(time) < transition_time {
-            return TransitionType::Dst;
-        }
-    }
-
-    transition
 }
 
 /// The month, week of month, and day of week value built into the POSIX tz string.
@@ -791,9 +777,9 @@ mod tests {
     use tzif::data::time::Seconds;
 
     use crate::{
-        iso::IsoDateTime,
+        iso::{IsoDate, IsoDateTime, IsoTime},
         partial::{PartialDate, PartialZonedDateTime},
-        tzdb::{LocalTimeRecordResult, TimeZoneProvider, UtcOffsetSeconds},
+        tzdb::{CompiledTzdbProvider, LocalTimeRecordResult, TimeZoneProvider, UtcOffsetSeconds},
         TimeZone, ZonedDateTime,
     };
 
@@ -1274,5 +1260,43 @@ mod tests {
             // Sun, Oct 29 at 3:00 am
             1856394000
         );
+    }
+
+    // This test mimicks the operations present in `temporal_rs`'s `disambiguate_possible_epoch_nanoseconds`
+    #[test]
+    fn disambiguate_ambiguous_posix_time() {
+        let provider = CompiledTzdbProvider::default();
+
+        let before = IsoDateTime::new_unchecked(
+            IsoDate::new_unchecked(2020, 3, 7),
+            IsoTime::new_unchecked(23, 30, 0, 0, 0, 0),
+        );
+        let before_possible = provider
+            .get_named_tz_epoch_nanoseconds("America/Los_Angeles", before)
+            .unwrap();
+        assert_eq!(before_possible.len(), 1);
+
+        let after = IsoDateTime::new_unchecked(
+            IsoDate::new_unchecked(2020, 3, 8),
+            IsoTime::new_unchecked(5, 30, 0, 0, 0, 0),
+        );
+        let after_possible = provider
+            .get_named_tz_epoch_nanoseconds("America/Los_Angeles", after)
+            .unwrap();
+        assert_eq!(after_possible.len(), 1);
+        let before_seconds = 1583649000;
+        let after_seconds = 1583670600;
+        assert_eq!(before_possible[0].0 / 1_000_000_000, before_seconds);
+        assert_eq!(after_possible[0].0 / 1_000_000_000, after_seconds);
+
+        let before_transition = provider
+            .get_named_tz_offset_nanoseconds("America/Los_Angeles", before_seconds * 1_000_000_000)
+            .unwrap();
+        let after_transition = provider
+            .get_named_tz_offset_nanoseconds("America/Los_Angeles", after_seconds * 1_000_000_000)
+            .unwrap();
+        assert_ne!(before_transition, after_transition);
+        assert_eq!(after_transition.offset.0, -25_200);
+        assert_eq!(before_transition.offset.0, -28_800);
     }
 }
