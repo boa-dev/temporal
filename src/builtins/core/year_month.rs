@@ -409,6 +409,9 @@ impl PlainYearMonth {
         // 7. Let thisFields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
         // 8. Set thisFields.[[Day]] to 1.
         // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
+        let mut this_iso = self.iso;
+        this_iso.day = 1;
+        this_iso.check_validity()?;
         // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
         // 11. Set otherFields.[[Day]] to 1.
         // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
@@ -416,7 +419,7 @@ impl PlainYearMonth {
         // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
         let result = self
             .calendar()
-            .date_until(&self.iso, &other.iso, resolved.largest_unit)?;
+            .date_until(&this_iso, &other.iso, resolved.largest_unit)?;
 
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
         let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
@@ -424,7 +427,7 @@ impl PlainYearMonth {
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
         if resolved.smallest_unit != Unit::Month || resolved.increment != RoundingIncrement::ONE {
             // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
-            let iso_date_time = IsoDateTime::new_unchecked(self.iso, IsoTime::default());
+            let iso_date_time = IsoDateTime::new_unchecked(this_iso, IsoTime::default());
             // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
             let target_iso_date_time = IsoDateTime::new_unchecked(other.iso, IsoTime::default());
             // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
@@ -918,10 +921,11 @@ mod tests {
             assert_eq!(since.years(), -1000);
         }
 
-        // Lower ISO limit
+        // Lower ISO limit plus one month
+        // (The lower iso limit iteslf does not work since the day is set to 1)
         {
-            let earlier = PlainYearMonth::from_str("-271821-04").unwrap();
-            let later = PlainYearMonth::from_str("-271820-04").unwrap();
+            let earlier = PlainYearMonth::from_str("-271821-05").unwrap();
+            let later = PlainYearMonth::from_str("-271820-05").unwrap();
             let settings = DifferenceSettings {
                 smallest_unit: Some(Unit::Year),
                 ..Default::default()
@@ -1213,5 +1217,17 @@ mod tests {
         assert_eq!(partial.era, Some(tinystr!(19, "ce")));
         assert_eq!(partial.era_year, Some(2020));
         assert_eq!(partial.calendar, calendar);
+    }
+
+    #[test]
+    fn test_year_month_diff_range() {
+        // built-ins/Temporal/PlainYearMonth/prototype/since/throws-if-year-outside-valid-iso-range
+
+        let min = PlainYearMonth::new(-271821, 4, None, Default::default()).unwrap();
+        let max = PlainYearMonth::new(275760, 9, None, Default::default()).unwrap();
+        let epoch = PlainYearMonth::new(1970, 1, None, Default::default()).unwrap();
+        let _ = min.since(&min, Default::default()).unwrap();
+        assert!(min.since(&max, Default::default()).is_err());
+        assert!(min.since(&epoch, Default::default()).is_err());
     }
 }

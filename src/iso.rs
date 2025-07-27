@@ -334,6 +334,12 @@ impl IsoDate {
         }
     }
 
+    pub fn check_validity(self) -> TemporalResult<()> {
+        if !iso_dt_within_valid_limits(self, &IsoTime::noon()) {
+            return Err(TemporalError::range().with_message("IsoDate not within a valid range."));
+        }
+        Ok(())
+    }
     pub(crate) fn new_with_overflow(
         year: i32,
         month: u8,
