@@ -129,6 +129,7 @@ impl RelativeTo {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(feature = "compiled_data")]
     use super::*;
     #[cfg(feature = "compiled_data")]
     #[test]

@@ -42,6 +42,10 @@ pub struct PartialZonedDateTime {
     ///
     /// Incompatible with having an offset (you can still have a offset-format timezone)
     pub has_utc_designator: bool,
+    /// Whether or not to allow offsets rounded to the minute
+    ///
+    /// (Typically only needs to be set when parsing, can be false otherwise)
+    pub match_minutes: bool,
     /// An optional offset string
     pub offset: Option<UtcOffset>,
     /// The time zone value of a partial time zone.
@@ -61,6 +65,7 @@ impl PartialZonedDateTime {
             date: PartialDate::new(),
             time: PartialTime::new(),
             has_utc_designator: false,
+            match_minutes: false,
             offset: None,
             timezone: None,
         }
@@ -97,6 +102,8 @@ impl PartialZonedDateTime {
     ) -> TemporalResult<Self> {
         let parse_result = parsers::parse_zoned_date_time(source)?;
 
+        let mut match_minutes = true;
+
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
@@ -105,6 +112,9 @@ impl PartialZonedDateTime {
         let (offset, has_utc_designator) = match parse_result.offset {
             Some(UtcOffsetRecordOrZ::Z) => (None, true),
             Some(UtcOffsetRecordOrZ::Offset(offset)) => {
+                if offset.second().is_some() {
+                    match_minutes = false;
+                }
                 (Some(UtcOffset::from_ixdtf_record(offset)?), false)
             }
             None => (None, false),
@@ -132,6 +142,7 @@ impl PartialZonedDateTime {
             date,
             time,
             has_utc_designator,
+            match_minutes,
             offset,
             timezone: Some(timezone),
         })
@@ -646,8 +657,7 @@ impl ZonedDateTime {
             &timezone,
             disambiguation,
             offset_option,
-            // 3. Let matchBehaviour be match-exactly.
-            false,
+            partial.match_minutes,
             provider,
         )?;
 
@@ -1705,6 +1715,7 @@ mod tests {
             },
             time: PartialTime::default(),
             has_utc_designator: false,
+            match_minutes: false,
             offset: None,
             timezone: Some(TimeZone::default()),
         };
@@ -1723,6 +1734,7 @@ mod tests {
             },
             time: PartialTime::default(),
             has_utc_designator: false,
+            match_minutes: false,
             offset: Some(UtcOffset::from_minutes(30)),
             timezone: Some(TimeZone::default()),
         };
@@ -1911,6 +1923,7 @@ mod tests {
                 },
                 time: PartialTime::default(),
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1928,6 +1941,7 @@ mod tests {
                 },
                 time: PartialTime::default(),
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1945,6 +1959,7 @@ mod tests {
                     ..Default::default()
                 },
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1962,6 +1977,7 @@ mod tests {
                     ..Default::default()
                 },
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
