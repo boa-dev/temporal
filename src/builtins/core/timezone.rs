@@ -561,4 +561,11 @@ mod tests {
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
         assert_eq!(tz.identifier(), src);
     }
+
+    #[test]
+    fn normalize_zones() {
+        let calcutta = TimeZone::try_from_identifier_str("Asia/Calcutta").unwrap();
+        let kolkata = TimeZone::try_from_identifier_str("Asia/Kolkata").unwrap();
+        assert_eq!(calcutta, kolkata);
+    }
 }
