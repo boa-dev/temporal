@@ -216,7 +216,9 @@ fn duration_max_safe() {
         /* ns = */ 463_129_087,
     )
     .unwrap();
-    let _ = d.round(options, None).expect("Must successfully round");
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
     let d = Duration::new(
         0,
         0,
@@ -230,10 +232,14 @@ fn duration_max_safe() {
         /* ns = */ 463_129_088,
     )
     .unwrap();
-    assert!(d.round(options, None).is_err());
+    assert!(d
+        .round_with_provider(options, None, &NeverProvider)
+        .is_err());
 
     options.largest_unit = Some(Unit::Microsecond);
-    let _ = d.round(options, None).expect("Must successfully round");
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
     let d = Duration::new(
         0,
         0,
@@ -247,10 +253,14 @@ fn duration_max_safe() {
         0,
     )
     .unwrap();
-    assert!(d.round(options, None).is_err());
+    assert!(d
+        .round_with_provider(options, None, &NeverProvider)
+        .is_err());
 
     options.largest_unit = Some(Unit::Millisecond);
-    let _ = d.round(options, None).expect("Must successfully round");
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
 }
 
 // Temporal/Duration/max.js
