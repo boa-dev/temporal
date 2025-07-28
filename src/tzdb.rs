@@ -357,9 +357,29 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 
     // Need to determine if the range being tested is standard or savings time.
     let dst_is_inversed = dst_end_seconds < dst_start_seconds;
+
+    // We have potentially to different variations of the DST start and end time.
+    //
+    // Northern hemisphere: dst_start -> dst_end
+    // Southern hemisphere: dst_end -> dst_start
+    //
+    // This is primarily due to the summer / winter months of those areas.
+    //
+    // For the northern hemispere, we can check if the range contains the seconds. For the
+    // southern hemisphere, we check if the range does no contain the value.
     let should_return_dst = (!dst_is_inversed
         && (dst_start_seconds..dst_end_seconds).contains(&seconds))
         || (dst_is_inversed && !(dst_end_seconds..dst_start_seconds).contains(&seconds));
+
+    // Expanding on the above, the state of time zones in the year are:
+    //
+    // Northern hemisphere: STD -> DST -> STD
+    // Southern hemisphere: DST -> STD -> DST
+    //
+    // This is simple for the returning the offsets, but if the seconds value falls into the first
+    // available rule. However, the northern hemisphere's first STD rule and the Southern hemisphere's
+    // first DST rule will have different transition times that are based in the year prior, so if the
+    // requested seconds falls in that range, we calculate the transition time for the prior year.
     let (new_offset, transition_epoch) = if should_return_dst {
         let transition_epoch = if dst_is_inversed && seconds < dst_end_seconds {
             Some(calculate_transition_seconds_for_year(
