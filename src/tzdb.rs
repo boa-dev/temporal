@@ -381,9 +381,6 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         } else {
             Some(dst_end_seconds)
         };
-        // NOTE: Return None because it's not clear whether we are before current DST or not.
-        //
-        // P.S.: we could in theory calculate this; it's not clear whether there is any benefit to doing so currently.
         (std_offset, transition_epoch)
     };
     Ok(TimeZoneTransitionInfo {
