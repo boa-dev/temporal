@@ -563,6 +563,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "compiled_data")]
     fn normalize_zones() {
         let calcutta = TimeZone::try_from_identifier_str("Asia/Calcutta").unwrap();
         let kolkata = TimeZone::try_from_identifier_str("Asia/Kolkata").unwrap();
