@@ -326,7 +326,7 @@ impl PlainYearMonth {
             // b. Let nextMonth be ? CalendarDateAdd(calendar, intermediateDate, oneMonthDuration, constrain).
             let next_month = calendar.date_add(
                 &intermediate_date.iso,
-                &Duration::from(one_month_duration),
+                &one_month_duration,
                 ArithmeticOverflow::Constrain,
             )?;
 
@@ -353,7 +353,7 @@ impl PlainYearMonth {
         let duration_to_add = duration.to_date_duration_record_without_time()?;
 
         // 13. Let addedDate be ? CalendarDateAdd(calendar, date, durationToAdd, overflow).
-        let added_date = calendar.date_add(&date, &Duration::from(duration_to_add), overflow)?;
+        let added_date = calendar.date_add(&date, &duration_to_add, overflow)?;
 
         // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
         let added_date_fields = PartialYearMonth::from(
@@ -588,6 +588,13 @@ impl PlainYearMonth {
         self.iso.month
     }
 
+    /// Returns the internal ISO day for this `YearMonth`.
+    #[inline]
+    #[must_use]
+    pub fn iso_reference_day(&self) -> u8 {
+        self.iso.day
+    }
+
     /// Returns the calendar era of the current `PlainYearMonth`
     pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar().era(&self.iso)
@@ -606,6 +613,11 @@ impl PlainYearMonth {
     /// Returns the calendar month of the current `PlainYearMonth`
     pub fn month(&self) -> u8 {
         self.calendar().month(&self.iso)
+    }
+
+    /// Returns the calendar reference day of the current `PlainYearMonth`
+    pub fn reference_day(&self) -> u8 {
+        self.calendar().day(&self.iso)
     }
 
     /// Returns the calendar month code of the current `PlainYearMonth`

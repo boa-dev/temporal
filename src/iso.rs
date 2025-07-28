@@ -70,6 +70,15 @@ impl IsoDateTime {
         Ok(Self::new_unchecked(date, time))
     }
 
+    pub fn check_validity(&self) -> TemporalResult<()> {
+        if !iso_dt_within_valid_limits(self.date, &self.time) {
+            return Err(
+                TemporalError::range().with_message("IsoDateTime not within a valid range.")
+            );
+        }
+        Ok(())
+    }
+
     // NOTE: The below assumes that nanos is from an `Instant` and thus in a valid range. -> Needs validation.
     //
     // TODO: Move away from offset use of f64

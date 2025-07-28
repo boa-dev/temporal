@@ -76,6 +76,8 @@ public:
 
   inline std::unique_ptr<temporal_rs::ZonedDateTime> to_zoned_date_time_iso(const temporal_rs::TimeZone& zone) const;
 
+  inline std::unique_ptr<temporal_rs::Instant> clone() const;
+
   inline const temporal_rs::capi::Instant* AsFFI() const;
   inline temporal_rs::capi::Instant* AsFFI();
   inline static const temporal_rs::Instant* FromFFI(const temporal_rs::capi::Instant* ptr);

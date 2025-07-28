@@ -264,6 +264,27 @@ impl Duration {
         Self { date, time }
     }
 
+    pub(crate) fn try_new_from_durations(
+        date: DateDuration,
+        time: TimeDuration,
+    ) -> TemporalResult<Self> {
+        if !is_valid_duration(
+            date.years,
+            date.months,
+            date.weeks,
+            date.days,
+            time.hours,
+            time.minutes,
+            time.seconds,
+            time.milliseconds,
+            time.microseconds,
+            time.nanoseconds,
+        ) {
+            return Err(TemporalError::range().with_message("Duration was not valid."));
+        }
+        Ok(Self::new_unchecked(date, time))
+    }
+
     #[inline]
     pub(crate) fn from_normalized(
         duration_record: NormalizedDurationRecord,
@@ -391,12 +412,8 @@ impl Duration {
     /// Creates a `Duration` from a provided a day and a `TimeDuration`.
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
-    #[must_use]
-    pub fn from_day_and_time(day: i64, time: &TimeDuration) -> Self {
-        Self {
-            date: DateDuration::new_unchecked(0, 0, 0, day),
-            time: *time,
-        }
+    pub(crate) fn try_from_day_and_time(day: i64, time: &TimeDuration) -> TemporalResult<Self> {
+        Self::try_new_from_durations(DateDuration::new_unchecked(0, 0, 0, day), *time)
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
@@ -764,7 +781,7 @@ impl Duration {
 
         // 32. Return ! CreateTemporalDuration(0, 0, 0, result.[[Days]], result.[[Hours]], result.[[Minutes]],
         // result.[[Seconds]], result.[[Milliseconds]], result.[[Microseconds]], result.[[Nanoseconds]]).
-        Ok(Duration::from_day_and_time(result_days, &result_time))
+        Duration::try_from_day_and_time(result_days, &result_time)
     }
 
     /// Returns the result of subtracting a `Duration` from the current `Duration`
@@ -937,7 +954,7 @@ impl Duration {
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = calendar.date_add(
                     &plain_relative_to.iso,
-                    &Duration::from(date_duration),
+                    &date_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
 
@@ -1057,7 +1074,7 @@ impl Duration {
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = plain_date.calendar().date_add(
                     &plain_date.iso,
-                    &Duration::from(date_duration),
+                    &date_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
                 // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
@@ -1239,6 +1256,18 @@ pub(crate) fn is_valid_duration(
     if weeks.abs() > u32::MAX as i64 {
         return false;
     };
+
+    // Work around https://github.com/boa-dev/temporal/issues/189
+    // For the purpose of the validity check, we should normalize the i128 values
+    // to valid floating point values. This may round up!
+    //
+    // We only need to do this seconds and below, if any of the larger
+    // values are near MAX_SAFE_INTEGER then their seconds value will without question
+    // also be near MAX_SAFE_INTEGER.
+    let seconds = seconds as f64 as i64;
+    let milliseconds = milliseconds as f64 as i64;
+    let microseconds = microseconds as f64 as i128;
+    let nanoseconds = nanoseconds as f64 as i128;
 
     // 6. Let normalizedSeconds be days × 86,400 + hours × 3600 + minutes × 60 + seconds
     // + ℝ(𝔽(milliseconds)) × 10**-3 + ℝ(𝔽(microseconds)) × 10**-6 + ℝ(𝔽(nanoseconds)) × 10**-9.

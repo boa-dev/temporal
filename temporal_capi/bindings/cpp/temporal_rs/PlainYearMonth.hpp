@@ -49,6 +49,8 @@ namespace capi {
 
     uint8_t temporal_rs_PlainYearMonth_iso_month(const temporal_rs::capi::PlainYearMonth* self);
 
+    uint8_t temporal_rs_PlainYearMonth_iso_day(const temporal_rs::capi::PlainYearMonth* self);
+
     int32_t temporal_rs_PlainYearMonth_year(const temporal_rs::capi::PlainYearMonth* self);
 
     uint8_t temporal_rs_PlainYearMonth_month(const temporal_rs::capi::PlainYearMonth* self);
@@ -93,6 +95,8 @@ namespace capi {
     temporal_rs_PlainYearMonth_epoch_ms_for_result temporal_rs_PlainYearMonth_epoch_ms_for(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::TimeZone* time_zone);
 
     void temporal_rs_PlainYearMonth_to_ixdtf_string(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
+
+    temporal_rs::capi::PlainYearMonth* temporal_rs_PlainYearMonth_clone(const temporal_rs::capi::PlainYearMonth* self);
 
     void temporal_rs_PlainYearMonth_destroy(PlainYearMonth* self);
 
@@ -153,6 +157,11 @@ inline void temporal_rs::PlainYearMonth::padded_iso_year_string_write(W& writeab
 
 inline uint8_t temporal_rs::PlainYearMonth::iso_month() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_month(this->AsFFI());
+  return result;
+}
+
+inline uint8_t temporal_rs::PlainYearMonth::iso_day() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_day(this->AsFFI());
   return result;
 }
 
@@ -290,6 +299,11 @@ inline void temporal_rs::PlainYearMonth::to_ixdtf_string_write(temporal_rs::Disp
   temporal_rs::capi::temporal_rs_PlainYearMonth_to_ixdtf_string(this->AsFFI(),
     display_calendar.AsFFI(),
     &write);
+}
+
+inline std::unique_ptr<temporal_rs::PlainYearMonth> temporal_rs::PlainYearMonth::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result));
 }
 
 inline const temporal_rs::capi::PlainYearMonth* temporal_rs::PlainYearMonth::AsFFI() const {

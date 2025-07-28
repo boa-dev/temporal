@@ -73,6 +73,8 @@ namespace capi {
 
     temporal_rs::capi::ZonedDateTime* temporal_rs_Instant_to_zoned_date_time_iso(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeZone* zone);
 
+    temporal_rs::capi::Instant* temporal_rs_Instant_clone(const temporal_rs::capi::Instant* self);
+
     void temporal_rs_Instant_destroy(Instant* self);
 
     } // extern "C"
@@ -188,6 +190,11 @@ inline std::unique_ptr<temporal_rs::ZonedDateTime> temporal_rs::Instant::to_zone
   auto result = temporal_rs::capi::temporal_rs_Instant_to_zoned_date_time_iso(this->AsFFI(),
     zone.AsFFI());
   return std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result));
+}
+
+inline std::unique_ptr<temporal_rs::Instant> temporal_rs::Instant::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_Instant_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::Instant>(temporal_rs::Instant::FromFFI(result));
 }
 
 inline const temporal_rs::capi::Instant* temporal_rs::Instant::AsFFI() const {

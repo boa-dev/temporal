@@ -146,6 +146,8 @@ namespace capi {
     typedef struct temporal_rs_PlainDateTime_to_ixdtf_string_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_ixdtf_string_result;
     temporal_rs_PlainDateTime_to_ixdtf_string_result temporal_rs_PlainDateTime_to_ixdtf_string(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::ToStringRoundingOptions options, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
+    temporal_rs::capi::PlainDateTime* temporal_rs_PlainDateTime_clone(const temporal_rs::capi::PlainDateTime* self);
+
     void temporal_rs_PlainDateTime_destroy(PlainDateTime* self);
 
     } // extern "C"
@@ -444,6 +446,11 @@ inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs:
     display_calendar.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::unique_ptr<temporal_rs::PlainDateTime> temporal_rs::PlainDateTime::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result));
 }
 
 inline const temporal_rs::capi::PlainDateTime* temporal_rs::PlainDateTime::AsFFI() const {

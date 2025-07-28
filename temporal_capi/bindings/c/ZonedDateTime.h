@@ -170,6 +170,8 @@ void temporal_rs_ZonedDateTime_era(const ZonedDateTime* self, DiplomatWrite* wri
 typedef struct temporal_rs_ZonedDateTime_era_year_result {union {int32_t ok; }; bool is_ok;} temporal_rs_ZonedDateTime_era_year_result;
 temporal_rs_ZonedDateTime_era_year_result temporal_rs_ZonedDateTime_era_year(const ZonedDateTime* self);
 
+ZonedDateTime* temporal_rs_ZonedDateTime_clone(const ZonedDateTime* self);
+
 void temporal_rs_ZonedDateTime_destroy(ZonedDateTime* self);
 
 

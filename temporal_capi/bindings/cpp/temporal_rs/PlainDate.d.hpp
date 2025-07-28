@@ -135,6 +135,8 @@ public:
   template<typename W>
   inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
 
+  inline std::unique_ptr<temporal_rs::PlainDate> clone() const;
+
   inline const temporal_rs::capi::PlainDate* AsFFI() const;
   inline temporal_rs::capi::PlainDate* AsFFI();
   inline static const temporal_rs::PlainDate* FromFFI(const temporal_rs::capi::PlainDate* ptr);

@@ -169,6 +169,8 @@ public:
 
   inline std::optional<int32_t> era_year() const;
 
+  inline std::unique_ptr<temporal_rs::ZonedDateTime> clone() const;
+
   inline const temporal_rs::capi::ZonedDateTime* AsFFI() const;
   inline temporal_rs::capi::ZonedDateTime* AsFFI();
   inline static const temporal_rs::ZonedDateTime* FromFFI(const temporal_rs::capi::ZonedDateTime* ptr);

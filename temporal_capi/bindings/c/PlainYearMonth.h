@@ -46,6 +46,8 @@ void temporal_rs_PlainYearMonth_padded_iso_year_string(const PlainYearMonth* sel
 
 uint8_t temporal_rs_PlainYearMonth_iso_month(const PlainYearMonth* self);
 
+uint8_t temporal_rs_PlainYearMonth_iso_day(const PlainYearMonth* self);
+
 int32_t temporal_rs_PlainYearMonth_year(const PlainYearMonth* self);
 
 uint8_t temporal_rs_PlainYearMonth_month(const PlainYearMonth* self);
@@ -90,6 +92,8 @@ typedef struct temporal_rs_PlainYearMonth_epoch_ms_for_result {union {int64_t ok
 temporal_rs_PlainYearMonth_epoch_ms_for_result temporal_rs_PlainYearMonth_epoch_ms_for(const PlainYearMonth* self, const TimeZone* time_zone);
 
 void temporal_rs_PlainYearMonth_to_ixdtf_string(const PlainYearMonth* self, DisplayCalendar display_calendar, DiplomatWrite* write);
+
+PlainYearMonth* temporal_rs_PlainYearMonth_clone(const PlainYearMonth* self);
 
 void temporal_rs_PlainYearMonth_destroy(PlainYearMonth* self);
 

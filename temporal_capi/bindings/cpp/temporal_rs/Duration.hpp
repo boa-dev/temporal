@@ -33,9 +33,6 @@ namespace capi {
     typedef struct temporal_rs_Duration_try_new_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_try_new_result;
     temporal_rs_Duration_try_new_result temporal_rs_Duration_try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
-    typedef struct temporal_rs_Duration_from_day_and_time_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
-    temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::TimeDuration* time);
-
     typedef struct temporal_rs_Duration_from_partial_duration_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
     temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(temporal_rs::capi::PartialDuration partial);
 
@@ -97,6 +94,8 @@ namespace capi {
     typedef struct temporal_rs_Duration_total_result {union {double ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_total_result;
     temporal_rs_Duration_total_result temporal_rs_Duration_total(const temporal_rs::capi::Duration* self, temporal_rs::capi::Unit unit, temporal_rs::capi::RelativeTo relative_to);
 
+    temporal_rs::capi::Duration* temporal_rs_Duration_clone(const temporal_rs::capi::Duration* self);
+
     void temporal_rs_Duration_destroy(Duration* self);
 
     } // extern "C"
@@ -128,12 +127,6 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
     milliseconds,
     microseconds,
     nanoseconds);
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time) {
-  auto result = temporal_rs::capi::temporal_rs_Duration_from_day_and_time(day,
-    time.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
@@ -285,6 +278,11 @@ inline diplomat::result<double, temporal_rs::TemporalError> temporal_rs::Duratio
     unit.AsFFI(),
     relative_to.AsFFI());
   return result.is_ok ? diplomat::result<double, temporal_rs::TemporalError>(diplomat::Ok<double>(result.ok)) : diplomat::result<double, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::unique_ptr<temporal_rs::Duration> temporal_rs::Duration::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_Duration_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result));
 }
 
 inline const temporal_rs::capi::Duration* temporal_rs::Duration::AsFFI() const {

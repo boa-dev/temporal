@@ -92,6 +92,10 @@ pub mod ffi {
             self.0.iso_month()
         }
 
+        pub fn iso_day(&self) -> u8 {
+            self.0.iso_month()
+        }
+
         pub fn year(&self) -> i32 {
             self.0.year()
         }
@@ -216,6 +220,11 @@ pub mod ffi {
             // This can only fail in cases where the DiplomatWriteable is capped, we
             // don't care about that.
             let _ = writeable.write_to(write);
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
         }
     }
 }

@@ -131,6 +131,8 @@ temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_d
 
 void temporal_rs_PlainDate_to_ixdtf_string(const PlainDate* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 
+PlainDate* temporal_rs_PlainDate_clone(const PlainDate* self);
+
 void temporal_rs_PlainDate_destroy(PlainDate* self);
 
 
