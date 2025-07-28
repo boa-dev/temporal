@@ -354,8 +354,12 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     let dst_end_seconds =
         calculate_transition_seconds_for_year(seconds, dst_variant.end_date, dst_offset);
 
-    let (new_offset, transition_epoch) = if (dst_start_seconds..dst_end_seconds).contains(&seconds)
-    {
+    // Need to determine if the range being tested is standard or savings time.
+    let dst_is_inversed = dst_end_seconds < dst_start_seconds;
+    let should_return_dst = (!dst_is_inversed
+        && (dst_start_seconds..dst_end_seconds).contains(&seconds))
+        || (dst_is_inversed && !(dst_end_seconds..dst_start_seconds).contains(&seconds));
+    let (new_offset, transition_epoch) = if should_return_dst {
         (dst_offset, Some(dst_start_seconds))
     } else {
         // NOTE: Return None because it's not clear whether we are before current DST or not.
@@ -1267,36 +1271,63 @@ mod tests {
     fn disambiguate_ambiguous_posix_time() {
         let provider = CompiledTzdbProvider::default();
 
+        fn run_disambiguation_logic(
+            before: IsoDateTime,
+            after: IsoDateTime,
+            id: &str,
+            before_offset: i64,
+            after_offset: i64,
+            provider: &impl TimeZoneProvider,
+        ) {
+            let before_possible = provider.get_named_tz_epoch_nanoseconds(id, before).unwrap();
+            assert_eq!(before_possible.len(), 1);
+
+            let after_possible = provider.get_named_tz_epoch_nanoseconds(id, after).unwrap();
+            assert_eq!(after_possible.len(), 1);
+            let before_seconds = before_possible[0];
+            let after_seconds = after_possible[0];
+
+            let before_transition = provider
+                .get_named_tz_offset_nanoseconds(id, before_seconds.0)
+                .unwrap();
+            let after_transition = provider
+                .get_named_tz_offset_nanoseconds(id, after_seconds.0)
+                .unwrap();
+            assert_ne!(
+                before_transition, after_transition,
+                "Transition info must not be the same"
+            );
+            assert_eq!(after_transition.offset.0, after_offset);
+            assert_eq!(before_transition.offset.0, before_offset);
+        }
+
+        // Test Northern hemisphere
         let before = IsoDateTime::new_unchecked(
             IsoDate::new_unchecked(2020, 3, 7),
             IsoTime::new_unchecked(23, 30, 0, 0, 0, 0),
         );
-        let before_possible = provider
-            .get_named_tz_epoch_nanoseconds("America/Los_Angeles", before)
-            .unwrap();
-        assert_eq!(before_possible.len(), 1);
-
         let after = IsoDateTime::new_unchecked(
             IsoDate::new_unchecked(2020, 3, 8),
             IsoTime::new_unchecked(5, 30, 0, 0, 0, 0),
         );
-        let after_possible = provider
-            .get_named_tz_epoch_nanoseconds("America/Los_Angeles", after)
-            .unwrap();
-        assert_eq!(after_possible.len(), 1);
-        let before_seconds = 1583649000;
-        let after_seconds = 1583670600;
-        assert_eq!(before_possible[0].0 / 1_000_000_000, before_seconds);
-        assert_eq!(after_possible[0].0 / 1_000_000_000, after_seconds);
+        run_disambiguation_logic(
+            before,
+            after,
+            "America/Los_Angeles",
+            -28_800,
+            -25_200,
+            &provider,
+        );
 
-        let before_transition = provider
-            .get_named_tz_offset_nanoseconds("America/Los_Angeles", before_seconds * 1_000_000_000)
-            .unwrap();
-        let after_transition = provider
-            .get_named_tz_offset_nanoseconds("America/Los_Angeles", after_seconds * 1_000_000_000)
-            .unwrap();
-        assert_ne!(before_transition, after_transition);
-        assert_eq!(after_transition.offset.0, -25_200);
-        assert_eq!(before_transition.offset.0, -28_800);
+        // Test southern hemisphere
+        let before = IsoDateTime::new_unchecked(
+            IsoDate::new_unchecked(2020, 4, 4),
+            IsoTime::new_unchecked(23, 30, 0, 0, 0, 0),
+        );
+        let after = IsoDateTime::new_unchecked(
+            IsoDate::new_unchecked(2020, 4, 5),
+            IsoTime::new_unchecked(5, 30, 0, 0, 0, 0),
+        );
+        run_disambiguation_logic(before, after, "Australia/Sydney", 39_600, 36_000, &provider);
     }
 }
