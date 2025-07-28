@@ -112,7 +112,7 @@ impl IanaIdentifierNormalizer<'_> {
             // Add link / non-canonical identifiers
             let _ = all_identifiers.insert(link_from.clone());
         }
-        // Make a sorded list of canonical timezones
+        // Make a sorted list of canonical timezones
         let norm_vec: Vec<String> = canonical.iter().cloned().collect();
         let norm_zerovec: VarZeroVec<'static, str> = norm_vec.as_slice().into();
 
