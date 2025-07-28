@@ -832,7 +832,7 @@ mod tests {
     #[test]
     fn test_singleton() {
         let id = get_singleton_identifier("uTc");
-        assert_eq!(id, Some("UTC"));
+        assert_eq!(id, Some("Etc/UTC"));
         let id = get_singleton_identifier("EURope/BeRlIn").unwrap();
         assert_eq!(id, "Europe/Berlin");
     }
