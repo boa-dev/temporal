@@ -832,7 +832,7 @@ mod tests {
     #[test]
     fn test_singleton() {
         let id = get_singleton_identifier("uTc");
-        assert_eq!(id, Some("UTC"));
+        assert_eq!(id, Some("Etc/UTC"));
         let id = get_singleton_identifier("EURope/BeRlIn").unwrap();
         assert_eq!(id, "Europe/Berlin");
     }
@@ -854,8 +854,8 @@ mod tests {
             ("Europe/Vienna", "Europe/Vienna", "+01:00"),
             ("America/New_York", "America/New_York", "-05:00"),
             ("Africa/CAIRO", "Africa/Cairo", "+02:00"),
-            ("Asia/Ulan_Bator", "Asia/Ulan_Bator", "+07:00"),
-            ("GMT", "GMT", "+00:00"),
+            ("Asia/Ulan_Bator", "Asia/Ulaanbaatar", "+07:00"),
+            ("GMT", "Etc/GMT", "+00:00"),
             ("etc/gmt", "Etc/GMT", "+00:00"),
             (
                 "1994-11-05T08:15:30-05:00[America/New_York]",
