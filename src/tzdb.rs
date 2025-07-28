@@ -349,10 +349,11 @@ fn resolve_posix_tz_string_for_epoch_seconds(
     let std_offset = UtcOffsetSeconds::from(&posix_tz_string.std_info);
     let dst_offset = UtcOffsetSeconds::from(&dst_variant.variant_info);
 
+    let year = utils::epoch_time_to_epoch_year(seconds * 1000);
     let dst_start_seconds =
-        calculate_transition_seconds_for_year(seconds, dst_variant.start_date, std_offset);
+        calculate_transition_seconds_for_year(year, dst_variant.start_date, std_offset);
     let dst_end_seconds =
-        calculate_transition_seconds_for_year(seconds, dst_variant.end_date, dst_offset);
+        calculate_transition_seconds_for_year(year, dst_variant.end_date, dst_offset);
 
     // Need to determine if the range being tested is standard or savings time.
     let dst_is_inversed = dst_end_seconds < dst_start_seconds;
@@ -360,12 +361,22 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         && (dst_start_seconds..dst_end_seconds).contains(&seconds))
         || (dst_is_inversed && !(dst_end_seconds..dst_start_seconds).contains(&seconds));
     let (new_offset, transition_epoch) = if should_return_dst {
-        (dst_offset, Some(dst_start_seconds))
+        let transition_epoch = if dst_is_inversed && seconds < dst_end_seconds {
+            Some(calculate_transition_seconds_for_year(year - 1, dst_variant.start_date, dst_offset))
+        } else {
+            Some(dst_start_seconds)
+        };
+        (dst_offset, transition_epoch)
     } else {
+        let transition_epoch = if !dst_is_inversed && seconds < dst_start_seconds {
+            Some(calculate_transition_seconds_for_year(year - 1, dst_variant.end_date, std_offset))
+        } else {
+            Some(dst_end_seconds)
+        };
         // NOTE: Return None because it's not clear whether we are before current DST or not.
         //
         // P.S.: we could in theory calculate this; it's not clear whether there is any benefit to doing so currently.
-        (std_offset, None)
+        (std_offset, transition_epoch)
     };
     Ok(TimeZoneTransitionInfo {
         offset: new_offset,
@@ -374,14 +385,13 @@ fn resolve_posix_tz_string_for_epoch_seconds(
 }
 
 fn calculate_transition_seconds_for_year(
-    seconds: i64,
+    year: i32,
     transition_date: TransitionDate,
     offset: UtcOffsetSeconds,
 ) -> i64 {
     // Determine the year of the requested time.
-    let year = utils::epoch_time_to_epoch_year(seconds * 1000);
     let year_epoch_seconds = utils::epoch_days_for_year(year) * 86400;
-    let leap_day = utils::mathematical_in_leap_year(seconds * 1000) as u16;
+    let leap_day = (utils::mathematical_days_in_year(year) - 365) as u16;
 
     // Calculate the days in the year for the TransitionDate
     let days = match transition_date.day {
@@ -1211,11 +1221,62 @@ mod tests {
     }
 
     #[test]
+    #[cfg(not(target_os = "windows"))]
     fn mwd_transition_epoch() {
-        #[cfg(not(target_os = "windows"))]
         let tzif = Tzif::read_tzif("Europe/Berlin").unwrap();
-        #[cfg(target_os = "windows")]
-        let tzif = Tzif::from_bytes(jiff_tzdb::get("Europe/Berlin").unwrap().1).unwrap();
+
+        let start_date = crate::iso::IsoDate {
+            year: 2028,
+            month: 3,
+            day: 30,
+        };
+        let start_time = crate::iso::IsoTime {
+            hour: 6,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+            nanosecond: 0,
+        };
+        let start_dt = IsoDateTime::new(start_date, start_time).unwrap();
+        let start_dt_secs = (start_dt.as_nanoseconds().0 / 1_000_000_000) as i64;
+
+        let start_seconds = &Seconds(start_dt_secs);
+
+        assert_eq!(
+            tzif.get(start_seconds).unwrap().transition_epoch.unwrap(),
+            // Sun, Mar 26 at 2:00 am
+            1837645200
+        );
+
+        let end_date = crate::iso::IsoDate {
+            year: 2028,
+            month: 10,
+            day: 29,
+        };
+        let end_time = crate::iso::IsoTime {
+            hour: 6,
+            minute: 0,
+            second: 0,
+            millisecond: 0,
+            microsecond: 0,
+            nanosecond: 0,
+        };
+        let end_dt = IsoDateTime::new(end_date, end_time).unwrap();
+        let end_dt_secs = (end_dt.as_nanoseconds().0 / 1_000_000_000) as i64;
+
+        let end_seconds = &Seconds(end_dt_secs);
+
+        assert_eq!(
+            tzif.get(end_seconds).unwrap().transition_epoch.unwrap(),
+            // Sun, Oct 29 at 3:00 am
+            1856394000
+        );
+    }
+
+    #[test]
+    fn compiled_mwd_transition_epoch() {
+        let tzif = CompiledTzdbProvider::default().get("Europe/Berlin").unwrap();
 
         let start_date = crate::iso::IsoDate {
             year: 2028,
