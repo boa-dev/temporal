@@ -362,14 +362,22 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         || (dst_is_inversed && !(dst_end_seconds..dst_start_seconds).contains(&seconds));
     let (new_offset, transition_epoch) = if should_return_dst {
         let transition_epoch = if dst_is_inversed && seconds < dst_end_seconds {
-            Some(calculate_transition_seconds_for_year(year - 1, dst_variant.start_date, dst_offset))
+            Some(calculate_transition_seconds_for_year(
+                year - 1,
+                dst_variant.start_date,
+                dst_offset,
+            ))
         } else {
             Some(dst_start_seconds)
         };
         (dst_offset, transition_epoch)
     } else {
         let transition_epoch = if !dst_is_inversed && seconds < dst_start_seconds {
-            Some(calculate_transition_seconds_for_year(year - 1, dst_variant.end_date, std_offset))
+            Some(calculate_transition_seconds_for_year(
+                year - 1,
+                dst_variant.end_date,
+                std_offset,
+            ))
         } else {
             Some(dst_end_seconds)
         };
@@ -1276,7 +1284,9 @@ mod tests {
 
     #[test]
     fn compiled_mwd_transition_epoch() {
-        let tzif = CompiledTzdbProvider::default().get("Europe/Berlin").unwrap();
+        let tzif = CompiledTzdbProvider::default()
+            .get("Europe/Berlin")
+            .unwrap();
 
         let start_date = crate::iso::IsoDate {
             year: 2028,
