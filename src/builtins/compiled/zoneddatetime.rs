@@ -450,6 +450,6 @@ mod tests {
                 .unwrap();
 
         let result = zdt.add(&d, None).unwrap();
-        assert_eq!(result, expected);
+        assert!(result.equals(&expected).unwrap());
     }
 }

@@ -236,7 +236,7 @@ impl TimeZone {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<bool> {
         Ok(match (self, other) {
-            (&TimeZone::IanaIdentifier(ref one), &TimeZone::IanaIdentifier(ref two)) => {
+            (TimeZone::IanaIdentifier(one), TimeZone::IanaIdentifier(two)) => {
                 let one = provider.canonicalize_identifier(one.as_bytes())?;
                 let two = provider.canonicalize_identifier(two.as_bytes())?;
                 one == two
