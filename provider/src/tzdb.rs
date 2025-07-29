@@ -41,6 +41,9 @@ pub struct IanaIdentifierNormalizer<'data> {
     /// An index to the location of the normal identifier.
     #[cfg_attr(feature = "datagen", serde(borrow))]
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
+    /// A "links" table mapping non-canonical IDs to their canonical IDs
+    #[cfg_attr(feature = "datagen", serde(borrow))]
+    pub links: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
     /// The normalized IANA identifier
     #[cfg_attr(feature = "datagen", serde(borrow))]
@@ -124,9 +127,30 @@ impl IanaIdentifierNormalizer<'_> {
             })
             .collect();
 
+        let mut primary_id_map: BTreeMap<Vec<u8>, usize> = BTreeMap::new();
+        // ECMAScript implementations must support an available named time zone with the identifier "UTC", which must be
+        // the primary time zone identifier for the UTC time zone. In addition, implementations may support any number of other available named time zones.
+        let utc_index = norm_vec.binary_search(&"UTC").unwrap();
+        primary_id_map.insert(b"etc/utc".into(), utc_index);
+
+        for (link_from, link_to) in &provider.data.links {
+            if link_from == "UTC" {
+                continue;
+            }
+            let index = if link_to == "Etc/UTC" {
+                utc_index
+            } else {
+                norm_vec.binary_search(&&**link_to).unwrap()
+            };
+            primary_id_map.insert(link_from.to_ascii_lowercase().as_bytes().to_vec(), index);
+        }
+
         Ok(IanaIdentifierNormalizer {
             version: provider.version.into(),
             available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identifier_map)
+                .map_err(IanaDataError::Build)?
+                .convert_store(),
+            links: ZeroAsciiIgnoreCaseTrie::try_from(&primary_id_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
             normalized_identifiers: norm_zerovec,
