@@ -35,7 +35,7 @@ mod tests {
     extern crate alloc;
 
     iana_normalizer_singleton!();
-    zone_info_provider_baked!();
+    compiled_zoneinfo_provider!();
 
     #[test]
     fn basic_normalization() {
@@ -69,7 +69,7 @@ mod tests {
 
     #[test]
     fn zone_info_basic() {
-        let tzif = ZONE_INFO_PROVIDER.get("America/Chicago");
+        let tzif = COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
         assert!(tzif.is_some())
     }
 }

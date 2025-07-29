@@ -27,9 +27,9 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
 
         let baked_macro = quote! {
             #[macro_export]
-            macro_rules! baked_zoneinfo_provider {
+            macro_rules! compiled_zoneinfo_provider {
                 () => {
-                    pub const BAKED_ZONEINFO_PROVIDER: &'static temporal_provider::ZoneInfoProvider = &#baked;
+                    pub const COMPILED_ZONEINFO_PROVIDER: &'static timezone_provider::ZoneInfoProvider = &#baked;
                 }
             }
         };
