@@ -69,8 +69,8 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
             let mut tzif_data = serde_json::Map::new();
             let id_set = tzif_ids.get(&id).unwrap();
             tzif_data.insert("ids".into(), serde_json::to_value(id_set)?);
-            tzif_data.insert("tzif".into(), serde_json::to_value(&tzif)?);
-            let filename = format!("tzif-{}-{}.json", hash_ids(id_set), hash_tzif(&tzif));
+            tzif_data.insert("tzif".into(), serde_json::to_value(tzif)?);
+            let filename = format!("tzif-{}-{}.json", hash_ids(id_set), hash_tzif(tzif));
             let filepath = tzif_dir_path.join(filename.clone());
             for id in id_set {
                 id_map.insert(id.clone(), filename.clone());
