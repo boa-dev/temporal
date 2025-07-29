@@ -599,9 +599,11 @@ mod tests {
 
     #[test]
     #[cfg(feature = "compiled_data")]
-    fn normalize_zones() {
+    fn canonicalize_equals() {
         let calcutta = TimeZone::try_from_identifier_str("Asia/Calcutta").unwrap();
         let kolkata = TimeZone::try_from_identifier_str("Asia/Kolkata").unwrap();
-        assert_eq!(calcutta, kolkata);
+        assert!(calcutta
+            .time_zone_equals_with_provider(&kolkata, &*crate::builtins::TZ_PROVIDER)
+            .unwrap());
     }
 }
