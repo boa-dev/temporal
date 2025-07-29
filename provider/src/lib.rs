@@ -54,7 +54,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
-            Some("Etc/UTC")
+            Some("UTC")
         );
 
         let index = SINGLETON_IANA_NORMALIZER
@@ -63,7 +63,7 @@ mod tests {
             .unwrap();
         assert_eq!(
             SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
-            Some("Etc/UTC")
+            Some("UTC")
         );
     }
 
