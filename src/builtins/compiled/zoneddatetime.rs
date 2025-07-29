@@ -369,11 +369,14 @@ impl ZonedDateTime {
     }
 }
 
+#[cfg(test)]
 mod tests {
+    use super::ZonedDateTime;
+    use crate::options::OffsetDisambiguation;
+
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn static_tzdb_zdt_test() {
-        use super::ZonedDateTime;
         use crate::{Calendar, TimeZone};
         use core::str::FromStr;
 
@@ -425,7 +428,6 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn basic_zdt_add() {
-        use super::ZonedDateTime;
         use crate::{Calendar, Duration, TimeZone};
 
         let zdt =
@@ -451,5 +453,50 @@ mod tests {
 
         let result = zdt.add(&d, None).unwrap();
         assert!(result.equals(&expected).unwrap());
+    }
+
+    #[test]
+    fn test_pacific_niue() {
+        // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
+        // Pacific/Niue on October 15, 1952, where
+        // the offset shifted by 20 seconds to a whole-minute boundary.
+        let ms_pre = -543069621_000;
+        let zdt = ZonedDateTime::from_utf8(
+            b"1952-10-15T23:59:59-11:19:40[Pacific/Niue]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+        )
+        .unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre,
+            "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
+        );
+
+        let zdt = ZonedDateTime::from_utf8(
+            b"1952-10-15T23:59:59-11:20[Pacific/Niue]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+        )
+        .unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre,
+            "-11:20 matches the first candidate -11:19:40 in the Pacific/Niue edge case"
+        );
+
+        let ms_post = -543069601_000;
+
+        let zdt = ZonedDateTime::from_utf8(
+            b"1952-10-15T23:59:59-11:20:00[Pacific/Niue]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+        )
+        .unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_post,
+            "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
+        );
     }
 }
