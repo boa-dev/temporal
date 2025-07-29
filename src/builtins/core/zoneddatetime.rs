@@ -444,27 +444,6 @@ impl ZonedDateTime {
         )
     }
 
-    pub(crate) fn equals_with_provider(
-        &self,
-        other: &Self,
-        provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<bool> {
-        // 4. If zonedDateTime.[[EpochNanoseconds]] ≠ other.[[EpochNanoseconds]], return false.
-        if self.instant != other.instant {
-            return Ok(false);
-        }
-
-        // 5. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, return false.
-        if !self
-            .tz
-            .time_zone_equals_with_provider(&other.tz, provider)?
-        {
-            return Ok(false);
-        }
-        // 6. Return CalendarEquals(zonedDateTime.[[Calendar]], other.[[Calendar]]).
-        Ok(self.calendar == other.calendar)
-    }
-
     pub(crate) fn diff_zoned_datetime(
         &self,
         other: &Self,
@@ -1148,6 +1127,27 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider,
         )
+    }
+
+    pub fn equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        // 4. If zonedDateTime.[[EpochNanoseconds]] ≠ other.[[EpochNanoseconds]], return false.
+        if self.instant != other.instant {
+            return Ok(false);
+        }
+
+        // 5. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, return false.
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
+            return Ok(false);
+        }
+        // 6. Return CalendarEquals(zonedDateTime.[[Calendar]], other.[[Calendar]]).
+        Ok(self.calendar == other.calendar)
     }
 
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
