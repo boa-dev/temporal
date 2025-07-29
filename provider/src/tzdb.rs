@@ -132,6 +132,7 @@ impl IanaIdentifierNormalizer<'_> {
         // the primary time zone identifier for the UTC time zone. In addition, implementations may support any number of other available named time zones.
         let utc_index = norm_vec.binary_search(&"UTC").unwrap();
         primary_id_map.insert(b"etc/utc".into(), utc_index);
+        primary_id_map.insert(b"etc/gmt".into(), utc_index);
 
         for (link_from, link_to) in &provider.data.links {
             if link_from == "UTC" {
