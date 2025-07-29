@@ -43,7 +43,7 @@ pub struct IanaIdentifierNormalizer<'data> {
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
     /// A "links" table mapping non-canonical IDs to their canonical IDs
     #[cfg_attr(feature = "datagen", serde(borrow))]
-    pub links: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
+    pub non_canonical_identifiers: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
     /// The normalized IANA identifier
     #[cfg_attr(feature = "datagen", serde(borrow))]
@@ -151,7 +151,7 @@ impl IanaIdentifierNormalizer<'_> {
             available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identifier_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
-            links: ZeroAsciiIgnoreCaseTrie::try_from(&primary_id_map)
+            non_canonical_identifiers: ZeroAsciiIgnoreCaseTrie::try_from(&primary_id_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
             normalized_identifiers: norm_zerovec,

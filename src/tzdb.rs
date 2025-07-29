@@ -629,7 +629,7 @@ fn normalize_identifier_with_compiled(identifier: &[u8]) -> TemporalResult<Cow<'
 
 fn canonicalize_identifier_with_compiled(identifier: &[u8]) -> TemporalResult<Cow<'static, str>> {
     let idx = SINGLETON_IANA_NORMALIZER
-        .links
+        .non_canonical_identifiers
         .get(identifier)
         .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
 
