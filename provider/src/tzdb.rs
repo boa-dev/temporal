@@ -137,7 +137,7 @@ impl IanaIdentifierNormalizer<'_> {
             if link_from == "UTC" {
                 continue;
             }
-            let index = if link_to == "Etc/UTC" {
+            let index = if link_to == "Etc/UTC" || link_to == "Etc/GMT" {
                 utc_index
             } else {
                 norm_vec.binary_search(&&**link_to).unwrap()
