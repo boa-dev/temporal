@@ -240,7 +240,7 @@ pub mod ffi {
         }
 
         pub fn equals(&self, other: &Self) -> bool {
-            self.0 == other.0
+            self.0.equals(&other.0).unwrap_or(false)
         }
 
         pub fn offset(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {

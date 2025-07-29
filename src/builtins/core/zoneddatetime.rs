@@ -292,7 +292,7 @@ impl PartialZonedDateTime {
 ///
 /// [mdn-zoneddatetime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/ZonedDateTime
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
@@ -442,6 +442,27 @@ impl ZonedDateTime {
             Some((self.timezone(), provider)),
             unit,
         )
+    }
+
+    pub(crate) fn equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        // 4. If zonedDateTime.[[EpochNanoseconds]] ≠ other.[[EpochNanoseconds]], return false.
+        if self.instant != other.instant {
+            return Ok(false);
+        }
+
+        // 5. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, return false.
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
+            return Ok(false);
+        }
+        // 6. Return CalendarEquals(zonedDateTime.[[Calendar]], other.[[Calendar]]).
+        Ok(self.calendar == other.calendar)
     }
 
     pub(crate) fn diff_zoned_datetime(
