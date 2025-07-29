@@ -111,7 +111,7 @@ pub enum ZoneInfoDataError {
 #[cfg(feature = "datagen")]
 impl ZoneInfoProvider<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
-        let tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
+        let tzdb_source = TzdbDataSource::try_from_rearguard_zoneinfo_dir(tzdata).unwrap();
         let compiled_transitions = ZoneInfoCompiler::new(tzdb_source.data.clone()).build();
 
         let mut identifiers = BTreeMap::default();

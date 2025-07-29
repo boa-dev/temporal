@@ -10,9 +10,9 @@ use zoneinfo_rs::posix::{MonthWeekDay, PosixDate, PosixDateTime, PosixTimeZone, 
 )]
 #[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
 pub struct PosixZone {
-    abbr: TinyAsciiStr<5>,
-    offset: i64,
-    transition: Option<ZeroPosixTransition>,
+    pub abbr: TinyAsciiStr<5>,
+    pub offset: i64,
+    pub transition: Option<ZeroPosixTransition>,
 }
 
 #[cfg(feature = "datagen")]
@@ -41,10 +41,10 @@ impl From<&PosixTimeZone> for PosixZone {
 )]
 #[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
 pub struct ZeroPosixTransition {
-    abbr: TinyAsciiStr<5>,
-    savings: i64,
-    start: ZeroTransitionDateTime,
-    end: ZeroTransitionDateTime,
+    pub abbr: TinyAsciiStr<5>,
+    pub savings: i64,
+    pub start: ZeroTransitionDateTime,
+    pub end: ZeroTransitionDateTime,
 }
 
 #[cfg(feature = "datagen")]
