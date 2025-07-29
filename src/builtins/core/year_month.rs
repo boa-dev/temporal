@@ -415,11 +415,14 @@ impl PlainYearMonth {
         // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
         // 11. Set otherFields.[[Day]] to 1.
         // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
+        let mut other_iso = other.iso;
+        other_iso.day = 1;
+        other_iso.check_validity()?;
         // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
         // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
         let result = self
             .calendar()
-            .date_until(&this_iso, &other.iso, resolved.largest_unit)?;
+            .date_until(&this_iso, &other_iso, resolved.largest_unit)?;
 
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
         let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
@@ -429,7 +432,7 @@ impl PlainYearMonth {
             // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
             let iso_date_time = IsoDateTime::new_unchecked(this_iso, IsoTime::default());
             // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
-            let target_iso_date_time = IsoDateTime::new_unchecked(other.iso, IsoTime::default());
+            let target_iso_date_time = IsoDateTime::new_unchecked(other_iso, IsoTime::default());
             // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
             let dest_epoch_ns = target_iso_date_time.as_nanoseconds();
             // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, resolved.[[LargestUnit]], resolved.[[RoundingIncrement]], resolved.[[SmallestUnit]], resolved.[[RoundingMode]]).
