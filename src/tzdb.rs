@@ -627,6 +627,23 @@ fn normalize_identifier_with_compiled(identifier: &[u8]) -> TemporalResult<Cow<'
     Err(TemporalError::range().with_message("Unknown time zone identifier"))
 }
 
+fn canonicalize_identifier_with_compiled(identifier: &[u8]) -> TemporalResult<Cow<'static, str>> {
+    let idx = SINGLETON_IANA_NORMALIZER
+        .non_canonical_identifiers
+        .get(identifier)
+        .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
+
+    if let Some(index) = idx {
+        return SINGLETON_IANA_NORMALIZER
+            .normalized_identifiers
+            .get(index)
+            .map(Cow::Borrowed)
+            .ok_or(TemporalError::range().with_message("Unknown time zone identifier"));
+    }
+
+    Err(TemporalError::range().with_message("Unknown time zone identifier"))
+}
+
 /// Timezone provider that uses compiled data.
 ///
 /// Currently uses jiff_tzdb and performs parsing; will eventually
@@ -670,6 +687,9 @@ impl CompiledTzdbProvider {
 impl TimeZoneProvider for CompiledTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         normalize_identifier_with_compiled(ident)
+    }
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
+        canonicalize_identifier_with_compiled(ident)
     }
     fn get_named_tz_epoch_nanoseconds(
         &self,
@@ -758,6 +778,9 @@ impl FsTzdbProvider {
 impl TimeZoneProvider for FsTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         normalize_identifier_with_compiled(ident)
+    }
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
+        canonicalize_identifier_with_compiled(ident)
     }
 
     fn get_named_tz_epoch_nanoseconds(
@@ -854,8 +877,8 @@ mod tests {
             ("Europe/Vienna", "Europe/Vienna", "+01:00"),
             ("America/New_York", "America/New_York", "-05:00"),
             ("Africa/CAIRO", "Africa/Cairo", "+02:00"),
-            ("Asia/Ulan_Bator", "Asia/Ulaanbaatar", "+07:00"),
-            ("GMT", "Etc/GMT", "+00:00"),
+            ("Asia/Ulan_Bator", "Asia/Ulan_Bator", "+07:00"),
+            ("GMT", "GMT", "+00:00"),
             ("etc/gmt", "Etc/GMT", "+00:00"),
             (
                 "1994-11-05T08:15:30-05:00[America/New_York]",

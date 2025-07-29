@@ -62,6 +62,8 @@ impl core::fmt::Display for TransitionDirection {
 pub trait TimeZoneProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>>;
 
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>>;
+
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
@@ -87,6 +89,9 @@ pub struct NeverProvider;
 
 impl TimeZoneProvider for NeverProvider {
     fn normalize_identifier(&self, _ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
+        unimplemented!()
+    }
+    fn canonicalize_identifier(&self, _ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         unimplemented!()
     }
     fn get_named_tz_epoch_nanoseconds(

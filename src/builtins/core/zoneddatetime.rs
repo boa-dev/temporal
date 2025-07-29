@@ -292,7 +292,7 @@ impl PartialZonedDateTime {
 ///
 /// [mdn-zoneddatetime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/ZonedDateTime
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
@@ -566,7 +566,10 @@ impl ZonedDateTime {
         // settings.[[LargestUnit]] must be a time unit, because day lengths
         // can vary between time zones due to DST and other UTC offset shifts.
         // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
-        if self.tz != other.tz {
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
             // a. Throw a RangeError exception.
             return Err(TemporalError::range().with_enum(ErrorMessage::TzMismatch));
         }
@@ -1124,6 +1127,27 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider,
         )
+    }
+
+    pub fn equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        // 4. If zonedDateTime.[[EpochNanoseconds]] ≠ other.[[EpochNanoseconds]], return false.
+        if self.instant != other.instant {
+            return Ok(false);
+        }
+
+        // 5. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, return false.
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
+            return Ok(false);
+        }
+        // 6. Return CalendarEquals(zonedDateTime.[[Calendar]], other.[[Calendar]]).
+        Ok(self.calendar == other.calendar)
     }
 
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.

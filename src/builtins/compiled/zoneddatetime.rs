@@ -285,6 +285,10 @@ impl ZonedDateTime {
         self.subtract_with_provider(duration, overflow, &*TZ_PROVIDER)
     }
 
+    pub fn equals(&self, other: &Self) -> TemporalResult<bool> {
+        self.equals_with_provider(other, &*TZ_PROVIDER)
+    }
+
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
     ///
     /// Enable with the `compiled_data` feature flag.
@@ -446,6 +450,6 @@ mod tests {
                 .unwrap();
 
         let result = zdt.add(&d, None).unwrap();
-        assert_eq!(result, expected);
+        assert!(result.equals(&expected).unwrap());
     }
 }

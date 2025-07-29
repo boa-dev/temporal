@@ -210,6 +210,42 @@ impl TimeZone {
             TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
+
+    /// Get the primary identifier for this timezone
+    pub fn primary_identifier_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Ok(match self {
+            TimeZone::IanaIdentifier(s) => {
+                TimeZone::IanaIdentifier(provider.canonicalize_identifier(s.as_bytes())?.into())
+            }
+            TimeZone::UtcOffset(offset) => TimeZone::UtcOffset(*offset),
+        })
+    }
+
+    /// Get the primary identifier for this timezone
+    #[cfg(feature = "compiled_data")]
+    pub fn primary_identifier(&self) -> TemporalResult<Self> {
+        self.primary_identifier_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
+
+    // TimeZoneEquals, which compares primary identifiers
+    pub(crate) fn time_zone_equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        Ok(match (self, other) {
+            (TimeZone::IanaIdentifier(one), TimeZone::IanaIdentifier(two)) => {
+                let one = provider.canonicalize_identifier(one.as_bytes())?;
+                let two = provider.canonicalize_identifier(two.as_bytes())?;
+                one == two
+            }
+            (&TimeZone::UtcOffset(one), &TimeZone::UtcOffset(two)) => one == two,
+            _ => false,
+        })
+    }
 }
 
 impl Default for TimeZone {
@@ -564,9 +600,11 @@ mod tests {
 
     #[test]
     #[cfg(feature = "compiled_data")]
-    fn normalize_zones() {
+    fn canonicalize_equals() {
         let calcutta = TimeZone::try_from_identifier_str("Asia/Calcutta").unwrap();
         let kolkata = TimeZone::try_from_identifier_str("Asia/Kolkata").unwrap();
-        assert_eq!(calcutta, kolkata);
+        assert!(calcutta
+            .time_zone_equals_with_provider(&kolkata, &*crate::builtins::TZ_PROVIDER)
+            .unwrap());
     }
 }
