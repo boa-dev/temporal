@@ -42,6 +42,10 @@ pub struct PartialZonedDateTime {
     ///
     /// Incompatible with having an offset (you can still have a offset-format timezone)
     pub has_utc_designator: bool,
+    /// Whether or not to allow offsets rounded to the minute
+    ///
+    /// (Typically only needs to be set when parsing, can be false otherwise)
+    pub match_minutes: bool,
     /// An optional offset string
     pub offset: Option<UtcOffset>,
     /// The time zone value of a partial time zone.
@@ -61,6 +65,7 @@ impl PartialZonedDateTime {
             date: PartialDate::new(),
             time: PartialTime::new(),
             has_utc_designator: false,
+            match_minutes: false,
             offset: None,
             timezone: None,
         }
@@ -97,6 +102,8 @@ impl PartialZonedDateTime {
     ) -> TemporalResult<Self> {
         let parse_result = parsers::parse_zoned_date_time(source)?;
 
+        let mut match_minutes = true;
+
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
@@ -105,6 +112,9 @@ impl PartialZonedDateTime {
         let (offset, has_utc_designator) = match parse_result.offset {
             Some(UtcOffsetRecordOrZ::Z) => (None, true),
             Some(UtcOffsetRecordOrZ::Offset(offset)) => {
+                if offset.second().is_some() {
+                    match_minutes = false;
+                }
                 (Some(UtcOffset::from_ixdtf_record(offset)?), false)
             }
             None => (None, false),
@@ -132,6 +142,7 @@ impl PartialZonedDateTime {
             date,
             time,
             has_utc_designator,
+            match_minutes,
             offset,
             timezone: Some(timezone),
         })
@@ -646,7 +657,7 @@ impl ZonedDateTime {
             &timezone,
             disambiguation,
             offset_option,
-            true,
+            partial.match_minutes,
             provider,
         )?;
 
@@ -716,7 +727,8 @@ impl ZonedDateTime {
             &self.tz,
             disambiguation,
             offset_option,
-            true,
+            // match-exactly
+            false,
             provider,
         )?;
 
@@ -1287,7 +1299,8 @@ impl ZonedDateTime {
                 &self.tz,
                 Disambiguation::Compatible,
                 OffsetDisambiguation::Prefer,
-                true,
+                // match-exactly
+                false,
                 provider,
             )?;
 
@@ -1336,22 +1349,37 @@ impl ZonedDateTime {
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
+        // Steps from the parse bits of of ToZonedDateTime
+
+        // 3. Let matchBehaviour be match-minutes.
+        let mut match_minutes = true;
+        // b. Let result be ? ParseISODateTime(item, « TemporalDateTimeString[+Zoned] »).
         let parse_result = parsers::parse_zoned_date_time(source)?;
 
+        // c. Let annotation be result.[[TimeZone]].[[TimeZoneAnnotation]].
+        // d. Assert: annotation is not empty.
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
+        // e. Let timeZone be ? ToTemporalTimeZoneIdentifier(annotation).
         let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
+        // f. Let offsetString be result.[[TimeZone]].[[OffsetString]].
         let (offset_nanos, is_exact) = parse_result
             .offset
             .map(|record| {
+                // g. If result.[[TimeZone]].[[Z]] is true, then
                 let UtcOffsetRecordOrZ::Offset(offset) = record else {
+                    // i. Set hasUTCDesignator to true.
                     return (None, true);
                 };
                 let hours_in_ns = i64::from(offset.hour()) * 3_600_000_000_000_i64;
                 let minutes_in_ns = i64::from(offset.minute()) * 60_000_000_000_i64;
                 let seconds_in_ns = i64::from(offset.second().unwrap_or(0)) * 1_000_000_000_i64;
+                // iii. If offsetParseResult contains more than one MinuteSecond Parse Node, set matchBehaviour to match-exactly.
+                if offset.second().is_some() {
+                    match_minutes = false;
+                }
                 let ns = offset
                     .fraction()
                     .and_then(|x| x.to_nanoseconds())
@@ -1366,6 +1394,10 @@ impl ZonedDateTime {
                 )
             })
             .unwrap_or((None, false));
+
+        // h. Let calendar be result.[[Calendar]].
+        // i. If calendar is empty, set calendar to "iso8601".
+        // j. Set calendar to ? CanonicalizeCalendar(calendar).
 
         let calendar = parse_result
             .calendar
@@ -1397,7 +1429,7 @@ impl ZonedDateTime {
             &timezone,
             disambiguation,
             offset_option,
-            true,
+            match_minutes,
             provider,
         )?;
 
@@ -1683,6 +1715,7 @@ mod tests {
             },
             time: PartialTime::default(),
             has_utc_designator: false,
+            match_minutes: false,
             offset: None,
             timezone: Some(TimeZone::default()),
         };
@@ -1701,6 +1734,7 @@ mod tests {
             },
             time: PartialTime::default(),
             has_utc_designator: false,
+            match_minutes: false,
             offset: Some(UtcOffset::from_minutes(30)),
             timezone: Some(TimeZone::default()),
         };
@@ -1794,6 +1828,82 @@ mod tests {
         assert_eq!(diff.nanoseconds(), 0);
     }
 
+    #[cfg(feature = "compiled_data")]
+    #[test]
+    fn zdt_offset_match_minutes() {
+        // Cases taken from intl402/Temporal/ZonedDateTime/compare/sub-minute-offset
+
+        let provider = &*crate::builtins::TZ_PROVIDER;
+
+        // Rounded mm accepted
+        let _ = ZonedDateTime::from_utf8_with_provider(
+            b"1970-01-01T00:00-00:45[Africa/Monrovia]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+        // unrounded mm::ss accepted
+        let _ = ZonedDateTime::from_utf8_with_provider(
+            b"1970-01-01T00:00:00-00:44:30[Africa/Monrovia]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+        assert!(
+            ZonedDateTime::from_utf8_with_provider(
+                b"1970-01-01T00:00:00-00:44:40[Africa/Monrovia]",
+                Default::default(),
+                OffsetDisambiguation::Reject,
+                provider
+            )
+            .is_err(),
+            "Incorrect unrounded mm::ss rejected"
+        );
+        assert!(
+            ZonedDateTime::from_utf8_with_provider(
+                b"1970-01-01T00:00:00-00:45:00[Africa/Monrovia]",
+                Default::default(),
+                OffsetDisambiguation::Reject,
+                provider
+            )
+            .is_err(),
+            "Rounded mm::ss rejected"
+        );
+        assert!(
+            ZonedDateTime::from_utf8_with_provider(
+                b"1970-01-01T00:00+00:44:30.123456789[+00:45]",
+                Default::default(),
+                OffsetDisambiguation::Reject,
+                provider
+            )
+            .is_err(),
+            "Rounding not accepted between ISO offset and timezone"
+        );
+
+        assert!(
+            ZonedDateTime::from_partial_with_provider(
+                PartialZonedDateTime {
+                    date: PartialDate {
+                        year: Some(1970),
+                        month: Some(1),
+                        day: Some(1),
+                        ..PartialDate::default()
+                    },
+                    offset: Some("-00:45".parse().unwrap()),
+                    timezone: Some(TimeZone::try_from_identifier_str("Africa/Monrovia").unwrap()),
+                    ..PartialZonedDateTime::default()
+                },
+                None,
+                None,
+                None,
+                provider
+            )
+            .is_err(),
+            "Rounding not accepted between ISO offset and timezone"
+        );
+    }
     // overflow-reject-throws.js
     #[test]
     fn overflow_reject_throws() {
@@ -1813,6 +1923,7 @@ mod tests {
                 },
                 time: PartialTime::default(),
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1830,6 +1941,7 @@ mod tests {
                 },
                 time: PartialTime::default(),
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1847,6 +1959,7 @@ mod tests {
                     ..Default::default()
                 },
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1864,6 +1977,7 @@ mod tests {
                     ..Default::default()
                 },
                 has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },

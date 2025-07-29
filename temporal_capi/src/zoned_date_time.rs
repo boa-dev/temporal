@@ -509,8 +509,9 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZon
         Ok(Self {
             date: other.date.try_into()?,
             time: other.time.into(),
-            // This is only true when parsing
+            // These fields are only true when parsing
             has_utc_designator: false,
+            match_minutes: false,
             offset,
             timezone: other.timezone.map(|x| x.0.clone()),
         })
