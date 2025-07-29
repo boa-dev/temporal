@@ -210,6 +210,35 @@ impl TimeZone {
             TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
+
+    /// Get the primary identifier for this timezone
+    pub fn primary_identifier_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Ok(match self {
+            TimeZone::IanaIdentifier(s) => {
+                TimeZone::IanaIdentifier(provider.canonicalize_identifier(s.as_bytes())?.into())
+            }
+            TimeZone::UtcOffset(offset) => TimeZone::UtcOffset(*offset),
+        })
+    }
+    // TimeZoneEquals, which compares primary identifiers
+    pub(crate) fn time_zone_equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        Ok(match (self, other) {
+            (&TimeZone::IanaIdentifier(ref one), &TimeZone::IanaIdentifier(ref two)) => {
+                let one = provider.canonicalize_identifier(one.as_bytes())?;
+                let two = provider.canonicalize_identifier(two.as_bytes())?;
+                one == two
+            }
+            (&TimeZone::UtcOffset(one), &TimeZone::UtcOffset(two)) => one == two,
+            _ => false,
+        })
+    }
 }
 
 impl Default for TimeZone {

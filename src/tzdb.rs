@@ -627,6 +627,23 @@ fn normalize_identifier_with_compiled(identifier: &[u8]) -> TemporalResult<Cow<'
     Err(TemporalError::range().with_message("Unknown time zone identifier"))
 }
 
+fn canonicalize_identifier_with_compiled(identifier: &[u8]) -> TemporalResult<Cow<'static, str>> {
+    let idx = SINGLETON_IANA_NORMALIZER
+        .links
+        .get(identifier)
+        .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
+
+    if let Some(index) = idx {
+        return SINGLETON_IANA_NORMALIZER
+            .normalized_identifiers
+            .get(index)
+            .map(Cow::Borrowed)
+            .ok_or(TemporalError::range().with_message("Unknown time zone identifier"));
+    }
+
+    Err(TemporalError::range().with_message("Unknown time zone identifier"))
+}
+
 /// Timezone provider that uses compiled data.
 ///
 /// Currently uses jiff_tzdb and performs parsing; will eventually
@@ -670,6 +687,9 @@ impl CompiledTzdbProvider {
 impl TimeZoneProvider for CompiledTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         normalize_identifier_with_compiled(ident)
+    }
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
+        canonicalize_identifier_with_compiled(ident)
     }
     fn get_named_tz_epoch_nanoseconds(
         &self,
@@ -758,6 +778,9 @@ impl FsTzdbProvider {
 impl TimeZoneProvider for FsTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         normalize_identifier_with_compiled(ident)
+    }
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
+        canonicalize_identifier_with_compiled(ident)
     }
 
     fn get_named_tz_epoch_nanoseconds(

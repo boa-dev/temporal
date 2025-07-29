@@ -566,7 +566,10 @@ impl ZonedDateTime {
         // settings.[[LargestUnit]] must be a time unit, because day lengths
         // can vary between time zones due to DST and other UTC offset shifts.
         // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
-        if self.tz != other.tz {
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
             // a. Throw a RangeError exception.
             return Err(TemporalError::range().with_enum(ErrorMessage::TzMismatch));
         }
