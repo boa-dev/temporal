@@ -1,7 +1,11 @@
+use alloc::borrow::Cow;
+
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
+    use diplomat_runtime::{DiplomatOption, DiplomatUtf8StrSlice};
+
     #[diplomat::enum_convert(temporal_rs::error::ErrorKind)]
     pub enum ErrorKind {
         Generic,
@@ -14,19 +18,20 @@ pub mod ffi {
     // In the future we might turn this into an opaque type with a msg() field
     pub struct TemporalError {
         pub kind: ErrorKind,
+        pub msg: DiplomatOption<DiplomatUtf8StrSlice<'static>>,
     }
 
     impl TemporalError {
-        // internal
-        pub(crate) fn syntax() -> Self {
-            TemporalError {
-                kind: ErrorKind::Syntax,
-            }
-        }
-
-        pub(crate) fn range() -> Self {
+        pub(crate) fn range(msg: &'static str) -> Self {
             TemporalError {
                 kind: ErrorKind::Range,
+                msg: Some(DiplomatUtf8StrSlice::from(msg)).into(),
+            }
+        }
+        pub(crate) fn assert(msg: &'static str) -> Self {
+            TemporalError {
+                kind: ErrorKind::Assert,
+                msg: Some(DiplomatUtf8StrSlice::from(msg)).into(),
             }
         }
     }
@@ -34,8 +39,16 @@ pub mod ffi {
 
 impl From<temporal_rs::TemporalError> for ffi::TemporalError {
     fn from(other: temporal_rs::TemporalError) -> Self {
+        let kind = other.kind().into();
+        let msg = other.into_message();
+        let msg = if let Cow::Borrowed(s) = msg {
+            Some(s)
+        } else {
+            None
+        };
         Self {
-            kind: other.kind().into(),
+            kind,
+            msg: msg.map(Into::into).into(),
         }
     }
 }

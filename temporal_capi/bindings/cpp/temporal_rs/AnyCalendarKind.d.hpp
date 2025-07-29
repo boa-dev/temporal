@@ -67,7 +67,8 @@ public:
     Roc = 17,
   };
 
-  AnyCalendarKind() = default;
+  AnyCalendarKind(): value(Value::Buddhist) {}
+
   // Implicit conversions between enum and ::Value
   constexpr AnyCalendarKind(Value v) : value(v) {}
   constexpr operator Value() const { return value; }
@@ -75,6 +76,8 @@ public:
   explicit operator bool() const = delete;
 
   inline static std::optional<temporal_rs::AnyCalendarKind> get_for_str(std::string_view s);
+
+  inline static std::optional<temporal_rs::AnyCalendarKind> parse_temporal_calendar_string(std::string_view s);
 
   inline temporal_rs::capi::AnyCalendarKind AsFFI() const;
   inline static temporal_rs::AnyCalendarKind FromFFI(temporal_rs::capi::AnyCalendarKind c_enum);

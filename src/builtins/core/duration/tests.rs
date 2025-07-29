@@ -1,7 +1,7 @@
 use core::str::FromStr;
 
 use crate::{
-    options::{RoundingOptions, ToStringRoundingOptions, Unit},
+    options::{RoundingIncrement, RoundingOptions, ToStringRoundingOptions, Unit},
     parsers::Precision,
     partial::PartialDuration,
     provider::NeverProvider,
@@ -190,6 +190,79 @@ fn duration_from_str() {
     assert_eq!(duration.nanoseconds(), 940);
 }
 
+#[test]
+fn duration_max_safe() {
+    const MAX_SAFE_INTEGER: i64 = 9007199254740991;
+
+    // From test262 built-ins/Temporal/Duration/prototype/subtract/result-out-of-range-3.js
+    assert!(Duration::new(0, 0, 0, 0, 0, 0, 0, 0, 9_007_199_254_740_991_926_258, 0).is_err());
+
+    // https://github.com/tc39/proposal-temporal/issues/3106#issuecomment-2849349391
+    let mut options = RoundingOptions {
+        increment: Some(RoundingIncrement::ONE),
+        largest_unit: Some(Unit::Nanosecond),
+        ..Default::default()
+    };
+    let d = Duration::new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        /* s = */ MAX_SAFE_INTEGER,
+        0,
+        0,
+        /* ns = */ 463_129_087,
+    )
+    .unwrap();
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
+    let d = Duration::new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        /* s = */ MAX_SAFE_INTEGER,
+        0,
+        0,
+        /* ns = */ 463_129_088,
+    )
+    .unwrap();
+    assert!(d
+        .round_with_provider(options, None, &NeverProvider)
+        .is_err());
+
+    options.largest_unit = Some(Unit::Microsecond);
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
+    let d = Duration::new(
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        /* s = */ MAX_SAFE_INTEGER,
+        0,
+        /* mis = */ 475_712,
+        0,
+    )
+    .unwrap();
+    assert!(d
+        .round_with_provider(options, None, &NeverProvider)
+        .is_err());
+
+    options.largest_unit = Some(Unit::Millisecond);
+    let _ = d
+        .round_with_provider(options, None, &NeverProvider)
+        .expect("Must successfully round");
+}
+
 // Temporal/Duration/max.js
 #[test]
 fn duration_max() {
@@ -264,6 +337,67 @@ fn duration_round_negative() {
     assert_eq!(result.days(), -3);
 }
 
+#[test]
+#[cfg(feature = "compiled_data")]
+fn test_duration_compare() {
+    use crate::builtins::FS_TZ_PROVIDER;
+    use crate::options::{OffsetDisambiguation, RelativeTo};
+    use crate::ZonedDateTime;
+    use alloc::string::ToString;
+    // TODO(#199): Make this work with Windows
+    // This should also ideally use the compiled data APIs and live under builtins/compiled
+    if cfg!(not(windows)) {
+        let one = Duration::from_partial_duration(PartialDuration {
+            hours: Some(79),
+            minutes: Some(10),
+            ..Default::default()
+        })
+        .unwrap();
+        let two = Duration::from_partial_duration(PartialDuration {
+            days: Some(3),
+            hours: Some(7),
+            seconds: Some(630),
+            ..Default::default()
+        })
+        .unwrap();
+        let three = Duration::from_partial_duration(PartialDuration {
+            days: Some(3),
+            hours: Some(6),
+            minutes: Some(50),
+            ..Default::default()
+        })
+        .unwrap();
+
+        let mut arr = [&one, &two, &three];
+        arr.sort_by(|a, b| Duration::compare_with_provider(a, b, None, &*FS_TZ_PROVIDER).unwrap());
+        assert_eq!(
+            arr.map(ToString::to_string),
+            [&three, &one, &two].map(ToString::to_string)
+        );
+
+        // Sorting relative to a date, taking DST changes into account:
+        let zdt = ZonedDateTime::from_utf8_with_provider(
+            b"2020-11-01T00:00-07:00[America/Los_Angeles]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+            &*FS_TZ_PROVIDER,
+        )
+        .unwrap();
+        arr.sort_by(|a, b| {
+            Duration::compare_with_provider(
+                a,
+                b,
+                Some(RelativeTo::ZonedDateTime(zdt.clone())),
+                &*FS_TZ_PROVIDER,
+            )
+            .unwrap()
+        });
+        assert_eq!(
+            arr.map(ToString::to_string),
+            [&one, &three, &two].map(ToString::to_string)
+        )
+    }
+}
 /*
 TODO: Uncomment
 

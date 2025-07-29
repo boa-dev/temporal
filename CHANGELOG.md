@@ -1,3 +1,91 @@
+## What's Changed in v0.0.11
+* Add PartialZonedDateTime::try_from_str by @Manishearth in [#420](https://github.com/boa-dev/temporal/pull/420)
+* Add from_partial for YearMonth/MonthDay FFI by @Manishearth in [#351](https://github.com/boa-dev/temporal/pull/351)
+* Throw error if given more than 9 duration digits by @Manishearth in [#425](https://github.com/boa-dev/temporal/pull/425)
+* Fix up eras, correctly expose arithmetic year by @Manishearth in [#424](https://github.com/boa-dev/temporal/pull/424)
+* Add time zone normalization by @Manishearth in [#415](https://github.com/boa-dev/temporal/pull/415)
+* Allow adding date durations to PlainTime by @Manishearth in [#421](https://github.com/boa-dev/temporal/pull/421)
+* Parse both zoned and unzoned date times in relativeTo by @Manishearth in [#422](https://github.com/boa-dev/temporal/pull/422)
+* Add get_epoch_ns_for on YearMonth/MonthDay by @Manishearth in [#414](https://github.com/boa-dev/temporal/pull/414)
+* Don't set None time in ZDT::from_partial by @Manishearth in [#416](https://github.com/boa-dev/temporal/pull/416)
+* [capi] Add from_utf8/from_utf16 for OwnedRelativeTo by @Manishearth in [#375](https://github.com/boa-dev/temporal/pull/375)
+* Forbid MonthDay/YearMonth formats for non-iso by @Manishearth in [#413](https://github.com/boa-dev/temporal/pull/413)
+* Use track_caller in assertion errors by @Manishearth in [#417](https://github.com/boa-dev/temporal/pull/417)
+* Properly respect overflow options when performing with_fallback_date/time by @Manishearth in [#407](https://github.com/boa-dev/temporal/pull/407)
+* Add TimeZone::utc() to FFI by @Manishearth in [#358](https://github.com/boa-dev/temporal/pull/358)
+* Add POSIX time zone string support to zoneinfo by @nekevss in [#265](https://github.com/boa-dev/temporal/pull/265)
+* Fix duration validity check by @Manishearth in [#411](https://github.com/boa-dev/temporal/pull/411)
+* Produce correct error types for invalid month/era codes by @Manishearth in [#405](https://github.com/boa-dev/temporal/pull/405)
+* Add support for offsetBehavior == WALL by @Manishearth in [#404](https://github.com/boa-dev/temporal/pull/404)
+* Update README.md - mention other usages of lib by @jasonwilliams in [#401](https://github.com/boa-dev/temporal/pull/401)
+* Make TimeZone::identifier() infallible by @linusg in [#399](https://github.com/boa-dev/temporal/pull/399)
+* Fix the bakedata provider path by @nekevss in [#398](https://github.com/boa-dev/temporal/pull/398)
+* Include time duration in InternalDurationSign by @Manishearth in [#397](https://github.com/boa-dev/temporal/pull/397)
+* Use rounded instant in ZDT::toString by @Manishearth in [#396](https://github.com/boa-dev/temporal/pull/396)
+* Fix hoursInDay division constant by @nekevss in [#395](https://github.com/boa-dev/temporal/pull/395)
+* Expose ParseTemporalCalendarString over FFI by @Manishearth in [#390](https://github.com/boa-dev/temporal/pull/390)
+* Remove UTC designator check from time zone parsing by @nekevss in [#392](https://github.com/boa-dev/temporal/pull/392)
+* Update ixdtf to icu4x main git branch by @robot-head in [#365](https://github.com/boa-dev/temporal/pull/365)
+* Fix `9.5.8 AddDurationToYearMonth` abstract method by @HalidOdat in [#389](https://github.com/boa-dev/temporal/pull/389)
+* Fix ZonedDateTime::nanosecond by @Manishearth in [#388](https://github.com/boa-dev/temporal/pull/388)
+* Allow datetime strings for YearMonth/MonthDay/Time by @Manishearth in [#386](https://github.com/boa-dev/temporal/pull/386)
+* Remove orgs/boa-dev/people from links by @nekevss in [#387](https://github.com/boa-dev/temporal/pull/387)
+* Update maintainers in README.md by @jasonwilliams in [#384](https://github.com/boa-dev/temporal/pull/384)
+* Re-add try_from_offset_str by @Manishearth in [#376](https://github.com/boa-dev/temporal/pull/376)
+* Fix clippy lints for Rust 1.88 by @nekevss in [#377](https://github.com/boa-dev/temporal/pull/377)
+
+## New Contributors
+* @linusg made their first contribution in [#399](https://github.com/boa-dev/temporal/pull/399)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.10...v0.0.11
+
+## What's Changed in v0.0.10
+* Add documentation and doctests for builtins by @blarfoon in [#360](https://github.com/boa-dev/temporal/pull/360)
+* More error enums by @Manishearth in [#373](https://github.com/boa-dev/temporal/pull/373)
+* [capi] Add stringifier/cloning to timezones by @Manishearth in [#344](https://github.com/boa-dev/temporal/pull/344)
+* Handle unknown timezone identifiers in FsTzdbProvider by @Manishearth in [#345](https://github.com/boa-dev/temporal/pull/345)
+* [capi] Fix i128Nanoseconds by @Manishearth in [#372](https://github.com/boa-dev/temporal/pull/372)
+* [capi] expose error strings by @Manishearth in [#364](https://github.com/boa-dev/temporal/pull/364)
+* Consolidate tools into a single `tool` directory by @nekevss in [#368](https://github.com/boa-dev/temporal/pull/368)
+* Add a new PartialYearMonth to available partial structs (#288) by @robot-head in [#342](https://github.com/boa-dev/temporal/pull/342)
+* Implement zoneinfo parsing/compilation and add TZif structs by @nekevss in [#257](https://github.com/boa-dev/temporal/pull/257)
+* Add ErrorMessage enum, start using it by @Manishearth in [#355](https://github.com/boa-dev/temporal/pull/355)
+* [capi] Add is_valid() to I128Nanoseconds by @Manishearth in [#363](https://github.com/boa-dev/temporal/pull/363)
+* [capi] Add ZonedDateTime::{equals,offset} by @Manishearth in [#362](https://github.com/boa-dev/temporal/pull/362)
+* Add convenience methods for constructing FFI datetime types from milliseconds by @Manishearth in [#359](https://github.com/boa-dev/temporal/pull/359)
+* [capi] Add offset_nanoseconds() to ZDT FFI by @Manishearth in [#361](https://github.com/boa-dev/temporal/pull/361)
+* Update diplomat by @Manishearth in [#357](https://github.com/boa-dev/temporal/pull/357)
+* Stop depending on `is_dst` for calculations by @jedel1043 in [#356](https://github.com/boa-dev/temporal/pull/356)
+* Add some FAQ style docs for temporal_rs by @nekevss in [#350](https://github.com/boa-dev/temporal/pull/350)
+* Add try_from_offset_str ctor for TimeZone by @Manishearth in [#348](https://github.com/boa-dev/temporal/pull/348)
+* Switch compiled_data APIs to new CompiledTzdbProvider by @Manishearth in [#346](https://github.com/boa-dev/temporal/pull/346)
+
+## New Contributors
+* @blarfoon made their first contribution in [#360](https://github.com/boa-dev/temporal/pull/360)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.9...v0.0.10
+
+## What's Changed in v0.0.9
+* Cross boundary rounding fix #286 by @robot-head in [#343](https://github.com/boa-dev/temporal/pull/343)
+* Implement PlainMonthDay::with functionality by @nekevss in [#335](https://github.com/boa-dev/temporal/pull/335)
+* Add Writeable getters for some types, use in FFI by @Manishearth in [#340](https://github.com/boa-dev/temporal/pull/340)
+* Add missing FFI APIs by @Manishearth in [#339](https://github.com/boa-dev/temporal/pull/339)
+* Fill in missing Zoned APIs by @Manishearth in [#331](https://github.com/boa-dev/temporal/pull/331)
+* Add stringifiers to MonthDay/YearMonth by @Manishearth in [#338](https://github.com/boa-dev/temporal/pull/338)
+* Use AnyCalendarKind in PartialDate by @Manishearth in [#332](https://github.com/boa-dev/temporal/pull/332)
+* Add ZonedDateTime FFI by @Manishearth in [#329](https://github.com/boa-dev/temporal/pull/329)
+* Use a lock internally to FsTzdbProvider instead of externally by @Manishearth in [#327](https://github.com/boa-dev/temporal/pull/327)
+* Remove create() APIs, consistently use try_new() by @Manishearth in [#326](https://github.com/boa-dev/temporal/pull/326)
+* Switch FFI calendar APIs over to using AnyCalendarKind for input by @Manishearth in [#324](https://github.com/boa-dev/temporal/pull/324)
+* Update abstract method `7.5.37 RoundRelativeDuration` by @HalidOdat in [#323](https://github.com/boa-dev/temporal/pull/323)
+* Fix abstract method `7.5.36 BubbleRelativeDuration()` by @HalidOdat in [#322](https://github.com/boa-dev/temporal/pull/322)
+* Generate FFI bindings for C by @jedel1043 in [#321](https://github.com/boa-dev/temporal/pull/321)
+* Improve baked data formatting by @Manishearth in [#319](https://github.com/boa-dev/temporal/pull/319)
+* Correctly validate largestUnit when constructing from DifferenceSettings by @Manishearth in [#316](https://github.com/boa-dev/temporal/pull/316)
+* Align `Duration.prototype.round()` to latest specification by @HalidOdat in [#317](https://github.com/boa-dev/temporal/pull/317)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.8...v0.0.9
+
 ## What's Changed in v0.0.8
 * Make duration capi getters non-optional by @Manishearth in [#314](https://github.com/boa-dev/temporal/pull/314)
 * Add to_string to Duration by @Manishearth in [#312](https://github.com/boa-dev/temporal/pull/312)

@@ -17,11 +17,13 @@ use crate::{
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
+use ixdtf::records::DateRecord;
+use writeable::Writeable;
 
 use super::{
     calendar::month_to_month_code,
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    PlainMonthDay, PlainYearMonth,
+    PartialYearMonth, PlainMonthDay, PlainYearMonth,
 };
 use tinystr::TinyAsciiStr;
 
@@ -53,32 +55,17 @@ impl PartialDate {
         *self == Self::default()
     }
 
-    pub(crate) fn try_from_year_month(year_month: &PlainYearMonth) -> TemporalResult<Self> {
-        let (year, era, era_year) = if year_month.era().is_some() {
-            (
-                None,
-                year_month
-                    .era()
-                    .map(|t| TinyAsciiStr::<19>::try_from_utf8(t.as_bytes()))
-                    .transpose()
-                    .map_err(|e| TemporalError::general(format!("{e}")))?,
-                year_month.era_year(),
-            )
-        } else {
-            (Some(year_month.year()), None, None)
-        };
-        Ok(Self {
-            year,
-            month: Some(year_month.month()),
-            month_code: Some(year_month.month_code()),
-            day: Some(1),
-            era,
-            era_year,
-            calendar: year_month.calendar().clone(),
-        })
+    pub(crate) fn from_date_record(date_record: DateRecord, calendar: Calendar) -> Self {
+        Self {
+            year: Some(date_record.year),
+            month: Some(date_record.month),
+            month_code: None,
+            day: Some(date_record.day),
+            era: None,
+            era_year: None,
+            calendar,
+        }
     }
-
-    crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth); // excludes day
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
 }
@@ -88,7 +75,7 @@ impl PartialDate {
 #[macro_export]
 macro_rules! impl_with_fallback_method {
     ($method_name:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
-        pub(crate) fn $method_name(&self, fallback: &$component_type) -> TemporalResult<Self> {
+        pub(crate) fn $method_name(&self, fallback: &$component_type, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
             let era = if let Some(era) = self.era {
                 Some(era)
             } else {
@@ -105,7 +92,15 @@ macro_rules! impl_with_fallback_method {
 
             let (month, month_code) = match (self.month, self.month_code) {
                 (Some(month), Some(mc)) => (Some(month), Some(mc)),
-                (Some(month), None) => (Some(month), Some(month_to_month_code(month)?)),
+                (Some(month), None) => {
+                    let month_maybe_clamped = if overflow == ArithmeticOverflow::Constrain {
+                        month.clamp(1, 12)
+                    } else {
+                        month
+                    };
+
+                    (Some(month_maybe_clamped), Some(month_to_month_code(month_maybe_clamped)?))
+                }
                 (None, Some(mc)) => (Some(mc.to_month_integer()).map(Into::into), Some(mc)),
                 (None, None) => (
                     Some(fallback.month()).map(Into::into),
@@ -179,6 +174,74 @@ impl PartialDate {
 }
 
 /// The native Rust implementation of `Temporal.PlainDate`.
+///
+/// Represents a calendar date without any time or timezone
+/// information. Useful for dates where the specific time of day doesn't matter,
+/// such as deadlines, birth dates, or historical events.
+///
+/// Uses the ISO 8601 calendar (proleptic Gregorian calendar) by default, with
+/// support for other calendar systems when needed.
+///
+/// ## Examples
+///
+/// ### Creating dates
+///
+/// ```rust
+/// use temporal_rs::{PlainDate, Calendar};
+///
+/// // Create a date using the ISO calendar
+/// let christmas = PlainDate::try_new_iso(2024, 12, 25).unwrap();
+/// assert_eq!(christmas.year(), 2024);
+/// assert_eq!(christmas.month(), 12);
+/// assert_eq!(christmas.day(), 25);
+///
+/// // Explicit calendar specification
+/// let date = PlainDate::try_new(2024, 12, 25, Calendar::default()).unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(christmas, date); // Both represent the same date
+/// ```
+///
+/// ### Date arithmetic operations
+///
+/// ```rust
+/// use temporal_rs::{PlainDate, Duration};
+/// use core::str::FromStr;
+///
+/// let start = PlainDate::try_new_iso(2024, 1, 15).unwrap();
+///
+/// // Add one month
+/// let later = start.add(&Duration::from_str("P1M").unwrap(), None).unwrap();
+/// assert_eq!(later.month(), 2); // Results in 2024-02-15
+/// assert_eq!(later.day(), 15);
+///
+/// // Calculate duration between dates
+/// let new_year = PlainDate::try_new_iso(2024, 1, 1).unwrap();
+/// let diff = new_year.until(&start, Default::default()).unwrap();
+/// assert_eq!(diff.days(), 14);
+/// ```
+///
+/// ### Parsing ISO 8601 date strings
+///
+/// ```rust
+/// use temporal_rs::PlainDate;
+/// use core::str::FromStr;
+///
+/// // Standard ISO date format
+/// let date = PlainDate::from_str("2024-03-15").unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 3);
+/// assert_eq!(date.day(), 15);
+///
+/// // With explicit calendar annotation
+/// let date2 = PlainDate::from_str("2024-03-15[u-ca=iso8601]").unwrap();
+/// assert_eq!(date, date2);
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-plaindate].
+///
+/// [mdn-plaindate]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/PlainDate
 #[non_exhaustive]
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct PlainDate {
@@ -219,7 +282,9 @@ impl PlainDate {
             // i. Set dateAdd to unused.
             // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
             // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
-            return self.calendar().date_add(&self.iso, duration, overflow);
+            return self
+                .calendar()
+                .date_add(&self.iso, duration.date(), overflow);
         }
 
         // 4. Let overflow be ? ToTemporalOverflow(options).
@@ -320,7 +385,7 @@ impl PlainDate {
         // 12. If roundingGranularityIsNoop is false, then
         if !rounding_granularity_is_noop {
             // a. Let destEpochNs be GetUTCEpochNanoseconds(other.[[ISOYear]], other.[[ISOMonth]], other.[[ISODay]], 0, 0, 0, 0, 0, 0).
-            let dest_epoch_ns = other.iso.as_nanoseconds()?;
+            let dest_epoch_ns = other.iso.as_nanoseconds();
             // b. Let dateTime be ISO Date-Time Record { [[Year]]: temporalDate.[[ISOYear]], [[Month]]: temporalDate.[[ISOMonth]], [[Day]]: temporalDate.[[ISODay]], [[Hour]]: 0, [[Minute]]: 0, [[Second]]: 0, [[Millisecond]]: 0, [[Microsecond]]: 0, [[Nanosecond]]: 0 }.
             let dt = PlainDateTime::new_unchecked(
                 IsoDateTime::new_unchecked(self.iso, IsoTime::default()),
@@ -461,10 +526,9 @@ impl PlainDate {
         // 8. Let fields be ? CalendarMergeFields(calendarRec, fieldsResult.[[Fields]], partialDate).
         // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
-        self.calendar.date_from_partial(
-            &partial.with_fallback_date(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        self.calendar
+            .date_from_partial(&partial.with_fallback_date(self, overflow)?, overflow)
     }
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
@@ -650,7 +714,6 @@ impl PlainDate {
     /// Converts the current `Date` into a `PlainYearMonth`
     #[inline]
     pub fn to_plain_year_month(&self) -> TemporalResult<PlainYearMonth> {
-        // TODO: Migrate to `PartialYearMonth`
         let era = self
             .era()
             .map(|e| {
@@ -658,7 +721,7 @@ impl PlainDate {
                     .map_err(|e| TemporalError::general(format!("{e}")))
             })
             .transpose()?;
-        let partial = PartialDate::new()
+        let partial = PartialYearMonth::new()
             .with_year(Some(self.year()))
             .with_era(era)
             .with_era_year(self.era_year())
@@ -671,20 +734,30 @@ impl PlainDate {
     /// Converts the current `Date` into a `PlainMonthDay`
     #[inline]
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
+        let overflow = ArithmeticOverflow::Constrain;
         self.calendar().month_day_from_partial(
-            &PartialDate::default().with_fallback_date(self)?,
-            ArithmeticOverflow::Constrain,
+            &PartialDate::default().with_fallback_date(self, overflow)?,
+            overflow,
         )
     }
 
     #[inline]
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
+        self.to_ixdtf_writeable(display_calendar)
+            .write_to_string()
+            .into()
+    }
+
+    #[inline]
+    pub fn to_ixdtf_writeable(&self, display_calendar: DisplayCalendar) -> impl Writeable + '_ {
         IxdtfStringBuilder::default()
             .with_date(self.iso)
             .with_calendar(self.calendar.identifier(), display_calendar)
             .build()
     }
 
+    /// Creates a [`ZonedDateTime`] from the current `PlainDate` with a provided [`TimeZone`] and
+    /// optional [`PlainTime`].
     #[inline]
     pub fn to_zoned_date_time_with_provider(
         &self,
@@ -692,36 +765,18 @@ impl PlainDate {
         plain_time: Option<PlainTime>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
-        // 1. Let temporalDate be the this value.
-        // 2. Perform ? RequireInternalSlot(temporalDate, [[InitializedTemporalDate]]).
-        // 3. If item is an Object, then
-        //      a. Let timeZoneLike be ? Get(item, "timeZone").
-        //      b. If timeZoneLike is undefined, then
-        //          i. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
-        //          ii. Let temporalTime be undefined.
-        //      c. Else,
-        //          i. Let timeZone be ? ToTemporalTimeZoneIdentifier(timeZoneLike).
-        //          ii. Let temporalTime be ? Get(item, "plainTime").
-        // 4. Else,
-        //     a. Let timeZone be ? ToTemporalTimeZoneIdentifier(item).
-        //     b. Let temporalTime be undefined.
-
-        //  5. If temporalTime is undefined, then
-        //     a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
-        //  6. Else,
-        //     a. Set temporalTime to ? ToTemporalTime(temporalTime).
-        //     b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
-        //     c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
-        //     d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+        // NOTE (nekevss): Steps 1-4 are engine specific
         let epoch_ns = if let Some(time) = plain_time {
-            let result_iso = IsoDateTime::new(self.iso, time.iso);
-
-            tz.get_epoch_nanoseconds_for(
-                result_iso.unwrap_or_default(),
-                Disambiguation::Compatible,
-                provider,
-            )?
+            // 6. Else,
+            // a. Set temporalTime to ? ToTemporalTime(temporalTime).
+            // b. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], temporalTime.[[Time]]).
+            // c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
+            let result_iso = IsoDateTime::new(self.iso, time.iso)?;
+            // d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
+            tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
+        //  5. If temporalTime is undefined, then
         } else {
+            // a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
             tz.get_start_of_day(&self.iso, provider)?
         };
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
@@ -1004,9 +1059,9 @@ mod tests {
     #[test]
     fn to_zoned_date_time() {
         use crate::tzdb::FsTzdbProvider;
-        let date = PlainDate::from_str("2020-01-01").unwrap();
-        let tz = TimeZone::try_from_str("UTC").unwrap();
         let provider = &FsTzdbProvider::default();
+        let date = PlainDate::from_str("2020-01-01").unwrap();
+        let tz = TimeZone::try_from_str_with_provider("UTC", provider).unwrap();
         let zdt = date
             .to_zoned_date_time_with_provider(tz, None, provider)
             .unwrap();
@@ -1019,6 +1074,17 @@ mod tests {
         assert_eq!(zdt.millisecond_with_provider(provider).unwrap(), 0);
         assert_eq!(zdt.microsecond_with_provider(provider).unwrap(), 0);
         assert_eq!(zdt.nanosecond_with_provider(provider).unwrap(), 0);
+    }
+
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn to_zoned_date_time_error() {
+        use crate::tzdb::FsTzdbProvider;
+        let provider = &FsTzdbProvider::default();
+        let date = PlainDate::try_new_iso(-271_821, 4, 19).unwrap();
+        let time_zone = TimeZone::try_from_str_with_provider("+00", provider).unwrap();
+        let zdt = date.to_zoned_date_time_with_provider(time_zone, None, provider);
+        assert!(zdt.is_err())
     }
 
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js

@@ -12,14 +12,25 @@ include = [
     "Cargo.toml",
     "LICENSE-Apache",
     "LICENSE-MIT",
-    "README.md"
+    "README.md",
 ]
 
 [features]
-default = ["datagen"]
-datagen = ["std", "dep:serde", "dep:databake",
-           "dep:yoke", "dep:serde_json",
-           "zerotrie/serde", "zerotrie/databake", "zerovec/serde", "zerovec/databake", "zerovec/derive", "zoneinfo_rs"]
+datagen = [
+    "std",
+    "dep:serde",
+    "dep:databake",
+    "dep:yoke",
+    "dep:serde_json",
+    "tinystr/serde",
+    "tinystr/databake",
+    "zerotrie/serde",
+    "zerotrie/databake",
+    "zerovec/serde",
+    "zerovec/databake",
+    "zerovec/derive",
+    "zoneinfo_rs",
+]
 std = []
 
 [dependencies]
@@ -27,6 +38,7 @@ std = []
 # Provider dependency
 zerotrie = "0.2.2"
 zerovec = { version = "0.11.2", features = ["derive", "alloc"] }
+tinystr = { workspace = true, features = ["zerovec"] }
 
 # IANA dependency
 zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
@@ -36,4 +48,3 @@ serde = { version = "1.0.219", features = ["derive"], optional = true }
 databake = { version = "0.2.0", features = ["derive"], optional = true }
 yoke = { version = "0.8.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0.140", optional = true }
-

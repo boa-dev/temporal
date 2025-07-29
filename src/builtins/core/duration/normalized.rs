@@ -9,12 +9,12 @@ use crate::{
     iso::{IsoDate, IsoDateTime},
     options::{
         ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, RoundingIncrement,
-        RoundingMode, Unit,
+        RoundingMode, Unit, UNIT_VALUE_TABLE,
     },
     primitive::FiniteF64,
     provider::TimeZoneProvider,
-    rounding::{IncrementRounder, Round},
-    TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    rounding::IncrementRounder,
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
 
 use super::{DateDuration, Duration, Sign, TimeDuration};
@@ -270,6 +270,28 @@ impl NormalizedDurationRecord {
         Self::new(date, normalized_time)
     }
 
+    /// Equivalent of [`7.5.7 ToDateDurationRecordWithoutTime ( duration )`][spec]
+    ///
+    /// [spec]: <https://tc39.es/proposal-temporal/#sec-temporal-tointernaldurationrecordwith24hourdays>
+    ///
+    // spec(2025-06-23): https://github.com/tc39/proposal-temporal/tree/ed49b0b482981119c9b5e28b0686d877d4a9bae0
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn to_date_duration_record_without_time(&self) -> TemporalResult<DateDuration> {
+        // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration = self;
+
+        // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
+        let days = internal_duration.normalized_time_duration().0 / i128::from(NS_PER_DAY);
+
+        // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
+        Ok(DateDuration::new_unchecked(
+            internal_duration.date().years,
+            internal_duration.date().months,
+            internal_duration.date().weeks,
+            days.try_into().ok().temporal_unwrap()?,
+        ))
+    }
+
     pub(crate) fn from_date_duration(date: DateDuration) -> TemporalResult<Self> {
         Self::new(date, NormalizedTimeDuration::default())
     }
@@ -282,8 +304,13 @@ impl NormalizedDurationRecord {
         self.norm
     }
 
-    pub(crate) fn sign(&self) -> TemporalResult<Sign> {
-        Ok(self.date.sign())
+    pub(crate) fn sign(&self) -> Sign {
+        let date_sign = self.date.sign();
+        if date_sign == Sign::Zero {
+            self.norm.sign()
+        } else {
+            date_sign
+        }
     }
 }
 
@@ -535,7 +562,7 @@ impl NormalizedDurationRecord {
         } else {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-            (start.as_nanoseconds()?, end.as_nanoseconds()?)
+            (start.as_nanoseconds(), end.as_nanoseconds())
         };
 
         // 9. If endEpochNs = startEpochNs, throw a RangeError exception.
@@ -615,7 +642,7 @@ impl NormalizedDurationRecord {
         options: ResolvedRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NudgeRecord> {
-        let d = Duration::from(self.date());
+        let d = self.date();
         // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
         let start = dt
             .calendar()
@@ -776,200 +803,201 @@ impl NormalizedDurationRecord {
         })
     }
 
-    // 7.5.43 BubbleRelativeDuration ( sign, duration, nudgedEpochNs, dateTime, calendarRec, timeZoneRec, largestUnit, smallestUnit )
+    /// `7.5.36 BubbleRelativeDuration ( sign, duration, nudgedEpochNs, isoDateTime, timeZone, calendar, largestUnit, smallestUnit )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-bubblerelativeduration>
+    //
+    // spec(2025-05-28): https://github.com/tc39/proposal-temporal/tree/69001e954c70e29ba3d2e6433bc7ece2a037377a
     #[inline]
     #[allow(clippy::too_many_arguments)]
     fn bubble_relative_duration(
         &self,
         sign: Sign,
-        nudge_epoch_ns: i128,
-        date_time: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        nudged_epoch_ns: i128,
+        iso_date_time: &IsoDateTime,
+        time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        calendar: &Calendar,
         largest_unit: Unit,
         smallest_unit: Unit,
     ) -> TemporalResult<NormalizedDurationRecord> {
-        // Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains largestUnit, is date.
-        // 2. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains smallestUnit, is date.
         let mut duration = *self;
-        // 3. If smallestUnit is "year", return duration.
-        if smallest_unit == Unit::Year {
+
+        // 1. If smallestUnit is largestUnit, return duration.
+        if smallest_unit == largest_unit {
             return Ok(duration);
         }
 
-        // NOTE: Invert ops as Temporal Proposal table is inverted (i.e. Year = 0 ... Nanosecond = 9)
-        // 4. Let largestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains largestUnit.
-        // 5. Let smallestUnitIndex be the ordinal index of the row of Table 22 whose "Singular" column contains smallestUnit.
-        // 6. Let unitIndex be smallestUnitIndex - 1.
-        let mut smallest_unit = smallest_unit + 1;
-        // 7. Let done be false.
-        // 8. Repeat, while unitIndex ≤ largestUnitIndex and done is false,
-        while smallest_unit != Unit::Auto && largest_unit < smallest_unit {
-            // a. Let unit be the value in the "Singular" column of Table 22 in the row whose ordinal index is unitIndex.
-            // b. If unit is not "week", or largestUnit is "week", then
-            if smallest_unit == Unit::Week || largest_unit != Unit::Week {
-                smallest_unit = smallest_unit + 1;
-                continue;
-            }
+        // 2. Let largestUnitIndex be the ordinal index of the row of Table 21 whose "Value" column contains largestUnit.
+        let largest_unit_index = largest_unit.table_index()?;
 
-            let end_duration = match smallest_unit {
-                // i. If unit is "year", then
-                Unit::Year => {
-                    // 1. Let years be duration.[[Years]] + sign.
-                    // 2. Let endDuration be ? CreateNormalizedDurationRecord(years, 0, 0, 0, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration
+        // 3. Let smallestUnitIndex be the ordinal index of the row of Table 21 whose "Value" column contains smallestUnit.
+        let smallest_unit_index = smallest_unit.table_index()?;
+
+        // 4. Let unitIndex be smallestUnitIndex - 1.
+        // 5. Let done be false.
+        // 6. Repeat, while unitIndex ≥ largestUnitIndex and done is false,
+        //     a. Let unit be the value in the "Value" column of Table 21 in the row whose ordinal index is unitIndex.
+        for unit in UNIT_VALUE_TABLE[largest_unit_index..smallest_unit_index]
+            .iter()
+            .rev()
+            .copied()
+        {
+            // b. If unit is not week, or largestUnit is week, then
+            if unit != Unit::Week || largest_unit == Unit::Week {
+                let end_duration = match unit {
+                    // i. If unit is year, then
+                    Unit::Year => {
+                        // 1. Let years be duration.[[Date]].[[Years]] + sign.
+                        let years = self
                             .date()
                             .years
                             .checked_add(sign.as_sign_multiplier().into())
-                            .ok_or(TemporalError::range())?,
-                        0,
-                        0,
-                        0,
-                    )?
-                }
-                // ii. Else if unit is "month", then
-                Unit::Month => {
-                    // 1. Let months be duration.[[Months]] + sign.
-                    // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], months, 0, 0, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration.date().years,
-                        duration
+                            .ok_or(TemporalError::range())?;
+
+                        // 2. Let endDuration be ? CreateDateDurationRecord(years, 0, 0, 0).
+                        DateDuration::new(years, 0, 0, 0)?
+                    }
+                    // ii. Else if unit is month, then
+                    Unit::Month => {
+                        // 1. Let months be duration.[[Date]].[[Months]] + sign.
+                        let months = self
                             .date()
                             .months
                             .checked_add(sign.as_sign_multiplier().into())
-                            .ok_or(TemporalError::range())?,
-                        0,
-                        0,
-                    )?
-                }
-                // iii. Else if unit is "week", then
-                Unit::Week => {
-                    // 1. Let weeks be duration.[[Weeks]] + sign.
-                    // 2. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], weeks, 0, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration.date().years,
-                        duration.date().months,
-                        duration
+                            .ok_or(TemporalError::range())?;
+
+                        // 2. Let endDuration be ? AdjustDateDurationRecord(duration.[[Date]], 0, 0, months).
+                        duration.date().adjust(0, Some(0), Some(months))?
+                    }
+                    // iii. Else,
+                    unit => {
+                        // 1. Assert: unit is week.
+                        debug_assert!(unit == Unit::Week);
+
+                        // 2. Let weeks be duration.[[Date]].[[Weeks]] + sign.
+                        let weeks = self
                             .date()
                             .weeks
                             .checked_add(sign.as_sign_multiplier().into())
-                            .ok_or(TemporalError::range())?,
-                        0,
-                    )?
-                }
-                // iv. Else,
-                Unit::Day => {
-                    // 1. Assert: unit is "day".
-                    // 2. Let days be duration.[[Days]] + sign.
-                    // 3. Let endDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], days, ZeroTimeDuration()).
-                    DateDuration::new(
-                        duration.date().years,
-                        duration.date().months,
-                        duration.date().weeks,
-                        duration
-                            .date()
-                            .days
-                            .checked_add(sign.as_sign_multiplier().into())
-                            .ok_or(TemporalError::range())?,
-                    )?
-                }
-                _ => unreachable!(),
-            };
+                            .ok_or(TemporalError::range())?;
 
-            // v. Let end be ? AddDateTime(dateTime.[[Year]], dateTime.[[Month]], dateTime.[[Day]], dateTime.[[Hour]], dateTime.[[Minute]],
-            // dateTime.[[Second]], dateTime.[[Millisecond]], dateTime.[[Microsecond]], dateTime.[[Nanosecond]], calendarRec,
-            // endDuration.[[Years]], endDuration.[[Months]], endDuration.[[Weeks]], endDuration.[[Days]], endDuration.[[NormalizedTime]], undefined).
-            let end = date_time.iso.add_date_duration(
-                date_time.calendar().clone(),
-                &end_duration,
-                NormalizedTimeDuration::default(),
-                None,
-            )?;
+                        // 3. Let endDuration be ? AdjustDateDurationRecord(duration.[[Date]], 0, weeks).
+                        duration.date().adjust(0, Some(weeks), None)?
+                    }
+                };
 
-            // vi. If timeZoneRec is unset, then
-            let end_epoch_ns = if let Some((timezone, provider)) = tz {
-                // 1. Let endDateTime be ! CreateTemporalDateTime(end.[[Year]], end.[[Month]], end.[[Day]],
-                // end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]],
-                // end.[[Nanosecond]], calendarRec.[[Receiver]]).
-                // 2. Let endInstant be ? GetInstantFor(timeZoneRec, endDateTime, "compatible").
-                timezone.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?
-                // 3. Let endEpochNs be endInstant.[[Nanoseconds]].
-                // vii. Else,
-            } else {
-                // 1. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]],
-                // end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-                end.as_nanoseconds()?
-            };
-            // viii. Let beyondEnd be nudgedEpochNs - endEpochNs.
-            let beyond_end = nudge_epoch_ns - end_epoch_ns.0;
-            // ix. If beyondEnd < 0, let beyondEndSign be -1; else if beyondEnd > 0, let beyondEndSign be 1; else let beyondEndSign be 0.
-            // x. If beyondEndSign ≠ -sign, then
-            if beyond_end.signum() != -i128::from(sign.as_sign_multiplier()) {
-                // 1. Set duration to endDuration.
-                duration = NormalizedDurationRecord::from_date_duration(end_duration)?;
-            // xi. Else,
-            } else {
-                // 1. Set done to true.
-                break;
+                // iv. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
+                let end = calendar.date_add(
+                    &iso_date_time.date,
+                    &end_duration,
+                    ArithmeticOverflow::Constrain,
+                )?;
+
+                // v. Let endDateTime be CombineISODateAndTimeRecord(end, isoDateTime.[[Time]]).
+                let end_date_time = IsoDateTime::new_unchecked(end.iso, iso_date_time.time);
+
+                let end_epoch_ns = match time_zone {
+                    // vi. If timeZone is unset, then
+                    None => {
+                        // 1. Let endEpochNs be GetUTCEpochNanoseconds(endDateTime).
+                        end_date_time.as_nanoseconds()
+                    }
+                    // vii. Else,
+                    Some((time_zone, time_zone_provider)) => {
+                        // 1. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
+                        time_zone.get_epoch_nanoseconds_for(
+                            end_date_time,
+                            Disambiguation::Compatible,
+                            time_zone_provider,
+                        )?
+                    }
+                };
+
+                // viii. Let beyondEnd be nudgedEpochNs - endEpochNs.
+                let beyond_end = nudged_epoch_ns - end_epoch_ns.as_i128();
+
+                // ix. If beyondEnd < 0, let beyondEndSign be -1; else if beyondEnd > 0, let beyondEndSign be 1; else let beyondEndSign be 0.
+                let beyound_end_sign = beyond_end.signum();
+
+                // x. If beyondEndSign ≠ -sign, then
+                if beyound_end_sign != -i128::from(sign.as_sign_multiplier()) {
+                    // 1. Set duration to CombineDateAndTimeDuration(endDuration, 0).
+                    duration = NormalizedDurationRecord::from_date_duration(end_duration)?;
+                } else {
+                    // 1. Set done to true.
+                    break;
+                }
             }
+
             // c. Set unitIndex to unitIndex - 1.
-            smallest_unit = smallest_unit + 1;
         }
 
+        // 7. Return duration.
         Ok(duration)
     }
 
+    /// `7.5.37 RoundRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone, calendar, largestUnit, increment, smallestUnit, roundingMode )`
+    ///
+    /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-roundrelativeduration>
+    //
+    // spec(2025-05-29): https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254
+    //
     // TODO: Potentially revisit and optimize
-    // 7.5.44 RoundRelativeDuration ( duration, destEpochNs, dateTime, calendarRec, timeZoneRec, largestUnit, increment, smallestUnit, roundingMode )
     #[inline]
     pub(crate) fn round_relative_duration(
         &self,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        timezone_record: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
+        let duration = *self;
+
         // 1. Let irregularLengthUnit be false.
         // 2. If IsCalendarUnit(smallestUnit) is true, set irregularLengthUnit to true.
-        // 3. If timeZoneRec is not unset and smallestUnit is "day", set irregularLengthUnit to true.
-        let irregular_unit = options.smallest_unit.is_calendar_unit()
-            || (timezone_record.is_some() && options.smallest_unit == Unit::Day);
+        // 3. If timeZone is not unset and smallestUnit is day, set irregularLengthUnit to true.
+        let irregular_length_unit = options.smallest_unit.is_calendar_unit()
+            || (time_zone.is_some() && options.smallest_unit == Unit::Day);
 
-        // 4. If DurationSign(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]], NormalizedTimeDurationSign(duration.[[NormalizedTime]]), 0, 0, 0, 0, 0) < 0, let sign be -1; else let sign be 1.
-        let sign = self.sign()?;
+        // 4. If InternalDurationSign(duration) < 0, let sign be -1; else let sign be 1.
+        let sign = duration.sign();
 
         // 5. If irregularLengthUnit is true, then
-        let nudge_result = if irregular_unit {
-            // a. Let nudgeResult be ? NudgeToCalendarUnit(sign, duration, destEpochNs, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_calendar_unit(sign, dest_epoch_ns, dt, timezone_record, options)?
-        // 6. Else if timeZoneRec is not unset, then
-        } else if let Some((tz, provider)) = timezone_record {
-            // a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, dateTime, calendarRec, timeZoneRec, increment, smallestUnit, roundingMode).
-            self.nudge_to_zoned_time(sign, dt, tz, options, provider)?
-        // 7. Else,
+        let nudge_result = if irregular_length_unit {
+            // a. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, increment, smallestUnit, roundingMode).
+            // b. Let nudgeResult be record.[[NudgeResult]].
+            duration.nudge_calendar_unit(sign, dest_epoch_ns, dt, time_zone, options)?
+        } else if let Some((time_zone, time_zone_provider)) = time_zone {
+            // 6. Else if timeZone is not unset, then
+            //      a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, isoDateTime, timeZone, calendar, increment, smallestUnit, roundingMode).
+            duration.nudge_to_zoned_time(sign, dt, time_zone, options, time_zone_provider)?
         } else {
-            // a. Let nudgeResult be ? NudgeToDayOrTime(duration, destEpochNs, largestUnit, increment, smallestUnit, roundingMode).
-            self.nudge_to_day_or_time(dest_epoch_ns, options)?
+            // 7. Else,
+            //      a. Let nudgeResult be ? NudgeToDayOrTime(duration, destEpochNs, largestUnit, increment, smallestUnit, roundingMode).
+            duration.nudge_to_day_or_time(dest_epoch_ns, options)?
         };
 
         // 8. Set duration to nudgeResult.[[Duration]].
         let mut duration = nudge_result.normalized;
 
-        // 9. If nudgeResult.[[DidExpandCalendarUnit]] is true and smallestUnit is not "week", then
+        // 9. If nudgeResult.[[DidExpandCalendarUnit]] is true and smallestUnit is not week, then
         if nudge_result.expanded && options.smallest_unit != Unit::Week {
-            // a. Let startUnit be LargerOfTwoUnits(smallestUnit, "day").
-            let start_unit = options.smallest_unit.max(Unit::Day);
-            // b. Set duration to ? BubbleRelativeDuration(sign, duration, nudgeResult.[[NudgedEpochNs]], dateTime, calendarRec, timeZoneRec, largestUnit, startUnit).
+            // a. Let startUnit be LargerOfTwoTemporalUnits(smallestUnit, day).
+            let start_unit = Unit::larger(options.smallest_unit, Unit::Day)?;
+
+            // b. Set duration to ? BubbleRelativeDuration(sign, duration, nudgeResult.[[NudgedEpochNs]], isoDateTime, timeZone, calendar, largestUnit, startUnit).
             duration = duration.bubble_relative_duration(
                 sign,
                 nudge_result.nudge_epoch_ns,
-                dt,
-                timezone_record,
+                &dt.iso,
+                time_zone,
+                dt.calendar(),
                 options.largest_unit,
                 start_unit,
-            )?
-        };
+            )?;
+        }
 
+        // 10. Return duration.
         Ok(duration)
     }
 
@@ -984,7 +1012,7 @@ impl NormalizedDurationRecord {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
         if unit.is_calendar_unit() || (tz.is_some() && unit == Unit::Day) {
             // a. Let sign be InternalDurationSign(duration).
-            let sign = self.sign()?;
+            let sign = self.sign();
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
             let record = self.nudge_calendar_unit(
                 sign,

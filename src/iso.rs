@@ -23,7 +23,7 @@
 //! An `IsoDateTime` has the internal slots of both an `IsoDate` and `IsoTime`.
 
 use core::num::NonZeroU128;
-use ixdtf::parsers::records::TimeRecord;
+use ixdtf::records::TimeRecord;
 
 use crate::{
     builtins::core::{
@@ -34,9 +34,9 @@ use crate::{
         },
         Duration, PartialTime, PlainDate,
     },
-    error::TemporalError,
+    error::{ErrorMessage, TemporalError},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     temporal_assert,
     unix_time::EpochNanoseconds,
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -68,6 +68,15 @@ impl IsoDateTime {
             );
         }
         Ok(Self::new_unchecked(date, time))
+    }
+
+    pub fn check_validity(&self) -> TemporalResult<()> {
+        if !iso_dt_within_valid_limits(self.date, &self.time) {
+            return Err(
+                TemporalError::range().with_message("IsoDateTime not within a valid range.")
+            );
+        }
+        Ok(())
     }
 
     // NOTE: The below assumes that nanos is from an `Instant` and thus in a valid range. -> Needs validation.
@@ -145,7 +154,7 @@ impl IsoDateTime {
     }
 
     /// Returns this `IsoDateTime` in nanoseconds
-    pub fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+    pub fn as_nanoseconds(&self) -> EpochNanoseconds {
         utc_epoch_nanos(self.date, &self.time)
     }
 
@@ -178,13 +187,14 @@ impl IsoDateTime {
         let duration = Duration::from(date_duration);
 
         // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
+        // The within-limits check gets handled below in Self::new
         let added_date = date.add_date(&duration, overflow)?;
 
         // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
         // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],
         // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
         // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
-        Ok(Self::new_unchecked(added_date.iso, t_result.1))
+        Self::new(added_date.iso, t_result.1)
     }
 
     pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
@@ -370,7 +380,7 @@ impl IsoDate {
 
     /// Returns this `IsoDate` in nanoseconds.
     #[inline]
-    pub(crate) fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+    pub(crate) fn as_nanoseconds(&self) -> EpochNanoseconds {
         utc_epoch_nanos(*self, &IsoTime::default())
     }
 
@@ -645,7 +655,8 @@ impl IsoTime {
             .fraction
             .map(|x| {
                 x.to_nanoseconds().ok_or(
-                    TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
                 )
             })
             .transpose()?
@@ -928,9 +939,9 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
 
 #[inline]
 /// Utility function to convert a `IsoDate` and `IsoTime` values into epoch nanoseconds
-fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanoseconds> {
+fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> EpochNanoseconds {
     let epoch_nanos = to_unchecked_epoch_nanoseconds(date, time);
-    EpochNanoseconds::try_from(epoch_nanos)
+    EpochNanoseconds::from(epoch_nanos)
 }
 
 #[inline]

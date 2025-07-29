@@ -14,10 +14,13 @@
 #include "../diplomat_runtime.hpp"
 #include "DateDuration.hpp"
 #include "PartialDuration.hpp"
+#include "RelativeTo.hpp"
+#include "RoundingOptions.hpp"
 #include "Sign.hpp"
 #include "TemporalError.hpp"
 #include "TimeDuration.hpp"
 #include "ToStringRoundingOptions.hpp"
+#include "Unit.hpp"
 
 
 namespace temporal_rs {
@@ -27,8 +30,8 @@ namespace capi {
     typedef struct temporal_rs_Duration_create_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_create_result;
     temporal_rs_Duration_create_result temporal_rs_Duration_create(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
-    typedef struct temporal_rs_Duration_from_day_and_time_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
-    temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const temporal_rs::capi::TimeDuration* time);
+    typedef struct temporal_rs_Duration_try_new_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_try_new_result;
+    temporal_rs_Duration_try_new_result temporal_rs_Duration_try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
     typedef struct temporal_rs_Duration_from_partial_duration_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
     temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(temporal_rs::capi::PartialDuration partial);
@@ -82,6 +85,17 @@ namespace capi {
     typedef struct temporal_rs_Duration_to_string_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_to_string_result;
     temporal_rs_Duration_to_string_result temporal_rs_Duration_to_string(const temporal_rs::capi::Duration* self, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
 
+    typedef struct temporal_rs_Duration_round_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_round_result;
+    temporal_rs_Duration_round_result temporal_rs_Duration_round(const temporal_rs::capi::Duration* self, temporal_rs::capi::RoundingOptions options, temporal_rs::capi::RelativeTo relative_to);
+
+    typedef struct temporal_rs_Duration_compare_result {union {int8_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_compare_result;
+    temporal_rs_Duration_compare_result temporal_rs_Duration_compare(const temporal_rs::capi::Duration* self, const temporal_rs::capi::Duration* other, temporal_rs::capi::RelativeTo relative_to);
+
+    typedef struct temporal_rs_Duration_total_result {union {double ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Duration_total_result;
+    temporal_rs_Duration_total_result temporal_rs_Duration_total(const temporal_rs::capi::Duration* self, temporal_rs::capi::Unit unit, temporal_rs::capi::RelativeTo relative_to);
+
+    temporal_rs::capi::Duration* temporal_rs_Duration_clone(const temporal_rs::capi::Duration* self);
+
     void temporal_rs_Duration_destroy(Duration* self);
 
     } // extern "C"
@@ -102,9 +116,17 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::from_day_and_time(int64_t day, const temporal_rs::TimeDuration& time) {
-  auto result = temporal_rs::capi::temporal_rs_Duration_from_day_and_time(day,
-    time.AsFFI());
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds) {
+  auto result = temporal_rs::capi::temporal_rs_Duration_try_new(years,
+    months,
+    weeks,
+    days,
+    hours,
+    minutes,
+    seconds,
+    milliseconds,
+    microseconds,
+    nanoseconds);
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
@@ -227,6 +249,40 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Du
     options.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::Duration::to_string_write(temporal_rs::ToStringRoundingOptions options, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_Duration_to_string(this->AsFFI(),
+    options.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> temporal_rs::Duration::round(temporal_rs::RoundingOptions options, temporal_rs::RelativeTo relative_to) const {
+  auto result = temporal_rs::capi::temporal_rs_Duration_round(this->AsFFI(),
+    options.AsFFI(),
+    relative_to.AsFFI());
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Duration>>(std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<int8_t, temporal_rs::TemporalError> temporal_rs::Duration::compare(const temporal_rs::Duration& other, temporal_rs::RelativeTo relative_to) const {
+  auto result = temporal_rs::capi::temporal_rs_Duration_compare(this->AsFFI(),
+    other.AsFFI(),
+    relative_to.AsFFI());
+  return result.is_ok ? diplomat::result<int8_t, temporal_rs::TemporalError>(diplomat::Ok<int8_t>(result.ok)) : diplomat::result<int8_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<double, temporal_rs::TemporalError> temporal_rs::Duration::total(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to) const {
+  auto result = temporal_rs::capi::temporal_rs_Duration_total(this->AsFFI(),
+    unit.AsFFI(),
+    relative_to.AsFFI());
+  return result.is_ok ? diplomat::result<double, temporal_rs::TemporalError>(diplomat::Ok<double>(result.ok)) : diplomat::result<double, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::unique_ptr<temporal_rs::Duration> temporal_rs::Duration::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_Duration_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::Duration>(temporal_rs::Duration::FromFFI(result));
 }
 
 inline const temporal_rs::capi::Duration* temporal_rs::Duration::AsFFI() const {

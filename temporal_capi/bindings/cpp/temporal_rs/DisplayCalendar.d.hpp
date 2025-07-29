@@ -35,7 +35,8 @@ public:
     Critical = 3,
   };
 
-  DisplayCalendar() = default;
+  DisplayCalendar(): value(Value::Auto) {}
+
   // Implicit conversions between enum and ::Value
   constexpr DisplayCalendar(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

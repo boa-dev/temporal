@@ -86,8 +86,17 @@ impl TemporalError {
     /// Creates an assertion error
     #[inline]
     #[must_use]
+    #[cfg_attr(debug_assertions, track_caller)]
     pub(crate) const fn assert() -> Self {
-        Self::new(ErrorKind::Assert)
+        #[cfg(not(debug_assertions))]
+        {
+            Self::new(ErrorKind::Assert)
+        }
+        #[cfg(debug_assertions)]
+        Self {
+            kind: ErrorKind::Assert,
+            msg: Cow::Borrowed(core::panic::Location::caller().file()),
+        }
     }
 
     /// Create an abrupt end error.
@@ -105,6 +114,14 @@ impl TemporalError {
         S: Into<Cow<'static, str>>,
     {
         self.msg = msg.into();
+        self
+    }
+
+    /// Add a message enum to the error.
+    #[inline]
+    #[must_use]
+    pub(crate) fn with_enum(mut self, msg: ErrorMessage) -> Self {
+        self.msg = msg.to_string().into();
         self
     }
 
@@ -144,5 +161,85 @@ impl fmt::Display for TemporalError {
         }
 
         Ok(())
+    }
+}
+
+/// The error message
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub(crate) enum ErrorMessage {
+    // Range
+    InstantOutOfRange,
+    IntermediateDateTimeOutOfRange,
+    ZDTOutOfDayBounds,
+
+    // Numerical errors
+    NumberNotFinite,
+    NumberNotIntegral,
+    NumberNotPositive,
+    NumberOutOfRange,
+    FractionalDigitsPrecisionInvalid,
+
+    // Options validity
+    SmallestUnitNotTimeUnit,
+    SmallestUnitLargerThanLargestUnit,
+    UnitNotDate,
+    UnitNotTime,
+    UnitRequired,
+    UnitNoAutoDuringComparison,
+    RoundToUnitInvalid,
+    RoundingModeInvalid,
+    CalendarNameInvalid,
+    OffsetOptionInvalid,
+    TimeZoneNameInvalid,
+
+    // Field mismatches
+    CalendarMismatch,
+    TzMismatch,
+
+    // Parsing
+    ParserNeedsDate,
+    FractionalTimeMoreThanNineDigits,
+
+    // Other
+    OffsetNeedsDisambiguation,
+}
+
+impl ErrorMessage {
+    pub fn to_string(self) -> &'static str {
+        match self {
+            Self::InstantOutOfRange => "Instant nanoseconds are not within a valid epoch range.",
+            Self::IntermediateDateTimeOutOfRange => {
+                "Intermediate ISO datetime was not within a valid range."
+            }
+            Self::ZDTOutOfDayBounds => "ZonedDateTime is outside the expected day bounds",
+            Self::NumberNotFinite => "number value is not a finite value.",
+            Self::NumberNotIntegral => "value must be integral.",
+            Self::NumberNotPositive => "integer must be positive.",
+            Self::NumberOutOfRange => "number exceeded a valid range.",
+            Self::FractionalDigitsPrecisionInvalid => "Invalid fractionalDigits precision value",
+            Self::SmallestUnitNotTimeUnit => "smallestUnit must be a valid time unit.",
+            Self::SmallestUnitLargerThanLargestUnit => {
+                "smallestUnit was larger than largestunit in DifferenceeSettings"
+            }
+            Self::UnitNotDate => "Unit was not part of the date unit group.",
+            Self::UnitNotTime => "Unit was not part of the time unit group.",
+            Self::UnitRequired => "Unit is required",
+            Self::UnitNoAutoDuringComparison => "'auto' units are not allowed during comparison",
+            Self::RoundToUnitInvalid => "Invalid roundTo unit provided.",
+            Self::RoundingModeInvalid => "Invalid roundingMode option provided",
+            Self::CalendarNameInvalid => "Invalid calendarName option provided",
+            Self::OffsetOptionInvalid => "Invalid offsetOption option provided",
+            Self::TimeZoneNameInvalid => "Invalid timeZoneName option provided",
+            Self::CalendarMismatch => {
+                "Calendar must be the same for operations involving two calendared types."
+            }
+            Self::TzMismatch => "Timezones must be the same if unit is a day unit.",
+
+            Self::ParserNeedsDate => "Could not find a valid DateRecord node during parsing.",
+            Self::FractionalTimeMoreThanNineDigits => "Fractional time exceeds nine digits.",
+            Self::OffsetNeedsDisambiguation => {
+                "Offsets could not be determined without disambiguation"
+            }
+        }
     }
 }

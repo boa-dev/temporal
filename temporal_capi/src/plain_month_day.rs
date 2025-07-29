@@ -2,11 +2,11 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::calendar::ffi::Calendar;
+    use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::error::ffi::TemporalError;
     use alloc::boxed::Box;
 
-    use crate::options::ffi::ArithmeticOverflow;
+    use crate::options::ffi::{ArithmeticOverflow, DisplayCalendar};
     use crate::plain_date::ffi::{PartialDate, PlainDate};
 
     use alloc::string::String;
@@ -14,22 +14,23 @@ pub mod ffi {
     use core::str::FromStr;
     use diplomat_runtime::DiplomatWrite;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
+    use writeable::Writeable;
 
     #[diplomat::opaque]
     pub struct PlainMonthDay(pub(crate) temporal_rs::PlainMonthDay);
 
     impl PlainMonthDay {
-        pub fn create_with_overflow(
+        pub fn try_new_with_overflow(
             month: u8,
             day: u8,
-            calendar: &Calendar,
+            calendar: AnyCalendarKind,
             overflow: ArithmeticOverflow,
             ref_year: Option<i32>,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainMonthDay::new_with_overflow(
                 month,
                 day,
-                calendar.0.clone(),
+                temporal_rs::Calendar::new(calendar.into()),
                 overflow.into(),
                 ref_year,
             )
@@ -37,13 +38,22 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
+        pub fn from_partial(
+            partial: PartialDate,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<PlainMonthDay>, TemporalError> {
+            temporal_rs::PlainMonthDay::from_partial(partial.try_into()?, overflow.map(Into::into))
+                .map(|x| Box::new(PlainMonthDay(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialDate,
-            overflow: ArithmeticOverflow,
+            overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<PlainMonthDay>, TemporalError> {
             self.0
-                .with(partial.try_into()?, overflow.into())
+                .with(partial.try_into()?, overflow.map(Into::into))
                 .map(|x| Box::new(PlainMonthDay(x)))
                 .map_err(Into::into)
         }
@@ -98,6 +108,41 @@ pub mod ffi {
                 .to_plain_date(year.map(|y| y.try_into()).transpose()?)
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn epoch_ms_for(
+            &self,
+            time_zone: &crate::time_zone::ffi::TimeZone,
+        ) -> Result<i64, TemporalError> {
+            let ns = self
+                .0
+                .epoch_ns_for(&time_zone.0)
+                .map_err(TemporalError::from)?;
+
+            let ns_i128 = ns.as_i128();
+            let ms = ns_i128 / 1_000_000;
+            if let Ok(ms) = i64::try_from(ms) {
+                Ok(ms)
+            } else {
+                Err(TemporalError::assert("Found an out-of-range MonthDay"))
+            }
+        }
+
+        pub fn to_ixdtf_string(
+            &self,
+            display_calendar: DisplayCalendar,
+            write: &mut DiplomatWrite,
+        ) {
+            let writeable = self.0.to_ixdtf_writeable(display_calendar.into());
+            // This can only fail in cases where the DiplomatWriteable is capped, we
+            // don't care about that.
+            let _ = writeable.write_to(write);
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
         }
     }
 }

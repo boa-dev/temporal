@@ -2,7 +2,7 @@
 
 use core::cmp::Ordering;
 
-use crate::{TemporalError, TemporalResult};
+use crate::{error::ErrorMessage, TemporalError, TemporalResult};
 use num_traits::float::FloatCore;
 use num_traits::{AsPrimitive, FromPrimitive, PrimInt};
 
@@ -29,7 +29,7 @@ impl FiniteF64 {
     #[inline]
     pub fn negate(&self) -> Self {
         if !self.is_zero() {
-            Self(self.0 * -1.0)
+            Self(-self.0)
         } else {
             *self
         }
@@ -44,7 +44,7 @@ impl FiniteF64 {
     pub fn checked_add(&self, other: &Self) -> TemporalResult<Self> {
         let result = Self(self.0 + other.0);
         if !result.0.is_finite() {
-            return Err(TemporalError::range().with_message("number value is not a finite value."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::NumberNotFinite));
         }
         Ok(result)
     }
@@ -53,7 +53,7 @@ impl FiniteF64 {
     pub fn checked_mul_add(&self, a: FiniteF64, b: FiniteF64) -> TemporalResult<Self> {
         let result = Self(core_maths::CoreFloat::mul_add(self.0, a.0, b.0));
         if !result.0.is_finite() {
-            return Err(TemporalError::range().with_message("number value is not a finite value."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::NumberNotFinite));
         }
         Ok(result)
     }
@@ -62,7 +62,7 @@ impl FiniteF64 {
     pub fn checked_div(&self, other: &Self) -> TemporalResult<Self> {
         let result = Self(self.0 / other.0);
         if !result.0.is_finite() {
-            return Err(TemporalError::range().with_message("number value is not a finite value."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::NumberNotFinite));
         }
         Ok(result)
     }
@@ -81,7 +81,7 @@ impl FiniteF64 {
         f64: AsPrimitive<T>,
     {
         if self.0 != FloatCore::trunc(self.0) {
-            return Err(TemporalError::range().with_message("value must be integral."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::NumberNotIntegral));
         }
         Ok(self.0.as_())
     }
@@ -106,7 +106,7 @@ impl FiniteF64 {
     {
         let truncated_value = self.as_integer_with_truncation::<T>();
         if truncated_value <= 0i8.as_() {
-            return Err(TemporalError::range().with_message("integer must be positive."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::NumberNotPositive));
         }
         Ok(truncated_value)
     }
@@ -128,7 +128,7 @@ impl TryFrom<f64> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: f64) -> Result<Self, Self::Error> {
         if !value.is_finite() {
-            return Err(TemporalError::range().with_message("number value is not a finite value."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::NumberNotFinite));
         }
         Ok(Self(value))
     }
@@ -138,7 +138,7 @@ impl TryFrom<i64> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: i64) -> Result<Self, Self::Error> {
         let result = f64::from_i64(value)
-            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_enum(ErrorMessage::NumberOutOfRange))?;
         Ok(Self(result))
     }
 }
@@ -147,7 +147,7 @@ impl TryFrom<u64> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: u64) -> Result<Self, Self::Error> {
         let result = f64::from_u64(value)
-            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_enum(ErrorMessage::NumberOutOfRange))?;
         Ok(Self(result))
     }
 }
@@ -156,7 +156,7 @@ impl TryFrom<i128> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: i128) -> Result<Self, Self::Error> {
         let result = f64::from_i128(value)
-            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_enum(ErrorMessage::NumberOutOfRange))?;
         debug_assert!(result.is_finite());
         Ok(Self(result))
     }
@@ -166,7 +166,7 @@ impl TryFrom<u128> for FiniteF64 {
     type Error = TemporalError;
     fn try_from(value: u128) -> Result<Self, Self::Error> {
         let result = f64::from_u128(value)
-            .ok_or(TemporalError::range().with_message("number exceeded a valid range."))?;
+            .ok_or(TemporalError::range().with_enum(ErrorMessage::NumberOutOfRange))?;
         debug_assert!(result.is_finite());
         Ok(Self(result))
     }

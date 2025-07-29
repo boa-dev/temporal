@@ -6,6 +6,10 @@ use crate::error::ffi::TemporalError;
 pub mod ffi {
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::ToStringRoundingOptions;
+    #[cfg(feature = "compiled_data")]
+    use crate::options::ffi::{RoundingOptions, Unit};
+    #[cfg(feature = "compiled_data")]
+    use crate::zoned_date_time::ffi::RelativeTo;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::str::FromStr;
@@ -53,7 +57,7 @@ pub mod ffi {
     }
 
     impl TimeDuration {
-        pub fn new(
+        pub fn try_new(
             hours: i64,
             minutes: i64,
             seconds: i64,
@@ -66,8 +70,8 @@ pub mod ffi {
                 minutes,
                 seconds,
                 milliseconds,
-                i128::from_f64(microseconds).ok_or(TemporalError::range())?,
-                i128::from_f64(nanoseconds).ok_or(TemporalError::range())?,
+                i128::from_f64(microseconds).ok_or(TemporalError::range("μs out of range"))?,
+                i128::from_f64(nanoseconds).ok_or(TemporalError::range("ns out of range"))?,
             )
             .map(|x| Box::new(TimeDuration(x)))
             .map_err(Into::into)
@@ -89,7 +93,7 @@ pub mod ffi {
     }
 
     impl DateDuration {
-        pub fn new(
+        pub fn try_new(
             years: i64,
             months: i64,
             weeks: i64,
@@ -112,7 +116,34 @@ pub mod ffi {
         }
     }
     impl Duration {
+        /// Temporary API until v8 can move off of it
         pub fn create(
+            years: i64,
+            months: i64,
+            weeks: i64,
+            days: i64,
+            hours: i64,
+            minutes: i64,
+            seconds: i64,
+            milliseconds: i64,
+            microseconds: f64,
+            nanoseconds: f64,
+        ) -> Result<Box<Self>, TemporalError> {
+            Self::try_new(
+                years,
+                months,
+                weeks,
+                days,
+                hours,
+                minutes,
+                seconds,
+                milliseconds,
+                microseconds,
+                nanoseconds,
+            )
+        }
+
+        pub fn try_new(
             years: i64,
             months: i64,
             weeks: i64,
@@ -133,21 +164,13 @@ pub mod ffi {
                 minutes,
                 seconds,
                 milliseconds,
-                i128::from_f64(microseconds).ok_or(TemporalError::range())?,
-                i128::from_f64(nanoseconds).ok_or(TemporalError::range())?,
+                i128::from_f64(microseconds).ok_or(TemporalError::range("μs out of range"))?,
+                i128::from_f64(nanoseconds).ok_or(TemporalError::range("ms out of range"))?,
             )
             .map(|x| Box::new(Duration(x)))
             .map_err(Into::into)
         }
 
-        pub fn from_day_and_time(
-            day: i64,
-            time: &TimeDuration,
-        ) -> Result<Box<Self>, TemporalError> {
-            Ok(Box::new(Duration(
-                temporal_rs::Duration::from_day_and_time(day, &time.0),
-            )))
-        }
         pub fn from_partial_duration(partial: PartialDuration) -> Result<Box<Self>, TemporalError> {
             temporal_rs::Duration::from_partial_duration(partial.try_into()?)
                 .map(|x| Box::new(Duration(x)))
@@ -264,8 +287,40 @@ pub mod ffi {
             Ok(())
         }
 
-        // TODO round_with_provider (needs time zone stuff)
-        // TODO total_with_provider (needs time zone stuff)
+        #[cfg(feature = "compiled_data")]
+        pub fn round(
+            &self,
+            options: RoundingOptions,
+            relative_to: RelativeTo,
+        ) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .round(options.try_into()?, relative_to.into())
+                .map(|x| Box::new(Duration(x)))
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn compare(&self, other: &Self, relative_to: RelativeTo) -> Result<i8, TemporalError> {
+            // Ideally we'd return core::cmp::Ordering here but Diplomat
+            // isn't happy about needing to convert the contents of a result
+            self.0
+                .compare(&other.0, relative_to.into())
+                .map(|x| x as i8)
+                .map_err(Into::into)
+        }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn total(&self, unit: Unit, relative_to: RelativeTo) -> Result<f64, TemporalError> {
+            self.0
+                .total(unit.into(), relative_to.into())
+                .map(|x| x.as_inner())
+                .map_err(Into::into)
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0))
+        }
     }
 }
 
@@ -285,12 +340,12 @@ impl TryFrom<ffi::PartialDuration> for temporal_rs::partial::PartialDuration {
             microseconds: other
                 .microseconds
                 .into_option()
-                .map(|v| i128::from_f64(v).ok_or(TemporalError::range()))
+                .map(|v| i128::from_f64(v).ok_or(TemporalError::range("μs out of range")))
                 .transpose()?,
             nanoseconds: other
                 .nanoseconds
                 .into_option()
-                .map(|v| i128::from_f64(v).ok_or(TemporalError::range()))
+                .map(|v| i128::from_f64(v).ok_or(TemporalError::range("ns out of range")))
                 .transpose()?,
         })
     }

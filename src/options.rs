@@ -4,7 +4,7 @@
 //! operation may be completed.
 
 use crate::parsers::Precision;
-use crate::{TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
+use crate::{error::ErrorMessage, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
 use core::ops::Add;
 use core::{fmt, str::FromStr};
 
@@ -71,54 +71,50 @@ impl ToStringRoundingOptions {
                 rounding_mode,
                 increment: RoundingIncrement::ONE,
             }),
-            None => {
-                match self.precision {
-                    Precision::Auto => Ok(ResolvedToStringRoundingOptions {
-                        precision: Precision::Auto,
+            None => match self.precision {
+                Precision::Auto => Ok(ResolvedToStringRoundingOptions {
+                    precision: Precision::Auto,
+                    smallest_unit: Unit::Nanosecond,
+                    rounding_mode,
+                    increment: RoundingIncrement::ONE,
+                }),
+                Precision::Digit(0) => Ok(ResolvedToStringRoundingOptions {
+                    precision: Precision::Digit(0),
+                    smallest_unit: Unit::Second,
+                    rounding_mode,
+                    increment: RoundingIncrement::ONE,
+                }),
+                Precision::Digit(d) if (1..=3).contains(&d) => {
+                    Ok(ResolvedToStringRoundingOptions {
+                        precision: Precision::Digit(d),
+                        smallest_unit: Unit::Millisecond,
+                        rounding_mode,
+                        increment: RoundingIncrement::try_new(10_u32.pow(3 - d as u32))
+                            .expect("a valid increment"),
+                    })
+                }
+                Precision::Digit(d) if (4..=6).contains(&d) => {
+                    Ok(ResolvedToStringRoundingOptions {
+                        precision: Precision::Digit(d),
+                        smallest_unit: Unit::Microsecond,
+                        rounding_mode,
+                        increment: RoundingIncrement::try_new(10_u32.pow(6 - d as u32))
+                            .expect("a valid increment"),
+                    })
+                }
+                Precision::Digit(d) if (7..=9).contains(&d) => {
+                    Ok(ResolvedToStringRoundingOptions {
+                        precision: Precision::Digit(d),
                         smallest_unit: Unit::Nanosecond,
                         rounding_mode,
-                        increment: RoundingIncrement::ONE,
-                    }),
-                    Precision::Digit(0) => Ok(ResolvedToStringRoundingOptions {
-                        precision: Precision::Digit(0),
-                        smallest_unit: Unit::Second,
-                        rounding_mode,
-                        increment: RoundingIncrement::ONE,
-                    }),
-                    Precision::Digit(d) if (1..=3).contains(&d) => {
-                        Ok(ResolvedToStringRoundingOptions {
-                            precision: Precision::Digit(d),
-                            smallest_unit: Unit::Millisecond,
-                            rounding_mode,
-                            increment: RoundingIncrement::try_new(10_u32.pow(3 - d as u32))
-                                .expect("a valid increment"),
-                        })
-                    }
-                    Precision::Digit(d) if (4..=6).contains(&d) => {
-                        Ok(ResolvedToStringRoundingOptions {
-                            precision: Precision::Digit(d),
-                            smallest_unit: Unit::Microsecond,
-                            rounding_mode,
-                            increment: RoundingIncrement::try_new(10_u32.pow(6 - d as u32))
-                                .expect("a valid increment"),
-                        })
-                    }
-                    Precision::Digit(d) if (7..=9).contains(&d) => {
-                        Ok(ResolvedToStringRoundingOptions {
-                            precision: Precision::Digit(d),
-                            smallest_unit: Unit::Nanosecond,
-                            rounding_mode,
-                            increment: RoundingIncrement::try_new(10_u32.pow(9 - d as u32))
-                                .expect("a valid increment"),
-                        })
-                    }
-                    _ => Err(TemporalError::range()
-                        .with_message("Invalid fractionalDigits precision value")),
+                        increment: RoundingIncrement::try_new(10_u32.pow(9 - d as u32))
+                            .expect("a valid increment"),
+                    })
                 }
-            }
-            _ => {
-                Err(TemporalError::range().with_message("smallestUnit must be a valid time unit."))
-            }
+                _ => Err(TemporalError::range()
+                    .with_enum(ErrorMessage::FractionalDigitsPrecisionInvalid)),
+            },
+            _ => Err(TemporalError::range().with_enum(ErrorMessage::SmallestUnitNotTimeUnit)),
         }
     }
 }
@@ -212,8 +208,9 @@ impl ResolvedRoundingOptions {
             .unwrap_unit_or(smallest_unit.max(fallback_largest));
         // 11. If LargerOfTwoUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if largest_unit < smallest_unit {
-            return Err(TemporalError::range()
-                .with_message("smallestUnit was larger than largestunit in DifferenceeSettings"));
+            return Err(
+                TemporalError::range().with_enum(ErrorMessage::SmallestUnitLargerThanLargestUnit)
+            );
         }
 
         // 12. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
@@ -243,7 +240,7 @@ impl ResolvedRoundingOptions {
         } else {
             let maximum = smallest_unit
                 .to_maximum_rounding_increment()
-                .ok_or(TemporalError::range().with_message("smallestUnit must be a time unit."))?;
+                .ok_or(TemporalError::range().with_enum(ErrorMessage::SmallestUnitNotTimeUnit))?;
             (maximum, false)
         };
 
@@ -268,7 +265,7 @@ impl ResolvedRoundingOptions {
             Unit::Millisecond => MS_PER_DAY as u64,
             Unit::Microsecond => MS_PER_DAY as u64 * 1000,
             Unit::Nanosecond => NS_PER_DAY,
-            _ => return Err(TemporalError::range().with_message("Invalid roundTo unit provided.")),
+            _ => return Err(TemporalError::range().with_enum(ErrorMessage::RoundToUnitInvalid)),
         };
 
         increment.validate(maximum, true)?;
@@ -302,7 +299,7 @@ impl UnitGroup {
         extra_unit: Option<Unit>,
     ) -> TemporalResult<Unit> {
         let Some(unit) = unit else {
-            return Err(TemporalError::range().with_message("Unit is required."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::UnitRequired));
         };
         self.validate_unit(Some(unit), extra_unit)?;
         Ok(unit)
@@ -315,15 +312,13 @@ impl UnitGroup {
                 Some(unit) if !unit.is_time_unit() => Ok(()),
                 None => Ok(()),
                 _ if unit == extra_unit => Ok(()),
-                _ => Err(TemporalError::range()
-                    .with_message("Unit was not part of the date unit group.")),
+                _ => Err(TemporalError::range().with_enum(ErrorMessage::UnitNotDate)),
             },
             UnitGroup::Time => match unit {
                 Some(unit) if unit.is_time_unit() => Ok(()),
                 None => Ok(()),
                 _ if unit == extra_unit => Ok(()),
-                _ => Err(TemporalError::range()
-                    .with_message("Unit was not part of the time unit group.")),
+                _ => Err(TemporalError::range().with_enum(ErrorMessage::UnitNotTime)),
             },
             UnitGroup::DateTime => Ok(()),
         }
@@ -337,7 +332,7 @@ impl UnitGroup {
 /// Spec: <https://tc39.es/proposal-temporal/#table-temporal-units>
 //
 // Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
-const UNIT_VALUE_TABLE: [Unit; 10] = [
+pub(crate) const UNIT_VALUE_TABLE: [Unit; 10] = [
     Unit::Year,
     Unit::Month,
     Unit::Week,
@@ -473,7 +468,28 @@ impl Unit {
         }
 
         // NOTE(HalidOdat): deviation from specification.
-        Err(TemporalError::assert().with_message("auto cannot be used for comparison"))
+        Err(TemporalError::assert().with_enum(ErrorMessage::UnitNoAutoDuringComparison))
+    }
+
+    /// Helper method for getting the index into the [`UNIT_VALUE_TABLE`].
+    ///
+    /// # Error
+    ///
+    /// If the given [`Unit`] is [`Unit::Auto`].
+    pub(crate) fn table_index(&self) -> TemporalResult<usize> {
+        // Taken from: <https://tc39.es/proposal-temporal/#sec-temporal-bubblerelativeduration>
+        //
+        // spec(2025-05-28): https://github.com/tc39/proposal-temporal/tree/69001e954c70e29ba3d2e6433bc7ece2a037377a
+        //
+        // 2. Let largestUnitIndex be the ordinal index of the row of Table 21 whose "Value" column contains largestUnit.
+        // 3. Let smallestUnitIndex be the ordinal index of the row of Table 21 whose "Value" column contains smallestUnit.
+        for (i, unit) in UNIT_VALUE_TABLE.iter().enumerate() {
+            if self == unit {
+                return Ok(i);
+            }
+        }
+
+        Err(TemporalError::assert().with_enum(ErrorMessage::UnitNoAutoDuringComparison))
     }
 }
 
@@ -853,7 +869,7 @@ impl FromStr for RoundingMode {
             "halfExpand" => Ok(Self::HalfExpand),
             "halfTrunc" => Ok(Self::HalfTrunc),
             "halfEven" => Ok(Self::HalfEven),
-            _ => Err(TemporalError::range().with_message("RoundingMode not an accepted value.")),
+            _ => Err(TemporalError::range().with_enum(ErrorMessage::RoundingModeInvalid)),
         }
     }
 }
@@ -911,7 +927,7 @@ impl FromStr for DisplayCalendar {
             "always" => Ok(Self::Always),
             "never" => Ok(Self::Never),
             "critical" => Ok(Self::Critical),
-            _ => Err(TemporalError::range().with_message("Invalid calendarName provided.")),
+            _ => Err(TemporalError::range().with_enum(ErrorMessage::CalendarNameInvalid)),
         }
     }
 }
@@ -940,7 +956,7 @@ impl FromStr for DisplayOffset {
         match s {
             "auto" => Ok(Self::Auto),
             "never" => Ok(Self::Never),
-            _ => Err(TemporalError::range().with_message("Invalid offset option provided.")),
+            _ => Err(TemporalError::range().with_enum(ErrorMessage::OffsetOptionInvalid)),
         }
     }
 }
@@ -975,7 +991,7 @@ impl FromStr for DisplayTimeZone {
             "auto" => Ok(Self::Auto),
             "never" => Ok(Self::Never),
             "critical" => Ok(Self::Critical),
-            _ => Err(TemporalError::range().with_message("Invalid timeZoneName option provided.")),
+            _ => Err(TemporalError::range().with_enum(ErrorMessage::TimeZoneNameInvalid)),
         }
     }
 }

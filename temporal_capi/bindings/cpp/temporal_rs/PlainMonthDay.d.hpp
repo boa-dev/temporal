@@ -18,9 +18,13 @@ namespace capi { struct PlainDate; }
 class PlainDate;
 namespace capi { struct PlainMonthDay; }
 class PlainMonthDay;
+namespace capi { struct TimeZone; }
+class TimeZone;
 struct PartialDate;
 struct TemporalError;
+class AnyCalendarKind;
 class ArithmeticOverflow;
+class DisplayCalendar;
 }
 
 
@@ -34,9 +38,11 @@ namespace temporal_rs {
 class PlainMonthDay {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> create_with_overflow(uint8_t month, uint8_t day, const temporal_rs::Calendar& calendar, temporal_rs::ArithmeticOverflow overflow, std::optional<int32_t> ref_year);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> try_new_with_overflow(uint8_t month, uint8_t day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow, std::optional<int32_t> ref_year);
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
+
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
   inline bool equals(const temporal_rs::PlainMonthDay& other) const;
 
@@ -55,8 +61,18 @@ public:
   inline const temporal_rs::Calendar& calendar() const;
 
   inline std::string month_code() const;
+  template<typename W>
+  inline void month_code_write(W& writeable_output) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> year) const;
+
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ms_for(const temporal_rs::TimeZone& time_zone) const;
+
+  inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
+  template<typename W>
+  inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
+
+  inline std::unique_ptr<temporal_rs::PlainMonthDay> clone() const;
 
   inline const temporal_rs::capi::PlainMonthDay* AsFFI() const;
   inline temporal_rs::capi::PlainMonthDay* AsFFI();

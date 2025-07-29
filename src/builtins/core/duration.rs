@@ -2,6 +2,7 @@
 
 use crate::{
     builtins::core::{PlainDateTime, PlainTime, ZonedDateTime},
+    error::ErrorMessage,
     iso::{IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
@@ -15,7 +16,9 @@ use crate::{
 use alloc::format;
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
-use ixdtf::parsers::{records::TimeDurationRecord, IsoDurationParser};
+use ixdtf::{
+    encoding::Utf8, parsers::IsoDurationParser, records::Fraction, records::TimeDurationRecord,
+};
 use normalized::NormalizedDurationRecord;
 
 use self::normalized::NormalizedTimeDuration;
@@ -68,8 +71,152 @@ impl PartialDuration {
 
 /// The native Rust implementation of `Temporal.Duration`.
 ///
-/// `Duration` is made up of a `DateDuration` and `TimeDuration` as primarily
-/// defined by Abtract Operation 7.5.1-5.
+/// Represents a span of time such as "2 hours and 30 minutes" or "3 years, 2 months".
+/// Unlike `Instant` which represents a specific moment in time, Duration represents
+/// the amount of time between two moments.
+///
+/// A Duration consists of two categories of components:
+/// - Date components: years, months, weeks, and days
+/// - Time components: hours, minutes, seconds, and subsecond units (nanosecond precision)
+///
+/// Note that date arithmetic can be complex. For example, adding "1 month" to January 31st
+/// could result in February 28th (non-leap year), February 29th (leap year), or March 3rd
+/// (if you overflow February), depending on the calendar system and overflow handling.
+///
+/// ## Examples
+///
+/// ### Creating durations
+///
+/// ```rust
+/// use temporal_rs::Duration;
+///
+/// // Create a duration with specific components
+/// let vacation_duration = Duration::new(
+///     0, 0, 2, 3,    // 2 weeks and 3 days
+///     0, 0, 0,       // no time components
+///     0, 0, 0        // no subsecond components
+/// ).unwrap();
+///
+/// assert_eq!(vacation_duration.weeks(), 2);
+/// assert_eq!(vacation_duration.days(), 3);
+/// ```
+///
+/// ### Parsing ISO 8601 duration strings
+///
+/// ```rust
+/// use temporal_rs::Duration;
+/// use core::str::FromStr;
+///
+/// // Complex duration with multiple components
+/// let complex = Duration::from_str("P1Y2M3DT4H5M6.789S").unwrap();
+/// assert_eq!(complex.years(), 1);
+/// assert_eq!(complex.months(), 2);
+/// assert_eq!(complex.days(), 3);
+/// assert_eq!(complex.hours(), 4);
+/// assert_eq!(complex.minutes(), 5);
+/// assert_eq!(complex.seconds(), 6);
+///
+/// // Time-only duration
+/// let movie_length = Duration::from_str("PT2H30M").unwrap();
+/// assert_eq!(movie_length.hours(), 2);
+/// assert_eq!(movie_length.minutes(), 30);
+///
+/// // Negative durations
+/// let negative = Duration::from_str("-P1D").unwrap();
+/// assert_eq!(negative.days(), -1);
+/// ```
+///
+/// ### Duration arithmetic
+///
+/// ```rust
+/// use temporal_rs::Duration;
+/// use core::str::FromStr;
+///
+/// let commute_time = Duration::from_str("PT45M").unwrap();
+/// let lunch_break = Duration::from_str("PT1H").unwrap();
+///
+/// // Add durations together
+/// let total_time = commute_time.add(&lunch_break).unwrap();
+/// assert_eq!(total_time.hours(), 1);    // Results in 1 hour 45 minutes
+/// assert_eq!(total_time.minutes(), 45);
+///
+/// // Subtract duration components
+/// let shortened = lunch_break.subtract(&Duration::from_str("PT15M").unwrap()).unwrap();
+/// assert_eq!(shortened.minutes(), 45);
+/// ```
+///
+/// ### Date arithmetic with durations
+///
+/// ```rust
+/// use temporal_rs::{PlainDate, Duration, options::ArithmeticOverflow};
+/// use core::str::FromStr;
+///
+/// // January 31st in different years
+/// let jan_31_2023 = PlainDate::try_new_iso(2023, 1, 31).unwrap();
+/// let jan_31_2024 = PlainDate::try_new_iso(2024, 1, 31).unwrap(); // leap year
+///
+/// let one_month = Duration::from_str("P1M").unwrap();
+///
+/// // Adding 1 month to Jan 31st gives different results:
+/// let feb_2023 = jan_31_2023.add(&one_month, Some(ArithmeticOverflow::Constrain)).unwrap();
+/// let feb_2024 = jan_31_2024.add(&one_month, Some(ArithmeticOverflow::Constrain)).unwrap();
+///
+/// // 2023: Jan 31 + 1 month = Feb 28 (no Feb 31st exists)
+/// assert_eq!(feb_2023.day(), 28);
+/// // 2024: Jan 31 + 1 month = Feb 29 (leap year)  
+/// assert_eq!(feb_2024.day(), 29);
+/// ```
+///
+/// ### Working with partial durations
+///
+/// ```rust
+/// use temporal_rs::{Duration, partial::PartialDuration};
+///
+/// let partial = PartialDuration {
+///     hours: Some(3),
+///     minutes: Some(45),
+///     ..Default::default()
+/// };
+///
+/// let duration = Duration::from_partial_duration(partial).unwrap();
+/// assert_eq!(duration.hours(), 3);
+/// assert_eq!(duration.minutes(), 45);
+/// assert_eq!(duration.days(), 0); // other fields default to 0
+/// ```
+///
+/// ### Duration properties
+///
+/// ```rust
+/// use temporal_rs::Duration;
+/// use core::str::FromStr;
+///
+/// let duration = Duration::from_str("P1Y2M3D").unwrap();
+///
+/// // Check if duration is zero
+/// assert!(!duration.is_zero());
+///
+/// // Get the sign of the duration
+/// let sign = duration.sign();
+/// // Note: This particular duration has mixed signs which affects the overall sign
+///
+/// // Get absolute value
+/// let abs_duration = duration.abs();
+/// assert_eq!(abs_duration.years(), 1);
+/// assert_eq!(abs_duration.months(), 2);
+/// assert_eq!(abs_duration.days(), 3);
+///
+/// // Negate duration
+/// let negated = duration.negated();
+/// assert_eq!(negated.years(), -1);
+/// assert_eq!(negated.months(), -2);
+/// assert_eq!(negated.days(), -3);
+/// ```
+///
+/// ## Reference
+///
+/// For more information, see the [MDN documentation][mdn-duration].
+///
+/// [mdn-duration]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/Duration
 #[non_exhaustive]
 #[derive(Debug, Clone, Copy, Default)]
 pub struct Duration {
@@ -115,6 +262,27 @@ impl Duration {
     #[inline]
     pub(crate) const fn new_unchecked(date: DateDuration, time: TimeDuration) -> Self {
         Self { date, time }
+    }
+
+    pub(crate) fn try_new_from_durations(
+        date: DateDuration,
+        time: TimeDuration,
+    ) -> TemporalResult<Self> {
+        if !is_valid_duration(
+            date.years,
+            date.months,
+            date.weeks,
+            date.days,
+            time.hours,
+            time.minutes,
+            time.seconds,
+            time.milliseconds,
+            time.microseconds,
+            time.nanoseconds,
+        ) {
+            return Err(TemporalError::range().with_message("Duration was not valid."));
+        }
+        Ok(Self::new_unchecked(date, time))
     }
 
     #[inline]
@@ -179,6 +347,21 @@ impl Duration {
             .map(|x| Unit::from(10 - x.0))
             .unwrap_or(Unit::Nanosecond)
     }
+
+    /// Equivalent of [`7.5.7 ToDateDurationRecordWithoutTime ( duration )`][spec]
+    ///
+    /// [spec]: <https://tc39.es/proposal-temporal/#sec-temporal-tointernaldurationrecordwith24hourdays>
+    ///
+    // spec(2025-06-23): https://github.com/tc39/proposal-temporal/tree/ed49b0b482981119c9b5e28b0686d877d4a9bae0
+    #[allow(clippy::wrong_self_convention)]
+    pub(crate) fn to_date_duration_record_without_time(&self) -> TemporalResult<DateDuration> {
+        // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+
+        // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
+        // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
+        internal_duration.to_date_duration_record_without_time()
+    }
 }
 
 // ==== Public Duration API ====
@@ -229,12 +412,8 @@ impl Duration {
     /// Creates a `Duration` from a provided a day and a `TimeDuration`.
     ///
     /// Note: `TimeDuration` records can store a day value to deal with overflow.
-    #[must_use]
-    pub fn from_day_and_time(day: i64, time: &TimeDuration) -> Self {
-        Self {
-            date: DateDuration::new_unchecked(0, 0, 0, day),
-            time: *time,
-        }
+    pub(crate) fn try_from_day_and_time(day: i64, time: &TimeDuration) -> TemporalResult<Self> {
+        Self::try_new_from_durations(DateDuration::new_unchecked(0, 0, 0, day), *time)
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
@@ -259,14 +438,24 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = IsoDurationParser::from_utf8(s)
+        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s)
             .parse()
             .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
+        fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
+            if let Some(fraction) = fraction {
+                fraction.to_nanoseconds().ok_or(
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
+                )
+            } else {
+                Ok(0)
+            }
+        }
+
         let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
             Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let unadjusted_fraction = fraction_to_unadjusted_ns(fraction)? as u64;
                 let fractional_hours_ns = unadjusted_fraction * 3600;
                 let minutes = fractional_hours_ns.div_euclid(60 * 1_000_000_000);
                 let fractional_minutes_ns = fractional_hours_ns.rem_euclid(60 * 1_000_000_000);
@@ -295,8 +484,7 @@ impl Duration {
                 minutes,
                 fraction,
             }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
+                let unadjusted_fraction = fraction_to_unadjusted_ns(fraction)? as u64;
                 let fractional_minutes_ns = unadjusted_fraction * 60;
                 let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
                 let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
@@ -323,7 +511,7 @@ impl Duration {
                 seconds,
                 fraction,
             }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
+                let ns = fraction_to_unadjusted_ns(fraction)?;
                 let milliseconds = ns.div_euclid(1_000_000);
                 let rem = ns.rem_euclid(1_000_000);
 
@@ -593,7 +781,7 @@ impl Duration {
 
         // 32. Return ! CreateTemporalDuration(0, 0, 0, result.[[Days]], result.[[Hours]], result.[[Minutes]],
         // result.[[Seconds]], result.[[Milliseconds]], result.[[Microseconds]], result.[[Nanoseconds]]).
-        Ok(Duration::from_day_and_time(result_days, &result_time))
+        Duration::try_from_day_and_time(result_days, &result_time)
     }
 
     /// Returns the result of subtracting a `Duration` from the current `Duration`
@@ -766,7 +954,7 @@ impl Duration {
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = calendar.date_add(
                     &plain_relative_to.iso,
-                    &Duration::from(date_duration),
+                    &date_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
 
@@ -886,7 +1074,7 @@ impl Duration {
                 // e. Let targetDate be ? CalendarDateAdd(calendar, plainRelativeTo.[[ISODate]], dateDuration, constrain).
                 let target_date = plain_date.calendar().date_add(
                     &plain_date.iso,
-                    &Duration::from(date_duration),
+                    &date_duration,
                     ArithmeticOverflow::Constrain,
                 )?;
                 // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
@@ -1056,17 +1244,30 @@ pub(crate) fn is_valid_duration(
         }
     }
     // 3. If abs(years) ≥ 2**32, return false.
-    if years.abs() >= u32::MAX as i64 {
+    // n.b. u32::MAX is 2**32 - 1
+    if years.abs() > u32::MAX as i64 {
         return false;
     };
     // 4. If abs(months) ≥ 2**32, return false.
-    if months.abs() >= u32::MAX as i64 {
+    if months.abs() > u32::MAX as i64 {
         return false;
     };
     // 5. If abs(weeks) ≥ 2**32, return false.
-    if weeks.abs() >= u32::MAX as i64 {
+    if weeks.abs() > u32::MAX as i64 {
         return false;
     };
+
+    // Work around https://github.com/boa-dev/temporal/issues/189
+    // For the purpose of the validity check, we should normalize the i128 values
+    // to valid floating point values. This may round up!
+    //
+    // We only need to do this seconds and below, if any of the larger
+    // values are near MAX_SAFE_INTEGER then their seconds value will without question
+    // also be near MAX_SAFE_INTEGER.
+    let seconds = seconds as f64 as i64;
+    let milliseconds = milliseconds as f64 as i64;
+    let microseconds = microseconds as f64 as i128;
+    let nanoseconds = nanoseconds as f64 as i128;
 
     // 6. Let normalizedSeconds be days × 86,400 + hours × 3600 + minutes × 60 + seconds
     // + ℝ(𝔽(milliseconds)) × 10**-3 + ℝ(𝔽(microseconds)) × 10**-6 + ℝ(𝔽(nanoseconds)) × 10**-9.
@@ -1139,108 +1340,6 @@ impl FromStr for Duration {
     type Err = TemporalError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parse_record = IsoDurationParser::from_str(s)
-            .parse()
-            .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
-
-        let (hours, minutes, seconds, millis, micros, nanos) = match parse_record.time {
-            Some(TimeDurationRecord::Hours { hours, fraction }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
-                let fractional_hours_ns = unadjusted_fraction * 3600;
-                let minutes = fractional_hours_ns.div_euclid(60 * 1_000_000_000);
-                let fractional_minutes_ns = fractional_hours_ns.rem_euclid(60 * 1_000_000_000);
-
-                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
-                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
-
-                let milliseconds = fractional_seconds.div_euclid(1_000_000);
-                let rem = fractional_seconds.rem_euclid(1_000_000);
-
-                let microseconds = rem.div_euclid(1_000);
-                let nanoseconds = rem.rem_euclid(1_000);
-
-                (
-                    hours,
-                    minutes,
-                    seconds,
-                    milliseconds,
-                    microseconds,
-                    nanoseconds,
-                )
-            }
-            // Minutes variant is defined as { hours: u32, minutes: u32, fraction: u64 }
-            Some(TimeDurationRecord::Minutes {
-                hours,
-                minutes,
-                fraction,
-            }) => {
-                let unadjusted_fraction =
-                    fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0) as u64;
-                let fractional_minutes_ns = unadjusted_fraction * 60;
-                let seconds = fractional_minutes_ns.div_euclid(1_000_000_000);
-                let fractional_seconds = fractional_minutes_ns.rem_euclid(1_000_000_000);
-
-                let milliseconds = fractional_seconds.div_euclid(1_000_000);
-                let rem = fractional_seconds.rem_euclid(1_000_000);
-
-                let microseconds = rem.div_euclid(1_000);
-                let nanoseconds = rem.rem_euclid(1_000);
-
-                (
-                    hours,
-                    minutes,
-                    seconds,
-                    milliseconds,
-                    microseconds,
-                    nanoseconds,
-                )
-            }
-            // Seconds variant is defined as { hours: u32, minutes: u32, seconds: u32, fraction: u32 }
-            Some(TimeDurationRecord::Seconds {
-                hours,
-                minutes,
-                seconds,
-                fraction,
-            }) => {
-                let ns = fraction.and_then(|x| x.to_nanoseconds()).unwrap_or(0);
-                let milliseconds = ns.div_euclid(1_000_000);
-                let rem = ns.rem_euclid(1_000_000);
-
-                let microseconds = rem.div_euclid(1_000);
-                let nanoseconds = rem.rem_euclid(1_000);
-
-                (
-                    hours,
-                    minutes,
-                    seconds,
-                    milliseconds as u64,
-                    microseconds as u64,
-                    nanoseconds as u64,
-                )
-            }
-            None => (0, 0, 0, 0, 0, 0),
-        };
-
-        let (years, months, weeks, days) = if let Some(date) = parse_record.date {
-            (date.years, date.months, date.weeks, date.days)
-        } else {
-            (0, 0, 0, 0)
-        };
-
-        let sign = parse_record.sign as i64;
-
-        Self::new(
-            years as i64 * sign,
-            months as i64 * sign,
-            weeks as i64 * sign,
-            days as i64 * sign,
-            hours as i64 * sign,
-            minutes as i64 * sign,
-            seconds as i64 * sign,
-            millis as i64 * sign,
-            micros as i128 * sign as i128,
-            nanos as i128 * sign as i128,
-        )
+        Self::from_utf8(s.as_bytes())
     }
 }

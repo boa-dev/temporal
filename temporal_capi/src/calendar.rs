@@ -2,7 +2,7 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::duration::ffi::Duration;
+    use crate::duration::ffi::{DateDuration, Duration};
     use crate::error::ffi::TemporalError;
     use crate::iso::ffi::IsoDate;
     use crate::options::ffi::{ArithmeticOverflow, Unit};
@@ -48,6 +48,15 @@ pub mod ffi {
                 Err(()) => None,
             }
         }
+
+        // https://tc39.es/proposal-temporal/#sec-temporal-parsetemporalcalendarstring
+        pub fn parse_temporal_calendar_string(s: &DiplomatStr) -> Option<Self> {
+            match temporal_rs::parsers::parse_allowed_calendar_formats(s) {
+                Some([]) => Some(AnyCalendarKind::Iso),
+                Some(result) => Self::get_for_str(result),
+                None => Self::get_for_str(s),
+            }
+        }
     }
 
     #[diplomat::opaque]
@@ -55,7 +64,7 @@ pub mod ffi {
     pub struct Calendar(pub temporal_rs::Calendar);
 
     impl Calendar {
-        pub fn create(kind: AnyCalendarKind) -> Box<Self> {
+        pub fn try_new_constrain(kind: AnyCalendarKind) -> Box<Self> {
             Box::new(Calendar(temporal_rs::Calendar::new(kind.into())))
         }
 
@@ -99,15 +108,19 @@ pub mod ffi {
             partial: PartialDate,
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainYearMonth>, TemporalError> {
+            let partial: temporal_rs::partial::PartialDate = partial.try_into()?;
             self.0
-                .year_month_from_partial(&partial.try_into()?, overflow.into())
+                .year_month_from_partial(
+                    &temporal_rs::partial::PartialYearMonth::from(&partial),
+                    overflow.into(),
+                )
                 .map(|c| Box::new(PlainYearMonth(c)))
                 .map_err(Into::into)
         }
         pub fn date_add(
             &self,
             date: IsoDate,
-            duration: &Duration,
+            duration: &DateDuration,
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainDate>, TemporalError> {
             self.0
@@ -187,7 +200,11 @@ pub mod ffi {
         pub fn in_leap_year(&self, date: IsoDate) -> bool {
             self.0.in_leap_year(&date.into())
         }
-
+        /// Returns the kind of this calendar
+        #[inline]
+        pub fn kind(&self) -> AnyCalendarKind {
+            self.0.kind().into()
+        }
         // TODO .fields() (need to pick a convenient way to return vectors or iterators, depending on how the API gets used)
     }
 }

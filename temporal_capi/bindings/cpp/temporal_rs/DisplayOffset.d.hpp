@@ -31,7 +31,8 @@ public:
     Never = 1,
   };
 
-  DisplayOffset() = default;
+  DisplayOffset(): value(Value::Auto) {}
+
   // Implicit conversions between enum and ::Value
   constexpr DisplayOffset(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

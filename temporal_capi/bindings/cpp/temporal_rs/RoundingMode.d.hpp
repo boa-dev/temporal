@@ -45,7 +45,8 @@ public:
     HalfEven = 8,
   };
 
-  RoundingMode() = default;
+  RoundingMode(): value(Value::Ceil) {}
+
   // Implicit conversions between enum and ::Value
   constexpr RoundingMode(Value v) : value(v) {}
   constexpr operator Value() const { return value; }

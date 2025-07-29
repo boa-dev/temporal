@@ -12,21 +12,27 @@
 #include <optional>
 #include <cstdlib>
 #include "../diplomat_runtime.hpp"
+#include "AnyCalendarKind.hpp"
 #include "ArithmeticOverflow.hpp"
 #include "Calendar.hpp"
 #include "DifferenceSettings.hpp"
+#include "DisplayCalendar.hpp"
 #include "Duration.hpp"
 #include "PartialDate.hpp"
 #include "PlainDate.hpp"
 #include "TemporalError.hpp"
+#include "TimeZone.hpp"
 
 
 namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    typedef struct temporal_rs_PlainYearMonth_create_with_overflow_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_create_with_overflow_result;
-    temporal_rs_PlainYearMonth_create_with_overflow_result temporal_rs_PlainYearMonth_create_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, const temporal_rs::capi::Calendar* calendar, temporal_rs::capi::ArithmeticOverflow overflow);
+    typedef struct temporal_rs_PlainYearMonth_try_new_with_overflow_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_try_new_with_overflow_result;
+    temporal_rs_PlainYearMonth_try_new_with_overflow_result temporal_rs_PlainYearMonth_try_new_with_overflow(int32_t year, uint8_t month, diplomat::capi::OptionU8 reference_day, temporal_rs::capi::AnyCalendarKind calendar, temporal_rs::capi::ArithmeticOverflow overflow);
+
+    typedef struct temporal_rs_PlainYearMonth_from_partial_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_from_partial_result;
+    temporal_rs_PlainYearMonth_from_partial_result temporal_rs_PlainYearMonth_from_partial(temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
 
     typedef struct temporal_rs_PlainYearMonth_with_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
     temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -42,6 +48,8 @@ namespace capi {
     void temporal_rs_PlainYearMonth_padded_iso_year_string(const temporal_rs::capi::PlainYearMonth* self, diplomat::capi::DiplomatWrite* write);
 
     uint8_t temporal_rs_PlainYearMonth_iso_month(const temporal_rs::capi::PlainYearMonth* self);
+
+    uint8_t temporal_rs_PlainYearMonth_iso_day(const temporal_rs::capi::PlainYearMonth* self);
 
     int32_t temporal_rs_PlainYearMonth_year(const temporal_rs::capi::PlainYearMonth* self);
 
@@ -83,18 +91,31 @@ namespace capi {
     typedef struct temporal_rs_PlainYearMonth_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_to_plain_date_result;
     temporal_rs_PlainYearMonth_to_plain_date_result temporal_rs_PlainYearMonth_to_plain_date(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::PartialDate_option day);
 
+    typedef struct temporal_rs_PlainYearMonth_epoch_ms_for_result {union {int64_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_epoch_ms_for_result;
+    temporal_rs_PlainYearMonth_epoch_ms_for_result temporal_rs_PlainYearMonth_epoch_ms_for(const temporal_rs::capi::PlainYearMonth* self, const temporal_rs::capi::TimeZone* time_zone);
+
+    void temporal_rs_PlainYearMonth_to_ixdtf_string(const temporal_rs::capi::PlainYearMonth* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
+
+    temporal_rs::capi::PlainYearMonth* temporal_rs_PlainYearMonth_clone(const temporal_rs::capi::PlainYearMonth* self);
+
     void temporal_rs_PlainYearMonth_destroy(PlainYearMonth* self);
 
     } // extern "C"
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::create_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, const temporal_rs::Calendar& calendar, temporal_rs::ArithmeticOverflow overflow) {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_create_with_overflow(year,
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::try_new_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow) {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_try_new_with_overflow(year,
     month,
     reference_day.has_value() ? (diplomat::capi::OptionU8{ { reference_day.value() }, true }) : (diplomat::capi::OptionU8{ {}, false }),
     calendar.AsFFI(),
     overflow.AsFFI());
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::from_partial(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_from_partial(partial.AsFFI(),
+    overflow.has_value() ? (temporal_rs::capi::ArithmeticOverflow_option{ { overflow.value().AsFFI() }, true }) : (temporal_rs::capi::ArithmeticOverflow_option{ {}, false }));
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
@@ -127,9 +148,20 @@ inline std::string temporal_rs::PlainYearMonth::padded_iso_year_string() const {
     &write);
   return output;
 }
+template<typename W>
+inline void temporal_rs::PlainYearMonth::padded_iso_year_string_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_padded_iso_year_string(this->AsFFI(),
+    &write);
+}
 
 inline uint8_t temporal_rs::PlainYearMonth::iso_month() const {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_month(this->AsFFI());
+  return result;
+}
+
+inline uint8_t temporal_rs::PlainYearMonth::iso_day() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_day(this->AsFFI());
   return result;
 }
 
@@ -149,6 +181,12 @@ inline std::string temporal_rs::PlainYearMonth::month_code() const {
   temporal_rs::capi::temporal_rs_PlainYearMonth_month_code(this->AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainYearMonth::month_code_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_month_code(this->AsFFI(),
+    &write);
 }
 
 inline bool temporal_rs::PlainYearMonth::in_leap_year() const {
@@ -177,6 +215,12 @@ inline std::string temporal_rs::PlainYearMonth::era() const {
   temporal_rs::capi::temporal_rs_PlainYearMonth_era(this->AsFFI(),
     &write);
   return output;
+}
+template<typename W>
+inline void temporal_rs::PlainYearMonth::era_write(W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_era(this->AsFFI(),
+    &write);
 }
 
 inline std::optional<int32_t> temporal_rs::PlainYearMonth::era_year() const {
@@ -233,6 +277,33 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_to_plain_date(this->AsFFI(),
     day.has_value() ? (temporal_rs::capi::PartialDate_option{ { day.value().AsFFI() }, true }) : (temporal_rs::capi::PartialDate_option{ {}, false }));
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<int64_t, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::epoch_ms_for(const temporal_rs::TimeZone& time_zone) const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_epoch_ms_for(this->AsFFI(),
+    time_zone.AsFFI());
+  return result.is_ok ? diplomat::result<int64_t, temporal_rs::TemporalError>(diplomat::Ok<int64_t>(result.ok)) : diplomat::result<int64_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::string temporal_rs::PlainYearMonth::to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const {
+  std::string output;
+  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_to_ixdtf_string(this->AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
+  return output;
+}
+template<typename W>
+inline void temporal_rs::PlainYearMonth::to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  temporal_rs::capi::temporal_rs_PlainYearMonth_to_ixdtf_string(this->AsFFI(),
+    display_calendar.AsFFI(),
+    &write);
+}
+
+inline std::unique_ptr<temporal_rs::PlainYearMonth> temporal_rs::PlainYearMonth::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result));
 }
 
 inline const temporal_rs::capi::PlainYearMonth* temporal_rs::PlainYearMonth::AsFFI() const {

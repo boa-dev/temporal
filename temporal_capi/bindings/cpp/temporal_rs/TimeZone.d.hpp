@@ -30,7 +30,19 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_identifier_str(std::string_view ident);
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_offset_str(std::string_view ident);
+
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_str(std::string_view ident);
+
+  inline std::string identifier() const;
+  template<typename W>
+  inline void identifier_write(W& writeable_output) const;
+
+  inline static std::unique_ptr<temporal_rs::TimeZone> utc();
+
+  inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
+
+  inline bool is_valid() const;
 
   inline const temporal_rs::capi::TimeZone* AsFFI() const;
   inline temporal_rs::capi::TimeZone* AsFFI();

@@ -99,7 +99,7 @@ pub struct CompiledTransitions {
     /// The POSIX time zone string
     ///
     /// This string should be used to calculate the time zone beyond the last available transition.
-    pub posix_string: String, // TODO: Implement POSIX string building
+    pub posix_time_zone: PosixTimeZone,
 }
 
 // NOTE: candidate for removal? Should this library offer TZif structs long term?
@@ -122,9 +122,10 @@ pub struct CompiledTransitionsMap {
 // ==== ZoneInfoCompiler build / compile methods ====
 
 use crate::{
+    posix::PosixTimeZone,
     types::{QualifiedTimeKind, Time},
     tzif::TzifBlockV2,
-    zone::ZoneBuildContext,
+    zone::{ZoneBuildContext, ZoneRecord},
     ZoneInfoData,
 };
 
@@ -185,13 +186,21 @@ impl ZoneInfoCompiler {
             }
         }
 
-        // TODO: POSIX tz string handling
+        let posix_time_zone = zone_table.get_posix_time_zone();
 
         CompiledTransitions {
             initial_record,
             transitions,
-            posix_string: String::default(),
+            posix_time_zone,
         }
+    }
+
+    pub fn get_posix_time_zone(&mut self, target: &str) -> Option<PosixTimeZone> {
+        self.associate();
+        self.data
+            .zones
+            .get(target)
+            .map(ZoneRecord::get_posix_time_zone)
     }
 
     /// Associates the current `ZoneTables` with their applicable rules.

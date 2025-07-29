@@ -96,36 +96,42 @@ pub enum IanaDataError {
     Build(zerotrie::ZeroTrieBuildError),
 }
 
+#[cfg(feature = "datagen")]
 impl IanaIdentifierNormalizer<'_> {
-    #[cfg(feature = "datagen")]
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
-        let mut identifiers = BTreeSet::default();
+        let mut canonical = BTreeSet::default();
         for zone_id in provider.data.zones.keys() {
             // Add canonical identifiers.
-            let _ = identifiers.insert(zone_id.clone());
+            let _ = canonical.insert(zone_id.clone());
         }
-        for links in provider.data.links.keys() {
+        let mut all_identifiers = canonical.clone();
+
+        for link_from in provider.data.links.keys() {
             // Add link / non-canonical identifiers
-            let _ = identifiers.insert(links.clone());
+            let _ = all_identifiers.insert(link_from.clone());
         }
-        let norm_vec: Vec<String> = identifiers.iter().cloned().collect();
+        // Make a sorted list of canonical timezones
+        let norm_vec: Vec<String> = canonical.iter().cloned().collect();
         let norm_zerovec: VarZeroVec<'static, str> = norm_vec.as_slice().into();
 
-        let identier_map: BTreeMap<Vec<u8>, usize> = identifiers
+        let identifier_map: BTreeMap<Vec<u8>, usize> = all_identifiers
             .iter()
             .map(|id| {
-                (
-                    id.to_ascii_lowercase().as_bytes().to_vec(),
-                    norm_vec.binary_search(id).unwrap(),
-                )
+                // Either this is already canonical
+                let normalized_id = norm_vec.binary_search(id);
+                // ... or it is an alias from the links table, fetch the
+                // canonical id corresponding to it
+                let normalized_id = normalized_id
+                    .unwrap_or_else(|_| norm_vec.binary_search(&provider.data.links[id]).unwrap());
+                (id.to_ascii_lowercase().as_bytes().to_vec(), normalized_id)
             })
             .collect();
 
         Ok(IanaIdentifierNormalizer {
             version: provider.version.into(),
-            available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identier_map)
+            available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identifier_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
             normalized_identifiers: norm_zerovec,

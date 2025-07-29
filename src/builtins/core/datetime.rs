@@ -20,6 +20,7 @@ use crate::{
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use tinystr::TinyAsciiStr;
+use writeable::Writeable;
 
 /// A partial PlainDateTime record
 #[derive(Debug, Default, Clone)]
@@ -53,12 +54,109 @@ impl PartialDateTime {
     }
 }
 
-// TODO: Example doctest
 /// The native Rust implementation of a Temporal `PlainDateTime`.
 ///
-/// The `PlainDateTime` represents a date and time without a
-/// time zone. The fundemental represenation of a `PlainDateTime`
-/// is it's internal ISO date and time fields and a calendar.
+/// Combines a date and time into a single value representing a specific moment
+/// in calendar time, such as "2024-03-15T14:30:45". Unlike `Instant`,
+/// a `PlainDateTime` does not include timezone information.
+///
+/// Use `PlainDateTime` when you need to represent a specific date and time but
+/// timezone handling is not required, or when working with local times that
+/// don't need to be converted across timezones.
+///
+/// ## Examples
+///
+/// ### Creating date and time values
+///
+/// ```rust
+/// use temporal_rs::PlainDateTime;
+/// use core::str::FromStr;
+///
+/// // Create a specific date and time from IXDTF string
+/// let meeting = PlainDateTime::from_str("2024-03-15T14:30:45.123456789").unwrap();
+/// assert_eq!(meeting.year(), 2024);
+/// assert_eq!(meeting.hour(), 14);
+/// assert_eq!(meeting.minute(), 30);
+/// ```
+///
+/// ### Parsing ISO 8601 datetime strings
+///
+/// ```rust
+/// use temporal_rs::PlainDateTime;
+/// use core::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-03-15T14:30:45.123456789").unwrap();
+/// assert_eq!(dt.year(), 2024);
+/// assert_eq!(dt.month(), 3);
+/// assert_eq!(dt.day(), 15);
+/// assert_eq!(dt.hour(), 14);
+/// assert_eq!(dt.minute(), 30);
+/// assert_eq!(dt.second(), 45);
+/// assert_eq!(dt.millisecond(), 123);
+/// assert_eq!(dt.microsecond(), 456);
+/// assert_eq!(dt.nanosecond(), 789);
+/// ```
+///
+/// ### DateTime arithmetic
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, Duration};
+/// use core::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-01-15T12:00:00").unwrap();
+///
+/// // Add duration
+/// let later = dt.add(&Duration::from_str("P1M2DT3H4M").unwrap(), None).unwrap();
+/// assert_eq!(later.month(), 2);
+/// assert_eq!(later.day(), 17);
+/// assert_eq!(later.hour(), 15);
+/// assert_eq!(later.minute(), 4);
+///
+/// // Calculate difference
+/// let earlier = PlainDateTime::from_str("2024-01-10T10:30:00").unwrap();
+/// let duration = earlier.until(&dt, Default::default()).unwrap();
+/// assert_eq!(duration.days(), 5);
+/// assert_eq!(duration.hours(), 1);
+/// assert_eq!(duration.minutes(), 30);
+/// ```
+///
+/// ### Working with partial fields
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, partial::{PartialDateTime, PartialDate, PartialTime}};
+/// use core::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-01-15T12:30:45").unwrap();
+///
+/// // Change only the hour
+/// let partial = PartialDateTime::new()
+///     .with_partial_time(PartialTime::new().with_hour(Some(18)));
+/// let modified = dt.with(partial, None).unwrap();
+/// assert_eq!(modified.hour(), 18);
+/// assert_eq!(modified.minute(), 30); // unchanged
+/// assert_eq!(modified.second(), 45); // unchanged
+/// ```
+///
+/// ### Converting to other types
+///
+/// ```rust
+/// use temporal_rs::{PlainDateTime, PlainTime};
+/// use core::str::FromStr;
+///
+/// let dt = PlainDateTime::from_str("2024-03-15T14:30:45").unwrap();
+///
+/// // Extract date component
+/// let date = dt.to_plain_date().unwrap();
+/// assert_eq!(date.year(), 2024);
+/// assert_eq!(date.month(), 3);
+/// assert_eq!(date.day(), 15);
+///
+/// // Extract time component
+/// let time = dt.to_plain_time().unwrap();
+/// assert_eq!(time.hour(), 14);
+/// assert_eq!(time.minute(), 30);
+/// assert_eq!(time.second(), 45);
+/// ```
 ///
 /// ## Reference
 ///
@@ -187,14 +285,16 @@ impl PlainDateTime {
         other: &Self,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
-        // 1. Assert: IsValidISODate(y1, mon1, d1) is true.
-        // 2. Assert: IsValidISODate(y2, mon2, d2) is true.
-        // 3. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
+        // 1. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
             // a. Let durationRecord be CreateDurationRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
             // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
             return Ok(NormalizedDurationRecord::default());
         }
+        // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
+        self.iso.check_validity()?;
+        other.iso.check_validity()?;
+
         // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, largestUnit).
         let diff = self
             .iso
@@ -205,7 +305,7 @@ impl PlainDateTime {
         }
 
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
-        let dest_epoch_ns = other.iso.as_nanoseconds()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds();
         // 6. Return ? RoundRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
         diff.round_relative_duration(
             dest_epoch_ns.0,
@@ -233,7 +333,7 @@ impl PlainDateTime {
             return FiniteF64::try_from(diff.normalized_time_duration().0);
         }
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
-        let dest_epoch_ns = other.iso.as_nanoseconds()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds();
         // 6. Return ? TotalRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, unit).
         diff.total_relative_duration(
             dest_epoch_ns.0,
@@ -520,17 +620,17 @@ impl PlainDateTime {
                 TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
             );
         }
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
 
         let result_date = self.calendar.date_from_partial(
-            &partial_datetime.date.with_fallback_datetime(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            &partial_datetime
+                .date
+                .with_fallback_datetime(self, overflow)?,
+            overflow,
         )?;
 
         // Determine the `Time` based off the partial values.
-        let time = self.iso.time.with(
-            partial_datetime.time,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )?;
+        let time = self.iso.time.with(partial_datetime.time, overflow)?;
 
         let iso_datetime = IsoDateTime::new(result_date.iso, time)?;
 
@@ -538,7 +638,8 @@ impl PlainDateTime {
     }
 
     /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
-    pub fn with_time(&self, time: PlainTime) -> TemporalResult<Self> {
+    pub fn with_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
+        let time = time.unwrap_or_default();
         Self::try_new(
             self.iso_year(),
             self.iso_month(),
@@ -806,11 +907,11 @@ impl PlainDateTime {
         Ok(PlainTime::new_unchecked(self.iso.time))
     }
 
-    pub fn to_ixdtf_string(
+    pub fn to_ixdtf_writeable(
         &self,
         options: ToStringRoundingOptions,
         display_calendar: DisplayCalendar,
-    ) -> TemporalResult<String> {
+    ) -> TemporalResult<impl Writeable + '_> {
         let resolved_options = options.resolve()?;
         let result = self
             .iso
@@ -820,12 +921,20 @@ impl PlainDateTime {
         if !result.is_within_limits() {
             return Err(TemporalError::range().with_message("DateTime is not within valid limits."));
         }
-        let ixdtf_string = IxdtfStringBuilder::default()
+        let builder = IxdtfStringBuilder::default()
             .with_date(result.date)
             .with_time(result.time, resolved_options.precision)
-            .with_calendar(self.calendar.identifier(), display_calendar)
-            .build();
-        Ok(ixdtf_string)
+            .with_calendar(self.calendar.identifier(), display_calendar);
+        Ok(builder)
+    }
+
+    pub fn to_ixdtf_string(
+        &self,
+        options: ToStringRoundingOptions,
+        display_calendar: DisplayCalendar,
+    ) -> TemporalResult<String> {
+        self.to_ixdtf_writeable(options, display_calendar)
+            .map(|x| x.write_to_string().into())
     }
 }
 

@@ -14,6 +14,7 @@
 #include "../diplomat_runtime.hpp"
 #include "AnyCalendarKind.hpp"
 #include "ArithmeticOverflow.hpp"
+#include "DateDuration.hpp"
 #include "Duration.hpp"
 #include "IsoDate.hpp"
 #include "PartialDate.hpp"
@@ -28,7 +29,7 @@ namespace temporal_rs {
 namespace capi {
     extern "C" {
 
-    temporal_rs::capi::Calendar* temporal_rs_Calendar_create(temporal_rs::capi::AnyCalendarKind kind);
+    temporal_rs::capi::Calendar* temporal_rs_Calendar_try_new_constrain(temporal_rs::capi::AnyCalendarKind kind);
 
     typedef struct temporal_rs_Calendar_from_utf8_result {union {temporal_rs::capi::Calendar* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_from_utf8_result;
     temporal_rs_Calendar_from_utf8_result temporal_rs_Calendar_from_utf8(diplomat::capi::DiplomatStringView s);
@@ -47,7 +48,7 @@ namespace capi {
     temporal_rs_Calendar_year_month_from_partial_result temporal_rs_Calendar_year_month_from_partial(const temporal_rs::capi::Calendar* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow overflow);
 
     typedef struct temporal_rs_Calendar_date_add_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_add_result;
-    temporal_rs_Calendar_date_add_result temporal_rs_Calendar_date_add(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, const temporal_rs::capi::Duration* duration, temporal_rs::capi::ArithmeticOverflow overflow);
+    temporal_rs_Calendar_date_add_result temporal_rs_Calendar_date_add(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date, const temporal_rs::capi::DateDuration* duration, temporal_rs::capi::ArithmeticOverflow overflow);
 
     typedef struct temporal_rs_Calendar_date_until_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Calendar_date_until_result;
     temporal_rs_Calendar_date_until_result temporal_rs_Calendar_date_until(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate one, temporal_rs::capi::IsoDate two, temporal_rs::capi::Unit largest_unit);
@@ -89,14 +90,16 @@ namespace capi {
 
     bool temporal_rs_Calendar_in_leap_year(const temporal_rs::capi::Calendar* self, temporal_rs::capi::IsoDate date);
 
+    temporal_rs::capi::AnyCalendarKind temporal_rs_Calendar_kind(const temporal_rs::capi::Calendar* self);
+
     void temporal_rs_Calendar_destroy(Calendar* self);
 
     } // extern "C"
 } // namespace capi
 } // namespace
 
-inline std::unique_ptr<temporal_rs::Calendar> temporal_rs::Calendar::create(temporal_rs::AnyCalendarKind kind) {
-  auto result = temporal_rs::capi::temporal_rs_Calendar_create(kind.AsFFI());
+inline std::unique_ptr<temporal_rs::Calendar> temporal_rs::Calendar::try_new_constrain(temporal_rs::AnyCalendarKind kind) {
+  auto result = temporal_rs::capi::temporal_rs_Calendar_try_new_constrain(kind.AsFFI());
   return std::unique_ptr<temporal_rs::Calendar>(temporal_rs::Calendar::FromFFI(result));
 }
 
@@ -136,7 +139,7 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_r
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::Calendar::date_add(temporal_rs::IsoDate date, const temporal_rs::Duration& duration, temporal_rs::ArithmeticOverflow overflow) const {
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::Calendar::date_add(temporal_rs::IsoDate date, const temporal_rs::DateDuration& duration, temporal_rs::ArithmeticOverflow overflow) const {
   auto result = temporal_rs::capi::temporal_rs_Calendar_date_add(this->AsFFI(),
     date.AsFFI(),
     duration.AsFFI(),
@@ -159,6 +162,14 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Ca
     date.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::Calendar::era_write(temporal_rs::IsoDate date, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_Calendar_era(this->AsFFI(),
+    date.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline std::optional<int32_t> temporal_rs::Calendar::era_year(temporal_rs::IsoDate date) const {
@@ -186,6 +197,14 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::Ca
     date.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::Calendar::month_code_write(temporal_rs::IsoDate date, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_Calendar_month_code(this->AsFFI(),
+    date.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline uint8_t temporal_rs::Calendar::day(temporal_rs::IsoDate date) const {
@@ -246,6 +265,11 @@ inline bool temporal_rs::Calendar::in_leap_year(temporal_rs::IsoDate date) const
   auto result = temporal_rs::capi::temporal_rs_Calendar_in_leap_year(this->AsFFI(),
     date.AsFFI());
   return result;
+}
+
+inline temporal_rs::AnyCalendarKind temporal_rs::Calendar::kind() const {
+  auto result = temporal_rs::capi::temporal_rs_Calendar_kind(this->AsFFI());
+  return temporal_rs::AnyCalendarKind::FromFFI(result);
 }
 
 inline const temporal_rs::capi::Calendar* temporal_rs::Calendar::AsFFI() const {

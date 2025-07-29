@@ -5,8 +5,10 @@ proposed for addition to the ECMAScript specification.
 
 `temporal_rs` is an implementation of Temporal in Rust that aims to be
 100% test compliant. While initially developed for [Boa][boa-repo], the
-crate has been externalized as we intended to make an engine agnostic
-and general usage implementation of Temporal and its algorithms.
+crate has been externalized and is being used in other engines such as [V8](https://v8.dev) and [Kiesel](https://codeberg.org/kiesel-js/kiesel).
+
+For more information on `temporal_rs`'s general position in the Rust
+date/time library ecoystem, see our [FAQ](./docs/FAQ.md).
 
 ## Example usage
 
@@ -49,13 +51,14 @@ assert_eq!(pdt.second(), 10);
 
 ### Create a `ZonedDateTime` for a RFC9557 IXDTF string.
 
-**Important Note:** The below API is enabled with the `compiled_data` feature flag.
+**Important Note:** The below API is enabled with the `compiled_data`
+feature flag.
 
 ```rust
 use temporal_rs::{ZonedDateTime, TimeZone};
 use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
 
-let zdt = ZonedDateTime::from_str("2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
+let zdt = ZonedDateTime::from_utf8(b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
 assert_eq!(zdt.year().unwrap(), 2025);
 assert_eq!(zdt.month().unwrap(), 3);
 assert_eq!(zdt.day().unwrap(), 1);
@@ -84,12 +87,12 @@ Relevant links and information regarding Temporal can be found below.
 
 ## Core maintainers
 
-- Jason Williams
-  ([jasonwilliams](https://github.com/orgs/boa-dev/people/jasonwilliams))
-- José Julián Espina
-  ([jedel1043](https://github.com/orgs/boa-dev/people/jedel1043))
-- Kevin Ness ([nekevss](https://github.com/orgs/boa-dev/people/nekevss))
-- Boa Developers
+- [Kevin Ness](https://github.com/nekevss)
+- [Manish Goregaokar](https://github.com/Manishearth)
+- [José Julián Espina](https://github.com/jedel1043)
+- [Jason Williams](https://github.com/jasonwilliams)
+- [Haled Odat](https://github.com/HalidOdat)
+- [Boa Developers](https://github.com/orgs/boa-dev/people)
 
 ## Contributing
 
@@ -101,8 +104,8 @@ information.
 
 <!-- TODO: Potentially update with tests if a runner can be implemented -->
 
-The `temporal_rs`'s current conformance results can be viewed on
-Boa's [test262 conformance page](https://boajs.dev/conformance).
+The `temporal_rs`'s current conformance results can be viewed on Boa's
+[test262 conformance page](https://boajs.dev/conformance).
 
 ## FFI
 

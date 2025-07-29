@@ -20,6 +20,7 @@
 #include "TimeDuration.hpp"
 #include "TimeZone.hpp"
 #include "ToStringRoundingOptions.hpp"
+#include "ZonedDateTime.hpp"
 
 
 namespace temporal_rs {
@@ -69,6 +70,10 @@ namespace capi {
 
     typedef struct temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result;
     temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instant_to_ixdtf_string_with_compiled_data(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeZone* zone, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
+
+    temporal_rs::capi::ZonedDateTime* temporal_rs_Instant_to_zoned_date_time_iso(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeZone* zone);
+
+    temporal_rs::capi::Instant* temporal_rs_Instant_clone(const temporal_rs::capi::Instant* self);
 
     void temporal_rs_Instant_destroy(Instant* self);
 
@@ -170,6 +175,26 @@ inline diplomat::result<std::string, temporal_rs::TemporalError> temporal_rs::In
     options.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Ok<std::string>(std::move(output))) : diplomat::result<std::string, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+template<typename W>
+inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs::Instant::to_ixdtf_string_with_compiled_data_write(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options, W& writeable) const {
+  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
+  auto result = temporal_rs::capi::temporal_rs_Instant_to_ixdtf_string_with_compiled_data(this->AsFFI(),
+    zone ? zone->AsFFI() : nullptr,
+    options.AsFFI(),
+    &write);
+  return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::unique_ptr<temporal_rs::ZonedDateTime> temporal_rs::Instant::to_zoned_date_time_iso(const temporal_rs::TimeZone& zone) const {
+  auto result = temporal_rs::capi::temporal_rs_Instant_to_zoned_date_time_iso(this->AsFFI(),
+    zone.AsFFI());
+  return std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result));
+}
+
+inline std::unique_ptr<temporal_rs::Instant> temporal_rs::Instant::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_Instant_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::Instant>(temporal_rs::Instant::FromFFI(result));
 }
 
 inline const temporal_rs::capi::Instant* temporal_rs::Instant::AsFFI() const {
