@@ -101,50 +101,28 @@ impl IanaIdentifierNormalizer<'_> {
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
-        let mut canonical = BTreeSet::default();
-        // TZDB treats UTC as an alias for Etc/UTC, but we want
-        // it to work the other way around.
-        canonical.insert("UTC");
+        let mut all_identifiers = BTreeSet::default();
         for zone_id in provider.data.zones.keys() {
-            if zone_id == "Etc/UTC" {
-                // We want "Etc/UTC" to map to "UTC"
-                continue;
-            }
             // Add canonical identifiers.
-            let _ = canonical.insert(zone_id);
+            let _ = all_identifiers.insert(&**zone_id);
         }
-        let mut all_identifiers = canonical.clone();
 
         for link_from in provider.data.links.keys() {
             // Add link / non-canonical identifiers
             let _ = all_identifiers.insert(link_from);
         }
         // Make a sorted list of canonical timezones
-        let norm_vec: Vec<&str> = canonical.iter().copied().collect();
+        let norm_vec: Vec<&str> = all_identifiers.iter().copied().collect();
         let norm_zerovec: VarZeroVec<'static, str> = norm_vec.as_slice().into();
-        let utc_id = norm_vec.binary_search(&"UTC").unwrap();
 
-        let mut identifier_map: BTreeMap<Vec<u8>, usize> = all_identifiers
+        let identifier_map: BTreeMap<Vec<u8>, usize> = all_identifiers
             .iter()
             .map(|id| {
-                // Either this is already canonical
-                let normalized_id = norm_vec.binary_search(id);
-                // ... or it is an alias from the links table, fetch the
-                // canonical id corresponding to it
-                let normalized_id = if let Ok(normalized_id) = normalized_id {
-                    normalized_id
-                } else {
-                    let search_key = &*provider.data.links[&**id];
-                    if search_key == "Etc/UTC" {
-                        utc_id
-                    } else {
-                        norm_vec.binary_search(&search_key).unwrap()
-                    }
-                };
+                let normalized_id = norm_vec.binary_search(id).unwrap();
+
                 (id.to_ascii_lowercase().as_bytes().to_vec(), normalized_id)
             })
             .collect();
-        identifier_map.insert(b"etc/utc".to_vec(), utc_id);
 
         Ok(IanaIdentifierNormalizer {
             version: provider.version.into(),
