@@ -63,7 +63,6 @@ timezone_provider::iana_normalizer_singleton!();
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
-
 impl From<&TimeZoneVariantInfo> for UtcOffsetSeconds {
     fn from(value: &TimeZoneVariantInfo) -> Self {
         Self(-value.offset.0)

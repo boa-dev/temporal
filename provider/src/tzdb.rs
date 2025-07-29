@@ -89,7 +89,9 @@ impl TzdbDataSource {
     /// Try to create a tzdb source from a tzdata rearguard.zi
     ///
     /// To generate a rearguard.zi, download tzdata from IANA. Run `make rearguard.zi`
-    pub fn try_from_rearguard_zoneinfo_dir(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
+    pub fn try_from_rearguard_zoneinfo_dir(
+        tzdata_path: &Path,
+    ) -> Result<Self, TzdbDataSourceError> {
         let version_file = tzdata_path.join("version");
         let version = fs::read_to_string(version_file)?.trim().to_owned();
         let rearguard_zoneinfo = tzdata_path.join("rearguard.zi");

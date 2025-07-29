@@ -141,7 +141,12 @@ fn main() -> io::Result<()> {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let tzdata_input = std::env::var("TZDATA_DIR").unwrap_or("tzdata".into());
     let tzdata_path = Path::new(&tzdata_input);
-    let tzdata_dir = manifest_dir.parent().unwrap().parent().unwrap().join(tzdata_path);
+    let tzdata_dir = manifest_dir
+        .parent()
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join(tzdata_path);
     println!("Using tzdata directory: {tzdata_dir:?}");
 
     let provider = Path::new(manifest_dir)
@@ -164,4 +169,3 @@ fn main() -> io::Result<()> {
         &ZoneInfoProvider::build(&tzdata_dir).unwrap(),
     )
 }
-
