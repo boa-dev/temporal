@@ -54,6 +54,15 @@ pub mod ffi {
             Box::new(TimeZone(self.0.clone()))
         }
 
+        /// Get the primary time zone identifier corresponding to this time zone
+        #[cfg(feature = "compiled_data")]
+        pub fn primary_identifier(&self) -> Result<Box<Self>, TemporalError> {
+            self.0
+                .primary_identifier()
+                .map(|x| Box::new(TimeZone(x)))
+                .map_err(Into::into)
+        }
+
         // To be removed on any release after 0.0.11
         #[cfg(feature = "compiled_data")]
         pub fn is_valid(&self) -> bool {

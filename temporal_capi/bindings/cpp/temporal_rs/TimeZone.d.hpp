@@ -42,6 +42,11 @@ public:
 
   inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
 
+  /**
+   * Get the primary time zone identifier corresponding to this time zone
+   */
+  inline diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> primary_identifier() const;
+
   inline bool is_valid() const;
 
   inline const temporal_rs::capi::TimeZone* AsFFI() const;

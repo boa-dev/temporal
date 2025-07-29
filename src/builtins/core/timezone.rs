@@ -223,6 +223,12 @@ impl TimeZone {
             TimeZone::UtcOffset(offset) => TimeZone::UtcOffset(*offset),
         })
     }
+
+    /// Get the primary identifier for this timezone
+    #[cfg(feature = "compiled_data")]
+    pub fn primary_identifier(&self) -> TemporalResult<Self> {
+        self.primary_identifier_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
     // TimeZoneEquals, which compares primary identifiers
     pub(crate) fn time_zone_equals_with_provider(
         &self,
