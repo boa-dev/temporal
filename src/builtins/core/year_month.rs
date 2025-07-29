@@ -419,13 +419,14 @@ impl PlainYearMonth {
         other_iso.day = 1;
         other_iso.check_validity()?;
         // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
-        // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
         let result = self
             .calendar()
             .date_until(&this_iso, &other_iso, resolved.largest_unit)?;
+        // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
+        let result = result.date().adjust(0, Some(0), None)?;
 
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
-        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+        let mut duration = NormalizedDurationRecord::from_date_duration(result)?;
 
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
         if resolved.smallest_unit != Unit::Month || resolved.increment != RoundingIncrement::ONE {
