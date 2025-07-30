@@ -89,11 +89,9 @@ impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
 pub enum LocalTimeRecordResult {
     Empty,
     Single(UtcOffsetSeconds),
-    // Note(nekevss): it may be best to switch this to initial, need to double check
-    // disambiguation ops with inverse DST-STD relationship
     Ambiguous {
-        std: UtcOffsetSeconds,
-        dst: UtcOffsetSeconds,
+        first: UtcOffsetSeconds,
+        second: UtcOffsetSeconds,
     },
 }
 
@@ -112,8 +110,8 @@ impl From<LocalTimeTypeRecord> for LocalTimeRecordResult {
 impl From<(LocalTimeTypeRecord, LocalTimeTypeRecord)> for LocalTimeRecordResult {
     fn from(value: (LocalTimeTypeRecord, LocalTimeTypeRecord)) -> Self {
         Self::Ambiguous {
-            std: value.0.into(),
-            dst: value.1.into(),
+            first: value.0.into(),
+            second: value.1.into(),
         }
     }
 }
@@ -470,19 +468,10 @@ impl TzifTransitionInfo {
     fn record_for_contains(&self) -> LocalTimeRecordResult {
         match self.kind() {
             TransitionKind::Gap => LocalTimeRecordResult::Empty,
-            TransitionKind::Overlap => {
-                if self.prev.is_dst {
-                    return LocalTimeRecordResult::Ambiguous {
-                        dst: self.prev.into(),
-                        std: self.next.into(),
-                    };
-                }
-
-                LocalTimeRecordResult::Ambiguous {
-                    std: self.prev.into(),
-                    dst: self.next.into(),
-                }
-            }
+            TransitionKind::Overlap => LocalTimeRecordResult::Ambiguous {
+                first: self.prev.into(),
+                second: self.next.into(),
+            },
             TransitionKind::Smooth => LocalTimeRecordResult::Single(self.prev.into()),
         }
     }
@@ -676,10 +665,14 @@ fn resolve_posix_tz_string(
         match offset.contains(&time) {
             true if is_dst == TransitionType::Dst => return Ok(LocalTimeRecordResult::Empty),
             true => {
+                let std = UtcOffsetSeconds::from(std);
+                let dst = UtcOffsetSeconds::from(&dst.variant_info);
+                // Note(nekevss, manishearth): We may need to more carefully
+                // handle inverse DST here.
                 return Ok(LocalTimeRecordResult::Ambiguous {
-                    std: UtcOffsetSeconds::from(std),
-                    dst: UtcOffsetSeconds::from(&dst.variant_info),
-                })
+                    first: dst,
+                    second: std,
+                });
             }
             _ => {}
         }
@@ -872,12 +865,12 @@ impl TimeZoneProvider for CompiledTzdbProvider {
                 let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
                 vec![epoch_ns]
             }
-            LocalTimeRecordResult::Ambiguous { std, dst } => {
-                let std_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(std.0));
-                let dst_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0));
-                vec![std_epoch_ns, dst_epoch_ns]
+            LocalTimeRecordResult::Ambiguous { first, second } => {
+                let first_epoch_ns =
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
+                let second_epoch_ns =
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
+                vec![first_epoch_ns, second_epoch_ns]
             }
         };
         Ok(result)
@@ -964,12 +957,12 @@ impl TimeZoneProvider for FsTzdbProvider {
                 let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
                 vec![epoch_ns]
             }
-            LocalTimeRecordResult::Ambiguous { std, dst } => {
-                let std_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(std.0));
-                let dst_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(dst.0));
-                vec![std_epoch_ns, dst_epoch_ns]
+            LocalTimeRecordResult::Ambiguous { first, second } => {
+                let first_epoch_ns =
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
+                let second_epoch_ns =
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
+                vec![first_epoch_ns, second_epoch_ns]
             }
         };
         Ok(result)
@@ -1202,6 +1195,7 @@ mod tests {
 
     #[test]
     fn new_york_duplicate_case() {
+        // Moves from DST to STD
         let date = crate::iso::IsoDate {
             year: 2017,
             month: 11,
@@ -1236,8 +1230,10 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: UtcOffsetSeconds(-18000),
-                dst: UtcOffsetSeconds(-14400),
+                // DST
+                first: UtcOffsetSeconds(-14400),
+                // STD
+                second: UtcOffsetSeconds(-18000),
             }
         );
     }
@@ -1245,6 +1241,7 @@ mod tests {
     #[test]
     fn sydney_duplicate_case() {
         // Australia Daylight savings day
+        // Moves from DST to STD
         let date = crate::iso::IsoDate {
             year: 2017,
             month: 4,
@@ -1277,8 +1274,10 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: UtcOffsetSeconds(36000),
-                dst: UtcOffsetSeconds(39600),
+                // DST
+                first: UtcOffsetSeconds(39600),
+                // STD
+                second: UtcOffsetSeconds(36000),
             }
         );
     }
@@ -1313,8 +1312,8 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: UtcOffsetSeconds(-18000),
-                dst: UtcOffsetSeconds(-14400),
+                first: UtcOffsetSeconds(-14400),
+                second: UtcOffsetSeconds(-18000),
             }
         );
     }
@@ -1348,8 +1347,8 @@ mod tests {
         assert_eq!(
             locals,
             LocalTimeRecordResult::Ambiguous {
-                std: UtcOffsetSeconds(36000),
-                dst: UtcOffsetSeconds(39600),
+                first: UtcOffsetSeconds(39600),
+                second: UtcOffsetSeconds(36000),
             }
         );
     }
