@@ -220,7 +220,7 @@ impl Tzif {
                     })
                 }
             }
-            Err(idx) if idx == 0 => Ok(get_first_timezone_offset(db)),
+            Err(0) => Ok(get_first_timezone_offset(db)),
             Err(idx) => {
                 if db.transition_times.len() <= idx {
                     // The transition time provided is beyond the length of
