@@ -294,20 +294,20 @@ impl TimeZone {
 
     pub(crate) fn get_epoch_nanoseconds_for(
         &self,
-        iso: IsoDateTime,
+        local_iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
-        let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
+        let possible_nanos = self.get_possible_epoch_ns_for(local_iso, provider)?;
         // 2. Return ? DisambiguatePossibleEpochNanoseconds(possibleEpochNs, timeZone, isoDateTime, disambiguation).
-        self.disambiguate_possible_epoch_nanos(possible_nanos, iso, disambiguation, provider)
+        self.disambiguate_possible_epoch_nanos(possible_nanos, local_iso, disambiguation, provider)
     }
 
     /// Get the possible `Instant`s for this `TimeZoneSlot`.
     pub(crate) fn get_possible_epoch_ns_for(
         &self,
-        iso: IsoDateTime,
+        local_iso: IsoDateTime,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
@@ -339,15 +339,15 @@ impl TimeZone {
                 // isoDateTime.[[Time]].[[Microsecond]],
                 // isoDateTime.[[Time]].[[Nanosecond]]).
                 let balanced = IsoDateTime::balance(
-                    iso.date.year,
-                    iso.date.month.into(),
-                    iso.date.day.into(),
-                    iso.time.hour.into(),
-                    (i16::from(iso.time.minute) - offset.minutes()).into(),
-                    iso.time.second.into(),
-                    iso.time.millisecond.into(),
-                    iso.time.microsecond.into(),
-                    iso.time.nanosecond.into(),
+                    local_iso.date.year,
+                    local_iso.date.month.into(),
+                    local_iso.date.day.into(),
+                    local_iso.time.hour.into(),
+                    (i16::from(local_iso.time.minute) - offset.minutes()).into(),
+                    local_iso.time.second.into(),
+                    local_iso.time.millisecond.into(),
+                    local_iso.time.microsecond.into(),
+                    local_iso.time.nanosecond.into(),
                 );
                 // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
                 balanced.date.is_valid_day_range()?;
@@ -359,11 +359,11 @@ impl TimeZone {
             // 3. Else,
             Self::IanaIdentifier(identifier) => {
                 // a. Perform ? CheckISODaysRange(isoDateTime.[[ISODate]]).
-                iso.date.is_valid_day_range()?;
+                local_iso.date.is_valid_day_range()?;
                 // b. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
-                provider.get_named_tz_epoch_nanoseconds(identifier, iso)?
+                provider.get_named_tz_epoch_nanoseconds(identifier, local_iso)?
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do

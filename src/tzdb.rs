@@ -251,11 +251,14 @@ impl Tzif {
     /// side of the transition, the DateTime 2017-03-12T02:30:00 could
     /// be provided. This time does NOT exist due to the +1 jump from
     /// 02:00 -> 03:00 (but of course it does as a nanosecond value).
-    pub fn v2_estimate_tz_pair(&self, seconds: &Seconds) -> TemporalResult<LocalTimeRecordResult> {
+    pub fn v2_estimate_tz_pair(
+        &self,
+        local_seconds: &Seconds,
+    ) -> TemporalResult<LocalTimeRecordResult> {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         let db = self.get_data_block2()?;
-        let b_search_result = db.transition_times.binary_search(seconds);
+        let b_search_result = db.transition_times.binary_search(local_seconds);
 
         let estimated_idx = match b_search_result {
             // TODO: Double check returning early here with tests.
@@ -273,7 +276,7 @@ impl Tzif {
                     return resolve_posix_tz_string(
                         self.posix_tz_string()
                             .ok_or(TemporalError::general("Could not resolve time zone."))?,
-                        seconds.0,
+                        local_seconds.0,
                     );
                 }
                 idx
@@ -296,7 +299,7 @@ impl Tzif {
         let new_idx = estimated_idx - shift_window;
 
         let current_transition = db.transition_times[new_idx];
-        let current_diff = *seconds - current_transition;
+        let current_diff = *local_seconds - current_transition;
 
         let initial_record = get_local_record(db, new_idx.saturating_sub(1));
         let next_record = get_local_record(db, new_idx);
@@ -694,9 +697,9 @@ impl TimeZoneProvider for CompiledTzdbProvider {
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
-        iso_datetime: IsoDateTime,
+        local_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = iso_datetime.as_nanoseconds();
+        let epoch_nanos = local_datetime.as_nanoseconds();
         let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
         let tzif = self.get(identifier)?;
         let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
@@ -786,9 +789,9 @@ impl TimeZoneProvider for FsTzdbProvider {
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
-        iso_datetime: IsoDateTime,
+        local_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = iso_datetime.as_nanoseconds();
+        let epoch_nanos = local_datetime.as_nanoseconds();
         let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
         let tzif = self.get(identifier)?;
         let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
