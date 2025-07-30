@@ -460,7 +460,7 @@ mod tests {
         // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
         // Pacific/Niue on October 15, 1952, where
         // the offset shifted by 20 seconds to a whole-minute boundary.
-        let ms_pre = -543069621_000;
+        let ms_pre = -543_069_621_000;
         let zdt = ZonedDateTime::from_utf8(
             b"1952-10-15T23:59:59-11:19:40[Pacific/Niue]",
             Default::default(),
@@ -485,7 +485,7 @@ mod tests {
             "-11:20 matches the first candidate -11:19:40 in the Pacific/Niue edge case"
         );
 
-        let ms_post = -543069601_000;
+        let ms_post = -543_069_601_000;
 
         let zdt = ZonedDateTime::from_utf8(
             b"1952-10-15T23:59:59-11:20:00[Pacific/Niue]",

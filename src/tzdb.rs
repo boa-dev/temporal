@@ -35,6 +35,8 @@ use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
 use alloc::{vec, vec::Vec};
+use core::cmp::Ordering;
+use core::ops::Range;
 use std::sync::RwLock;
 use tzif::data::posix::TransitionDate;
 
@@ -240,6 +242,18 @@ impl Tzif {
         }
     }
 
+    // Helper function to call resolve_posix_tz_string
+    fn resolve_posix_tz_string(
+        &self,
+        local_seconds: &Seconds,
+    ) -> TemporalResult<LocalTimeRecordResult> {
+        resolve_posix_tz_string(
+            self.posix_tz_string()
+                .ok_or(TemporalError::general("Could not resolve time zone."))?,
+            local_seconds.0,
+        )
+    }
+
     // For more information, see /docs/TZDB.md
     /// This function determines the Time Zone output for a local epoch
     /// nanoseconds value without an offset.
@@ -258,61 +272,90 @@ impl Tzif {
         // We need to estimate a tz pair.
         // First search the ambiguous seconds.
         let db = self.get_data_block2()?;
+
+        // Note that this search is *approximate*. transition_times
+        // is in UTC epoch times, whereas we have a local time.
+        //
+        // An assumption we make is that this will at worst give us an off-by-one error;
+        // transition times should not be less than a day apart.
         let b_search_result = db.transition_times.binary_search(local_seconds);
 
-        let estimated_idx = match b_search_result {
-            // TODO: Double check returning early here with tests.
-            Ok(idx) => return Ok(get_local_record(db, idx).into()),
-            Err(idx) if idx == 0 => {
-                return Ok(LocalTimeRecordResult::Single(
-                    get_local_record(db, idx).into(),
-                ))
-            }
-            Err(idx) => {
-                if db.transition_times.len() <= idx {
-                    // The transition time provided is beyond the length of
-                    // the available transition time, so the time zone is
-                    // resolved with the POSIX tz string.
-                    return resolve_posix_tz_string(
-                        self.posix_tz_string()
-                            .ok_or(TemporalError::general("Could not resolve time zone."))?,
-                        local_seconds.0,
-                    );
-                }
-                idx
-            }
+        let mut estimated_idx = match b_search_result {
+            Ok(idx) => idx,
+            Err(idx) => idx,
         };
-
-        // The estimated index will be off based on the amount missing
-        // from the lack of offset.
+        // If we're either out of bounds or at the last
+        // entry, we need to check if we're after it, since if we
+        // are we need to use posix_tz_string instead.
         //
-        // This means that we may need (idx, idx - 1) or (idx - 1, idx - 2)
-        let record = get_local_record(db, estimated_idx);
-        let record_minus_one = get_local_record(db, estimated_idx.saturating_sub(1));
+        // This includes the last entry (hence `idx + 1`) since our search was approximate.
+        if estimated_idx + 1 >= db.transition_times.len() {
+            // If we are *well past* the last transition time, we want
+            // to use the posix tz string
+            let mut use_posix = true;
+            if !db.transition_times.is_empty() {
+                // In case idx was out of bounds, bring it back in
+                estimated_idx = db.transition_times.len() - 1;
+                let transition_info = get_transition_info(db, estimated_idx);
 
-        // Q: Potential shift bugs with odd historical transitions? This
-        //
-        // Shifts the 2 rule window for positive zones that would have returned
-        // a different idx.
-        let shift_window = usize::from((record.utoff + record_minus_one.utoff) >= Seconds(0));
-
-        let new_idx = estimated_idx - shift_window;
-
-        let current_transition = db.transition_times[new_idx];
-        let current_diff = *local_seconds - current_transition;
-
-        let initial_record = get_local_record(db, new_idx.saturating_sub(1));
-        let next_record = get_local_record(db, new_idx);
-
-        // Adjust for offset inversion from northern/southern hemisphere.
-        let offset_range = offset_range(initial_record.utoff.0, next_record.utoff.0);
-        match offset_range.contains(&current_diff.0) {
-            true if initial_record.utoff.0 < next_record.utoff.0 => {
-                Ok(LocalTimeRecordResult::Empty)
+                // (Manishearth) I'm not fully sure if this is correct.
+                // Is the next_offset valid for the last transition time in its
+                // vicinity? Probably? It does not seem pleasant to try and do this
+                // math using half of the transition info and half of the posix info.
+                if transition_info.transition_time_prev_epoch() > *local_seconds
+                    || transition_info.transition_time_next_epoch() > *local_seconds
+                {
+                    // We're before the transition fully ends; we should resolve
+                    // with the regular transition time instead of use_posix
+                    use_posix = false;
+                }
             }
-            true => Ok((next_record, initial_record).into()),
-            false if current_diff <= initial_record.utoff => Ok(initial_record.into()),
-            false => Ok(next_record.into()),
+            if use_posix {
+                // The transition time provided is beyond the length of
+                // the available transition time, so the time zone is
+                // resolved with the POSIX tz string.
+                return self.resolve_posix_tz_string(local_seconds);
+            }
+        }
+
+        debug_assert!(estimated_idx < db.transition_times.len());
+
+        let transition_info = get_transition_info(db, estimated_idx);
+
+        let range = transition_info.offset_range_local();
+
+        if range.contains(local_seconds) {
+            return Ok(transition_info.record_for_contains());
+        } else if *local_seconds < range.start {
+            if estimated_idx == 0 {
+                // We're at the beginning, there are no timezones before us
+                // So we just return the first offset
+                return Ok(LocalTimeRecordResult::Single(transition_info.prev.into()));
+            }
+            // Otherwise, try the previous offset
+            estimated_idx -= 1;
+        } else {
+            if estimated_idx + 1 == db.transition_times.len() {
+                // We're at the end, return posix instead
+                return self.resolve_posix_tz_string(local_seconds);
+            }
+            // Otherwise, try the next offset
+            estimated_idx += 1;
+        }
+
+        let transition_info = get_transition_info(db, estimated_idx);
+        let range = transition_info.offset_range_local();
+
+        if range.contains(local_seconds) {
+            Ok(transition_info.record_for_contains())
+        } else if *local_seconds < range.start {
+            Ok(LocalTimeRecordResult::Single(transition_info.prev.into()))
+        } else {
+            // We're at the end, return posix instead
+            if estimated_idx + 1 == db.transition_times.len() {
+                return self.resolve_posix_tz_string(local_seconds);
+            }
+            Ok(LocalTimeRecordResult::Single(transition_info.next.into()))
         }
     }
 }
@@ -332,7 +375,117 @@ fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneTransitionInfo {
 fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
     // NOTE: Transition type can be empty. If no transition_type exists,
     // then use 0 as the default index of local_time_type_records.
-    db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)]
+    let idx = db.transition_types.get(idx).copied().unwrap_or(0);
+
+    let get = db.local_time_type_records.get(idx);
+    debug_assert!(get.is_some(), "tzif internal invariant violated");
+    get.copied().unwrap_or_default()
+}
+
+#[inline]
+fn get_transition_info(db: &DataBlock, idx: usize) -> TzifTransitionInfo {
+    let next = get_local_record(db, idx);
+    let transition_time = db.transition_times.get(idx);
+    debug_assert!(
+        transition_time.is_some(),
+        "tzif internal invariant violated"
+    );
+    let transition_time = transition_time.copied().unwrap_or_default();
+    let prev = if idx == 0 {
+        db.local_time_type_records[0]
+    } else {
+        get_local_record(db, idx - 1)
+    };
+    TzifTransitionInfo {
+        prev,
+        next,
+        transition_time,
+    }
+}
+
+/// Information obtained from the tzif file about a transition.
+#[derive(Debug)]
+struct TzifTransitionInfo {
+    /// The time record from before this transition
+    prev: LocalTimeTypeRecord,
+    /// The time record corresponding to this transition and dates after it
+    next: LocalTimeTypeRecord,
+    /// The UTC epoch seconds for the transition
+    transition_time: Seconds,
+}
+
+impl TzifTransitionInfo {
+    /// Get the previous offset as a number of seconds from
+    /// 1970-01-01 in local time as reckoned by the previous offset
+    fn transition_time_prev_epoch(&self) -> Seconds {
+        // You always add the UTC offset to get the local time;
+        // so a local time in PST (-08:00) will be `utc - 8h`
+        self.transition_time + self.prev.utoff
+    }
+    /// Get the previous offset as a number of seconds from
+    /// 1970-01-01 in local time as reckoned by the next offset
+    fn transition_time_next_epoch(&self) -> Seconds {
+        // You always add the UTC offset to get the local time;
+        // so a local time in PST (-08:00) will be `utc - 8h`
+        self.transition_time + self.next.utoff
+    }
+
+    /// Gets the range of local times where this transition is active
+    ///
+    /// Note that this will always be start..end, NOT prev..next: if the next
+    /// offset is before prev (e.g. for a TransitionKind::Overlap) year,
+    /// it will be next..prev.
+    ///
+    /// You should use .kind() to understand how to interpret this
+    fn offset_range_local(&self) -> Range<Seconds> {
+        let prev = self.transition_time_prev_epoch();
+        let next = self.transition_time_next_epoch();
+        match self.kind() {
+            TransitionKind::Overlap => next..prev,
+            _ => prev..next,
+        }
+    }
+
+    /// What is the kind of the transition?
+    fn kind(&self) -> TransitionKind {
+        match self.prev.utoff.cmp(&self.next.utoff) {
+            Ordering::Less => TransitionKind::Gap,
+            Ordering::Greater => TransitionKind::Overlap,
+            Ordering::Equal => TransitionKind::Smooth,
+        }
+    }
+
+    /// If a time is found to be within self.offset_range_local(),
+    /// what is the corresponding LocalTimeRecordResult?
+    fn record_for_contains(&self) -> LocalTimeRecordResult {
+        match self.kind() {
+            TransitionKind::Gap => LocalTimeRecordResult::Empty,
+            TransitionKind::Overlap => {
+                if self.prev.is_dst {
+                    return LocalTimeRecordResult::Ambiguous {
+                        dst: self.prev.into(),
+                        std: self.next.into(),
+                    };
+                }
+
+                LocalTimeRecordResult::Ambiguous {
+                    std: self.prev.into(),
+                    dst: self.next.into(),
+                }
+            }
+            TransitionKind::Smooth => LocalTimeRecordResult::Single(self.prev.into()),
+        }
+    }
+}
+
+#[derive(Debug)]
+enum TransitionKind {
+    // The offsets didn't change (why was this a transition? DST shenanigans? who knows.)
+    Smooth,
+    // The offsets changed in a way that leaves a gap
+    Gap,
+    // The offsets changed in a way that produces overlapping time.
+    Overlap,
 }
 
 // NOTE: seconds here are epoch, so they are exact, not wall time.
