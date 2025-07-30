@@ -372,7 +372,8 @@ impl ZonedDateTime {
 #[cfg(test)]
 mod tests {
     use super::ZonedDateTime;
-    use crate::options::{Disambiguation, OffsetDisambiguation};
+    use crate::options::{Disambiguation, OffsetDisambiguation, Unit};
+    use crate::Duration;
     use crate::TemporalResult;
 
     #[cfg(not(target_os = "windows"))]
@@ -543,5 +544,37 @@ mod tests {
         assert!(zdt.is_err(), "Ambiguity starts at 1952-10-15T23:59:40");
         let zdt = parse_zdt_with_reject("1952-10-15T23:59:59[Pacific/Niue]");
         assert!(zdt.is_err(), "Ambiguity ends at 1952-10-15T23:59:59");
+    }
+
+    fn total_seconds_for_one_day(s: &str) -> TemporalResult<f64> {
+        Ok(Duration::new(0, 0, 0, 1, 0, 0, 0, 0, 0, 0)
+            .unwrap()
+            .total(Unit::Second, Some(parse_zdt_with_reject(s).unwrap().into()))?
+            .as_inner())
+    }
+
+    #[test]
+    fn test_pacific_niue_duration() {
+        // Also tests add_to_instant codepaths
+        // From intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset
+        let total =
+            total_seconds_for_one_day("1952-10-15T23:59:59-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            total, 86420.,
+            "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
+        );
+
+        let total = total_seconds_for_one_day("1952-10-15T23:59:59-11:20[Pacific/Niue]").unwrap();
+        assert_eq!(
+            total, 86420.,
+            "-11:20 matches the first candidate -11:19:40 in the Pacific/Niue edge case"
+        );
+
+        let total =
+            total_seconds_for_one_day("1952-10-15T23:59:59-11:20:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            total, 86400.,
+            "-11:20:00 is accepted as -11:20:00 in the Pacific/Niue edge case"
+        );
     }
 }

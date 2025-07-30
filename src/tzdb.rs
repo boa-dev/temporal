@@ -220,7 +220,7 @@ impl Tzif {
                     })
                 }
             }
-            Err(idx) if idx == 0 => Ok(get_timezone_offset(db, idx)),
+            Err(idx) if idx == 0 => Ok(get_first_timezone_offset(db)),
             Err(idx) => {
                 if db.transition_times.len() <= idx {
                     // The transition time provided is beyond the length of
@@ -367,6 +367,16 @@ fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneTransitionInfo {
     let offset = db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)];
     TimeZoneTransitionInfo {
         transition_epoch: db.transition_times.get(idx).map(|s| s.0),
+        offset: offset.into(),
+    }
+}
+
+#[inline]
+fn get_first_timezone_offset(db: &DataBlock) -> TimeZoneTransitionInfo {
+    let offset = db.local_time_type_records[0];
+    TimeZoneTransitionInfo {
+        // There was no transition into the first timezone
+        transition_epoch: None,
         offset: offset.into(),
     }
 }
