@@ -372,7 +372,8 @@ impl ZonedDateTime {
 #[cfg(test)]
 mod tests {
     use super::ZonedDateTime;
-    use crate::options::OffsetDisambiguation;
+    use crate::options::{Disambiguation, OffsetDisambiguation};
+    use crate::TemporalResult;
 
     #[cfg(not(target_os = "windows"))]
     #[test]
@@ -455,30 +456,31 @@ mod tests {
         assert!(result.equals(&expected).unwrap());
     }
 
+    fn parse_zdt_with_reject(s: &str) -> TemporalResult<ZonedDateTime> {
+        ZonedDateTime::from_utf8(
+            s.as_bytes(),
+            Disambiguation::Reject,
+            OffsetDisambiguation::Reject,
+        )
+    }
+
     #[test]
     fn test_pacific_niue() {
         // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
         // Pacific/Niue on October 15, 1952, where
         // the offset shifted by 20 seconds to a whole-minute boundary.
+        //
+        // The precise transition is from
+        // 1952-10-15T23:59:59-11:19:40[-11:19:40] to 1952-10-15T23:59:40-11:19:00[-11:19:00]
         let ms_pre = -543_069_621_000;
-        let zdt = ZonedDateTime::from_utf8(
-            b"1952-10-15T23:59:59-11:19:40[Pacific/Niue]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-        )
-        .unwrap();
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:19:40[Pacific/Niue]").unwrap();
         assert_eq!(
             zdt.epoch_milliseconds(),
             ms_pre,
             "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
         );
 
-        let zdt = ZonedDateTime::from_utf8(
-            b"1952-10-15T23:59:59-11:20[Pacific/Niue]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-        )
-        .unwrap();
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20[Pacific/Niue]").unwrap();
         assert_eq!(
             zdt.epoch_milliseconds(),
             ms_pre,
@@ -487,16 +489,59 @@ mod tests {
 
         let ms_post = -543_069_601_000;
 
-        let zdt = ZonedDateTime::from_utf8(
-            b"1952-10-15T23:59:59-11:20:00[Pacific/Niue]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-        )
-        .unwrap();
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20:00[Pacific/Niue]").unwrap();
         assert_eq!(
             zdt.epoch_milliseconds(),
             ms_post,
             "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
         );
+
+        // Additional tests ensuring that boundary cases are handled
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:40-11:20:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_post - 19_000,
+            "Post-transition Niue time allows up to `1952-10-15T23:59:40`"
+        );
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:20:00[Pacific/Niue]");
+        assert!(
+            zdt.is_err(),
+            "Post-transition Niue time does not allow times before `1952-10-15T23:59:40`"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:40-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre - 19_000,
+            "Pre-transition Niue time also allows `1952-10-15T23:59:40`"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre - 20_000,
+            "Pre-transition Niue time also allows `1952-10-15T23:59:39`"
+        );
+
+        // Tests without explicit offset
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:39[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre - 20_000,
+            "Unambiguous before 1952-10-15T23:59:39"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-16T00:00:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_post + 1_000,
+            "Unambiguous after 1952-10-16T00:00:00"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:40[Pacific/Niue]");
+        assert!(zdt.is_err(), "Ambiguity starts at 1952-10-15T23:59:40");
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59[Pacific/Niue]");
+        assert!(zdt.is_err(), "Ambiguity ends at 1952-10-15T23:59:59");
     }
 }
