@@ -729,6 +729,17 @@ mod tests {
         );
         let zdt = parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]").unwrap();
         assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
+
+        // These dates are one second after a "fake" transition at the end of the tzif data
+        // Ensure that they find a real transition, not the fake one
+        let zdt = parse_zdt_with_reject("2020-11-01T00:00:01-07:00[America/Whitehorse]").unwrap();
+        assert_tr(
+            &zdt,
+            Previous,
+            "2020-03-08T03:00:00-07:00[America/Whitehorse]",
+        );
+        let zdt = parse_zdt_with_reject("1996-05-13T00:00:01+03:00[Europe/Kyiv]").unwrap();
+        assert_tr(&zdt, Previous, "1996-03-31T03:00:00+03:00[Europe/Kyiv]");
     }
 
     #[test]

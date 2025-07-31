@@ -338,12 +338,11 @@ impl Tzif {
 
         // The last transition in the tzif tables.
         // We should not go back beyond this
-        let last_tzif_transition = db
-            .transition_times
-            .get(db.transition_times.len() - 1)
-            .copied();
+        let last_tzif_transition = db.transition_times.last().copied();
 
         // We need to do a similar backwards iteration to find the last real transition.
+        // Do it only when needed, this case will only show up when walking Previous for a date
+        // just after the last tzif transition but before the first posix transition.
         let last_real_tzif_transition = || {
             debug_assert!(direction == TransitionDirection::Previous);
             for last_transition_idx in (0..db.transition_times.len()).rev() {
@@ -363,6 +362,7 @@ impl Tzif {
             match direction {
                 TransitionDirection::Next => return Ok(None),
                 TransitionDirection::Previous => {
+                    // Go back to the last tzif transition
                     if last_tzif_transition.is_some() {
                         if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
                             return Ok(Some(
@@ -418,7 +418,7 @@ impl Tzif {
         };
 
         if let Some(last_tzif_transition) = last_tzif_transition {
-            // When going Previous, we went back into the area of Tzif transition
+            // When going Previous, we went back into the area of tzif transition
             if seconds < last_tzif_transition {
                 if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
                     seconds = last_real_tzif_transition;
@@ -585,7 +585,7 @@ fn maybe_get_transition_info(db: &DataBlock, idx: usize) -> Option<TzifTransitio
     let next = get_local_record(db, idx);
     let transition_time = *db.transition_times.get(idx)?;
     let prev = if idx == 0 {
-        *db.local_time_type_records.get(0)?
+        *db.local_time_type_records.first()?
     } else {
         get_local_record(db, idx - 1)
     };
