@@ -381,11 +381,7 @@ impl Calendar {
 
     /// `CalendarDayOfWeek`
     pub fn day_of_week(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
-        if self.is_iso() {
-            return Ok(iso_date.to_icu4x().day_of_week() as u16);
-        }
-        // TODO: Update or update in icu_calendar
-        Err(TemporalError::range().with_message("dayOfWeek is not for the provided calendar."))
+        Ok(iso_date.to_icu4x().day_of_week() as u16)
     }
 
     /// `CalendarDayOfYear`
