@@ -1540,6 +1540,7 @@ pub(crate) fn interpret_isodatetime_offset(
             let utc_epochs = iso.as_nanoseconds();
             // 9. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
             let possible_nanos = timezone.get_possible_epoch_ns_for(iso, provider)?;
+
             // 10. For each element candidate of possibleEpochNs, do
             for candidate in &possible_nanos {
                 // a. Let candidateOffset be utcEpochNanoseconds - candidate.
