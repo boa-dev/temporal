@@ -173,8 +173,8 @@ pub mod ffi {
         pub fn day(&self, date: IsoDate) -> u8 {
             self.0.day(&date.into())
         }
-        pub fn day_of_week(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.day_of_week(&date.into()).map_err(Into::into)
+        pub fn day_of_week(&self, date: IsoDate) -> u16 {
+            self.0.day_of_week(&date.into())
         }
         pub fn day_of_year(&self, date: IsoDate) -> u16 {
             self.0.day_of_year(&date.into())
@@ -185,8 +185,8 @@ pub mod ffi {
         pub fn year_of_week(&self, date: IsoDate) -> Option<i32> {
             self.0.year_of_week(&date.into())
         }
-        pub fn days_in_week(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.days_in_week(&date.into()).map_err(Into::into)
+        pub fn days_in_week(&self, date: IsoDate) -> u16 {
+            self.0.days_in_week(&date.into())
         }
         pub fn days_in_month(&self, date: IsoDate) -> u16 {
             self.0.days_in_month(&date.into())

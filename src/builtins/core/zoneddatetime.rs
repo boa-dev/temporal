@@ -996,7 +996,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.day_of_week(&pdt.iso.date)
+        Ok(self.calendar.day_of_week(&pdt.iso.date))
     }
 
     /// Returns the calendar day of year value.
@@ -1036,7 +1036,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.days_in_week(&pdt.iso.date)
+        Ok(self.calendar.days_in_week(&pdt.iso.date))
     }
 
     /// Returns the calendar days in month value.

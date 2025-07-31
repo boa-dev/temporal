@@ -85,8 +85,7 @@ void temporal_rs_PlainDateTime_month_code(const PlainDateTime* self, DiplomatWri
 
 uint8_t temporal_rs_PlainDateTime_day(const PlainDateTime* self);
 
-typedef struct temporal_rs_PlainDateTime_day_of_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_day_of_week_result;
-temporal_rs_PlainDateTime_day_of_week_result temporal_rs_PlainDateTime_day_of_week(const PlainDateTime* self);
+uint16_t temporal_rs_PlainDateTime_day_of_week(const PlainDateTime* self);
 
 uint16_t temporal_rs_PlainDateTime_day_of_year(const PlainDateTime* self);
 
@@ -96,8 +95,7 @@ temporal_rs_PlainDateTime_week_of_year_result temporal_rs_PlainDateTime_week_of_
 typedef struct temporal_rs_PlainDateTime_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainDateTime_year_of_week_result;
 temporal_rs_PlainDateTime_year_of_week_result temporal_rs_PlainDateTime_year_of_week(const PlainDateTime* self);
 
-typedef struct temporal_rs_PlainDateTime_days_in_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_days_in_week_result;
-temporal_rs_PlainDateTime_days_in_week_result temporal_rs_PlainDateTime_days_in_week(const PlainDateTime* self);
+uint16_t temporal_rs_PlainDateTime_days_in_week(const PlainDateTime* self);
 
 uint16_t temporal_rs_PlainDateTime_days_in_month(const PlainDateTime* self);
 

@@ -765,7 +765,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
+    pub fn day_of_week(&self) -> u16 {
         self.calendar.day_of_week(&self.iso.date)
     }
 
@@ -785,7 +785,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar days in week value.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
+    pub fn days_in_week(&self) -> u16 {
         self.calendar.days_in_week(&self.iso.date)
     }
 
