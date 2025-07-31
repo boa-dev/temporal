@@ -40,6 +40,29 @@ const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
 
 impl NormalizedTimeDuration {
+    /// Creates a `NormalizedTimeDuration` from signed integer components.
+    /// This method preserves the sign of each component during the calculation.
+    pub(crate) fn from_components(
+        hours: i64,
+        minutes: i64,
+        seconds: i64,
+        milliseconds: i64,
+        microseconds: i128,
+        nanoseconds: i128,
+    ) -> Self {
+        let mut total_nanoseconds: i128 = 0;
+
+        total_nanoseconds += i128::from(hours) * NANOSECONDS_PER_HOUR;
+        total_nanoseconds += i128::from(minutes) * NANOSECONDS_PER_MINUTE;
+        total_nanoseconds += i128::from(seconds) * 1_000_000_000;
+        total_nanoseconds += i128::from(milliseconds) * 1_000_000;
+        total_nanoseconds += microseconds * 1_000;
+        total_nanoseconds += nanoseconds;
+
+        debug_assert!(total_nanoseconds.abs() <= MAX_TIME_DURATION);
+        Self(total_nanoseconds)
+    }
+
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
     pub(crate) fn from_duration(duration: &Duration) -> Self {
         // Note: Calculations must be done after casting to `i128` in order to preserve precision

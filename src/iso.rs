@@ -32,7 +32,6 @@ use crate::{
             duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
             Duration, PartialTime, PlainDate,
         },
-        duration::duration_sign,
     },
     error::TemporalError,
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
@@ -730,21 +729,7 @@ impl IsoTime {
         let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
-        let sign = duration_sign(&[h, m, s, ms, mis as i64, ns as i64]);
-
-        NormalizedTimeDuration::from_duration(&Duration::new_unchecked(
-            sign,
-            0,
-            0,
-            0,
-            0u8.into(),
-            h.unsigned_abs().into(),
-            m.unsigned_abs().into(),
-            s.unsigned_abs().into(),
-            ms.unsigned_abs(),
-            mis.unsigned_abs().into(),
-            ns.unsigned_abs().into(),
-        ))
+        NormalizedTimeDuration::from_components(h, m, s, ms, mis, ns)
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the
