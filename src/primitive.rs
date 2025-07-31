@@ -239,7 +239,7 @@ impl Ord for FiniteF64 {
 pub type U80 = BUintD16<5>; // 80 / 16 = 5
 pub type U88 = BUintD8<11>; // 88 / 8 = 11
 pub type U56 = BUintD8<7>; // 56 / 8 = 7
-pub type U48 = BUintD8<6>; // 48 / 8 = 6
+pub type U48 = BUintD16<3>; // 48 / 16 = 3
 pub type U40 = BUintD8<5>; // 40 / 8 = 5
 
 #[cfg(test)]

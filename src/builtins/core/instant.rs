@@ -446,9 +446,12 @@ mod tests {
 
     use core::str::FromStr;
 
+    use bnum::cast::CastFrom;
+
     use crate::{
         builtins::{core::Instant, duration::duration_sign},
         options::{DifferenceSettings, RoundingMode, Unit},
+        primitive::{U48, U56, U80, U88},
         unix_time::EpochNanoseconds,
         Duration, NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
@@ -567,12 +570,12 @@ mod tests {
                     0,
                     0,
                     0u8.into(),
-                    expected.0.try_into().unwrap(),
-                    expected.1.try_into().unwrap(),
-                    expected.2.try_into().unwrap(),
-                    expected.3.try_into().unwrap(),
-                    expected.4.try_into().unwrap(),
-                    expected.5.try_into().unwrap(),
+                    U48::cast_from(expected.0.abs()),
+                    U48::cast_from(expected.1.abs()),
+                    U56::cast_from(expected.2.abs()),
+                    u64::try_from(expected.3.abs()).unwrap(),
+                    U80::cast_from(expected.4.abs()),
+                    U88::cast_from(expected.5.abs()),
                 )
             );
         };
@@ -652,12 +655,12 @@ mod tests {
                     0,
                     0,
                     0u8.into(),
-                    expected.0.try_into().unwrap(),
-                    expected.1.try_into().unwrap(),
-                    expected.2.try_into().unwrap(),
-                    expected.3.try_into().unwrap(),
-                    expected.4.try_into().unwrap(),
-                    expected.5.try_into().unwrap(),
+                    U48::cast_from(expected.0.abs()),
+                    U48::cast_from(expected.1.abs()),
+                    U56::cast_from(expected.2.abs()),
+                    u64::try_from(expected.3.abs()).unwrap(),
+                    U80::cast_from(expected.4.abs()),
+                    U88::cast_from(expected.5.abs()),
                 )
             );
         };
