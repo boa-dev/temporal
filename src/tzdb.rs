@@ -38,7 +38,6 @@ use alloc::{vec, vec::Vec};
 use core::cmp::Ordering;
 use core::ops::Range;
 use std::sync::RwLock;
-use tzif::data::posix::TransitionDate;
 
 use combine::Parser;
 
@@ -47,7 +46,9 @@ use timezone_provider::prelude::*;
 use tzif::{
     self,
     data::{
-        posix::{PosixTzString, TimeZoneVariantInfo, TransitionDay},
+        posix::{
+            DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDate, TransitionDay,
+        },
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -203,7 +204,9 @@ impl Tzif {
         let result = db.transition_times.binary_search(epoch_seconds);
 
         match result {
-            Ok(idx) => Ok(get_timezone_offset(db, idx - 1)),
+            // The transition time was given. The transition entries *start* at their
+            // transition time, so we use the same index
+            Ok(idx) => Ok(get_timezone_offset(db, idx)),
             // <https://datatracker.ietf.org/doc/html/rfc8536#section-3.2>
             // If there are no transitions, local time for all timestamps is specified by the TZ
             // string in the footer if present and nonempty; otherwise, it is
@@ -218,7 +221,10 @@ impl Tzif {
                     })
                 }
             }
+            // Our time is before the first transition.
+            // Get the first timezone offset
             Err(0) => Ok(get_first_timezone_offset(db)),
+            // Our time is after some transition.
             Err(idx) => {
                 if db.transition_times.len() <= idx {
                     // The transition time provided is beyond the length of
@@ -235,6 +241,8 @@ impl Tzif {
                         .get_or_insert_with(|| db.transition_times[idx - 1].0);
                     return Ok(offset);
                 }
+                // binary_search returns the insertion index, which is one after the
+                // index of the closest lower bound. Fetch that bound.
                 Ok(get_timezone_offset(db, idx - 1))
             }
         }
@@ -250,6 +258,147 @@ impl Tzif {
                 .ok_or(TemporalError::general("Could not resolve time zone."))?,
             local_seconds.0,
         )
+    }
+
+    pub fn get_named_tz_transition(
+        &self,
+        epoch_nanoseconds: i128,
+        direction: TransitionDirection,
+    ) -> TemporalResult<Option<EpochNanoseconds>> {
+        // First search the tzif data
+
+        let epoch_seconds = Seconds((epoch_nanoseconds / 1_000_000_000) as i64);
+        // When *exactly* on a transition the spec wants you to
+        // get the next one, so it's important to know if we are
+        // actually on epoch_seconds or a couple nanoseconds after it
+        // to handle the exact match case
+        let seconds_is_exact = (epoch_nanoseconds % 1_000_000_000) == 0;
+        let db = self.get_data_block2()?;
+
+        let b_search_result = db.transition_times.binary_search(&epoch_seconds);
+
+        let transition_idx = match b_search_result {
+            Ok(idx) => {
+                match (direction, seconds_is_exact) {
+                    // Regardless of whether we are an exact match for N or we are N.001,
+                    // the next transition is going to be idx + 1
+                    (TransitionDirection::Next, _) => idx + 1,
+                    // If we are N.001, the previous transition the one at idx (= N)
+                    (TransitionDirection::Previous, false) => idx,
+                    // If we are exactly N, the previous transition is idx - 1
+                    (TransitionDirection::Previous, true) => {
+                        if let Some(idx) = idx.checked_sub(1) {
+                            idx
+                        } else {
+                            // If we found the first transition, there is no previous one,
+                            // return None
+                            return Ok(None);
+                        }
+                    }
+                }
+            }
+            // idx is insertion index here, so it is the index of the closest upper
+            // transition
+            Err(idx) => match direction {
+                TransitionDirection::Next => idx,
+                // Special case, we're after the end of the array, we want to make
+                // sure we hit the POSIX tz handling and we should not subtract one.
+                TransitionDirection::Previous if idx == db.transition_times.len() => idx,
+                TransitionDirection::Previous => {
+                    // Go one previous
+                    if let Some(idx) = idx.checked_sub(1) {
+                        idx
+                    } else {
+                        // If we found the first transition, there is no previous one,
+                        // return None
+                        return Ok(None);
+                    }
+                }
+            },
+        };
+
+        if let Some(tzif_transition) = db.transition_times.get(transition_idx) {
+            // We found a Tzif transition
+            let ns = seconds_to_nanoseconds(tzif_transition.0);
+            Ok(Some(ns.into()))
+        } else {
+            // We went past the Tzif transitions. We need to handle the posix string instead.
+            let posix_tz_string = self
+                .posix_tz_string()
+                .ok_or(TemporalError::general("Could not resolve time zone."))?;
+
+            // The last transition in the tzif tables.
+            // We should not go back beyond this
+            let last_tzif_transition = db.transition_times[db.transition_times.len() - 1];
+
+            let Some(dst_variant) = &posix_tz_string.dst_info else {
+                // There are no further transitions.
+                match direction {
+                    TransitionDirection::Next => return Ok(None),
+                    TransitionDirection::Previous => {
+                        return Ok(Some(seconds_to_nanoseconds(last_tzif_transition.0).into()))
+                    }
+                }
+            };
+
+            let year = utils::epoch_time_to_epoch_year(epoch_seconds.0 * 1000);
+
+            let transition_info =
+                DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
+
+            let range = transition_info.transition_range();
+
+            let mut seconds = match direction {
+                TransitionDirection::Next => {
+                    // We're before the first transition
+                    if epoch_seconds < range.start {
+                        range.start
+                    } else if epoch_seconds < range.end {
+                        // We're between the first and second transition
+                        range.end
+                    } else {
+                        // We're after the second transition
+                        let transition_info = DstTransitionInfoForYear::compute(
+                            posix_tz_string,
+                            dst_variant,
+                            year + 1,
+                        );
+
+                        transition_info.transition_range().start
+                    }
+                }
+                TransitionDirection::Previous => {
+                    // We're after the second transition
+                    // (note that seconds_is_exact means that epoch_seconds == range.end actually means equality)
+                    if epoch_seconds > range.end
+                        || (epoch_seconds == range.end && !seconds_is_exact)
+                    {
+                        range.end
+                    } else if epoch_seconds > range.start
+                        || (epoch_seconds == range.start && !seconds_is_exact)
+                    {
+                        // We're after the first transition
+                        range.start
+                    } else {
+                        // We're before the first transition
+                        let transition_info = DstTransitionInfoForYear::compute(
+                            posix_tz_string,
+                            dst_variant,
+                            year - 1,
+                        );
+
+                        transition_info.transition_range().end
+                    }
+                }
+            };
+
+            // When going Previous, we went back into the area of Tzif transition
+            if seconds < last_tzif_transition {
+                seconds = last_tzif_transition;
+            }
+
+            Ok(Some(seconds_to_nanoseconds(seconds.0).into()))
+        }
     }
 
     // For more information, see /docs/TZDB.md
@@ -491,6 +640,51 @@ enum TransitionKind {
     Overlap,
 }
 
+/// Stores the information about DST transitions for a given year
+struct DstTransitionInfoForYear {
+    dst_start_seconds: Seconds,
+    dst_end_seconds: Seconds,
+    std_offset: UtcOffsetSeconds,
+    dst_offset: UtcOffsetSeconds,
+}
+
+impl DstTransitionInfoForYear {
+    fn compute(
+        posix_tz_string: &PosixTzString,
+        dst_variant: &DstTransitionInfo,
+        year: i32,
+    ) -> Self {
+        let std_offset = UtcOffsetSeconds::from(&posix_tz_string.std_info);
+        let dst_offset = UtcOffsetSeconds::from(&dst_variant.variant_info);
+        let dst_start_seconds = Seconds(calculate_transition_seconds_for_year(
+            year,
+            dst_variant.start_date,
+            std_offset,
+        ));
+        let dst_end_seconds = Seconds(calculate_transition_seconds_for_year(
+            year,
+            dst_variant.end_date,
+            dst_offset,
+        ));
+        Self {
+            dst_start_seconds,
+            dst_end_seconds,
+            std_offset,
+            dst_offset,
+        }
+    }
+
+    // Returns the range between offsets in this year
+    // This may cover DST or standard time, whichever starts first
+    pub fn transition_range(&self) -> Range<Seconds> {
+        if self.dst_start_seconds > self.dst_end_seconds {
+            self.dst_end_seconds..self.dst_start_seconds
+        } else {
+            self.dst_start_seconds..self.dst_end_seconds
+        }
+    }
+}
+
 // NOTE: seconds here are epoch, so they are exact, not wall time.
 #[inline]
 fn resolve_posix_tz_string_for_epoch_seconds(
@@ -505,14 +699,11 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         });
     };
 
-    let std_offset = UtcOffsetSeconds::from(&posix_tz_string.std_info);
-    let dst_offset = UtcOffsetSeconds::from(&dst_variant.variant_info);
-
     let year = utils::epoch_time_to_epoch_year(seconds * 1000);
-    let dst_start_seconds =
-        calculate_transition_seconds_for_year(year, dst_variant.start_date, std_offset);
-    let dst_end_seconds =
-        calculate_transition_seconds_for_year(year, dst_variant.end_date, dst_offset);
+
+    let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
+    let dst_start_seconds = transition_info.dst_start_seconds.0;
+    let dst_end_seconds = transition_info.dst_end_seconds.0;
 
     // Need to determine if the range being tested is standard or savings time.
     let dst_is_inversed = dst_end_seconds < dst_start_seconds;
@@ -544,23 +735,23 @@ fn resolve_posix_tz_string_for_epoch_seconds(
             Some(calculate_transition_seconds_for_year(
                 year - 1,
                 dst_variant.start_date,
-                dst_offset,
+                transition_info.dst_offset,
             ))
         } else {
             Some(dst_start_seconds)
         };
-        (dst_offset, transition_epoch)
+        (transition_info.dst_offset, transition_epoch)
     } else {
         let transition_epoch = if !dst_is_inversed && seconds < dst_start_seconds {
             Some(calculate_transition_seconds_for_year(
                 year - 1,
                 dst_variant.end_date,
-                std_offset,
+                transition_info.std_offset,
             ))
         } else {
             Some(dst_end_seconds)
         };
-        (std_offset, transition_epoch)
+        (transition_info.std_offset, transition_epoch)
     };
     Ok(TimeZoneTransitionInfo {
         offset: new_offset,
@@ -651,7 +842,7 @@ fn resolve_posix_tz_string(
     // NOTE:
     // STD -> DST == start
     // DST -> STD == end
-    let (is_transition_day, is_dst) =
+    let (is_transition_day, mut is_dst) =
         cmp_seconds_to_transitions(&dst.start_date.day, &dst.end_date.day, seconds)?;
     if is_transition_day {
         let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) as i64 / 1_000;
@@ -679,6 +870,16 @@ fn resolve_posix_tz_string(
                 });
             }
             _ => {}
+        }
+
+        // We were not contained in the transition above,
+        // AND we are before it, which means we are actually in
+        // the other transition!
+        //
+        // NOTE(Manishearth) do we need to do anything special
+        // here if we end up back at the tzif transition data?
+        if time < offset.start {
+            is_dst.invert();
         }
     }
 
@@ -769,6 +970,15 @@ fn cmp_seconds_to_transitions(
 enum TransitionType {
     Dst,
     Std,
+}
+
+impl TransitionType {
+    fn invert(&mut self) {
+        *self = match *self {
+            Self::Dst => Self::Std,
+            Self::Std => Self::Dst,
+        }
+    }
 }
 
 fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
@@ -892,11 +1102,12 @@ impl TimeZoneProvider for CompiledTzdbProvider {
 
     fn get_named_tz_transition(
         &self,
-        _identifier: &str,
-        _epoch_nanoseconds: i128,
-        _direction: TransitionDirection,
+        identifier: &str,
+        epoch_nanoseconds: i128,
+        direction: TransitionDirection,
     ) -> TemporalResult<Option<EpochNanoseconds>> {
-        Err(TemporalError::general("Not yet implemented."))
+        let tzif = self.get(identifier)?;
+        tzif.get_named_tz_transition(epoch_nanoseconds, direction)
     }
 }
 
@@ -984,11 +1195,12 @@ impl TimeZoneProvider for FsTzdbProvider {
 
     fn get_named_tz_transition(
         &self,
-        _identifier: &str,
-        _epoch_nanoseconds: i128,
-        _direction: TransitionDirection,
+        identifier: &str,
+        epoch_nanoseconds: i128,
+        direction: TransitionDirection,
     ) -> TemporalResult<Option<EpochNanoseconds>> {
-        Err(TemporalError::general("Not yet implemented."))
+        let tzif = self.get(identifier)?;
+        tzif.get_named_tz_transition(epoch_nanoseconds, direction)
     }
 }
 
