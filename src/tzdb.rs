@@ -296,10 +296,12 @@ impl Tzif {
                 estimated_idx = db.transition_times.len() - 1;
                 let transition_info = get_transition_info(db, estimated_idx);
 
-                // (Manishearth) I'm not fully sure if this is correct.
+                // I'm not fully sure if this is correct.
                 // Is the next_offset valid for the last transition time in its
                 // vicinity? Probably? It does not seem pleasant to try and do this
                 // math using half of the transition info and half of the posix info.
+                //
+                // TODO(manishearth, nekevss): https://github.com/boa-dev/temporal/issues/469
                 if transition_info.transition_time_prev_epoch() > *local_seconds
                     || transition_info.transition_time_next_epoch() > *local_seconds
                 {
@@ -347,6 +349,8 @@ impl Tzif {
         if range.contains(local_seconds) {
             Ok(transition_info.record_for_contains())
         } else if *local_seconds < range.start {
+            // Note that get_transition_info will correctly fetch the first offset
+            // into .prev when working with the first transition.
             Ok(LocalTimeRecordResult::Single(transition_info.prev.into()))
         } else {
             // We're at the end, return posix instead
@@ -479,7 +483,7 @@ impl TzifTransitionInfo {
 
 #[derive(Debug)]
 enum TransitionKind {
-    // The offsets didn't change (why was this a transition? DST shenanigans? who knows.)
+    // The offsets didn't change (happens when abbreviations/savings values change)
     Smooth,
     // The offsets changed in a way that leaves a gap
     Gap,
