@@ -1283,8 +1283,9 @@ pub(crate) fn is_valid_duration(
         + minutes as i128 * 60_000_000_000
         + seconds as i128 * 1_000_000_000;
     // Subseconds part
-    let normalized_subseconds_parts =
-        (milliseconds as i128 * 1_000_000) + (microseconds * 1_000) + nanoseconds;
+    let normalized_subseconds_parts = (milliseconds as i128).saturating_mul(1_000_000)
+        + microseconds.saturating_mul(1_000)
+        + nanoseconds;
 
     let total_normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
