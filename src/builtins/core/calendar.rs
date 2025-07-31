@@ -413,11 +413,7 @@ impl Calendar {
 
     /// `CalendarDaysInWeek`
     pub fn days_in_week(&self, _iso_date: &IsoDate) -> TemporalResult<u16> {
-        if self.is_iso() {
-            return Ok(7);
-        }
-        // TODO: Research in ICU4X and determine best approach.
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        Ok(7)
     }
 
     /// `CalendarDaysInMonth`
