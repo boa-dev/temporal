@@ -380,8 +380,8 @@ impl Calendar {
     }
 
     /// `CalendarDayOfWeek`
-    pub fn day_of_week(&self, iso_date: &IsoDate) -> TemporalResult<u16> {
-        Ok(iso_date.to_icu4x().day_of_week() as u16)
+    pub fn day_of_week(&self, iso_date: &IsoDate) -> u16 {
+        iso_date.to_icu4x().day_of_week() as u16
     }
 
     /// `CalendarDayOfYear`
@@ -412,8 +412,8 @@ impl Calendar {
     }
 
     /// `CalendarDaysInWeek`
-    pub fn days_in_week(&self, _iso_date: &IsoDate) -> TemporalResult<u16> {
-        Ok(7)
+    pub fn days_in_week(&self, _iso_date: &IsoDate) -> u16 {
+        7
     }
 
     /// `CalendarDaysInMonth`
