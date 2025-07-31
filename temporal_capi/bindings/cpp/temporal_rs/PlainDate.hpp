@@ -93,8 +93,7 @@ namespace capi {
 
     uint8_t temporal_rs_PlainDate_day(const temporal_rs::capi::PlainDate* self);
 
-    typedef struct temporal_rs_PlainDate_day_of_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_day_of_week_result;
-    temporal_rs_PlainDate_day_of_week_result temporal_rs_PlainDate_day_of_week(const temporal_rs::capi::PlainDate* self);
+    uint16_t temporal_rs_PlainDate_day_of_week(const temporal_rs::capi::PlainDate* self);
 
     uint16_t temporal_rs_PlainDate_day_of_year(const temporal_rs::capi::PlainDate* self);
 
@@ -104,8 +103,7 @@ namespace capi {
     typedef struct temporal_rs_PlainDate_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainDate_year_of_week_result;
     temporal_rs_PlainDate_year_of_week_result temporal_rs_PlainDate_year_of_week(const temporal_rs::capi::PlainDate* self);
 
-    typedef struct temporal_rs_PlainDate_days_in_week_result {union {uint16_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_days_in_week_result;
-    temporal_rs_PlainDate_days_in_week_result temporal_rs_PlainDate_days_in_week(const temporal_rs::capi::PlainDate* self);
+    uint16_t temporal_rs_PlainDate_days_in_week(const temporal_rs::capi::PlainDate* self);
 
     uint16_t temporal_rs_PlainDate_days_in_month(const temporal_rs::capi::PlainDate* self);
 
@@ -296,9 +294,9 @@ inline uint8_t temporal_rs::PlainDate::day() const {
   return result;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::PlainDate::day_of_week() const {
+inline uint16_t temporal_rs::PlainDate::day_of_week() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_day_of_week(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
 inline uint16_t temporal_rs::PlainDate::day_of_year() const {
@@ -316,9 +314,9 @@ inline std::optional<int32_t> temporal_rs::PlainDate::year_of_week() const {
   return result.is_ok ? std::optional<int32_t>(result.ok) : std::nullopt;
 }
 
-inline diplomat::result<uint16_t, temporal_rs::TemporalError> temporal_rs::PlainDate::days_in_week() const {
+inline uint16_t temporal_rs::PlainDate::days_in_week() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_days_in_week(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Ok<uint16_t>(result.ok)) : diplomat::result<uint16_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result;
 }
 
 inline uint16_t temporal_rs::PlainDate::days_in_month() const {
