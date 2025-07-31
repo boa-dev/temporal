@@ -76,7 +76,6 @@ pub trait TimeZoneProvider {
         epoch_nanoseconds: i128,
     ) -> TemporalResult<TimeZoneTransitionInfo>;
 
-    // TODO: implement and stabalize
     fn get_named_tz_transition(
         &self,
         identifier: &str,
