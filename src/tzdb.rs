@@ -277,7 +277,7 @@ impl Tzif {
 
         let b_search_result = db.transition_times.binary_search(&epoch_seconds);
 
-        let transition_idx = match b_search_result {
+        let mut transition_idx = match b_search_result {
             Ok(idx) => {
                 match (direction, seconds_is_exact) {
                     // Regardless of whether we are an exact match for N or we are N.001,
@@ -317,94 +317,104 @@ impl Tzif {
             },
         };
 
-        if let Some(tzif_transition) = db.transition_times.get(transition_idx) {
-            // We found a Tzif transition
-            let ns = seconds_to_nanoseconds(tzif_transition.0);
-            Ok(Some(ns.into()))
-        } else {
-            // We went past the Tzif transitions. We need to handle the posix string instead.
-            let posix_tz_string = self
-                .posix_tz_string()
-                .ok_or(TemporalError::general("Could not resolve time zone."))?;
-
-            // The last transition in the tzif tables.
-            // We should not go back beyond this
-            let last_tzif_transition = db.transition_times.last().copied();
-
-            let Some(dst_variant) = &posix_tz_string.dst_info else {
-                // There are no further transitions.
+        while let Some(tzif_transition) = maybe_get_transition_info(db, transition_idx) {
+            // This is not a real transition. Skip it.
+            if tzif_transition.prev.utoff == tzif_transition.next.utoff {
                 match direction {
-                    TransitionDirection::Next => return Ok(None),
-                    TransitionDirection::Previous => {
-                        if let Some(last_tzif_transition) = last_tzif_transition {
-                            return Ok(Some(seconds_to_nanoseconds(last_tzif_transition.0).into()));
-                        } else {
-                            return Ok(None);
-                        }
-                    }
+                    TransitionDirection::Next => transition_idx += 1,
+                    TransitionDirection::Previous if transition_idx == 0 => return Ok(None),
+                    TransitionDirection::Previous => transition_idx -= 1,
                 }
-            };
+            } else {
+                let ns = seconds_to_nanoseconds(tzif_transition.transition_time.0);
+                return Ok(Some(ns.into()));
+            }
+        }
 
-            let year = utils::epoch_time_to_epoch_year(epoch_seconds.0 * 1000);
+        // We went past the Tzif transitions. We need to handle the posix string instead.
+        let posix_tz_string = self
+            .posix_tz_string()
+            .ok_or(TemporalError::general("Could not resolve time zone."))?;
 
-            let transition_info =
-                DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
-
-            let range = transition_info.transition_range();
-
-            let mut seconds = match direction {
-                TransitionDirection::Next => {
-                    // We're before the first transition
-                    if epoch_seconds < range.start {
-                        range.start
-                    } else if epoch_seconds < range.end {
-                        // We're between the first and second transition
-                        range.end
-                    } else {
-                        // We're after the second transition
-                        let transition_info = DstTransitionInfoForYear::compute(
-                            posix_tz_string,
-                            dst_variant,
-                            year + 1,
-                        );
-
-                        transition_info.transition_range().start
-                    }
+        // The last transition in the tzif tables.
+        // We should not go back beyond this
+        //
+        // We need to do a similar backwards iteration to find the last real transition.
+        let mut last_tzif_transition = None;
+        for last_transition_idx in (0..db.transition_times.len()).rev() {
+            if let Some(tzif_transition) = maybe_get_transition_info(db, last_transition_idx) {
+                if tzif_transition.prev.utoff == tzif_transition.next.utoff {
+                    continue;
                 }
+                last_tzif_transition = Some(tzif_transition.transition_time);
+            }
+            break;
+        }
+
+        let Some(dst_variant) = &posix_tz_string.dst_info else {
+            // There are no further transitions.
+            match direction {
+                TransitionDirection::Next => return Ok(None),
                 TransitionDirection::Previous => {
-                    // We're after the second transition
-                    // (note that seconds_is_exact means that epoch_seconds == range.end actually means equality)
-                    if epoch_seconds > range.end
-                        || (epoch_seconds == range.end && !seconds_is_exact)
-                    {
-                        range.end
-                    } else if epoch_seconds > range.start
-                        || (epoch_seconds == range.start && !seconds_is_exact)
-                    {
-                        // We're after the first transition
-                        range.start
+                    if let Some(last_tzif_transition) = last_tzif_transition {
+                        return Ok(Some(seconds_to_nanoseconds(last_tzif_transition.0).into()));
                     } else {
-                        // We're before the first transition
-                        let transition_info = DstTransitionInfoForYear::compute(
-                            posix_tz_string,
-                            dst_variant,
-                            year - 1,
-                        );
-
-                        transition_info.transition_range().end
+                        return Ok(None);
                     }
-                }
-            };
-
-            if let Some(last_tzif_transition) = last_tzif_transition {
-                // When going Previous, we went back into the area of Tzif transition
-                if seconds < last_tzif_transition {
-                    seconds = last_tzif_transition;
                 }
             }
+        };
 
-            Ok(Some(seconds_to_nanoseconds(seconds.0).into()))
+        let year = utils::epoch_time_to_epoch_year(epoch_seconds.0 * 1000);
+
+        let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
+
+        let range = transition_info.transition_range();
+
+        let mut seconds = match direction {
+            TransitionDirection::Next => {
+                // We're before the first transition
+                if epoch_seconds < range.start {
+                    range.start
+                } else if epoch_seconds < range.end {
+                    // We're between the first and second transition
+                    range.end
+                } else {
+                    // We're after the second transition
+                    let transition_info =
+                        DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year + 1);
+
+                    transition_info.transition_range().start
+                }
+            }
+            TransitionDirection::Previous => {
+                // We're after the second transition
+                // (note that seconds_is_exact means that epoch_seconds == range.end actually means equality)
+                if epoch_seconds > range.end || (epoch_seconds == range.end && !seconds_is_exact) {
+                    range.end
+                } else if epoch_seconds > range.start
+                    || (epoch_seconds == range.start && !seconds_is_exact)
+                {
+                    // We're after the first transition
+                    range.start
+                } else {
+                    // We're before the first transition
+                    let transition_info =
+                        DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year - 1);
+
+                    transition_info.transition_range().end
+                }
+            }
+        };
+
+        if let Some(last_tzif_transition) = last_tzif_transition {
+            // When going Previous, we went back into the area of Tzif transition
+            if seconds < last_tzif_transition {
+                seconds = last_tzif_transition;
+            }
         }
+
+        Ok(Some(seconds_to_nanoseconds(seconds.0).into()))
     }
 
     // For more information, see /docs/TZDB.md
@@ -551,27 +561,29 @@ fn get_local_record(db: &DataBlock, idx: usize) -> LocalTimeTypeRecord {
 
 #[inline]
 fn get_transition_info(db: &DataBlock, idx: usize) -> TzifTransitionInfo {
+    let info = maybe_get_transition_info(db, idx);
+    debug_assert!(info.is_some(), "tzif internal invariant violated");
+    info.unwrap_or_default()
+}
+
+#[inline]
+fn maybe_get_transition_info(db: &DataBlock, idx: usize) -> Option<TzifTransitionInfo> {
     let next = get_local_record(db, idx);
-    let transition_time = db.transition_times.get(idx);
-    debug_assert!(
-        transition_time.is_some(),
-        "tzif internal invariant violated"
-    );
-    let transition_time = transition_time.copied().unwrap_or_default();
+    let transition_time = *db.transition_times.get(idx)?;
     let prev = if idx == 0 {
-        db.local_time_type_records[0]
+        *db.local_time_type_records.get(0)?
     } else {
         get_local_record(db, idx - 1)
     };
-    TzifTransitionInfo {
+    Some(TzifTransitionInfo {
         prev,
         next,
         transition_time,
-    }
+    })
 }
 
 /// Information obtained from the tzif file about a transition.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct TzifTransitionInfo {
     /// The time record from before this transition
     prev: LocalTimeTypeRecord,

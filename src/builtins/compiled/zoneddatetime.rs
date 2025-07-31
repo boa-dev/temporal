@@ -713,6 +713,18 @@ mod tests {
         let zdt = parse_zdt_with_reject(BEFORE_DST_1999_01_31).unwrap();
         assert_tr(&zdt, Previous, STD_1998_01_31);
         assert_tr(&zdt, Next, DST_1999_04_04);
+
+        // Test case from intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition
+        // This ensures we skip "fake" transition entries that do not actually change the offset
+
+        let zdt = parse_zdt_with_reject("1970-01-01T01:00:00+01:00[Europe/London]").unwrap();
+        assert_tr(&zdt, Previous, "1968-02-18T03:00:00+01:00[Europe/London]");
+        let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]").unwrap();
+        assert_tr(&zdt, Next, "1971-10-31T02:00:00+00:00[Europe/London]");
+        let zdt = parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]").unwrap();
+        assert_tr(&zdt, Previous, "1945-09-30T01:00:00-10:00[America/Anchorage]");
+        let zdt = parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]").unwrap();
+        assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
     }
 
     #[test]
