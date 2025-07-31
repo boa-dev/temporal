@@ -15,6 +15,7 @@ use crate::{
 };
 use alloc::format;
 use alloc::string::String;
+use bnum::cast::As;
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{encoding::Utf8, parsers::IsoDurationParser, records::TimeDurationRecord};
 use normalized::NormalizedDurationRecord;
@@ -617,16 +618,16 @@ impl Duration {
                 microseconds as i64,
                 nanoseconds as i64,
             ]),
-            years: u32::try_from(years).or(Err(TemporalError::range()))?,
-            months: u32::try_from(months).or(Err(TemporalError::range()))?,
-            weeks: u32::try_from(weeks).or(Err(TemporalError::range()))?,
-            days: U40::try_from(days).or(Err(TemporalError::range()))?,
-            hours: U48::try_from(hours).or(Err(TemporalError::range()))?,
-            minutes: U48::try_from(minutes).or(Err(TemporalError::range()))?,
-            seconds: U56::try_from(seconds).or(Err(TemporalError::range()))?,
-            milliseconds: u64::try_from(milliseconds).or(Err(TemporalError::range()))?,
-            microseconds: U80::try_from(microseconds).or(Err(TemporalError::range()))?,
-            nanoseconds: U88::try_from(nanoseconds).or(Err(TemporalError::range()))?,
+            years: u32::try_from(years.abs()).or(Err(TemporalError::range()))?,
+            months: u32::try_from(months.abs()).or(Err(TemporalError::range()))?,
+            weeks: u32::try_from(weeks.abs()).or(Err(TemporalError::range()))?,
+            days: days.abs().as_(),
+            hours: hours.abs().as_(),
+            minutes: minutes.abs().as_(),
+            seconds: seconds.abs().as_(),
+            milliseconds: u64::try_from(milliseconds.abs()).or(Err(TemporalError::range()))?,
+            microseconds: microseconds.abs().as_(),
+            nanoseconds: nanoseconds.abs().as_(),
         })
     }
 
