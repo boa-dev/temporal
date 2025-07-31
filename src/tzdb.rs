@@ -329,10 +329,7 @@ impl Tzif {
 
             // The last transition in the tzif tables.
             // We should not go back beyond this
-            let last_tzif_transition = db
-                .transition_times
-                .get(db.transition_times.len() - 1)
-                .copied();
+            let last_tzif_transition = db.transition_times.last().copied();
 
             let Some(dst_variant) = &posix_tz_string.dst_info else {
                 // There are no further transitions.
@@ -774,7 +771,7 @@ fn calculate_transition_seconds_for_year(
     offset: UtcOffsetSeconds,
 ) -> i64 {
     // Determine the year of the requested time.
-    let year_epoch_seconds = utils::epoch_days_for_year(year) * 86400;
+    let year_epoch_seconds = i64::from(utils::epoch_days_for_year(year)) * 86400;
     let leap_day = (utils::mathematical_days_in_year(year) - 365) as u16;
 
     // Calculate the days in the year for the TransitionDate
@@ -787,9 +784,8 @@ fn calculate_transition_seconds_for_year(
             let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8) - 1);
 
             // Month starts in the day...
-            let day_offset = (u16::from(utils::epoch_seconds_to_day_of_week(i64::from(
-                year_epoch_seconds,
-            ))) + days_to_month)
+            let day_offset = (u16::from(utils::epoch_seconds_to_day_of_week(year_epoch_seconds))
+                + days_to_month)
                 .rem_euclid(7);
 
             // EXAMPLE:
@@ -827,7 +823,7 @@ fn calculate_transition_seconds_for_year(
 
     // Transition time is on local time, so we need to add the UTC offset to get the correct UTC timestamp
     // for the transition.
-    i64::from(year_epoch_seconds) + i64::from(days) * 86400 + transition_date.time.0 - offset.0
+    year_epoch_seconds + i64::from(days) * 86400 + transition_date.time.0 - offset.0
 }
 
 /// Resolve the footer of a tzif file.

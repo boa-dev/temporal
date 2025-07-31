@@ -803,12 +803,21 @@ impl ZonedDateTime {
         )?;
 
         // 11. If transition is null, return null.
-        // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
-        let result = transition
-            .map(|t| ZonedDateTime::try_new(t.0, self.calendar().clone(), self.tz.clone()))
-            .transpose()?;
+        let Some(transition) = transition else {
+            return Ok(None);
+        };
 
-        Ok(result)
+        if transition.check_validity().is_err() {
+            // GetNamedTimeZoneNextTransition, GetNamedTimeZonePreviousTransition include a check for out-of-bounds
+            // instants. Instead of requiring providers handle that, we handle it here.
+            return Ok(None);
+        }
+        // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
+        Ok(Some(ZonedDateTime::try_new(
+            transition.0,
+            self.calendar().clone(),
+            self.tz.clone(),
+        )?))
     }
 
     pub fn hours_in_day_with_provider(
