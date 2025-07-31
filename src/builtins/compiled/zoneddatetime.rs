@@ -722,7 +722,11 @@ mod tests {
         let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]").unwrap();
         assert_tr(&zdt, Next, "1971-10-31T02:00:00+00:00[Europe/London]");
         let zdt = parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]").unwrap();
-        assert_tr(&zdt, Previous, "1945-09-30T01:00:00-10:00[America/Anchorage]");
+        assert_tr(
+            &zdt,
+            Previous,
+            "1945-09-30T01:00:00-10:00[America/Anchorage]",
+        );
         let zdt = parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]").unwrap();
         assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
     }

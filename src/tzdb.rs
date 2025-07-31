@@ -338,29 +338,39 @@ impl Tzif {
 
         // The last transition in the tzif tables.
         // We should not go back beyond this
-        //
+        let last_tzif_transition = db
+            .transition_times
+            .get(db.transition_times.len() - 1)
+            .copied();
+
         // We need to do a similar backwards iteration to find the last real transition.
-        let mut last_tzif_transition = None;
-        for last_transition_idx in (0..db.transition_times.len()).rev() {
-            if let Some(tzif_transition) = maybe_get_transition_info(db, last_transition_idx) {
-                if tzif_transition.prev.utoff == tzif_transition.next.utoff {
-                    continue;
+        let last_real_tzif_transition = || {
+            debug_assert!(direction == TransitionDirection::Previous);
+            for last_transition_idx in (0..db.transition_times.len()).rev() {
+                if let Some(tzif_transition) = maybe_get_transition_info(db, last_transition_idx) {
+                    if tzif_transition.prev.utoff == tzif_transition.next.utoff {
+                        continue;
+                    }
+                    return Some(tzif_transition.transition_time);
                 }
-                last_tzif_transition = Some(tzif_transition.transition_time);
+                break;
             }
-            break;
-        }
+            None
+        };
 
         let Some(dst_variant) = &posix_tz_string.dst_info else {
             // There are no further transitions.
             match direction {
                 TransitionDirection::Next => return Ok(None),
                 TransitionDirection::Previous => {
-                    if let Some(last_tzif_transition) = last_tzif_transition {
-                        return Ok(Some(seconds_to_nanoseconds(last_tzif_transition.0).into()));
-                    } else {
-                        return Ok(None);
+                    if last_tzif_transition.is_some() {
+                        if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
+                            return Ok(Some(
+                                seconds_to_nanoseconds(last_real_tzif_transition.0).into(),
+                            ));
+                        }
                     }
+                    return Ok(None);
                 }
             }
         };
@@ -410,7 +420,11 @@ impl Tzif {
         if let Some(last_tzif_transition) = last_tzif_transition {
             // When going Previous, we went back into the area of Tzif transition
             if seconds < last_tzif_transition {
-                seconds = last_tzif_transition;
+                if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
+                    seconds = last_real_tzif_transition;
+                } else {
+                    return Ok(None);
+                }
             }
         }
 
