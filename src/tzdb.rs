@@ -329,14 +329,21 @@ impl Tzif {
 
             // The last transition in the tzif tables.
             // We should not go back beyond this
-            let last_tzif_transition = db.transition_times[db.transition_times.len() - 1];
+            let last_tzif_transition = db
+                .transition_times
+                .get(db.transition_times.len() - 1)
+                .copied();
 
             let Some(dst_variant) = &posix_tz_string.dst_info else {
                 // There are no further transitions.
                 match direction {
                     TransitionDirection::Next => return Ok(None),
                     TransitionDirection::Previous => {
-                        return Ok(Some(seconds_to_nanoseconds(last_tzif_transition.0).into()))
+                        if let Some(last_tzif_transition) = last_tzif_transition {
+                            return Ok(Some(seconds_to_nanoseconds(last_tzif_transition.0).into()));
+                        } else {
+                            return Ok(None);
+                        }
                     }
                 }
             };
@@ -392,9 +399,11 @@ impl Tzif {
                 }
             };
 
-            // When going Previous, we went back into the area of Tzif transition
-            if seconds < last_tzif_transition {
-                seconds = last_tzif_transition;
+            if let Some(last_tzif_transition) = last_tzif_transition {
+                // When going Previous, we went back into the area of Tzif transition
+                if seconds < last_tzif_transition {
+                    seconds = last_tzif_transition;
+                }
             }
 
             Ok(Some(seconds_to_nanoseconds(seconds.0).into()))
