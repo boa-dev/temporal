@@ -143,8 +143,7 @@ void temporal_rs_ZonedDateTime_month_code(const ZonedDateTime* self, DiplomatWri
 
 uint8_t temporal_rs_ZonedDateTime_day(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_day_of_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_day_of_week_result;
-temporal_rs_ZonedDateTime_day_of_week_result temporal_rs_ZonedDateTime_day_of_week(const ZonedDateTime* self);
+uint16_t temporal_rs_ZonedDateTime_day_of_week(const ZonedDateTime* self);
 
 uint16_t temporal_rs_ZonedDateTime_day_of_year(const ZonedDateTime* self);
 
@@ -154,8 +153,7 @@ temporal_rs_ZonedDateTime_week_of_year_result temporal_rs_ZonedDateTime_week_of_
 typedef struct temporal_rs_ZonedDateTime_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_ZonedDateTime_year_of_week_result;
 temporal_rs_ZonedDateTime_year_of_week_result temporal_rs_ZonedDateTime_year_of_week(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_days_in_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_days_in_week_result;
-temporal_rs_ZonedDateTime_days_in_week_result temporal_rs_ZonedDateTime_days_in_week(const ZonedDateTime* self);
+uint16_t temporal_rs_ZonedDateTime_days_in_week(const ZonedDateTime* self);
 
 uint16_t temporal_rs_ZonedDateTime_days_in_month(const ZonedDateTime* self);
 

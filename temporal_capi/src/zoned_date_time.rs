@@ -433,8 +433,8 @@ pub mod ffi {
             self.0.day().unwrap_or_default()
         }
 
-        pub fn day_of_week(&self) -> Result<u16, TemporalError> {
-            self.0.day_of_week().map_err(Into::into)
+        pub fn day_of_week(&self) -> u16 {
+            self.0.day_of_week().unwrap_or_default()
         }
 
         pub fn day_of_year(&self) -> u16 {
@@ -449,8 +449,8 @@ pub mod ffi {
             self.0.year_of_week().unwrap_or_default()
         }
 
-        pub fn days_in_week(&self) -> Result<u16, TemporalError> {
-            self.0.days_in_week().map_err(Into::into)
+        pub fn days_in_week(&self) -> u16 {
+            self.0.days_in_week().unwrap_or_default()
         }
 
         pub fn days_in_month(&self) -> u16 {
