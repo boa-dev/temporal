@@ -539,6 +539,31 @@ impl Tzif {
             Ok(LocalTimeRecordResult::Single(transition_info.next.into()))
         }
     }
+
+    /// Given a *local* datetime, return all possible epoch nanosecond values for it
+    fn get_named_tz_epoch_nanoseconds(
+        &self,
+        local_datetime: IsoDateTime,
+    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+        let epoch_nanos = local_datetime.as_nanoseconds();
+        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
+        let local_time_record_result = self.v2_estimate_tz_pair(&Seconds(seconds))?;
+        let result = match local_time_record_result {
+            LocalTimeRecordResult::Empty => Vec::default(),
+            LocalTimeRecordResult::Single(r) => {
+                let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
+                vec![epoch_ns]
+            }
+            LocalTimeRecordResult::Ambiguous { first, second } => {
+                let first_epoch_ns =
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
+                let second_epoch_ns =
+                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
+                vec![first_epoch_ns, second_epoch_ns]
+            }
+        };
+        Ok(result)
+    }
 }
 
 #[inline]
@@ -1100,25 +1125,8 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         identifier: &str,
         local_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = local_datetime.as_nanoseconds();
-        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
-        let tzif = self.get(identifier)?;
-        let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
-        let result = match local_time_record_result {
-            LocalTimeRecordResult::Empty => Vec::default(),
-            LocalTimeRecordResult::Single(r) => {
-                let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
-                vec![epoch_ns]
-            }
-            LocalTimeRecordResult::Ambiguous { first, second } => {
-                let first_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
-                let second_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
-                vec![first_epoch_ns, second_epoch_ns]
-            }
-        };
-        Ok(result)
+        self.get(identifier)?
+            .get_named_tz_epoch_nanoseconds(local_datetime)
     }
 
     fn get_named_tz_offset_nanoseconds(
@@ -1193,25 +1201,8 @@ impl TimeZoneProvider for FsTzdbProvider {
         identifier: &str,
         local_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
-        let epoch_nanos = local_datetime.as_nanoseconds();
-        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
-        let tzif = self.get(identifier)?;
-        let local_time_record_result = tzif.v2_estimate_tz_pair(&Seconds(seconds))?;
-        let result = match local_time_record_result {
-            LocalTimeRecordResult::Empty => Vec::default(),
-            LocalTimeRecordResult::Single(r) => {
-                let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
-                vec![epoch_ns]
-            }
-            LocalTimeRecordResult::Ambiguous { first, second } => {
-                let first_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
-                let second_epoch_ns =
-                    EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
-                vec![first_epoch_ns, second_epoch_ns]
-            }
-        };
-        Ok(result)
+        self.get(identifier)?
+            .get_named_tz_epoch_nanoseconds(local_datetime)
     }
 
     fn get_named_tz_offset_nanoseconds(
