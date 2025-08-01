@@ -652,6 +652,8 @@ mod tests {
         BEFORE_DST_1999_01_31,
         LONDON_TRANSITION_1968_02_18,
         LONDON_TRANSITION_1968_02_18_MINUS_ONE,
+        "2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]",
+        "2011-12-31T00:00:00+14:00[Pacific/Apia]",
     ];
 
     #[test]
@@ -763,5 +765,16 @@ mod tests {
                 "ZonedDateTime {test} round trips on ToString"
             );
         }
+    }
+
+    #[test]
+    fn test_apia() {
+        // This transition skips an entire day
+        // From: 2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]
+        // To: 2011-12-31T00:00:00+14:00[Pacific/Apia]
+        let zdt = parse_zdt_with_reject("2011-12-29T22:00:00[Pacific/Apia]").unwrap();
+        let _ = zdt
+            .add(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None)
+            .unwrap();
     }
 }

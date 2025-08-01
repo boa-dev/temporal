@@ -9,12 +9,12 @@ use ixdtf::{
 };
 use num_traits::ToPrimitive;
 
-use crate::builtins::core::duration::DateDuration;
 use crate::error::ErrorMessage;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
 use crate::provider::{CandidateEpochNanoseconds, TimeZoneProvider, TimeZoneTransitionInfo};
+use crate::Sign;
 use crate::{
     builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -22,9 +22,7 @@ use crate::{
     unix_time::EpochNanoseconds,
     TemporalError, TemporalResult, TemporalUnwrap, ZonedDateTime,
 };
-use crate::{Calendar, Sign};
 
-const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 const NS_IN_S: i64 = 1_000_000_000;
 const NS_IN_MIN: i64 = 60_000_000_000;
 
@@ -385,7 +383,7 @@ impl TimeZone {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let n be possibleEpochNs's length.
-        match nanos {
+        let valid_bounds = match nanos {
             // 2. If n = 1, then
             CandidateEpochNanoseconds::One(ns) => {
                 // a. Return possibleEpochNs[0].
@@ -409,8 +407,9 @@ impl TimeZone {
                     }
                 }
             }
-            CandidateEpochNanoseconds::Zero => (),
-        }
+            CandidateEpochNanoseconds::Zero(vb) => vb,
+        };
+
         // 4. Assert: n = 0.
         // 5. If disambiguation is reject, then
         if disambiguation == Disambiguation::Reject {
@@ -418,53 +417,33 @@ impl TimeZone {
             return Err(TemporalError::range().with_message("Rejecting ambiguous time zones."));
         }
 
-        // NOTE: Below is rather greedy, but should in theory work.
+        // Instead of calculating the latest/earliest possible ISO datetime record,
+        // the GapEntryOffsets from CandidateEpochNanoseconds::Zero already has
+        // the offsets before and after the gap transition. We can use that directly,
+        // instead of doing a bunch of additional work.
         //
-        // Primarily moving hour +/-3 to account Australia/Troll as
-        // the precision of before/after does not entirely matter as
-        // long is it is distinctly before / after any transition.
-
         // 6. Let before be the latest possible ISO Date-Time Record for
         //    which CompareISODateTime(before, isoDateTime) = -1 and !
         //    GetPossibleEpochNanoseconds(timeZone, before) is not
         //    empty.
-        let before = iso.add_date_duration(
-            Calendar::default(),
-            &DateDuration::default(),
-            NormalizedTimeDuration(-3 * NS_IN_HOUR),
-            None,
-        )?;
-
         // 7. Let after be the earliest possible ISO Date-Time Record
         //    for which CompareISODateTime(after, isoDateTime) = 1 and !
-        //    GetPossibleEpochNanoseconds(timeZone, after) is not empty.
-        let after = iso.add_date_duration(
-            Calendar::default(),
-            &DateDuration::default(),
-            NormalizedTimeDuration(3 * NS_IN_HOUR),
-            None,
-        )?;
-
         // 8. Let beforePossible be !
         //    GetPossibleEpochNanoseconds(timeZone, before).
         // 9. Assert: beforePossible's length is 1.
-        let before_possible = self.get_possible_epoch_ns_for(before, provider)?;
-        debug_assert_eq!(before_possible.len(), 1);
         // 10. Let afterPossible be !
         //     GetPossibleEpochNanoseconds(timeZone, after).
         // 11. Assert: afterPossible's length is 1.
-        let after_possible = self.get_possible_epoch_ns_for(after, provider)?;
-        debug_assert_eq!(after_possible.len(), 1);
+
         // 12. Let offsetBefore be GetOffsetNanosecondsFor(timeZone,
         //     beforePossible[0]).
-        let offset_before =
-            self.get_offset_nanos_for(before_possible.first().temporal_unwrap()?.0, provider)?;
+        let offset_before = valid_bounds.offset_before;
         // 13. Let offsetAfter be GetOffsetNanosecondsFor(timeZone,
         //     afterPossible[0]).
-        let offset_after =
-            self.get_offset_nanos_for(after_possible.first().temporal_unwrap()?.0, provider)?;
+        let offset_after = valid_bounds.offset_after;
         // 14. Let nanoseconds be offsetAfter - offsetBefore.
-        let nanoseconds = offset_after - offset_before;
+        let seconds = offset_after.0 - offset_before.0;
+        let nanoseconds = seconds as i128 * 1_000_000_000;
         // 15. Assert: abs(nanoseconds) ≤ nsPerDay.
         // 16. If disambiguation is earlier, then
         if disambiguation == Disambiguation::Earlier {
