@@ -1,10 +1,17 @@
 use databake::{quote, Bake};
+use rustc_hash::FxHasher;
 use std::{
+    collections::{BTreeMap, BTreeSet, HashMap},
     fs::{self, File},
+    hash::{Hash, Hasher},
     io::{self, BufWriter, Write},
     path::Path,
 };
-use timezone_provider::{tzif::ZoneInfoProvider, IanaIdentifierNormalizer};
+use timezone_provider::{
+    prelude::zerovec::ule::VarULE,
+    tzif::{ZeroTzifULE, ZoneInfoProvider},
+    IanaIdentifierNormalizer,
+};
 
 trait BakedDataProvider {
     fn write_data(&self, data_path: &Path) -> io::Result<()>;
@@ -15,14 +22,14 @@ trait BakedDataProvider {
 impl BakedDataProvider for ZoneInfoProvider<'_> {
     fn write_data(&self, data_path: &Path) -> io::Result<()> {
         fs::create_dir_all(data_path)?;
-        let generated_file = data_path.join("zone_info_provider.rs.data");
+        let generated_file = data_path.join("compiled_zoneinfo_provider.rs.data");
         let baked = self.bake(&Default::default());
 
         let baked_macro = quote! {
             #[macro_export]
-            macro_rules! zone_info_provider {
+            macro_rules! compiled_zoneinfo_provider {
                 () => {
-                    pub const ZONE_INFO_PROVIDER: &'static temporal_provider::ZoneInfoProvider = &#baked;
+                    pub const COMPILED_ZONEINFO_PROVIDER: &'static timezone_provider::ZoneInfoProvider = &#baked;
                 }
             }
         };
@@ -42,24 +49,55 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
         // Recreate directory.
         fs::create_dir_all(zoneinfo_debug_path.clone())?;
 
+        let map_file = zoneinfo_debug_path.join("map.json");
+
+        // Create id sets for the tzifs
+        let mut tzif_ids: HashMap<usize, BTreeSet<String>> = HashMap::new();
         for (identifier, index) in self.ids.to_btreemap().iter() {
-            let (directory, filename) = if identifier.contains('/') {
-                let (directory, filename) = identifier.rsplit_once('/').expect("'/' must exist");
-                let identifier_dir = zoneinfo_debug_path.join(directory);
-                fs::create_dir_all(identifier_dir.clone())?;
-                (identifier_dir, filename)
+            if let Some(id_set) = tzif_ids.get_mut(index) {
+                id_set.insert(identifier.clone());
             } else {
-                (zoneinfo_debug_path.clone(), identifier.as_str())
-            };
-            let mut filepath = directory.join(filename);
-            filepath.set_extension("json");
-            let json = serde_json::to_string_pretty(&self.tzifs[*index])?;
-            fs::write(filepath, json)?;
+                tzif_ids.insert(*index, BTreeSet::from([identifier.clone()]));
+            }
         }
+
+        let tzif_dir_path = zoneinfo_debug_path.join("tzifs");
+        fs::create_dir_all(tzif_dir_path.clone())?;
+
+        let mut id_map: BTreeMap<String, String> = BTreeMap::new();
+        for (id, tzif) in self.tzifs.iter().enumerate() {
+            let mut tzif_data = serde_json::Map::new();
+            let id_set = tzif_ids.get(&id).unwrap();
+            tzif_data.insert("ids".into(), serde_json::to_value(id_set)?);
+            tzif_data.insert("tzif".into(), serde_json::to_value(tzif)?);
+            let filename = format!("tzif-{}-{}.json", hash_ids(id_set), hash_tzif(tzif));
+            let filepath = tzif_dir_path.join(filename.clone());
+            for id in id_set {
+                id_map.insert(id.clone(), filename.clone());
+            }
+            fs::write(filepath, serde_json::to_string_pretty(&tzif_data)?)?;
+        }
+
+        fs::write(
+            map_file,
+            format!("{}\n", serde_json::to_string_pretty(&id_map)?),
+        )?;
 
         // TODO: Add version
         Ok(())
     }
+}
+
+fn hash_ids(set: &BTreeSet<String>) -> String {
+    let mut hasher = FxHasher::default();
+    set.hash(&mut hasher);
+    format!("{:x}", hasher.finish())
+}
+
+fn hash_tzif(tzif: &ZeroTzifULE) -> String {
+    let mut hasher = FxHasher::default();
+    tzif.as_bytes().hash(&mut hasher);
+    format!("{:x}", hasher.finish())
 }
 
 impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
@@ -109,6 +147,7 @@ fn main() -> io::Result<()> {
         .parent()
         .unwrap()
         .join(tzdata_path);
+    println!("Using tzdata directory: {tzdata_dir:?}");
 
     let provider = Path::new(manifest_dir)
         .parent()
@@ -116,6 +155,7 @@ fn main() -> io::Result<()> {
         .parent()
         .unwrap()
         .join("provider/src");
+    println!("Using provider directory: {provider:?}");
 
     // Write identifiers
     write_data_file_with_debug(

@@ -16,6 +16,7 @@ mod tzdb;
 pub mod tzif;
 
 pub use tzdb::IanaIdentifierNormalizer;
+pub use tzif::ZoneInfoProvider;
 
 #[cfg(feature = "datagen")]
 pub use tzdb::IanaDataError;
@@ -34,6 +35,7 @@ mod tests {
     extern crate alloc;
 
     iana_normalizer_singleton!();
+    compiled_zoneinfo_provider!();
 
     #[test]
     fn basic_normalization() {
@@ -63,5 +65,11 @@ mod tests {
             SINGLETON_IANA_NORMALIZER.normalized_identifiers.get(index),
             Some("Etc/UTC")
         );
+    }
+
+    #[test]
+    fn zone_info_basic() {
+        let tzif = COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
+        assert!(tzif.is_some())
     }
 }

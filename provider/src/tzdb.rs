@@ -81,10 +81,24 @@ pub struct TzdbDataSource {
 
 #[cfg(feature = "datagen")]
 impl TzdbDataSource {
+    /// Try to create a tzdb source from a tzdata directory.
     pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
         let version_file = tzdata_path.join("version");
         let version = fs::read_to_string(version_file)?.trim().to_owned();
         let data = ZoneInfoData::from_zoneinfo_directory(tzdata_path)?;
+        Ok(Self { version, data })
+    }
+
+    /// Try to create a tzdb source from a tzdata rearguard.zi
+    ///
+    /// To generate a rearguard.zi, download tzdata from IANA. Run `make rearguard.zi`
+    pub fn try_from_rearguard_zoneinfo_dir(
+        tzdata_path: &Path,
+    ) -> Result<Self, TzdbDataSourceError> {
+        let version_file = tzdata_path.join("version");
+        let version = fs::read_to_string(version_file)?.trim().to_owned();
+        let rearguard_zoneinfo = tzdata_path.join("rearguard.zi");
+        let data = ZoneInfoData::from_filepath(rearguard_zoneinfo)?;
         Ok(Self { version, data })
     }
 }

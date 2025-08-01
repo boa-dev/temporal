@@ -36,6 +36,13 @@ pub struct ZoneInfoProvider<'data> {
     pub tzifs: VarZeroVec<'data, ZeroTzifULE, Index32>,
 }
 
+impl ZoneInfoProvider<'_> {
+    pub fn get(&self, identifier: &str) -> Option<&ZeroTzifULE> {
+        let idx = self.ids.get(identifier)?;
+        self.tzifs.get(idx)
+    }
+}
+
 #[zerovec::make_varule(ZeroTzifULE)]
 #[derive(PartialEq, Debug, Clone)]
 #[zerovec::skip_derive(Ord)]
@@ -104,7 +111,7 @@ pub enum ZoneInfoDataError {
 #[cfg(feature = "datagen")]
 impl ZoneInfoProvider<'_> {
     pub fn build(tzdata: &Path) -> Result<Self, ZoneInfoDataError> {
-        let tzdb_source = TzdbDataSource::try_from_zoneinfo_directory(tzdata).unwrap();
+        let tzdb_source = TzdbDataSource::try_from_rearguard_zoneinfo_dir(tzdata).unwrap();
         let compiled_transitions = ZoneInfoCompiler::new(tzdb_source.data.clone()).build();
 
         let mut identifiers = BTreeMap::default();

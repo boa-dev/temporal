@@ -121,6 +121,7 @@ version = "0.0.11"
 dependencies = [
  "databake",
  "prettyplease",
+ "rustc-hash",
  "serde_json",
  "syn",
  "timezone_provider",
