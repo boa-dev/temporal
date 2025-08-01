@@ -4,7 +4,6 @@ use core::str::FromStr;
 
 use crate::{iso::IsoDateTime, unix_time::EpochNanoseconds, TemporalResult};
 use alloc::borrow::Cow;
-use alloc::vec::Vec;
 
 /// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,6 +54,50 @@ impl core::fmt::Display for TransitionDirection {
     }
 }
 
+/// The potential candidates for a given local datetime
+#[derive(Copy, Clone, Debug)]
+pub enum CandidateEpochNanoseconds {
+    Zero,
+    One(EpochNanoseconds),
+    Two([EpochNanoseconds; 2]),
+}
+
+impl CandidateEpochNanoseconds {
+    pub(crate) fn as_slice(&self) -> &[EpochNanoseconds] {
+        match *self {
+            Self::Zero => &[],
+            Self::One(ref one) => core::slice::from_ref(one),
+            Self::Two(ref multiple) => &multiple[..],
+        }
+    }
+
+    #[allow(unused)] // Used in tests in some feature configurations
+    pub(crate) fn is_empty(&self) -> bool {
+        matches!(*self, Self::Zero)
+    }
+    pub(crate) fn len(&self) -> usize {
+        match *self {
+            Self::Zero => 0,
+            Self::One(..) => 1,
+            Self::Two(..) => 2,
+        }
+    }
+
+    pub(crate) fn first(&self) -> Option<EpochNanoseconds> {
+        match *self {
+            Self::Zero => None,
+            Self::One(one) | Self::Two([one, _]) => Some(one),
+        }
+    }
+
+    pub(crate) fn last(&self) -> Option<EpochNanoseconds> {
+        match *self {
+            Self::Zero => None,
+            Self::One(last) | Self::Two([_, last]) => Some(last),
+        }
+    }
+}
+
 // NOTE: It may be a good idea to eventually move this into it's
 // own individual crate rather than having it tied directly into `temporal_rs`
 /// The `TimeZoneProvider` trait provides methods required for a provider
@@ -68,7 +111,7 @@ pub trait TimeZoneProvider {
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>>;
+    ) -> TemporalResult<CandidateEpochNanoseconds>;
 
     fn get_named_tz_offset_nanoseconds(
         &self,
@@ -97,7 +140,7 @@ impl TimeZoneProvider for NeverProvider {
         &self,
         _: &str,
         _: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         unimplemented!()
     }
 

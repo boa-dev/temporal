@@ -1551,7 +1551,7 @@ pub(crate) fn interpret_isodatetime_offset(
             let possible_nanos = timezone.get_possible_epoch_ns_for(iso, provider)?;
 
             // 10. For each element candidate of possibleEpochNs, do
-            for candidate in &possible_nanos {
+            for candidate in possible_nanos.as_slice() {
                 // a. Let candidateOffset be utcEpochNanoseconds - candidate.
                 let candidate_offset = utc_epochs.0 - candidate.0;
                 // b. If candidateOffset = offsetNanoseconds, then

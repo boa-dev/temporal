@@ -34,7 +34,6 @@ use std::path::PathBuf;
 use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
-use alloc::{vec, vec::Vec};
 use core::cmp::Ordering;
 use core::ops::Range;
 use std::sync::RwLock;
@@ -56,7 +55,10 @@ use tzif::{
 
 use crate::{
     iso::IsoDateTime,
-    provider::{TimeZoneProvider, TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds},
+    provider::{
+        CandidateEpochNanoseconds, TimeZoneProvider, TimeZoneTransitionInfo, TransitionDirection,
+        UtcOffsetSeconds,
+    },
     unix_time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
@@ -579,7 +581,7 @@ impl Tzif {
     fn get_named_tz_epoch_nanoseconds(
         &self,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         let epoch_nanos = local_datetime.as_nanoseconds();
         let mut seconds = (epoch_nanos.0 / NS_IN_S) as i64;
 
@@ -598,17 +600,17 @@ impl Tzif {
 
         let local_time_record_result = self.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
-            LocalTimeRecordResult::Empty => Vec::default(),
+            LocalTimeRecordResult::Empty => CandidateEpochNanoseconds::Zero,
             LocalTimeRecordResult::Single(r) => {
                 let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
-                vec![epoch_ns]
+                CandidateEpochNanoseconds::One(epoch_ns)
             }
             LocalTimeRecordResult::Ambiguous { first, second } => {
                 let first_epoch_ns =
                     EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
                 let second_epoch_ns =
                     EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
-                vec![first_epoch_ns, second_epoch_ns]
+                CandidateEpochNanoseconds::Two([first_epoch_ns, second_epoch_ns])
             }
         };
         Ok(result)
@@ -1173,7 +1175,7 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
             .get_named_tz_epoch_nanoseconds(local_datetime)
     }
@@ -1248,7 +1250,7 @@ impl TimeZoneProvider for FsTzdbProvider {
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
             .get_named_tz_epoch_nanoseconds(local_datetime)
     }
@@ -1846,8 +1848,8 @@ mod tests {
 
             let after_possible = provider.get_named_tz_epoch_nanoseconds(id, after).unwrap();
             assert_eq!(after_possible.len(), 1);
-            let before_seconds = before_possible[0];
-            let after_seconds = after_possible[0];
+            let before_seconds = before_possible.first().unwrap();
+            let after_seconds = after_possible.first().unwrap();
 
             let before_transition = provider
                 .get_named_tz_offset_nanoseconds(id, before_seconds.0)
