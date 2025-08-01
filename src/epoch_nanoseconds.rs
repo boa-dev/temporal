@@ -1,6 +1,6 @@
 use crate::{error::ErrorMessage, TemporalError};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct EpochNanoseconds(pub(crate) i128);
 
 impl From<i128> for EpochNanoseconds {

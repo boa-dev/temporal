@@ -34,7 +34,6 @@ use std::path::PathBuf;
 use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
-use alloc::{vec, vec::Vec};
 use core::cmp::Ordering;
 use core::ops::Range;
 use std::sync::RwLock;
@@ -56,7 +55,10 @@ use tzif::{
 
 use crate::{
     iso::IsoDateTime,
-    provider::{TimeZoneProvider, TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds},
+    provider::{
+        CandidateEpochNanoseconds, GapEntryOffsets, TimeZoneProvider, TimeZoneTransitionInfo,
+        TransitionDirection, UtcOffsetSeconds,
+    },
     unix_time::EpochNanoseconds,
     utils, TemporalError, TemporalResult,
 };
@@ -68,6 +70,8 @@ const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
 
 impl From<&TimeZoneVariantInfo> for UtcOffsetSeconds {
     fn from(value: &TimeZoneVariantInfo) -> Self {
+        // The POSIX tz string stores offsets as negative offsets;
+        // i.e. "seconds that must be added to reach UTC"
         Self(-value.offset.0)
     }
 }
@@ -88,7 +92,7 @@ impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
 /// or two time zones (when a time exists in the ambiguous range of a -1 shift).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LocalTimeRecordResult {
-    Empty,
+    Empty(GapEntryOffsets),
     Single(UtcOffsetSeconds),
     Ambiguous {
         first: UtcOffsetSeconds,
@@ -579,7 +583,7 @@ impl Tzif {
     fn get_named_tz_epoch_nanoseconds(
         &self,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         let epoch_nanos = local_datetime.as_nanoseconds();
         let mut seconds = (epoch_nanos.0 / NS_IN_S) as i64;
 
@@ -598,17 +602,17 @@ impl Tzif {
 
         let local_time_record_result = self.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
-            LocalTimeRecordResult::Empty => Vec::default(),
+            LocalTimeRecordResult::Empty(bounds) => CandidateEpochNanoseconds::Zero(bounds),
             LocalTimeRecordResult::Single(r) => {
                 let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
-                vec![epoch_ns]
+                CandidateEpochNanoseconds::One(epoch_ns)
             }
             LocalTimeRecordResult::Ambiguous { first, second } => {
                 let first_epoch_ns =
                     EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
                 let second_epoch_ns =
                     EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
-                vec![first_epoch_ns, second_epoch_ns]
+                CandidateEpochNanoseconds::Two([first_epoch_ns, second_epoch_ns])
             }
         };
         Ok(result)
@@ -726,7 +730,10 @@ impl TzifTransitionInfo {
     /// what is the corresponding LocalTimeRecordResult?
     fn record_for_contains(&self) -> LocalTimeRecordResult {
         match self.kind() {
-            TransitionKind::Gap => LocalTimeRecordResult::Empty,
+            TransitionKind::Gap => LocalTimeRecordResult::Empty(GapEntryOffsets {
+                offset_before: self.prev.into(),
+                offset_after: self.next.into(),
+            }),
             TransitionKind::Overlap => LocalTimeRecordResult::Ambiguous {
                 first: self.prev.into(),
                 second: self.next.into(),
@@ -952,21 +959,28 @@ fn resolve_posix_tz_string(
     if is_transition_day {
         let time = utils::epoch_ms_to_ms_in_day(seconds * 1_000) as i64 / 1_000;
         let transition_time = if is_dst == TransitionType::Dst {
-            dst.start_date.time.0
+            dst.start_date.time
         } else {
-            dst.end_date.time.0
+            dst.end_date.time
         };
+        // Convert to UtcOffsetSeconds so that these behave like
+        // normal offsets
+        let std = UtcOffsetSeconds::from(std);
+        let dst = UtcOffsetSeconds::from(&dst.variant_info);
         let transition_diff = if is_dst == TransitionType::Dst {
-            std.offset.0 - dst.variant_info.offset.0
+            dst.0 - std.0
         } else {
-            dst.variant_info.offset.0 - std.offset.0
+            std.0 - dst.0
         };
-        let offset = offset_range(transition_time + transition_diff, transition_time);
+        let offset = offset_range(transition_time.0 + transition_diff, transition_time.0);
         match offset.contains(&time) {
-            true if is_dst == TransitionType::Dst => return Ok(LocalTimeRecordResult::Empty),
+            true if is_dst == TransitionType::Dst => {
+                return Ok(LocalTimeRecordResult::Empty(GapEntryOffsets {
+                    offset_before: std,
+                    offset_after: dst,
+                }));
+            }
             true => {
-                let std = UtcOffsetSeconds::from(std);
-                let dst = UtcOffsetSeconds::from(&dst.variant_info);
                 // Note(nekevss, manishearth): We may need to more carefully
                 // handle inverse DST here.
                 return Ok(LocalTimeRecordResult::Ambiguous {
@@ -1173,7 +1187,7 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
             .get_named_tz_epoch_nanoseconds(local_datetime)
     }
@@ -1248,7 +1262,7 @@ impl TimeZoneProvider for FsTzdbProvider {
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
             .get_named_tz_epoch_nanoseconds(local_datetime)
     }
@@ -1442,7 +1456,7 @@ mod tests {
         let locals = new_york
             .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
             .unwrap();
-        assert_eq!(locals, LocalTimeRecordResult::Empty);
+        assert!(matches!(locals, LocalTimeRecordResult::Empty(..)));
     }
 
     #[test]
@@ -1476,7 +1490,7 @@ mod tests {
         let sydney = sydney.unwrap();
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
-        assert_eq!(locals, LocalTimeRecordResult::Empty);
+        assert!(matches!(locals, LocalTimeRecordResult::Empty(..)));
     }
 
     #[test]
@@ -1846,8 +1860,8 @@ mod tests {
 
             let after_possible = provider.get_named_tz_epoch_nanoseconds(id, after).unwrap();
             assert_eq!(after_possible.len(), 1);
-            let before_seconds = before_possible[0];
-            let after_seconds = after_possible[0];
+            let before_seconds = before_possible.first().unwrap();
+            let after_seconds = after_possible.first().unwrap();
 
             let before_transition = provider
                 .get_named_tz_offset_nanoseconds(id, before_seconds.0)

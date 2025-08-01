@@ -38,7 +38,7 @@ mod tests {
                 provider,
             )
             .unwrap();
-
+        // Should disambiguate to 2020-03-08T01:30:00-08:00[America/Los_Angeles]
         assert_eq!(zdt.hour(), Ok(3));
     }
 }
