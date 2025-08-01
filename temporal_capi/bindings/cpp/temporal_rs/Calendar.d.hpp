@@ -77,7 +77,7 @@ public:
 
   inline uint8_t day(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week(temporal_rs::IsoDate date) const;
+  inline uint16_t day_of_week(temporal_rs::IsoDate date) const;
 
   inline uint16_t day_of_year(temporal_rs::IsoDate date) const;
 
@@ -85,7 +85,7 @@ public:
 
   inline std::optional<int32_t> year_of_week(temporal_rs::IsoDate date) const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week(temporal_rs::IsoDate date) const;
+  inline uint16_t days_in_week(temporal_rs::IsoDate date) const;
 
   inline uint16_t days_in_month(temporal_rs::IsoDate date) const;
 

@@ -99,7 +99,7 @@ public:
 
   inline uint8_t day() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week() const;
+  inline uint16_t day_of_week() const;
 
   inline uint16_t day_of_year() const;
 
@@ -107,7 +107,7 @@ public:
 
   inline std::optional<int32_t> year_of_week() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week() const;
+  inline uint16_t days_in_week() const;
 
   inline uint16_t days_in_month() const;
 

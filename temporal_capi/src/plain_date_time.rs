@@ -198,8 +198,8 @@ pub mod ffi {
         pub fn day(&self) -> u8 {
             self.0.day()
         }
-        pub fn day_of_week(&self) -> Result<u16, TemporalError> {
-            self.0.day_of_week().map_err(Into::into)
+        pub fn day_of_week(&self) -> u16 {
+            self.0.day_of_week()
         }
         pub fn day_of_year(&self) -> u16 {
             self.0.day_of_year()
@@ -210,8 +210,8 @@ pub mod ffi {
         pub fn year_of_week(&self) -> Option<i32> {
             self.0.year_of_week()
         }
-        pub fn days_in_week(&self) -> Result<u16, TemporalError> {
-            self.0.days_in_week().map_err(Into::into)
+        pub fn days_in_week(&self) -> u16 {
+            self.0.days_in_week()
         }
         pub fn days_in_month(&self) -> u16 {
             self.0.days_in_month()

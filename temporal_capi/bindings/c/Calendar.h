@@ -65,8 +65,7 @@ temporal_rs_Calendar_month_code_result temporal_rs_Calendar_month_code(const Cal
 
 uint8_t temporal_rs_Calendar_day(const Calendar* self, IsoDate date);
 
-typedef struct temporal_rs_Calendar_day_of_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_day_of_week_result;
-temporal_rs_Calendar_day_of_week_result temporal_rs_Calendar_day_of_week(const Calendar* self, IsoDate date);
+uint16_t temporal_rs_Calendar_day_of_week(const Calendar* self, IsoDate date);
 
 uint16_t temporal_rs_Calendar_day_of_year(const Calendar* self, IsoDate date);
 
@@ -76,8 +75,7 @@ temporal_rs_Calendar_week_of_year_result temporal_rs_Calendar_week_of_year(const
 typedef struct temporal_rs_Calendar_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_Calendar_year_of_week_result;
 temporal_rs_Calendar_year_of_week_result temporal_rs_Calendar_year_of_week(const Calendar* self, IsoDate date);
 
-typedef struct temporal_rs_Calendar_days_in_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_days_in_week_result;
-temporal_rs_Calendar_days_in_week_result temporal_rs_Calendar_days_in_week(const Calendar* self, IsoDate date);
+uint16_t temporal_rs_Calendar_days_in_week(const Calendar* self, IsoDate date);
 
 uint16_t temporal_rs_Calendar_days_in_month(const Calendar* self, IsoDate date);
 
