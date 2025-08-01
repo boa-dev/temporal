@@ -626,6 +626,10 @@ mod tests {
     const AFTER_DST_1999_12_31: &str = "1999-12-31T00:00:00-08:00[America/Los_Angeles]";
     const BEFORE_DST_1999_01_31: &str = "1999-01-31T00:00:00-08:00[America/Los_Angeles]";
 
+    const LONDON_TRANSITION_1968_02_18: &str = "1968-02-18T03:00:00+01:00[Europe/London]";
+    const LONDON_TRANSITION_1968_02_18_MINUS_ONE: &str =
+        "1968-02-18T01:59:59.999999999+00:00[Europe/London]";
+
     // MUST only contain full strings
     const TO_STRING_TESTCASES: &[&str] = &[
         DST_2025_03_09,
@@ -646,6 +650,8 @@ mod tests {
         IN_DST_1999_07_31,
         AFTER_DST_1999_12_31,
         BEFORE_DST_1999_01_31,
+        LONDON_TRANSITION_1968_02_18,
+        LONDON_TRANSITION_1968_02_18_MINUS_ONE,
     ];
 
     #[test]
@@ -718,7 +724,7 @@ mod tests {
         // This ensures we skip "fake" transition entries that do not actually change the offset
 
         let zdt = parse_zdt_with_reject("1970-01-01T01:00:00+01:00[Europe/London]").unwrap();
-        assert_tr(&zdt, Previous, "1968-02-18T03:00:00+01:00[Europe/London]");
+        assert_tr(&zdt, Previous, LONDON_TRANSITION_1968_02_18);
         let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]").unwrap();
         assert_tr(&zdt, Next, "1971-10-31T02:00:00+00:00[Europe/London]");
         let zdt = parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]").unwrap();
@@ -729,7 +735,6 @@ mod tests {
         );
         let zdt = parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]").unwrap();
         assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
-
         // These dates are one second after a "fake" transition at the end of the tzif data
         // Ensure that they find a real transition, not the fake one
         let zdt = parse_zdt_with_reject("2020-11-01T00:00:01-07:00[America/Whitehorse]").unwrap();
@@ -740,6 +745,11 @@ mod tests {
         );
         let zdt = parse_zdt_with_reject("1996-05-13T00:00:01+03:00[Europe/Kyiv]").unwrap();
         assert_tr(&zdt, Previous, "1996-03-31T03:00:00+03:00[Europe/Kyiv]");
+
+        // This ensures that nanosecond-to-second casting works correctly
+        let zdt = parse_zdt_with_reject(LONDON_TRANSITION_1968_02_18_MINUS_ONE).unwrap();
+        assert_tr(&zdt, Next, LONDON_TRANSITION_1968_02_18);
+        assert_tr(&zdt, Previous, "1967-10-29T02:00:00+00:00[Europe/London]");
     }
 
     #[test]

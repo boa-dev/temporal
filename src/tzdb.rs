@@ -248,6 +248,21 @@ impl Tzif {
         }
     }
 
+    fn get_named_tz_offset_nanoseconds(
+        &self,
+        utc_epoch: i128,
+    ) -> TemporalResult<TimeZoneTransitionInfo> {
+        let mut seconds = (utc_epoch / NS_IN_S) as i64;
+        // The rounding is inexact. Transitions are only at second
+        // boundaries, so the offset at N s is the same as the offset at N.001,
+        // but the offset at -Ns is not the same as the offset at -N.001,
+        // the latter matches -N - 1 s instead.
+        if seconds < 0 && utc_epoch % NS_IN_S != 0 {
+            seconds -= 1;
+        }
+        self.get(&Seconds(seconds))
+    }
+
     // Helper function to call resolve_posix_tz_string
     fn resolve_posix_tz_string(
         &self,
@@ -267,26 +282,30 @@ impl Tzif {
     ) -> TemporalResult<Option<EpochNanoseconds>> {
         // First search the tzif data
 
-        let epoch_seconds = Seconds((epoch_nanoseconds / 1_000_000_000) as i64);
+        let epoch_seconds = Seconds((epoch_nanoseconds / NS_IN_S) as i64);
         // When *exactly* on a transition the spec wants you to
         // get the next one, so it's important to know if we are
-        // actually on epoch_seconds or a couple nanoseconds after it
+        // actually on epoch_seconds or a couple nanoseconds before/after it
         // to handle the exact match case
-        let seconds_is_exact = (epoch_nanoseconds % 1_000_000_000) == 0;
+        let seconds_is_exact = (epoch_nanoseconds % NS_IN_S) == 0;
+        let seconds_is_negative = epoch_nanoseconds < 0;
         let db = self.get_data_block2()?;
 
         let b_search_result = db.transition_times.binary_search(&epoch_seconds);
 
         let mut transition_idx = match b_search_result {
             Ok(idx) => {
-                match (direction, seconds_is_exact) {
-                    // Regardless of whether we are an exact match for N or we are N.001,
-                    // the next transition is going to be idx + 1
-                    (TransitionDirection::Next, _) => idx + 1,
-                    // If we are N.001, the previous transition the one at idx (= N)
-                    (TransitionDirection::Previous, false) => idx,
-                    // If we are exactly N, the previous transition is idx - 1
-                    (TransitionDirection::Previous, true) => {
+                match (direction, seconds_is_exact, seconds_is_negative) {
+                    // If we are N.001 for negative N, the next transition is idx
+                    (TransitionDirection::Next, false, true) => idx,
+                    // If we are exactly N, or N.001 for positive N, the next transition is idx + 1
+                    (TransitionDirection::Next, true, _)
+                    | (TransitionDirection::Next, false, false) => idx + 1,
+                    // If we are N.001 for positive N, the previous transition the one at idx (= N)
+                    (TransitionDirection::Previous, false, false) => idx,
+                    // If we are exactly N, or N.0001 for negative N, the previous transition is idx - 1
+                    (TransitionDirection::Previous, true, _)
+                    | (TransitionDirection::Previous, false, true) => {
                         if let Some(idx) = idx.checked_sub(1) {
                             idx
                         } else {
@@ -383,10 +402,21 @@ impl Tzif {
 
         let mut seconds = match direction {
             TransitionDirection::Next => {
+                // Inexact seconds in the negative case means that (seconds == foo) is actually
+                // seconds < foo
+                //
+                // This code will likely not actually be hit: the current Tzif database has no
+                // entries with DST offset posix strings where the posix string starts
+                // before the unix epoch.
+                let seconds_is_inexact_for_negative = seconds_is_negative && !seconds_is_exact;
                 // We're before the first transition
-                if epoch_seconds < range.start {
+                if epoch_seconds < range.start
+                    || (epoch_seconds == range.start && seconds_is_inexact_for_negative)
+                {
                     range.start
-                } else if epoch_seconds < range.end {
+                } else if epoch_seconds < range.end
+                    || (epoch_seconds == range.end && seconds_is_inexact_for_negative)
+                {
                     // We're between the first and second transition
                     range.end
                 } else {
@@ -398,12 +428,17 @@ impl Tzif {
                 }
             }
             TransitionDirection::Previous => {
+                // Inexact seconds in the positive case means that (seconds == foo) is actually
+                // seconds > foo
+                let seconds_is_ineexact_for_positive = !seconds_is_negative && !seconds_is_exact;
                 // We're after the second transition
                 // (note that seconds_is_exact means that epoch_seconds == range.end actually means equality)
-                if epoch_seconds > range.end || (epoch_seconds == range.end && !seconds_is_exact) {
+                if epoch_seconds > range.end
+                    || (epoch_seconds == range.end && seconds_is_ineexact_for_positive)
+                {
                     range.end
                 } else if epoch_seconds > range.start
-                    || (epoch_seconds == range.start && !seconds_is_exact)
+                    || (epoch_seconds == range.start && seconds_is_ineexact_for_positive)
                 {
                     // We're after the first transition
                     range.start
@@ -546,7 +581,21 @@ impl Tzif {
         local_datetime: IsoDateTime,
     ) -> TemporalResult<Vec<EpochNanoseconds>> {
         let epoch_nanos = local_datetime.as_nanoseconds();
-        let seconds = (epoch_nanos.0 / 1_000_000_000) as i64;
+        let mut seconds = (epoch_nanos.0 / NS_IN_S) as i64;
+
+        // We just rounded our ns value to seconds.
+        // This is fine for positive ns: timezones do not transition at sub-second offsets,
+        // so the offset at N seconds is always the offset at N.0001 seconds.
+        //
+        // However, for negative epochs, the offset at -N seconds might be different
+        // from that at -N.001 seconds. Instead, we calculate the offset at (-N-1) seconds.
+        if seconds < 0 {
+            let remainder = epoch_nanos.0 % NS_IN_S;
+            if remainder != 0 {
+                seconds -= 1;
+            }
+        }
+
         let local_time_record_result = self.v2_estimate_tz_pair(&Seconds(seconds))?;
         let result = match local_time_record_result {
             LocalTimeRecordResult::Empty => Vec::default(),
@@ -1134,9 +1183,8 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         identifier: &str,
         utc_epoch: i128,
     ) -> TemporalResult<TimeZoneTransitionInfo> {
-        let tzif = self.get(identifier)?;
-        let seconds = (utc_epoch / 1_000_000_000) as i64;
-        tzif.get(&Seconds(seconds))
+        self.get(identifier)?
+            .get_named_tz_offset_nanoseconds(utc_epoch)
     }
 
     fn get_named_tz_transition(
@@ -1210,9 +1258,8 @@ impl TimeZoneProvider for FsTzdbProvider {
         identifier: &str,
         utc_epoch: i128,
     ) -> TemporalResult<TimeZoneTransitionInfo> {
-        let tzif = self.get(identifier)?;
-        let seconds = (utc_epoch / 1_000_000_000) as i64;
-        tzif.get(&Seconds(seconds))
+        self.get(identifier)?
+            .get_named_tz_offset_nanoseconds(utc_epoch)
     }
 
     fn get_named_tz_transition(
@@ -1226,9 +1273,10 @@ impl TimeZoneProvider for FsTzdbProvider {
     }
 }
 
+const NS_IN_S: i128 = 1_000_000_000;
 #[inline]
 fn seconds_to_nanoseconds(seconds: i64) -> i128 {
-    seconds as i128 * 1_000_000_000
+    seconds as i128 * NS_IN_S
 }
 
 #[cfg(test)]
