@@ -813,11 +813,11 @@ impl ZonedDateTime {
             return Ok(None);
         }
         // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
-        Ok(Some(ZonedDateTime::try_new(
-            transition.0,
-            self.calendar().clone(),
-            self.tz.clone(),
-        )?))
+        Ok(Some(
+            ZonedDateTime::try_new(transition.0, self.calendar().clone(), self.tz.clone())
+                .ok()
+                .temporal_unwrap()?,
+        ))
     }
 
     pub fn hours_in_day_with_provider(
