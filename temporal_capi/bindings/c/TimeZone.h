@@ -31,6 +31,9 @@ TimeZone* temporal_rs_TimeZone_utc(void);
 
 TimeZone* temporal_rs_TimeZone_clone(const TimeZone* self);
 
+typedef struct temporal_rs_TimeZone_primary_identifier_result {union {TimeZone* ok; TemporalError err;}; bool is_ok;} temporal_rs_TimeZone_primary_identifier_result;
+temporal_rs_TimeZone_primary_identifier_result temporal_rs_TimeZone_primary_identifier(const TimeZone* self);
+
 bool temporal_rs_TimeZone_is_valid(const TimeZone* self);
 
 void temporal_rs_TimeZone_destroy(TimeZone* self);

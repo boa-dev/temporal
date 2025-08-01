@@ -1245,15 +1245,15 @@ pub(crate) fn is_valid_duration(
     }
     // 3. If abs(years) ≥ 2**32, return false.
     // n.b. u32::MAX is 2**32 - 1
-    if years.abs() > u32::MAX as i64 {
+    if years.saturating_abs() > u32::MAX as i64 {
         return false;
     };
     // 4. If abs(months) ≥ 2**32, return false.
-    if months.abs() > u32::MAX as i64 {
+    if months.saturating_abs() > u32::MAX as i64 {
         return false;
     };
     // 5. If abs(weeks) ≥ 2**32, return false.
-    if weeks.abs() > u32::MAX as i64 {
+    if weeks.saturating_abs() > u32::MAX as i64 {
         return false;
     };
 
@@ -1283,12 +1283,13 @@ pub(crate) fn is_valid_duration(
         + minutes as i128 * 60_000_000_000
         + seconds as i128 * 1_000_000_000;
     // Subseconds part
-    let normalized_subseconds_parts =
-        (milliseconds as i128 * 1_000_000) + (microseconds * 1_000) + nanoseconds;
+    let normalized_subseconds_parts = (milliseconds as i128).saturating_mul(1_000_000)
+        + microseconds.saturating_mul(1_000)
+        + nanoseconds;
 
     let total_normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
-    if total_normalized_seconds.abs() >= MAX_SAFE_NS_PRECISION {
+    if total_normalized_seconds.saturating_abs() >= MAX_SAFE_NS_PRECISION {
         return false;
     }
 

@@ -285,6 +285,10 @@ impl ZonedDateTime {
         self.subtract_with_provider(duration, overflow, &*TZ_PROVIDER)
     }
 
+    pub fn equals(&self, other: &Self) -> TemporalResult<bool> {
+        self.equals_with_provider(other, &*TZ_PROVIDER)
+    }
+
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
     ///
     /// Enable with the `compiled_data` feature flag.
@@ -365,11 +369,18 @@ impl ZonedDateTime {
     }
 }
 
+#[cfg(test)]
 mod tests {
+    use super::ZonedDateTime;
+    use crate::options::{Disambiguation, OffsetDisambiguation, Unit};
+    use crate::provider::TransitionDirection;
+    use crate::Duration;
+    use crate::TemporalResult;
+    use alloc::string::ToString;
+
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn static_tzdb_zdt_test() {
-        use super::ZonedDateTime;
         use crate::{Calendar, TimeZone};
         use core::str::FromStr;
 
@@ -421,7 +432,6 @@ mod tests {
     #[cfg(not(target_os = "windows"))]
     #[test]
     fn basic_zdt_add() {
-        use super::ZonedDateTime;
         use crate::{Calendar, Duration, TimeZone};
 
         let zdt =
@@ -446,6 +456,325 @@ mod tests {
                 .unwrap();
 
         let result = zdt.add(&d, None).unwrap();
-        assert_eq!(result, expected);
+        assert!(result.equals(&expected).unwrap());
+    }
+
+    fn parse_zdt_with_reject(s: &str) -> TemporalResult<ZonedDateTime> {
+        ZonedDateTime::from_utf8(
+            s.as_bytes(),
+            Disambiguation::Reject,
+            OffsetDisambiguation::Reject,
+        )
+    }
+
+    #[test]
+    fn test_pacific_niue() {
+        // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
+        // Pacific/Niue on October 15, 1952, where
+        // the offset shifted by 20 seconds to a whole-minute boundary.
+        //
+        // The precise transition is from
+        // 1952-10-15T23:59:59-11:19:40[-11:19:40] to 1952-10-15T23:59:40-11:19:00[-11:19:00]
+        let ms_pre = -543_069_621_000;
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre,
+            "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre,
+            "-11:20 matches the first candidate -11:19:40 in the Pacific/Niue edge case"
+        );
+
+        let ms_post = -543_069_601_000;
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_post,
+            "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
+        );
+
+        // Additional tests ensuring that boundary cases are handled
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:40-11:20:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_post - 19_000,
+            "Post-transition Niue time allows up to `1952-10-15T23:59:40`"
+        );
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:20:00[Pacific/Niue]");
+        assert!(
+            zdt.is_err(),
+            "Post-transition Niue time does not allow times before `1952-10-15T23:59:40`"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:40-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre - 19_000,
+            "Pre-transition Niue time also allows `1952-10-15T23:59:40`"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre - 20_000,
+            "Pre-transition Niue time also allows `1952-10-15T23:59:39`"
+        );
+
+        // Tests without explicit offset
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:39[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_pre - 20_000,
+            "Unambiguous before 1952-10-15T23:59:39"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-16T00:00:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            zdt.epoch_milliseconds(),
+            ms_post + 1_000,
+            "Unambiguous after 1952-10-16T00:00:00"
+        );
+
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:40[Pacific/Niue]");
+        assert!(zdt.is_err(), "Ambiguity starts at 1952-10-15T23:59:40");
+        let zdt = parse_zdt_with_reject("1952-10-15T23:59:59[Pacific/Niue]");
+        assert!(zdt.is_err(), "Ambiguity ends at 1952-10-15T23:59:59");
+    }
+
+    fn total_seconds_for_one_day(s: &str) -> TemporalResult<f64> {
+        Ok(Duration::new(0, 0, 0, 1, 0, 0, 0, 0, 0, 0)
+            .unwrap()
+            .total(Unit::Second, Some(parse_zdt_with_reject(s).unwrap().into()))?
+            .as_inner())
+    }
+
+    #[test]
+    fn test_pacific_niue_duration() {
+        // Also tests add_to_instant codepaths
+        // From intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset
+        let total =
+            total_seconds_for_one_day("1952-10-15T23:59:59-11:19:40[Pacific/Niue]").unwrap();
+        assert_eq!(
+            total, 86420.,
+            "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
+        );
+
+        let total = total_seconds_for_one_day("1952-10-15T23:59:59-11:20[Pacific/Niue]").unwrap();
+        assert_eq!(
+            total, 86420.,
+            "-11:20 matches the first candidate -11:19:40 in the Pacific/Niue edge case"
+        );
+
+        let total =
+            total_seconds_for_one_day("1952-10-15T23:59:59-11:20:00[Pacific/Niue]").unwrap();
+        assert_eq!(
+            total, 86400.,
+            "-11:20:00 is accepted as -11:20:00 in the Pacific/Niue edge case"
+        );
+    }
+
+    #[track_caller]
+    fn assert_tr(zdt: &ZonedDateTime, direction: TransitionDirection, s: &str) {
+        assert_eq!(
+            zdt.get_time_zone_transition(direction)
+                .unwrap()
+                .unwrap()
+                .to_string(),
+            s
+        );
+    }
+
+    // Modern dates
+
+    // Transitions
+    const DST_2025_03_09: &str = "2025-03-09T03:00:00-07:00[America/Los_Angeles]";
+    const DST_2026_03_08: &str = "2026-03-08T03:00:00-07:00[America/Los_Angeles]";
+    const STD_2025_11_02: &str = "2025-11-02T01:00:00-08:00[America/Los_Angeles]";
+    const STD_2024_11_03: &str = "2024-11-03T01:00:00-08:00[America/Los_Angeles]";
+
+    // Non transitions
+    const IN_DST_2025_07_31: &str = "2025-07-31T00:00:00-07:00[America/Los_Angeles]";
+    const AFTER_DST_2025_12_31: &str = "2025-12-31T00:00:00-08:00[America/Los_Angeles]";
+    const BEFORE_DST_2025_01_31: &str = "2025-01-31T00:00:00-08:00[America/Los_Angeles]";
+
+    // Transition dates ± 1
+    const DST_2025_03_09_PLUS_ONE: &str =
+        "2025-03-09T03:00:00.000000001-07:00[America/Los_Angeles]";
+    const DST_2025_03_09_MINUS_ONE: &str =
+        "2025-03-09T01:59:59.999999999-08:00[America/Los_Angeles]";
+    const STD_2025_11_02_PLUS_ONE: &str =
+        "2025-11-02T01:00:00.000000001-08:00[America/Los_Angeles]";
+    const STD_2025_11_02_MINUS_ONE: &str =
+        "2025-11-02T01:59:59.999999999-07:00[America/Los_Angeles]";
+
+    // Dates from the tzif data block
+    // Transitions
+    const DST_1999_04_04: &str = "1999-04-04T03:00:00-07:00[America/Los_Angeles]";
+    const DST_2000_04_02: &str = "2000-04-02T03:00:00-07:00[America/Los_Angeles]";
+    const STD_1999_10_31: &str = "1999-10-31T01:00:00-08:00[America/Los_Angeles]";
+    const STD_1998_01_31: &str = "1998-10-25T01:00:00-08:00[America/Los_Angeles]";
+
+    // Non transitions
+    const IN_DST_1999_07_31: &str = "1999-07-31T00:00:00-07:00[America/Los_Angeles]";
+    const AFTER_DST_1999_12_31: &str = "1999-12-31T00:00:00-08:00[America/Los_Angeles]";
+    const BEFORE_DST_1999_01_31: &str = "1999-01-31T00:00:00-08:00[America/Los_Angeles]";
+
+    const LONDON_TRANSITION_1968_02_18: &str = "1968-02-18T03:00:00+01:00[Europe/London]";
+    const LONDON_TRANSITION_1968_02_18_MINUS_ONE: &str =
+        "1968-02-18T01:59:59.999999999+00:00[Europe/London]";
+
+    // MUST only contain full strings
+    const TO_STRING_TESTCASES: &[&str] = &[
+        DST_2025_03_09,
+        DST_2026_03_08,
+        STD_2025_11_02,
+        STD_2024_11_03,
+        IN_DST_2025_07_31,
+        AFTER_DST_2025_12_31,
+        BEFORE_DST_2025_01_31,
+        DST_2025_03_09_PLUS_ONE,
+        DST_2025_03_09_MINUS_ONE,
+        STD_2025_11_02_PLUS_ONE,
+        STD_2025_11_02_MINUS_ONE,
+        DST_1999_04_04,
+        DST_2000_04_02,
+        STD_1999_10_31,
+        STD_1998_01_31,
+        IN_DST_1999_07_31,
+        AFTER_DST_1999_12_31,
+        BEFORE_DST_1999_01_31,
+        LONDON_TRANSITION_1968_02_18,
+        LONDON_TRANSITION_1968_02_18_MINUS_ONE,
+        "2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]",
+        "2011-12-31T00:00:00+14:00[Pacific/Apia]",
+    ];
+
+    #[test]
+    fn get_time_zone_transition() {
+        // This stops it from wrapping
+        use TransitionDirection::*;
+
+        // Modern dates that utilize the posix string
+
+        // During DST
+        let zdt = parse_zdt_with_reject(IN_DST_2025_07_31).unwrap();
+        assert_tr(&zdt, Previous, DST_2025_03_09);
+        assert_tr(&zdt, Next, STD_2025_11_02);
+
+        // After DST
+        let zdt = parse_zdt_with_reject(AFTER_DST_2025_12_31).unwrap();
+        assert_tr(&zdt, Previous, STD_2025_11_02);
+        assert_tr(&zdt, Next, DST_2026_03_08);
+
+        // Before DST
+        let zdt = parse_zdt_with_reject(BEFORE_DST_2025_01_31).unwrap();
+        assert_tr(&zdt, Previous, STD_2024_11_03);
+        assert_tr(&zdt, Next, DST_2025_03_09);
+
+        // Boundary test
+        // Modern date (On start of DST)
+        let zdt = parse_zdt_with_reject(DST_2025_03_09).unwrap();
+        assert_tr(&zdt, Previous, STD_2024_11_03);
+        assert_tr(&zdt, Next, STD_2025_11_02);
+        // Modern date (one ns after DST)
+        let zdt = parse_zdt_with_reject(DST_2025_03_09_PLUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, DST_2025_03_09);
+        assert_tr(&zdt, Next, STD_2025_11_02);
+        // Modern date (one ns before DST)
+        let zdt = parse_zdt_with_reject(DST_2025_03_09_MINUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, STD_2024_11_03);
+        assert_tr(&zdt, Next, DST_2025_03_09);
+
+        // Modern date (On start of STD)
+        let zdt = parse_zdt_with_reject(STD_2025_11_02).unwrap();
+        assert_tr(&zdt, Previous, DST_2025_03_09);
+        assert_tr(&zdt, Next, DST_2026_03_08);
+        // Modern date (one ns after STD)
+        let zdt = parse_zdt_with_reject(STD_2025_11_02_PLUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, STD_2025_11_02);
+        assert_tr(&zdt, Next, DST_2026_03_08);
+        // Modern date (one ns before STD)
+        let zdt = parse_zdt_with_reject(STD_2025_11_02_MINUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, DST_2025_03_09);
+        assert_tr(&zdt, Next, STD_2025_11_02);
+
+        // Old dates using the Tzif data
+
+        // During DST
+        let zdt = parse_zdt_with_reject(IN_DST_1999_07_31).unwrap();
+        assert_tr(&zdt, Previous, DST_1999_04_04);
+        assert_tr(&zdt, Next, STD_1999_10_31);
+
+        // After DST
+        let zdt = parse_zdt_with_reject(AFTER_DST_1999_12_31).unwrap();
+        assert_tr(&zdt, Previous, STD_1999_10_31);
+        assert_tr(&zdt, Next, DST_2000_04_02);
+
+        // Before DST
+        let zdt = parse_zdt_with_reject(BEFORE_DST_1999_01_31).unwrap();
+        assert_tr(&zdt, Previous, STD_1998_01_31);
+        assert_tr(&zdt, Next, DST_1999_04_04);
+
+        // Test case from intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition
+        // This ensures we skip "fake" transition entries that do not actually change the offset
+
+        let zdt = parse_zdt_with_reject("1970-01-01T01:00:00+01:00[Europe/London]").unwrap();
+        assert_tr(&zdt, Previous, LONDON_TRANSITION_1968_02_18);
+        let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]").unwrap();
+        assert_tr(&zdt, Next, "1971-10-31T02:00:00+00:00[Europe/London]");
+        let zdt = parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]").unwrap();
+        assert_tr(
+            &zdt,
+            Previous,
+            "1945-09-30T01:00:00-10:00[America/Anchorage]",
+        );
+        let zdt = parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]").unwrap();
+        assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
+        // These dates are one second after a "fake" transition at the end of the tzif data
+        // Ensure that they find a real transition, not the fake one
+        let zdt = parse_zdt_with_reject("2020-11-01T00:00:01-07:00[America/Whitehorse]").unwrap();
+        assert_tr(
+            &zdt,
+            Previous,
+            "2020-03-08T03:00:00-07:00[America/Whitehorse]",
+        );
+        let zdt = parse_zdt_with_reject("1996-05-13T00:00:01+03:00[Europe/Kyiv]").unwrap();
+        assert_tr(&zdt, Previous, "1996-03-31T03:00:00+03:00[Europe/Kyiv]");
+
+        // This ensures that nanosecond-to-second casting works correctly
+        let zdt = parse_zdt_with_reject(LONDON_TRANSITION_1968_02_18_MINUS_ONE).unwrap();
+        assert_tr(&zdt, Next, LONDON_TRANSITION_1968_02_18);
+        assert_tr(&zdt, Previous, "1967-10-29T02:00:00+00:00[Europe/London]");
+    }
+
+    #[test]
+    fn test_to_string_roundtrip() {
+        for test in TO_STRING_TESTCASES {
+            let zdt = parse_zdt_with_reject(test).expect(test);
+            let string = zdt.to_string();
+
+            assert_eq!(
+                *test, &*string,
+                "ZonedDateTime {test} round trips on ToString"
+            );
+        }
+    }
+
+    #[test]
+    fn test_apia() {
+        // This transition skips an entire day
+        // From: 2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]
+        // To: 2011-12-31T00:00:00+14:00[Pacific/Apia]
+        let zdt = parse_zdt_with_reject("2011-12-29T22:00:00[Pacific/Apia]").unwrap();
+        let _ = zdt
+            .add(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None)
+            .unwrap();
     }
 }

@@ -4,10 +4,9 @@ use core::str::FromStr;
 
 use crate::{iso::IsoDateTime, unix_time::EpochNanoseconds, TemporalResult};
 use alloc::borrow::Cow;
-use alloc::vec::Vec;
 
 /// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UtcOffsetSeconds(pub i64);
 
 /// `TimeZoneTransitionInfo` represents information about a timezone transition.
@@ -55,6 +54,62 @@ impl core::fmt::Display for TransitionDirection {
     }
 }
 
+/// Used in disambiguate_possible_epoch_nanos
+///
+/// When we have a LocalTimeRecordResult::Empty,
+/// it is useful to know the offsets before and after.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct GapEntryOffsets {
+    pub offset_before: UtcOffsetSeconds,
+    pub offset_after: UtcOffsetSeconds,
+}
+
+/// The potential candidates for a given local datetime
+#[derive(Copy, Clone, Debug)]
+pub enum CandidateEpochNanoseconds {
+    Zero(GapEntryOffsets),
+    One(EpochNanoseconds),
+    Two([EpochNanoseconds; 2]),
+}
+
+impl CandidateEpochNanoseconds {
+    pub(crate) fn as_slice(&self) -> &[EpochNanoseconds] {
+        match *self {
+            Self::Zero(..) => &[],
+            Self::One(ref one) => core::slice::from_ref(one),
+            Self::Two(ref multiple) => &multiple[..],
+        }
+    }
+
+    #[allow(unused)] // Used in tests in some feature configurations
+    pub(crate) fn is_empty(&self) -> bool {
+        matches!(*self, Self::Zero(..))
+    }
+
+    #[allow(unused)] // Used in tests in some feature configurations
+    pub(crate) fn len(&self) -> usize {
+        match *self {
+            Self::Zero(..) => 0,
+            Self::One(..) => 1,
+            Self::Two(..) => 2,
+        }
+    }
+
+    pub(crate) fn first(&self) -> Option<EpochNanoseconds> {
+        match *self {
+            Self::Zero(..) => None,
+            Self::One(one) | Self::Two([one, _]) => Some(one),
+        }
+    }
+
+    pub(crate) fn last(&self) -> Option<EpochNanoseconds> {
+        match *self {
+            Self::Zero(..) => None,
+            Self::One(last) | Self::Two([_, last]) => Some(last),
+        }
+    }
+}
+
 // NOTE: It may be a good idea to eventually move this into it's
 // own individual crate rather than having it tied directly into `temporal_rs`
 /// The `TimeZoneProvider` trait provides methods required for a provider
@@ -62,11 +117,13 @@ impl core::fmt::Display for TransitionDirection {
 pub trait TimeZoneProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>>;
 
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>>;
+
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>>;
+    ) -> TemporalResult<CandidateEpochNanoseconds>;
 
     fn get_named_tz_offset_nanoseconds(
         &self,
@@ -74,7 +131,6 @@ pub trait TimeZoneProvider {
         epoch_nanoseconds: i128,
     ) -> TemporalResult<TimeZoneTransitionInfo>;
 
-    // TODO: implement and stabalize
     fn get_named_tz_transition(
         &self,
         identifier: &str,
@@ -89,11 +145,14 @@ impl TimeZoneProvider for NeverProvider {
     fn normalize_identifier(&self, _ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
         unimplemented!()
     }
+    fn canonicalize_identifier(&self, _ident: &'_ [u8]) -> TemporalResult<Cow<'_, str>> {
+        unimplemented!()
+    }
     fn get_named_tz_epoch_nanoseconds(
         &self,
         _: &str,
         _: IsoDateTime,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         unimplemented!()
     }
 

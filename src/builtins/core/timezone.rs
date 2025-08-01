@@ -1,7 +1,6 @@
 //! This module implements the Temporal `TimeZone` and components.
 
 use alloc::string::{String, ToString};
-use alloc::{vec, vec::Vec};
 
 use ixdtf::encoding::Utf8;
 use ixdtf::{
@@ -10,22 +9,20 @@ use ixdtf::{
 };
 use num_traits::ToPrimitive;
 
-use crate::builtins::core::duration::DateDuration;
 use crate::error::ErrorMessage;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
-use crate::provider::{TimeZoneProvider, TimeZoneTransitionInfo};
+use crate::provider::{CandidateEpochNanoseconds, TimeZoneProvider, TimeZoneTransitionInfo};
+use crate::Sign;
 use crate::{
     builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
     unix_time::EpochNanoseconds,
-    TemporalError, TemporalResult, ZonedDateTime,
+    TemporalError, TemporalResult, TemporalUnwrap, ZonedDateTime,
 };
-use crate::{Calendar, Sign};
 
-const NS_IN_HOUR: i128 = 60 * 60 * 1000 * 1000 * 1000;
 const NS_IN_S: i64 = 1_000_000_000;
 const NS_IN_MIN: i64 = 60_000_000_000;
 
@@ -210,6 +207,42 @@ impl TimeZone {
             TimeZone::UtcOffset(offset) => offset.to_string(),
         }
     }
+
+    /// Get the primary identifier for this timezone
+    pub fn primary_identifier_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Ok(match self {
+            TimeZone::IanaIdentifier(s) => {
+                TimeZone::IanaIdentifier(provider.canonicalize_identifier(s.as_bytes())?.into())
+            }
+            TimeZone::UtcOffset(offset) => TimeZone::UtcOffset(*offset),
+        })
+    }
+
+    /// Get the primary identifier for this timezone
+    #[cfg(feature = "compiled_data")]
+    pub fn primary_identifier(&self) -> TemporalResult<Self> {
+        self.primary_identifier_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
+
+    // TimeZoneEquals, which compares primary identifiers
+    pub(crate) fn time_zone_equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        Ok(match (self, other) {
+            (TimeZone::IanaIdentifier(one), TimeZone::IanaIdentifier(two)) => {
+                let one = provider.canonicalize_identifier(one.as_bytes())?;
+                let two = provider.canonicalize_identifier(two.as_bytes())?;
+                one == two
+            }
+            (&TimeZone::UtcOffset(one), &TimeZone::UtcOffset(two)) => one == two,
+            _ => false,
+        })
+    }
 }
 
 impl Default for TimeZone {
@@ -258,22 +291,22 @@ impl TimeZone {
 
     pub(crate) fn get_epoch_nanoseconds_for(
         &self,
-        iso: IsoDateTime,
+        local_iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
-        let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
+        let possible_nanos = self.get_possible_epoch_ns_for(local_iso, provider)?;
         // 2. Return ? DisambiguatePossibleEpochNanoseconds(possibleEpochNs, timeZone, isoDateTime, disambiguation).
-        self.disambiguate_possible_epoch_nanos(possible_nanos, iso, disambiguation, provider)
+        self.disambiguate_possible_epoch_nanos(possible_nanos, local_iso, disambiguation, provider)
     }
 
     /// Get the possible `Instant`s for this `TimeZoneSlot`.
     pub(crate) fn get_possible_epoch_ns_for(
         &self,
-        iso: IsoDateTime,
+        local_iso: IsoDateTime,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<Vec<EpochNanoseconds>> {
+    ) -> TemporalResult<CandidateEpochNanoseconds> {
         // 1.Let parseResult be ! ParseTimeZoneIdentifier(timeZone).
         let possible_nanoseconds = match self {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, then
@@ -303,36 +336,36 @@ impl TimeZone {
                 // isoDateTime.[[Time]].[[Microsecond]],
                 // isoDateTime.[[Time]].[[Nanosecond]]).
                 let balanced = IsoDateTime::balance(
-                    iso.date.year,
-                    iso.date.month.into(),
-                    iso.date.day.into(),
-                    iso.time.hour.into(),
-                    (i16::from(iso.time.minute) - offset.minutes()).into(),
-                    iso.time.second.into(),
-                    iso.time.millisecond.into(),
-                    iso.time.microsecond.into(),
-                    iso.time.nanosecond.into(),
+                    local_iso.date.year,
+                    local_iso.date.month.into(),
+                    local_iso.date.day.into(),
+                    local_iso.time.hour.into(),
+                    (i16::from(local_iso.time.minute) - offset.minutes()).into(),
+                    local_iso.time.second.into(),
+                    local_iso.time.millisecond.into(),
+                    local_iso.time.microsecond.into(),
+                    local_iso.time.nanosecond.into(),
                 );
                 // b. Perform ? CheckISODaysRange(balanced.[[ISODate]]).
                 balanced.date.is_valid_day_range()?;
                 // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
                 let epoch_ns = balanced.as_nanoseconds();
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
-                vec![epoch_ns]
+                CandidateEpochNanoseconds::One(epoch_ns)
             }
             // 3. Else,
             Self::IanaIdentifier(identifier) => {
                 // a. Perform ? CheckISODaysRange(isoDateTime.[[ISODate]]).
-                iso.date.is_valid_day_range()?;
+                local_iso.date.is_valid_day_range()?;
                 // b. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
-                provider.get_named_tz_epoch_nanoseconds(identifier, iso)?
+                provider.get_named_tz_epoch_nanoseconds(identifier, local_iso)?
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
         // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
-        for ns in &possible_nanoseconds {
+        for ns in possible_nanoseconds.as_slice() {
             ns.check_validity()?;
         }
         // 5. Return possibleEpochNanoseconds.
@@ -344,35 +377,39 @@ impl TimeZone {
     // TODO: This can be optimized by just not using a vec.
     pub(crate) fn disambiguate_possible_epoch_nanos(
         &self,
-        nanos: Vec<EpochNanoseconds>,
+        nanos: CandidateEpochNanoseconds,
         iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 1. Let n be possibleEpochNs's length.
-        let n = nanos.len();
-        // 2. If n = 1, then
-        if n == 1 {
-            // a. Return possibleEpochNs[0].
-            return Ok(nanos[0]);
-        // 3. If n ≠ 0, then
-        } else if n != 0 {
-            match disambiguation {
-                // a. If disambiguation is earlier or compatible, then
-                // i. Return possibleEpochNs[0].
-                Disambiguation::Compatible | Disambiguation::Earlier => return Ok(nanos[0]),
-                // b. If disambiguation is later, then
-                // i. Return possibleEpochNs[n - 1].
-                Disambiguation::Later => return Ok(nanos[n - 1]),
-                // c. Assert: disambiguation is reject.
-                // d. Throw a RangeError exception.
-                Disambiguation::Reject => {
-                    return Err(
-                        TemporalError::range().with_message("Rejecting ambiguous time zones.")
-                    )
+        let valid_bounds = match nanos {
+            // 2. If n = 1, then
+            CandidateEpochNanoseconds::One(ns) => {
+                // a. Return possibleEpochNs[0].
+                return Ok(ns);
+            }
+            // 3. If n ≠ 0, then
+            CandidateEpochNanoseconds::Two([one, two]) => {
+                match disambiguation {
+                    // a. If disambiguation is earlier or compatible, then
+                    // i. Return possibleEpochNs[0].
+                    Disambiguation::Compatible | Disambiguation::Earlier => return Ok(one),
+                    // b. If disambiguation is later, then
+                    // i. Return possibleEpochNs[n - 1].
+                    Disambiguation::Later => return Ok(two),
+                    // c. Assert: disambiguation is reject.
+                    // d. Throw a RangeError exception.
+                    Disambiguation::Reject => {
+                        return Err(
+                            TemporalError::range().with_message("Rejecting ambiguous time zones.")
+                        )
+                    }
                 }
             }
-        }
+            CandidateEpochNanoseconds::Zero(vb) => vb,
+        };
+
         // 4. Assert: n = 0.
         // 5. If disambiguation is reject, then
         if disambiguation == Disambiguation::Reject {
@@ -380,51 +417,33 @@ impl TimeZone {
             return Err(TemporalError::range().with_message("Rejecting ambiguous time zones."));
         }
 
-        // NOTE: Below is rather greedy, but should in theory work.
+        // Instead of calculating the latest/earliest possible ISO datetime record,
+        // the GapEntryOffsets from CandidateEpochNanoseconds::Zero already has
+        // the offsets before and after the gap transition. We can use that directly,
+        // instead of doing a bunch of additional work.
         //
-        // Primarily moving hour +/-3 to account Australia/Troll as
-        // the precision of before/after does not entirely matter as
-        // long is it is distinctly before / after any transition.
-
         // 6. Let before be the latest possible ISO Date-Time Record for
         //    which CompareISODateTime(before, isoDateTime) = -1 and !
         //    GetPossibleEpochNanoseconds(timeZone, before) is not
         //    empty.
-        let before = iso.add_date_duration(
-            Calendar::default(),
-            &DateDuration::default(),
-            NormalizedTimeDuration(-3 * NS_IN_HOUR),
-            None,
-        )?;
-
         // 7. Let after be the earliest possible ISO Date-Time Record
         //    for which CompareISODateTime(after, isoDateTime) = 1 and !
-        //    GetPossibleEpochNanoseconds(timeZone, after) is not empty.
-        let after = iso.add_date_duration(
-            Calendar::default(),
-            &DateDuration::default(),
-            NormalizedTimeDuration(3 * NS_IN_HOUR),
-            None,
-        )?;
-
         // 8. Let beforePossible be !
         //    GetPossibleEpochNanoseconds(timeZone, before).
         // 9. Assert: beforePossible's length is 1.
-        let before_possible = self.get_possible_epoch_ns_for(before, provider)?;
-        debug_assert_eq!(before_possible.len(), 1);
         // 10. Let afterPossible be !
         //     GetPossibleEpochNanoseconds(timeZone, after).
         // 11. Assert: afterPossible's length is 1.
-        let after_possible = self.get_possible_epoch_ns_for(after, provider)?;
-        debug_assert_eq!(after_possible.len(), 1);
+
         // 12. Let offsetBefore be GetOffsetNanosecondsFor(timeZone,
         //     beforePossible[0]).
-        let offset_before = self.get_offset_nanos_for(before_possible[0].0, provider)?;
+        let offset_before = valid_bounds.offset_before;
         // 13. Let offsetAfter be GetOffsetNanosecondsFor(timeZone,
         //     afterPossible[0]).
-        let offset_after = self.get_offset_nanos_for(after_possible[0].0, provider)?;
+        let offset_after = valid_bounds.offset_after;
         // 14. Let nanoseconds be offsetAfter - offsetBefore.
-        let nanoseconds = offset_after - offset_before;
+        let seconds = offset_after.0 - offset_before.0;
+        let nanoseconds = seconds as i128 * 1_000_000_000;
         // 15. Assert: abs(nanoseconds) ≤ nsPerDay.
         // 16. If disambiguation is earlier, then
         if disambiguation == Disambiguation::Earlier {
@@ -448,7 +467,7 @@ impl TimeZone {
             let possible = self.get_possible_epoch_ns_for(earlier, provider)?;
             // f. Assert: possibleEpochNs is not empty.
             // g. Return possibleEpochNs[0].
-            return Ok(possible[0]);
+            return possible.first().temporal_unwrap();
         }
         // 17. Assert: disambiguation is compatible or later.
         // 18. Let timeDuration be TimeDurationFromComponents(0, 0, 0, 0, 0, nanoseconds).
@@ -467,10 +486,9 @@ impl TimeZone {
         // 22. Set possibleEpochNs to ? GetPossibleEpochNanoseconds(timeZone, laterDateTime).
         let possible = self.get_possible_epoch_ns_for(later, provider)?;
         // 23. Set n to possibleEpochNs's length.
-        let n = possible.len();
         // 24. Assert: n ≠ 0.
         // 25. Return possibleEpochNs[n - 1].
-        Ok(possible[n - 1])
+        possible.last().temporal_unwrap()
     }
 
     pub(crate) fn get_start_of_day(
@@ -483,8 +501,8 @@ impl TimeZone {
         // 2. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
         let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
         // 3. If possibleEpochNs is not empty, return possibleEpochNs[0].
-        if !possible_nanos.is_empty() {
-            return Ok(possible_nanos[0]);
+        if let Some(ns) = possible_nanos.first() {
+            return Ok(ns);
         }
         let TimeZone::IanaIdentifier(identifier) = self else {
             debug_assert!(
@@ -510,11 +528,8 @@ impl TimeZone {
                 ..Default::default()
             },
         );
-        let Some(after_epoch) = self
-            .get_possible_epoch_ns_for(after, provider)?
-            .into_iter()
-            .next()
-        else {
+        let possible_nanos = self.get_possible_epoch_ns_for(after, provider)?;
+        let Some(after_epoch) = possible_nanos.as_slice().first() else {
             return Err(TemporalError::r#type()
                 .with_message("Could not determine the start of day for the provided date."));
         };
@@ -564,9 +579,11 @@ mod tests {
 
     #[test]
     #[cfg(feature = "compiled_data")]
-    fn normalize_zones() {
+    fn canonicalize_equals() {
         let calcutta = TimeZone::try_from_identifier_str("Asia/Calcutta").unwrap();
         let kolkata = TimeZone::try_from_identifier_str("Asia/Kolkata").unwrap();
-        assert_eq!(calcutta, kolkata);
+        assert!(calcutta
+            .time_zone_equals_with_provider(&kolkata, &*crate::builtins::TZ_PROVIDER)
+            .unwrap());
     }
 }
