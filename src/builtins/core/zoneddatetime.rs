@@ -100,19 +100,30 @@ impl PartialZonedDateTime {
         source: &[u8],
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let parse_result = parsers::parse_zoned_date_time(source)?;
+        // Steps from the parse bits of of ToZonedDateTime
 
+        // 3. Let matchBehaviour be match-minutes.
         let mut match_minutes = true;
 
+        // b. Let result be ? ParseISODateTime(item, « TemporalDateTimeString[+Zoned] »).
+        let parse_result = parsers::parse_zoned_date_time(source)?;
+
+        // c. Let annotation be result.[[TimeZone]].[[TimeZoneAnnotation]].
+        // d. Assert: annotation is not empty.
         // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
         let annotation = parse_result.tz.temporal_unwrap()?;
 
+        // e. Let timeZone be ? ToTemporalTimeZoneIdentifier(annotation).
         let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
+        // f. Let offsetString be result.[[TimeZone]].[[OffsetString]].
         let (offset, has_utc_designator) = match parse_result.offset {
+            // g. If result.[[TimeZone]].[[Z]] is true, then
+            // i. Set hasUTCDesignator to true.
             Some(UtcOffsetRecordOrZ::Z) => (None, true),
             Some(UtcOffsetRecordOrZ::Offset(offset)) => {
                 if offset.second().is_some() {
+                    // iii. If offsetParseResult contains more than one MinuteSecond Parse Node, set matchBehaviour to match-exactly.
                     match_minutes = false;
                 }
                 (Some(UtcOffset::from_ixdtf_record(offset)?), false)
@@ -120,6 +131,9 @@ impl PartialZonedDateTime {
             None => (None, false),
         };
 
+        // h. Let calendar be result.[[Calendar]].
+        // i. If calendar is empty, set calendar to "iso8601".
+        // j. Set calendar to ? CanonicalizeCalendar(calendar).
         let calendar = parse_result
             .calendar
             .map(Calendar::try_from_utf8)
@@ -1382,95 +1396,15 @@ impl ZonedDateTime {
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        // Steps from the parse bits of of ToZonedDateTime
+        let partial = PartialZonedDateTime::try_from_utf8_with_provider(source, provider)?;
 
-        // 3. Let matchBehaviour be match-minutes.
-        let mut match_minutes = true;
-        // b. Let result be ? ParseISODateTime(item, « TemporalDateTimeString[+Zoned] »).
-        let parse_result = parsers::parse_zoned_date_time(source)?;
-
-        // c. Let annotation be result.[[TimeZone]].[[TimeZoneAnnotation]].
-        // d. Assert: annotation is not empty.
-        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
-        let annotation = parse_result.tz.temporal_unwrap()?;
-
-        // e. Let timeZone be ? ToTemporalTimeZoneIdentifier(annotation).
-        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
-
-        // f. Let offsetString be result.[[TimeZone]].[[OffsetString]].
-        let (offset_nanos, is_exact) = parse_result
-            .offset
-            .map(|record| {
-                // g. If result.[[TimeZone]].[[Z]] is true, then
-                let UtcOffsetRecordOrZ::Offset(offset) = record else {
-                    // i. Set hasUTCDesignator to true.
-                    return (None, true);
-                };
-                let hours_in_ns = i64::from(offset.hour()) * 3_600_000_000_000_i64;
-                let minutes_in_ns = i64::from(offset.minute()) * 60_000_000_000_i64;
-                let seconds_in_ns = i64::from(offset.second().unwrap_or(0)) * 1_000_000_000_i64;
-                // iii. If offsetParseResult contains more than one MinuteSecond Parse Node, set matchBehaviour to match-exactly.
-                if offset.second().is_some() {
-                    match_minutes = false;
-                }
-                let ns = offset
-                    .fraction()
-                    .and_then(|x| x.to_nanoseconds())
-                    .unwrap_or(0);
-
-                (
-                    Some(
-                        (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
-                            * i64::from(offset.sign() as i8),
-                    ),
-                    false,
-                )
-            })
-            .unwrap_or((None, false));
-
-        // h. Let calendar be result.[[Calendar]].
-        // i. If calendar is empty, set calendar to "iso8601".
-        // j. Set calendar to ? CanonicalizeCalendar(calendar).
-
-        let calendar = parse_result
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        let time = parse_result
-            .time
-            .map(IsoTime::from_time_record)
-            .transpose()?;
-
-        let Some(parsed_date) = parse_result.date else {
-            return Err(TemporalError::range().with_enum(ErrorMessage::ParserNeedsDate));
-        };
-
-        let date = IsoDate::new_with_overflow(
-            parsed_date.year,
-            parsed_date.month,
-            parsed_date.day,
-            ArithmeticOverflow::Reject,
-        )?;
-
-        let epoch_nanos = interpret_isodatetime_offset(
-            date,
-            time,
-            is_exact,
-            offset_nanos,
-            &timezone,
-            disambiguation,
-            offset_option,
-            match_minutes,
+        Self::from_partial_with_provider(
+            partial,
+            Some(ArithmeticOverflow::Reject),
+            Some(disambiguation),
+            Some(offset_option),
             provider,
-        )?;
-
-        Ok(Self::new_unchecked(
-            Instant::from(epoch_nanos),
-            calendar,
-            timezone,
-        ))
+        )
     }
 }
 
