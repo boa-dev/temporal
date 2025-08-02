@@ -82,6 +82,12 @@ impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
     }
 }
 
+impl From<Seconds> for EpochNanoseconds {
+    fn from(value: Seconds) -> Self {
+        seconds_to_nanoseconds(value.0).into()
+    }
+}
+
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a
 /// time zone transition without the offset seconds applied to the
@@ -349,8 +355,7 @@ impl Tzif {
                     TransitionDirection::Previous => transition_idx -= 1,
                 }
             } else {
-                let ns = seconds_to_nanoseconds(tzif_transition.transition_time.0);
-                return Ok(Some(ns.into()));
+                return Ok(Some(tzif_transition.transition_time.into()));
             }
         }
 
@@ -388,9 +393,7 @@ impl Tzif {
                     // Go back to the last tzif transition
                     if last_tzif_transition.is_some() {
                         if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
-                            return Ok(Some(
-                                seconds_to_nanoseconds(last_real_tzif_transition.0).into(),
-                            ));
+                            return Ok(Some(last_real_tzif_transition.into()));
                         }
                     }
                     return Ok(None);
@@ -467,7 +470,7 @@ impl Tzif {
             }
         }
 
-        Ok(Some(seconds_to_nanoseconds(seconds.0).into()))
+        Ok(Some(seconds.into()))
     }
 
     // For more information, see /docs/TZDB.md
@@ -733,6 +736,7 @@ impl TzifTransitionInfo {
             TransitionKind::Gap => LocalTimeRecordResult::Empty(GapEntryOffsets {
                 offset_before: self.prev.into(),
                 offset_after: self.next.into(),
+                transition_epoch: self.transition_time.into(),
             }),
             TransitionKind::Overlap => LocalTimeRecordResult::Ambiguous {
                 first: self.prev.into(),
@@ -978,6 +982,7 @@ fn resolve_posix_tz_string(
                 return Ok(LocalTimeRecordResult::Empty(GapEntryOffsets {
                     offset_before: std,
                     offset_after: dst,
+                    transition_epoch: transition_time.into(),
                 }));
             }
             true => {
