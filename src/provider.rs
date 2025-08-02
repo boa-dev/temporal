@@ -62,6 +62,7 @@ impl core::fmt::Display for TransitionDirection {
 pub struct GapEntryOffsets {
     pub offset_before: UtcOffsetSeconds,
     pub offset_after: UtcOffsetSeconds,
+    pub transition_epoch: EpochNanoseconds,
 }
 
 /// The potential candidates for a given local datetime

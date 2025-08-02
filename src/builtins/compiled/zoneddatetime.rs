@@ -372,7 +372,9 @@ impl ZonedDateTime {
 #[cfg(test)]
 mod tests {
     use super::ZonedDateTime;
-    use crate::options::{Disambiguation, OffsetDisambiguation, Unit};
+    use crate::options::{
+        Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation, Unit,
+    };
     use crate::provider::TransitionDirection;
     use crate::Duration;
     use crate::TemporalResult;
@@ -630,30 +632,36 @@ mod tests {
     const LONDON_TRANSITION_1968_02_18_MINUS_ONE: &str =
         "1968-02-18T01:59:59.999999999+00:00[Europe/London]";
 
+    const SAMOA_IDL_CHANGE: &str = "2011-12-31T00:00:00+14:00[Pacific/Apia]";
+    const SAMOA_IDL_CHANGE_MINUS_ONE: &str = "2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]";
+
     // MUST only contain full strings
-    const TO_STRING_TESTCASES: &[&str] = &[
-        DST_2025_03_09,
-        DST_2026_03_08,
-        STD_2025_11_02,
-        STD_2024_11_03,
-        IN_DST_2025_07_31,
-        AFTER_DST_2025_12_31,
-        BEFORE_DST_2025_01_31,
-        DST_2025_03_09_PLUS_ONE,
-        DST_2025_03_09_MINUS_ONE,
-        STD_2025_11_02_PLUS_ONE,
-        STD_2025_11_02_MINUS_ONE,
-        DST_1999_04_04,
-        DST_2000_04_02,
-        STD_1999_10_31,
-        STD_1998_01_31,
-        IN_DST_1999_07_31,
-        AFTER_DST_1999_12_31,
-        BEFORE_DST_1999_01_31,
-        LONDON_TRANSITION_1968_02_18,
-        LONDON_TRANSITION_1968_02_18_MINUS_ONE,
-        "2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]",
-        "2011-12-31T00:00:00+14:00[Pacific/Apia]",
+    // The second boolean is whether these are unambiguous when the offset is removed
+    // As a rule of thumb, anything around an STD->DST transition
+    // will be unambiguous, but DST->STD will not
+    const TO_STRING_TESTCASES: &[(&str, bool)] = &[
+        (DST_2025_03_09, true),
+        (DST_2026_03_08, true),
+        (STD_2025_11_02, false),
+        (STD_2024_11_03, false),
+        (IN_DST_2025_07_31, true),
+        (AFTER_DST_2025_12_31, true),
+        (BEFORE_DST_2025_01_31, true),
+        (DST_2025_03_09_PLUS_ONE, true),
+        (DST_2025_03_09_MINUS_ONE, true),
+        (STD_2025_11_02_PLUS_ONE, false),
+        (STD_2025_11_02_MINUS_ONE, false),
+        (DST_1999_04_04, true),
+        (DST_2000_04_02, true),
+        (STD_1999_10_31, false),
+        (STD_1998_01_31, false),
+        (IN_DST_1999_07_31, true),
+        (AFTER_DST_1999_12_31, true),
+        (BEFORE_DST_1999_01_31, true),
+        (LONDON_TRANSITION_1968_02_18, true),
+        (LONDON_TRANSITION_1968_02_18_MINUS_ONE, true),
+        (SAMOA_IDL_CHANGE, true),
+        (SAMOA_IDL_CHANGE_MINUS_ONE, true),
     ];
 
     #[test]
@@ -756,7 +764,7 @@ mod tests {
 
     #[test]
     fn test_to_string_roundtrip() {
-        for test in TO_STRING_TESTCASES {
+        for (test, is_unambiguous) in TO_STRING_TESTCASES {
             let zdt = parse_zdt_with_reject(test).expect(test);
             let string = zdt.to_string();
 
@@ -764,6 +772,29 @@ mod tests {
                 *test, &*string,
                 "ZonedDateTime {test} round trips on ToString"
             );
+            let without_offset = zdt
+                .to_ixdtf_string(
+                    DisplayOffset::Never,
+                    DisplayTimeZone::Auto,
+                    DisplayCalendar::Never,
+                    Default::default(),
+                )
+                .unwrap();
+            assert_eq!(
+                without_offset[0..19],
+                test[0..19],
+                "Stringified object should have same date part"
+            );
+
+            // These testcases should all also parse unambiguously when the offset is removed.
+            if *is_unambiguous {
+                let zdt = parse_zdt_with_reject(&without_offset).expect(test);
+                let string = zdt.to_string();
+                assert_eq!(
+                    *test, &*string,
+                    "ZonedDateTime {without_offset} round trips to {test} on ToString"
+                );
+            }
         }
     }
 
@@ -772,9 +803,14 @@ mod tests {
         // This transition skips an entire day
         // From: 2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]
         // To: 2011-12-31T00:00:00+14:00[Pacific/Apia]
-        let zdt = parse_zdt_with_reject("2011-12-29T22:00:00[Pacific/Apia]").unwrap();
+        let zdt = parse_zdt_with_reject(SAMOA_IDL_CHANGE).unwrap();
         let _ = zdt
             .add(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None)
             .unwrap();
+
+        assert_eq!(zdt.hours_in_day().unwrap(), 24);
+
+        let samoa_before = parse_zdt_with_reject(SAMOA_IDL_CHANGE_MINUS_ONE).unwrap();
+        assert_eq!(samoa_before.hours_in_day().unwrap(), 24);
     }
 }

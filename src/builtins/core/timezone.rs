@@ -13,7 +13,7 @@ use crate::error::ErrorMessage;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
-use crate::provider::{CandidateEpochNanoseconds, TimeZoneProvider, TimeZoneTransitionInfo};
+use crate::provider::{CandidateEpochNanoseconds, TimeZoneProvider};
 use crate::Sign;
 use crate::{
     builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
@@ -501,17 +501,11 @@ impl TimeZone {
         // 2. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
         let possible_nanos = self.get_possible_epoch_ns_for(iso, provider)?;
         // 3. If possibleEpochNs is not empty, return possibleEpochNs[0].
-        if let Some(ns) = possible_nanos.first() {
-            return Ok(ns);
-        }
-        let TimeZone::IanaIdentifier(identifier) = self else {
-            debug_assert!(
-                false,
-                "4. Assert: IsOffsetTimeZoneIdentifier(timeZone) is false."
-            );
-            return Err(
-                TemporalError::assert().with_message("Timezone was not an Iana identifier.")
-            );
+        let gap = match possible_nanos {
+            CandidateEpochNanoseconds::One(first) | CandidateEpochNanoseconds::Two([first, _]) => {
+                return Ok(first)
+            }
+            CandidateEpochNanoseconds::Zero(gap) => gap,
         };
         // 5. Let possibleEpochNsAfter be GetNamedTimeZoneEpochNanoseconds(timeZone, isoDateTimeAfter), where
         // isoDateTimeAfter is the ISO Date-Time Record for which ! DifferenceISODateTime(isoDateTime,
@@ -519,36 +513,14 @@ impl TimeZone {
         // possibleEpochNsAfter is not empty (i.e., isoDateTimeAfter represents the first local time
         // after the transition).
 
-        // Similar to disambiguation, we need to first get the possible epoch for the current start of day +
-        // 3 hours, then get the timestamp for the transition epoch.
-        let after = IsoDateTime::new_unchecked(
-            *iso_date,
-            IsoTime {
-                hour: 3,
-                ..Default::default()
-            },
-        );
-        let possible_nanos = self.get_possible_epoch_ns_for(after, provider)?;
-        let Some(after_epoch) = possible_nanos.as_slice().first() else {
-            return Err(TemporalError::r#type()
-                .with_message("Could not determine the start of day for the provided date."));
-        };
+        // For a gap entry, possibleEpochNsAfter will just be the transition time. We don't
+        // actually need to calculate an isoDateTimeAfter and do all that rigmarole; we already
+        // know the transition time.
 
-        let TimeZoneTransitionInfo {
-            transition_epoch: Some(transition_epoch),
-            ..
-        } = provider.get_named_tz_offset_nanoseconds(identifier, after_epoch.0)?
-        else {
-            return Err(TemporalError::r#type()
-                .with_message("Could not determine the start of day for the provided date."));
-        };
-
-        // let provider.
         // 6. Assert: possibleEpochNsAfter's length = 1.
         // 7. Return possibleEpochNsAfter[0].
-        Ok(EpochNanoseconds::from(
-            i128::from(transition_epoch) * 1_000_000_000,
-        ))
+
+        Ok(gap.transition_epoch)
     }
 }
 
