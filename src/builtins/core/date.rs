@@ -154,9 +154,9 @@ macro_rules! impl_with_fallback_method {
 #[macro_export]
 macro_rules! impl_field_keys_to_ignore {
     (( $(with_day: $day:ident)? )) => {
-        /// https://tc39.es/proposal-temporal/#sec-temporal-calendarfieldkeystoignore
-        fn field_keys_to_ignore(&self, calendar: AnyCalendarKind) -> crate::builtins::core::date::FieldKeysToIgnore {
-            let mut keys = crate::builtins::core::date::FieldKeysToIgnore::default();
+        /// <https://tc39.es/proposal-temporal/#sec-temporal-calendarfieldkeystoignore>
+        fn field_keys_to_ignore(&self, calendar: AnyCalendarKind) -> $crate::builtins::core::date::FieldKeysToIgnore {
+            let mut keys = $crate::builtins::core::date::FieldKeysToIgnore::default();
             // All calendars have months/month codes
             if self.month.is_some() || self.month_code.is_some() {
                 keys.month = true;
