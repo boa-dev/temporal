@@ -75,7 +75,7 @@ impl PartialDate {
 #[macro_export]
 macro_rules! impl_with_fallback_method {
     ($method_name:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
-        pub(crate) fn $method_name(&self, fallback: &$component_type, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
+        pub(crate) fn $method_name(&self, fallback: &$component_type, calendar: AnyCalendarKind, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
             let era = if let Some(era) = self.era {
                 Some(era)
             } else {
@@ -527,8 +527,10 @@ impl PlainDate {
         // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
-        self.calendar
-            .date_from_partial(&partial.with_fallback_date(self, overflow)?, overflow)
+        self.calendar.date_from_partial(
+            &partial.with_fallback_date(self, self.calendar.kind(), overflow)?,
+            overflow,
+        )
     }
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
@@ -736,7 +738,7 @@ impl PlainDate {
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         let overflow = ArithmeticOverflow::Constrain;
         self.calendar().month_day_from_partial(
-            &PartialDate::default().with_fallback_date(self, overflow)?,
+            &PartialDate::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
