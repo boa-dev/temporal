@@ -603,6 +603,20 @@ impl Duration {
     }
 
     /// Creates a `Duration` from a provided `PartialDuration`.
+    ///
+    /// ## Examples
+    ///
+    /// ```rust
+    /// use temporal_rs::{partial::PartialDuration, Duration};
+    ///
+    /// let duration = Duration::from_partial_duration(PartialDuration {
+    ///   seconds: Some(4),
+    ///   ..Default::default()
+    /// }).unwrap();
+    ///
+    /// assert_eq!(duration.seconds(), 4);
+    /// assert_eq!(duration.to_string(), "PT4S");
+    /// ```
     pub fn from_partial_duration(partial: PartialDuration) -> TemporalResult<Self> {
         if partial == PartialDuration::default() {
             return Err(TemporalError::r#type()
