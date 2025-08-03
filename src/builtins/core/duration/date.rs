@@ -1,10 +1,8 @@
 //! Implementation of a `DateDuration`
 
 use crate::{
-    builtins::{duration::U40, Duration},
-    iso::iso_date_to_epoch_days,
-    options::ArithmeticOverflow,
-    PlainDate, Sign, TemporalError, TemporalResult,
+    builtins::Duration, iso::iso_date_to_epoch_days, options::ArithmeticOverflow, PlainDate, Sign,
+    TemporalError, TemporalResult,
 };
 
 use super::duration_sign;
@@ -20,13 +18,13 @@ use super::duration_sign;
 pub struct DateDuration {
     pub sign: Sign,
     /// `DateDuration`'s internal year value.
-    pub years: u32,
+    pub years: i64,
     /// `DateDuration`'s internal month value.
-    pub months: u32,
+    pub months: i64,
     /// `DateDuration`'s internal week value.
-    pub weeks: u32,
+    pub weeks: i64,
     /// `DateDuration`'s internal day value.
-    pub days: U40,
+    pub days: i64,
 }
 
 impl Default for DateDuration {
@@ -36,7 +34,7 @@ impl Default for DateDuration {
             years: 0,
             months: 0,
             weeks: 0,
-            days: U40::from(0u8),
+            days: 0,
         }
     }
 }
@@ -45,35 +43,20 @@ impl DateDuration {
     /// Creates a new, non-validated `DateDuration`.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
+    pub(crate) fn new_unchecked(
+        sign: Sign,
+        years: i64,
+        months: i64,
+        weeks: i64,
+        days: i64,
+    ) -> Self {
         Self {
-            sign: duration_sign(&[years, months, weeks, days]),
-            years: years
-                .unsigned_abs()
-                .try_into()
-                .expect("years must fit in u32"),
-            months: months
-                .unsigned_abs()
-                .try_into()
-                .expect("months must fit in u32"),
-            weeks: weeks
-                .unsigned_abs()
-                .try_into()
-                .expect("weeks must fit in u32"),
-            days: days.unsigned_abs().into(),
+            sign,
+            years,
+            months,
+            weeks,
+            days,
         }
-    }
-
-    /// Returns the iterator for `DateDuration`
-    #[inline]
-    #[must_use]
-    pub(crate) fn fields(&self) -> [i64; 4] {
-        [
-            self.years.into(),
-            self.months.into(),
-            self.weeks.into(),
-            self.days.try_into().expect("days must fit in i64"),
-        ]
     }
 }
 
@@ -84,13 +67,13 @@ impl From<Duration> for DateDuration {
     /// that are not strictly date durations.
     #[inline]
     fn from(duration: Duration) -> Self {
-        Self {
-            sign: duration.sign,
-            years: duration.years,
-            months: duration.months,
-            weeks: duration.weeks,
-            days: duration.days,
-        }
+        Self::new_unchecked(
+            duration.sign(),
+            duration.years(),
+            duration.months(),
+            duration.weeks(),
+            duration.days(),
+        )
     }
 }
 
@@ -101,13 +84,13 @@ impl From<&Duration> for DateDuration {
     /// that are not strictly date durations.
     #[inline]
     fn from(duration: &Duration) -> Self {
-        Self {
-            sign: duration.sign,
-            years: duration.years,
-            months: duration.months,
-            weeks: duration.weeks,
-            days: duration.days,
-        }
+        Self::new_unchecked(
+            duration.sign(),
+            duration.years(),
+            duration.months(),
+            duration.weeks(),
+            duration.days(),
+        )
     }
 }
 
@@ -126,8 +109,9 @@ impl DateDuration {
             return Err(TemporalError::range().with_message("Invalid DateDuration."));
         }
 
+        let sign = duration_sign(&[years, months, weeks, days]);
         // 2. Return Date Duration Record { [[Years]]: ℝ(𝔽(years)), [[Months]]: ℝ(𝔽(months)), [[Weeks]]: ℝ(𝔽(weeks)), [[Days]]: ℝ(𝔽(days))  }.
-        Ok(Self::new_unchecked(years, months, weeks, days))
+        Ok(Self::new_unchecked(sign, years, months, weeks, days))
     }
 
     /// Returns a negated `DateDuration`.
@@ -167,18 +151,13 @@ impl DateDuration {
         let ymw_duration = self.adjust(0, None, None)?;
         // 2. If DateDurationSign(yearsMonthsWeeksDuration) = 0, return dateDuration.[[Days]].
         if ymw_duration.sign() == Sign::Zero {
-            return self.days.try_into().or(Err(TemporalError::range()));
+            return Ok(self.days);
         }
         // 3. Let later be ? CalendarDateAdd(plainRelativeTo.[[Calendar]], plainRelativeTo.[[ISODate]], yearsMonthsWeeksDuration, constrain).
-        let later = relative_to.add(
-            &Duration {
-                years: self.years,
-                months: self.months,
-                weeks: self.weeks,
-                days: self.days,
-                ..Default::default()
-            },
-            Some(ArithmeticOverflow::Constrain),
+        let later = relative_to.calendar().date_add(
+            &relative_to.iso,
+            &ymw_duration,
+            ArithmeticOverflow::Constrain,
         )?;
         // 4. Let epochDays1 be ISODateToEpochDays(plainRelativeTo.[[ISODate]].[[Year]], plainRelativeTo.[[ISODate]].[[Month]] - 1, plainRelativeTo.[[ISODate]].[[Day]]).
         let epoch_days_1 = iso_date_to_epoch_days(
@@ -195,7 +174,7 @@ impl DateDuration {
         // 6. Let yearsMonthsWeeksInDays be epochDays2 - epochDays1.
         let ymd_in_days = epoch_days_2 - epoch_days_1;
         // 7. Return dateDuration.[[Days]] + yearsMonthsWeeksInDays.
-        Ok(i64::try_from(self.days).or(Err(TemporalError::range()))? + ymd_in_days)
+        Ok(self.days + ymd_in_days)
     }
 
     /// `7.5.10 AdjustDateDurationRecord ( dateDuration, days [ , weeks [ , months ] ] )`
@@ -210,14 +189,10 @@ impl DateDuration {
         months: Option<i64>,
     ) -> TemporalResult<Self> {
         // 1. If weeks is not present, set weeks to dateDuration.[[Weeks]].
-        let weeks = weeks
-            .map(|w| w.try_into().expect("weeks must fit in U40"))
-            .unwrap_or(self.weeks);
+        let weeks = weeks.unwrap_or(self.weeks);
 
         // 2. If months is not present, set months to dateDuration.[[Months]].
-        let months = months
-            .map(|m| m.try_into().expect("months must fit in U40"))
-            .unwrap_or(self.months);
+        let months = months.unwrap_or(self.months);
 
         // 3. Return ? CreateDateDurationRecord(dateDuration.[[Years]], months, weeks, days).
         Ok(Self {
@@ -225,7 +200,7 @@ impl DateDuration {
             years: self.years,
             months,
             weeks,
-            days: days.try_into().expect("days must fit in U40"),
+            days,
         })
     }
 }

@@ -288,14 +288,16 @@ impl PlainDateTime {
         other: &Self,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NormalizedDurationRecord> {
-        // 1. Assert: IsValidISODate(y1, mon1, d1) is true.
-        // 2. Assert: IsValidISODate(y2, mon2, d2) is true.
-        // 3. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
+        // 1. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
             // a. Let durationRecord be CreateDurationRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
             // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
             return Ok(NormalizedDurationRecord::default());
         }
+        // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
+        self.iso.check_validity()?;
+        other.iso.check_validity()?;
+
         // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, largestUnit).
         let diff = self
             .iso
@@ -306,7 +308,7 @@ impl PlainDateTime {
         }
 
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
-        let dest_epoch_ns = other.iso.as_nanoseconds()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds();
         // 6. Return ? RoundRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
         diff.round_relative_duration(
             dest_epoch_ns.0,
@@ -334,7 +336,7 @@ impl PlainDateTime {
             return FiniteF64::try_from(diff.normalized_time_duration().0);
         }
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
-        let dest_epoch_ns = other.iso.as_nanoseconds()?;
+        let dest_epoch_ns = other.iso.as_nanoseconds();
         // 6. Return ? TotalRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, unit).
         diff.total_relative_duration(
             dest_epoch_ns.0,
@@ -621,17 +623,17 @@ impl PlainDateTime {
                 TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
             );
         }
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
 
         let result_date = self.calendar.date_from_partial(
-            &partial_datetime.date.with_fallback_datetime(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            &partial_datetime
+                .date
+                .with_fallback_datetime(self, overflow)?,
+            overflow,
         )?;
 
         // Determine the `Time` based off the partial values.
-        let time = self.iso.time.with(
-            partial_datetime.time,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )?;
+        let time = self.iso.time.with(partial_datetime.time, overflow)?;
 
         let iso_datetime = IsoDateTime::new(result_date.iso, time)?;
 
@@ -766,7 +768,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
+    pub fn day_of_week(&self) -> u16 {
         self.calendar.day_of_week(&self.iso.date)
     }
 
@@ -786,7 +788,7 @@ impl PlainDateTime {
     }
 
     /// Returns the calendar days in week value.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
+    pub fn days_in_week(&self) -> u16 {
         self.calendar.days_in_week(&self.iso.date)
     }
 

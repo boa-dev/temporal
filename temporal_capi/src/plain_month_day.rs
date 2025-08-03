@@ -38,6 +38,15 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
+        pub fn from_partial(
+            partial: PartialDate,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<PlainMonthDay>, TemporalError> {
+            temporal_rs::PlainMonthDay::from_partial(partial.try_into()?, overflow.map(Into::into))
+                .map(|x| Box::new(PlainMonthDay(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialDate,
@@ -100,6 +109,26 @@ pub mod ffi {
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn epoch_ms_for(
+            &self,
+            time_zone: &crate::time_zone::ffi::TimeZone,
+        ) -> Result<i64, TemporalError> {
+            let ns = self
+                .0
+                .epoch_ns_for(&time_zone.0)
+                .map_err(TemporalError::from)?;
+
+            let ns_i128 = ns.as_i128();
+            let ms = ns_i128 / 1_000_000;
+            if let Ok(ms) = i64::try_from(ms) {
+                Ok(ms)
+            } else {
+                Err(TemporalError::assert("Found an out-of-range MonthDay"))
+            }
+        }
+
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,
@@ -109,6 +138,11 @@ pub mod ffi {
             // This can only fail in cases where the DiplomatWriteable is capped, we
             // don't care about that.
             let _ = writeable.write_to(write);
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
         }
     }
 }

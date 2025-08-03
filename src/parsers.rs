@@ -696,6 +696,23 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
     }
     .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
+    // Note: this method only handles the specific AnnotatedFoo nonterminals;
+    // so if we are parsing MonthDay/YearMonth we will never have a DateDay/DateYear parse node.
+    //
+    // 3. If goal is TemporalYearMonthString, and parseResult does not contain a DateDay Parse Node, then
+    //  a. If calendar is not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a RangeError exception.
+    // 4. If goal is TemporalMonthDayString and parseResult does not contain a DateYear Parse Node, then
+    //  a. If calendar is not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a RangeError exception.
+    //  b. Set yearAbsent to true.
+    if variant == ParseVariant::MonthDay || variant == ParseVariant::YearMonth {
+        if let Some(cal) = record.calendar {
+            if !cal.eq_ignore_ascii_case(b"iso8601") {
+                return Err(TemporalError::range()
+                    .with_message("YearMonth/MonthDay formats only allowed for ISO calendar."));
+            }
+        }
+    }
+
     if critical_duplicate_calendar {
         // TODO: Add tests for the below.
         // Parser handles non-matching calendar, so the value thrown here should only be duplicates.
@@ -729,8 +746,8 @@ pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<
 }
 
 #[inline]
-pub(crate) fn parse_zoned_date_time(source: &str) -> TemporalResult<IxdtfParseRecord<Utf8>> {
-    let record = parse_ixdtf(source.as_bytes(), ParseVariant::DateTime)?;
+pub(crate) fn parse_zoned_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<Utf8>> {
+    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
 
     // TODO: Support rejecting subminute precision in time zone annootations
     if record.tz.is_none() {

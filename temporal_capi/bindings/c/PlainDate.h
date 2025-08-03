@@ -90,8 +90,7 @@ void temporal_rs_PlainDate_month_code(const PlainDate* self, DiplomatWrite* writ
 
 uint8_t temporal_rs_PlainDate_day(const PlainDate* self);
 
-typedef struct temporal_rs_PlainDate_day_of_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_day_of_week_result;
-temporal_rs_PlainDate_day_of_week_result temporal_rs_PlainDate_day_of_week(const PlainDate* self);
+uint16_t temporal_rs_PlainDate_day_of_week(const PlainDate* self);
 
 uint16_t temporal_rs_PlainDate_day_of_year(const PlainDate* self);
 
@@ -101,8 +100,7 @@ temporal_rs_PlainDate_week_of_year_result temporal_rs_PlainDate_week_of_year(con
 typedef struct temporal_rs_PlainDate_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_PlainDate_year_of_week_result;
 temporal_rs_PlainDate_year_of_week_result temporal_rs_PlainDate_year_of_week(const PlainDate* self);
 
-typedef struct temporal_rs_PlainDate_days_in_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_days_in_week_result;
-temporal_rs_PlainDate_days_in_week_result temporal_rs_PlainDate_days_in_week(const PlainDate* self);
+uint16_t temporal_rs_PlainDate_days_in_week(const PlainDate* self);
 
 uint16_t temporal_rs_PlainDate_days_in_month(const PlainDate* self);
 
@@ -130,6 +128,8 @@ typedef struct temporal_rs_PlainDate_to_zoned_date_time_result {union {ZonedDate
 temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const PlainDate* self, const TimeZone* time_zone, const PlainTime* time);
 
 void temporal_rs_PlainDate_to_ixdtf_string(const PlainDate* self, DisplayCalendar display_calendar, DiplomatWrite* write);
+
+PlainDate* temporal_rs_PlainDate_clone(const PlainDate* self);
 
 void temporal_rs_PlainDate_destroy(PlainDate* self);
 

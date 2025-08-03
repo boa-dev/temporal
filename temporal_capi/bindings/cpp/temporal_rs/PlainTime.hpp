@@ -88,6 +88,8 @@ namespace capi {
     typedef struct temporal_rs_PlainTime_to_ixdtf_string_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_to_ixdtf_string_result;
     temporal_rs_PlainTime_to_ixdtf_string_result temporal_rs_PlainTime_to_ixdtf_string(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
 
+    temporal_rs::capi::PlainTime* temporal_rs_PlainTime_clone(const temporal_rs::capi::PlainTime* self);
+
     void temporal_rs_PlainTime_destroy(PlainTime* self);
 
     } // extern "C"
@@ -246,6 +248,11 @@ inline diplomat::result<std::monostate, temporal_rs::TemporalError> temporal_rs:
     options.AsFFI(),
     &write);
   return result.is_ok ? diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Ok<std::monostate>()) : diplomat::result<std::monostate, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline std::unique_ptr<temporal_rs::PlainTime> temporal_rs::PlainTime::clone() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainTime_clone(this->AsFFI());
+  return std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result));
 }
 
 inline const temporal_rs::capi::PlainTime* temporal_rs::PlainTime::AsFFI() const {

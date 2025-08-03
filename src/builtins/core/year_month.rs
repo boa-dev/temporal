@@ -8,14 +8,15 @@ use tinystr::TinyAsciiStr;
 use crate::{
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, DisplayCalendar,
-        ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
+        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
+        DisplayCalendar, ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
-    provider::NeverProvider,
+    provider::{NeverProvider, TimeZoneProvider},
     temporal_assert,
+    unix_time::EpochNanoseconds,
     utils::pad_iso_year,
-    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    Calendar, MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use icu_calendar::AnyCalendarKind;
 
@@ -320,12 +321,12 @@ impl PlainYearMonth {
         // 10. If sign < 0, then
         let date = if sign.as_sign_multiplier() < 0 {
             // a. Let oneMonthDuration be ! CreateDateDurationRecord(0, 1, 0, 0).
-            let one_month_duration = DateDuration::new_unchecked(0, 1, 0, 0);
+            let one_month_duration = DateDuration::new_unchecked(Sign::Positive, 0, 1, 0, 0);
 
             // b. Let nextMonth be ? CalendarDateAdd(calendar, intermediateDate, oneMonthDuration, constrain).
             let next_month = calendar.date_add(
                 &intermediate_date.iso,
-                &Duration::from(one_month_duration),
+                &one_month_duration,
                 ArithmeticOverflow::Constrain,
             )?;
 
@@ -352,11 +353,12 @@ impl PlainYearMonth {
         let duration_to_add = duration.to_date_duration_record_without_time()?;
 
         // 13. Let addedDate be ? CalendarDateAdd(calendar, date, durationToAdd, overflow).
-        let added_date = calendar.date_add(&date, &Duration::from(duration_to_add), overflow)?;
+        let added_date = calendar.date_add(&date, &duration_to_add, overflow)?;
 
         // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
-        let added_date_fields =
-            PartialYearMonth::from(&PartialDate::default().with_fallback_date(&added_date)?);
+        let added_date_fields = PartialYearMonth::from(
+            &PartialDate::default().with_fallback_date(&added_date, overflow)?,
+        );
 
         // 15. Let isoDate be ? CalendarYearMonthFromFields(calendar, addedDateFields, overflow).
         let iso_date = calendar.year_month_from_partial(&added_date_fields, overflow)?;
@@ -407,26 +409,33 @@ impl PlainYearMonth {
         // 7. Let thisFields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
         // 8. Set thisFields.[[Day]] to 1.
         // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
+        let mut this_iso = self.iso;
+        this_iso.day = 1;
+        this_iso.check_validity()?;
         // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
         // 11. Set otherFields.[[Day]] to 1.
         // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
+        let mut other_iso = other.iso;
+        other_iso.day = 1;
+        other_iso.check_validity()?;
         // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
-        // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
         let result = self
             .calendar()
-            .date_until(&self.iso, &other.iso, resolved.largest_unit)?;
+            .date_until(&this_iso, &other_iso, resolved.largest_unit)?;
+        // 14. Let yearsMonthsDifference be ! AdjustDateDurationRecord(dateDifference, 0, 0).
+        let result = result.date().adjust(0, Some(0), None)?;
 
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
-        let mut duration = NormalizedDurationRecord::from_date_duration(result.date())?;
+        let mut duration = NormalizedDurationRecord::from_date_duration(result)?;
 
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
         if resolved.smallest_unit != Unit::Month || resolved.increment != RoundingIncrement::ONE {
             // a. Let isoDateTime be CombineISODateAndTimeRecord(thisDate, MidnightTimeRecord()).
-            let iso_date_time = IsoDateTime::new_unchecked(self.iso, IsoTime::default());
+            let iso_date_time = IsoDateTime::new_unchecked(this_iso, IsoTime::default());
             // b. Let isoDateTimeOther be CombineISODateAndTimeRecord(otherDate, MidnightTimeRecord()).
-            let target_iso_date_time = IsoDateTime::new_unchecked(other.iso, IsoTime::default());
+            let target_iso_date_time = IsoDateTime::new_unchecked(other_iso, IsoTime::default());
             // c. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTimeOther).
-            let dest_epoch_ns = target_iso_date_time.as_nanoseconds()?;
+            let dest_epoch_ns = target_iso_date_time.as_nanoseconds();
             // d. Set duration to ? RoundRelativeDuration(duration, destEpochNs, isoDateTime, unset, calendar, resolved.[[LargestUnit]], resolved.[[RoundingIncrement]], resolved.[[SmallestUnit]], resolved.[[RoundingMode]]).
             duration = duration.round_relative_duration(
                 dest_epoch_ns.as_i128(),
@@ -518,9 +527,11 @@ impl PlainYearMonth {
     /// Create a `PlainYearMonth` from a `PartialYearMonth`
     pub fn from_partial(
         partial: PartialYearMonth,
-        overflow: ArithmeticOverflow,
+        overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        partial.calendar.year_month_from_partial(&partial, overflow)
+        partial
+            .calendar
+            .year_month_from_partial(&partial, overflow.unwrap_or_default())
     }
 
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
@@ -560,7 +571,7 @@ impl PlainYearMonth {
         // [[Day]] field of the [[ISODate]] internal slot of the result.
         // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
         // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        PlainYearMonth::from_partial(partial, ArithmeticOverflow::Constrain)
+        PlainYearMonth::from_partial(partial, Some(ArithmeticOverflow::Constrain))
     }
 
     /// Returns the iso year value for this `YearMonth`.
@@ -584,6 +595,13 @@ impl PlainYearMonth {
         self.iso.month
     }
 
+    /// Returns the internal ISO day for this `YearMonth`.
+    #[inline]
+    #[must_use]
+    pub fn iso_reference_day(&self) -> u8 {
+        self.iso.day
+    }
+
     /// Returns the calendar era of the current `PlainYearMonth`
     pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar().era(&self.iso)
@@ -602,6 +620,11 @@ impl PlainYearMonth {
     /// Returns the calendar month of the current `PlainYearMonth`
     pub fn month(&self) -> u8 {
         self.calendar().month(&self.iso)
+    }
+
+    /// Returns the calendar reference day of the current `PlainYearMonth`
+    pub fn reference_day(&self) -> u8 {
+        self.calendar().day(&self.iso)
     }
 
     /// Returns the calendar month code of the current `PlainYearMonth`
@@ -664,10 +687,9 @@ impl PlainYearMonth {
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
         // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        self.calendar.year_month_from_partial(
-            &partial.with_fallback_year_month(self)?,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-        )
+        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        self.calendar
+            .year_month_from_partial(&partial.with_fallback_year_month(self, overflow)?, overflow)
     }
 
     /// Compares one `PlainYearMonth` to another `PlainYearMonth` using their
@@ -726,8 +748,24 @@ impl PlainYearMonth {
             .with_day(Some(day_value))
             .with_calendar(self.calendar.clone());
 
+        // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_partial(&partial_date, ArithmeticOverflow::Reject)
+            .date_from_partial(&partial_date, ArithmeticOverflow::Constrain)
+    }
+
+    /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
+    /// (using the reference year, and noon time)
+    ///
+    // Useful for implementing HandleDateTimeTemporalYearMonth
+    pub fn epoch_ns_for_with_provider(
+        &self,
+        time_zone: &TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<EpochNanoseconds> {
+        // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalYearMonth.[[ISODate]], NoonTimeRecord()).
+        let iso = IsoDateTime::new(self.iso, IsoTime::noon())?;
+        // 3. Let epochNs be ? GetEpochNanosecondsFor(dateTimeFormat.[[TimeZone]], isoDateTime, compatible).
+        time_zone.get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
@@ -887,10 +925,11 @@ mod tests {
             assert_eq!(since.years(), -1000);
         }
 
-        // Lower ISO limit
+        // Lower ISO limit plus one month
+        // (The lower iso limit iteslf does not work since the day is set to 1)
         {
-            let earlier = PlainYearMonth::from_str("-271821-04").unwrap();
-            let later = PlainYearMonth::from_str("-271820-04").unwrap();
+            let earlier = PlainYearMonth::from_str("-271821-05").unwrap();
+            let later = PlainYearMonth::from_str("-271820-05").unwrap();
             let settings = DifferenceSettings {
                 smallest_unit: Some(Unit::Year),
                 ..Default::default()
@@ -1182,5 +1221,17 @@ mod tests {
         assert_eq!(partial.era, Some(tinystr!(19, "ce")));
         assert_eq!(partial.era_year, Some(2020));
         assert_eq!(partial.calendar, calendar);
+    }
+
+    #[test]
+    fn test_year_month_diff_range() {
+        // built-ins/Temporal/PlainYearMonth/prototype/since/throws-if-year-outside-valid-iso-range
+
+        let min = PlainYearMonth::new(-271821, 4, None, Default::default()).unwrap();
+        let max = PlainYearMonth::new(275760, 9, None, Default::default()).unwrap();
+        let epoch = PlainYearMonth::new(1970, 1, None, Default::default()).unwrap();
+        let _ = min.since(&min, Default::default()).unwrap();
+        assert!(min.since(&max, Default::default()).is_err());
+        assert!(min.since(&epoch, Default::default()).is_err());
     }
 }

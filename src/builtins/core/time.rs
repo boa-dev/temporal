@@ -2,6 +2,7 @@
 
 use crate::{
     builtins::core::Duration,
+    error::ErrorMessage,
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
@@ -12,6 +13,7 @@ use crate::{
 };
 use alloc::string::String;
 use core::str::FromStr;
+use ixdtf::records::TimeRecord;
 use writeable::Writeable;
 
 use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
@@ -50,6 +52,34 @@ impl PartialTime {
             microsecond: None,
             nanosecond: None,
         }
+    }
+
+    pub(crate) fn from_time_record(time_record: TimeRecord) -> TemporalResult<Self> {
+        use crate::TemporalUnwrap;
+        use num_traits::Euclid;
+
+        let fractional_seconds = time_record
+            .fraction
+            .map(|x| {
+                x.to_nanoseconds().ok_or(
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
+                )
+            })
+            .transpose()?
+            .unwrap_or(0);
+
+        let (millisecond, rem) = fractional_seconds.div_rem_euclid(&1_000_000);
+        let (micros, nanos) = rem.div_rem_euclid(&1_000);
+
+        Ok(Self {
+            hour: Some(time_record.hour),
+            minute: Some(time_record.minute),
+            second: Some(time_record.second),
+            millisecond: Some(u16::try_from(millisecond).ok().temporal_unwrap()?),
+            microsecond: Some(u16::try_from(micros).ok().temporal_unwrap()?),
+            nanosecond: Some(u16::try_from(nanos).ok().temporal_unwrap()?),
+        })
     }
 
     pub const fn with_hour(mut self, hour: Option<u8>) -> Self {
@@ -531,13 +561,10 @@ impl PlainTime {
 
     /// Add a `Duration` to the current `Time`.
     pub fn add(&self, duration: &Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to `Time`."));
-        }
         self.add_time_duration(duration)
     }
 
+    // TODO: deprecate
     /// Adds a `Duration` to the current `Time`.
     #[inline]
     pub fn add_time_duration(&self, duration: &Duration) -> TemporalResult<Self> {
@@ -546,13 +573,10 @@ impl PlainTime {
 
     /// Subtract a `Duration` to the current `Time`.
     pub fn subtract(&self, duration: &Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to `Time` component."));
-        }
-        self.subtract_time_duration(duration)
+        self.subtract_time_duration(&duration.negated())
     }
 
+    // TODO: deprecate
     /// Adds a `Duration` to the current `Time`.
     #[inline]
     pub fn subtract_time_duration(&self, duration: &Duration) -> TemporalResult<Self> {

@@ -43,8 +43,11 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
+<<<<<<< HEAD
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_day_and_time(int64_t day, const temporal_rs::Duration& time);
 
+=======
+>>>>>>> main
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_partial_duration(temporal_rs::PartialDuration partial);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_utf8(std::string_view s);
@@ -96,6 +99,8 @@ public:
   inline diplomat::result<int8_t, temporal_rs::TemporalError> compare(const temporal_rs::Duration& other, temporal_rs::RelativeTo relative_to) const;
 
   inline diplomat::result<double, temporal_rs::TemporalError> total(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to) const;
+
+  inline std::unique_ptr<temporal_rs::Duration> clone() const;
 
   inline const temporal_rs::capi::Duration* AsFFI() const;
   inline temporal_rs::capi::Duration* AsFFI();

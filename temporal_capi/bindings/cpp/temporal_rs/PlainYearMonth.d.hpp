@@ -20,6 +20,8 @@ namespace capi { struct PlainDate; }
 class PlainDate;
 namespace capi { struct PlainYearMonth; }
 class PlainYearMonth;
+namespace capi { struct TimeZone; }
+class TimeZone;
 struct DifferenceSettings;
 struct PartialDate;
 struct TemporalError;
@@ -41,6 +43,8 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> try_new_with_overflow(int32_t year, uint8_t month, std::optional<uint8_t> reference_day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow);
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
+
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> from_utf8(std::string_view s);
@@ -54,6 +58,8 @@ public:
   inline void padded_iso_year_string_write(W& writeable_output) const;
 
   inline uint8_t iso_month() const;
+
+  inline uint8_t iso_day() const;
 
   inline int32_t year() const;
 
@@ -93,9 +99,13 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> day) const;
 
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ms_for(const temporal_rs::TimeZone& time_zone) const;
+
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
   template<typename W>
   inline void to_ixdtf_string_write(temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
+
+  inline std::unique_ptr<temporal_rs::PlainYearMonth> clone() const;
 
   inline const temporal_rs::capi::PlainYearMonth* AsFFI() const;
   inline temporal_rs::capi::PlainYearMonth* AsFFI();

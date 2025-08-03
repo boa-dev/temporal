@@ -2,7 +2,7 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::duration::ffi::Duration;
+    use crate::duration::ffi::{DateDuration, Duration};
     use crate::error::ffi::TemporalError;
     use crate::iso::ffi::IsoDate;
     use crate::options::ffi::{ArithmeticOverflow, Unit};
@@ -120,7 +120,7 @@ pub mod ffi {
         pub fn date_add(
             &self,
             date: IsoDate,
-            duration: &Duration,
+            duration: &DateDuration,
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainDate>, TemporalError> {
             self.0
@@ -173,8 +173,8 @@ pub mod ffi {
         pub fn day(&self, date: IsoDate) -> u8 {
             self.0.day(&date.into())
         }
-        pub fn day_of_week(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.day_of_week(&date.into()).map_err(Into::into)
+        pub fn day_of_week(&self, date: IsoDate) -> u16 {
+            self.0.day_of_week(&date.into())
         }
         pub fn day_of_year(&self, date: IsoDate) -> u16 {
             self.0.day_of_year(&date.into())
@@ -185,8 +185,8 @@ pub mod ffi {
         pub fn year_of_week(&self, date: IsoDate) -> Option<i32> {
             self.0.year_of_week(&date.into())
         }
-        pub fn days_in_week(&self, date: IsoDate) -> Result<u16, TemporalError> {
-            self.0.days_in_week(&date.into()).map_err(Into::into)
+        pub fn days_in_week(&self, date: IsoDate) -> u16 {
+            self.0.days_in_week(&date.into())
         }
         pub fn days_in_month(&self, date: IsoDate) -> u16 {
             self.0.days_in_month(&date.into())

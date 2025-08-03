@@ -224,8 +224,8 @@ pub mod ffi {
         pub fn day(&self) -> u8 {
             self.0.day()
         }
-        pub fn day_of_week(&self) -> Result<u16, TemporalError> {
-            self.0.day_of_week().map_err(Into::into)
+        pub fn day_of_week(&self) -> u16 {
+            self.0.day_of_week()
         }
         pub fn day_of_year(&self) -> u16 {
             self.0.day_of_year()
@@ -236,8 +236,8 @@ pub mod ffi {
         pub fn year_of_week(&self) -> Option<i32> {
             self.0.year_of_week()
         }
-        pub fn days_in_week(&self) -> Result<u16, TemporalError> {
-            self.0.days_in_week().map_err(Into::into)
+        pub fn days_in_week(&self) -> u16 {
+            self.0.days_in_week()
         }
         pub fn days_in_month(&self) -> u16 {
             self.0.days_in_month()
@@ -309,6 +309,11 @@ pub mod ffi {
             // don't care about that.
             let _ = writeable.write_to(write);
         }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
+        }
     }
 }
 
@@ -320,25 +325,54 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
         let month_code = if other.month_code.is_empty() {
             None
         } else {
-            Some(
-                MonthCode::try_from_utf8(other.month_code.into())
-                    .map_err(|_| TemporalError::syntax())?,
-            )
+            Some(MonthCode::try_from_utf8(other.month_code.into()).map_err(TemporalError::from)?)
         };
 
         let era = if other.era.is_empty() {
             None
         } else {
-            Some(
-                TinyAsciiStr::try_from_utf8(other.era.into())
-                    .map_err(|_| TemporalError::syntax())?,
-            )
+            Some(TinyAsciiStr::try_from_utf8(other.era.into()).map_err(|_| {
+                TemporalError::from(
+                    temporal_rs::TemporalError::range().with_message("Invalid era code."),
+                )
+            })?)
         };
         Ok(Self {
             year: other.year.into(),
             month: other.month.into(),
             month_code,
             day: other.day.into(),
+            era_year: other.era_year.into(),
+            era,
+            calendar: temporal_rs::Calendar::new(other.calendar.into()),
+        })
+    }
+}
+
+impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialYearMonth {
+    type Error = TemporalError;
+    fn try_from(other: ffi::PartialDate<'_>) -> Result<Self, TemporalError> {
+        use temporal_rs::TinyAsciiStr;
+
+        let month_code = if other.month_code.is_empty() {
+            None
+        } else {
+            Some(MonthCode::try_from_utf8(other.month_code.into()).map_err(TemporalError::from)?)
+        };
+
+        let era = if other.era.is_empty() {
+            None
+        } else {
+            Some(TinyAsciiStr::try_from_utf8(other.era.into()).map_err(|_| {
+                TemporalError::from(
+                    temporal_rs::TemporalError::range().with_message("Invalid era code."),
+                )
+            })?)
+        };
+        Ok(Self {
+            year: other.year.into(),
+            month: other.month.into(),
+            month_code,
             era_year: other.era_year.into(),
             era,
             calendar: temporal_rs::Calendar::new(other.calendar.into()),

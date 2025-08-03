@@ -50,7 +50,9 @@ impl Temporal {
 #[inline]
 pub(crate) fn get_system_timezone() -> TemporalResult<TimeZone> {
     iana_time_zone::get_timezone()
-        .map(|s| TimeZone::try_from_identifier_str(&s))
+        .map(|s| {
+            TimeZone::try_from_identifier_str_with_provider(&s, &*crate::builtins::TZ_PROVIDER)
+        })
         .map_err(|e| TemporalError::general(e.to_string()))?
 }
 
@@ -62,5 +64,5 @@ pub(crate) fn get_system_nanoseconds() -> TemporalResult<EpochNanoseconds> {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| TemporalError::general(e.to_string()))
-        .map(|d| EpochNanoseconds::try_from(d.as_nanos()))?
+        .map(|d| EpochNanoseconds::from(d.as_nanos() as i128))
 }

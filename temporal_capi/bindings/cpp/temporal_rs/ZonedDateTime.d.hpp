@@ -18,6 +18,8 @@ namespace capi { struct Duration; }
 class Duration;
 namespace capi { struct Instant; }
 class Instant;
+namespace capi { struct OwnedPartialZonedDateTime; }
+class OwnedPartialZonedDateTime;
 namespace capi { struct PlainDate; }
 class PlainDate;
 namespace capi { struct PlainDateTime; }
@@ -58,6 +60,8 @@ public:
   inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> try_new(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, const temporal_rs::TimeZone& time_zone);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialZonedDateTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow, std::optional<temporal_rs::Disambiguation> disambiguation, std::optional<temporal_rs::OffsetDisambiguation> offset_option);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_owned_partial(const temporal_rs::OwnedPartialZonedDateTime& partial, std::optional<temporal_rs::ArithmeticOverflow> overflow, std::optional<temporal_rs::Disambiguation> disambiguation, std::optional<temporal_rs::OffsetDisambiguation> offset_option);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_utf8(std::string_view s, temporal_rs::Disambiguation disambiguation, temporal_rs::OffsetDisambiguation offset_disambiguation);
 
@@ -164,6 +168,8 @@ public:
   inline void era_write(W& writeable_output) const;
 
   inline std::optional<int32_t> era_year() const;
+
+  inline std::unique_ptr<temporal_rs::ZonedDateTime> clone() const;
 
   inline const temporal_rs::capi::ZonedDateTime* AsFFI() const;
   inline temporal_rs::capi::ZonedDateTime* AsFFI();

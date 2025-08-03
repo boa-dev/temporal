@@ -4,12 +4,16 @@ use ixdtf::{
     records::{TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ},
 };
 
+use crate::provider::TimeZoneProvider;
 use crate::{builtins::timezone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
 use super::{parse_ixdtf, ParseVariant};
 
 #[inline]
-pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
+pub(crate) fn parse_allowed_timezone_formats(
+    s: &str,
+    provider: &impl TimeZoneProvider,
+) -> Option<TimeZone> {
     let (offset, annotation) = if let Ok((offset, annotation)) =
         parse_ixdtf(s.as_bytes(), ParseVariant::DateTime).map(|r| (r.offset, r.tz))
     {
@@ -32,7 +36,7 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
     };
 
     if let Some(annotation) = annotation {
-        return TimeZone::from_time_zone_record(annotation.tz).ok();
+        return TimeZone::from_time_zone_record(annotation.tz, provider).ok();
     };
 
     if let Some(offset) = offset {
@@ -43,7 +47,9 @@ pub(crate) fn parse_allowed_timezone_formats(s: &str) -> Option<TimeZone> {
                     UtcOffsetRecord::MinutePrecision(offset) => offset,
                     _ => return None,
                 };
-                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_record(offset)));
+                return Some(TimeZone::UtcOffset(UtcOffset::from_ixdtf_minute_record(
+                    offset,
+                )));
             }
         }
     }

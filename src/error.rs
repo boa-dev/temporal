@@ -86,8 +86,17 @@ impl TemporalError {
     /// Creates an assertion error
     #[inline]
     #[must_use]
+    #[cfg_attr(debug_assertions, track_caller)]
     pub(crate) const fn assert() -> Self {
-        Self::new(ErrorKind::Assert)
+        #[cfg(not(debug_assertions))]
+        {
+            Self::new(ErrorKind::Assert)
+        }
+        #[cfg(debug_assertions)]
+        Self {
+            kind: ErrorKind::Assert,
+            msg: Cow::Borrowed(core::panic::Location::caller().file()),
+        }
     }
 
     /// Create an abrupt end error.
@@ -156,12 +165,13 @@ impl fmt::Display for TemporalError {
 }
 
 /// The error message
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub(crate) enum ErrorMessage {
     // Range
     InstantOutOfRange,
     IntermediateDateTimeOutOfRange,
     ZDTOutOfDayBounds,
+    LargestUnitCannotBeDateUnit,
 
     // Numerical errors
     NumberNotFinite,
@@ -189,6 +199,7 @@ pub(crate) enum ErrorMessage {
 
     // Parsing
     ParserNeedsDate,
+    FractionalTimeMoreThanNineDigits,
 
     // Other
     OffsetNeedsDisambiguation,
@@ -202,6 +213,7 @@ impl ErrorMessage {
                 "Intermediate ISO datetime was not within a valid range."
             }
             Self::ZDTOutOfDayBounds => "ZonedDateTime is outside the expected day bounds",
+            Self::LargestUnitCannotBeDateUnit => "Largest unit cannot be a date unit",
             Self::NumberNotFinite => "number value is not a finite value.",
             Self::NumberNotIntegral => "value must be integral.",
             Self::NumberNotPositive => "integer must be positive.",
@@ -226,6 +238,7 @@ impl ErrorMessage {
             Self::TzMismatch => "Timezones must be the same if unit is a day unit.",
 
             Self::ParserNeedsDate => "Could not find a valid DateRecord node during parsing.",
+            Self::FractionalTimeMoreThanNineDigits => "Fractional time exceeds nine digits.",
             Self::OffsetNeedsDisambiguation => {
                 "Offsets could not be determined without disambiguation"
             }

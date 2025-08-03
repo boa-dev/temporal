@@ -26,16 +26,14 @@ use core::num::NonZeroU128;
 use ixdtf::records::TimeRecord;
 
 use crate::{
-    builtins::{
-        core::{
-            calendar::Calendar,
-            duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-            Duration, PartialTime, PlainDate,
-        },
+    builtins::core::{
+        calendar::Calendar,
+        duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+        Duration, PartialTime, PlainDate,
     },
-    error::TemporalError,
+    error::{ErrorMessage, TemporalError},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     temporal_assert,
     unix_time::EpochNanoseconds,
     utils, DateDuration, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -67,6 +65,15 @@ impl IsoDateTime {
             );
         }
         Ok(Self::new_unchecked(date, time))
+    }
+
+    pub fn check_validity(&self) -> TemporalResult<()> {
+        if !iso_dt_within_valid_limits(self.date, &self.time) {
+            return Err(
+                TemporalError::range().with_message("IsoDateTime not within a valid range.")
+            );
+        }
+        Ok(())
     }
 
     // NOTE: The below assumes that nanos is from an `Instant` and thus in a valid range. -> Needs validation.
@@ -144,7 +151,7 @@ impl IsoDateTime {
     }
 
     /// Returns this `IsoDateTime` in nanoseconds
-    pub fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+    pub fn as_nanoseconds(&self) -> EpochNanoseconds {
         utc_epoch_nanos(self.date, &self.time)
     }
 
@@ -165,26 +172,26 @@ impl IsoDateTime {
         let date = PlainDate::new_unchecked(self.date, calendar);
 
         // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
-        let sign = date_duration.sign.as_sign_multiplier();
         let date_duration = DateDuration::new(
-            i64::from(date_duration.years) * i64::from(sign),
-            i64::from(date_duration.months) * i64::from(sign),
-            i64::from(date_duration.weeks) * i64::from(sign),
-            i64::try_from(date_duration.days).or(Err(TemporalError::range()))?
-                * i64::from(sign)
-                    .checked_add(t_result.0)
-                    .ok_or(TemporalError::range())?,
+            date_duration.years,
+            date_duration.months,
+            date_duration.weeks,
+            date_duration
+                .days
+                .checked_add(t_result.0)
+                .ok_or(TemporalError::range())?,
         )?;
         let duration = Duration::from(date_duration);
 
         // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
-        let added_date = date.add_date(&duration, overflow)?;
+        // The within-limits check gets handled below in Self::new
+        let added_date = date.add_duration_to_date(&duration, overflow)?;
 
         // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
         // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],
         // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
         // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
-        Ok(Self::new_unchecked(added_date.iso, t_result.1))
+        Self::new(added_date.iso, t_result.1)
     }
 
     pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
@@ -197,6 +204,7 @@ impl IsoDateTime {
         Self::new(balance_result, rounded_time)
     }
 
+    // TODO: UPDATE TO CURRENT SPECIFICATION
     // TODO: Determine whether to provide an options object...seems duplicative.
     /// 5.5.11 DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, options )
     pub(crate) fn diff(
@@ -266,6 +274,7 @@ impl IsoDateTime {
         // 17. Return ? CreateNormalizedDurationRecord(dateDifference.[[Years]], dateDifference.[[Months]], dateDifference.[[Weeks]], days, timeDuration).
         NormalizedDurationRecord::new(
             DateDuration::new_unchecked(
+                date_diff.sign(),
                 date_diff.years(),
                 date_diff.months(),
                 date_diff.weeks(),
@@ -323,6 +332,12 @@ impl IsoDate {
         }
     }
 
+    pub fn check_validity(self) -> TemporalResult<()> {
+        if !iso_dt_within_valid_limits(self, &IsoTime::noon()) {
+            return Err(TemporalError::range().with_message("IsoDate not within a valid range."));
+        }
+        Ok(())
+    }
     pub(crate) fn new_with_overflow(
         year: i32,
         month: u8,
@@ -369,7 +384,7 @@ impl IsoDate {
 
     /// Returns this `IsoDate` in nanoseconds.
     #[inline]
-    pub(crate) fn as_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+    pub(crate) fn as_nanoseconds(&self) -> EpochNanoseconds {
         utc_epoch_nanos(*self, &IsoTime::default())
     }
 
@@ -396,9 +411,8 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
-        let year_offset = i64::from(duration.years) * i64::from(duration.sign.as_sign_multiplier());
-        let month_offset =
-            i64::from(duration.months) * i64::from(duration.sign.as_sign_multiplier());
+        let year_offset = duration.years * i64::from(duration.sign.as_sign_multiplier());
+        let month_offset = duration.months * i64::from(duration.sign.as_sign_multiplier());
         let intermediate = balance_iso_year_month_with_clamp(
             i64::from(self.year) + year_offset,
             i64::from(self.month) + month_offset,
@@ -409,9 +423,8 @@ impl IsoDate {
             Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days = i64::try_from(duration.days).or(Err(TemporalError::range()))?
-            * i64::from(duration.sign.as_sign_multiplier())
-            + (7 * i64::from(duration.weeks) * i64::from(duration.sign.as_sign_multiplier()));
+        let additional_days =
+            duration.days + (7 * duration.weeks * i64::from(duration.sign.as_sign_multiplier()));
 
         // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;
@@ -650,7 +663,8 @@ impl IsoTime {
             .fraction
             .map(|x| {
                 x.to_nanoseconds().ok_or(
-                    TemporalError::range().with_message("fractional seconds exceeds nine digits."),
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
                 )
             })
             .transpose()?
@@ -933,9 +947,9 @@ fn iso_dt_within_valid_limits(date: IsoDate, time: &IsoTime) -> bool {
 
 #[inline]
 /// Utility function to convert a `IsoDate` and `IsoTime` values into epoch nanoseconds
-fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> TemporalResult<EpochNanoseconds> {
+fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> EpochNanoseconds {
     let epoch_nanos = to_unchecked_epoch_nanoseconds(date, time);
-    EpochNanoseconds::try_from(epoch_nanos)
+    EpochNanoseconds::from(epoch_nanos)
 }
 
 #[inline]

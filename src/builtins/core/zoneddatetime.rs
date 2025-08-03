@@ -25,7 +25,7 @@ use crate::{
     partial::{PartialDate, PartialTime},
     primitive::FiniteF64,
     provider::{TimeZoneProvider, TransitionDirection},
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     temporal_assert,
     unix_time::EpochNanoseconds,
     MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
@@ -37,7 +37,17 @@ pub struct PartialZonedDateTime {
     /// The `PartialDate` portion of a `PartialZonedDateTime`
     pub date: PartialDate,
     /// The `PartialTime` portion of a `PartialZonedDateTime`
-    pub time: PartialTime,
+    ///
+    /// a `time` of `None` means `START-OF-DAY` (as opposed to 00:00:00)
+    pub time: Option<PartialTime>,
+    /// Whether or not the string has a UTC designator (`Z`)
+    ///
+    /// Incompatible with having an offset (you can still have a offset-format timezone)
+    pub has_utc_designator: bool,
+    /// Whether or not to allow offsets rounded to the minute
+    ///
+    /// (Typically only needs to be set when parsing, can be false otherwise)
+    pub match_minutes: bool,
     /// An optional offset string
     pub offset: Option<UtcOffset>,
     /// The time zone value of a partial time zone.
@@ -47,7 +57,7 @@ pub struct PartialZonedDateTime {
 impl PartialZonedDateTime {
     pub fn is_empty(&self) -> bool {
         self.date.is_empty()
-            && self.time.is_empty()
+            && self.time.is_none()
             && self.offset.is_none()
             && self.timezone.is_none()
     }
@@ -55,7 +65,9 @@ impl PartialZonedDateTime {
     pub const fn new() -> Self {
         Self {
             date: PartialDate::new(),
-            time: PartialTime::new(),
+            time: None,
+            has_utc_designator: false,
+            match_minutes: false,
             offset: None,
             timezone: None,
         }
@@ -67,7 +79,7 @@ impl PartialZonedDateTime {
     }
 
     pub const fn with_time(mut self, partial_time: PartialTime) -> Self {
-        self.time = partial_time;
+        self.time = Some(partial_time);
         self
     }
 
@@ -79,6 +91,76 @@ impl PartialZonedDateTime {
     pub fn with_timezone(mut self, timezone: Option<TimeZone>) -> Self {
         self.timezone = timezone;
         self
+    }
+
+    #[cfg(feature = "compiled_data")]
+    pub fn try_from_utf8(source: &[u8]) -> TemporalResult<Self> {
+        Self::try_from_utf8_with_provider(source, &*crate::builtins::TZ_PROVIDER)
+    }
+
+    pub fn try_from_utf8_with_provider(
+        source: &[u8],
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        // Steps from the parse bits of of ToZonedDateTime
+
+        // 3. Let matchBehaviour be match-minutes.
+        let mut match_minutes = true;
+
+        // b. Let result be ? ParseISODateTime(item, « TemporalDateTimeString[+Zoned] »).
+        let parse_result = parsers::parse_zoned_date_time(source)?;
+
+        // c. Let annotation be result.[[TimeZone]].[[TimeZoneAnnotation]].
+        // d. Assert: annotation is not empty.
+        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
+        let annotation = parse_result.tz.temporal_unwrap()?;
+
+        // e. Let timeZone be ? ToTemporalTimeZoneIdentifier(annotation).
+        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
+
+        // f. Let offsetString be result.[[TimeZone]].[[OffsetString]].
+        let (offset, has_utc_designator) = match parse_result.offset {
+            // g. If result.[[TimeZone]].[[Z]] is true, then
+            // i. Set hasUTCDesignator to true.
+            Some(UtcOffsetRecordOrZ::Z) => (None, true),
+            Some(UtcOffsetRecordOrZ::Offset(offset)) => {
+                if offset.second().is_some() {
+                    // iii. If offsetParseResult contains more than one MinuteSecond Parse Node, set matchBehaviour to match-exactly.
+                    match_minutes = false;
+                }
+                (Some(UtcOffset::from_ixdtf_record(offset)?), false)
+            }
+            None => (None, false),
+        };
+
+        // h. Let calendar be result.[[Calendar]].
+        // i. If calendar is empty, set calendar to "iso8601".
+        // j. Set calendar to ? CanonicalizeCalendar(calendar).
+        let calendar = parse_result
+            .calendar
+            .map(Calendar::try_from_utf8)
+            .transpose()?
+            .unwrap_or_default();
+
+        let Some(parsed_date) = parse_result.date else {
+            return Err(TemporalError::range().with_enum(ErrorMessage::ParserNeedsDate));
+        };
+
+        let time = parse_result
+            .time
+            .map(PartialTime::from_time_record)
+            .transpose()?;
+
+        let date = PartialDate::from_date_record(parsed_date, calendar);
+
+        Ok(Self {
+            date,
+            time,
+            has_utc_designator,
+            match_minutes,
+            offset,
+            timezone: Some(timezone),
+        })
     }
 }
 
@@ -123,7 +205,7 @@ impl PartialZonedDateTime {
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
+/// assert_eq!(zdt.timezone().identifier(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// ```
 ///
@@ -193,7 +275,7 @@ impl PartialZonedDateTime {
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
+/// assert_eq!(zdt.timezone().identifier(), "America/Los_Angeles");
 /// ```
 ///
 /// ### String formatting (requires provider)
@@ -225,7 +307,7 @@ impl PartialZonedDateTime {
 ///
 /// [mdn-zoneddatetime]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Temporal/ZonedDateTime
 #[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
@@ -246,23 +328,25 @@ impl ZonedDateTime {
         }
     }
 
-    pub(crate) fn add_as_instant(
+    pub(crate) fn add_zoned_date_time(
         &self,
-        duration: &Duration,
+        duration: NormalizedDurationRecord,
         overflow: ArithmeticOverflow,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Instant> {
         // 1. If DateDurationSign(duration.[[Date]]) = 0, then
         if duration.date().sign() == Sign::Zero {
             // a. Return ? AddInstant(epochNanoseconds, duration.[[Time]]).
-            return self.instant.add_to_instant(duration);
+            return self
+                .instant
+                .add_to_instant(&duration.normalized_time_duration());
         }
         // 2. Let isoDateTime be GetISODateTimeFor(timeZone, epochNanoseconds).
         let iso_datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         // 3. Let addedDate be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], overflow).
-        let added_date = self
-            .calendar()
-            .date_add(&iso_datetime.date, duration, overflow)?;
+        let added_date =
+            self.calendar()
+                .date_add(&iso_datetime.date, &duration.date(), overflow)?;
         // 4. Let intermediateDateTime be CombineISODateAndTimeRecord(addedDate, isoDateTime.[[Time]]).
         let intermediate = IsoDateTime::new_unchecked(added_date.iso, iso_datetime.time);
         // 5. If ISODateTimeWithinLimits(intermediateDateTime) is false, throw a RangeError exception.
@@ -279,7 +363,7 @@ impl ZonedDateTime {
         )?;
 
         // 7. Return ? AddInstant(intermediateNs, duration.[[Time]]).
-        Instant::from(intermediate_ns).add_to_instant(duration)
+        Instant::from(intermediate_ns).add_to_instant(&duration.normalized_time_duration())
     }
 
     /// Adds a duration to the current `ZonedDateTime`, returning the resulting `ZonedDateTime`.
@@ -299,8 +383,9 @@ impl ZonedDateTime {
         // 5. Let calendar be zonedDateTime.[[Calendar]].
         // 6. Let timeZone be zonedDateTime.[[TimeZone]].
         // 7. Let internalDuration be ToInternalDurationRecord(duration).
+        let internal_duration = duration.to_internal_duration_record();
         // 8. Let epochNanoseconds be ? AddZonedDateTime(zonedDateTime.[[EpochNanoseconds]], timeZone, calendar, internalDuration, overflow).
-        let epoch_ns = self.add_as_instant(duration, overflow, provider)?;
+        let epoch_ns = self.add_zoned_date_time(internal_duration, overflow, provider)?;
         // 9. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
         Ok(Self::new_unchecked(
             epoch_ns,
@@ -499,7 +584,10 @@ impl ZonedDateTime {
         // settings.[[LargestUnit]] must be a time unit, because day lengths
         // can vary between time zones due to DST and other UTC offset shifts.
         // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
-        if self.tz != other.tz {
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
             // a. Throw a RangeError exception.
             return Err(TemporalError::range().with_enum(ErrorMessage::TzMismatch));
         }
@@ -572,28 +660,29 @@ impl ZonedDateTime {
             .calendar
             .date_from_partial(&partial.date, overflow)?
             .iso;
-        let time = if !partial.time.is_empty() {
-            Some(IsoTime::default().with(partial.time, overflow)?)
+
+        // None time means START-OF-DAY which has special meaning in
+        // interpret_isodatetime_offset. START-OF-DAY is only set in the parser,
+        // not in other endpoints.
+        let time = if let Some(time) = partial.time {
+            Some(IsoTime::default().with(time, overflow)?)
         } else {
             None
         };
 
         // Handle time zones
-        let offset_nanos = partial
-            .offset
-            .map(|offset| i64::from(offset.0) * 60_000_000_000);
+        let offset_nanos = partial.offset.map(|offset| offset.nanoseconds());
 
         let timezone = partial.timezone.unwrap_or_default();
-
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
-            false,
+            partial.has_utc_designator,
             offset_nanos,
             &timezone,
             disambiguation,
             offset_option,
-            true,
+            partial.match_minutes,
             provider,
         )?;
 
@@ -639,29 +728,34 @@ impl ZonedDateTime {
 
         // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
         let result_date = self.calendar.date_from_partial(
-            &partial.date.with_fallback_datetime(&plain_date_time)?,
+            &partial
+                .date
+                .with_fallback_datetime(&plain_date_time, overflow)?,
             overflow,
         )?;
 
-        let time = iso_date_time.time.with(partial.time, overflow)?;
+        let time = iso_date_time
+            .time
+            .with(partial.time.unwrap_or_default(), overflow)?;
 
         // 24. Let newOffsetNanoseconds be ! ParseDateTimeUTCOffset(fields.[[OffsetString]]).
         let original_offset = self.offset_nanoseconds_with_provider(provider)?;
         let new_offset_nanos = partial
             .offset
-            .map(|offset| i64::from(offset.0) * 60_000_000_000)
+            .map(|offset| offset.nanoseconds())
             .or(Some(original_offset));
 
         // 25. Let epochNanoseconds be ? InterpretISODateTimeOffset(dateTimeResult.[[ISODate]], dateTimeResult.[[Time]], option, newOffsetNanoseconds, timeZone, disambiguation, offset, match-exactly).
         let epoch_nanos = interpret_isodatetime_offset(
             result_date.iso,
             Some(time),
-            false,
+            partial.has_utc_designator,
             new_offset_nanos,
             &self.tz,
             disambiguation,
             offset_option,
-            true,
+            // match-exactly
+            false,
             provider,
         )?;
 
@@ -733,12 +827,21 @@ impl ZonedDateTime {
         )?;
 
         // 11. If transition is null, return null.
-        // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
-        let result = transition
-            .map(|t| ZonedDateTime::try_new(t.0, self.calendar().clone(), self.tz.clone()))
-            .transpose()?;
+        let Some(transition) = transition else {
+            return Ok(None);
+        };
 
-        Ok(result)
+        if transition.check_validity().is_err() {
+            // GetNamedTimeZoneNextTransition, GetNamedTimeZonePreviousTransition include a check for out-of-bounds
+            // instants. Instead of requiring providers handle that, we handle it here.
+            return Ok(None);
+        }
+        // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
+        Ok(Some(
+            ZonedDateTime::try_new(transition.0, self.calendar().clone(), self.tz.clone())
+                .ok()
+                .temporal_unwrap()?,
+        ))
     }
 
     pub fn hours_in_day_with_provider(
@@ -926,7 +1029,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.day_of_week(&pdt.iso.date)
+        Ok(self.calendar.day_of_week(&pdt.iso.date))
     }
 
     /// Returns the calendar day of year value.
@@ -966,7 +1069,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<u16> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        self.calendar.days_in_week(&pdt.iso.date)
+        Ok(self.calendar.days_in_week(&pdt.iso.date))
     }
 
     /// Returns the calendar days in month value.
@@ -1057,6 +1160,27 @@ impl ZonedDateTime {
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
             provider,
         )
+    }
+
+    pub fn equals_with_provider(
+        &self,
+        other: &Self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<bool> {
+        // 4. If zonedDateTime.[[EpochNanoseconds]] ≠ other.[[EpochNanoseconds]], return false.
+        if self.instant != other.instant {
+            return Ok(false);
+        }
+
+        // 5. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, return false.
+        if !self
+            .tz
+            .time_zone_equals_with_provider(&other.tz, provider)?
+        {
+            return Ok(false);
+        }
+        // 6. Return CalendarEquals(zonedDateTime.[[Calendar]], other.[[Calendar]]).
+        Ok(self.calendar == other.calendar)
     }
 
     /// Returns a [`Duration`] representing the period of time from this `ZonedDateTime` since the other `ZonedDateTime`.
@@ -1232,7 +1356,8 @@ impl ZonedDateTime {
                 &self.tz,
                 Disambiguation::Compatible,
                 OffsetDisambiguation::Prefer,
-                true,
+                // match-exactly
+                false,
                 provider,
             )?;
 
@@ -1256,11 +1381,12 @@ impl ZonedDateTime {
                 .round_instant(ResolvedRoundingOptions::from_to_string_options(
                     &resolved_options,
                 ))?;
+        let rounded_instant = Instant::try_new(result)?;
 
         let offset = self.tz.get_offset_nanos_for(result, provider)?;
-        let datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
+        let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
-        let timezone_id = self.timezone().identifier()?;
+        let timezone_id = self.timezone().identifier();
 
         let ixdtf_string = IxdtfStringBuilder::default()
             .with_date(datetime.date)
@@ -1274,86 +1400,32 @@ impl ZonedDateTime {
     }
 
     // TODO: Should IANA Identifier be prechecked or allow potentially invalid IANA Identifer values here?
-    pub fn from_str_with_provider(
-        source: &str,
+    pub fn from_utf8_with_provider(
+        source: &[u8],
         disambiguation: Disambiguation,
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let parse_result = parsers::parse_zoned_date_time(source)?;
+        let partial = PartialZonedDateTime::try_from_utf8_with_provider(source, provider)?;
 
-        // NOTE (nekevss): `parse_zoned_date_time` guarantees that this value exists.
-        let annotation = parse_result.tz.temporal_unwrap()?;
-
-        let timezone = TimeZone::from_time_zone_record(annotation.tz)?;
-
-        let (offset_nanos, is_exact) = parse_result
-            .offset
-            .map(|record| {
-                let UtcOffsetRecordOrZ::Offset(offset) = record else {
-                    return (None, true);
-                };
-                let hours_in_ns = i64::from(offset.hour()) * 3_600_000_000_000_i64;
-                let minutes_in_ns = i64::from(offset.minute()) * 60_000_000_000_i64;
-                let seconds_in_ns = i64::from(offset.second().unwrap_or(0)) * 1_000_000_000_i64;
-                let ns = offset
-                    .fraction()
-                    .and_then(|x| x.to_nanoseconds())
-                    .unwrap_or(0);
-
-                (
-                    Some(
-                        (hours_in_ns + minutes_in_ns + seconds_in_ns + i64::from(ns))
-                            * i64::from(offset.sign() as i8),
-                    ),
-                    false,
-                )
-            })
-            .unwrap_or((None, false));
-
-        let calendar = parse_result
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        let time = parse_result
-            .time
-            .map(IsoTime::from_time_record)
-            .transpose()?;
-
-        let Some(parsed_date) = parse_result.date else {
-            return Err(TemporalError::range().with_enum(ErrorMessage::ParserNeedsDate));
-        };
-
-        let date = IsoDate::new_with_overflow(
-            parsed_date.year,
-            parsed_date.month,
-            parsed_date.day,
-            ArithmeticOverflow::Reject,
-        )?;
-
-        let epoch_nanos = interpret_isodatetime_offset(
-            date,
-            time,
-            is_exact,
-            offset_nanos,
-            &timezone,
-            disambiguation,
-            offset_option,
-            true,
+        Self::from_partial_with_provider(
+            partial,
+            Some(ArithmeticOverflow::Reject),
+            Some(disambiguation),
+            Some(offset_option),
             provider,
-        )?;
-
-        Ok(Self::new_unchecked(
-            Instant::from(epoch_nanos),
-            calendar,
-            timezone,
-        ))
+        )
     }
 }
 
 /// InterpretISODateTimeOffset
+///
+/// offsetBehavior is:
+/// - OPTION if offset_nanos is Some
+/// - WALL if offset_nanos is None and !is_exact
+/// - EXACT if offset_nanos is None and is_exact
+///
+/// When offset_nanos is None, offsetNanoseconds is 0
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn interpret_isodatetime_offset(
     date: IsoDate,
@@ -1376,10 +1448,16 @@ pub(crate) fn interpret_isodatetime_offset(
     };
 
     // 2. Let isoDateTime be CombineISODateAndTimeRecord(isoDate, time).
-    // TODO: Deal with offsetBehavior == wall.
-    match (is_exact, offset_nanos) {
+    let iso_datetime = IsoDateTime::new_unchecked(date, time);
+    match (is_exact, offset_nanos, offset_option) {
+        // 3. If offsetBehaviour is wall, or offsetBehaviour is option and offsetOption is ignore, then
+        (false, None, _) | (_, Some(_), OffsetDisambiguation::Ignore) => {
+            // a. Return ? GetEpochNanosecondsFor(timeZone, isoDateTime, disambiguation).
+            timezone.get_epoch_nanoseconds_for(iso_datetime, disambiguation, provider)
+        }
         // 4. If offsetBehaviour is exact, or offsetBehaviour is option and offsetOption is use, then
-        (true, Some(offset)) if offset_option == OffsetDisambiguation::Use => {
+        (true, None, _) | (_, Some(_), OffsetDisambiguation::Use) => {
+            let offset = offset_nanos.unwrap_or(0);
             // a. Let balanced be BalanceISODateTime(isoDate.[[Year]], isoDate.[[Month]],
             // isoDate.[[Day]], time.[[Hour]], time.[[Minute]], time.[[Second]], time.[[Millisecond]],
             // time.[[Microsecond]], time.[[Nanosecond]] - offsetNanoseconds).
@@ -1399,25 +1477,25 @@ pub(crate) fn interpret_isodatetime_offset(
             iso.date.is_valid_day_range()?;
 
             // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
+            let ns = iso.as_nanoseconds();
             // d. If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
+            ns.check_validity()?;
             // e. Return epochNanoseconds.
-            iso.as_nanoseconds()
+            Ok(ns)
         }
         // 5. Assert: offsetBehaviour is option.
         // 6. Assert: offsetOption is prefer or reject.
-        (_, Some(offset))
-            if offset_option == OffsetDisambiguation::Prefer
-                || offset_option == OffsetDisambiguation::Reject =>
-        {
+        (_, Some(offset), OffsetDisambiguation::Prefer | OffsetDisambiguation::Reject) => {
             // 7. Perform ? CheckISODaysRange(isoDate).
             date.is_valid_day_range()?;
             let iso = IsoDateTime::new_unchecked(date, time);
             // 8. Let utcEpochNanoseconds be GetUTCEpochNanoseconds(isoDateTime).
-            let utc_epochs = iso.as_nanoseconds()?;
+            let utc_epochs = iso.as_nanoseconds();
             // 9. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
             let possible_nanos = timezone.get_possible_epoch_ns_for(iso, provider)?;
+
             // 10. For each element candidate of possibleEpochNs, do
-            for candidate in &possible_nanos {
+            for candidate in possible_nanos.as_slice() {
                 // a. Let candidateOffset be utcEpochNanoseconds - candidate.
                 let candidate_offset = utc_epochs.0 - candidate.0;
                 // b. If candidateOffset = offsetNanoseconds, then
@@ -1455,13 +1533,6 @@ pub(crate) fn interpret_isodatetime_offset(
                 provider,
             )
         }
-        // NOTE: This is inverted as the logic works better for matching against
-        // 3. If offsetBehaviour is wall, or offsetBehaviour is option and offsetOption is ignore, then
-        _ => {
-            // a. Return ? GetEpochNanosecondsFor(timeZone, isoDateTime, disambiguation).
-            let iso = IsoDateTime::new_unchecked(date, time);
-            timezone.get_epoch_nanoseconds_for(iso, disambiguation, provider)
-        }
     }
 }
 
@@ -1498,7 +1569,7 @@ mod tests {
         partial::{PartialDate, PartialTime, PartialZonedDateTime},
         tzdb::FsTzdbProvider,
         unix_time::EpochNanoseconds,
-        Calendar, MonthCode, TimeZone,
+        Calendar, MonthCode, TimeZone, UtcOffset,
     };
     use core::str::FromStr;
     use tinystr::tinystr;
@@ -1511,7 +1582,7 @@ mod tests {
         let zdt = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("UTC").unwrap(),
+            TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
         )
         .unwrap();
 
@@ -1525,7 +1596,7 @@ mod tests {
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("America/New_York").unwrap(),
+            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
         )
         .unwrap();
 
@@ -1539,7 +1610,7 @@ mod tests {
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("Australia/Sydney").unwrap(),
+            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
         )
         .unwrap();
 
@@ -1555,8 +1626,8 @@ mod tests {
     // https://tc39.es/proposal-temporal/docs/zoneddatetime.html#round
     fn round_with_provider_test() {
         let provider = &FsTzdbProvider::default();
-        let dt = "1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
-        let zdt = ZonedDateTime::from_str_with_provider(
+        let dt = b"1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
+        let zdt = ZonedDateTime::from_utf8_with_provider(
             dt,
             Disambiguation::default(),
             OffsetDisambiguation::Use,
@@ -1620,12 +1691,39 @@ mod tests {
                 day: Some(1),
                 ..Default::default()
             },
-            time: PartialTime::default(),
+            time: None,
+            has_utc_designator: false,
+            match_minutes: false,
             offset: None,
             timezone: Some(TimeZone::default()),
         };
 
         let result = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider);
+        assert!(result.is_ok());
+
+        // This ensures that the start-of-day branch isn't hit by default time
+        let provider = &FsTzdbProvider::default();
+        let partial = PartialZonedDateTime {
+            date: PartialDate {
+                year: Some(1970),
+                month_code: Some(MonthCode(tinystr!(4, "M01"))),
+                day: Some(1),
+                ..Default::default()
+            },
+            time: Some(PartialTime::default()),
+            has_utc_designator: false,
+            match_minutes: false,
+            offset: Some(UtcOffset::from_minutes(30)),
+            timezone: Some(TimeZone::default()),
+        };
+
+        let result = ZonedDateTime::from_partial_with_provider(
+            partial,
+            None,
+            None,
+            Some(OffsetDisambiguation::Use),
+            provider,
+        );
         assert!(result.is_ok());
     }
 
@@ -1633,8 +1731,8 @@ mod tests {
     fn zdt_from_str() {
         let provider = &FsTzdbProvider::default();
 
-        let zdt_str = "1970-01-01T00:00[UTC][u-ca=iso8601]";
-        let result = ZonedDateTime::from_str_with_provider(
+        let zdt_str = b"1970-01-01T00:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_utf8_with_provider(
             zdt_str,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
@@ -1646,8 +1744,8 @@ mod tests {
     #[test]
     fn zdt_hours_in_day() {
         let provider = &FsTzdbProvider::default();
-        let zdt_str = "2025-07-04T12:00[UTC][u-ca=iso8601]";
-        let result = ZonedDateTime::from_str_with_provider(
+        let zdt_str = b"2025-07-04T12:00[UTC][u-ca=iso8601]";
+        let result = ZonedDateTime::from_utf8_with_provider(
             zdt_str,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
@@ -1662,15 +1760,15 @@ mod tests {
     // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
     fn dst_skipped_cross_midnight() {
         let provider = &FsTzdbProvider::default();
-        let start_of_day = ZonedDateTime::from_str_with_provider(
-            "1919-03-31[America/Toronto]",
+        let start_of_day = ZonedDateTime::from_utf8_with_provider(
+            b"1919-03-31[America/Toronto]",
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             provider,
         )
         .unwrap();
-        let midnight_disambiguated = ZonedDateTime::from_str_with_provider(
-            "1919-03-31T00[America/Toronto]",
+        let midnight_disambiguated = ZonedDateTime::from_utf8_with_provider(
+            b"1919-03-31T00[America/Toronto]",
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             provider,
@@ -1708,6 +1806,82 @@ mod tests {
         assert_eq!(diff.nanoseconds(), 0);
     }
 
+    #[cfg(feature = "compiled_data")]
+    #[test]
+    fn zdt_offset_match_minutes() {
+        // Cases taken from intl402/Temporal/ZonedDateTime/compare/sub-minute-offset
+
+        let provider = &*crate::builtins::TZ_PROVIDER;
+
+        // Rounded mm accepted
+        let _ = ZonedDateTime::from_utf8_with_provider(
+            b"1970-01-01T00:00-00:45[Africa/Monrovia]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+        // unrounded mm::ss accepted
+        let _ = ZonedDateTime::from_utf8_with_provider(
+            b"1970-01-01T00:00:00-00:44:30[Africa/Monrovia]",
+            Default::default(),
+            OffsetDisambiguation::Reject,
+            provider,
+        )
+        .unwrap();
+        assert!(
+            ZonedDateTime::from_utf8_with_provider(
+                b"1970-01-01T00:00:00-00:44:40[Africa/Monrovia]",
+                Default::default(),
+                OffsetDisambiguation::Reject,
+                provider
+            )
+            .is_err(),
+            "Incorrect unrounded mm::ss rejected"
+        );
+        assert!(
+            ZonedDateTime::from_utf8_with_provider(
+                b"1970-01-01T00:00:00-00:45:00[Africa/Monrovia]",
+                Default::default(),
+                OffsetDisambiguation::Reject,
+                provider
+            )
+            .is_err(),
+            "Rounded mm::ss rejected"
+        );
+        assert!(
+            ZonedDateTime::from_utf8_with_provider(
+                b"1970-01-01T00:00+00:44:30.123456789[+00:45]",
+                Default::default(),
+                OffsetDisambiguation::Reject,
+                provider
+            )
+            .is_err(),
+            "Rounding not accepted between ISO offset and timezone"
+        );
+
+        assert!(
+            ZonedDateTime::from_partial_with_provider(
+                PartialZonedDateTime {
+                    date: PartialDate {
+                        year: Some(1970),
+                        month: Some(1),
+                        day: Some(1),
+                        ..PartialDate::default()
+                    },
+                    offset: Some("-00:45".parse().unwrap()),
+                    timezone: Some(TimeZone::try_from_identifier_str("Africa/Monrovia").unwrap()),
+                    ..PartialZonedDateTime::default()
+                },
+                None,
+                None,
+                None,
+                provider
+            )
+            .is_err(),
+            "Rounding not accepted between ISO offset and timezone"
+        );
+    }
     // overflow-reject-throws.js
     #[test]
     fn overflow_reject_throws() {
@@ -1725,7 +1899,9 @@ mod tests {
                     month: Some(29),
                     ..Default::default()
                 },
-                time: PartialTime::default(),
+                time: None,
+                has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1741,7 +1917,9 @@ mod tests {
                     day: Some(31),
                     ..Default::default()
                 },
-                time: PartialTime::default(),
+                time: None,
+                has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1754,10 +1932,12 @@ mod tests {
         let result_3 = zdt.with_with_provider(
             PartialZonedDateTime {
                 date: PartialDate::default(),
-                time: PartialTime {
+                time: Some(PartialTime {
                     hour: Some(29),
                     ..Default::default()
-                },
+                }),
+                has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },
@@ -1770,10 +1950,12 @@ mod tests {
         let result_4 = zdt.with_with_provider(
             PartialZonedDateTime {
                 date: PartialDate::default(),
-                time: PartialTime {
+                time: Some(PartialTime {
                     nanosecond: Some(9000),
                     ..Default::default()
-                },
+                }),
+                has_utc_designator: false,
+                match_minutes: false,
                 offset: None,
                 timezone: None,
             },

@@ -5,8 +5,7 @@ proposed for addition to the ECMAScript specification.
 
 `temporal_rs` is an implementation of Temporal in Rust that aims to be
 100% test compliant. While initially developed for [Boa][boa-repo], the
-crate has been externalized as we intended to make an engine agnostic
-and general usage implementation of Temporal and its algorithms.
+crate has been externalized and is being used in other engines such as [V8](https://v8.dev) and [Kiesel](https://codeberg.org/kiesel-js/kiesel).
 
 For more information on `temporal_rs`'s general position in the Rust
 date/time library ecoystem, see our [FAQ](./docs/FAQ.md).
@@ -59,7 +58,7 @@ feature flag.
 use temporal_rs::{ZonedDateTime, TimeZone};
 use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
 
-let zdt = ZonedDateTime::from_str("2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
+let zdt = ZonedDateTime::from_utf8(b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
 assert_eq!(zdt.year().unwrap(), 2025);
 assert_eq!(zdt.month().unwrap(), 3);
 assert_eq!(zdt.day().unwrap(), 1);

@@ -5,6 +5,7 @@ use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
     builtins::core::{zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration},
+    error::ErrorMessage,
     iso::IsoDateTime,
     options::{
         DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
@@ -12,7 +13,7 @@ use crate::{
     },
     parsers::{parse_instant, IxdtfStringBuilder},
     provider::TimeZoneProvider,
-    rounding::{IncrementRounder, Round},
+    rounding::IncrementRounder,
     unix_time::EpochNanoseconds,
     Calendar, DateDuration, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
@@ -119,7 +120,7 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 ///
 /// // Convert to a zoned date-time for display in local time
 /// let zdt = instant.to_zoned_date_time_iso(timezone);
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/New_York");
+/// assert_eq!(zdt.timezone().identifier(), "America/New_York");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// ```
 ///
@@ -156,14 +157,34 @@ impl From<EpochNanoseconds> for Instant {
 // ==== Private API ====
 
 impl Instant {
-    // TODO: Update to `i128`?
     /// Adds a `Duration` to the current `Instant`.
     ///
     /// Temporal-Proposal equivalent: `AddInstant`.
-    pub fn add_to_instant(&self, duration: &Duration) -> TemporalResult<Self> {
-        let norm = NormalizedTimeDuration::from_duration(duration);
-        let result = self.epoch_nanoseconds().0 + norm.0;
-        Ok(Self::from(EpochNanoseconds::try_from(result)?))
+    pub(crate) fn add_to_instant(&self, duration: &NormalizedTimeDuration) -> TemporalResult<Self> {
+        // 1. Let result be AddTimeDurationToEpochNanoseconds(timeDuration, epochNanoseconds).
+        let result = self.epoch_nanoseconds().0 + duration.0;
+        let ns = EpochNanoseconds::from(result);
+        // 2. If IsValidEpochNanoseconds(result) is false, throw a RangeError exception.
+        ns.check_validity()?;
+        // 3. Return result.
+        Ok(Self::from(ns))
+    }
+
+    /// 8.5.10 AddDurationToInstant ( operation, instant, temporalDurationLike )
+    pub(crate) fn add_duration_to_instant(&self, duration: &Duration) -> TemporalResult<Self> {
+        // 3. Let largestUnit be DefaultTemporalLargestUnit(duration).
+        let largest_unit = duration.default_largest_unit();
+        // 4. If TemporalUnitCategory(largestUnit) is date, throw a RangeError exception.
+        if largest_unit.is_date_unit() {
+            // TODO: Add enum
+            return Err(TemporalError::range().with_enum(ErrorMessage::LargestUnitCannotBeDateUnit));
+        }
+        // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration =
+            NormalizedDurationRecord::from_duration_with_24_hour_days(duration)?;
+        // 6. Let ns be ? AddInstant(instant.[[EpochNanoseconds]], internalDuration.[[Time]]).
+        // 7. Return ! CreateTemporalInstant(ns).
+        self.add_to_instant(&internal_duration.normalized_time_duration())
     }
 
     /// `temporal_rs` equivalent of `DifferenceInstant`
@@ -246,7 +267,7 @@ impl Instant {
         };
 
         let rounded = IncrementRounder::<i128>::from_signed_num(self.as_i128(), increment)?
-            .round(resolved_options.rounding_mode);
+            .round_as_if_positive(resolved_options.rounding_mode);
 
         Ok(rounded)
     }
@@ -263,7 +284,9 @@ impl Instant {
     /// Create a new validated `Instant`.
     #[inline]
     pub fn try_new(nanoseconds: i128) -> TemporalResult<Self> {
-        Ok(Self::from(EpochNanoseconds::try_from(nanoseconds)?))
+        let ns = EpochNanoseconds::from(nanoseconds);
+        ns.check_validity()?;
+        Ok(Self::from(ns))
     }
 
     /// Creates a new `Instant` from the provided Epoch millisecond value.
@@ -314,7 +337,9 @@ impl Instant {
             i128::from(nanosecond) - i128::from(ns_offset),
         );
 
-        let nanoseconds = balanced.as_nanoseconds()?;
+        let nanoseconds = balanced.as_nanoseconds();
+
+        nanoseconds.check_validity()?;
 
         Ok(Self(nanoseconds))
     }
@@ -322,29 +347,15 @@ impl Instant {
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
     /// contains a `DateDuration`.
     #[inline]
-    pub fn add(&self, duration: Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to instant."));
-        }
-        self.add_to_instant(&duration)
+    pub fn add(&self, duration: &Duration) -> TemporalResult<Self> {
+        self.add_duration_to_instant(duration)
     }
 
     /// Subtract a `Duration` to the current `Instant`, returning an error if the `Duration`
     /// contains a `DateDuration`.
     #[inline]
-    pub fn subtract(&self, duration: Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to instant."));
-        }
-        self.subtract_duration(&duration)
-    }
-
-    /// Subtracts a `Duration` to `Instant`.
-    #[inline]
-    pub fn subtract_duration(&self, duration: &Duration) -> TemporalResult<Self> {
-        self.add_to_instant(&duration.negated())
+    pub fn subtract(&self, duration: &Duration) -> TemporalResult<Self> {
+        self.add_duration_to_instant(&duration.negated())
     }
 
     /// Returns a `Duration` representing the duration since provided `Instant`
@@ -726,7 +737,7 @@ mod tests {
         let instant = Instant::from_str("1969-12-25T12:23:45.678901234Z").unwrap();
         let one = instant
             .subtract(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(240.into()),
                     nanoseconds: Some(800.into()),
                     ..Default::default()
@@ -736,7 +747,7 @@ mod tests {
             .unwrap();
         let two = instant
             .add(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(240.into()),
                     nanoseconds: Some(800.into()),
                     ..Default::default()
@@ -746,7 +757,7 @@ mod tests {
             .unwrap();
         let three = two
             .subtract(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(480.into()),
                     nanoseconds: Some(1600.into()),
                     ..Default::default()
@@ -756,7 +767,7 @@ mod tests {
             .unwrap();
         let four = one
             .add(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(480.into()),
                     nanoseconds: Some(1600.into()),
                     ..Default::default()

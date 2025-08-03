@@ -96,7 +96,7 @@ public:
 
   inline uint8_t day() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week() const;
+  inline uint16_t day_of_week() const;
 
   inline uint16_t day_of_year() const;
 
@@ -104,7 +104,7 @@ public:
 
   inline std::optional<int32_t> year_of_week() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week() const;
+  inline uint16_t days_in_week() const;
 
   inline uint16_t days_in_month() const;
 
@@ -143,6 +143,8 @@ public:
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar) const;
   template<typename W>
   inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_write(temporal_rs::ToStringRoundingOptions options, temporal_rs::DisplayCalendar display_calendar, W& writeable_output) const;
+
+  inline std::unique_ptr<temporal_rs::PlainDateTime> clone() const;
 
   inline const temporal_rs::capi::PlainDateTime* AsFFI() const;
   inline temporal_rs::capi::PlainDateTime* AsFFI();

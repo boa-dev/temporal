@@ -221,6 +221,11 @@ pub mod ffi {
 
             Ok(())
         }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0))
+        }
     }
 }
 

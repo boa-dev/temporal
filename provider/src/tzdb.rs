@@ -41,6 +41,9 @@ pub struct IanaIdentifierNormalizer<'data> {
     /// An index to the location of the normal identifier.
     #[cfg_attr(feature = "datagen", serde(borrow))]
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
+    /// A "links" table mapping non-canonical IDs to their canonical IDs
+    #[cfg_attr(feature = "datagen", serde(borrow))]
+    pub non_canonical_identifiers: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
 
     /// The normalized IANA identifier
     #[cfg_attr(feature = "datagen", serde(borrow))]
@@ -78,10 +81,24 @@ pub struct TzdbDataSource {
 
 #[cfg(feature = "datagen")]
 impl TzdbDataSource {
+    /// Try to create a tzdb source from a tzdata directory.
     pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
         let version_file = tzdata_path.join("version");
         let version = fs::read_to_string(version_file)?.trim().to_owned();
         let data = ZoneInfoData::from_zoneinfo_directory(tzdata_path)?;
+        Ok(Self { version, data })
+    }
+
+    /// Try to create a tzdb source from a tzdata rearguard.zi
+    ///
+    /// To generate a rearguard.zi, download tzdata from IANA. Run `make rearguard.zi`
+    pub fn try_from_rearguard_zoneinfo_dir(
+        tzdata_path: &Path,
+    ) -> Result<Self, TzdbDataSourceError> {
+        let version_file = tzdata_path.join("version");
+        let version = fs::read_to_string(version_file)?.trim().to_owned();
+        let rearguard_zoneinfo = tzdata_path.join("rearguard.zi");
+        let data = ZoneInfoData::from_filepath(rearguard_zoneinfo)?;
         Ok(Self { version, data })
     }
 }
@@ -96,36 +113,59 @@ pub enum IanaDataError {
     Build(zerotrie::ZeroTrieBuildError),
 }
 
+#[cfg(feature = "datagen")]
 impl IanaIdentifierNormalizer<'_> {
-    #[cfg(feature = "datagen")]
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
-        let mut identifiers = BTreeSet::default();
+        let mut all_identifiers = BTreeSet::default();
         for zone_id in provider.data.zones.keys() {
             // Add canonical identifiers.
-            let _ = identifiers.insert(zone_id.clone());
+            let _ = all_identifiers.insert(&**zone_id);
         }
-        for links in provider.data.links.keys() {
+
+        for link_from in provider.data.links.keys() {
             // Add link / non-canonical identifiers
-            let _ = identifiers.insert(links.clone());
+            let _ = all_identifiers.insert(link_from);
         }
-        let norm_vec: Vec<String> = identifiers.iter().cloned().collect();
+        // Make a sorted list of canonical timezones
+        let norm_vec: Vec<&str> = all_identifiers.iter().copied().collect();
         let norm_zerovec: VarZeroVec<'static, str> = norm_vec.as_slice().into();
 
-        let identier_map: BTreeMap<Vec<u8>, usize> = identifiers
+        let identifier_map: BTreeMap<Vec<u8>, usize> = all_identifiers
             .iter()
             .map(|id| {
-                (
-                    id.to_ascii_lowercase().as_bytes().to_vec(),
-                    norm_vec.binary_search(id).unwrap(),
-                )
+                let normalized_id = norm_vec.binary_search(id).unwrap();
+
+                (id.to_ascii_lowercase().as_bytes().to_vec(), normalized_id)
             })
             .collect();
 
+        let mut primary_id_map: BTreeMap<Vec<u8>, usize> = BTreeMap::new();
+        // ECMAScript implementations must support an available named time zone with the identifier "UTC", which must be
+        // the primary time zone identifier for the UTC time zone. In addition, implementations may support any number of other available named time zones.
+        let utc_index = norm_vec.binary_search(&"UTC").unwrap();
+        primary_id_map.insert(b"etc/utc".into(), utc_index);
+        primary_id_map.insert(b"etc/gmt".into(), utc_index);
+
+        for (link_from, link_to) in &provider.data.links {
+            if link_from == "UTC" {
+                continue;
+            }
+            let index = if link_to == "Etc/UTC" || link_to == "Etc/GMT" {
+                utc_index
+            } else {
+                norm_vec.binary_search(&&**link_to).unwrap()
+            };
+            primary_id_map.insert(link_from.to_ascii_lowercase().as_bytes().to_vec(), index);
+        }
+
         Ok(IanaIdentifierNormalizer {
             version: provider.version.into(),
-            available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identier_map)
+            available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identifier_map)
+                .map_err(IanaDataError::Build)?
+                .convert_store(),
+            non_canonical_identifiers: ZeroAsciiIgnoreCaseTrie::try_from(&primary_id_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
             normalized_identifiers: norm_zerovec,

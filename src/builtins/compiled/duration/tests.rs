@@ -396,7 +396,7 @@ fn rounding_to_fractional_day_tests() {
     let result = twenty_five_hours.round(options, None).unwrap();
     assert_duration(result, (0, 0, 0, 1, 1, 0, 0, 0, 0, 0));
 
-    let sixty_days = Duration::from(DateDuration::new_unchecked(0, 0, 0, 64));
+    let sixty_days = Duration::from(DateDuration::new(0, 0, 0, 64).unwrap());
     let options = RoundingOptions {
         largest_unit: None,
         smallest_unit: Some(Unit::Day),
@@ -406,7 +406,7 @@ fn rounding_to_fractional_day_tests() {
     let result = sixty_days.round(options, None).unwrap();
     assert_duration(result, (0, 0, 0, 60, 0, 0, 0, 0, 0, 0));
 
-    let sixty_days = Duration::from(DateDuration::new_unchecked(0, 0, 0, 64));
+    let sixty_days = Duration::from(DateDuration::new(0, 0, 0, 64).unwrap());
     let options = RoundingOptions {
         largest_unit: None,
         smallest_unit: Some(Unit::Day),
@@ -416,7 +416,7 @@ fn rounding_to_fractional_day_tests() {
     let result = sixty_days.round(options, None).unwrap();
     assert_duration(result, (0, 0, 0, 60, 0, 0, 0, 0, 0, 0));
 
-    let sixty_days = Duration::from(DateDuration::new_unchecked(0, 0, 0, 64));
+    let sixty_days = Duration::from(DateDuration::new(0, 0, 0, 64).unwrap());
     let options = RoundingOptions {
         largest_unit: None,
         smallest_unit: Some(Unit::Day),
@@ -426,7 +426,7 @@ fn rounding_to_fractional_day_tests() {
     let result = sixty_days.round(options, None).unwrap();
     assert_duration(result, (0, 0, 0, 70, 0, 0, 0, 0, 0, 0));
 
-    let sixty_days = Duration::from(DateDuration::new_unchecked(0, 0, 0, 1000));
+    let sixty_days = Duration::from(DateDuration::new(0, 0, 0, 1000).unwrap());
     let options = RoundingOptions {
         largest_unit: None,
         smallest_unit: Some(Unit::Day),
@@ -551,8 +551,8 @@ fn test_duration_total() {
         ..Default::default()
     })
     .unwrap();
-    let relative_to = ZonedDateTime::from_str(
-        "2020-01-01T00:00+01:00[Europe/Rome]",
+    let relative_to = ZonedDateTime::from_utf8(
+        b"2020-01-01T00:00+01:00[Europe/Rome]",
         Default::default(),
         OffsetDisambiguation::Reject,
     )

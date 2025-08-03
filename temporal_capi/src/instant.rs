@@ -35,7 +35,9 @@ pub mod ffi {
     impl I128Nanoseconds {
         pub fn is_valid(self) -> bool {
             let ns = i128::from(self);
-            temporal_rs::unix_time::EpochNanoseconds::try_from(ns).is_ok()
+            temporal_rs::unix_time::EpochNanoseconds::from(ns)
+                .check_validity()
+                .is_ok()
         }
     }
 
@@ -160,6 +162,11 @@ pub mod ffi {
         #[cfg(feature = "compiled_data")]
         pub fn to_zoned_date_time_iso(&self, zone: &TimeZone) -> Box<ZonedDateTime> {
             Box::new(ZonedDateTime(self.0.to_zoned_date_time_iso(zone.0.clone())))
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0))
         }
     }
 }

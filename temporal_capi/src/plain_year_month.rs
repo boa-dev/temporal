@@ -39,6 +39,15 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
+        pub fn from_partial(
+            partial: PartialDate,
+            overflow: Option<ArithmeticOverflow>,
+        ) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::PlainYearMonth::from_partial(partial.try_into()?, overflow.map(Into::into))
+                .map(|x| Box::new(Self(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialDate,
@@ -80,6 +89,10 @@ pub mod ffi {
         }
 
         pub fn iso_month(&self) -> u8 {
+            self.0.iso_month()
+        }
+
+        pub fn iso_day(&self) -> u8 {
             self.0.iso_month()
         }
 
@@ -167,7 +180,7 @@ pub mod ffi {
             self.0 == other.0
         }
         pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
-            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
+            one.0.compare_iso(&two.0)
         }
         pub fn to_plain_date(
             &self,
@@ -178,6 +191,26 @@ pub mod ffi {
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }
+
+        #[cfg(feature = "compiled_data")]
+        pub fn epoch_ms_for(
+            &self,
+            time_zone: &crate::time_zone::ffi::TimeZone,
+        ) -> Result<i64, TemporalError> {
+            let ns = self
+                .0
+                .epoch_ns_for(&time_zone.0)
+                .map_err(TemporalError::from)?;
+
+            let ns_i128 = ns.as_i128();
+            let ms = ns_i128 / 1_000_000;
+            if let Ok(ms) = i64::try_from(ms) {
+                Ok(ms)
+            } else {
+                Err(TemporalError::assert("Found an out-of-range YearMonth"))
+            }
+        }
+
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,
@@ -187,6 +220,11 @@ pub mod ffi {
             // This can only fail in cases where the DiplomatWriteable is capped, we
             // don't care about that.
             let _ = writeable.write_to(write);
+        }
+
+        #[allow(clippy::should_implement_trait)]
+        pub fn clone(&self) -> Box<Self> {
+            Box::new(Self(self.0.clone()))
         }
     }
 }
