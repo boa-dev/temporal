@@ -219,6 +219,8 @@ impl MonthCode {
                 calendar,
                 ..
             } => {
+                // TODO(manishearth) this is incorrect,
+                // see https://github.com/unicode-org/icu4x/issues/6790
                 let month_code = month_to_month_code(*month)?;
                 month_code.validate(calendar)?;
                 Ok(month_code)
@@ -313,11 +315,9 @@ pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
 }
 
 #[inline]
-fn are_month_and_month_code_resolvable(month: u8, mc: &MonthCode) -> TemporalResult<()> {
-    if month != mc.to_month_integer() {
-        return Err(TemporalError::range()
-            .with_message("Month and monthCode values could not be resolved."));
-    }
+fn are_month_and_month_code_resolvable(_month: u8, _mc: &MonthCode) -> TemporalResult<()> {
+    // TODO(Manishearth) month is an ordinal month, this check needs year/calendar info
+    // https://github.com/unicode-org/icu4x/issues/6790
     Ok(())
 }
 
@@ -481,7 +481,7 @@ mod tests {
 
                 // Get the full partial date.
                 let full_partial = PartialDate::default()
-                    .with_fallback_date(&plain_date, ArithmeticOverflow::Constrain)
+                    .with_fallback_date(&plain_date, *cal, ArithmeticOverflow::Constrain)
                     .expect(&expect_str);
 
                 let era_year =

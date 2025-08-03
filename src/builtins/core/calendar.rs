@@ -357,7 +357,7 @@ impl Calendar {
             return iso_date.month;
         }
         let calendar_date = self.0.from_iso(*iso_date.to_icu4x().inner());
-        self.0.month(&calendar_date).month_number()
+        self.0.month(&calendar_date).ordinal
     }
 
     /// `CalendarMonthCode`
@@ -561,6 +561,27 @@ impl Calendar {
             AnyCalendarKind::Persian => Some(era::PERSIAN_ERA),
             AnyCalendarKind::Roc => Some(era::ROC_ERA),
             _ => None,
+        }
+    }
+
+    pub(crate) fn calendar_has_eras(kind: AnyCalendarKind) -> bool {
+        match kind {
+            AnyCalendarKind::Buddhist
+            | AnyCalendarKind::Coptic
+            | AnyCalendarKind::Ethiopian
+            | AnyCalendarKind::EthiopianAmeteAlem
+            | AnyCalendarKind::Gregorian
+            | AnyCalendarKind::Hebrew
+            | AnyCalendarKind::Indian
+            | AnyCalendarKind::HijriSimulatedMecca
+            | AnyCalendarKind::HijriTabularTypeIIFriday
+            | AnyCalendarKind::HijriTabularTypeIIThursday
+            | AnyCalendarKind::HijriUmmAlQura
+            | AnyCalendarKind::Japanese
+            | AnyCalendarKind::Persian
+            | AnyCalendarKind::Roc => true,
+            AnyCalendarKind::Chinese | AnyCalendarKind::Dangi | AnyCalendarKind::Iso => false,
+            _ => false,
         }
     }
 }

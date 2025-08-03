@@ -625,7 +625,7 @@ impl PlainDateTime {
         let result_date = self.calendar.date_from_partial(
             &partial_datetime
                 .date
-                .with_fallback_datetime(self, overflow)?,
+                .with_fallback_datetime(self, self.calendar.kind(), overflow)?,
             overflow,
         )?;
 

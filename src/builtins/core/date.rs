@@ -68,6 +68,18 @@ impl PartialDate {
     }
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
+    crate::impl_field_keys_to_ignore!((with_day:day));
+}
+
+/// The return value of CalendarFieldKeysToIgnore
+#[derive(Copy, Clone, Default)]
+pub(crate) struct FieldKeysToIgnore {
+    /// Ignore all era fields (era-year, era)
+    pub era: bool,
+    /// Ignore arithmetical year
+    pub arithmetical_year: bool,
+    /// Ignore all month fields (month, month-code)
+    pub month: bool,
 }
 
 // Use macro to impl fallback methods to avoid having a trait method.
@@ -75,25 +87,38 @@ impl PartialDate {
 #[macro_export]
 macro_rules! impl_with_fallback_method {
     ($method_name:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
-        pub(crate) fn $method_name(&self, fallback: &$component_type, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
-            let era = if let Some(era) = self.era {
-                Some(era)
-            } else {
-                let era = fallback.era();
-                era.map(|e| {
-                    TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
-                        .map_err(|e| TemporalError::general(format!("{e}")))
-                })
-                .transpose()?
-            };
-            let era_year = self
-                .era_year
-                .map_or_else(|| fallback.era_year(), |ey| Some(ey));
+        pub(crate) fn $method_name(&self, fallback: &$component_type, calendar: AnyCalendarKind, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
+            let keys_to_ignore = self.field_keys_to_ignore(calendar);
+            let mut era = self.era;
+
+            let mut era_year = self.era_year;
+            let mut year = self.year;
+
+            if !keys_to_ignore.era {
+                if era.is_none() {
+                    era =
+                        fallback.era().map(|e| {
+                            TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
+                                .map_err(|_| TemporalError::assert().with_message("Produced invalid era code"))
+                        })
+                        .transpose()?
+                }
+                if era_year.is_none() {
+                    era_year = fallback.era_year();
+                }
+            }
+            if !keys_to_ignore.arithmetical_year {
+                if year.is_none() {
+                    year = Some(fallback.year());
+                }
+            }
 
             let (month, month_code) = match (self.month, self.month_code) {
                 (Some(month), Some(mc)) => (Some(month), Some(mc)),
                 (Some(month), None) => {
                     let month_maybe_clamped = if overflow == ArithmeticOverflow::Constrain {
+                        // TODO (manishearth) this should be managed by ICU4X
+                        // https://github.com/unicode-org/icu4x/issues/6790
                         month.clamp(1, 12)
                     } else {
                         month
@@ -102,14 +127,17 @@ macro_rules! impl_with_fallback_method {
                     (Some(month_maybe_clamped), Some(month_to_month_code(month_maybe_clamped)?))
                 }
                 (None, Some(mc)) => (Some(mc.to_month_integer()).map(Into::into), Some(mc)),
-                (None, None) => (
+                (None, None) if !keys_to_ignore.month => (
                     Some(fallback.month()).map(Into::into),
                     Some(fallback.month_code()),
                 ),
+                // This should currently be unreachable, but it may change as CalendarFieldKeysToIgnore
+                // changes
+                (None, None) => (None, None)
             };
             #[allow(clippy::needless_update)] {
                 Ok(Self {
-                    year: Some(self.year.unwrap_or(fallback.year())),
+                    year,
                     month,
                     month_code,
                     $($day: Some(self.day.unwrap_or(fallback.day().into())),)?
@@ -119,6 +147,45 @@ macro_rules! impl_with_fallback_method {
                     ..Default::default()
                 })
             }
+        }
+    };
+}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_field_keys_to_ignore {
+    (( $(with_day: $day:ident)? )) => {
+        /// <https://tc39.es/proposal-temporal/#sec-temporal-calendarfieldkeystoignore>
+        fn field_keys_to_ignore(&self, calendar: AnyCalendarKind) -> $crate::builtins::core::date::FieldKeysToIgnore {
+            let mut keys = $crate::builtins::core::date::FieldKeysToIgnore::default();
+            // All calendars have months/month codes
+            if self.month.is_some() || self.month_code.is_some() {
+                keys.month = true;
+            }
+            if Calendar::calendar_has_eras(calendar) {
+                // We should clear years only if the calendar has eras
+                if self.year.is_some() || self.era_year.is_some() || self.era.is_some() {
+                    keys.era = true;
+                    keys.arithmetical_year = true;
+                }
+
+                // In a calendar such as "japanese" where eras do not start and end at year and/or month boundaries, note that the returned
+                // List should contain era and era-year if keys contains day, month, or month-code
+                // (not only if it contains era, era-year, or year, as in the example above) because it's possible for
+                // changing the day or month to cause a conflict with the era.
+                if calendar == AnyCalendarKind::Japanese {
+                    if self.month.is_some() || self.month_code.is_some() {
+                        keys.era = true;
+                    }
+
+                    $(
+                        if self.$day.is_some() {
+                            keys.era = true;
+                        }
+                    )?
+                }
+            }
+
+            keys
         }
     };
 }
@@ -527,8 +594,10 @@ impl PlainDate {
         // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
-        self.calendar
-            .date_from_partial(&partial.with_fallback_date(self, overflow)?, overflow)
+        self.calendar.date_from_partial(
+            &partial.with_fallback_date(self, self.calendar.kind(), overflow)?,
+            overflow,
+        )
     }
 
     /// Creates a new `Date` from the current `Date` and the provided calendar.
@@ -736,7 +805,7 @@ impl PlainDate {
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         let overflow = ArithmeticOverflow::Constrain;
         self.calendar().month_day_from_partial(
-            &PartialDate::default().with_fallback_date(self, overflow)?,
+            &PartialDate::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
