@@ -133,7 +133,7 @@ pub mod ffi {
 
         pub fn from_day_and_time(day: i64, time: &Duration) -> Result<Box<Self>, TemporalError> {
             Ok(Box::new(Duration(
-                temporal_rs::Duration::from_day_and_time(day, &time.0)?,
+                temporal_rs::Duration::try_from_day_and_time(day, &time.0)?,
             )))
         }
         pub fn from_partial_duration(partial: PartialDuration) -> Result<Box<Self>, TemporalError> {

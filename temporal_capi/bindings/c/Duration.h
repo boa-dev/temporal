@@ -29,12 +29,9 @@ temporal_rs_Duration_create_result temporal_rs_Duration_create(int64_t years, in
 typedef struct temporal_rs_Duration_try_new_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_try_new_result;
 temporal_rs_Duration_try_new_result temporal_rs_Duration_try_new(int64_t years, int64_t months, int64_t weeks, int64_t days, int64_t hours, int64_t minutes, int64_t seconds, int64_t milliseconds, double microseconds, double nanoseconds);
 
-<<<<<<< HEAD
 typedef struct temporal_rs_Duration_from_day_and_time_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_day_and_time_result;
 temporal_rs_Duration_from_day_and_time_result temporal_rs_Duration_from_day_and_time(int64_t day, const Duration* time);
 
-=======
->>>>>>> main
 typedef struct temporal_rs_Duration_from_partial_duration_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_from_partial_duration_result;
 temporal_rs_Duration_from_partial_duration_result temporal_rs_Duration_from_partial_duration(PartialDuration partial);
 

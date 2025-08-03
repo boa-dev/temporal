@@ -72,28 +72,30 @@ pub mod ffi {
 
         pub fn add(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
-                .add(duration.0)
+                .add(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
+        // TODO: deprecate?
         pub fn add_time_duration(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
-                .add_to_instant(&duration.0)
+                .add(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
         pub fn subtract(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
-                .subtract(duration.0)
+                .subtract(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
+        // TODO: deprecate?
         pub fn subtract_time_duration(
             &self,
             duration: &Duration,
         ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .subtract_duration(&duration.0)
+                .subtract(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
