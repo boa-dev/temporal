@@ -563,6 +563,27 @@ impl Calendar {
             _ => None,
         }
     }
+
+    pub(crate) fn calendar_has_eras(kind: AnyCalendarKind) -> bool {
+        match kind {
+            AnyCalendarKind::Buddhist
+            | AnyCalendarKind::Coptic
+            | AnyCalendarKind::Ethiopian
+            | AnyCalendarKind::EthiopianAmeteAlem
+            | AnyCalendarKind::Gregorian
+            | AnyCalendarKind::Hebrew
+            | AnyCalendarKind::Indian
+            | AnyCalendarKind::HijriSimulatedMecca
+            | AnyCalendarKind::HijriTabularTypeIIFriday
+            | AnyCalendarKind::HijriTabularTypeIIThursday
+            | AnyCalendarKind::HijriUmmAlQura
+            | AnyCalendarKind::Japanese
+            | AnyCalendarKind::Persian
+            | AnyCalendarKind::Roc => true,
+            AnyCalendarKind::Chinese | AnyCalendarKind::Dangi | AnyCalendarKind::Iso => false,
+            _ => false,
+        }
+    }
 }
 
 impl From<PlainDate> for Calendar {

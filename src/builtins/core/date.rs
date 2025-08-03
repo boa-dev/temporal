@@ -68,6 +68,16 @@ impl PartialDate {
     }
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
+    crate::impl_field_keys_to_ignore!((with_day:day));
+}
+
+/// The return value of CalendarFieldKeysToIgnore
+#[derive(Copy, Clone, Default)]
+pub(crate) struct FieldKeysToIgnore {
+    /// Ignore all year fields (year, era-year, era)
+    pub year: bool,
+    /// Ignore all month fields (month, month-code)
+    pub month: bool,
 }
 
 // Use macro to impl fallback methods to avoid having a trait method.
@@ -119,6 +129,44 @@ macro_rules! impl_with_fallback_method {
                     ..Default::default()
                 })
             }
+        }
+    };
+}
+#[doc(hidden)]
+#[macro_export]
+macro_rules! impl_field_keys_to_ignore {
+    (( $(with_day: $day:ident)? )) => {
+        /// https://tc39.es/proposal-temporal/#sec-temporal-calendarfieldkeystoignore
+        fn field_keys_to_ignore(&self, calendar: AnyCalendarKind) -> crate::builtins::core::date::FieldKeysToIgnore {
+            let mut keys = crate::builtins::core::date::FieldKeysToIgnore::default();
+            // All calendars have months/month codes
+            if self.month.is_some() || self.month_code.is_some() {
+                keys.month = true
+            }
+            if Calendar::calendar_has_eras(calendar) {
+                // We should clear years only if the calendar has eras
+                if self.year.is_some() || self.era_year.is_some() || self.era.is_some() {
+                    keys.year = true;
+                }
+
+                // In a calendar such as "japanese" where eras do not start and end at year and/or month boundaries, note that the returned
+                // List should contain era and era-year if keys contains day, month, or month-code
+                // (not only if it contains era, era-year, or year, as in the example above) because it's possible for
+                // changing the day or month to cause a conflict with the era.
+                if calendar == AnyCalendarKind::Japanese {
+                    if self.month.is_some() || self.month_code.is_some() {
+                        keys.year = true
+                    }
+
+                    $(
+                        if self.$day.is_some() {
+                            keys.year = true;
+                        }
+                    )?
+                }
+            }
+
+            keys
         }
     };
 }

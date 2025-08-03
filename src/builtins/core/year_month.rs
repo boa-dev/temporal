@@ -69,6 +69,7 @@ impl PartialYearMonth {
     }
 
     crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth);
+    crate::impl_field_keys_to_ignore!(());
 }
 
 impl From<&PartialYearMonth> for PartialDate {
