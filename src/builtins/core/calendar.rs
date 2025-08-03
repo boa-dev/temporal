@@ -357,7 +357,7 @@ impl Calendar {
             return iso_date.month;
         }
         let calendar_date = self.0.from_iso(*iso_date.to_icu4x().inner());
-        self.0.month(&calendar_date).month_number()
+        self.0.month(&calendar_date).ordinal
     }
 
     /// `CalendarMonthCode`
