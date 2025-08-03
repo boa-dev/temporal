@@ -16,7 +16,7 @@ use crate::{
     temporal_assert,
     unix_time::EpochNanoseconds,
     utils::pad_iso_year,
-    Calendar, MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 use icu_calendar::AnyCalendarKind;
 
@@ -321,7 +321,7 @@ impl PlainYearMonth {
         // 10. If sign < 0, then
         let date = if sign.as_sign_multiplier() < 0 {
             // a. Let oneMonthDuration be ! CreateDateDurationRecord(0, 1, 0, 0).
-            let one_month_duration = DateDuration::new_unchecked(Sign::Positive, 0, 1, 0, 0);
+            let one_month_duration = DateDuration::new_unchecked(0, 1, 0, 0);
 
             // b. Let nextMonth be ? CalendarDateAdd(calendar, intermediateDate, oneMonthDuration, constrain).
             let next_month = calendar.date_add(
@@ -446,7 +446,7 @@ impl PlainYearMonth {
         }
 
         // 17. Let result be ! TemporalDurationFromInternal(duration, day).
-        let result = Duration::from_normalized(duration, Unit::Day)?;
+        let result = Duration::from_internal(duration, Unit::Day)?;
 
         // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 19. Return result.

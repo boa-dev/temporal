@@ -29,7 +29,7 @@ use crate::{
     builtins::core::{
         calendar::Calendar,
         duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-        Duration, PartialTime, PlainDate,
+        PartialTime, PlainDate,
     },
     error::{ErrorMessage, TemporalError},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
@@ -155,45 +155,6 @@ impl IsoDateTime {
         utc_epoch_nanos(self.date, &self.time)
     }
 
-    /// Specification equivalent to 5.5.9 `AddDateTime`.
-    pub(crate) fn add_date_duration(
-        &self,
-        calendar: Calendar,
-        date_duration: &DateDuration,
-        norm: NormalizedTimeDuration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
-        // 1. Assert: IsValidISODate(year, month, day) is true.
-        // 2. Assert: ISODateTimeWithinLimits(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond) is true.
-        // 3. Let timeResult be AddTime(hour, minute, second, millisecond, microsecond, nanosecond, norm).
-        let t_result = self.time.add(norm);
-
-        // 4. Let datePart be ! CreateTemporalDate(year, month, day, calendarRec.[[Receiver]]).
-        let date = PlainDate::new_unchecked(self.date, calendar);
-
-        // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
-        let date_duration = DateDuration::new(
-            date_duration.years,
-            date_duration.months,
-            date_duration.weeks,
-            date_duration
-                .days
-                .checked_add(t_result.0)
-                .ok_or(TemporalError::range())?,
-        )?;
-        let duration = Duration::from(date_duration);
-
-        // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
-        // The within-limits check gets handled below in Self::new
-        let added_date = date.add_duration_to_date(&duration, overflow)?;
-
-        // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
-        // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],
-        // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
-        // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
-        Self::new(added_date.iso, t_result.1)
-    }
-
     pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
         let (rounded_days, rounded_time) = self.time.round(resolved_options)?;
         let balance_result = IsoDate::try_balance(
@@ -274,7 +235,6 @@ impl IsoDateTime {
         // 17. Return ? CreateNormalizedDurationRecord(dateDifference.[[Years]], dateDifference.[[Months]], dateDifference.[[Weeks]], days, timeDuration).
         NormalizedDurationRecord::new(
             DateDuration::new_unchecked(
-                date_diff.sign(),
                 date_diff.years(),
                 date_diff.months(),
                 date_diff.weeks(),
@@ -411,11 +371,9 @@ impl IsoDate {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
         // 3. Let intermediate be ! BalanceISOYearMonth(year + years, month + months).
-        let year_offset = duration.years * i64::from(duration.sign.as_sign_multiplier());
-        let month_offset = duration.months * i64::from(duration.sign.as_sign_multiplier());
         let intermediate = balance_iso_year_month_with_clamp(
-            i64::from(self.year) + year_offset,
-            i64::from(self.month) + month_offset,
+            i64::from(self.year) + duration.years,
+            i64::from(self.month) + duration.months,
         );
 
         // 4. Let intermediate be ? RegulateISODate(intermediate.[[Year]], intermediate.[[Month]], day, overflow).
@@ -423,8 +381,7 @@ impl IsoDate {
             Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days =
-            duration.days + (7 * duration.weeks * i64::from(duration.sign.as_sign_multiplier()));
+        let additional_days = duration.days + (7 * duration.weeks);
 
         // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;

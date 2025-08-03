@@ -571,7 +571,7 @@ impl ZonedDateTime {
                 .instant
                 .diff_instant_internal(&other.instant, resolved_options)?;
             // b. Let result be ! TemporalDurationFromInternal(internalDuration, settings.[[LargestUnit]]).
-            let result = Duration::from_normalized(internal, resolved_options.largest_unit)?;
+            let result = Duration::from_internal(internal, resolved_options.largest_unit)?;
             // c. If operation is since, set result to CreateNegatedTemporalDuration(result).
             // d. Return result.
             match op {
@@ -601,7 +601,7 @@ impl ZonedDateTime {
         // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal = self.diff_with_rounding(other, resolved_options, provider)?;
         // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
-        let result = Duration::from_normalized(internal, Unit::Hour)?;
+        let result = Duration::from_internal(internal, Unit::Hour)?;
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 12. Return result.
         match op {

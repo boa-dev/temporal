@@ -83,7 +83,7 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 /// let instant = Instant::try_new(1609459200000000000).unwrap(); // 2021-01-01T00:00:00Z
 ///
 /// // Add time duration (only time durations, not date durations)
-/// let later = instant.add(Duration::from_str("PT1H30M").unwrap()).unwrap();
+/// let later = instant.add(&Duration::from_str("PT1H30M").unwrap()).unwrap();
 /// let expected_ns = 1609459200000000000 + (1 * 3600 + 30 * 60) * 1_000_000_000;
 /// assert_eq!(later.epoch_nanoseconds().as_i128(), expected_ns);
 ///
@@ -226,7 +226,7 @@ impl Instant {
         // settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal_record = self.diff_instant_internal(other, resolved_options)?;
 
-        let result = Duration::from_normalized(internal_record, resolved_options.largest_unit)?;
+        let result = Duration::from_internal(internal_record, resolved_options.largest_unit)?;
 
         // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).

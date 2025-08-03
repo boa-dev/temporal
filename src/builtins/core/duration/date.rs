@@ -14,9 +14,8 @@ use super::duration_sign;
 /// [spec]: https://tc39.es/proposal-temporal/#sec-temporal-date-duration-records
 /// [field spec]: https://tc39.es/proposal-temporal/#sec-properties-of-temporal-duration-instances
 #[non_exhaustive]
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DateDuration {
-    pub sign: Sign,
     /// `DateDuration`'s internal year value.
     pub years: i64,
     /// `DateDuration`'s internal month value.
@@ -27,31 +26,12 @@ pub struct DateDuration {
     pub days: i64,
 }
 
-impl Default for DateDuration {
-    fn default() -> Self {
-        Self {
-            sign: Sign::Zero,
-            years: 0,
-            months: 0,
-            weeks: 0,
-            days: 0,
-        }
-    }
-}
-
 impl DateDuration {
     /// Creates a new, non-validated `DateDuration`.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(
-        sign: Sign,
-        years: i64,
-        months: i64,
-        weeks: i64,
-        days: i64,
-    ) -> Self {
+    pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
-            sign,
             years,
             months,
             weeks,
@@ -68,7 +48,6 @@ impl From<Duration> for DateDuration {
     #[inline]
     fn from(duration: Duration) -> Self {
         Self::new_unchecked(
-            duration.sign(),
             duration.years(),
             duration.months(),
             duration.weeks(),
@@ -85,7 +64,6 @@ impl From<&Duration> for DateDuration {
     #[inline]
     fn from(duration: &Duration) -> Self {
         Self::new_unchecked(
-            duration.sign(),
             duration.years(),
             duration.months(),
             duration.weeks(),
@@ -109,9 +87,8 @@ impl DateDuration {
             return Err(TemporalError::range().with_message("Invalid DateDuration."));
         }
 
-        let sign = duration_sign(&[years, months, weeks, days]);
         // 2. Return Date Duration Record { [[Years]]: ℝ(𝔽(years)), [[Months]]: ℝ(𝔽(months)), [[Weeks]]: ℝ(𝔽(weeks)), [[Days]]: ℝ(𝔽(days))  }.
-        Ok(Self::new_unchecked(sign, years, months, weeks, days))
+        Ok(Self::new_unchecked(years, months, weeks, days))
     }
 
     /// Returns a negated `DateDuration`.
@@ -119,8 +96,10 @@ impl DateDuration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            sign: self.sign.negate(),
-            ..*self
+            years: -self.years,
+            months: -self.months,
+            weeks: -self.weeks,
+            days: -self.days,
         }
     }
 
@@ -129,12 +108,10 @@ impl DateDuration {
     #[must_use]
     pub fn abs(&self) -> Self {
         Self {
-            sign: if self.sign == Sign::Zero {
-                Sign::Zero
-            } else {
-                Sign::Positive
-            },
-            ..*self
+            years: self.years.abs(),
+            months: self.months.abs(),
+            weeks: self.weeks.abs(),
+            days: self.days.abs(),
         }
     }
 
@@ -142,7 +119,7 @@ impl DateDuration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> Sign {
-        self.sign
+        duration_sign(&[self.years, self.months, self.weeks, self.days])
     }
 
     /// DateDurationDays
@@ -196,7 +173,6 @@ impl DateDuration {
 
         // 3. Return ? CreateDateDurationRecord(dateDuration.[[Years]], months, weeks, days).
         Ok(Self {
-            sign: self.sign,
             years: self.years,
             months,
             weeks,

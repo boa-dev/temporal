@@ -1,7 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    builtins::core::Duration,
+    builtins::{core::Duration, duration::normalized::NormalizedDurationRecord},
     error::ErrorMessage,
     iso::IsoTime,
     options::{
@@ -9,7 +9,7 @@ use crate::{
         RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
-    TemporalError, TemporalResult,
+    DateDuration, TemporalError, TemporalResult,
 };
 use alloc::string::String;
 use core::str::FromStr;
@@ -327,26 +327,16 @@ impl PlainTime {
             Unit::Hour,
             Unit::Nanosecond,
         )?;
-
-        // 5. Let norm be ! DifferenceTime(temporalTime.[[ISOHour]], temporalTime.[[ISOMinute]],
-        // temporalTime.[[ISOSecond]], temporalTime.[[ISOMillisecond]], temporalTime.[[ISOMicrosecond]],
-        // temporalTime.[[ISONanosecond]], other.[[ISOHour]], other.[[ISOMinute]], other.[[ISOSecond]],
-        // other.[[ISOMillisecond]], other.[[ISOMicrosecond]], other.[[ISONanosecond]]).
+        // 4. Let timeDuration be DifferenceTime(temporalTime.[[Time]], other.[[Time]]).
         let mut normalized_time = self.iso.diff(&other.iso);
-
-        // 6. If settings.[[SmallestUnit]] is not "nanosecond" or settings.[[RoundingIncrement]] ≠ 1, then
-        if resolved.smallest_unit != Unit::Nanosecond
-            || resolved.increment != RoundingIncrement::ONE
-        {
-            // a. Let roundRecord be ! RoundDuration(0, 0, 0, 0, norm, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-            // b. Set norm to roundRecord.[[NormalizedDuration]].[[NormalizedTime]].
-            normalized_time = normalized_time.round(resolved)?;
-        };
-
-        // 7. Let result be BalanceTimeDuration(norm, settings.[[LargestUnit]]).
-        let result = Duration::from_normalized_time(normalized_time, resolved.largest_unit)?.1;
-
-        // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
+        // 5. Set timeDuration to ! RoundTimeDuration(timeDuration, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
+        normalized_time = normalized_time.round(resolved)?;
+        // 6. Let duration be CombineDateAndTimeDuration(ZeroDateDuration(), timeDuration).
+        let duration = NormalizedDurationRecord::combine(DateDuration::default(), normalized_time);
+        // 7. Let result be ! TemporalDurationFromInternal(duration, settings.[[LargestUnit]]).
+        let result = Duration::from_internal(duration, resolved.largest_unit)?;
+        // 8. If operation is since, set result to CreateNegatedTemporalDuration(result).
+        // 9. Return result.
         match op {
             DifferenceOperation::Until => Ok(result),
             DifferenceOperation::Since => Ok(result.negated()),

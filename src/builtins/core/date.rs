@@ -373,7 +373,7 @@ impl PlainDate {
                 resolved,
             )?
         }
-        let result = Duration::from_normalized(duration, Unit::Day)?;
+        let result = Duration::from_internal(duration, Unit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
         match op {
             DifferenceOperation::Until => Ok(result),
