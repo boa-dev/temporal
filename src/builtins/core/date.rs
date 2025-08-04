@@ -1,5 +1,6 @@
 //! This module implements `Date` and any directly related algorithms.
 
+use crate::parsed_intermediates::ParsedDate;
 use crate::{
     builtins::core::{
         calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime,
@@ -10,9 +11,9 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, ResolvedRoundingOptions, Unit, UnitGroup,
     },
-    parsers::{parse_date_time, IxdtfStringBuilder},
+    parsers::IxdtfStringBuilder,
     provider::{NeverProvider, TimeZoneProvider},
-    MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
@@ -565,18 +566,18 @@ impl PlainDate {
 
     // Converts a UTF-8 encoded string into a `PlainDate`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = parse_date_time(s)?;
+        let parsed = ParsedDate::from_utf8(s)?;
 
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
+        Self::from_parsed(parsed)
+    }
 
-        // Assertion: PlainDate must exist on a DateTime parse.
-        let date = parse_record.date.temporal_unwrap()?;
-
-        Self::try_new(date.year, date.month, date.day, calendar)
+    pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
+        Self::try_new(
+            parsed.record.year,
+            parsed.record.month,
+            parsed.record.day,
+            Calendar::new(parsed.calendar),
+        )
     }
 
     /// Creates a date time with values from a `PartialDate`.

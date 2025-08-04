@@ -16,6 +16,8 @@ namespace capi { struct Calendar; }
 class Calendar;
 namespace capi { struct Duration; }
 class Duration;
+namespace capi { struct ParsedDate; }
+class ParsedDate;
 namespace capi { struct PlainDate; }
 class PlainDate;
 namespace capi { struct PlainDateTime; }
@@ -56,6 +58,8 @@ public:
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> try_new_with_overflow(int32_t year, uint8_t month, uint8_t day, temporal_rs::AnyCalendarKind calendar, temporal_rs::ArithmeticOverflow overflow);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_parsed(const temporal_rs::ParsedDate& parsed);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
 

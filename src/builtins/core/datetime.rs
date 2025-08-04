@@ -4,6 +4,7 @@ use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
     Duration, PartialDate, PartialTime, PlainDate, PlainTime, ZonedDateTime,
 };
+use crate::parsed_intermediates::ParsedDateTime;
 use crate::{
     builtins::core::{calendar::Calendar, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
@@ -12,10 +13,10 @@ use crate::{
         DisplayCalendar, ResolvedRoundingOptions, RoundingOptions, ToStringRoundingOptions, Unit,
         UnitGroup,
     },
-    parsers::{parse_date_time, IxdtfStringBuilder},
+    parsers::IxdtfStringBuilder,
     primitive::FiniteF64,
     provider::{NeverProvider, TimeZoneProvider},
-    temporal_assert, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
+    temporal_assert, MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
@@ -551,30 +552,23 @@ impl PlainDateTime {
 
     // Converts a UTF-8 encoded string into a `PlainDateTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = parse_date_time(s)?;
+        let parsed = ParsedDateTime::from_utf8(s)?;
+        Self::from_parsed(parsed)
+    }
 
-        let calendar = parse_record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
-
-        let time = parse_record
-            .time
-            .map(IsoTime::from_time_record)
-            .transpose()?
-            .unwrap_or_default();
-
-        let parsed_date = parse_record.date.temporal_unwrap()?;
-
+    pub fn from_parsed(parsed: ParsedDateTime) -> TemporalResult<Self> {
         let date = IsoDate::new_with_overflow(
-            parsed_date.year,
-            parsed_date.month,
-            parsed_date.day,
+            parsed.date.record.year,
+            parsed.date.record.month,
+            parsed.date.record.day,
             ArithmeticOverflow::Reject,
         )?;
+        let iso = IsoDateTime::new(date, parsed.time)?;
 
-        Ok(Self::new_unchecked(IsoDateTime::new(date, time)?, calendar))
+        Ok(Self::new_unchecked(
+            iso,
+            Calendar::new(parsed.date.calendar),
+        ))
     }
 
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.

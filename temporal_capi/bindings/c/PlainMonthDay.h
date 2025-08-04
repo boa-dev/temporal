@@ -11,6 +11,7 @@
 #include "ArithmeticOverflow.d.h"
 #include "Calendar.d.h"
 #include "DisplayCalendar.d.h"
+#include "ParsedDate.d.h"
 #include "PartialDate.d.h"
 #include "PlainDate.d.h"
 #include "TemporalError.d.h"
@@ -28,6 +29,9 @@ temporal_rs_PlainMonthDay_try_new_with_overflow_result temporal_rs_PlainMonthDay
 
 typedef struct temporal_rs_PlainMonthDay_from_partial_result {union {PlainMonthDay* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_partial_result;
 temporal_rs_PlainMonthDay_from_partial_result temporal_rs_PlainMonthDay_from_partial(PartialDate partial, ArithmeticOverflow_option overflow);
+
+typedef struct temporal_rs_PlainMonthDay_from_parsed_result {union {PlainMonthDay* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_parsed_result;
+temporal_rs_PlainMonthDay_from_parsed_result temporal_rs_PlainMonthDay_from_parsed(const ParsedDate* parsed);
 
 typedef struct temporal_rs_PlainMonthDay_with_result {union {PlainMonthDay* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_with_result;
 temporal_rs_PlainMonthDay_with_result temporal_rs_PlainMonthDay_with(const PlainMonthDay* self, PartialDate partial, ArithmeticOverflow_option overflow);

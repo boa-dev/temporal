@@ -46,6 +46,13 @@ pub mod ffi {
                 .map(|x| Box::new(PlainMonthDay(x)))
                 .map_err(Into::into)
         }
+        pub fn from_parsed(
+            parsed: &crate::plain_date::ffi::ParsedDate,
+        ) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::PlainMonthDay::from_parsed(parsed.0)
+                .map(|x| Box::new(PlainMonthDay(x)))
+                .map_err(Into::into)
+        }
 
         pub fn with(
             &self,

@@ -13,6 +13,7 @@
 #include "DifferenceSettings.d.h"
 #include "DisplayCalendar.d.h"
 #include "Duration.d.h"
+#include "ParsedDate.d.h"
 #include "PartialDate.d.h"
 #include "PlainDateTime.d.h"
 #include "PlainMonthDay.d.h"
@@ -40,6 +41,9 @@ temporal_rs_PlainDate_try_new_with_overflow_result temporal_rs_PlainDate_try_new
 
 typedef struct temporal_rs_PlainDate_from_partial_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_partial_result;
 temporal_rs_PlainDate_from_partial_result temporal_rs_PlainDate_from_partial(PartialDate partial, ArithmeticOverflow_option overflow);
+
+typedef struct temporal_rs_PlainDate_from_parsed_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_parsed_result;
+temporal_rs_PlainDate_from_parsed_result temporal_rs_PlainDate_from_parsed(const ParsedDate* parsed);
 
 typedef struct temporal_rs_PlainDate_from_epoch_milliseconds_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_milliseconds_result;
 temporal_rs_PlainDate_from_epoch_milliseconds_result temporal_rs_PlainDate_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
