@@ -185,8 +185,16 @@ pub mod now {
     pub use crate::builtins::{Now, NowBuilder};
 }
 
+/// This module exports all of the field types.
+pub mod fields {
+    pub use crate::builtins::{
+        calendar::{CalendarFields, YearMonthCalendarFields},
+        DateTimeFields, ZonedDateTimeFields,
+    };
+}
+
 pub use crate::builtins::{
-    calendar::{Calendar, MonthCode},
+    calendar::{Calendar, CalendarFields, MonthCode},
     core::timezone::{TimeZone, UtcOffset},
     core::DateDuration,
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,

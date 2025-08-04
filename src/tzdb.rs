@@ -1303,8 +1303,9 @@ mod tests {
     use tzif::data::time::Seconds;
 
     use crate::{
+        builtins::calendar::CalendarFields,
         iso::{IsoDate, IsoDateTime, IsoTime},
-        partial::{PartialDate, PartialZonedDateTime},
+        partial::PartialZonedDateTime,
         tzdb::{CompiledTzdbProvider, LocalTimeRecordResult, TimeZoneProvider, UtcOffsetSeconds},
         TimeZone, ZonedDateTime,
     };
@@ -1364,11 +1365,11 @@ mod tests {
             assert_eq!(time_zone.identifier(), canonical);
             let result = ZonedDateTime::from_partial_with_provider(
                 PartialZonedDateTime::default()
-                    .with_date(
-                        PartialDate::default()
-                            .with_year(Some(1970))
-                            .with_month(Some(1))
-                            .with_day(Some(1)),
+                    .with_calendar_fields(
+                        CalendarFields::new()
+                            .with_year(1970)
+                            .with_month(1)
+                            .with_day(1),
                     )
                     .with_timezone(Some(time_zone)),
                 None,

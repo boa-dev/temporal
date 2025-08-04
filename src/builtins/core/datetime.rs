@@ -2,11 +2,14 @@
 
 use super::{
     duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    Duration, PartialDate, PartialTime, PlainDate, PlainTime, ZonedDateTime,
+    Duration, PartialTime, PlainDate, PlainTime, ZonedDateTime,
 };
 use crate::parsed_intermediates::ParsedDateTime;
 use crate::{
-    builtins::core::{calendar::Calendar, Instant},
+    builtins::{
+        calendar::CalendarFields,
+        core::{calendar::Calendar, Instant},
+    },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
@@ -27,25 +30,33 @@ use writeable::Writeable;
 #[derive(Debug, Default, Clone)]
 pub struct PartialDateTime {
     /// The `PartialDate` portion of a `PartialDateTime`
-    pub date: PartialDate,
-    /// The `PartialTime` portion of a `PartialDateTime`
+    pub fields: DateTimeFields,
+    /// The calendar of the `PartialDateTime`.
+    pub calendar: Calendar,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct DateTimeFields {
+    pub calendar_fields: CalendarFields,
     pub time: PartialTime,
 }
 
-impl PartialDateTime {
+impl DateTimeFields {
     pub fn is_empty(&self) -> bool {
-        self.date.is_empty() && self.time.is_empty()
+        self.calendar_fields.is_empty() && self.time.is_empty()
     }
+}
 
+impl DateTimeFields {
     pub const fn new() -> Self {
         Self {
-            date: PartialDate::new(),
+            calendar_fields: CalendarFields::new(),
             time: PartialTime::new(),
         }
     }
 
-    pub const fn with_partial_date(mut self, partial_date: PartialDate) -> Self {
-        self.date = partial_date;
+    pub const fn with_partial_date(mut self, fields: CalendarFields) -> Self {
+        self.calendar_fields = fields;
         self
     }
 
@@ -124,15 +135,14 @@ impl PartialDateTime {
 /// ### Working with partial fields
 ///
 /// ```rust
-/// use temporal_rs::{PlainDateTime, partial::{PartialDateTime, PartialDate, PartialTime}};
+/// use temporal_rs::{PlainDateTime, fields::DateTimeFields, partial::PartialTime};
 /// use core::str::FromStr;
 ///
 /// let dt = PlainDateTime::from_str("2024-01-15T12:30:45").unwrap();
 ///
 /// // Change only the hour
-/// let partial = PartialDateTime::new()
-///     .with_partial_time(PartialTime::new().with_hour(Some(18)));
-/// let modified = dt.with(partial, None).unwrap();
+/// let fields = DateTimeFields::new().with_partial_time(PartialTime::new().with_hour(Some(18)));
+/// let modified = dt.with(fields, None).unwrap();
 /// assert_eq!(modified.hour(), 18);
 /// assert_eq!(modified.minute(), 30); // unchanged
 /// assert_eq!(modified.second(), 45); // unchanged
@@ -509,14 +519,12 @@ impl PlainDateTime {
     /// Creates a `DateTime` from a `PartialDateTime`.
     ///
     /// ```rust
-    /// use temporal_rs::{PlainDateTime, partial::{PartialDateTime, PartialTime, PartialDate}};
+    /// use temporal_rs::{Calendar, PlainDateTime, fields::{CalendarFields, DateTimeFields}, partial::{PartialDateTime, PartialTime, PartialDate}};
     ///
-    /// let date = PartialDate {
-    ///     year: Some(2000),
-    ///     month: Some(13),
-    ///     day: Some(2),
-    ///     ..Default::default()
-    /// };
+    /// let calendar_fields = CalendarFields::new()
+    ///     .with_year(2000)
+    ///     .with_month(13)
+    ///     .with_day(2);
     ///
     /// let time = PartialTime {
     ///     hour: Some(4),
@@ -524,9 +532,15 @@ impl PlainDateTime {
     ///     ..Default::default()
     /// };
     ///
-    /// let partial = PartialDateTime { date, time };
+    /// let fields = PartialDateTime {
+    ///     fields: DateTimeFields {
+    ///         calendar_fields,
+    ///         time,
+    ///     },
+    ///     calendar: Calendar::ISO,
+    /// };
     ///
-    /// let date = PlainDateTime::from_partial(partial, None).unwrap();
+    /// let date = PlainDateTime::from_partial(fields, None).unwrap();
     ///
     /// assert_eq!(date.year(), 2000);
     /// assert_eq!(date.month(), 12);
@@ -542,12 +556,21 @@ impl PlainDateTime {
         partial: PartialDateTime,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        if partial.is_empty() {
+        if partial.fields.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
         }
-        let date = PlainDate::from_partial(partial.date, overflow)?;
-        let iso_time = IsoTime::default().with(partial.time, overflow.unwrap_or_default())?;
-        Self::from_date_and_time(date, PlainTime::new_unchecked(iso_time))
+        // The steps here largely follow `InterpretTemporalDateTimeFields`
+        // 1. Let isoDate be ? CalendarDateFromFields(calendar, fields, overflow).
+        let date = partial.calendar.date_from_fields(
+            &partial.fields.calendar_fields,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+        // 2. Let time be ? RegulateTime(fields.[[Hour]], fields.[[Minute]], fields.[[Second]], fields.[[Millisecond]], fields.[[Microsecond]], fields.[[Nanosecond]], overflow).
+        let iso_time =
+            IsoTime::default().with(partial.fields.time, overflow.unwrap_or_default())?;
+        // 3. Return CombineISODateAndTimeRecord(isoDate, time).
+        let iso = IsoDateTime::new(date.iso, iso_time)?;
+        Ok(Self::new_unchecked(iso, partial.calendar))
     }
 
     // Converts a UTF-8 encoded string into a `PlainDateTime`.
@@ -574,14 +597,12 @@ impl PlainDateTime {
     /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
     ///
     /// ```rust
-    /// use temporal_rs::{Calendar, PlainDateTime, partial::{PartialDateTime, PartialTime, PartialDate}};
+    /// use temporal_rs::{Calendar, PlainDateTime, fields::{CalendarFields, DateTimeFields}, partial::{PartialDateTime, PartialTime, PartialDate}};
     ///
     /// let initial = PlainDateTime::try_new(2000, 12, 2, 0,0,0,0,0,0, Calendar::default()).unwrap();
     ///
-    /// let date = PartialDate {
-    ///     month: Some(5),
-    ///     ..Default::default()
-    /// };
+    /// let calendar_fields = CalendarFields::new()
+    ///     .with_month(5);
     ///
     /// let time = PartialTime {
     ///     hour: Some(4),
@@ -589,9 +610,9 @@ impl PlainDateTime {
     ///     ..Default::default()
     /// };
     ///
-    /// let partial = PartialDateTime { date, time };
+    /// let fields = DateTimeFields { calendar_fields, time };
     ///
-    /// let date = initial.with(partial, None).unwrap();
+    /// let date = initial.with(fields, None).unwrap();
     ///
     /// assert_eq!(date.year(), 2000);
     /// assert_eq!(date.month(), 5);
@@ -606,25 +627,25 @@ impl PlainDateTime {
     #[inline]
     pub fn with(
         &self,
-        partial_datetime: PartialDateTime,
+        fields: DateTimeFields,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        if partial_datetime.date.is_empty() && partial_datetime.time.is_empty() {
+        if fields.is_empty() {
             return Err(
                 TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
             );
         }
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
 
-        let result_date = self.calendar.date_from_partial(
-            &partial_datetime
-                .date
+        let result_date = self.calendar.date_from_fields(
+            &fields
+                .calendar_fields
                 .with_fallback_datetime(self, self.calendar.kind(), overflow)?,
             overflow,
         )?;
 
         // Determine the `Time` based off the partial values.
-        let time = self.iso.time.with(partial_datetime.time, overflow)?;
+        let time = self.iso.time.with(fields.time, overflow)?;
 
         let iso_datetime = IsoDateTime::new(result_date.iso, time)?;
 
@@ -956,9 +977,12 @@ mod tests {
     use tinystr::{tinystr, TinyAsciiStr};
 
     use crate::{
-        builtins::core::{
-            calendar::Calendar, duration::DateDuration, Duration, PartialDate, PartialDateTime,
-            PartialTime, PlainDateTime,
+        builtins::{
+            calendar::CalendarFields,
+            core::{
+                calendar::Calendar, datetime::DateTimeFields, duration::DateDuration, Duration,
+                PartialTime, PlainDateTime,
+            },
         },
         iso::{IsoDate, IsoDateTime, IsoTime},
         options::{
@@ -1038,140 +1062,128 @@ mod tests {
                 .unwrap();
 
         // Test year
-        let partial = PartialDateTime {
-            date: PartialDate {
-                year: Some(2019),
-                ..Default::default()
-            },
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::new().with_year(2019),
             time: PartialTime::default(),
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (2019, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 456, 789),
         );
 
         // Test month
-        let partial = PartialDateTime {
-            date: PartialDate {
-                month: Some(5),
-                ..Default::default()
-            },
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::new().with_month(5),
             time: PartialTime::default(),
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 5, tinystr!(4, "M05"), 18, 15, 23, 30, 123, 456, 789),
         );
 
         // Test monthCode
-        let partial = PartialDateTime {
-            date: PartialDate {
-                month_code: Some(MonthCode(tinystr!(4, "M05"))),
-                ..Default::default()
-            },
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::new().with_month_code(MonthCode(tinystr!(4, "M05"))),
             time: PartialTime::default(),
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 5, tinystr!(4, "M05"), 18, 15, 23, 30, 123, 456, 789),
         );
 
         // Test day
-        let partial = PartialDateTime {
-            date: PartialDate {
-                day: Some(5),
-                ..Default::default()
-            },
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::new().with_day(5),
             time: PartialTime::default(),
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 5, 15, 23, 30, 123, 456, 789),
         );
 
         // Test hour
-        let partial = PartialDateTime {
-            date: PartialDate::default(),
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::default(),
             time: PartialTime {
                 hour: Some(5),
                 ..Default::default()
             },
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 5, 23, 30, 123, 456, 789),
         );
 
         // Test minute
-        let partial = PartialDateTime {
-            date: PartialDate::default(),
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::default(),
             time: PartialTime {
                 minute: Some(5),
                 ..Default::default()
             },
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 15, 5, 30, 123, 456, 789),
         );
 
         // Test second
-        let partial = PartialDateTime {
-            date: PartialDate::default(),
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::default(),
             time: PartialTime {
                 second: Some(5),
                 ..Default::default()
             },
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 5, 123, 456, 789),
         );
 
         // Test second
-        let partial = PartialDateTime {
-            date: PartialDate::default(),
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::default(),
             time: PartialTime {
                 millisecond: Some(5),
                 ..Default::default()
             },
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 5, 456, 789),
         );
 
         // Test second
-        let partial = PartialDateTime {
-            date: PartialDate::default(),
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::default(),
             time: PartialTime {
                 microsecond: Some(5),
                 ..Default::default()
             },
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 5, 789),
         );
 
         // Test second
-        let partial = PartialDateTime {
-            date: PartialDate::default(),
+        let fields = DateTimeFields {
+            calendar_fields: CalendarFields::default(),
             time: PartialTime {
                 nanosecond: Some(5),
                 ..Default::default()
             },
         };
-        let result = pdt.with(partial, None).unwrap();
+        let result = pdt.with(fields, None).unwrap();
         assert_datetime(
             result,
             (1976, 11, tinystr!(4, "M11"), 18, 15, 23, 30, 123, 456, 5),
@@ -1184,7 +1196,7 @@ mod tests {
             PlainDateTime::try_new(2020, 1, 31, 12, 34, 56, 987, 654, 321, Calendar::default())
                 .unwrap();
 
-        let err = pdt.with(PartialDateTime::default(), None);
+        let err = pdt.with(DateTimeFields::default(), None);
         assert!(err.is_err());
     }
 

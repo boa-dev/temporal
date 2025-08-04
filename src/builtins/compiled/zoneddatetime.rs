@@ -1,3 +1,4 @@
+use crate::builtins::zoneddatetime::ZonedDateTimeFields;
 use crate::builtins::TZ_PROVIDER;
 use crate::partial::PartialZonedDateTime;
 use crate::provider::TransitionDirection;
@@ -242,13 +243,13 @@ impl ZonedDateTime {
     #[inline]
     pub fn with(
         &self,
-        partial: PartialZonedDateTime,
+        fields: ZonedDateTimeFields,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         self.with_with_provider(
-            partial,
+            fields,
             disambiguation,
             offset_option,
             overflow,

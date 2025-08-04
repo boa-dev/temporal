@@ -26,7 +26,7 @@ pub use now::{Now, NowBuilder};
 #[doc(inline)]
 pub use date::{PartialDate, PlainDate};
 #[doc(inline)]
-pub use datetime::{PartialDateTime, PlainDateTime};
+pub use datetime::{DateTimeFields, PartialDateTime, PlainDateTime};
 #[doc(inline)]
 pub use duration::{DateDuration, Duration, PartialDuration, TimeDuration};
 #[doc(inline)]
@@ -38,4 +38,4 @@ pub use time::{PartialTime, PlainTime};
 #[doc(inline)]
 pub use year_month::{PartialYearMonth, PlainYearMonth};
 #[doc(inline)]
-pub use zoneddatetime::{PartialZonedDateTime, ZonedDateTime};
+pub use zoneddatetime::{PartialZonedDateTime, ZonedDateTime, ZonedDateTimeFields};

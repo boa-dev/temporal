@@ -99,7 +99,7 @@ pub mod ffi {
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainMonthDay>, TemporalError> {
             self.0
-                .month_day_from_partial(&partial.try_into()?, overflow.into())
+                .month_day_from_fields(&partial.try_into()?, overflow.into())
                 .map(|c| Box::new(PlainMonthDay(c)))
                 .map_err(Into::into)
         }
@@ -110,7 +110,7 @@ pub mod ffi {
         ) -> Result<Box<PlainYearMonth>, TemporalError> {
             let partial: temporal_rs::partial::PartialDate = partial.try_into()?;
             self.0
-                .year_month_from_partial(
+                .year_month_from_fields(
                     &temporal_rs::partial::PartialYearMonth::from(&partial),
                     overflow.into(),
                 )

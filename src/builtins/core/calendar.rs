@@ -31,13 +31,13 @@ use icu_calendar::{
 use icu_locale::extensions::unicode::Value;
 use tinystr::{tinystr, TinyAsciiStr};
 
-use super::{PartialDate, PartialYearMonth, ZonedDateTime};
+use super::ZonedDateTime;
 
 mod era;
 mod types;
 
 pub(crate) use types::{month_to_month_code, ResolutionType};
-pub use types::{MonthCode, ResolvedCalendarFields};
+pub use types::{CalendarFields, MonthCode, ResolvedCalendarFields, YearMonthCalendarFields};
 
 use era::EraInfo;
 
@@ -185,13 +185,13 @@ impl Calendar {
     }
 
     /// `CalendarDateFromFields`
-    pub fn date_from_partial(
+    pub fn date_from_fields(
         &self,
-        partial: &PartialDate,
+        fields: &CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::Date)?;
+            ResolvedCalendarFields::try_from_fields(self, fields, overflow, ResolutionType::Date)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
@@ -224,13 +224,17 @@ impl Calendar {
     }
 
     /// `CalendarPlainMonthDayFromFields`
-    pub fn month_day_from_partial(
+    pub fn month_day_from_fields(
         &self,
-        partial: &PartialDate,
+        fields: &CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainMonthDay> {
-        let resolved_fields =
-            ResolvedCalendarFields::try_from_partial(partial, overflow, ResolutionType::MonthDay)?;
+        let resolved_fields = ResolvedCalendarFields::try_from_fields(
+            self,
+            fields,
+            overflow,
+            ResolutionType::MonthDay,
+        )?;
         if self.is_iso() {
             return PlainMonthDay::new_with_overflow(
                 resolved_fields.month_code.to_month_integer(),
@@ -247,14 +251,15 @@ impl Calendar {
     }
 
     /// `CalendarPlainYearMonthFromFields`
-    pub fn year_month_from_partial(
+    pub fn year_month_from_fields(
         &self,
-        partial: &PartialYearMonth,
+        fields: &YearMonthCalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
         // TODO: add a from_partial_year_month method on ResolvedCalendarFields
-        let resolved_fields = ResolvedCalendarFields::try_from_partial(
-            &PartialDate::from(partial),
+        let resolved_fields = ResolvedCalendarFields::try_from_fields(
+            self,
+            &CalendarFields::from(fields),
             overflow,
             ResolutionType::YearMonth,
         )?;

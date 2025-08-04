@@ -2,9 +2,12 @@
 
 use crate::parsed_intermediates::ParsedDate;
 use crate::{
-    builtins::core::{
-        calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime,
-        ZonedDateTime,
+    builtins::{
+        calendar::{CalendarFields, YearMonthCalendarFields},
+        core::{
+            calendar::Calendar, duration::DateDuration, Duration, PlainDateTime, PlainTime,
+            ZonedDateTime,
+        },
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
@@ -18,13 +21,11 @@ use crate::{
 use alloc::{format, string::String};
 use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
-use ixdtf::records::DateRecord;
 use writeable::Writeable;
 
 use super::{
-    calendar::month_to_month_code,
     duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    PartialYearMonth, PlainMonthDay, PlainYearMonth,
+    PlainMonthDay, PlainYearMonth,
 };
 use tinystr::TinyAsciiStr;
 
@@ -34,42 +35,10 @@ use tinystr::TinyAsciiStr;
 /// A partial PlainDate that may or may not be complete.
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct PartialDate {
-    // A potentially set `year` field.
-    pub year: Option<i32>,
-    // A potentially set `month` field.
-    pub month: Option<u8>,
-    // A potentially set `month_code` field.
-    pub month_code: Option<MonthCode>,
-    // A potentially set `day` field.
-    pub day: Option<u8>,
-    // A potentially set `era` field.
-    pub era: Option<TinyAsciiStr<19>>,
-    // A potentially set `era_year` field.
-    pub era_year: Option<i32>,
-    /// The calendar field
+    /// The calendar fields representing a calendar date.
+    pub calendar_fields: CalendarFields,
+    /// The calendar of this `PartialDate`
     pub calendar: Calendar,
-}
-
-impl PartialDate {
-    /// Returns a boolean for if the current `PartialDate` is empty.
-    pub(crate) fn is_empty(&self) -> bool {
-        *self == Self::default()
-    }
-
-    pub(crate) fn from_date_record(date_record: DateRecord, calendar: Calendar) -> Self {
-        Self {
-            year: Some(date_record.year),
-            month: Some(date_record.month),
-            month_code: None,
-            day: Some(date_record.day),
-            era: None,
-            era_year: None,
-            calendar,
-        }
-    }
-    crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
-    crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
-    crate::impl_field_keys_to_ignore!((with_day:day));
 }
 
 /// The return value of CalendarFieldKeysToIgnore
@@ -87,8 +56,8 @@ pub(crate) struct FieldKeysToIgnore {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! impl_with_fallback_method {
-    ($method_name:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
-        pub(crate) fn $method_name(&self, fallback: &$component_type, calendar: AnyCalendarKind, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
+    ($method_name:ident, $fields_type:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
+        pub(crate) fn $method_name(&self, fallback: &$component_type, calendar: icu_calendar::AnyCalendarKind, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
             let keys_to_ignore = self.field_keys_to_ignore(calendar);
             let mut era = self.era;
 
@@ -144,8 +113,6 @@ macro_rules! impl_with_fallback_method {
                     $($day: Some(self.day.unwrap_or(fallback.day().into())),)?
                     era,
                     era_year,
-                    calendar: fallback.calendar().clone(),
-                    ..Default::default()
                 })
             }
         }
@@ -156,7 +123,7 @@ macro_rules! impl_with_fallback_method {
 macro_rules! impl_field_keys_to_ignore {
     (( $(with_day: $day:ident)? )) => {
         /// <https://tc39.es/proposal-temporal/#sec-temporal-calendarfieldkeystoignore>
-        fn field_keys_to_ignore(&self, calendar: AnyCalendarKind) -> $crate::builtins::core::date::FieldKeysToIgnore {
+        fn field_keys_to_ignore(&self, calendar: icu_calendar::AnyCalendarKind) -> $crate::builtins::core::date::FieldKeysToIgnore {
             let mut keys = $crate::builtins::core::date::FieldKeysToIgnore::default();
             // All calendars have months/month codes
             if self.month.is_some() || self.month_code.is_some() {
@@ -173,7 +140,7 @@ macro_rules! impl_field_keys_to_ignore {
                 // List should contain era and era-year if keys contains day, month, or month-code
                 // (not only if it contains era, era-year, or year, as in the example above) because it's possible for
                 // changing the day or month to cause a conflict with the era.
-                if calendar == AnyCalendarKind::Japanese {
+                if calendar == icu_calendar::AnyCalendarKind::Japanese {
                     if self.month.is_some() || self.month_code.is_some() {
                         keys.era = true;
                     }
@@ -195,43 +162,45 @@ macro_rules! impl_field_keys_to_ignore {
 impl PartialDate {
     pub const fn new() -> Self {
         Self {
-            year: None,
-            month: None,
-            month_code: None,
-            day: None,
-            era: None,
-            era_year: None,
+            calendar_fields: CalendarFields {
+                year: None,
+                month: None,
+                month_code: None,
+                day: None,
+                era: None,
+                era_year: None,
+            },
             calendar: Calendar::new(AnyCalendarKind::Iso),
         }
     }
 
     pub const fn with_era(mut self, era: Option<TinyAsciiStr<19>>) -> Self {
-        self.era = era;
+        self.calendar_fields.era = era;
         self
     }
 
     pub const fn with_era_year(mut self, era_year: Option<i32>) -> Self {
-        self.era_year = era_year;
+        self.calendar_fields.era_year = era_year;
         self
     }
 
     pub const fn with_year(mut self, year: Option<i32>) -> Self {
-        self.year = year;
+        self.calendar_fields.year = year;
         self
     }
 
     pub const fn with_month(mut self, month: Option<u8>) -> Self {
-        self.month = month;
+        self.calendar_fields.month = month;
         self
     }
 
     pub const fn with_month_code(mut self, month_code: Option<MonthCode>) -> Self {
-        self.month_code = month_code;
+        self.calendar_fields.month_code = month_code;
         self
     }
 
     pub const fn with_day(mut self, day: Option<u8>) -> Self {
-        self.day = day;
+        self.calendar_fields.day = day;
         self
     }
 
@@ -531,13 +500,14 @@ impl PlainDate {
     /// Create a `PlainDate` from a `PartialDate`
     ///
     /// ```rust
-    /// use temporal_rs::{PlainDate, partial::PartialDate};
+    /// use temporal_rs::{PlainDate, fields::CalendarFields, Calendar, partial::PartialDate};
     ///
     /// let partial = PartialDate {
-    ///     year: Some(2000),
-    ///     month: Some(13),
-    ///     day: Some(2),
-    ///     ..Default::default()
+    ///     calendar_fields: CalendarFields::new()
+    ///         .with_year(2000)
+    ///         .with_month(13)
+    ///         .with_day(2),
+    ///     calendar: Calendar::ISO,
     /// };
     ///
     /// let date = PlainDate::from_partial(partial, None).unwrap();
@@ -553,15 +523,19 @@ impl PlainDate {
         partial: PartialDate,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        let year_check =
-            partial.year.is_some() || (partial.era.is_some() && partial.era_year.is_some());
-        let month_check = partial.month.is_some() || partial.month_code.is_some();
-        if !year_check || !month_check || partial.day.is_none() {
+        let year_check = partial.calendar_fields.year.is_some()
+            || (partial.calendar_fields.era.is_some()
+                && partial.calendar_fields.era_year.is_some());
+        let month_check =
+            partial.calendar_fields.month.is_some() || partial.calendar_fields.month_code.is_some();
+        if !year_check || !month_check || partial.calendar_fields.day.is_none() {
             return Err(TemporalError::r#type().with_message("Invalid PlainDate fields provided."));
         }
 
         let overflow = overflow.unwrap_or_default();
-        partial.calendar.date_from_partial(&partial, overflow)
+        partial
+            .calendar
+            .date_from_fields(&partial.calendar_fields, overflow)
     }
 
     // Converts a UTF-8 encoded string into a `PlainDate`.
@@ -583,11 +557,11 @@ impl PlainDate {
     /// Creates a date time with values from a `PartialDate`.
     pub fn with(
         &self,
-        partial: PartialDate,
+        fields: CalendarFields,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        if partial.is_empty() {
-            return Err(TemporalError::r#type().with_message("A PartialDate must have a field."));
+        if fields.is_empty() {
+            return Err(TemporalError::r#type().with_message("CalendarFields must have a field."));
         }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
         // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
@@ -595,8 +569,8 @@ impl PlainDate {
         // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
-        self.calendar.date_from_partial(
-            &partial.with_fallback_date(self, self.calendar.kind(), overflow)?,
+        self.calendar.date_from_fields(
+            &fields.with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
@@ -791,22 +765,22 @@ impl PlainDate {
                     .map_err(|e| TemporalError::general(format!("{e}")))
             })
             .transpose()?;
-        let partial = PartialYearMonth::new()
-            .with_year(Some(self.year()))
+        let fields = YearMonthCalendarFields::new()
+            .with_year(self.year())
             .with_era(era)
             .with_era_year(self.era_year())
-            .with_month(Some(self.month()))
-            .with_month_code(Some(self.month_code()));
+            .with_month(self.month())
+            .with_month_code(self.month_code());
         self.calendar()
-            .year_month_from_partial(&partial, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(&fields, ArithmeticOverflow::Constrain)
     }
 
     /// Converts the current `Date` into a `PlainMonthDay`
     #[inline]
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         let overflow = ArithmeticOverflow::Constrain;
-        self.calendar().month_day_from_partial(
-            &PartialDate::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
+        self.calendar().month_day_from_fields(
+            &CalendarFields::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
@@ -1071,7 +1045,7 @@ mod tests {
     fn date_with_empty_error() {
         let base = PlainDate::new(1976, 11, 18, Calendar::default()).unwrap();
 
-        let err = base.with(PartialDate::default(), None);
+        let err = base.with(CalendarFields::default(), None);
         assert!(err.is_err());
     }
 
@@ -1080,44 +1054,32 @@ mod tests {
         let base = PlainDate::new(1976, 11, 18, Calendar::default()).unwrap();
 
         // Year
-        let partial = PartialDate {
-            year: Some(2019),
-            ..Default::default()
-        };
-        let with_year = base.with(partial, None).unwrap();
+        let fields = CalendarFields::new().with_year(2019);
+        let with_year = base.with(fields, None).unwrap();
         assert_eq!(with_year.year(), 2019);
         assert_eq!(with_year.month(), 11);
         assert_eq!(with_year.month_code(), MonthCode::from_str("M11").unwrap());
         assert_eq!(with_year.day(), 18);
 
         // Month
-        let partial = PartialDate {
-            month: Some(5),
-            ..Default::default()
-        };
-        let with_month = base.with(partial, None).unwrap();
+        let fields = CalendarFields::new().with_month(5);
+        let with_month = base.with(fields, None).unwrap();
         assert_eq!(with_month.year(), 1976);
         assert_eq!(with_month.month(), 5);
         assert_eq!(with_month.month_code(), MonthCode::from_str("M05").unwrap());
         assert_eq!(with_month.day(), 18);
 
         // Month Code
-        let partial = PartialDate {
-            month_code: Some(MonthCode(tinystr!(4, "M05"))),
-            ..Default::default()
-        };
-        let with_mc = base.with(partial, None).unwrap();
+        let fields = CalendarFields::new().with_month_code(MonthCode(tinystr!(4, "M05")));
+        let with_mc = base.with(fields, None).unwrap();
         assert_eq!(with_mc.year(), 1976);
         assert_eq!(with_mc.month(), 5);
         assert_eq!(with_mc.month_code(), MonthCode::from_str("M05").unwrap());
         assert_eq!(with_mc.day(), 18);
 
         // Day
-        let partial = PartialDate {
-            day: Some(17),
-            ..Default::default()
-        };
-        let with_day = base.with(partial, None).unwrap();
+        let fields = CalendarFields::new().with_day(17);
+        let with_day = base.with(fields, None).unwrap();
         assert_eq!(with_day.year(), 1976);
         assert_eq!(with_day.month(), 11);
         assert_eq!(with_day.month_code(), MonthCode::from_str("M11").unwrap());
