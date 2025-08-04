@@ -446,11 +446,6 @@ mod tests {
         use icu_calendar::AnyCalendarKind;
 
         for (cal, eras) in ALL_ALLOWED_ERAS {
-            // TODO: These cases need to be fixed in ICU4X first
-            // https://github.com/unicode-org/icu4x/issues/3962
-            if *cal == AnyCalendarKind::Ethiopian || *cal == AnyCalendarKind::Roc {
-                continue;
-            }
             for era in *eras {
                 let expect_str = alloc::format!("Trying {cal:?} with era {}", era.name);
                 let mut partial = PartialDate::new();
