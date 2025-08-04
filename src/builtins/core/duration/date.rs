@@ -1,7 +1,7 @@
 //! Implementation of a `DateDuration`
 
 use crate::{
-    iso::iso_date_to_epoch_days, options::ArithmeticOverflow, Duration, PlainDate, Sign,
+    builtins::Duration, iso::iso_date_to_epoch_days, options::ArithmeticOverflow, PlainDate, Sign,
     TemporalError, TemporalResult,
 };
 
@@ -30,7 +30,7 @@ impl DateDuration {
     /// Creates a new, non-validated `DateDuration`.
     #[inline]
     #[must_use]
-    pub(crate) const fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
+    pub(crate) fn new_unchecked(years: i64, months: i64, weeks: i64, days: i64) -> Self {
         Self {
             years,
             months,
@@ -38,12 +38,37 @@ impl DateDuration {
             days,
         }
     }
+}
 
-    /// Returns the iterator for `DateDuration`
+impl From<Duration> for DateDuration {
+    /// Converts a `Duration` into a `DateDuration`.
+    ///
+    /// This conversion is lossy, as `Duration` can represent time durations
+    /// that are not strictly date durations.
     #[inline]
-    #[must_use]
-    pub(crate) fn fields(&self) -> [i64; 4] {
-        [self.years, self.months, self.weeks, self.days]
+    fn from(duration: Duration) -> Self {
+        Self::new_unchecked(
+            duration.years(),
+            duration.months(),
+            duration.weeks(),
+            duration.days(),
+        )
+    }
+}
+
+impl From<&Duration> for DateDuration {
+    /// Converts a `Duration` into a `DateDuration`.
+    ///
+    /// This conversion is lossy, as `Duration` can represent time durations
+    /// that are not strictly date durations.
+    #[inline]
+    fn from(duration: &Duration) -> Self {
+        Self::new_unchecked(
+            duration.years(),
+            duration.months(),
+            duration.weeks(),
+            duration.days(),
+        )
     }
 }
 
@@ -71,10 +96,10 @@ impl DateDuration {
     #[must_use]
     pub fn negated(&self) -> Self {
         Self {
-            years: self.years.saturating_neg(),
-            months: self.months.saturating_neg(),
-            weeks: self.weeks.saturating_neg(),
-            days: self.days.saturating_neg(),
+            years: -self.years,
+            months: -self.months,
+            weeks: -self.weeks,
+            days: -self.days,
         }
     }
 
@@ -94,7 +119,7 @@ impl DateDuration {
     #[inline]
     #[must_use]
     pub fn sign(&self) -> Sign {
-        duration_sign(self.fields().as_slice())
+        duration_sign(&[self.years, self.months, self.weeks, self.days])
     }
 
     /// DateDurationDays
@@ -106,12 +131,10 @@ impl DateDuration {
             return Ok(self.days);
         }
         // 3. Let later be ? CalendarDateAdd(plainRelativeTo.[[Calendar]], plainRelativeTo.[[ISODate]], yearsMonthsWeeksDuration, constrain).
-        let later = relative_to.add(
-            &Duration {
-                date: *self,
-                time: Default::default(),
-            },
-            Some(ArithmeticOverflow::Constrain),
+        let later = relative_to.calendar().date_add(
+            &relative_to.iso,
+            &ymw_duration,
+            ArithmeticOverflow::Constrain,
         )?;
         // 4. Let epochDays1 be ISODateToEpochDays(plainRelativeTo.[[ISODate]].[[Year]], plainRelativeTo.[[ISODate]].[[Month]] - 1, plainRelativeTo.[[ISODate]].[[Day]]).
         let epoch_days_1 = iso_date_to_epoch_days(

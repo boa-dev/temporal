@@ -2,7 +2,7 @@
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
-    use crate::duration::ffi::{Duration, TimeDuration};
+    use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
     #[cfg(feature = "compiled_data")]
@@ -72,31 +72,30 @@ pub mod ffi {
 
         pub fn add(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
-                .add(duration.0)
+                .add(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
-        pub fn add_time_duration(
-            &self,
-            duration: &TimeDuration,
-        ) -> Result<Box<Self>, TemporalError> {
+        // TODO: deprecate?
+        pub fn add_time_duration(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
-                .add_time_duration(&duration.0)
+                .add(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
         pub fn subtract(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
-                .subtract(duration.0)
+                .subtract(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }
+        // TODO: deprecate?
         pub fn subtract_time_duration(
             &self,
-            duration: &TimeDuration,
+            duration: &Duration,
         ) -> Result<Box<Self>, TemporalError> {
             self.0
-                .subtract_time_duration(&duration.0)
+                .subtract(&duration.0)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
         }

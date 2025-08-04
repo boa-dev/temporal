@@ -4,13 +4,11 @@
 //! Temporal compatible calendar implementations.
 
 use crate::{
-    builtins::core::{
-        duration::DateDuration, Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
-    },
+    builtins::core::{Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth},
     iso::IsoDate,
     options::{ArithmeticOverflow, Unit},
     parsers::parse_allowed_calendar_formats,
-    TemporalError, TemporalResult,
+    DateDuration, TemporalError, TemporalResult,
 };
 use alloc::string::ToString;
 use core::str::FromStr;

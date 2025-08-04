@@ -174,6 +174,7 @@ pub const BASIC_RUNTIME_DEPS: &[&str] = &[
     "zerotrie",
     "zerovec",
     // Other deps
+    "bnum",
     "libm",
     "num-traits",
     "stable_deref_trait",
