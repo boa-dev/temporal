@@ -36,7 +36,7 @@ pub use date::DateDuration;
 pub use time::TimeDuration;
 
 /// A `PartialDuration` is a Duration that may have fields not set.
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct PartialDuration {
     /// A potentially existent `years` field.
     pub years: Option<i64>,
@@ -58,6 +58,79 @@ pub struct PartialDuration {
     pub microseconds: Option<i128>,
     /// A potentially existent `nanoseconds` field.
     pub nanoseconds: Option<i128>,
+}
+
+impl Default for PartialDuration {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
+impl PartialDuration {
+    pub const fn empty() -> Self {
+        Self {
+            years: None,
+            months: None,
+            weeks: None,
+            days: None,
+            hours: None,
+            minutes: None,
+            seconds: None,
+            milliseconds: None,
+            microseconds: None,
+            nanoseconds: None,
+        }
+    }
+
+    pub const fn with_years(mut self, years: i64) -> Self {
+        self.years = Some(years);
+        self
+    }
+
+    pub const fn with_months(mut self, months: i64) -> Self {
+        self.months = Some(months);
+        self
+    }
+
+    pub const fn with_weeks(mut self, weeks: i64) -> Self {
+        self.weeks = Some(weeks);
+        self
+    }
+
+    pub const fn with_days(mut self, days: i64) -> Self {
+        self.days = Some(days);
+        self
+    }
+
+    pub const fn with_hours(mut self, hours: i64) -> Self {
+        self.hours = Some(hours);
+        self
+    }
+
+    pub const fn with_minutes(mut self, minutes: i64) -> Self {
+        self.minutes = Some(minutes);
+        self
+    }
+
+    pub const fn with_seconds(mut self, seconds: i64) -> Self {
+        self.seconds = Some(seconds);
+        self
+    }
+
+    pub const fn with_milliseconds(mut self, milliseconds: i64) -> Self {
+        self.milliseconds = Some(milliseconds);
+        self
+    }
+
+    pub const fn with_microseconds(mut self, microseconds: i128) -> Self {
+        self.microseconds = Some(microseconds);
+        self
+    }
+
+    pub const fn with_nanoseconds(mut self, nanoseconds: i128) -> Self {
+        self.nanoseconds = Some(nanoseconds);
+        self
+    }
 }
 
 impl PartialDuration {
