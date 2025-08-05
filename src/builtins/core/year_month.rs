@@ -1111,4 +1111,42 @@ mod tests {
         assert!(min.since(&max, Default::default()).is_err());
         assert!(min.since(&epoch, Default::default()).is_err());
     }
+
+    #[test]
+    fn test_reference_day() {
+        assert_eq!(
+            PlainYearMonth::from_str("1868-10-30[u-ca=japanese]")
+                .unwrap()
+                .reference_day(),
+            23
+        );
+        // Still happens for dates that are in the previous era but same month
+        assert_eq!(
+            PlainYearMonth::from_str("1868-10-20[u-ca=japanese]")
+                .unwrap()
+                .reference_day(),
+            23
+        );
+        // Won't happen for dates in other months
+        assert_eq!(
+            PlainYearMonth::from_str("1868-09-30[u-ca=japanese]")
+                .unwrap()
+                .reference_day(),
+            1
+        );
+
+        // Always 1 in other calendars
+        assert_eq!(
+            PlainYearMonth::from_str("2000-09-30[u-ca=chinese]")
+                .unwrap()
+                .reference_day(),
+            1
+        );
+        assert_eq!(
+            PlainYearMonth::from_str("2000-09-30[u-ca=hebrew]")
+                .unwrap()
+                .reference_day(),
+            1
+        );
+    }
 }

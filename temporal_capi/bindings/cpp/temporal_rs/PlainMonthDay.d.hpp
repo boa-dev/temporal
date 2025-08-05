@@ -62,6 +62,8 @@ public:
 
   inline uint8_t iso_day() const;
 
+  inline uint8_t day() const;
+
   inline const temporal_rs::Calendar& calendar() const;
 
   inline std::string month_code() const;

@@ -52,14 +52,7 @@ impl ParsedDate {
         let parse_record = parsers::parse_year_month(s)?;
 
         let calendar = extract_kind(parse_record.calendar)?;
-        // ParseISODateTime
-        // Step 4.a.ii.3
-        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
-        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
-        // RangeError exception.
-        if calendar != AnyCalendarKind::Iso {
-            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
-        }
+
         // Assertion: PlainDate must exist on a DateTime parse.
         let record = parse_record.date.temporal_unwrap()?;
 
@@ -70,15 +63,6 @@ impl ParsedDate {
         let parse_record = parsers::parse_month_day(s)?;
 
         let calendar = extract_kind(parse_record.calendar)?;
-
-        // ParseISODateTime
-        // Step 4.a.ii.3
-        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
-        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
-        // RangeError exception.
-        if calendar != AnyCalendarKind::Iso {
-            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
-        }
 
         // Assertion: PlainDate must exist on a DateTime parse.
         let record = parse_record.date.temporal_unwrap()?;
