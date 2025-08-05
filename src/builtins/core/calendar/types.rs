@@ -78,10 +78,17 @@ fn resolve_day(day: Option<u8>, is_year_month: bool) -> TemporalResult<u8> {
 #[derive(Debug)]
 pub struct Era(pub(crate) TinyAsciiStr<16>);
 
+// TODO(Manishearth) We should just be using arithmetic_year unconditionally.
+// so that https://github.com/boa-dev/temporal/issues/448 is handled.
+//
+// However, ICU4X has some bugs
+// (https://github.com/unicode-org/icu4x/pull/6762/, https://github.com/unicode-org/icu4x/pull/6800)
+// so for now we store both.
 #[derive(Debug)]
 pub struct EraYear {
     pub(crate) era: Option<Era>,
     pub(crate) year: i32,
+    pub(crate) arithmetic_year: i32,
 }
 
 impl EraYear {
@@ -100,10 +107,10 @@ impl EraYear {
                         era_info.name.as_str()
                     )));
                 }
+                let calculated_arith = era_info.arithmetic_year_for(era_year);
                 // or a RangeError exception if the fields are sufficient but their values are internally inconsistent
                 // within the calendar (e.g., when fields such as [[Month]] and [[MonthCode]] have conflicting non-unset values). For example:
                 if let Some(arith) = maybe_year {
-                    let calculated_arith = era_info.arithmetic_year_for(era_year);
                     if calculated_arith != arith {
                         return Err(
                             TemporalError::range().with_message("Conflicting year/eraYear info")
@@ -113,6 +120,7 @@ impl EraYear {
                 Ok(Self {
                     year: era_year,
                     era: Some(Era(era_info.name)),
+                    arithmetic_year: calculated_arith,
                 })
             }
             (Some(year), None, None) => Ok(Self {
@@ -121,10 +129,12 @@ impl EraYear {
                     .get_calendar_default_era()
                     .map(|e| Era(e.name)),
                 year,
+                arithmetic_year: year,
             }),
             (None, None, None) if resolution_type == ResolutionType::MonthDay => Ok(Self {
                 era: None,
                 year: 1972,
+                arithmetic_year: 1972,
             }),
             _ => Err(TemporalError::r#type()
                 .with_message("Required fields missing to determine an era and year.")),
@@ -489,6 +499,11 @@ mod tests {
                     "Backcalculated era must match"
                 );
                 assert_eq!(era_year.year, 1, "Backcalculated era must match");
+                assert_eq!(
+                    era_year.arithmetic_year,
+                    plain_date.year(),
+                    "Backcalculated arithmetic_year must match"
+                );
             }
         }
     }

@@ -196,7 +196,7 @@ impl Calendar {
         if self.is_iso() {
             // Resolve month and monthCode;
             return PlainDate::new_with_overflow(
-                resolved_fields.era_year.year,
+                resolved_fields.era_year.arithmetic_year,
                 resolved_fields.month_code.to_month_integer(),
                 resolved_fields.day,
                 self.clone(),
@@ -260,7 +260,7 @@ impl Calendar {
         )?;
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
-                resolved_fields.era_year.year,
+                resolved_fields.era_year.arithmetic_year,
                 resolved_fields.month_code.to_month_integer(),
                 Some(resolved_fields.day),
                 self.clone(),

@@ -14,8 +14,8 @@ use crate::{
 };
 
 use super::{calendar::month_to_month_code, PartialDate, PlainDate};
-use writeable::Writeable;
 use icu_calendar::AnyCalendarKind;
+use writeable::Writeable;
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`.
 ///
@@ -215,7 +215,8 @@ impl PlainMonthDay {
         // Note: parse_month_day will refuse to parse MM-DD format month-days for non-ISO, but
         // it will happily parse YYYY-MM-DD[u-ca=CAL]. These will be valid ISO dates; but they
         // could potentially be out of Temporal range.
-        let iso = IsoDate::new_unchecked(parsed.record.year, parsed.record.month, parsed.record.day);
+        let iso =
+            IsoDate::new_unchecked(parsed.record.year, parsed.record.month, parsed.record.day);
         iso.check_validity()?;
 
         // 13. Set result to ISODateToFields(calendar, isoDate, month-day).
