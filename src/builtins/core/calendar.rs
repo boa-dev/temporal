@@ -282,7 +282,7 @@ impl Calendar {
         PlainYearMonth::new_with_overflow(
             Iso.year_info(&iso).year,
             Iso.month(&iso).ordinal,
-            Some(Iso.days_in_month(&iso)),
+            Some(Iso.day_of_month(&iso).0),
             self.clone(),
             overflow,
         )

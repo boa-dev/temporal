@@ -8,6 +8,7 @@ use alloc::format;
 use crate::iso::{constrain_iso_day, is_valid_iso_day};
 use crate::options::ArithmeticOverflow;
 use crate::{TemporalError, TemporalResult};
+use icu_calendar::AnyCalendarKind;
 
 use crate::builtins::core::{calendar::Calendar, PartialDate};
 
@@ -37,7 +38,13 @@ impl ResolvedCalendarFields {
         let era_year = EraYear::try_from_partial_date(partial_date, resolve_type)?;
         if partial_date.calendar.is_iso() {
             let month_code = resolve_iso_month(partial_date, overflow)?;
-            let day = resolve_day(partial_date.day, resolve_type == ResolutionType::YearMonth)?;
+            let day = resolve_day(
+                partial_date.day,
+                resolve_type == ResolutionType::YearMonth,
+                &era_year,
+                month_code,
+                &partial_date.calendar,
+            )?;
             let day = if overflow == ArithmeticOverflow::Constrain {
                 constrain_iso_day(era_year.year, month_code.to_month_integer(), day)
             } else {
@@ -56,8 +63,13 @@ impl ResolvedCalendarFields {
         }
 
         let month_code = MonthCode::try_from_partial_date(partial_date)?;
-        let day = resolve_day(partial_date.day, resolve_type == ResolutionType::YearMonth)?;
-        // TODO: Constrain day to calendar range for month?
+        let day = resolve_day(
+            partial_date.day,
+            resolve_type == ResolutionType::YearMonth,
+            &era_year,
+            month_code,
+            &partial_date.calendar,
+        )?;
 
         Ok(Self {
             era_year,
@@ -67,9 +79,35 @@ impl ResolvedCalendarFields {
     }
 }
 
-fn resolve_day(day: Option<u8>, is_year_month: bool) -> TemporalResult<u8> {
+fn resolve_day(
+    day: Option<u8>,
+    is_year_month: bool,
+    year: &EraYear,
+    month_code: MonthCode,
+    calendar: &Calendar,
+) -> TemporalResult<u8> {
     if is_year_month {
-        Ok(day.unwrap_or(1))
+        if calendar.kind() == AnyCalendarKind::Japanese {
+            Ok(
+                match (year.arithmetic_year, month_code.to_month_integer()) {
+                    // Meiji begins Oct 23, 1868
+                    (1868, 10) => 23,
+                    // Taisho begins Jul 30, 1912
+                    (1912, 7) => 30,
+                    // Showa begins Dec 12, 1926
+                    (1926, 12) => 25,
+                    // Heisei begins 8 Jan 1989
+                    (1989, 1) => 8,
+                    // Reiwa begins 1 May 2019
+                    (2019, 5) => 1,
+                    _ => 1,
+                },
+            )
+        } else {
+            // PlainYearMonth construction paths all *require* setting the day to the first day of the month.
+            // See https://tc39.es/proposal-temporal/#sec-temporal-calendaryearmonthfromfields
+            Ok(1)
+        }
     } else {
         day.ok_or(TemporalError::r#type().with_message("Required day field is empty."))
     }
