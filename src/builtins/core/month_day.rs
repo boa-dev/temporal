@@ -15,6 +15,7 @@ use crate::{
 
 use super::{calendar::month_to_month_code, PartialDate, PlainDate};
 use writeable::Writeable;
+use icu_calendar::AnyCalendarKind;
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`.
 ///
@@ -200,12 +201,37 @@ impl PlainMonthDay {
     //
     // Be sure to parse this using [`ParsedDate::month_day_from_utf8()`]~
     pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
+        let calendar = Calendar::new(parsed.calendar);
+        // 10. If calendar is "iso8601", then
+        if parsed.calendar == AnyCalendarKind::Iso {
+            // a. Let referenceISOYear be 1972 (the first ISO 8601 leap year after the epoch).
+            // b. Let isoDate be CreateISODateRecord(referenceISOYear, result.[[Month]], result.[[Day]]).
+            // c. Return !CreateTemporalMonthDay(isoDate, calendar).
+            let iso = IsoDate::new_unchecked(1972, parsed.record.month, parsed.record.day);
+            return Ok(Self::new_unchecked(iso, calendar));
+        }
+        // 11. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
+        // 12. If ISODateWithinLimits(isoDate) is false, throw a RangeError exception.
+        // Note: parse_month_day will refuse to parse MM-DD format month-days for non-ISO, but
+        // it will happily parse YYYY-MM-DD[u-ca=CAL]. These will be valid ISO dates; but they
+        // could potentially be out of Temporal range.
+        let iso = IsoDate::new_unchecked(parsed.record.year, parsed.record.month, parsed.record.day);
+        iso.check_validity()?;
+
+        // 13. Set result to ISODateToFields(calendar, isoDate, month-day).
+        // 14. NOTE: The following operation is called with constrain regardless of the value of overflow, in
+        // order for the calendar to store a canonical value in the [[Year]] field of the [[ISODate]] internal slot of the result.
+        // 15. Set isoDate to ? CalendarMonthDayFromFields(calendar, result, constrain).
+
+        // TODO(Manishearth) this must tweak the year to something valid
+        // https://github.com/boa-dev/temporal/issues/450
+        // https://github.com/tc39/proposal-intl-era-monthcode/issues/60
         Self::new_with_overflow(
             parsed.record.month,
             parsed.record.day,
-            Calendar::new(parsed.calendar),
+            calendar,
             ArithmeticOverflow::Reject,
-            None,
+            Some(parsed.record.year),
         )
     }
 
@@ -502,6 +528,35 @@ mod tests {
             Err(_) => {
                 // Acceptable if era/era_year fallback is not supported by the calendar impl
             }
+        }
+    }
+    #[test]
+    fn test_valid_strings() {
+        const TESTS: &[&str] = &[
+            "02-29",
+            "02-28",
+            "2025-08-05",
+            "2025-08-05[u-ca=gregory]",
+            "2024-02-29[u-ca=gregory]",
+        ];
+        for test in TESTS {
+            assert!(PlainMonthDay::from_utf8(test.as_bytes()).is_ok());
+        }
+    }
+    #[test]
+    fn test_invalid_strings() {
+        const TESTS: &[&str] = &[
+            // Out of range
+            "-99999-01-01",
+            "-99999-01-01[u-ca=gregory]",
+            // Not a leap year
+            "2025-02-29",
+            "2025-02-29[u-ca=gregory]",
+            // Format not allowed for non-Gregorian
+            "02-28[u-ca=gregory]",
+        ];
+        for test in TESTS {
+            assert!(PlainMonthDay::from_utf8(test.as_bytes()).is_err());
         }
     }
 }
