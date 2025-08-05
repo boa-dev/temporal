@@ -545,9 +545,9 @@ impl PlainYearMonth {
         Self::from_parsed(parsed)
     }
 
-    // Converts a ParsedDate into a `PlainYearMonth`.
-    //
-    // Be sure to parse this using [`ParsedDate::year_month_from_utf8()`]~
+    /// Converts a ParsedDate into a `PlainYearMonth`.
+    ///
+    /// Be sure to parse this using [`ParsedDate::year_month_from_utf8()`]~
     pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
         let date = parsed.record;
         // The below steps are from `ToTemporalYearMonth`
