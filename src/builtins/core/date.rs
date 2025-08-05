@@ -70,6 +70,18 @@ impl PartialDate {
     crate::impl_with_fallback_method!(with_fallback_date, (with_day: day) PlainDate);
     crate::impl_with_fallback_method!(with_fallback_datetime, (with_day:day) PlainDateTime);
     crate::impl_field_keys_to_ignore!((with_day:day));
+
+    pub(crate) fn try_from_month_day(month_day: &PlainMonthDay) -> TemporalResult<Self> {
+        Ok(Self {
+            year: None,
+            month: None,
+            month_code: Some(month_day.month_code()),
+            era: None,
+            era_year: None,
+            day: Some(month_day.day()),
+            calendar: month_day.calendar().clone(),
+        })
+    }
 }
 
 /// The return value of CalendarFieldKeysToIgnore
