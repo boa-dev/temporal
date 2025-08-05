@@ -225,7 +225,7 @@ impl EraYear {
             }
         }
         // For simple calendars with a single leap day.
-        // This needs the date of 1972-12-31 represented in that calendar, the month-day of th eleap day,
+        // This needs the date of 1972-12-31 represented in that calendar, the month-day of the leap day,
         // and the first reference year where the leap day occurs on or before 1972-12-31
         fn threshold_with_leap_day(
             month: u8,
