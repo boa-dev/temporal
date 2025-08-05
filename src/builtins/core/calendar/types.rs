@@ -287,7 +287,7 @@ impl EraYear {
             AnyCalendarKind::Hebrew => {
                 let month_code = require_month_code()?;
 
-                // 1972-12-31 is y=5733 am, m=4, d=26. We must produce year 5723 or lower
+                // 1972-12-31 is y=5733 am, m=4, d=26. We must produce year 5732 or lower
                 if month_code.is_leap_month() {
                     // 5730 is a leap year
                     5730
