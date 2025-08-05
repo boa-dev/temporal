@@ -287,14 +287,14 @@ impl EraYear {
             AnyCalendarKind::Hebrew => {
                 let month_code = require_month_code()?;
 
-                // 1972-12-31 is y=5733 am, m=4, d=26. We must produce year 5723 or lower
+                // 1972-12-31 is y=5733 am, m=4, d=26. We must produce year 5732 or lower
                 if month_code.is_leap_month() {
                     // 5730 is a leap year
                     5730
                 } else {
                     let month = month_code.to_month_integer();
                     if (month == 4 && day == 26) || month > 4 {
-                        // 5733 will produce dates after 1972, return 5722 instead
+                        // 5733 will produce dates after 1972, return 5732 instead
                         5732
                     } else {
                         // All months have 29 days
@@ -313,7 +313,6 @@ impl EraYear {
             }
 
             // TODO(Manishearth) Chinese, Dangi, waiting on https://github.com/unicode-org/icu4x/pull/6762
-            // and https://github.com/tc39/proposal-intl-era-monthcode/issues/60
 
             // These lunar calendars are iffier: The ones above are mathematically defined,
             // the algorithm for these may change. This data may need to be updated on occasion.
