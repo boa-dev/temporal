@@ -36,7 +36,7 @@ pub struct ParsedDate {
 }
 
 impl ParsedDate {
-    // Converts a UTF-8 encoded string into a `ParsedDate`.
+    /// Converts a UTF-8 encoded string into a `ParsedDate`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parse_record = parsers::parse_date_time(s)?;
 
@@ -47,7 +47,7 @@ impl ParsedDate {
 
         Ok(Self { record, calendar })
     }
-    // Converts a UTF-8 encoded YearMonth string into a `ParsedDate`.
+    /// Converts a UTF-8 encoded YearMonth string into a `ParsedDate`.
     pub fn year_month_from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parse_record = parsers::parse_year_month(s)?;
 
@@ -65,7 +65,7 @@ impl ParsedDate {
 
         Ok(Self { record, calendar })
     }
-    // Converts a UTF-8 encoded MonthDay string into a `ParsedDate`.
+    /// Converts a UTF-8 encoded MonthDay string into a `ParsedDate`.
     pub fn month_day_from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parse_record = parsers::parse_month_day(s)?;
 
@@ -95,7 +95,7 @@ pub struct ParsedDateTime {
 }
 
 impl ParsedDateTime {
-    // Converts a UTF-8 encoded string into a `ParsedDateTime`.
+    /// Converts a UTF-8 encoded string into a `ParsedDateTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parse_record = parsers::parse_date_time(s)?;
 
@@ -136,11 +136,13 @@ pub struct ParsedZonedDateTime {
 }
 
 impl ParsedZonedDateTime {
+    /// Converts a UTF-8 encoded string into a `ParsedZonedDateTime`, using compiled data
     #[cfg(feature = "compiled_data")]
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
         Self::from_utf8_with_provider(source, &*crate::builtins::TZ_PROVIDER)
     }
 
+    /// Converts a UTF-8 encoded string into a `ParsedZonedDateTime`.
     pub fn from_utf8_with_provider(
         source: &[u8],
         provider: &impl TimeZoneProvider,
