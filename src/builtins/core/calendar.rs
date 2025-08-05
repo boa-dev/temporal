@@ -34,10 +34,12 @@ use tinystr::{tinystr, TinyAsciiStr};
 use super::ZonedDateTime;
 
 mod era;
+mod fields;
 mod types;
 
+pub use fields::{CalendarFields, YearMonthCalendarFields};
 pub(crate) use types::{month_to_month_code, ResolutionType};
-pub use types::{CalendarFields, MonthCode, ResolvedCalendarFields, YearMonthCalendarFields};
+pub use types::{MonthCode, ResolvedCalendarFields};
 
 use era::EraInfo;
 
