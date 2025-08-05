@@ -373,6 +373,28 @@ pub mod ffi {
 impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialDate<'_>) -> Result<Self, TemporalError> {
+        let calendar = temporal_rs::Calendar::new(other.calendar.into());
+        Ok(Self {
+            calendar_fields: other.try_into()?,
+            calendar,
+        })
+    }
+}
+
+impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialYearMonth {
+    type Error = TemporalError;
+    fn try_from(other: ffi::PartialDate<'_>) -> Result<Self, TemporalError> {
+        let calendar = temporal_rs::Calendar::new(other.calendar.into());
+        Ok(Self {
+            calendar_fields: other.try_into()?,
+            calendar,
+        })
+    }
+}
+
+impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::fields::CalendarFields {
+    type Error = TemporalError;
+    fn try_from(other: ffi::PartialDate<'_>) -> Result<Self, TemporalError> {
         use temporal_rs::TinyAsciiStr;
 
         let month_code = if other.month_code.is_empty() {
@@ -397,12 +419,11 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialDate {
             day: other.day.into(),
             era_year: other.era_year.into(),
             era,
-            calendar: temporal_rs::Calendar::new(other.calendar.into()),
         })
     }
 }
 
-impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialYearMonth {
+impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::fields::YearMonthCalendarFields {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialDate<'_>) -> Result<Self, TemporalError> {
         use temporal_rs::TinyAsciiStr;
@@ -428,7 +449,6 @@ impl TryFrom<ffi::PartialDate<'_>> for temporal_rs::partial::PartialYearMonth {
             month_code,
             era_year: other.era_year.into(),
             era,
-            calendar: temporal_rs::Calendar::new(other.calendar.into()),
         })
     }
 }

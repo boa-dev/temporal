@@ -500,18 +500,31 @@ pub(crate) fn zdt_from_epoch_ms(
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZonedDateTime {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
+        let timezone = other.timezone.map(|x| x.0.clone());
+        let calendar = temporal_rs::Calendar::new(other.date.calendar.into());
+        Ok(Self {
+            fields: other.try_into()?,
+            // These fields are only true when parsing
+            has_utc_designator: false,
+            match_minutes: false,
+            timezone,
+            calendar,
+        })
+    }
+}
+
+#[cfg(feature = "compiled_data")]
+impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::fields::ZonedDateTimeFields {
+    type Error = TemporalError;
+    fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
         let offset = match other.offset.into_option() {
             Some(o) => Some(temporal_rs::UtcOffset::from_utf8(o.into())?),
             None => None,
         };
         Ok(Self {
-            date: other.date.try_into()?,
+            calendar_fields: other.date.try_into()?,
             time: Some(other.time.into()),
-            // These fields are only true when parsing
-            has_utc_designator: false,
-            match_minutes: false,
             offset,
-            timezone: other.timezone.map(|x| x.0.clone()),
         })
     }
 }

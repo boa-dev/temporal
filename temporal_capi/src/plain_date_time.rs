@@ -395,8 +395,19 @@ pub mod ffi {
 impl TryFrom<ffi::PartialDateTime<'_>> for temporal_rs::partial::PartialDateTime {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialDateTime<'_>) -> Result<Self, TemporalError> {
+        let calendar = temporal_rs::Calendar::new(other.date.calendar.into());
         Ok(Self {
-            date: other.date.try_into()?,
+            fields: other.try_into()?,
+            calendar,
+        })
+    }
+}
+
+impl TryFrom<ffi::PartialDateTime<'_>> for temporal_rs::fields::DateTimeFields {
+    type Error = TemporalError;
+    fn try_from(other: ffi::PartialDateTime<'_>) -> Result<Self, TemporalError> {
+        Ok(Self {
+            calendar_fields: other.date.try_into()?,
             time: other.time.into(),
         })
     }
