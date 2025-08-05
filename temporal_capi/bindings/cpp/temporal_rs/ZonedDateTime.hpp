@@ -24,7 +24,7 @@
 #include "I128Nanoseconds.hpp"
 #include "Instant.hpp"
 #include "OffsetDisambiguation.hpp"
-#include "OwnedPartialZonedDateTime.hpp"
+#include "ParsedZonedDateTime.hpp"
 #include "PartialZonedDateTime.hpp"
 #include "PlainDate.hpp"
 #include "PlainDateTime.hpp"
@@ -46,8 +46,8 @@ namespace capi {
     typedef struct temporal_rs_ZonedDateTime_from_partial_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_partial_result;
     temporal_rs_ZonedDateTime_from_partial_result temporal_rs_ZonedDateTime_from_partial(temporal_rs::capi::PartialZonedDateTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow, temporal_rs::capi::Disambiguation_option disambiguation, temporal_rs::capi::OffsetDisambiguation_option offset_option);
 
-    typedef struct temporal_rs_ZonedDateTime_from_owned_partial_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_owned_partial_result;
-    temporal_rs_ZonedDateTime_from_owned_partial_result temporal_rs_ZonedDateTime_from_owned_partial(const temporal_rs::capi::OwnedPartialZonedDateTime* partial, temporal_rs::capi::ArithmeticOverflow_option overflow, temporal_rs::capi::Disambiguation_option disambiguation, temporal_rs::capi::OffsetDisambiguation_option offset_option);
+    typedef struct temporal_rs_ZonedDateTime_from_parsed_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_parsed_result;
+    temporal_rs_ZonedDateTime_from_parsed_result temporal_rs_ZonedDateTime_from_parsed(const temporal_rs::capi::ParsedZonedDateTime* parsed, temporal_rs::capi::Disambiguation disambiguation, temporal_rs::capi::OffsetDisambiguation offset_option);
 
     typedef struct temporal_rs_ZonedDateTime_from_utf8_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_utf8_result;
     temporal_rs_ZonedDateTime_from_utf8_result temporal_rs_ZonedDateTime_from_utf8(diplomat::capi::DiplomatStringView s, temporal_rs::capi::Disambiguation disambiguation, temporal_rs::capi::OffsetDisambiguation offset_disambiguation);
@@ -196,11 +196,10 @@ inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::ZonedDateTime>>(std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::from_owned_partial(const temporal_rs::OwnedPartialZonedDateTime& partial, std::optional<temporal_rs::ArithmeticOverflow> overflow, std::optional<temporal_rs::Disambiguation> disambiguation, std::optional<temporal_rs::OffsetDisambiguation> offset_option) {
-  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_from_owned_partial(partial.AsFFI(),
-    overflow.has_value() ? (temporal_rs::capi::ArithmeticOverflow_option{ { overflow.value().AsFFI() }, true }) : (temporal_rs::capi::ArithmeticOverflow_option{ {}, false }),
-    disambiguation.has_value() ? (temporal_rs::capi::Disambiguation_option{ { disambiguation.value().AsFFI() }, true }) : (temporal_rs::capi::Disambiguation_option{ {}, false }),
-    offset_option.has_value() ? (temporal_rs::capi::OffsetDisambiguation_option{ { offset_option.value().AsFFI() }, true }) : (temporal_rs::capi::OffsetDisambiguation_option{ {}, false }));
+inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::from_parsed(const temporal_rs::ParsedZonedDateTime& parsed, temporal_rs::Disambiguation disambiguation, temporal_rs::OffsetDisambiguation offset_option) {
+  auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_from_parsed(parsed.AsFFI(),
+    disambiguation.AsFFI(),
+    offset_option.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::ZonedDateTime>>(std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 

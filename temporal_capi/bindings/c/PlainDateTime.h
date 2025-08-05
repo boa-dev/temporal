@@ -14,6 +14,7 @@
 #include "Disambiguation.d.h"
 #include "DisplayCalendar.d.h"
 #include "Duration.d.h"
+#include "ParsedDateTime.d.h"
 #include "PartialDateTime.d.h"
 #include "PlainDate.d.h"
 #include "PlainTime.d.h"
@@ -38,6 +39,9 @@ temporal_rs_PlainDateTime_try_new_result temporal_rs_PlainDateTime_try_new(int32
 
 typedef struct temporal_rs_PlainDateTime_from_partial_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_partial_result;
 temporal_rs_PlainDateTime_from_partial_result temporal_rs_PlainDateTime_from_partial(PartialDateTime partial, ArithmeticOverflow_option overflow);
+
+typedef struct temporal_rs_PlainDateTime_from_parsed_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_parsed_result;
+temporal_rs_PlainDateTime_from_parsed_result temporal_rs_PlainDateTime_from_parsed(const ParsedDateTime* parsed);
 
 typedef struct temporal_rs_PlainDateTime_from_epoch_milliseconds_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_milliseconds_result;
 temporal_rs_PlainDateTime_from_epoch_milliseconds_result temporal_rs_PlainDateTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);

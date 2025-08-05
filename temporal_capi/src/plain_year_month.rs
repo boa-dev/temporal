@@ -48,6 +48,14 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        pub fn from_parsed(
+            parsed: &crate::plain_date::ffi::ParsedDate,
+        ) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::PlainYearMonth::from_parsed(parsed.0)
+                .map(|x| Box::new(PlainYearMonth(x)))
+                .map_err(Into::into)
+        }
+
         pub fn with(
             &self,
             partial: PartialDate,

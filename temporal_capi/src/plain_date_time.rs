@@ -37,6 +37,25 @@ pub mod ffi {
         pub time: PartialTime,
     }
 
+    #[diplomat::opaque]
+    pub struct ParsedDateTime(temporal_rs::parsed_intermediates::ParsedDateTime);
+
+    impl ParsedDateTime {
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::parsed_intermediates::ParsedDateTime::from_utf8(s)
+                .map(|x| Box::new(ParsedDateTime(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+
+            temporal_rs::parsed_intermediates::ParsedDateTime::from_utf8(s.as_bytes())
+                .map(|x| Box::new(ParsedDateTime(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+    }
+
     impl PlainDateTime {
         pub fn try_new_constrain(
             year: i32,
@@ -98,6 +117,12 @@ pub mod ffi {
             overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainDateTime::from_partial(partial.try_into()?, overflow.map(Into::into))
+                .map(|x| Box::new(PlainDateTime(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_parsed(parsed: &ParsedDateTime) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::PlainDateTime::from_parsed(parsed.0)
                 .map(|x| Box::new(PlainDateTime(x)))
                 .map_err(Into::into)
         }

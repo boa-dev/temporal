@@ -21,6 +21,7 @@ use crate::{
         ResolvedRoundingOptions, RoundingIncrement, RoundingMode, RoundingOptions,
         ToStringRoundingOptions, Unit, UnitGroup,
     },
+    parsed_intermediates::ParsedZonedDateTime,
     parsers::{self, FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::{PartialDate, PartialTime},
     primitive::FiniteF64,
@@ -1405,15 +1406,40 @@ impl ZonedDateTime {
         offset_option: OffsetDisambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let partial = PartialZonedDateTime::try_from_utf8_with_provider(source, provider)?;
+        let parsed = ParsedZonedDateTime::from_utf8_with_provider(source, provider)?;
 
-        Self::from_partial_with_provider(
-            partial,
-            Some(ArithmeticOverflow::Reject),
-            Some(disambiguation),
-            Some(offset_option),
+        Self::from_parsed_with_provider(parsed, disambiguation, offset_option, provider)
+    }
+
+    pub fn from_parsed_with_provider(
+        parsed: ParsedZonedDateTime,
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        let date = IsoDate::new_with_overflow(
+            parsed.date.record.year,
+            parsed.date.record.month,
+            parsed.date.record.day,
+            ArithmeticOverflow::Reject,
+        )?;
+
+        let epoch_nanos = interpret_isodatetime_offset(
+            date,
+            parsed.time,
+            parsed.has_utc_designator,
+            parsed.offset.map(|o| o.nanoseconds()),
+            &parsed.timezone,
+            disambiguation,
+            offset_option,
+            parsed.match_minutes,
             provider,
-        )
+        )?;
+        Ok(Self::new_unchecked(
+            Instant::from(epoch_nanos),
+            Calendar::new(parsed.date.calendar),
+            parsed.timezone,
+        ))
     }
 }
 

@@ -19,7 +19,7 @@
 #include "I128Nanoseconds.d.h"
 #include "Instant.d.h"
 #include "OffsetDisambiguation.d.h"
-#include "OwnedPartialZonedDateTime.d.h"
+#include "ParsedZonedDateTime.d.h"
 #include "PartialZonedDateTime.d.h"
 #include "PlainDate.d.h"
 #include "PlainDateTime.d.h"
@@ -43,8 +43,8 @@ temporal_rs_ZonedDateTime_try_new_result temporal_rs_ZonedDateTime_try_new(I128N
 typedef struct temporal_rs_ZonedDateTime_from_partial_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_partial_result;
 temporal_rs_ZonedDateTime_from_partial_result temporal_rs_ZonedDateTime_from_partial(PartialZonedDateTime partial, ArithmeticOverflow_option overflow, Disambiguation_option disambiguation, OffsetDisambiguation_option offset_option);
 
-typedef struct temporal_rs_ZonedDateTime_from_owned_partial_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_owned_partial_result;
-temporal_rs_ZonedDateTime_from_owned_partial_result temporal_rs_ZonedDateTime_from_owned_partial(const OwnedPartialZonedDateTime* partial, ArithmeticOverflow_option overflow, Disambiguation_option disambiguation, OffsetDisambiguation_option offset_option);
+typedef struct temporal_rs_ZonedDateTime_from_parsed_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_parsed_result;
+temporal_rs_ZonedDateTime_from_parsed_result temporal_rs_ZonedDateTime_from_parsed(const ParsedZonedDateTime* parsed, Disambiguation disambiguation, OffsetDisambiguation offset_option);
 
 typedef struct temporal_rs_ZonedDateTime_from_utf8_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_utf8_result;
 temporal_rs_ZonedDateTime_from_utf8_result temporal_rs_ZonedDateTime_from_utf8(DiplomatStringView s, Disambiguation disambiguation, OffsetDisambiguation offset_disambiguation);

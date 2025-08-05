@@ -127,8 +127,20 @@ impl Calendar {
         Self(Ref(cal))
     }
 
-    /// Create a `Calendar` from an ICU [`CalendarAlgorithm`].
-    pub fn try_from_calendar_algorithm(algorithm: CalendarAlgorithm) -> TemporalResult<Self> {
+    /// Returns a `Calendar` from the a slice of UTF-8 encoded bytes.
+    pub fn try_from_utf8(bytes: &[u8]) -> TemporalResult<Self> {
+        let kind = Self::try_kind_from_utf8(bytes)?;
+        Ok(Self::new(kind))
+    }
+
+    /// Returns a `Calendar` from the a slice of UTF-8 encoded bytes.
+    pub(crate) fn try_kind_from_utf8(bytes: &[u8]) -> TemporalResult<AnyCalendarKind> {
+        // TODO: Determine the best way to handle "julian" here.
+        // Not supported by `CalendarAlgorithm`
+        let icu_locale_value = Value::try_from_utf8(&bytes.to_ascii_lowercase())
+            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+        let algorithm = CalendarAlgorithm::try_from(&icu_locale_value)
+            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
         let calendar_kind = match AnyCalendarKind::try_from(algorithm) {
             Ok(c) => c,
             // Handle `islamic` calendar idenitifier.
@@ -140,18 +152,7 @@ impl Calendar {
             }
             Err(()) => return Err(TemporalError::range().with_message("unknown calendar")),
         };
-        Ok(Calendar::new(calendar_kind))
-    }
-
-    /// Returns a `Calendar` from the a slice of UTF-8 encoded bytes.
-    pub fn try_from_utf8(bytes: &[u8]) -> TemporalResult<Self> {
-        // TODO: Determine the best way to handle "julian" here.
-        // Not supported by `CalendarAlgorithm`
-        let icu_locale_value = Value::try_from_utf8(&bytes.to_ascii_lowercase())
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
-        let algorithm = CalendarAlgorithm::try_from(&icu_locale_value)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
-        Self::try_from_calendar_algorithm(algorithm)
+        Ok(calendar_kind)
     }
 }
 

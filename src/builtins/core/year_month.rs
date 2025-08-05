@@ -11,6 +11,7 @@ use crate::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
         DisplayCalendar, ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
+    parsed_intermediates::ParsedDate,
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
     provider::{NeverProvider, TimeZoneProvider},
     temporal_assert,
@@ -540,24 +541,15 @@ impl PlainYearMonth {
 
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let record = crate::parsers::parse_year_month(s)?;
-        let calendar = record
-            .calendar
-            .map(Calendar::try_from_utf8)
-            .transpose()?
-            .unwrap_or_default();
+        let parsed = ParsedDate::year_month_from_utf8(s)?;
+        Self::from_parsed(parsed)
+    }
 
-        // ParseISODateTime
-        // Step 4.a.ii.3
-        // If goal is TemporalMonthDayString or TemporalYearMonthString, calendar is
-        // not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a
-        // RangeError exception.
-        if !calendar.is_iso() {
-            return Err(TemporalError::range().with_message("non-ISO calendar not supported."));
-        }
-
-        let date = record.date.temporal_unwrap()?;
-
+    /// Converts a ParsedDate into a `PlainYearMonth`.
+    ///
+    /// Be sure to parse this using [`ParsedDate::year_month_from_utf8()`]~
+    pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
+        let date = parsed.record;
         // The below steps are from `ToTemporalYearMonth`
         // 10. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
         let iso = IsoDate::new_unchecked(date.year, date.month, date.day);
@@ -567,7 +559,7 @@ impl PlainYearMonth {
             return Err(TemporalError::range().with_message("Exceeded valid range."));
         }
 
-        let intermediate = Self::new_unchecked(iso, calendar);
+        let intermediate = Self::new_unchecked(iso, Calendar::new(parsed.calendar));
         // 12. Set result to ISODateToFields(calendar, isoDate, year-month).
         let partial = PartialYearMonth::try_from_year_month(&intermediate)?;
         // 13. NOTE: The following operation is called with constrain regardless of the

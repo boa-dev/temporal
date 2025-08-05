@@ -13,6 +13,7 @@
 #include "DifferenceSettings.d.h"
 #include "DisplayCalendar.d.h"
 #include "Duration.d.h"
+#include "ParsedDate.d.h"
 #include "PartialDate.d.h"
 #include "PlainDate.d.h"
 #include "TemporalError.d.h"
@@ -30,6 +31,9 @@ temporal_rs_PlainYearMonth_try_new_with_overflow_result temporal_rs_PlainYearMon
 
 typedef struct temporal_rs_PlainYearMonth_from_partial_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_from_partial_result;
 temporal_rs_PlainYearMonth_from_partial_result temporal_rs_PlainYearMonth_from_partial(PartialDate partial, ArithmeticOverflow_option overflow);
+
+typedef struct temporal_rs_PlainYearMonth_from_parsed_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_from_parsed_result;
+temporal_rs_PlainYearMonth_from_parsed_result temporal_rs_PlainYearMonth_from_parsed(const ParsedDate* parsed);
 
 typedef struct temporal_rs_PlainYearMonth_with_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_with_result;
 temporal_rs_PlainYearMonth_with_result temporal_rs_PlainYearMonth_with(const PlainYearMonth* self, PartialDate partial, ArithmeticOverflow_option overflow);

@@ -16,6 +16,7 @@
 #include "ArithmeticOverflow.hpp"
 #include "Calendar.hpp"
 #include "DisplayCalendar.hpp"
+#include "ParsedDate.hpp"
 #include "PartialDate.hpp"
 #include "PlainDate.hpp"
 #include "TemporalError.hpp"
@@ -31,6 +32,9 @@ namespace capi {
 
     typedef struct temporal_rs_PlainMonthDay_from_partial_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_partial_result;
     temporal_rs_PlainMonthDay_from_partial_result temporal_rs_PlainMonthDay_from_partial(temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
+
+    typedef struct temporal_rs_PlainMonthDay_from_parsed_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_parsed_result;
+    temporal_rs_PlainMonthDay_from_parsed_result temporal_rs_PlainMonthDay_from_parsed(const temporal_rs::capi::ParsedDate* parsed);
 
     typedef struct temporal_rs_PlainMonthDay_with_result {union {temporal_rs::capi::PlainMonthDay* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_with_result;
     temporal_rs_PlainMonthDay_with_result temporal_rs_PlainMonthDay_with(const temporal_rs::capi::PlainMonthDay* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -83,6 +87,11 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> temporal_rs::PlainMonthDay::from_partial(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) {
   auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_from_partial(partial.AsFFI(),
     overflow.has_value() ? (temporal_rs::capi::ArithmeticOverflow_option{ { overflow.value().AsFFI() }, true }) : (temporal_rs::capi::ArithmeticOverflow_option{ {}, false }));
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainMonthDay>>(std::unique_ptr<temporal_rs::PlainMonthDay>(temporal_rs::PlainMonthDay::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> temporal_rs::PlainMonthDay::from_parsed(const temporal_rs::ParsedDate& parsed) {
+  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_from_parsed(parsed.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainMonthDay>>(std::unique_ptr<temporal_rs::PlainMonthDay>(temporal_rs::PlainMonthDay::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 

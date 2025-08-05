@@ -42,6 +42,53 @@ pub mod ffi {
         pub calendar: AnyCalendarKind,
     }
 
+    #[diplomat::opaque]
+    pub struct ParsedDate(pub(crate) temporal_rs::parsed_intermediates::ParsedDate);
+
+    impl ParsedDate {
+        pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::parsed_intermediates::ParsedDate::from_utf8(s)
+                .map(|x| Box::new(ParsedDate(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+        pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+
+            temporal_rs::parsed_intermediates::ParsedDate::from_utf8(s.as_bytes())
+                .map(|x| Box::new(ParsedDate(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+
+        pub fn year_month_from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::parsed_intermediates::ParsedDate::year_month_from_utf8(s)
+                .map(|x| Box::new(ParsedDate(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+        pub fn year_month_from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+
+            temporal_rs::parsed_intermediates::ParsedDate::year_month_from_utf8(s.as_bytes())
+                .map(|x| Box::new(ParsedDate(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+
+        pub fn month_day_from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::parsed_intermediates::ParsedDate::month_day_from_utf8(s)
+                .map(|x| Box::new(ParsedDate(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+        pub fn month_day_from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
+            // TODO(#275) This should not need to convert
+            let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
+
+            temporal_rs::parsed_intermediates::ParsedDate::month_day_from_utf8(s.as_bytes())
+                .map(|x| Box::new(ParsedDate(x)))
+                .map_err(Into::<TemporalError>::into)
+        }
+    }
+
     impl PlainDate {
         pub fn try_new_constrain(
             year: i32,
@@ -95,6 +142,12 @@ pub mod ffi {
             overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainDate::from_partial(partial.try_into()?, overflow.map(Into::into))
+                .map(|x| Box::new(PlainDate(x)))
+                .map_err(Into::into)
+        }
+
+        pub fn from_parsed(parsed: &ParsedDate) -> Result<Box<Self>, TemporalError> {
+            temporal_rs::PlainDate::from_parsed(parsed.0)
                 .map(|x| Box::new(PlainDate(x)))
                 .map_err(Into::into)
         }

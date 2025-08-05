@@ -87,20 +87,20 @@ pub mod ffi {
     }
 
     #[diplomat::opaque]
-    pub struct OwnedPartialZonedDateTime(temporal_rs::partial::PartialZonedDateTime);
+    pub struct ParsedZonedDateTime(temporal_rs::parsed_intermediates::ParsedZonedDateTime);
 
-    impl OwnedPartialZonedDateTime {
+    impl ParsedZonedDateTime {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::partial::PartialZonedDateTime::try_from_utf8(s)
-                .map(|x| Box::new(OwnedPartialZonedDateTime(x)))
+            temporal_rs::parsed_intermediates::ParsedZonedDateTime::from_utf8(s)
+                .map(|x| Box::new(ParsedZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }
         pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
 
-            temporal_rs::partial::PartialZonedDateTime::try_from_utf8(s.as_bytes())
-                .map(|x| Box::new(OwnedPartialZonedDateTime(x)))
+            temporal_rs::parsed_intermediates::ParsedZonedDateTime::from_utf8(s.as_bytes())
+                .map(|x| Box::new(ParsedZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }
     }
@@ -139,17 +139,15 @@ pub mod ffi {
             .map_err(Into::into)
         }
 
-        pub fn from_owned_partial(
-            partial: &OwnedPartialZonedDateTime,
-            overflow: Option<ArithmeticOverflow>,
-            disambiguation: Option<Disambiguation>,
-            offset_option: Option<OffsetDisambiguation>,
+        pub fn from_parsed(
+            parsed: &ParsedZonedDateTime,
+            disambiguation: Disambiguation,
+            offset_option: OffsetDisambiguation,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::ZonedDateTime::from_partial(
-                partial.0.clone(),
-                overflow.map(Into::into),
-                disambiguation.map(Into::into),
-                offset_option.map(Into::into),
+            temporal_rs::ZonedDateTime::from_parsed(
+                parsed.0.clone(),
+                disambiguation.into(),
+                offset_option.into(),
             )
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
