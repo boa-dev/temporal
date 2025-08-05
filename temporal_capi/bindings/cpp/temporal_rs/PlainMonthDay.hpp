@@ -55,6 +55,8 @@ namespace capi {
 
     uint8_t temporal_rs_PlainMonthDay_iso_day(const temporal_rs::capi::PlainMonthDay* self);
 
+    uint8_t temporal_rs_PlainMonthDay_day(const temporal_rs::capi::PlainMonthDay* self);
+
     const temporal_rs::capi::Calendar* temporal_rs_PlainMonthDay_calendar(const temporal_rs::capi::PlainMonthDay* self);
 
     void temporal_rs_PlainMonthDay_month_code(const temporal_rs::capi::PlainMonthDay* self, diplomat::capi::DiplomatWrite* write);
@@ -136,6 +138,11 @@ inline uint8_t temporal_rs::PlainMonthDay::iso_month() const {
 
 inline uint8_t temporal_rs::PlainMonthDay::iso_day() const {
   auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_iso_day(this->AsFFI());
+  return result;
+}
+
+inline uint8_t temporal_rs::PlainMonthDay::day() const {
+  auto result = temporal_rs::capi::temporal_rs_PlainMonthDay_day(this->AsFFI());
   return result;
 }
 
