@@ -294,7 +294,7 @@ impl EraYear {
                 } else {
                     let month = month_code.to_month_integer();
                     if (month == 4 && day == 26) || month > 4 {
-                        // 5733 will produce dates after 1972, return 5722 instead
+                        // 5733 will produce dates after 1972, return 5732 instead
                         5732
                     } else {
                         // All months have 29 days
