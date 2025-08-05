@@ -696,6 +696,8 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
     }
     .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
 
+    record.calendar = first_calendar.map(|v| v.value);
+
     // Note: this method only handles the specific AnnotatedFoo nonterminals;
     // so if we are parsing MonthDay/YearMonth we will never have a DateDay/DateYear parse node.
     //
@@ -726,8 +728,6 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
             TemporalError::range().with_message("DateTime strings must contain a Date value.")
         );
     }
-
-    record.calendar = first_calendar.map(|v| v.value);
 
     Ok(record)
 }

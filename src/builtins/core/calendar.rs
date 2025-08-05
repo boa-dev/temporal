@@ -196,7 +196,7 @@ impl Calendar {
         if self.is_iso() {
             // Resolve month and monthCode;
             return PlainDate::new_with_overflow(
-                resolved_fields.era_year.year,
+                resolved_fields.era_year.arithmetic_year,
                 resolved_fields.month_code.to_month_integer(),
                 resolved_fields.day,
                 self.clone(),
@@ -241,9 +241,24 @@ impl Calendar {
             );
         }
 
-        // TODO: This may get complicated...
-        // For reference: https://github.com/tc39/proposal-temporal/blob/main/polyfill/lib/calendar.mjs#L1275.
-        Err(TemporalError::range().with_message("Not yet implemented/supported."))
+        // We trust ResolvedCalendarFields to have calculated an appropriate reference year for us
+        let calendar_date = self
+            .0
+            .from_codes(
+                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+                resolved_fields.era_year.year,
+                IcuMonthCode(resolved_fields.month_code.0),
+                resolved_fields.day,
+            )
+            .map_err(TemporalError::from_icu4x)?;
+        let iso = self.0.to_iso(&calendar_date);
+        PlainMonthDay::new_with_overflow(
+            Iso.month(&iso).ordinal,
+            Iso.day_of_month(&iso).0,
+            self.clone(),
+            overflow,
+            Some(Iso.extended_year(&iso)),
+        )
     }
 
     /// `CalendarPlainYearMonthFromFields`
@@ -260,7 +275,7 @@ impl Calendar {
         )?;
         if self.is_iso() {
             return PlainYearMonth::new_with_overflow(
-                resolved_fields.era_year.year,
+                resolved_fields.era_year.arithmetic_year,
                 resolved_fields.month_code.to_month_integer(),
                 Some(resolved_fields.day),
                 self.clone(),
@@ -282,7 +297,7 @@ impl Calendar {
         PlainYearMonth::new_with_overflow(
             Iso.year_info(&iso).year,
             Iso.month(&iso).ordinal,
-            Some(Iso.days_in_month(&iso)),
+            Some(Iso.day_of_month(&iso).0),
             self.clone(),
             overflow,
         )

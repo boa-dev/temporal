@@ -97,6 +97,9 @@ pub mod ffi {
             self.0.iso_day()
         }
 
+        pub fn day(&self) -> u8 {
+            self.0.day()
+        }
         pub fn calendar<'a>(&'a self) -> &'a Calendar {
             Calendar::transparent_convert(self.0.calendar())
         }

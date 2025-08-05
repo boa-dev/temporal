@@ -14,6 +14,7 @@ use crate::{
 };
 
 use super::{calendar::month_to_month_code, PartialDate, PlainDate};
+use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
 /// The native Rust implementation of `Temporal.PlainMonthDay`.
@@ -200,13 +201,32 @@ impl PlainMonthDay {
     //
     // Be sure to parse this using [`ParsedDate::month_day_from_utf8()`]~
     pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
-        Self::new_with_overflow(
-            parsed.record.month,
-            parsed.record.day,
-            Calendar::new(parsed.calendar),
-            ArithmeticOverflow::Reject,
-            None,
-        )
+        let calendar = Calendar::new(parsed.calendar);
+        // 10. If calendar is "iso8601", then
+        if parsed.calendar == AnyCalendarKind::Iso {
+            // a. Let referenceISOYear be 1972 (the first ISO 8601 leap year after the epoch).
+            // b. Let isoDate be CreateISODateRecord(referenceISOYear, result.[[Month]], result.[[Day]]).
+            // c. Return !CreateTemporalMonthDay(isoDate, calendar).
+            let iso = IsoDate::new_unchecked(1972, parsed.record.month, parsed.record.day);
+            return Ok(Self::new_unchecked(iso, calendar));
+        }
+        // 11. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
+        // 12. If ISODateWithinLimits(isoDate) is false, throw a RangeError exception.
+        // Note: parse_month_day will refuse to parse MM-DD format month-days for non-ISO, but
+        // it will happily parse YYYY-MM-DD[u-ca=CAL]. These will be valid ISO dates; but they
+        // could potentially be out of Temporal range.
+        let iso =
+            IsoDate::new_unchecked(parsed.record.year, parsed.record.month, parsed.record.day);
+        iso.check_validity()?;
+
+        // 13. Set result to ISODateToFields(calendar, isoDate, month-day).
+
+        let intermediate = Self::new_unchecked(iso, Calendar::new(parsed.calendar));
+        let partial = PartialDate::try_from_month_day(&intermediate)?;
+        // 14. NOTE: The following operation is called with constrain regardless of the value of overflow, in
+        // order for the calendar to store a canonical value in the [[Year]] field of the [[ISODate]] internal slot of the result.
+        // 15. Set isoDate to ? CalendarMonthDayFromFields(calendar, result, constrain).
+        PlainMonthDay::from_partial(partial, Some(ArithmeticOverflow::Constrain))
     }
 
     /// Create a `PlainYearMonth` from a `PartialDate`
@@ -307,6 +327,12 @@ impl PlainMonthDay {
         self.calendar.day(&self.iso)
     }
 
+    /// Returns the internal reference year used by this MonthDay.
+    #[inline]
+    pub fn reference_year(&self) -> i32 {
+        self.calendar.year(&self.iso)
+    }
+
     /// Create a [`PlainDate`] from the current `PlainMonthDay`.
     pub fn to_plain_date(&self, year: Option<PartialDate>) -> TemporalResult<PlainDate> {
         let year_partial = match &year {
@@ -382,7 +408,6 @@ impl FromStr for PlainMonthDay {
 mod tests {
     use super::*;
     use crate::builtins::core::PartialDate;
-    use crate::Calendar;
     use tinystr::tinystr;
 
     #[test]
@@ -502,6 +527,159 @@ mod tests {
             Err(_) => {
                 // Acceptable if era/era_year fallback is not supported by the calendar impl
             }
+        }
+    }
+    #[test]
+    fn test_valid_strings() {
+        const TESTS: &[&str] = &[
+            "02-29",
+            "02-28",
+            "2025-08-05",
+            "2025-08-05[u-ca=gregory]",
+            "2024-02-29[u-ca=gregory]",
+        ];
+        for test in TESTS {
+            assert!(PlainMonthDay::from_utf8(test.as_bytes()).is_ok());
+        }
+    }
+    #[test]
+    fn test_invalid_strings() {
+        const TESTS: &[&str] = &[
+            // Out of range
+            "-99999-01-01",
+            "-99999-01-01[u-ca=gregory]",
+            // Not a leap year
+            "2025-02-29",
+            "2025-02-29[u-ca=gregory]",
+            // Format not allowed for non-Gregorian
+            "02-28[u-ca=gregory]",
+        ];
+        for test in TESTS {
+            assert!(PlainMonthDay::from_utf8(test.as_bytes()).is_err());
+        }
+    }
+
+    #[test]
+    /// This test is for calendars where we don't wish to hardcode dates; but we do wish to know
+    /// that monthcodes can be constructed without issue
+    fn automated_reference_year() {
+        let reference_iso = IsoDate::new_unchecked(1972, 12, 31);
+        for cal in [
+            AnyCalendarKind::HijriSimulatedMecca,
+            AnyCalendarKind::HijriUmmAlQura,
+        ] {
+            let calendar = Calendar::new(cal);
+            for month in 1..=12 {
+                for day in [29, 30] {
+                    let month_code = crate::builtins::calendar::month_to_month_code(month).unwrap();
+
+                    let partial = PartialDate {
+                        month_code: Some(month_code),
+                        day: Some(day),
+                        calendar: calendar.clone(),
+                        ..Default::default()
+                    };
+
+                    let md = PlainMonthDay::from_partial(partial, Some(ArithmeticOverflow::Reject))
+                        .unwrap();
+
+                    assert!(
+                        md.iso <= reference_iso,
+                        "Reference ISO for {month}-{day} must be before 1972-12-31, found, {:?}",
+                        md.iso,
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn manual_test_reference_year() {
+        // monthCode, day, ISO string, expectedReferenceYear
+        // Some of these parsed strings are deliberately not using the reference year
+        // so that we can test all code paths. By default, when adding new strings, it is easier
+        // to just add the reference year
+        const TESTS: &[(&str, u8, &str, i32)] = &[
+            ("M10", 30, "1868-10-30[u-ca=gregory]", 1972),
+            ("M08", 8, "1868-10-30[u-ca=indian]", 1894),
+            ("M09", 21, "2000-12-12[u-ca=indian]", 1894),
+            // Dates in the earlier half of the year get pushed back a year
+            ("M10", 22, "2000-01-12[u-ca=indian]", 1893),
+            ("M01", 11, "2000-03-30[u-ca=persian]", 1351),
+            ("M09", 22, "2000-12-12[u-ca=persian]", 1351),
+            ("M12", 29, "2025-03-19[u-ca=persian]", 1350),
+            // Leap day
+            ("M12", 30, "2025-03-20[u-ca=persian]", 1350),
+            ("M01", 1, "2025-03-21[u-ca=persian]", 1351),
+            ("M01", 1, "2025-03-21[u-ca=persian]", 1351),
+            ("M01", 1, "1972-01-01[u-ca=roc]", 61),
+            ("M02", 29, "2024-02-29[u-ca=roc]", 61),
+            ("M12", 1, "1972-12-01[u-ca=roc]", 61),
+            ("M01", 1, "1972-09-11[u-ca=coptic]", 1689),
+            ("M12", 1, "1972-08-07[u-ca=coptic]", 1688),
+            ("M13", 5, "1972-09-10[u-ca=coptic]", 1688),
+            ("M13", 6, "1971-09-11[u-ca=coptic]", 1687),
+            ("M01", 1, "1972-09-11[u-ca=ethiopic]", 1965),
+            ("M12", 1, "1972-08-07[u-ca=ethiopic]", 1964),
+            ("M13", 5, "1972-09-10[u-ca=ethiopic]", 1964),
+            ("M13", 6, "1971-09-11[u-ca=ethiopic]", 1963),
+            ("M01", 1, "1972-09-11[u-ca=ethioaa]", 7465),
+            ("M12", 1, "1972-08-07[u-ca=ethioaa]", 7464),
+            ("M13", 5, "1972-09-10[u-ca=ethioaa]", 7464),
+            ("M13", 6, "1971-09-11[u-ca=ethioaa]", 7463),
+            ("M01", 1, "1972-09-09[u-ca=hebrew]", 5733),
+            ("M02", 29, "1972-11-06[u-ca=hebrew]", 5733),
+            ("M03", 29, "1972-12-05[u-ca=hebrew]", 5733),
+            ("M03", 30, "1971-12-18[u-ca=hebrew]", 5732),
+            ("M05L", 29, "1970-03-07[u-ca=hebrew]", 5730),
+            ("M07", 1, "1972-03-16[u-ca=hebrew]", 5732),
+            ("M01", 1, "1972-02-16[u-ca=islamic-civil]", 1392),
+            ("M12", 29, "1972-02-15[u-ca=islamic-civil]", 1391),
+            ("M12", 30, "1971-02-26[u-ca=islamic-civil]", 1390),
+            ("M01", 1, "1972-02-15[u-ca=islamic-tbla]", 1392),
+            ("M12", 29, "1972-02-14[u-ca=islamic-tbla]", 1391),
+            ("M12", 30, "1971-02-25[u-ca=islamic-tbla]", 1390),
+        ];
+        let reference_iso = IsoDate::new_unchecked(1972, 12, 31);
+        for (month_code, day, string, year) in TESTS {
+            let md = PlainMonthDay::from_str(string).expect(string);
+
+            let partial = PartialDate {
+                month_code: Some(month_code.parse().unwrap()),
+                day: Some(*day),
+                calendar: md.calendar.clone(),
+                ..Default::default()
+            };
+
+            let md_from_partial =
+                PlainMonthDay::from_partial(partial, Some(ArithmeticOverflow::Reject))
+                    .expect(string);
+
+            assert_eq!(
+                md,
+                md_from_partial,
+                "Parsed {string}, compared with {}: Expected {}-{}, Found {}-{}",
+                md_from_partial.to_ixdtf_string(Default::default()),
+                md_from_partial.month_code().0,
+                md_from_partial.day(),
+                md.month_code().0,
+                md.day()
+            );
+
+            assert_eq!(
+                md_from_partial.reference_year(),
+                *year,
+                "Reference year for {string} ({month_code}-{day}) must be {year}",
+            );
+
+            assert!(
+                md.iso <= reference_iso && md_from_partial.iso <= reference_iso,
+                "Reference ISO for {string} ({}-{}) must be before 1972-12-31, found, {:?} / {:?}",
+                md.month_code().0,
+                md.day(),
+                md.iso,
+                md_from_partial.iso
+            );
         }
     }
 }
