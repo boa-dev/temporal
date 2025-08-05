@@ -1,11 +1,12 @@
 //! This module implements `YearMonth` and any directly related algorithms.
 
-use alloc::{format, string::String};
+use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 
 use tinystr::TinyAsciiStr;
 
 use crate::{
+    builtins::calendar::{CalendarFields, YearMonthCalendarFields},
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
@@ -19,129 +20,19 @@ use crate::{
     utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
-use icu_calendar::AnyCalendarKind;
 
 use super::{
-    calendar::month_to_month_code, duration::normalized::NormalizedDurationRecord, DateDuration,
-    Duration, PartialDate, PlainDate, PlainDateTime,
+    duration::normalized::NormalizedDurationRecord, DateDuration, Duration, PlainDate,
+    PlainDateTime,
 };
 use writeable::Writeable;
 
 /// A partial PlainYearMonth record
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct PartialYearMonth {
-    /// A potentially set `year` field.
-    pub year: Option<i32>,
-    /// A potentially set `month` field.
-    pub month: Option<u8>,
-    /// A potentially set `month_code` field.
-    pub month_code: Option<MonthCode>,
-    /// A potentially set `era` field.
-    pub era: Option<TinyAsciiStr<19>>,
-    /// A potentially set `era_year` field.
-    pub era_year: Option<i32>,
+    pub calendar_fields: YearMonthCalendarFields,
     /// The calendar field
     pub calendar: Calendar,
-}
-
-impl PartialYearMonth {
-    pub(crate) fn try_from_year_month(year_month: &PlainYearMonth) -> TemporalResult<Self> {
-        let (year, era, era_year) = if year_month.era().is_some() {
-            (
-                None,
-                year_month
-                    .era()
-                    .map(|t| TinyAsciiStr::<19>::try_from_utf8(t.as_bytes()))
-                    .transpose()
-                    .map_err(|e| TemporalError::general(format!("{e}")))?,
-                year_month.era_year(),
-            )
-        } else {
-            (Some(year_month.year()), None, None)
-        };
-        Ok(Self {
-            year,
-            month: Some(year_month.month()),
-            month_code: Some(year_month.month_code()),
-            era,
-            era_year,
-            calendar: year_month.calendar().clone(),
-        })
-    }
-
-    crate::impl_with_fallback_method!(with_fallback_year_month, () PlainYearMonth);
-    crate::impl_field_keys_to_ignore!(());
-}
-
-impl From<&PartialYearMonth> for PartialDate {
-    fn from(value: &PartialYearMonth) -> Self {
-        Self {
-            year: value.year,
-            month: value.month,
-            month_code: value.month_code,
-            day: None,
-            era: value.era,
-            era_year: value.era_year,
-            calendar: value.calendar.clone(),
-        }
-    }
-}
-
-impl From<&PartialDate> for PartialYearMonth {
-    fn from(value: &PartialDate) -> Self {
-        Self {
-            year: value.year,
-            month: value.month,
-            month_code: value.month_code,
-            era: value.era,
-            era_year: value.era_year,
-            calendar: value.calendar.clone(),
-        }
-    }
-}
-
-/// Convenience methods for building a `PartialYearMonth`
-impl PartialYearMonth {
-    pub const fn new() -> Self {
-        Self {
-            year: None,
-            month: None,
-            month_code: None,
-            era: None,
-            era_year: None,
-            calendar: Calendar::new(AnyCalendarKind::Iso),
-        }
-    }
-
-    pub const fn with_era(mut self, era: Option<TinyAsciiStr<19>>) -> Self {
-        self.era = era;
-        self
-    }
-
-    pub const fn with_era_year(mut self, era_year: Option<i32>) -> Self {
-        self.era_year = era_year;
-        self
-    }
-
-    pub const fn with_year(mut self, year: Option<i32>) -> Self {
-        self.year = year;
-        self
-    }
-
-    pub const fn with_month(mut self, month: Option<u8>) -> Self {
-        self.month = month;
-        self
-    }
-
-    pub const fn with_month_code(mut self, month_code: Option<MonthCode>) -> Self {
-        self.month_code = month_code;
-        self
-    }
-
-    pub const fn with_calendar(mut self, calendar: Calendar) -> Self {
-        self.calendar = calendar;
-        self
-    }
 }
 
 /// The native Rust implementation of `Temporal.PlainYearMonth`.
@@ -200,7 +91,7 @@ impl PartialYearMonth {
 /// let ym1 = PlainYearMonth::from_str("2024-01").unwrap();
 /// let ym2 = PlainYearMonth::from_str("2024-04").unwrap();
 ///
-/// // Calculate difference between year-months  
+/// // Calculate difference between year-months
 /// let duration = ym1.until(&ym2, DifferenceSettings::default()).unwrap();
 /// assert_eq!(duration.months(), 3); // January to April = 3 months
 /// ```
@@ -208,20 +99,20 @@ impl PartialYearMonth {
 /// ### Working with partial fields
 ///
 /// ```rust
-/// use temporal_rs::{PlainYearMonth, partial::PartialYearMonth};
+/// use temporal_rs::{PlainYearMonth, fields::YearMonthCalendarFields};
 /// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-01").unwrap();
 ///
 /// // Change only the year
-/// let partial = PartialYearMonth::new().with_year(Some(2025));
-/// let modified = ym.with(partial, None).unwrap();
+/// let fields = YearMonthCalendarFields::new().with_year(2025);
+/// let modified = ym.with(fields, None).unwrap();
 /// assert_eq!(modified.year(), 2025);
 /// assert_eq!(modified.month(), 1); // unchanged
 ///
 /// // Change only the month
-/// let partial = PartialYearMonth::new().with_month(Some(6));
-/// let modified = ym.with(partial, None).unwrap();
+/// let fields = YearMonthCalendarFields::new().with_month(6);
+/// let modified = ym.with(fields, None).unwrap();
 /// assert_eq!(modified.year(), 2024); // unchanged
 /// assert_eq!(modified.month(), 6);
 /// ```
@@ -229,14 +120,14 @@ impl PartialYearMonth {
 /// ### Converting to PlainDate
 ///
 /// ```rust
-/// use temporal_rs::{PlainYearMonth, partial::PartialDate};
+/// use temporal_rs::{PlainYearMonth, fields::CalendarFields};
 /// use core::str::FromStr;
 ///
 /// let ym = PlainYearMonth::from_str("2024-03").unwrap();
 ///
 /// // Convert to a specific date by providing a day
-/// let day_partial = PartialDate::new().with_day(Some(15));
-/// let date = ym.to_plain_date(Some(day_partial)).unwrap();
+/// let day_fields = CalendarFields::new().with_day(15);
+/// let date = ym.to_plain_date(Some(day_fields)).unwrap();
 /// assert_eq!(date.year(), 2024);
 /// assert_eq!(date.month(), 3);
 /// assert_eq!(date.day(), 15);
@@ -312,13 +203,13 @@ impl PlainYearMonth {
         let calendar = self.calendar();
 
         // 7. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
-        let fields = PartialDate::from(&PartialYearMonth::try_from_year_month(self)?);
+        let fields = CalendarFields::from(&YearMonthCalendarFields::try_from_year_month(self)?);
 
         // 8. Set fields.[[Day]] to 1.
-        let fields = fields.with_day(Some(1));
+        let fields = fields.with_day(1);
 
         // 9. Let intermediateDate be ? CalendarDateFromFields(calendar, fields, constrain).
-        let intermediate_date = calendar.date_from_partial(&fields, overflow)?;
+        let intermediate_date = calendar.date_from_fields(&fields, overflow)?;
 
         // 10. If sign < 0, then
         let date = if sign.as_sign_multiplier() < 0 {
@@ -358,15 +249,12 @@ impl PlainYearMonth {
         let added_date = calendar.date_add(&date, &duration_to_add, overflow)?;
 
         // 14. Let addedDateFields be ISODateToFields(calendar, addedDate, year-month).
-        let added_date_fields =
-            PartialYearMonth::from(&PartialDate::default().with_fallback_date(
-                &added_date,
-                self.calendar.kind(),
-                overflow,
-            )?);
+        let added_date_fields = YearMonthCalendarFields::new()
+            .with_month_code(added_date.month_code())
+            .with_year(added_date.year());
 
         // 15. Let isoDate be ? CalendarYearMonthFromFields(calendar, addedDateFields, overflow).
-        let iso_date = calendar.year_month_from_partial(&added_date_fields, overflow)?;
+        let iso_date = calendar.year_month_from_fields(&added_date_fields, overflow)?;
 
         // 16. Return ! CreateTemporalYearMonth(isoDate, calendar).
         Ok(iso_date)
@@ -536,7 +424,7 @@ impl PlainYearMonth {
     ) -> TemporalResult<Self> {
         partial
             .calendar
-            .year_month_from_partial(&partial, overflow.unwrap_or_default())
+            .year_month_from_fields(&partial.calendar_fields, overflow.unwrap_or_default())
     }
 
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
@@ -561,13 +449,15 @@ impl PlainYearMonth {
 
         let intermediate = Self::new_unchecked(iso, Calendar::new(parsed.calendar));
         // 12. Set result to ISODateToFields(calendar, isoDate, year-month).
-        let partial = PartialYearMonth::try_from_year_month(&intermediate)?;
+        let fields = YearMonthCalendarFields::try_from_year_month(&intermediate)?;
         // 13. NOTE: The following operation is called with constrain regardless of the
         // value of overflow, in order for the calendar to store a canonical value in the
         // [[Day]] field of the [[ISODate]] internal slot of the result.
         // 14. Set isoDate to ? CalendarYearMonthFromFields(calendar, result, constrain).
         // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        PlainYearMonth::from_partial(partial, Some(ArithmeticOverflow::Constrain))
+        intermediate
+            .calendar()
+            .year_month_from_fields(&fields, ArithmeticOverflow::Constrain)
     }
 
     /// Returns the iso year value for this `YearMonth`.
@@ -669,7 +559,7 @@ impl PlainYearMonth {
     /// Creates a `PlainYearMonth` using the fields provided from a [`PartialYearMonth`]
     pub fn with(
         &self,
-        partial: PartialYearMonth,
+        fields: YearMonthCalendarFields,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         // 1. Let yearMonth be the this value.
@@ -684,8 +574,8 @@ impl PlainYearMonth {
         // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
-        self.calendar.year_month_from_partial(
-            &partial.with_fallback_year_month(self, self.calendar.kind(), overflow)?,
+        self.calendar.year_month_from_fields(
+            &fields.with_fallback_year_month(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
@@ -732,23 +622,22 @@ impl PlainYearMonth {
         self.diff(DifferenceOperation::Since, other, settings)
     }
 
-    pub fn to_plain_date(&self, day: Option<PartialDate>) -> TemporalResult<PlainDate> {
+    pub fn to_plain_date(&self, day: Option<CalendarFields>) -> TemporalResult<PlainDate> {
         let day_value = match &day {
-            Some(partial) => partial.day.ok_or_else(|| {
-                TemporalError::r#type().with_message("PartialDate must contain a day field")
+            Some(fields) => fields.day.ok_or_else(|| {
+                TemporalError::r#type().with_message("CalendarFields must contain a day field")
             })?,
             None => return Err(TemporalError::r#type().with_message("Day must be provided")),
         };
 
-        let partial_date = PartialDate::new()
-            .with_year(Some(self.year()))
-            .with_month_code(Some(self.month_code()))
-            .with_day(Some(day_value))
-            .with_calendar(self.calendar.clone());
+        let fields = CalendarFields::new()
+            .with_year(self.year())
+            .with_month_code(self.month_code())
+            .with_day(day_value);
 
         // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_partial(&partial_date, ArithmeticOverflow::Constrain)
+            .date_from_fields(&fields, ArithmeticOverflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
@@ -1063,32 +952,23 @@ mod tests {
         .unwrap();
 
         // Year
-        let partial = PartialYearMonth {
-            year: Some(2001),
-            ..Default::default()
-        };
+        let fields = YearMonthCalendarFields::new().with_year(2001);
 
-        let with_year = base.with(partial, None).unwrap();
+        let with_year = base.with(fields, None).unwrap();
         assert_eq!(with_year.iso_year(), 2001); // year is changed
         assert_eq!(with_year.iso_month(), 3); // month is not changed
         assert_eq!(with_year.month_code(), MonthCode::from_str("M03").unwrap()); // assert month code has been initialized correctly
 
         // Month
-        let partial = PartialYearMonth {
-            month: Some(2),
-            ..Default::default()
-        };
-        let with_month = base.with(partial, None).unwrap();
+        let fields = YearMonthCalendarFields::new().with_month(2);
+        let with_month = base.with(fields, None).unwrap();
         assert_eq!(with_month.iso_year(), 2025); // year is not changed
         assert_eq!(with_month.iso_month(), 2); // month is changed
         assert_eq!(with_month.month_code(), MonthCode::from_str("M02").unwrap()); // assert month code has changed as well as month
 
         // Month Code
-        let partial = PartialYearMonth {
-            month_code: Some(MonthCode(tinystr!(4, "M05"))), // change month to May (5)
-            ..Default::default()
-        };
-        let with_month_code = base.with(partial, None).unwrap();
+        let fields = YearMonthCalendarFields::new().with_month_code(MonthCode(tinystr!(4, "M05"))); // change month to May (5)
+        let with_month_code = base.with(fields, None).unwrap();
         assert_eq!(with_month_code.iso_year(), 2025); // year is not changed
         assert_eq!(
             with_month_code.month_code(),
@@ -1097,19 +977,15 @@ mod tests {
         assert_eq!(with_month_code.iso_month(), 5); // month is changed as well
 
         // Day
-        let partial = PartialYearMonth::new();
-        let with_day = base.with(partial, None).unwrap();
+        let fields = YearMonthCalendarFields::new();
+        let with_day = base.with(fields, None).unwrap();
         assert_eq!(with_day.iso_year(), 2025); // year is not changed
         assert_eq!(with_day.iso_month(), 3); // month is not changed
         assert_eq!(with_day.iso.day, 1); // day is ignored
 
         // All
-        let partial = PartialYearMonth {
-            year: Some(2001),
-            month: Some(2),
-            ..Default::default()
-        };
-        let with_all = base.with(partial, None).unwrap();
+        let fields = YearMonthCalendarFields::new().with_year(2001).with_month(2);
+        let with_all = base.with(fields, None).unwrap();
         assert_eq!(with_all.iso_year(), 2001); // year is changed
         assert_eq!(with_all.iso_month(), 2); // month is changed
         assert_eq!(with_all.iso.day, 1); // day is ignored
@@ -1167,8 +1043,8 @@ mod tests {
         )
         .unwrap();
 
-        let partial_date = PartialDate::new().with_day(Some(3));
-        let plain_date = year_month.to_plain_date(Some(partial_date)).unwrap();
+        let fields = CalendarFields::new().with_day(3);
+        let plain_date = year_month.to_plain_date(Some(fields)).unwrap();
         assert_eq!(plain_date.iso_year(), 2023);
         assert_eq!(plain_date.iso_month(), 5);
         assert_eq!(plain_date.iso_day(), 3);
@@ -1177,7 +1053,7 @@ mod tests {
     #[test]
     fn test_partial_year_month_try_from_plain() {
         let ym = PlainYearMonth::from_str("2024-05").unwrap();
-        let partial = PartialYearMonth::try_from_year_month(&ym).unwrap();
+        let partial = YearMonthCalendarFields::try_from_year_month(&ym).unwrap();
         assert_eq!(partial.year, Some(2024));
         assert_eq!(partial.month, Some(5));
         assert_eq!(
@@ -1186,38 +1062,41 @@ mod tests {
         );
         assert_eq!(partial.era, None);
         assert_eq!(partial.era_year, None);
-        assert_eq!(partial.calendar, ym.calendar().clone());
     }
 
     #[test]
-    fn test_partial_year_month_date_round_trip() {
-        let partial = PartialYearMonth::new()
-            .with_year(Some(1999))
-            .with_month(Some(12));
-        let pd: PartialDate = (&partial).into();
-        let reconstructed: PartialYearMonth = (&pd).into();
+    fn test_year_month_fields_to_calendar_fields_round_trip() {
+        let partial = YearMonthCalendarFields::new()
+            .with_year(1999)
+            .with_month(12);
+        let pd: CalendarFields = (&partial).into();
+        let reconstructed: YearMonthCalendarFields = (&pd).into();
         assert_eq!(partial, reconstructed);
     }
 
     #[test]
     fn test_partial_year_month_builder_methods() {
         let calendar = Calendar::from_str("gregory").unwrap();
-        let partial = PartialYearMonth::new()
-            .with_year(Some(2020))
-            .with_month(Some(7))
-            .with_month_code(Some(MonthCode::from_str("M07").unwrap()))
+        let calendar_fields = YearMonthCalendarFields::new()
+            .with_year(2020)
+            .with_month(7)
+            .with_month_code(MonthCode::from_str("M07").unwrap())
             .with_era(Some(tinystr!(19, "ce")))
-            .with_era_year(Some(2020))
-            .with_calendar(calendar.clone());
+            .with_era_year(Some(2020));
 
-        assert_eq!(partial.year, Some(2020));
-        assert_eq!(partial.month, Some(7));
+        let partial = PartialYearMonth {
+            calendar_fields,
+            calendar: calendar.clone(),
+        };
+
+        assert_eq!(partial.calendar_fields.year, Some(2020));
+        assert_eq!(partial.calendar_fields.month, Some(7));
         assert_eq!(
-            partial.month_code,
+            partial.calendar_fields.month_code,
             Some(MonthCode::from_str("M07").unwrap())
         );
-        assert_eq!(partial.era, Some(tinystr!(19, "ce")));
-        assert_eq!(partial.era_year, Some(2020));
+        assert_eq!(partial.calendar_fields.era, Some(tinystr!(19, "ce")));
+        assert_eq!(partial.calendar_fields.era_year, Some(2020));
         assert_eq!(partial.calendar, calendar);
     }
 

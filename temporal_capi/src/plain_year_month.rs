@@ -61,12 +61,9 @@ pub mod ffi {
             partial: PartialDate,
             overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
-            let partial: temporal_rs::partial::PartialDate = partial.try_into()?;
+            let fields: temporal_rs::fields::YearMonthCalendarFields = partial.try_into()?;
             self.0
-                .with(
-                    temporal_rs::partial::PartialYearMonth::from(&partial),
-                    overflow.map(Into::into),
-                )
+                .with(fields, overflow.map(Into::into))
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
