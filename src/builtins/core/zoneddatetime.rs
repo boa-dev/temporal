@@ -64,7 +64,7 @@ impl PartialZonedDateTime {
     }
 
     pub const fn with_time(mut self, time: PartialTime) -> Self {
-        self.fields.time = Some(time);
+        self.fields.time = time;
         self
     }
 
@@ -83,7 +83,7 @@ impl PartialZonedDateTime {
 pub struct ZonedDateTimeFields {
     pub calendar_fields: CalendarFields,
 
-    pub time: Option<PartialTime>,
+    pub time: PartialTime,
 
     /// An optional offset string
     pub offset: Option<UtcOffset>,
@@ -93,13 +93,13 @@ impl ZonedDateTimeFields {
     pub const fn new() -> Self {
         Self {
             calendar_fields: CalendarFields::new(),
-            time: None,
+            time: PartialTime::new(),
             offset: None,
         }
     }
 
     pub fn is_empty(&self) -> bool {
-        self.calendar_fields.is_empty() && self.time.is_none() && self.offset.is_none()
+        self.calendar_fields.is_empty() && self.time.is_empty() && self.offset.is_none()
     }
 }
 
@@ -596,14 +596,7 @@ impl ZonedDateTime {
             .date_from_fields(partial.fields.calendar_fields, overflow)?
             .iso;
 
-        // None time means START-OF-DAY which has special meaning in
-        // interpret_isodatetime_offset. START-OF-DAY is only set in the parser,
-        // not in other endpoints.
-        let time = if let Some(time) = partial.fields.time {
-            Some(IsoTime::default().with(time, overflow)?)
-        } else {
-            None
-        };
+        let time = Some(IsoTime::default().with(partial.fields.time, overflow)?);
 
         // Handle time zones
         let offset_nanos = partial.fields.offset.map(|offset| offset.nanoseconds());
@@ -671,9 +664,7 @@ impl ZonedDateTime {
             overflow,
         )?;
 
-        let time = iso_date_time
-            .time
-            .with(fields.time.unwrap_or_default(), overflow)?;
+        let time = iso_date_time.time.with(fields.time, overflow)?;
 
         // 7. Let offsetNanoseconds be GetOffsetNanosecondsFor(timeZone, epochNs).
         let original_offset = self.offset_nanoseconds_with_provider(provider)?;
@@ -1654,7 +1645,7 @@ mod tests {
                 .with_year(1970)
                 .with_month_code(MonthCode(tinystr!(4, "M01")))
                 .with_day(1),
-            time: None,
+            time: Default::default(),
             offset: None,
         };
         let partial = PartialZonedDateTime {
@@ -1674,7 +1665,7 @@ mod tests {
                 .with_year(1970)
                 .with_month_code(MonthCode(tinystr!(4, "M01")))
                 .with_day(1),
-            time: Some(PartialTime::default()),
+            time: PartialTime::default(),
             offset: Some(UtcOffset::from_minutes(30)),
         };
         let partial = PartialZonedDateTime {
@@ -1834,7 +1825,7 @@ mod tests {
                             .with_year(1970)
                             .with_month_code(MonthCode(tinystr!(4, "M01")))
                             .with_day(1),
-                        time: Some(PartialTime::default()),
+                        time: PartialTime::default(),
                         offset: Some(UtcOffset::from_minutes(30)),
                     },
                     timezone: Some(TimeZone::try_from_identifier_str("Africa/Monrovia").unwrap()),
@@ -1863,7 +1854,7 @@ mod tests {
         let result_1 = zdt.with_with_provider(
             ZonedDateTimeFields {
                 calendar_fields: CalendarFields::new().with_month(29),
-                time: None,
+                time: Default::default(),
                 offset: None,
             },
             None,
@@ -1875,7 +1866,7 @@ mod tests {
         let result_2 = zdt.with_with_provider(
             ZonedDateTimeFields {
                 calendar_fields: CalendarFields::new().with_day(31),
-                time: None,
+                time: Default::default(),
                 offset: None,
             },
             None,
@@ -1887,10 +1878,10 @@ mod tests {
         let result_3 = zdt.with_with_provider(
             ZonedDateTimeFields {
                 calendar_fields: CalendarFields::new(),
-                time: Some(PartialTime {
+                time: PartialTime {
                     hour: Some(29),
                     ..Default::default()
-                }),
+                },
                 offset: None,
             },
             None,
@@ -1902,10 +1893,10 @@ mod tests {
         let result_4 = zdt.with_with_provider(
             ZonedDateTimeFields {
                 calendar_fields: CalendarFields::default(),
-                time: Some(PartialTime {
+                time: PartialTime {
                     nanosecond: Some(9000),
                     ..Default::default()
-                }),
+                },
                 offset: None,
             },
             None,

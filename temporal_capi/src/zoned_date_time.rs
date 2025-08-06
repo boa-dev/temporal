@@ -520,7 +520,7 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::fields::ZonedDateTi
         };
         Ok(Self {
             calendar_fields: other.date.try_into()?,
-            time: Some(other.time.into()),
+            time: other.time.into(),
             offset,
         })
     }
