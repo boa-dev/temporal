@@ -110,7 +110,7 @@ pub mod ffi {
         ) -> Result<Box<PlainYearMonth>, TemporalError> {
             let fields: temporal_rs::fields::YearMonthCalendarFields = partial.try_into()?;
             self.0
-                .year_month_from_fields(&fields, overflow.into())
+                .year_month_from_fields(fields, overflow.into())
                 .map(|c| Box::new(PlainYearMonth(c)))
                 .map_err(Into::into)
         }

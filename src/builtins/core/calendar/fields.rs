@@ -142,8 +142,8 @@ impl CalendarFields {
     crate::impl_field_keys_to_ignore!((with_day:day));
 }
 
-impl From<&YearMonthCalendarFields> for CalendarFields {
-    fn from(value: &YearMonthCalendarFields) -> Self {
+impl From<YearMonthCalendarFields> for CalendarFields {
+    fn from(value: YearMonthCalendarFields) -> Self {
         Self {
             year: value.year,
             month: value.month,
@@ -155,8 +155,8 @@ impl From<&YearMonthCalendarFields> for CalendarFields {
     }
 }
 
-impl From<&CalendarFields> for YearMonthCalendarFields {
-    fn from(value: &CalendarFields) -> Self {
+impl From<CalendarFields> for YearMonthCalendarFields {
+    fn from(value: CalendarFields) -> Self {
         Self {
             year: value.year,
             month: value.month,

@@ -289,7 +289,7 @@ impl Calendar {
     /// `CalendarPlainYearMonthFromFields`
     pub fn year_month_from_fields(
         &self,
-        fields: &YearMonthCalendarFields,
+        fields: YearMonthCalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
         // TODO: add a from_partial_year_month method on ResolvedCalendarFields

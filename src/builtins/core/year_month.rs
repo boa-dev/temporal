@@ -203,7 +203,7 @@ impl PlainYearMonth {
         let calendar = self.calendar();
 
         // 7. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
-        let fields = CalendarFields::from(&YearMonthCalendarFields::try_from_year_month(self)?);
+        let fields = CalendarFields::from(YearMonthCalendarFields::try_from_year_month(self)?);
 
         // 8. Set fields.[[Day]] to 1.
         let fields = fields.with_day(1);
@@ -254,7 +254,7 @@ impl PlainYearMonth {
             .with_year(added_date.year());
 
         // 15. Let isoDate be ? CalendarYearMonthFromFields(calendar, addedDateFields, overflow).
-        let iso_date = calendar.year_month_from_fields(&added_date_fields, overflow)?;
+        let iso_date = calendar.year_month_from_fields(added_date_fields, overflow)?;
 
         // 16. Return ! CreateTemporalYearMonth(isoDate, calendar).
         Ok(iso_date)
@@ -424,7 +424,7 @@ impl PlainYearMonth {
     ) -> TemporalResult<Self> {
         partial
             .calendar
-            .year_month_from_fields(&partial.calendar_fields, overflow.unwrap_or_default())
+            .year_month_from_fields(partial.calendar_fields, overflow.unwrap_or_default())
     }
 
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
@@ -457,7 +457,7 @@ impl PlainYearMonth {
         // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
         intermediate
             .calendar()
-            .year_month_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Returns the iso year value for this `YearMonth`.
@@ -575,7 +575,7 @@ impl PlainYearMonth {
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         self.calendar.year_month_from_fields(
-            &fields.with_fallback_year_month(self, self.calendar.kind(), overflow)?,
+            fields.with_fallback_year_month(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
@@ -1069,8 +1069,8 @@ mod tests {
         let partial = YearMonthCalendarFields::new()
             .with_year(1999)
             .with_month(12);
-        let pd: CalendarFields = (&partial).into();
-        let reconstructed: YearMonthCalendarFields = (&pd).into();
+        let pd: CalendarFields = partial.clone().into();
+        let reconstructed: YearMonthCalendarFields = pd.into();
         assert_eq!(partial, reconstructed);
     }
 

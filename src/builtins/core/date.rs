@@ -655,7 +655,7 @@ impl PlainDate {
             .with_month(self.month())
             .with_month_code(self.month_code());
         self.calendar()
-            .year_month_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Converts the current `Date` into a `PlainMonthDay`
