@@ -88,7 +88,7 @@ pub mod ffi {
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainDate>, TemporalError> {
             self.0
-                .date_from_fields(&partial.try_into()?, overflow.into())
+                .date_from_fields(partial.try_into()?, overflow.into())
                 .map(|c| Box::new(PlainDate(c)))
                 .map_err(Into::into)
         }

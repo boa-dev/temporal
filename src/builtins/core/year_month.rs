@@ -209,7 +209,7 @@ impl PlainYearMonth {
         let fields = fields.with_day(1);
 
         // 9. Let intermediateDate be ? CalendarDateFromFields(calendar, fields, constrain).
-        let intermediate_date = calendar.date_from_fields(&fields, overflow)?;
+        let intermediate_date = calendar.date_from_fields(fields, overflow)?;
 
         // 10. If sign < 0, then
         let date = if sign.as_sign_multiplier() < 0 {
@@ -637,7 +637,7 @@ impl PlainYearMonth {
 
         // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .date_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone

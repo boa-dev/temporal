@@ -354,7 +354,7 @@ impl PlainMonthDay {
 
         // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .date_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone

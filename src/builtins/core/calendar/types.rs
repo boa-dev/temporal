@@ -668,9 +668,9 @@ mod tests {
 
         let cal = Calendar::default();
 
-        let err = cal.date_from_fields(&bad_fields, ArithmeticOverflow::Reject);
+        let err = cal.date_from_fields(bad_fields.clone(), ArithmeticOverflow::Reject);
         assert!(err.is_err());
-        let result = cal.date_from_fields(&bad_fields, ArithmeticOverflow::Constrain);
+        let result = cal.date_from_fields(bad_fields, ArithmeticOverflow::Constrain);
         assert!(result.is_ok());
     }
 

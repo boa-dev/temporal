@@ -677,7 +677,7 @@ impl ZonedDateTime {
 
         let date = partial
             .calendar
-            .date_from_fields(&partial.fields.calendar_fields, overflow)?
+            .date_from_fields(partial.fields.calendar_fields, overflow)?
             .iso;
 
         // None time means START-OF-DAY which has special meaning in
@@ -747,7 +747,7 @@ impl ZonedDateTime {
 
         // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
         let result_date = self.calendar.date_from_fields(
-            &fields.calendar_fields.with_fallback_datetime(
+            fields.calendar_fields.with_fallback_datetime(
                 &plain_date_time,
                 self.calendar.kind(),
                 overflow,

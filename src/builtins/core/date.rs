@@ -418,7 +418,7 @@ impl PlainDate {
         let overflow = overflow.unwrap_or_default();
         partial
             .calendar
-            .date_from_fields(&partial.calendar_fields, overflow)
+            .date_from_fields(partial.calendar_fields, overflow)
     }
 
     // Converts a UTF-8 encoded string into a `PlainDate`.
@@ -453,7 +453,7 @@ impl PlainDate {
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         self.calendar.date_from_fields(
-            &fields.with_fallback_date(self, self.calendar.kind(), overflow)?,
+            fields.with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }

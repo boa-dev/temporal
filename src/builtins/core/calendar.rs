@@ -191,11 +191,11 @@ impl Calendar {
     /// `CalendarDateFromFields`
     pub fn date_from_fields(
         &self,
-        fields: &CalendarFields,
+        fields: CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_fields(self, fields, overflow, ResolutionType::Date)?;
+            ResolvedCalendarFields::try_from_fields(self, &fields, overflow, ResolutionType::Date)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
@@ -247,7 +247,7 @@ impl Calendar {
         // There may be more efficient ways to do this, but this works pretty well and doesn't require
         // calendrical knowledge.
         if fields.year.is_some() || (fields.era.is_some() && fields.era_year.is_some()) {
-            let date = self.date_from_fields(&fields, overflow)?;
+            let date = self.date_from_fields(fields, overflow)?;
             fields = CalendarFields::from_date(&date);
         }
         let resolved_fields = ResolvedCalendarFields::try_from_fields(
