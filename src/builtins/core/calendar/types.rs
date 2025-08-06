@@ -141,7 +141,7 @@ impl EraYear {
             _ if resolution_type == ResolutionType::MonthDay => {
                 let day = partial
                     .day
-                    .ok_or(TemporalError::assert().with_message("MonthDay must specify day"))?;
+                    .ok_or(TemporalError::r#type().with_message("MonthDay must specify day"))?;
                 let arithmetic_year = Self::reference_arithmetic_year_for_month_day(
                     calendar,
                     partial.month_code,
