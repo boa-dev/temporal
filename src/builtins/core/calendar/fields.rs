@@ -1,6 +1,5 @@
 use alloc::format;
 
-use ixdtf::records::DateRecord;
 use tinystr::TinyAsciiStr;
 
 use super::types::month_to_month_code;
@@ -102,17 +101,6 @@ impl CalendarFields {
 impl CalendarFields {
     pub fn is_empty(&self) -> bool {
         *self == Self::new()
-    }
-
-    pub(crate) fn from_date_record(date_record: DateRecord) -> Self {
-        Self {
-            year: Some(date_record.year),
-            month: Some(date_record.month),
-            month_code: None,
-            day: Some(date_record.day),
-            era: None,
-            era_year: None,
-        }
     }
 
     pub(crate) fn from_month_day(month_day: &PlainMonthDay) -> Self {

@@ -504,9 +504,6 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZon
         let calendar = temporal_rs::Calendar::new(other.date.calendar.into());
         Ok(Self {
             fields: other.try_into()?,
-            // These fields are only true when parsing
-            has_utc_designator: false,
-            match_minutes: false,
             timezone,
             calendar,
         })
