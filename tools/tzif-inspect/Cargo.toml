@@ -8,6 +8,7 @@ license.workspace = true
 repository.workspace = true
 readme.workspace = true
 exclude.workspace = true
+publish = false
 
 [dependencies]
 jiff-tzdb.workspace = true
