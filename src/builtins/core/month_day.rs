@@ -229,7 +229,7 @@ impl PlainMonthDay {
         // 15. Set isoDate to ? CalendarMonthDayFromFields(calendar, result, constrain).
         intermediate
             .calendar()
-            .month_day_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .month_day_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Create a `PlainYearMonth` from a `PartialDate`
@@ -239,7 +239,7 @@ impl PlainMonthDay {
     ) -> TemporalResult<Self> {
         partial
             .calendar
-            .month_day_from_fields(&partial.calendar_fields, overflow.unwrap_or_default())
+            .month_day_from_fields(partial.calendar_fields, overflow.unwrap_or_default())
     }
 
     /// Create a `PlainMonthDay` with the provided fields from a [`PartialDate`].
@@ -277,7 +277,7 @@ impl PlainMonthDay {
         // 10. Let isoDate be ? CalendarMonthDayFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalMonthDay(isoDate, calendar).
         self.calendar
-            .month_day_from_fields(&merged, overflow.unwrap_or(ArithmeticOverflow::Constrain))
+            .month_day_from_fields(merged, overflow.unwrap_or(ArithmeticOverflow::Constrain))
     }
 
     /// Returns the ISO day value of `PlainMonthDay`.
@@ -578,7 +578,7 @@ mod tests {
                     };
 
                     let md = calendar
-                        .month_day_from_fields(&calendar_fields, ArithmeticOverflow::Reject)
+                        .month_day_from_fields(calendar_fields, ArithmeticOverflow::Reject)
                         .unwrap();
 
                     assert!(
@@ -650,7 +650,7 @@ mod tests {
 
             let md_from_partial = md
                 .calendar()
-                .month_day_from_fields(&calendar_fields, ArithmeticOverflow::Reject)
+                .month_day_from_fields(calendar_fields, ArithmeticOverflow::Reject)
                 .expect(string);
 
             assert_eq!(

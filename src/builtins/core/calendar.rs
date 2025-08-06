@@ -228,12 +228,12 @@ impl Calendar {
     /// `CalendarPlainMonthDayFromFields`
     pub fn month_day_from_fields(
         &self,
-        fields: &CalendarFields,
+        fields: CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainMonthDay> {
         let resolved_fields = ResolvedCalendarFields::try_from_fields(
             self,
-            fields,
+            &fields,
             overflow,
             ResolutionType::MonthDay,
         )?;

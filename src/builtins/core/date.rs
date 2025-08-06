@@ -663,7 +663,7 @@ impl PlainDate {
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         let overflow = ArithmeticOverflow::Constrain;
         self.calendar().month_day_from_fields(
-            &CalendarFields::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
+            CalendarFields::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }

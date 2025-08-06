@@ -99,7 +99,7 @@ pub mod ffi {
             overflow: ArithmeticOverflow,
         ) -> Result<Box<PlainMonthDay>, TemporalError> {
             self.0
-                .month_day_from_fields(&partial.try_into()?, overflow.into())
+                .month_day_from_fields(partial.try_into()?, overflow.into())
                 .map(|c| Box::new(PlainMonthDay(c)))
                 .map_err(Into::into)
         }
