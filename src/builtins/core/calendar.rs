@@ -38,7 +38,9 @@ mod fields;
 mod types;
 
 pub use fields::{CalendarFields, YearMonthCalendarFields};
-pub(crate) use types::{month_to_month_code, ResolutionType};
+#[cfg(test)]
+pub(crate) use types::month_to_month_code;
+pub(crate) use types::ResolutionType;
 pub use types::{MonthCode, ResolvedCalendarFields};
 
 use era::EraInfo;

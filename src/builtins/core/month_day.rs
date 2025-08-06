@@ -14,7 +14,7 @@ use crate::{
     Calendar, MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 
-use super::{calendar::month_to_month_code, PartialDate, PlainDate};
+use super::{PartialDate, PlainDate};
 use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
@@ -259,18 +259,15 @@ impl PlainMonthDay {
 
         // NOTE: We only need to set month / month_code and day, per spec.
         // 7. Set fields to CalendarMergeFields(calendar, fields, partialMonthDay).
-        let (month, month_code) = match (fields.month, fields.month_code) {
-            (Some(m), Some(mc)) => (m, mc),
-            (Some(m), None) => (m, month_to_month_code(m)?),
-            (None, Some(mc)) => (mc.to_month_integer(), mc),
-            (None, None) => (self.month_code().to_month_integer(), self.month_code()),
-        };
         let merged_day = fields.day.unwrap_or(self.day());
-        let merged = fields
-            .with_month(month)
-            .with_month_code(month_code)
-            .with_day(merged_day);
-
+        let mut merged = fields.with_day(merged_day);
+        if merged.month.is_none() && merged.month_code.is_none() {
+            // MonthDay resolution prefers month codes
+            // (ordinal months work, but require year information, which
+            // we may not have)
+            // We should NOT merge over year information even though we have it.
+            merged = merged.with_month_code(self.month_code());
+        }
         // Step 8-9 already handled by engine.
         // 8. Let resolvedOptions be ? GetOptionsObject(options).
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
