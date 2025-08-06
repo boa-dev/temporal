@@ -1,3 +1,51 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+## What's Changed in v0.0.12
+* Bump versions
+* cleanup: Remove parsing functionality from PartialZDT by @Manishearth in [#493](https://github.com/boa-dev/temporal/pull/493)
+* Various MonthDay fixes by @Manishearth in [#492](https://github.com/boa-dev/temporal/pull/492)
+* Add `CalendarFields` concept and integate it with API and Partial structs by @nekevss in [#487](https://github.com/boa-dev/temporal/pull/487)
+* Add support for non-ISO yearmonths and monthdays by @Manishearth in [#490](https://github.com/boa-dev/temporal/pull/490)
+* Add separate parsed variants of all types by @Manishearth in [#486](https://github.com/boa-dev/temporal/pull/486)
+* Update icu_calendar, fix self-consistency test by @Manishearth in [#488](https://github.com/boa-dev/temporal/pull/488)
+* Add builder pattern `with_xxx` methods for PartialDuration by @nekevss in [#485](https://github.com/boa-dev/temporal/pull/485)
+* Add CalendarFieldKeysToIgnore by @Manishearth in [#484](https://github.com/boa-dev/temporal/pull/484)
+* Reuse ZDT parsing logic from PartialZDT by @Manishearth in [#483](https://github.com/boa-dev/temporal/pull/483)
+* Fix hours in day calculation around gap transitions by @Manishearth in [#482](https://github.com/boa-dev/temporal/pull/482)
+* Generate the baked zone info data for ZoneInfoProvider by @nekevss in [#264](https://github.com/boa-dev/temporal/pull/264)
+* Precompute before/after offsets and use in disambiguate_possible_epoch_nanos by @Manishearth in [#479](https://github.com/boa-dev/temporal/pull/479)
+* Add tzif-inspect tool for inspecting tzif data by @Manishearth in [#480](https://github.com/boa-dev/temporal/pull/480)
+* Fix behavior of ns-to-seconds casting for negative values by @Manishearth in [#475](https://github.com/boa-dev/temporal/pull/475)
+* Fix panics from calling abs on i64::MIN by @nekevss in [#474](https://github.com/boa-dev/temporal/pull/474)
+* Implement get_named_tzdb_transition by @Manishearth in [#472](https://github.com/boa-dev/temporal/pull/472)
+* Use ISO day of week unconditionally by @Manishearth in [#471](https://github.com/boa-dev/temporal/pull/471)
+* Fix overflow when validating Duration by @nekevss in [#470](https://github.com/boa-dev/temporal/pull/470)
+* Rewrite v2_estimate_tz_pair to compare local timestamps by @Manishearth in [#468](https://github.com/boa-dev/temporal/pull/468)
+* Normalize, don't canonicalize time zones by @Manishearth in [#466](https://github.com/boa-dev/temporal/pull/466)
+* Normalize UTC to UTC by @Manishearth in [#463](https://github.com/boa-dev/temporal/pull/463)
+* Ensure that the correct year-month is range-checked during diff operations by @Manishearth in [#461](https://github.com/boa-dev/temporal/pull/461)
+* Correctly handle matchBehavior for sub-minute offset strings by @Manishearth in [#462](https://github.com/boa-dev/temporal/pull/462)
+* Correctly normalize timezones by @Manishearth in [#460](https://github.com/boa-dev/temporal/pull/460)
+* Fix posix logic that was causing panics by @nekevss in [#459](https://github.com/boa-dev/temporal/pull/459)
+* Fix float precision check by @Manishearth in [#457](https://github.com/boa-dev/temporal/pull/457)
+* CalendarDateAdd takes DateDurations, not full Durations by @Manishearth in [#453](https://github.com/boa-dev/temporal/pull/453)
+* Check validity where requested by the spec by @Manishearth in [#456](https://github.com/boa-dev/temporal/pull/456)
+* Add .clone() to FFI, YearMonth::reference_day by @Manishearth in [#454](https://github.com/boa-dev/temporal/pull/454)
+* Move nanoseconds-validity checking to being explicit by @Manishearth in [#452](https://github.com/boa-dev/temporal/pull/452)
+* Add debug impl for error message by @Manishearth in [#451](https://github.com/boa-dev/temporal/pull/451)
+* Rename ffi epoch_ns_for to epoch_ms_for by @Manishearth in [#443](https://github.com/boa-dev/temporal/pull/443)
+* Fix panic in tzdb logic by @nekevss in [#441](https://github.com/boa-dev/temporal/pull/441)
+* Support RoundNumberToIncrementAsIfPositive by @Manishearth in [#440](https://github.com/boa-dev/temporal/pull/440)
+* Support sub-minute offsets in UTCOffset by @Manishearth in [#437](https://github.com/boa-dev/temporal/pull/437)
+* Fix bug in `to_zoned_date_time_with_provider` by @nekevss in [#436](https://github.com/boa-dev/temporal/pull/436)
+* Ensure dates are in limits after performing arithmetic by @Manishearth in [#435](https://github.com/boa-dev/temporal/pull/435)
+* YearMonth::compare should compare ISO days by @Manishearth in [#433](https://github.com/boa-dev/temporal/pull/433)
+* toPlainDate should use CONSTRAIN by @Manishearth in [#430](https://github.com/boa-dev/temporal/pull/430)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.11...v0.0.12
+
 ## What's Changed in v0.0.11
 * Add PartialZonedDateTime::try_from_str by @Manishearth in [#420](https://github.com/boa-dev/temporal/pull/420)
 * Add from_partial for YearMonth/MonthDay FFI by @Manishearth in [#351](https://github.com/boa-dev/temporal/pull/351)
