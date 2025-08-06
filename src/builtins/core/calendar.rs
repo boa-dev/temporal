@@ -38,7 +38,9 @@ mod fields;
 mod types;
 
 pub use fields::{CalendarFields, YearMonthCalendarFields};
-pub(crate) use types::{month_to_month_code, ResolutionType};
+#[cfg(test)]
+pub(crate) use types::month_to_month_code;
+pub(crate) use types::ResolutionType;
 pub use types::{MonthCode, ResolvedCalendarFields};
 
 use era::EraInfo;
@@ -189,11 +191,11 @@ impl Calendar {
     /// `CalendarDateFromFields`
     pub fn date_from_fields(
         &self,
-        fields: &CalendarFields,
+        fields: CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
-            ResolvedCalendarFields::try_from_fields(self, fields, overflow, ResolutionType::Date)?;
+            ResolvedCalendarFields::try_from_fields(self, &fields, overflow, ResolutionType::Date)?;
 
         if self.is_iso() {
             // Resolve month and monthCode;
@@ -228,12 +230,29 @@ impl Calendar {
     /// `CalendarPlainMonthDayFromFields`
     pub fn month_day_from_fields(
         &self,
-        fields: &CalendarFields,
+        mut fields: CalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainMonthDay> {
+        // You are allowed to specify year information, however
+        // it is *only* used for resolving the given month/day data.
+        //
+        // For example, constructing a PlainMonthDay for {year: 2025, month: 2, day: 29}
+        // with overflow: constrain will produce 02-28 since it will constrain
+        // the date to 2025-02-28 first, and only *then* will it construct an MD.
+        //
+        // This is specced partially in https://tc39.es/proposal-temporal/#sec-temporal-calendarmonthdaytoisoreferencedate
+        // notice that RegulateISODate is called with the passed-in year, but the reference year is used regardless
+        // of the passed in year in the final result.
+        //
+        // There may be more efficient ways to do this, but this works pretty well and doesn't require
+        // calendrical knowledge.
+        if fields.year.is_some() || (fields.era.is_some() && fields.era_year.is_some()) {
+            let date = self.date_from_fields(fields, overflow)?;
+            fields = CalendarFields::from_date(&date);
+        }
         let resolved_fields = ResolvedCalendarFields::try_from_fields(
             self,
-            fields,
+            &fields,
             overflow,
             ResolutionType::MonthDay,
         )?;
@@ -270,7 +289,7 @@ impl Calendar {
     /// `CalendarPlainYearMonthFromFields`
     pub fn year_month_from_fields(
         &self,
-        fields: &YearMonthCalendarFields,
+        fields: YearMonthCalendarFields,
         overflow: ArithmeticOverflow,
     ) -> TemporalResult<PlainYearMonth> {
         // TODO: add a from_partial_year_month method on ResolvedCalendarFields

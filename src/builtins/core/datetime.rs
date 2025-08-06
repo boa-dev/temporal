@@ -562,7 +562,7 @@ impl PlainDateTime {
         // The steps here largely follow `InterpretTemporalDateTimeFields`
         // 1. Let isoDate be ? CalendarDateFromFields(calendar, fields, overflow).
         let date = partial.calendar.date_from_fields(
-            &partial.fields.calendar_fields,
+            partial.fields.calendar_fields,
             overflow.unwrap_or(ArithmeticOverflow::Constrain),
         )?;
         // 2. Let time be ? RegulateTime(fields.[[Hour]], fields.[[Minute]], fields.[[Second]], fields.[[Millisecond]], fields.[[Microsecond]], fields.[[Nanosecond]], overflow).
@@ -638,7 +638,7 @@ impl PlainDateTime {
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
 
         let result_date = self.calendar.date_from_fields(
-            &fields
+            fields
                 .calendar_fields
                 .with_fallback_datetime(self, self.calendar.kind(), overflow)?,
             overflow,

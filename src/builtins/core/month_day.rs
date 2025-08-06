@@ -14,7 +14,7 @@ use crate::{
     Calendar, MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 
-use super::{calendar::month_to_month_code, PartialDate, PlainDate};
+use super::{PartialDate, PlainDate};
 use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
@@ -229,7 +229,7 @@ impl PlainMonthDay {
         // 15. Set isoDate to ? CalendarMonthDayFromFields(calendar, result, constrain).
         intermediate
             .calendar()
-            .month_day_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .month_day_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Create a `PlainYearMonth` from a `PartialDate`
@@ -239,7 +239,7 @@ impl PlainMonthDay {
     ) -> TemporalResult<Self> {
         partial
             .calendar
-            .month_day_from_fields(&partial.calendar_fields, overflow.unwrap_or_default())
+            .month_day_from_fields(partial.calendar_fields, overflow.unwrap_or_default())
     }
 
     /// Create a `PlainMonthDay` with the provided fields from a [`PartialDate`].
@@ -259,25 +259,22 @@ impl PlainMonthDay {
 
         // NOTE: We only need to set month / month_code and day, per spec.
         // 7. Set fields to CalendarMergeFields(calendar, fields, partialMonthDay).
-        let (month, month_code) = match (fields.month, fields.month_code) {
-            (Some(m), Some(mc)) => (m, mc),
-            (Some(m), None) => (m, month_to_month_code(m)?),
-            (None, Some(mc)) => (mc.to_month_integer(), mc),
-            (None, None) => (self.month_code().to_month_integer(), self.month_code()),
-        };
         let merged_day = fields.day.unwrap_or(self.day());
-        let merged = fields
-            .with_month(month)
-            .with_month_code(month_code)
-            .with_day(merged_day);
-
+        let mut merged = fields.with_day(merged_day);
+        if merged.month.is_none() && merged.month_code.is_none() {
+            // MonthDay resolution prefers month codes
+            // (ordinal months work, but require year information, which
+            // we may not have)
+            // We should NOT merge over year information even though we have it.
+            merged = merged.with_month_code(self.month_code());
+        }
         // Step 8-9 already handled by engine.
         // 8. Let resolvedOptions be ? GetOptionsObject(options).
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
         // 10. Let isoDate be ? CalendarMonthDayFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalMonthDay(isoDate, calendar).
         self.calendar
-            .month_day_from_fields(&merged, overflow.unwrap_or(ArithmeticOverflow::Constrain))
+            .month_day_from_fields(merged, overflow.unwrap_or(ArithmeticOverflow::Constrain))
     }
 
     /// Returns the ISO day value of `PlainMonthDay`.
@@ -357,7 +354,7 @@ impl PlainMonthDay {
 
         // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
         self.calendar
-            .date_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .date_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
@@ -578,7 +575,7 @@ mod tests {
                     };
 
                     let md = calendar
-                        .month_day_from_fields(&calendar_fields, ArithmeticOverflow::Reject)
+                        .month_day_from_fields(calendar_fields, ArithmeticOverflow::Reject)
                         .unwrap();
 
                     assert!(
@@ -650,7 +647,7 @@ mod tests {
 
             let md_from_partial = md
                 .calendar()
-                .month_day_from_fields(&calendar_fields, ArithmeticOverflow::Reject)
+                .month_day_from_fields(calendar_fields, ArithmeticOverflow::Reject)
                 .expect(string);
 
             assert_eq!(

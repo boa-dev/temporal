@@ -418,7 +418,7 @@ impl PlainDate {
         let overflow = overflow.unwrap_or_default();
         partial
             .calendar
-            .date_from_fields(&partial.calendar_fields, overflow)
+            .date_from_fields(partial.calendar_fields, overflow)
     }
 
     // Converts a UTF-8 encoded string into a `PlainDate`.
@@ -453,7 +453,7 @@ impl PlainDate {
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
         self.calendar.date_from_fields(
-            &fields.with_fallback_date(self, self.calendar.kind(), overflow)?,
+            fields.with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }
@@ -655,7 +655,7 @@ impl PlainDate {
             .with_month(self.month())
             .with_month_code(self.month_code());
         self.calendar()
-            .year_month_from_fields(&fields, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(fields, ArithmeticOverflow::Constrain)
     }
 
     /// Converts the current `Date` into a `PlainMonthDay`
@@ -663,7 +663,7 @@ impl PlainDate {
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         let overflow = ArithmeticOverflow::Constrain;
         self.calendar().month_day_from_fields(
-            &CalendarFields::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
+            CalendarFields::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
         )
     }

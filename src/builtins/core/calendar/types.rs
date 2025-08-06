@@ -141,11 +141,11 @@ impl EraYear {
             _ if resolution_type == ResolutionType::MonthDay => {
                 let day = partial
                     .day
-                    .ok_or(TemporalError::assert().with_message("MonthDay must specify day"))?;
+                    .ok_or(TemporalError::r#type().with_message("MonthDay must specify day"))?;
+
                 let arithmetic_year = Self::reference_arithmetic_year_for_month_day(
                     calendar,
                     partial.month_code,
-                    partial.month,
                     day,
                 )?;
                 Ok(Self {
@@ -195,22 +195,8 @@ impl EraYear {
     fn reference_arithmetic_year_for_month_day(
         calendar: &Calendar,
         month_code: Option<MonthCode>,
-        ordinal_month: Option<u8>,
         day: u8,
     ) -> TemporalResult<i32> {
-        let ordinal_month_for_leapless = || {
-            ordinal_month
-                .or_else(|| month_code.map(|c| MonthCode::to_month_integer(&c)))
-                .ok_or(TemporalError::assert().with_message("Neither month nor monthCode provided"))
-        };
-        let require_month_code = || {
-            if let Some(month_code) = month_code {
-                Ok(month_code)
-            } else {
-                Err(TemporalError::r#type()
-                    .with_message("Must specify month codes with MonthDay for lunar calendars"))
-            }
-        };
         // For simple calendars without leap days
         // (or if leap days have already been handled)
         // This needs the date of 1972-12-31 represented in that calendar
@@ -242,6 +228,19 @@ impl EraYear {
             }
         }
 
+        let kind = calendar.kind();
+
+        // This behavior is required by tests, but is not yet specced.
+        // https://github.com/tc39/proposal-intl-era-monthcode/issues/60
+        let Some(month_code) = month_code else {
+            if kind == AnyCalendarKind::Iso {
+                return Ok(1972);
+            } else {
+                return Err(TemporalError::r#type()
+                    .with_message("MonthDay must be created with a monthCode for non-ISO"));
+            }
+        };
+
         // The reference date is the latest ISO 8601 date corresponding to the calendar date, that is also earlier than
         // or equal to the ISO 8601 date December 31, 1972. If that calendar date never occurs on or before the ISO 8601 date December 31, 1972,
         // then the reference date is the earliest ISO 8601 date corresponding to that calendar date.
@@ -257,36 +256,34 @@ impl EraYear {
             AnyCalendarKind::Roc => 1972 - 1911,
 
             AnyCalendarKind::Indian => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (1894, 10, 10), (1, 30), 1984)
             }
             AnyCalendarKind::Persian => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (1351, 10, 10), (12, 30), 1350)
             }
             AnyCalendarKind::HijriTabularTypeIIFriday => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (1392, 11, 25), (12, 30), 1390)
             }
             AnyCalendarKind::HijriTabularTypeIIThursday => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (1392, 11, 26), (12, 30), 1390)
             }
             AnyCalendarKind::Coptic => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (1689, 4, 22), (13, 6), 1687)
             }
             AnyCalendarKind::Ethiopian => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (1965, 4, 22), (13, 6), 1963)
             }
             AnyCalendarKind::EthiopianAmeteAlem => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 threshold_with_leap_day(month, day, (7465, 4, 22), (13, 6), 7463)
             }
             AnyCalendarKind::Hebrew => {
-                let month_code = require_month_code()?;
-
                 // 1972-12-31 is y=5733 am, m=4, d=26. We must produce year 5732 or lower
                 if month_code.is_leap_month() {
                     // 5730 is a leap year
@@ -317,7 +314,7 @@ impl EraYear {
             // These lunar calendars are iffier: The ones above are mathematically defined,
             // the algorithm for these may change. This data may need to be updated on occasion.
             AnyCalendarKind::HijriUmmAlQura => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 if day < 30 {
                     threshold(month, day, (1392, 11, 25))
                 } else {
@@ -339,7 +336,7 @@ impl EraYear {
                 }
             }
             AnyCalendarKind::HijriSimulatedMecca => {
-                let month = ordinal_month_for_leapless()?;
+                let month = month_code.to_month_integer();
                 if day < 30 {
                     threshold(month, day, (1392, 11, 24))
                 } else {
@@ -671,9 +668,9 @@ mod tests {
 
         let cal = Calendar::default();
 
-        let err = cal.date_from_fields(&bad_fields, ArithmeticOverflow::Reject);
+        let err = cal.date_from_fields(bad_fields.clone(), ArithmeticOverflow::Reject);
         assert!(err.is_err());
-        let result = cal.date_from_fields(&bad_fields, ArithmeticOverflow::Constrain);
+        let result = cal.date_from_fields(bad_fields, ArithmeticOverflow::Constrain);
         assert!(result.is_ok());
     }
 
