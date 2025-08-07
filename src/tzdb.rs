@@ -892,7 +892,7 @@ fn calculate_transition_seconds_for_year(
         TransitionDay::WithLeap(day) => day,
         TransitionDay::Mwd(month, week, day) => {
             let days_to_month = utils::month_to_day((month - 1) as u8, leap_day);
-            let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8) - 1);
+            let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8));
 
             // Month starts in the day...
             let day_offset = (u16::from(utils::epoch_seconds_to_day_of_week(year_epoch_seconds))
@@ -923,8 +923,13 @@ fn calculate_transition_seconds_for_year(
             // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (3 - 0) * 7 + 1 - 3 = 19
             let mut day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset;
 
-            // If we're on week 5, we need to clamp to the last valid day.
-            if day_of_month > days_in_month - 1 {
+            // Week 5 actually means "last <dayofweek> of month". The day_of_month calculation
+            // above uses `week` directly; so we might end up spilling into the next month. In that
+            // case, we normalize to the fourth week of the month.
+            //
+            // Note that this only needs to be done once; if a month will have at least four of each
+            // day of the week since all months have 28 days or greater.
+            if day_of_month > days_in_month {
                 day_of_month -= 7
             }
 
