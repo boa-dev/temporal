@@ -889,4 +889,17 @@ mod tests {
         let zdt = parse_zdt_with_reject("2017-03-26T02:00:00+01:00[Europe/London]").unwrap();
         assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2017_03_26);
     }
+
+    #[test]
+    fn test_berlin() {
+        // Need to ensure that when the transition is the last day of the month it still works
+        let zdt = parse_zdt_with_reject("2021-03-28T01:00:00Z[Europe/Berlin]").unwrap();
+        std::println!("GET");
+        let prev = zdt
+            .get_time_zone_transition(TransitionDirection::Previous)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(prev.to_string(), "2020-10-25T02:00:00+01:00[Europe/Berlin]");
+    }
 }

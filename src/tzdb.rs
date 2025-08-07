@@ -886,6 +886,7 @@ fn calculate_transition_seconds_for_year(
     let is_leap = utils::is_leap(year);
 
     // Calculate the days in the year for the TransitionDate
+    // This value is zero-indexed so it can be added to the year's epoch seconds
     let days = match transition_date.day {
         TransitionDay::NoLeap(day) if day > 59 => day - 1 + is_leap as u16,
         TransitionDay::NoLeap(day) => day - 1,
@@ -921,6 +922,8 @@ fn calculate_transition_seconds_for_year(
             // of the month:
             //
             // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (3 - 0) * 7 + 1 - 3 = 19
+
+            // Note: this day_of_month is zero-indexed!
             let mut day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset;
 
             // Week 5 actually means "last <dayofweek> of month". The day_of_month calculation
@@ -929,7 +932,9 @@ fn calculate_transition_seconds_for_year(
             //
             // Note that this only needs to be done once; if a month will have at least four of each
             // day of the week since all months have 28 days or greater.
-            if day_of_month > days_in_month {
+            //
+            // We add one because day_of_month is zero_indexed
+            if day_of_month + 1 > days_in_month {
                 day_of_month -= 7
             }
 
