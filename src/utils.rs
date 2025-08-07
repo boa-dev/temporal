@@ -62,6 +62,7 @@ pub(crate) fn is_leap(y: i32) -> bool {
     }
 }
 
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_time_to_iso_year(t: i64) -> i32 {
     let epoch_days = epoch_ms_to_epoch_days(t);
     let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(epoch_days);
@@ -69,6 +70,7 @@ pub(crate) fn epoch_time_to_iso_year(t: i64) -> i32 {
 }
 
 /// Returns the epoch day number for a given year.
+#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_days_for_year(y: i32) -> i32 {
     365 * (y - 1970) + (y - 1969).div_euclid(4) - (y - 1901).div_euclid(100)
         + (y - 1601).div_euclid(400)
@@ -104,13 +106,6 @@ pub(crate) fn month_to_day(m: u8, is_leap: bool) -> u16 {
 }
 
 #[cfg(feature = "tzdb")]
-pub(crate) fn epoch_ms_to_month_in_year(t: i64) -> u8 {
-    let epoch_days = epoch_ms_to_epoch_days(t);
-    let (rata_die, _) = neri_schneider::rata_die_for_epoch_days(epoch_days);
-    neri_schneider::month(rata_die)
-}
-
-#[cfg(feature = "tzdb")]
 pub(crate) fn epoch_time_to_day_in_year(t: i64) -> i32 {
     epoch_time_to_day_number(t) - (epoch_days_for_year(epoch_time_to_iso_year(t)))
 }
@@ -118,13 +113,6 @@ pub(crate) fn epoch_time_to_day_in_year(t: i64) -> i32 {
 #[cfg(feature = "tzdb")]
 pub(crate) fn epoch_seconds_to_day_of_week(t: i64) -> u8 {
     ((t / 86_400) + 4).rem_euclid(7) as u8
-}
-
-#[cfg(feature = "tzdb")]
-pub(crate) fn epoch_seconds_to_day_of_month(t: i64) -> u16 {
-    let is_leap = is_leap(epoch_time_to_iso_year(t));
-    epoch_time_to_day_in_year(t * 1_000) as u16
-        - month_to_day(epoch_ms_to_month_in_year(t * 1_000) - 1, is_leap)
 }
 
 // Trait implementations

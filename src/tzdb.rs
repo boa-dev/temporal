@@ -1022,15 +1022,87 @@ fn resolve_posix_tz_string(
 ///
 /// For more information, see the [POSIX tz string docs](https://sourceware.org/glibc/manual/2.40/html_node/Proleptic-TZ.html)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Mwd(u16, u16, u16);
+struct Mwd {
+    month: u8,
+    week: u8,
+    day: u8,
+}
 
 impl Mwd {
+    fn from_u16(month: u16, week: u16, day: u16) -> Self {
+        Self::from_u8(
+            u8::try_from(month).unwrap_or(0),
+            u8::try_from(week).unwrap_or(0),
+            u8::try_from(day).unwrap_or(0),
+        )
+    }
+
+    fn from_u8(month: u8, week: u8, day: u8) -> Self {
+        Self { month, week, day }
+    }
+}
+
+/// Represents an MWD for a given time
+#[derive(Debug)]
+struct MwdForTime {
+    /// This will never have day = 5
+    mwd: Mwd,
+    /// This is the day of week of the 29th and the last day of the month,
+    /// if the month has more than 28 days.
+    /// Basically, this is the start and end of the "fifth <weekday> of the month" period
+    extra_days: Option<(u8, u8)>,
+}
+
+impl MwdForTime {
     fn from_seconds(seconds: i64) -> Self {
-        let month = utils::epoch_ms_to_month_in_year(seconds * 1_000) as u16;
-        let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
+        let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
         let week_of_month = day_of_month / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
-        Self(month, week_of_month, u16::from(day_of_week))
+        let mwd = Mwd::from_u8(month, week_of_month, day_of_week);
+        let days_in_month = utils::iso_days_in_month(year, month);
+        if day_of_month > 28 {
+            let day_of_week_zeroth_day =
+                (i16::from(day_of_week) - i16::from(day_of_month)).rem_euclid(7) as u8;
+            let day_of_week_day_29 = (day_of_week_zeroth_day + 29).rem_euclid(7);
+            let day_of_week_last_day = (day_of_week_zeroth_day + days_in_month).rem_euclid(7);
+            Self {
+                mwd,
+                extra_days: Some((day_of_week_day_29, day_of_week_last_day)),
+            }
+        } else {
+            // No day 5
+            Self {
+                mwd,
+                extra_days: None,
+            }
+        }
+    }
+
+    /// MWDs from Posix data can contain `w=5`, which means the *last* $weekday of the month,
+    /// not the 5th. For MWDs in the same month, this normalizes the 5 to the actual number of the
+    /// last weekday of the month (5 or 4)
+    fn normalize_mwd(&self, other: &mut Mwd) {
+        // If we're in the same month, and the other mwd is looking for
+        // the last $weekday in the month, we need special handling
+        if self.mwd.month == other.month && other.week == 5 {
+            if let Some((day_29, last_day)) = self.extra_days {
+                if day_29 < last_day {
+                    if other.day < day_29 || other.day > last_day {
+                        // This day isn't found in the last week. Subtract one.
+                        other.week = 4;
+                    }
+                } else {
+                    // The extra part of the month crosses Sunday
+                    if other.day < day_29 && other.day > last_day {
+                        // This day isn't found in the last week. Subtract one.
+                        other.week = 4;
+                    }
+                }
+            } else {
+                // There is no week 5 in this month, normalize to 4
+                other.week = 4;
+            }
+        }
     }
 }
 
@@ -1044,15 +1116,18 @@ fn cmp_seconds_to_transitions(
             TransitionDay::Mwd(start_month, start_week, start_day),
             TransitionDay::Mwd(end_month, end_week, end_day),
         ) => {
-            let mwd = Mwd::from_seconds(seconds);
-            let start = Mwd(*start_month, *start_week, *start_day);
-            let end = Mwd(*end_month, *end_week, *end_day);
+            let mwd = MwdForTime::from_seconds(seconds);
+            let mut start = Mwd::from_u16(*start_month, *start_week, *start_day);
+            let mut end = Mwd::from_u16(*end_month, *end_week, *end_day);
 
-            let is_transition = start == mwd || end == mwd;
+            mwd.normalize_mwd(&mut start);
+            mwd.normalize_mwd(&mut end);
+
+            let is_transition = start == mwd.mwd || end == mwd.mwd;
             let is_dst = if start > end {
-                mwd < end || start <= mwd
+                mwd.mwd < end || start <= mwd.mwd
             } else {
-                start <= mwd && mwd < end
+                start <= mwd.mwd && mwd.mwd < end
             };
 
             (is_transition, is_dst)

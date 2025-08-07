@@ -659,9 +659,9 @@ mod tests {
     const LONDON_POSIX_TRANSITION_2019_03_31: &str = "2019-03-31T02:00:00+01:00[Europe/London]";
 
     // This date is a fourth (but last) Sunday
-    const LONDON_POSIX_TRANSITION_2017_03_28_MINUS_ONE: &str =
-        "2017-03-28T00:59:59.999999999+00:00[Europe/London]";
-    const LONDON_POSIX_TRANSITION_2017_03_28: &str = "2017-03-28T02:00:00+01:00[Europe/London]";
+    const LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE: &str =
+        "2017-03-26T00:59:59.999999999+00:00[Europe/London]";
+    const LONDON_POSIX_TRANSITION_2017_03_26: &str = "2017-03-26T02:00:00+01:00[Europe/London]";
 
     // MUST only contain full strings
     // The second boolean is whether these are unambiguous when the offset is removed
@@ -692,8 +692,8 @@ mod tests {
         (SAMOA_IDL_CHANGE_MINUS_ONE, true),
         (LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE, true),
         (LONDON_POSIX_TRANSITION_2019_03_31, true),
-        (LONDON_POSIX_TRANSITION_2017_03_28_MINUS_ONE, true),
-        (LONDON_POSIX_TRANSITION_2017_03_28_MINUS_ONE, true),
+        (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
+        (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
     ];
 
     #[test]
@@ -880,13 +880,13 @@ mod tests {
         let zdt = parse_zdt_with_reject("2019-03-31T02:00:00+01:00[Europe/London]").unwrap();
         assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31);
 
-        let zdt = parse_zdt_with_reject("2017-03-28T00:59:59.999999999[Europe/London]").unwrap();
+        let zdt = parse_zdt_with_reject("2017-03-26T00:59:59.999999999[Europe/London]").unwrap();
         assert_eq!(
             zdt.to_string(),
-            LONDON_POSIX_TRANSITION_2017_03_28_MINUS_ONE
+            LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE
         );
 
-        let zdt = parse_zdt_with_reject("2017-03-28T02:00:00+01:00[Europe/London]").unwrap();
-        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2017_03_28);
+        let zdt = parse_zdt_with_reject("2017-03-26T02:00:00+01:00[Europe/London]").unwrap();
+        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2017_03_26);
     }
 }
