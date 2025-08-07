@@ -401,7 +401,7 @@ impl Tzif {
             }
         };
 
-        let year = utils::epoch_time_to_epoch_year(epoch_seconds.0 * 1000);
+        let year = utils::epoch_time_to_iso_year(epoch_seconds.0 * 1000);
 
         let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
 
@@ -816,7 +816,7 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         });
     };
 
-    let year = utils::epoch_time_to_epoch_year(seconds * 1000);
+    let year = utils::epoch_time_to_iso_year(seconds * 1000);
 
     let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
     let dst_start_seconds = transition_info.dst_start_seconds.0;
@@ -883,15 +883,15 @@ fn calculate_transition_seconds_for_year(
 ) -> i64 {
     // Determine the year of the requested time.
     let year_epoch_seconds = i64::from(utils::epoch_days_for_year(year)) * 86400;
-    let leap_day = (utils::mathematical_days_in_year(year) - 365) as u16;
+    let is_leap = utils::is_leap(year);
 
     // Calculate the days in the year for the TransitionDate
     let days = match transition_date.day {
-        TransitionDay::NoLeap(day) if day > 59 => day - 1 + leap_day,
+        TransitionDay::NoLeap(day) if day > 59 => day - 1 + is_leap as u16,
         TransitionDay::NoLeap(day) => day - 1,
         TransitionDay::WithLeap(day) => day,
         TransitionDay::Mwd(month, week, day) => {
-            let days_to_month = utils::month_to_day((month - 1) as u8, leap_day);
+            let days_to_month = utils::month_to_day((month - 1) as u8, is_leap);
             let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8));
 
             // Month starts in the day...
