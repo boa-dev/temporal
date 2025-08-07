@@ -1054,7 +1054,7 @@ struct MwdForTime {
     mwd: Mwd,
     /// This is the day of week of the 29th and the last day of the month,
     /// if the month has more than 28 days.
-    /// Basically, this is the start and end of the "fifth <weekday> of the month" period
+    /// Basically, this is the start and end of the "fifth $weekday of the month" period
     extra_days: Option<(u8, u8)>,
 }
 

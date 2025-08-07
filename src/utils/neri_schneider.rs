@@ -186,6 +186,7 @@ pub const fn ymd_from_epoch_days(epoch_days: i32) -> (i32, u8, u8) {
 }
 
 #[cfg(test)]
+#[cfg(feature = "tzdb")]
 mod tests {
     use super::*;
 
