@@ -401,7 +401,15 @@ impl Tzif {
             }
         };
 
-        let year = utils::epoch_time_to_iso_year(epoch_seconds.0 * 1000);
+        // Calculate year, but clamp it to the last transition
+        // We do not want to try and apply the posix string to earlier years!
+        let mut epoch_seconds_for_year_calculation = epoch_seconds;
+        if let Some(last_tzif_transition) = last_tzif_transition {
+            if epoch_seconds < last_tzif_transition {
+                epoch_seconds_for_year_calculation = last_tzif_transition;
+            }
+        }
+        let year = utils::epoch_time_to_iso_year(epoch_seconds_for_year_calculation.0 * 1000);
 
         let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
 

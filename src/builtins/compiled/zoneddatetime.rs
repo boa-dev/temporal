@@ -663,6 +663,8 @@ mod tests {
         "2017-03-26T00:59:59.999999999+00:00[Europe/London]";
     const LONDON_POSIX_TRANSITION_2017_03_26: &str = "2017-03-26T02:00:00+01:00[Europe/London]";
 
+    const TROLL_FIRST_TRANSITION: &str = "2005-03-27T03:00:00+02:00[Antarctica/Troll]";
+
     // MUST only contain full strings
     // The second boolean is whether these are unambiguous when the offset is removed
     // As a rule of thumb, anything around an STD->DST transition
@@ -694,6 +696,7 @@ mod tests {
         (LONDON_POSIX_TRANSITION_2019_03_31, true),
         (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
         (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
+        (TROLL_FIRST_TRANSITION, true),
     ];
 
     #[test]
@@ -901,5 +904,22 @@ mod tests {
             .unwrap();
 
         assert_eq!(prev.to_string(), "2020-10-25T02:00:00+01:00[Europe/Berlin]");
+    }
+
+    #[test]
+    fn test_troll() {
+        // Antarctica/Troll started DST in 2005, but had no other transitions before that
+        let zdt = ZonedDateTime::try_new(
+            0,
+            Calendar::ISO,
+            TimeZone::try_from_str("Antarctica/Troll").unwrap(),
+        )
+        .unwrap();
+
+        let next = zdt
+            .get_time_zone_transition(TransitionDirection::Next)
+            .unwrap()
+            .unwrap();
+        assert_eq!(next.to_string(), TROLL_FIRST_TRANSITION);
     }
 }
