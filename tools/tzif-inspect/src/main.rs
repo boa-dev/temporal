@@ -49,18 +49,18 @@ fn seconds_to_offset_time(s: Seconds) -> String {
 
 fn month(m: u16) -> &'static str {
     match m {
-        0 => "Jan",
-        1 => "Feb",
-        2 => "Mar",
-        3 => "Apr",
-        4 => "May",
-        5 => "Jun",
-        6 => "Jul",
-        7 => "Aug",
-        8 => "Sep",
-        9 => "Oct",
-        10 => "Nov",
-        11 => "Dec",
+        1 => "Jan",
+        2 => "Feb",
+        3 => "Mar",
+        4 => "Apr",
+        5 => "May",
+        6 => "Jun",
+        7 => "Jul",
+        8 => "Aug",
+        9 => "Sep",
+        10 => "Oct",
+        11 => "Nov",
+        12 => "Dec",
         _ => unreachable!(),
     }
 }
@@ -68,15 +68,17 @@ fn month(m: u16) -> &'static str {
 fn format_transition_day(trans_day: TransitionDay) -> String {
     match trans_day {
         TransitionDay::NoLeap(d) | TransitionDay::WithLeap(d) => {
-            let start_date = PlainDate::new(2001, 1, 1, Default::default()).unwrap();
-            let date_duration = Duration::new(0, 0, 0, (d - 1).into(), 0, 0, 0, 0, 0, 0).unwrap();
+            let no_leap = matches!(trans_day, TransitionDay::NoLeap(_));
+            let start_year = if no_leap { 2001 } else { 2004 };
+            let start_date = PlainDate::new(start_year, 1, 1, Default::default()).unwrap();
+            let date_duration = Duration::new(0, 0, 0, d.into(), 0, 0, 0, 0, 0, 0).unwrap();
             let adjusted = start_date.add(&date_duration, None).unwrap();
-            let m = month((adjusted.month() - 1).into());
-            let d = adjusted.day();
-            if matches!(trans_day, TransitionDay::NoLeap(_)) {
-                format!("{m} {d} (all years)")
+            let m = month(adjusted.month().into());
+            let day = adjusted.day();
+            if no_leap {
+                format!("NoLeap({d}): {m} {day}")
             } else {
-                format!("{m} {d} (in non leap years)")
+                format!("WithLeap({d}): {m} {day}")
             }
         }
         TransitionDay::Mwd(m, w, d) => {

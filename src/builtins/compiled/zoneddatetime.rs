@@ -392,8 +392,10 @@ mod tests {
         Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation, Unit,
     };
     use crate::provider::TransitionDirection;
+    use crate::Calendar;
     use crate::Duration;
     use crate::TemporalResult;
+    use crate::TimeZone;
     use alloc::string::ToString;
 
     #[cfg(not(target_os = "windows"))]
@@ -651,6 +653,18 @@ mod tests {
     const SAMOA_IDL_CHANGE: &str = "2011-12-31T00:00:00+14:00[Pacific/Apia]";
     const SAMOA_IDL_CHANGE_MINUS_ONE: &str = "2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]";
 
+    // This date is a fifth Sunday
+    const LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE: &str =
+        "2019-03-31T00:59:59.999999999+00:00[Europe/London]";
+    const LONDON_POSIX_TRANSITION_2019_03_31: &str = "2019-03-31T02:00:00+01:00[Europe/London]";
+
+    // This date is a fourth (but last) Sunday
+    const LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE: &str =
+        "2017-03-26T00:59:59.999999999+00:00[Europe/London]";
+    const LONDON_POSIX_TRANSITION_2017_03_26: &str = "2017-03-26T02:00:00+01:00[Europe/London]";
+
+    const TROLL_FIRST_TRANSITION: &str = "2005-03-27T03:00:00+02:00[Antarctica/Troll]";
+
     // MUST only contain full strings
     // The second boolean is whether these are unambiguous when the offset is removed
     // As a rule of thumb, anything around an STD->DST transition
@@ -678,6 +692,11 @@ mod tests {
         (LONDON_TRANSITION_1968_02_18_MINUS_ONE, true),
         (SAMOA_IDL_CHANGE, true),
         (SAMOA_IDL_CHANGE_MINUS_ONE, true),
+        (LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE, true),
+        (LONDON_POSIX_TRANSITION_2019_03_31, true),
+        (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
+        (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
+        (TROLL_FIRST_TRANSITION, true),
     ];
 
     #[test]
@@ -828,5 +847,79 @@ mod tests {
 
         let samoa_before = parse_zdt_with_reject(SAMOA_IDL_CHANGE_MINUS_ONE).unwrap();
         assert_eq!(samoa_before.hours_in_day().unwrap(), 24);
+    }
+
+    #[test]
+    fn test_london() {
+        // Europe/London has an MWD transition where the transitions are on the
+        // last sundays of March and October.
+
+        // Test that they correctly compute from nanoseconds
+        let zdt = ZonedDateTime::try_new(
+            1_553_993_999_999_999_999,
+            Calendar::ISO,
+            TimeZone::try_from_str("Europe/London").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            zdt.to_string(),
+            LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE,
+        );
+        let zdt = ZonedDateTime::try_new(
+            1_553_994_000_000_000_000,
+            Calendar::ISO,
+            TimeZone::try_from_str("Europe/London").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31,);
+
+        // Test that they correctly compute from ZDT strings without explicit offset
+        let zdt = parse_zdt_with_reject("2019-03-31T00:59:59.999999999[Europe/London]").unwrap();
+        assert_eq!(
+            zdt.to_string(),
+            LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE
+        );
+
+        let zdt = parse_zdt_with_reject("2019-03-31T02:00:00+01:00[Europe/London]").unwrap();
+        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31);
+
+        let zdt = parse_zdt_with_reject("2017-03-26T00:59:59.999999999[Europe/London]").unwrap();
+        assert_eq!(
+            zdt.to_string(),
+            LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE
+        );
+
+        let zdt = parse_zdt_with_reject("2017-03-26T02:00:00+01:00[Europe/London]").unwrap();
+        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2017_03_26);
+    }
+
+    #[test]
+    fn test_berlin() {
+        // Need to ensure that when the transition is the last day of the month it still works
+        let zdt = parse_zdt_with_reject("2021-03-28T01:00:00Z[Europe/Berlin]").unwrap();
+        std::println!("GET");
+        let prev = zdt
+            .get_time_zone_transition(TransitionDirection::Previous)
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(prev.to_string(), "2020-10-25T02:00:00+01:00[Europe/Berlin]");
+    }
+
+    #[test]
+    fn test_troll() {
+        // Antarctica/Troll started DST in 2005, but had no other transitions before that
+        let zdt = ZonedDateTime::try_new(
+            0,
+            Calendar::ISO,
+            TimeZone::try_from_str("Antarctica/Troll").unwrap(),
+        )
+        .unwrap();
+
+        let next = zdt
+            .get_time_zone_transition(TransitionDirection::Next)
+            .unwrap()
+            .unwrap();
+        assert_eq!(next.to_string(), TROLL_FIRST_TRANSITION);
     }
 }

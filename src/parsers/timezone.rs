@@ -58,7 +58,7 @@ pub(crate) fn parse_allowed_timezone_formats(
 }
 
 #[inline]
-pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZoneRecord<Utf8>> {
+pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZoneRecord<'_, Utf8>> {
     let mut parser = TimeZoneParser::from_str(source);
     parser.parse_identifier().or(Err(
         TemporalError::range().with_message("Invalid TimeZone Identifier")

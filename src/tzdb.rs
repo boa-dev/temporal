@@ -401,7 +401,18 @@ impl Tzif {
             }
         };
 
-        let year = utils::epoch_time_to_epoch_year(epoch_seconds.0 * 1000);
+        // Calculate year, but clamp it to the last transition
+        // We do not want to try and apply the posix string to earlier years!
+        //
+        // Antarctica/Troll is an example of a timezone that has a posix string
+        // but no meaningful previous transitions.
+        let mut epoch_seconds_for_year_calculation = epoch_seconds;
+        if let Some(last_tzif_transition) = last_tzif_transition {
+            if epoch_seconds < last_tzif_transition {
+                epoch_seconds_for_year_calculation = last_tzif_transition;
+            }
+        }
+        let year = utils::epoch_time_to_iso_year(epoch_seconds_for_year_calculation.0 * 1000);
 
         let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
 
@@ -816,7 +827,7 @@ fn resolve_posix_tz_string_for_epoch_seconds(
         });
     };
 
-    let year = utils::epoch_time_to_epoch_year(seconds * 1000);
+    let year = utils::epoch_time_to_iso_year(seconds * 1000);
 
     let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
     let dst_start_seconds = transition_info.dst_start_seconds.0;
@@ -883,16 +894,17 @@ fn calculate_transition_seconds_for_year(
 ) -> i64 {
     // Determine the year of the requested time.
     let year_epoch_seconds = i64::from(utils::epoch_days_for_year(year)) * 86400;
-    let leap_day = (utils::mathematical_days_in_year(year) - 365) as u16;
+    let is_leap = utils::is_leap(year);
 
     // Calculate the days in the year for the TransitionDate
+    // This value is zero-indexed so it can be added to the year's epoch seconds
     let days = match transition_date.day {
-        TransitionDay::NoLeap(day) if day > 59 => day - 1 + leap_day,
+        TransitionDay::NoLeap(day) if day > 59 => day - 1 + is_leap as u16,
         TransitionDay::NoLeap(day) => day - 1,
         TransitionDay::WithLeap(day) => day,
         TransitionDay::Mwd(month, week, day) => {
-            let days_to_month = utils::month_to_day((month - 1) as u8, leap_day);
-            let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8) - 1);
+            let days_to_month = utils::month_to_day((month - 1) as u8, is_leap);
+            let days_in_month = u16::from(utils::iso_days_in_month(year, month as u8));
 
             // Month starts in the day...
             let day_offset = (u16::from(utils::epoch_seconds_to_day_of_week(year_epoch_seconds))
@@ -921,10 +933,19 @@ fn calculate_transition_seconds_for_year(
             // of the month:
             //
             // day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset = (3 - 0) * 7 + 1 - 3 = 19
+
+            // Note: this day_of_month is zero-indexed!
             let mut day_of_month = (week - u16::from(day_offset <= day)) * 7 + day - day_offset;
 
-            // If we're on week 5, we need to clamp to the last valid day.
-            if day_of_month > days_in_month - 1 {
+            // Week 5 actually means "last <dayofweek> of month". The day_of_month calculation
+            // above uses `week` directly; so we might end up spilling into the next month. In that
+            // case, we normalize to the fourth week of the month.
+            //
+            // Note that this only needs to be done once; if a month will have at least four of each
+            // day of the week since all months have 28 days or greater.
+            //
+            // We add one because day_of_month is zero_indexed
+            if day_of_month + 1 > days_in_month {
                 day_of_month -= 7
             }
 
@@ -1017,15 +1038,87 @@ fn resolve_posix_tz_string(
 ///
 /// For more information, see the [POSIX tz string docs](https://sourceware.org/glibc/manual/2.40/html_node/Proleptic-TZ.html)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Mwd(u16, u16, u16);
+struct Mwd {
+    month: u8,
+    week: u8,
+    day: u8,
+}
 
 impl Mwd {
+    fn from_u16(month: u16, week: u16, day: u16) -> Self {
+        Self::from_u8(
+            u8::try_from(month).unwrap_or(0),
+            u8::try_from(week).unwrap_or(0),
+            u8::try_from(day).unwrap_or(0),
+        )
+    }
+
+    fn from_u8(month: u8, week: u8, day: u8) -> Self {
+        Self { month, week, day }
+    }
+}
+
+/// Represents an MWD for a given time
+#[derive(Debug)]
+struct MwdForTime {
+    /// This will never have day = 5
+    mwd: Mwd,
+    /// This is the day of week of the 29th and the last day of the month,
+    /// if the month has more than 28 days.
+    /// Basically, this is the start and end of the "fifth $weekday of the month" period
+    extra_days: Option<(u8, u8)>,
+}
+
+impl MwdForTime {
     fn from_seconds(seconds: i64) -> Self {
-        let month = utils::epoch_ms_to_month_in_year(seconds * 1_000) as u16;
-        let day_of_month = utils::epoch_seconds_to_day_of_month(seconds);
+        let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
         let week_of_month = day_of_month / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
-        Self(month, week_of_month, u16::from(day_of_week))
+        let mwd = Mwd::from_u8(month, week_of_month, day_of_week);
+        let days_in_month = utils::iso_days_in_month(year, month);
+        if day_of_month > 28 {
+            let day_of_week_zeroth_day =
+                (i16::from(day_of_week) - i16::from(day_of_month)).rem_euclid(7) as u8;
+            let day_of_week_day_29 = (day_of_week_zeroth_day + 29).rem_euclid(7);
+            let day_of_week_last_day = (day_of_week_zeroth_day + days_in_month).rem_euclid(7);
+            Self {
+                mwd,
+                extra_days: Some((day_of_week_day_29, day_of_week_last_day)),
+            }
+        } else {
+            // No day 5
+            Self {
+                mwd,
+                extra_days: None,
+            }
+        }
+    }
+
+    /// MWDs from Posix data can contain `w=5`, which means the *last* $weekday of the month,
+    /// not the 5th. For MWDs in the same month, this normalizes the 5 to the actual number of the
+    /// last weekday of the month (5 or 4)
+    fn normalize_mwd(&self, other: &mut Mwd) {
+        // If we're in the same month, and the other mwd is looking for
+        // the last $weekday in the month, we need special handling
+        if self.mwd.month == other.month && other.week == 5 {
+            if let Some((day_29, last_day)) = self.extra_days {
+                if day_29 < last_day {
+                    if other.day < day_29 || other.day > last_day {
+                        // This day isn't found in the last week. Subtract one.
+                        other.week = 4;
+                    }
+                } else {
+                    // The extra part of the month crosses Sunday
+                    if other.day < day_29 && other.day > last_day {
+                        // This day isn't found in the last week. Subtract one.
+                        other.week = 4;
+                    }
+                }
+            } else {
+                // There is no week 5 in this month, normalize to 4
+                other.week = 4;
+            }
+        }
     }
 }
 
@@ -1039,15 +1132,18 @@ fn cmp_seconds_to_transitions(
             TransitionDay::Mwd(start_month, start_week, start_day),
             TransitionDay::Mwd(end_month, end_week, end_day),
         ) => {
-            let mwd = Mwd::from_seconds(seconds);
-            let start = Mwd(*start_month, *start_week, *start_day);
-            let end = Mwd(*end_month, *end_week, *end_day);
+            let mwd = MwdForTime::from_seconds(seconds);
+            let mut start = Mwd::from_u16(*start_month, *start_week, *start_day);
+            let mut end = Mwd::from_u16(*end_month, *end_week, *end_day);
 
-            let is_transition = start == mwd || end == mwd;
+            mwd.normalize_mwd(&mut start);
+            mwd.normalize_mwd(&mut end);
+
+            let is_transition = start == mwd.mwd || end == mwd.mwd;
             let is_dst = if start > end {
-                mwd < end || start <= mwd
+                mwd.mwd < end || start <= mwd.mwd
             } else {
-                start <= mwd && mwd < end
+                start <= mwd.mwd && mwd.mwd < end
             };
 
             (is_transition, is_dst)
