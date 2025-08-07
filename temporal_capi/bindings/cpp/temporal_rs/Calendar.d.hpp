@@ -14,22 +14,8 @@
 namespace temporal_rs {
 namespace capi { struct Calendar; }
 class Calendar;
-namespace capi { struct DateDuration; }
-class DateDuration;
-namespace capi { struct Duration; }
-class Duration;
-namespace capi { struct PlainDate; }
-class PlainDate;
-namespace capi { struct PlainMonthDay; }
-class PlainMonthDay;
-namespace capi { struct PlainYearMonth; }
-class PlainYearMonth;
-struct IsoDate;
-struct PartialDate;
 struct TemporalError;
 class AnyCalendarKind;
-class ArithmeticOverflow;
-class Unit;
 }
 
 
@@ -40,6 +26,10 @@ namespace capi {
 } // namespace
 
 namespace temporal_rs {
+/**
+ * By and large one should not need to construct this type; it mostly exists
+ * to represent calendar data found on other Temporal types, obtained via `.calendar()`.
+ */
 class Calendar {
 public:
 
@@ -50,50 +40,6 @@ public:
   inline bool is_iso() const;
 
   inline std::string_view identifier() const;
-
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> date_from_partial(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
-
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> month_day_from_partial(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
-
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> year_month_from_partial(temporal_rs::PartialDate partial, temporal_rs::ArithmeticOverflow overflow) const;
-
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> date_add(temporal_rs::IsoDate date, const temporal_rs::DateDuration& duration, temporal_rs::ArithmeticOverflow overflow) const;
-
-  inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> date_until(temporal_rs::IsoDate one, temporal_rs::IsoDate two, temporal_rs::Unit largest_unit) const;
-
-  inline diplomat::result<std::string, temporal_rs::TemporalError> era(temporal_rs::IsoDate date) const;
-  template<typename W>
-  inline diplomat::result<std::monostate, temporal_rs::TemporalError> era_write(temporal_rs::IsoDate date, W& writeable_output) const;
-
-  inline std::optional<int32_t> era_year(temporal_rs::IsoDate date) const;
-
-  inline int32_t year(temporal_rs::IsoDate date) const;
-
-  inline uint8_t month(temporal_rs::IsoDate date) const;
-
-  inline diplomat::result<std::string, temporal_rs::TemporalError> month_code(temporal_rs::IsoDate date) const;
-  template<typename W>
-  inline diplomat::result<std::monostate, temporal_rs::TemporalError> month_code_write(temporal_rs::IsoDate date, W& writeable_output) const;
-
-  inline uint8_t day(temporal_rs::IsoDate date) const;
-
-  inline uint16_t day_of_week(temporal_rs::IsoDate date) const;
-
-  inline uint16_t day_of_year(temporal_rs::IsoDate date) const;
-
-  inline std::optional<uint8_t> week_of_year(temporal_rs::IsoDate date) const;
-
-  inline std::optional<int32_t> year_of_week(temporal_rs::IsoDate date) const;
-
-  inline uint16_t days_in_week(temporal_rs::IsoDate date) const;
-
-  inline uint16_t days_in_month(temporal_rs::IsoDate date) const;
-
-  inline uint16_t days_in_year(temporal_rs::IsoDate date) const;
-
-  inline uint16_t months_in_year(temporal_rs::IsoDate date) const;
-
-  inline bool in_leap_year(temporal_rs::IsoDate date) const;
 
   /**
    * Returns the kind of this calendar

@@ -21,7 +21,6 @@ pub mod calendar;
 pub mod duration;
 pub mod error;
 pub mod instant;
-pub mod iso;
 pub mod options;
 
 pub mod plain_date;
