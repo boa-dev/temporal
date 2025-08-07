@@ -403,6 +403,9 @@ impl Tzif {
 
         // Calculate year, but clamp it to the last transition
         // We do not want to try and apply the posix string to earlier years!
+        //
+        // Antarctica/Troll is an example of a timezone that has a posix string
+        // but no meaningful previous transitions.
         let mut epoch_seconds_for_year_calculation = epoch_seconds;
         if let Some(last_tzif_transition) = last_tzif_transition {
             if epoch_seconds < last_tzif_transition {

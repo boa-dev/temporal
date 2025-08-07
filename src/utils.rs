@@ -48,6 +48,7 @@ pub(crate) fn epoch_ms_to_ms_in_day(t: i64) -> u32 {
     (t.rem_euclid(i64::from(MS_PER_DAY))) as u32
 }
 
+// https://tc39.es/proposal-temporal/#eqn-mathematicalinleapyear
 pub(crate) fn is_leap(y: i32) -> bool {
     if y % 4 != 0 {
         false
