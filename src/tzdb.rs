@@ -1056,6 +1056,15 @@ impl Mwd {
     fn from_u8(month: u8, week: u8, day: u8) -> Self {
         Self { month, week, day }
     }
+
+    /// Given the day of the week of the 0th day in this month,
+    /// normalize the week to being a week number (1 = first week, ...)
+    /// rather than a weekday ordinal (1 = first friday, etc)
+    fn normalize_to_week_number(&mut self, day_of_week_zeroth_day: u8) {
+        if self.day <= day_of_week_zeroth_day {
+            self.week += 1;
+        }
+    }
 }
 
 /// Represents an MWD for a given time
@@ -1063,6 +1072,8 @@ impl Mwd {
 struct MwdForTime {
     /// This will never have day = 5
     mwd: Mwd,
+    /// The day of the week of the 0th day (the day before the month starts)
+    day_of_week_zeroth_day: u8,
     /// This is the day of week of the 29th and the last day of the month,
     /// if the month has more than 28 days.
     /// Basically, this is the start and end of the "fifth $weekday of the month" period
@@ -1074,21 +1085,24 @@ impl MwdForTime {
         let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
         let week_of_month = day_of_month / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
-        let mwd = Mwd::from_u8(month, week_of_month, day_of_week);
+        let mut mwd = Mwd::from_u8(month, week_of_month, day_of_week);
         let days_in_month = utils::iso_days_in_month(year, month);
+        let day_of_week_zeroth_day =
+            (i16::from(day_of_week) - i16::from(day_of_month)).rem_euclid(7) as u8;
+        mwd.normalize_to_week_number(day_of_week_zeroth_day);
         if day_of_month > 28 {
-            let day_of_week_zeroth_day =
-                (i16::from(day_of_week) - i16::from(day_of_month)).rem_euclid(7) as u8;
             let day_of_week_day_29 = (day_of_week_zeroth_day + 29).rem_euclid(7);
             let day_of_week_last_day = (day_of_week_zeroth_day + days_in_month).rem_euclid(7);
             Self {
                 mwd,
+                day_of_week_zeroth_day,
                 extra_days: Some((day_of_week_day_29, day_of_week_last_day)),
             }
         } else {
             // No day 5
             Self {
                 mwd,
+                day_of_week_zeroth_day,
                 extra_days: None,
             }
         }
@@ -1097,27 +1111,38 @@ impl MwdForTime {
     /// MWDs from Posix data can contain `w=5`, which means the *last* $weekday of the month,
     /// not the 5th. For MWDs in the same month, this normalizes the 5 to the actual number of the
     /// last weekday of the month (5 or 4)
+    ///
+    /// Furthermore, this turns the week number into a true week number: the "second friday in March"
+    /// will be turned into "the friday in the first week of March" or "the Friday in the second week of March"
+    /// depending on when March starts.
+    ///
+    /// This normalization *only* applies to MWDs in the same month. For other MWDs, such normalization is irrelevant.
     fn normalize_mwd(&self, other: &mut Mwd) {
-        // If we're in the same month, and the other mwd is looking for
-        // the last $weekday in the month, we need special handling
-        if self.mwd.month == other.month && other.week == 5 {
-            if let Some((day_29, last_day)) = self.extra_days {
-                if day_29 < last_day {
-                    if other.day < day_29 || other.day > last_day {
-                        // This day isn't found in the last week. Subtract one.
-                        other.week = 4;
+        // If we're in the same month, normalization will actually have a useful effect
+        if self.mwd.month == other.month {
+            // First normalize MWDs that are like "the last $weekday in the month"
+            // the last $weekday in the month, we need special handling
+            if other.week == 5 {
+                if let Some((day_29, last_day)) = self.extra_days {
+                    if day_29 < last_day {
+                        if other.day < day_29 || other.day > last_day {
+                            // This day isn't found in the last week. Subtract one.
+                            other.week = 4;
+                        }
+                    } else {
+                        // The extra part of the month crosses Sunday
+                        if other.day < day_29 && other.day > last_day {
+                            // This day isn't found in the last week. Subtract one.
+                            other.week = 4;
+                        }
                     }
                 } else {
-                    // The extra part of the month crosses Sunday
-                    if other.day < day_29 && other.day > last_day {
-                        // This day isn't found in the last week. Subtract one.
-                        other.week = 4;
-                    }
+                    // There is no week 5 in this month, normalize to 4
+                    other.week = 4;
                 }
-            } else {
-                // There is no week 5 in this month, normalize to 4
-                other.week = 4;
             }
+
+            other.normalize_to_week_number(self.day_of_week_zeroth_day);
         }
     }
 }

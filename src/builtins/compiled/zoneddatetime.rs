@@ -666,6 +666,13 @@ mod tests {
 
     const TROLL_FIRST_TRANSITION: &str = "2005-03-27T03:00:00+02:00[Antarctica/Troll]";
 
+    /// Vancouver transitions on the first Sunday in November, which may or may not be
+    /// before the first Friday in November
+    const VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_BEFORE_SUNDAY: &str =
+        "2019-11-01T00:00:00-07:00[America/Vancouver]";
+    const VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_AFTER_SUNDAY: &str =
+        "2019-11-06T00:00:00-08:00[America/Vancouver]";
+
     // MUST only contain full strings
     // The second boolean is whether these are unambiguous when the offset is removed
     // As a rule of thumb, anything around an STD->DST transition
@@ -698,6 +705,8 @@ mod tests {
         (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
         (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
         (TROLL_FIRST_TRANSITION, true),
+        (VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_BEFORE_SUNDAY, true),
+        (VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_AFTER_SUNDAY, true),
     ];
 
     #[test]
