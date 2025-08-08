@@ -117,6 +117,7 @@
     // Add temporarily - Needs addressing
     clippy::missing_panics_doc,
 )]
+#![forbid(unsafe_code)]
 
 extern crate alloc;
 extern crate core;

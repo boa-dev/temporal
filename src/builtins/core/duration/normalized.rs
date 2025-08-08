@@ -132,7 +132,7 @@ impl NormalizedTimeDuration {
         let increment = options
             .increment
             .as_extended_increment()
-            .checked_mul(NonZeroU128::new(divisor.into()).expect("cannot fail"))
+            .checked_mul(divisor)
             .temporal_unwrap()?;
         // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
         self.round_inner(increment, options.rounding_mode)
@@ -147,7 +147,7 @@ impl NormalizedTimeDuration {
         // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer.
         // The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
         // 3. Return timeDuration / divisor.
-        DurationTotal::new(time_duration, unit_nanoseconds).to_fractional_total()
+        DurationTotal::new(time_duration, unit_nanoseconds.get() as u64).to_fractional_total()
     }
 
     pub(crate) fn round_to_fractional_days(
@@ -671,11 +671,9 @@ impl NormalizedDurationRecord {
         let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
         // 10. Let roundedTimeDuration be ? RoundTimeDurationToIncrement(duration.[[Time]], increment × unitLength, roundingMode).
         let rounded_time = self.norm.round_inner(
-            unsafe {
-                NonZeroU128::new_unchecked(unit_length.into())
-                    .checked_mul(options.increment.as_extended_increment())
-                    .temporal_unwrap()?
-            },
+            unit_length
+                .checked_mul(options.increment.as_extended_increment())
+                .temporal_unwrap()?,
             options.rounding_mode,
         )?;
         // 11. Let beyondDaySpan be ! AddTimeDuration(roundedTimeDuration, -daySpan).
@@ -687,11 +685,9 @@ impl NormalizedDurationRecord {
                 // b. Let dayDelta be sign.
                 // c. Set roundedTimeDuration to ? RoundTimeDurationToIncrement(beyondDaySpan, increment × unitLength, roundingMode).
                 let rounded_time = self.norm.round_inner(
-                    unsafe {
-                        NonZeroU128::new_unchecked(unit_length.into())
-                            .checked_mul(options.increment.as_extended_increment())
-                            .temporal_unwrap()?
-                    },
+                    unit_length
+                        .checked_mul(options.increment.as_extended_increment())
+                        .temporal_unwrap()?,
                     options.rounding_mode,
                 )?;
                 // d. Let nudgedEpochNs be AddTimeDurationToEpochNanoseconds(roundedTimeDuration, endEpochNs).
@@ -741,15 +737,13 @@ impl NormalizedDurationRecord {
         // 3. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains smallestUnit.
         let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
         // 4. Let total be DivideNormalizedTimeDuration(norm, unitLength).
-        let total = norm.divide(unit_length as i64);
+        let total = norm.divide(unit_length.get() as i64);
 
         // 5. Let roundedNorm be ? RoundNormalizedTimeDurationToIncrement(norm, unitLength × increment, roundingMode).
         let rounded_norm = norm.round_inner(
-            unsafe {
-                NonZeroU128::new_unchecked(unit_length.into())
-                    .checked_mul(options.increment.as_extended_increment())
-                    .temporal_unwrap()?
-            },
+            unit_length
+                .checked_mul(options.increment.as_extended_increment())
+                .temporal_unwrap()?,
             options.rounding_mode,
         )?;
 

@@ -1493,15 +1493,20 @@ pub(crate) fn interpret_isodatetime_offset(
 
 // Formatting utils
 const NS_PER_MINUTE: i128 = 60_000_000_000;
+// Once MSRV is 1.83 we can update this to just calling .unwrap()
+const NS_PER_MINUTE_NONZERO: NonZeroU128 = if let Some(nz) = NonZeroU128::new(NS_PER_MINUTE as u128)
+{
+    nz
+} else {
+    NonZeroU128::MIN
+};
 
 pub(crate) fn nanoseconds_to_formattable_offset_minutes(
     nanoseconds: i128,
 ) -> TemporalResult<(Sign, u8, u8)> {
     // Per 11.1.7 this should be rounding
-    let nanoseconds = IncrementRounder::from_signed_num(nanoseconds, unsafe {
-        NonZeroU128::new_unchecked(NS_PER_MINUTE as u128)
-    })?
-    .round(RoundingMode::HalfExpand);
+    let nanoseconds = IncrementRounder::from_signed_num(nanoseconds, NS_PER_MINUTE_NONZERO)?
+        .round(RoundingMode::HalfExpand);
     let offset_minutes = (nanoseconds / NS_PER_MINUTE) as i32;
     let sign = if offset_minutes < 0 {
         Sign::Negative

@@ -34,14 +34,16 @@ impl TryFrom<f64> for RoundingIncrement {
         // 5. Let integerIncrement be truncate(ℝ(increment)).
         let integer_increment = FloatCore::trunc(value);
         // 6. If integerIncrement < 1 or integerIncrement > 10**9, throw a RangeError exception.
-        if !(1.0..=1_000_000_000.0).contains(&integer_increment) {
-            return Err(TemporalError::range()
-                .with_message("roundingIncrement cannot be less that 1 or bigger than 10**9"));
-        }
         // 7. Return integerIncrement.
-        // SAFETY: Check above guarantees that `integer_increment` is within the bounds of
-        // NonZeroU32.
-        unsafe { Ok(Self::new_unchecked(integer_increment as u32)) }
+        if !(1.0..=1_000_000_000.0).contains(&integer_increment) {
+            Err(TemporalError::range()
+                .with_message("roundingIncrement cannot be less that 1 or bigger than 10**9"))
+        } else {
+            // We already range-checked, so we can just unwrap_or and expect it to never be reached
+            Ok(Self(
+                NonZeroU32::new(integer_increment as u32).unwrap_or(NonZeroU32::MIN),
+            ))
+        }
     }
 }
 
@@ -60,21 +62,20 @@ impl RoundingIncrement {
             Err(TemporalError::range()
                 .with_message("roundingIncrement cannot be less that 1 or bigger than 10**9"))
         } else {
-            // SAFETY: The check above guarantees that `increment` is within the
-            // specified bounds.
-            unsafe { Ok(Self::new_unchecked(increment)) }
+            // We already range-checked, so we can just unwrap_or and expect it to never be reached
+            Ok(Self(NonZeroU32::new(increment).unwrap_or(NonZeroU32::MIN)))
         }
     }
 
     /// Create a new `RoundingIncrement` without checking the validity of the
     /// increment.
     ///
-    /// # Safety
+    /// The increment is expected to be in `1..=10⁹`
     ///
-    /// The increment must be equal or bigger than 1, but not bigger than 10**9.
-    pub const unsafe fn new_unchecked(increment: u32) -> Self {
-        // SAFETY: The caller must ensure the number is bigger than zero.
-        unsafe { Self(NonZeroU32::new_unchecked(increment)) }
+    /// This is safe to invoke (and will result in incorrect but not unsafe behavior if
+    /// invoked with an out-of-range `increment`).
+    pub const fn new_unchecked(increment: NonZeroU32) -> Self {
+        Self(increment)
     }
 
     /// Gets the numeric value of this `RoundingIncrement`.
