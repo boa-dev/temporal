@@ -5,6 +5,7 @@
 
 use crate::parsers::Precision;
 use crate::{error::ErrorMessage, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
+use core::num::NonZeroU128;
 use core::ops::Add;
 use core::{fmt, str::FromStr};
 
@@ -406,20 +407,20 @@ impl Unit {
     // TODO: potentiall use a u64
     /// Returns the `Nanosecond amount for any given value.`
     #[must_use]
-    pub fn as_nanoseconds(&self) -> Option<u64> {
+    pub const fn as_nanoseconds(&self) -> Option<NonZeroU128> {
         use Unit::{
             Auto, Day, Hour, Microsecond, Millisecond, Minute, Month, Nanosecond, Second, Week,
             Year,
         };
         match self {
             Year | Month | Week | Auto => None,
-            Day => Some(NS_PER_DAY),
-            Hour => Some(3_600_000_000_000),
-            Minute => Some(60_000_000_000),
-            Second => Some(1_000_000_000),
-            Millisecond => Some(1_000_000),
-            Microsecond => Some(1_000),
-            Nanosecond => Some(1),
+            Day => NonZeroU128::new(NS_PER_DAY as u128),
+            Hour => NonZeroU128::new(3_600_000_000_000),
+            Minute => NonZeroU128::new(60_000_000_000),
+            Second => NonZeroU128::new(1_000_000_000),
+            Millisecond => NonZeroU128::new(1_000_000),
+            Microsecond => NonZeroU128::new(1_000),
+            Nanosecond => NonZeroU128::new(1),
         }
     }
 
