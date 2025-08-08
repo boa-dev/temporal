@@ -684,7 +684,7 @@ impl NormalizedDurationRecord {
                 // a. Let didRoundBeyondDay be true.
                 // b. Let dayDelta be sign.
                 // c. Set roundedTimeDuration to ? RoundTimeDurationToIncrement(beyondDaySpan, increment × unitLength, roundingMode).
-                let rounded_time = self.norm.round_inner(
+                let rounded_time = beyond_day_span.round_inner(
                     unit_length
                         .checked_mul(options.increment.as_extended_increment())
                         .temporal_unwrap()?,

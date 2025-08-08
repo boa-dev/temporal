@@ -389,7 +389,8 @@ impl ZonedDateTime {
 mod tests {
     use super::ZonedDateTime;
     use crate::options::{
-        Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation, Unit,
+        DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
+        OffsetDisambiguation, RoundingMode, Unit,
     };
     use crate::provider::TransitionDirection;
     use crate::Calendar;
@@ -921,5 +922,24 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(next.to_string(), TROLL_FIRST_TRANSITION);
+    }
+
+    #[test]
+    fn test_zdt_until_rounding() {
+        // Regression test for beyondDaySpan rounding behavior
+        let start = parse_zdt_with_reject("2020-01-01T00:00-08:00[-08:00]").unwrap();
+        let end = parse_zdt_with_reject("2020-01-03T23:59-08:00[-08:00]").unwrap();
+        let difference = start
+            .until(
+                &end,
+                DifferenceSettings {
+                    largest_unit: Some(Unit::Day),
+                    smallest_unit: Some(Unit::Hour),
+                    rounding_mode: Some(RoundingMode::HalfExpand),
+                    ..Default::default()
+                },
+            )
+            .unwrap();
+        assert_eq!(difference.to_string(), "P3D");
     }
 }
