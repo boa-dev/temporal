@@ -953,7 +953,7 @@ impl Duration {
         // 25. If roundingIncrement > 1, and largestUnit is not smallestUnit, and TemporalUnitCategory(smallestUnit) is date, throw a RangeError exception.
         if rounding_increment > RoundingIncrement::ONE
             && largest_unit != smallest_unit
-            && smallest_unit.is_calendar_unit()
+            && smallest_unit.is_date_unit()
         {
             return Err(TemporalError::range().with_message(
                 "roundingIncrement > 1 and largest_unit is not smallest_unit and smallest_unit is date",
