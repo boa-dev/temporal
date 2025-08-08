@@ -58,19 +58,30 @@ fn test_data_for_id(identifier: &str) {
         .iter()
         .zip(test_data.transitions)
     {
-        assert_eq!(computed.at_time, test_data.transition_time);
-        assert_eq!(computed.offset, test_data.record.offset);
+        assert_eq!(
+            computed.at_time, test_data.transition_time,
+            "Transition time are not aligned for {}",
+            test_data.transition_time
+        );
+        assert_eq!(
+            computed.offset, test_data.record.offset,
+            "Offsets are not aligned for {}",
+            test_data.transition_time
+        );
         // Test data is currently in rearguard, not vanguard. Would need to add
         // support for rearguard and to test dst for Europe/Dublin
-        //
-        // That or the tzif source for the data is wrong ...
-        // TODO stabilize dst flags / vanguard/rearguard parsing -> Test rearguard file
-        assert_eq!(computed.dst, test_data.record.is_dst);
-        // TODO: Fix bug with first transition formatting.
-        //
+        assert_eq!(
+            computed.dst, test_data.record.is_dst,
+            "DST flag is not aligned for {}",
+            test_data.transition_time
+        );
         // When in named rule before any transition has happened,
         // value is initialized to first letter of save == 0
-        // assert_eq!(computed.format, test_data.record.abbr); // TODO stabilize abbr
+        assert_eq!(
+            computed.format, test_data.record.abbr,
+            "Designation is not aligned for {}",
+            test_data.transition_time
+        );
     }
 }
 

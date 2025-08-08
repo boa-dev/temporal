@@ -67,6 +67,23 @@ impl Rules {
         self.rules.push(rule);
     }
 
+    pub(crate) fn rules_for_year(&self, year: i32) -> Vec<Rule> {
+        self.rules
+            .iter()
+            .filter(|rule| rule.range().contains(&year))
+            .cloned()
+            .collect()
+    }
+
+    pub(crate) fn find_initial_transition_letter(&self) -> Option<String> {
+        let first_rule = self
+            .rules
+            .iter()
+            .find(|rule| rule.save == Time::default())
+            .expect("A rule must exist with a SAVE = 0");
+        first_rule.letter.clone()
+    }
+
     // NOTE: To be precise, we will need the savings value active across year boundaries.
     pub(crate) fn get_rules_for_year(
         &self,
@@ -152,6 +169,26 @@ impl Rules {
         rule_savings.1
     }
 
+    pub(crate) fn search_last_active_rule(&self, transition_point: i64) -> Option<&Rule> {
+        // Reasonable assumption: when searching for a last Rule,
+        // we are dealing with an orphan. This means we do not need to check years
+        // with an upper bound or inside them
+        let mut rule_savings = (i64::MIN, None);
+        for rule in &self.rules {
+            let year = rule.to.map(ToYear::to_i32).unwrap_or(i32::from(rule.from));
+            let epoch_days = epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
+            let rule_date_in_seconds = epoch_seconds_for_epoch_days(epoch_days);
+            // But we do want to keep track of the savings.
+            if rule_date_in_seconds < transition_point && rule_savings.0 < rule_date_in_seconds {
+                rule_savings = (rule_date_in_seconds, Some(rule))
+            } else if transition_point < rule_date_in_seconds {
+                break;
+            }
+        }
+
+        rule_savings.1
+    }
+
     pub(crate) fn get_last_rules(&self) -> LastRules {
         let mut final_epoch_days = i32::MIN;
         let mut final_rule = None;
@@ -221,7 +258,12 @@ impl Rule {
     }
 
     /// Returns the transition time for that year
-    fn transition_time_for_year(&self, year: i32, std_offset: &Time, saving: &Time) -> i64 {
+    pub(crate) fn transition_time_for_year(
+        &self,
+        year: i32,
+        std_offset: &Time,
+        saving: &Time,
+    ) -> i64 {
         let epoch_days = epoch_days_for_rule_date(year, self.in_month, self.on_date);
         let epoch_seconds = epoch_seconds_for_epoch_days(epoch_days);
         epoch_seconds
