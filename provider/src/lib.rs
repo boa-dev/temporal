@@ -5,6 +5,10 @@
 //!
 
 #![no_std]
+#![cfg_attr(
+    not(test),
+    warn(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)
+)]
 
 extern crate alloc;
 

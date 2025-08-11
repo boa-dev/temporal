@@ -14,6 +14,10 @@
 //! [`temporal_rs`]: http://crates.io/crates/temporal_rs
 
 #![no_std]
+#![cfg_attr(
+    not(test),
+    forbid(clippy::unwrap_used, clippy::expect_used, clippy::indexing_slicing)
+)]
 
 extern crate alloc;
 

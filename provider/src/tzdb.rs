@@ -114,6 +114,7 @@ pub enum IanaDataError {
 }
 
 #[cfg(feature = "datagen")]
+#[allow(clippy::expect_used, clippy::unwrap_used, reason = "Datagen only")]
 impl IanaIdentifierNormalizer<'_> {
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
