@@ -1461,11 +1461,9 @@ pub(crate) fn interpret_isodatetime_offset(
                 // c. If matchBehaviour is match-minutes, then
                 if match_minutes {
                     // i. Let roundedCandidateNanoseconds be RoundNumberToIncrement(candidateOffset, 60 × 10**9, half-expand).
-                    let rounded_candidate = IncrementRounder::from_signed_num(
-                        candidate_offset,
-                        NonZeroU128::new(60_000_000_000).expect("cannot be zero"), // TODO: Add back const { } after MSRV can be bumped
-                    )?
-                    .round(RoundingMode::HalfExpand);
+                    let rounded_candidate =
+                        IncrementRounder::from_signed_num(candidate_offset, NS_PER_MINUTE_NONZERO)?
+                            .round(RoundingMode::HalfExpand);
                     // ii. If roundedCandidateNanoseconds = offsetNanoseconds, then
                     if rounded_candidate == offset.into() {
                         // 1. Return candidate.

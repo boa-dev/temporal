@@ -299,11 +299,13 @@ pub struct Duration {
 
 impl core::fmt::Display for Duration {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(
-            &self
-                .as_temporal_string(ToStringRoundingOptions::default())
-                .expect("Duration must return a valid string with default options."),
-        )
+        let string = self.as_temporal_string(ToStringRoundingOptions::default());
+
+        debug_assert!(
+            string.is_ok(),
+            "Duration must return a valid string with default options."
+        );
+        f.write_str(&string.map_err(|_| Default::default())?)
     }
 }
 

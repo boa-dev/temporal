@@ -183,10 +183,15 @@ pub struct PlainDateTime {
 
 impl core::fmt::Display for PlainDateTime {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let ixdtf_str = self
-            .to_ixdtf_string(ToStringRoundingOptions::default(), DisplayCalendar::Auto)
-            .expect("ixdtf default configuration should not fail.");
-        f.write_str(&ixdtf_str)
+        let string =
+            self.to_ixdtf_string(ToStringRoundingOptions::default(), DisplayCalendar::Auto);
+
+        debug_assert!(
+            string.is_ok(),
+            "Duration must return a valid string with default options."
+        );
+
+        f.write_str(&string.map_err(|_| Default::default())?)
     }
 }
 

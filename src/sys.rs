@@ -34,6 +34,7 @@ impl Temporal {
     ///
     /// For the non-panicking version of this API, see [`Self::try_now`].
     pub fn now() -> Now {
+        #[allow(clippy::expect_used, reason = "We are okay with panics in the sys API")]
         Self::try_now().expect("failed to retrieve and validate system values.")
     }
 

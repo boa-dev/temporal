@@ -213,15 +213,14 @@ fn write_nanosecond<W: core::fmt::Write + ?Sized>(
 pub fn u32_to_digits(mut value: u32) -> ([u8; 9], usize) {
     let mut output = [0; 9];
     let mut precision = 0;
-    let mut i = 9;
-    while i != 0 {
+    for (i, out) in output.iter_mut().enumerate().rev() {
         let v = (value % 10) as u8;
         value /= 10;
         if precision == 0 && v != 0 {
-            precision = i;
+            // i is 0-indexed, but we want a 1-indexed precision
+            precision = i + 1;
         }
-        output[i - 1] = v;
-        i -= 1;
+        *out = v;
     }
 
     (output, precision)

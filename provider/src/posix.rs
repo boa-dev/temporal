@@ -16,6 +16,7 @@ pub struct PosixZone {
 }
 
 #[cfg(feature = "datagen")]
+#[allow(clippy::unwrap_used, reason = "Datagen only")]
 impl From<&PosixTimeZone> for PosixZone {
     fn from(value: &PosixTimeZone) -> Self {
         let abbr = TinyAsciiStr::<5>::try_from_str(&value.abbr.formatted).unwrap();
@@ -48,6 +49,7 @@ pub struct ZeroPosixTransition {
 }
 
 #[cfg(feature = "datagen")]
+#[allow(clippy::unwrap_used, reason = "Datagen only")]
 impl From<&PosixTransition> for ZeroPosixTransition {
     fn from(value: &PosixTransition) -> Self {
         let abbr = TinyAsciiStr::<5>::try_from_str(&value.abbr.formatted).unwrap();

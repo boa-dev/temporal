@@ -97,6 +97,9 @@
 )]
 #![no_std]
 #![cfg_attr(not(test), forbid(clippy::unwrap_used))]
+// We wish to reduce the number of panics, .expect() must be justified
+// to never occur. Opt to have GIGO or .temporal_unwrap() behavior where possible.
+#![cfg_attr(not(test), warn(clippy::expect_used, clippy::indexing_slicing))]
 #![allow(
     // Currently throws a false positive regarding dependencies that are only used in benchmarks.
     unused_crate_dependencies,
@@ -220,6 +223,15 @@ impl<T> TemporalUnwrap for Option<T> {
     }
 }
 
+impl<T> TemporalUnwrap for TemporalResult<T> {
+    type Output = T;
+
+    fn temporal_unwrap(self) -> Self {
+        debug_assert!(self.is_ok(), "Assertion failed: {:?}", self.err());
+        self.map_err(|e| TemporalError::assert().with_message(e.into_message()))
+    }
+}
+
 #[doc(hidden)]
 #[macro_export]
 macro_rules! temporal_assert {
@@ -276,6 +288,12 @@ impl Sign {
 // Relevant numeric constants
 /// Nanoseconds per day constant: 8.64e+13
 pub const NS_PER_DAY: u64 = MS_PER_DAY as u64 * 1_000_000;
+pub const NS_PER_DAY_NONZERO: core::num::NonZeroU128 =
+    if let Some(nz) = core::num::NonZeroU128::new(NS_PER_DAY as u128) {
+        nz
+    } else {
+        unreachable!()
+    };
 /// Milliseconds per day constant: 8.64e+7
 pub const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
 /// Max Instant nanosecond constant

@@ -14,7 +14,7 @@ use crate::{
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     rounding::IncrementRounder,
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY, NS_PER_DAY_NONZERO,
 };
 
 use super::{DateDuration, Duration, Sign, TimeDuration};
@@ -157,7 +157,7 @@ impl NormalizedTimeDuration {
     ) -> TemporalResult<i64> {
         let adjusted_increment = increment
             .as_extended_increment()
-            .saturating_mul(NonZeroU128::new(NS_PER_DAY as u128).expect("cannot fail"));
+            .saturating_mul(NS_PER_DAY_NONZERO);
         let rounded =
             IncrementRounder::<i128>::from_signed_num(self.0, adjusted_increment)?.round(mode);
         Ok((rounded / NS_PER_DAY_128BIT) as i64)
@@ -831,11 +831,10 @@ impl NormalizedDurationRecord {
         // 5. Let done be false.
         // 6. Repeat, while unitIndex ≥ largestUnitIndex and done is false,
         //     a. Let unit be the value in the "Value" column of Table 21 in the row whose ordinal index is unitIndex.
-        for unit in UNIT_VALUE_TABLE[largest_unit_index..smallest_unit_index]
-            .iter()
-            .rev()
-            .copied()
-        {
+        let unit_values = UNIT_VALUE_TABLE
+            .get(largest_unit_index..smallest_unit_index)
+            .temporal_unwrap()?;
+        for unit in unit_values.iter().rev().copied() {
             // b. If unit is not week, or largestUnit is week, then
             if unit != Unit::Week || largest_unit == Unit::Week {
                 let end_duration = match unit {

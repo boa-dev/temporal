@@ -67,8 +67,9 @@ impl<T: Roundable> IncrementRounder<T> {
             rounded = rounded.neg();
         }
         // TODO: Add unit tests for the below
-        rounded
-            * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
+        let divisor = <i128 as NumCast>::from(self.divisor);
+        debug_assert!(divisor.is_some(), "increment is representable by a u64");
+        rounded.saturating_mul(divisor.unwrap_or_default())
     }
     #[inline]
     /// https://tc39.es/proposal-temporal/#sec-temporal-roundnumbertoincrementasifpositive
@@ -81,8 +82,9 @@ impl<T: Roundable> IncrementRounder<T> {
             apply_unsigned_rounding_mode(self.dividend, self.divisor, unsigned_rounding_mode);
 
         // TODO: Add unit tests for the below
-        rounded
-            * <i128 as NumCast>::from(self.divisor).expect("increment is representable by a u64")
+        let divisor = <i128 as NumCast>::from(self.divisor);
+        debug_assert!(divisor.is_some(), "increment is representable by a u64");
+        rounded.saturating_mul(divisor.unwrap_or_default())
     }
 }
 
