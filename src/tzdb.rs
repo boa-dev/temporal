@@ -31,6 +31,7 @@ use std::path::Path;
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 
+use crate::TemporalUnwrap;
 use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
 use alloc::string::{String, ToString};
@@ -226,7 +227,12 @@ impl Tzif {
                     resolve_posix_tz_string_for_epoch_seconds(posix_tz_string, epoch_seconds.0)
                 } else {
                     Ok(TimeZoneTransitionInfo {
-                        offset: db.local_time_type_records[0].into(),
+                        offset: db
+                            .local_time_type_records
+                            .first()
+                            .copied()
+                            .temporal_unwrap()?
+                            .into(),
                         transition_epoch: None,
                     })
                 }
@@ -246,9 +252,10 @@ impl Tzif {
                         ))?,
                         epoch_seconds.0,
                     )?;
-                    offset
-                        .transition_epoch
-                        .get_or_insert_with(|| db.transition_times[idx - 1].0);
+                    if offset.transition_epoch.is_none() {
+                        offset.transition_epoch =
+                            Some(db.transition_times.get(idx - 1).temporal_unwrap()?.0)
+                    }
                     return Ok(offset);
                 }
                 // binary_search returns the insertion index, which is one after the
@@ -637,20 +644,24 @@ impl Tzif {
 fn get_timezone_offset(db: &DataBlock, idx: usize) -> TimeZoneTransitionInfo {
     // NOTE: Transition type can be empty. If no transition_type exists,
     // then use 0 as the default index of local_time_type_records.
-    let offset = db.local_time_type_records[db.transition_types.get(idx).copied().unwrap_or(0)];
+    let offset = db
+        .local_time_type_records
+        .get(db.transition_types.get(idx).copied().unwrap_or(0));
+    debug_assert!(offset.is_some(), "tzif internal invariant violated");
     TimeZoneTransitionInfo {
         transition_epoch: db.transition_times.get(idx).map(|s| s.0),
-        offset: offset.into(),
+        offset: offset.copied().unwrap_or_default().into(),
     }
 }
 
 #[inline]
 fn get_first_timezone_offset(db: &DataBlock) -> TimeZoneTransitionInfo {
-    let offset = db.local_time_type_records[0];
+    let offset = db.local_time_type_records.first();
+    debug_assert!(offset.is_some(), "tzif internal invariant violated");
     TimeZoneTransitionInfo {
         // There was no transition into the first timezone
         transition_epoch: None,
-        offset: offset.into(),
+        offset: offset.copied().unwrap_or_default().into(),
     }
 }
 

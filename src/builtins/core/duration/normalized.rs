@@ -831,11 +831,10 @@ impl NormalizedDurationRecord {
         // 5. Let done be false.
         // 6. Repeat, while unitIndex ≥ largestUnitIndex and done is false,
         //     a. Let unit be the value in the "Value" column of Table 21 in the row whose ordinal index is unitIndex.
-        for unit in UNIT_VALUE_TABLE[largest_unit_index..smallest_unit_index]
-            .iter()
-            .rev()
-            .copied()
-        {
+        let unit_values = UNIT_VALUE_TABLE
+            .get(largest_unit_index..smallest_unit_index)
+            .temporal_unwrap()?;
+        for unit in unit_values.iter().rev().copied() {
             // b. If unit is not week, or largestUnit is week, then
             if unit != Unit::Week || largest_unit == Unit::Week {
                 let end_duration = match unit {

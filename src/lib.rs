@@ -99,7 +99,7 @@
 #![cfg_attr(not(test), forbid(clippy::unwrap_used))]
 // We wish to reduce the number of panics, .expect() must be justified
 // to never occur. Opt to have GIGO or .temporal_unwrap() behavior where possible.
-#![cfg_attr(not(test), warn(clippy::expect_used))]
+#![cfg_attr(not(test), warn(clippy::expect_used, clippy::indexing_slicing))]
 #![allow(
     // Currently throws a false positive regarding dependencies that are only used in benchmarks.
     unused_crate_dependencies,
