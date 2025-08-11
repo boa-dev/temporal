@@ -666,6 +666,28 @@ mod tests {
 
     const TROLL_FIRST_TRANSITION: &str = "2005-03-27T03:00:00+02:00[Antarctica/Troll]";
 
+    /// Vancouver transitions on the first Sunday in November, which may or may not be
+    /// before the first Friday in November
+    const VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_BEFORE_SUNDAY: &str =
+        "2019-11-01T00:00:00-07:00[America/Vancouver]";
+    const VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_AFTER_SUNDAY: &str =
+        "2019-11-06T00:00:00-08:00[America/Vancouver]";
+
+    /// Chile tzdb has a transition on the "first saturday in april", except the transition occurs
+    /// at 24:00:00, which is, of course, the day after. This is not the same thing as the first Sunday in April
+    const SANTIAGO_DST_2024: &str = "2024-09-08T01:00:00-03:00[America/Santiago]";
+    const SANTIAGO_STD_2025_APRIL: &str = "2025-04-05T23:00:00-04:00[America/Santiago]";
+    const SANTIAGO_STD_2025_APRIL_PLUS_ONE: &str =
+        "2025-04-05T23:00:00.000000001-04:00[America/Santiago]";
+    const SANTIAGO_STD_2025_APRIL_MINUS_ONE: &str =
+        "2025-04-05T23:59:59.999999999-03:00[America/Santiago]";
+    const SANTIAGO_DST_2025_SEPT: &str = "2025-09-07T01:00:00-03:00[America/Santiago]";
+    const SANTIAGO_DST_2025_SEPT_PLUS_ONE: &str =
+        "2025-09-07T01:00:00.000000001-03:00[America/Santiago]";
+    const SANTIAGO_DST_2025_SEPT_MINUS_ONE: &str =
+        "2025-09-06T23:59:59.999999999-04:00[America/Santiago]";
+    const SANTIAGO_STD_2026: &str = "2026-04-04T23:00:00-04:00[America/Santiago]";
+
     // MUST only contain full strings
     // The second boolean is whether these are unambiguous when the offset is removed
     // As a rule of thumb, anything around an STD->DST transition
@@ -698,6 +720,16 @@ mod tests {
         (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
         (LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE, true),
         (TROLL_FIRST_TRANSITION, true),
+        (VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_BEFORE_SUNDAY, true),
+        (VANCOUVER_FIRST_FRIDAY_IN_NOVEMBER_AFTER_SUNDAY, true),
+        (SANTIAGO_DST_2024, true),
+        (SANTIAGO_STD_2025_APRIL, false),
+        (SANTIAGO_STD_2025_APRIL_PLUS_ONE, false),
+        (SANTIAGO_STD_2025_APRIL_MINUS_ONE, false),
+        (SANTIAGO_DST_2025_SEPT, true),
+        (SANTIAGO_DST_2025_SEPT_PLUS_ONE, true),
+        (SANTIAGO_DST_2025_SEPT_MINUS_ONE, true),
+        (SANTIAGO_STD_2026, false),
     ];
 
     #[test]
@@ -765,6 +797,28 @@ mod tests {
         let zdt = parse_zdt_with_reject(BEFORE_DST_1999_01_31).unwrap();
         assert_tr(&zdt, Previous, STD_1998_01_31);
         assert_tr(&zdt, Next, DST_1999_04_04);
+
+        // Santiago tests, testing that transitions with the offset = 24:00:00
+        // still work
+        let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_MINUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
+        assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
+        let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT).unwrap();
+        assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
+        assert_tr(&zdt, Next, SANTIAGO_STD_2026);
+        let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_PLUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, SANTIAGO_DST_2025_SEPT);
+        assert_tr(&zdt, Next, SANTIAGO_STD_2026);
+
+        let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_MINUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, SANTIAGO_DST_2024);
+        assert_tr(&zdt, Next, SANTIAGO_STD_2025_APRIL);
+        let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL).unwrap();
+        assert_tr(&zdt, Previous, SANTIAGO_DST_2024);
+        assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
+        let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_PLUS_ONE).unwrap();
+        assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
+        assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
 
         // Test case from intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition
         // This ensures we skip "fake" transition entries that do not actually change the offset
