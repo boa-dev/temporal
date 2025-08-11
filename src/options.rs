@@ -4,6 +4,7 @@
 //! operation may be completed.
 
 use crate::parsers::Precision;
+use crate::TemporalUnwrap;
 use crate::{error::ErrorMessage, TemporalError, TemporalResult, MS_PER_DAY, NS_PER_DAY};
 use core::num::NonZeroU128;
 use core::ops::Add;
@@ -91,7 +92,7 @@ impl ToStringRoundingOptions {
                         smallest_unit: Unit::Millisecond,
                         rounding_mode,
                         increment: RoundingIncrement::try_new(10_u32.pow(3 - d as u32))
-                            .expect("a valid increment"),
+                            .temporal_unwrap()?,
                     })
                 }
                 Precision::Digit(d) if (4..=6).contains(&d) => {
@@ -100,7 +101,7 @@ impl ToStringRoundingOptions {
                         smallest_unit: Unit::Microsecond,
                         rounding_mode,
                         increment: RoundingIncrement::try_new(10_u32.pow(6 - d as u32))
-                            .expect("a valid increment"),
+                            .temporal_unwrap()?,
                     })
                 }
                 Precision::Digit(d) if (7..=9).contains(&d) => {
@@ -109,7 +110,7 @@ impl ToStringRoundingOptions {
                         smallest_unit: Unit::Nanosecond,
                         rounding_mode,
                         increment: RoundingIncrement::try_new(10_u32.pow(9 - d as u32))
-                            .expect("a valid increment"),
+                            .temporal_unwrap()?,
                     })
                 }
                 _ => Err(TemporalError::range()

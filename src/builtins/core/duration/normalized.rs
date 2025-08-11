@@ -14,7 +14,7 @@ use crate::{
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     rounding::IncrementRounder,
-    Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
+    Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY, NS_PER_DAY_NONZERO,
 };
 
 use super::{DateDuration, Duration, Sign, TimeDuration};
@@ -157,7 +157,7 @@ impl NormalizedTimeDuration {
     ) -> TemporalResult<i64> {
         let adjusted_increment = increment
             .as_extended_increment()
-            .saturating_mul(NonZeroU128::new(NS_PER_DAY as u128).expect("cannot fail"));
+            .saturating_mul(NS_PER_DAY_NONZERO);
         let rounded =
             IncrementRounder::<i128>::from_signed_num(self.0, adjusted_increment)?.round(mode);
         Ok((rounded / NS_PER_DAY_128BIT) as i64)

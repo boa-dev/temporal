@@ -18,16 +18,17 @@ impl core::fmt::Display for ZonedDateTime {
     ///
     /// Enable with the `compiled_data` feature flag.
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str(
-            &self
-                .to_ixdtf_string(
-                    DisplayOffset::Auto,
-                    DisplayTimeZone::Auto,
-                    DisplayCalendar::Auto,
-                    ToStringRoundingOptions::default(),
-                )
-                .expect("A valid ZonedDateTime string with default options."),
-        )
+        let string = self.to_ixdtf_string(
+            DisplayOffset::Auto,
+            DisplayTimeZone::Auto,
+            DisplayCalendar::Auto,
+            ToStringRoundingOptions::default(),
+        );
+        debug_assert!(
+            string.is_ok(),
+            "A valid ZonedDateTime string with default options."
+        );
+        f.write_str(&string.map_err(|_| Default::default())?)
     }
 }
 
