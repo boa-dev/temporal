@@ -12,12 +12,8 @@
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
-namespace capi { struct DateDuration; }
-class DateDuration;
 namespace capi { struct Duration; }
 class Duration;
-namespace capi { struct TimeDuration; }
-class TimeDuration;
 struct PartialDuration;
 struct RelativeTo;
 struct RoundingOptions;
@@ -52,10 +48,6 @@ public:
   inline static diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
 
   inline bool is_time_within_range() const;
-
-  inline const temporal_rs::TimeDuration& time() const;
-
-  inline const temporal_rs::DateDuration& date() const;
 
   inline int64_t years() const;
 

@@ -17,7 +17,6 @@
 #include "I128Nanoseconds.hpp"
 #include "RoundingOptions.hpp"
 #include "TemporalError.hpp"
-#include "TimeDuration.hpp"
 #include "TimeZone.hpp"
 #include "ToStringRoundingOptions.hpp"
 #include "ZonedDateTime.hpp"
@@ -42,14 +41,8 @@ namespace capi {
     typedef struct temporal_rs_Instant_add_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_add_result;
     temporal_rs_Instant_add_result temporal_rs_Instant_add(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Duration* duration);
 
-    typedef struct temporal_rs_Instant_add_time_duration_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_add_time_duration_result;
-    temporal_rs_Instant_add_time_duration_result temporal_rs_Instant_add_time_duration(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeDuration* duration);
-
     typedef struct temporal_rs_Instant_subtract_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_subtract_result;
     temporal_rs_Instant_subtract_result temporal_rs_Instant_subtract(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Duration* duration);
-
-    typedef struct temporal_rs_Instant_subtract_time_duration_result {union {temporal_rs::capi::Instant* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_subtract_time_duration_result;
-    temporal_rs_Instant_subtract_time_duration_result temporal_rs_Instant_subtract_time_duration(const temporal_rs::capi::Instant* self, const temporal_rs::capi::TimeDuration* duration);
 
     typedef struct temporal_rs_Instant_since_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_Instant_since_result;
     temporal_rs_Instant_since_result temporal_rs_Instant_since(const temporal_rs::capi::Instant* self, const temporal_rs::capi::Instant* other, temporal_rs::capi::DifferenceSettings settings);
@@ -107,20 +100,8 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::Temp
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Instant>>(std::unique_ptr<temporal_rs::Instant>(temporal_rs::Instant::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> temporal_rs::Instant::add_time_duration(const temporal_rs::TimeDuration& duration) const {
-  auto result = temporal_rs::capi::temporal_rs_Instant_add_time_duration(this->AsFFI(),
-    duration.AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Instant>>(std::unique_ptr<temporal_rs::Instant>(temporal_rs::Instant::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
 inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> temporal_rs::Instant::subtract(const temporal_rs::Duration& duration) const {
   auto result = temporal_rs::capi::temporal_rs_Instant_subtract(this->AsFFI(),
-    duration.AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Instant>>(std::unique_ptr<temporal_rs::Instant>(temporal_rs::Instant::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError> temporal_rs::Instant::subtract_time_duration(const temporal_rs::TimeDuration& duration) const {
-  auto result = temporal_rs::capi::temporal_rs_Instant_subtract_time_duration(this->AsFFI(),
     duration.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::Instant>>(std::unique_ptr<temporal_rs::Instant>(temporal_rs::Instant::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::Instant>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }

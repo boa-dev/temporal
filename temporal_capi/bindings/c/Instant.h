@@ -12,7 +12,6 @@
 #include "I128Nanoseconds.d.h"
 #include "RoundingOptions.d.h"
 #include "TemporalError.d.h"
-#include "TimeDuration.d.h"
 #include "TimeZone.d.h"
 #include "ToStringRoundingOptions.d.h"
 #include "ZonedDateTime.d.h"
@@ -39,14 +38,8 @@ temporal_rs_Instant_from_utf16_result temporal_rs_Instant_from_utf16(DiplomatStr
 typedef struct temporal_rs_Instant_add_result {union {Instant* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_add_result;
 temporal_rs_Instant_add_result temporal_rs_Instant_add(const Instant* self, const Duration* duration);
 
-typedef struct temporal_rs_Instant_add_time_duration_result {union {Instant* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_add_time_duration_result;
-temporal_rs_Instant_add_time_duration_result temporal_rs_Instant_add_time_duration(const Instant* self, const TimeDuration* duration);
-
 typedef struct temporal_rs_Instant_subtract_result {union {Instant* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_subtract_result;
 temporal_rs_Instant_subtract_result temporal_rs_Instant_subtract(const Instant* self, const Duration* duration);
-
-typedef struct temporal_rs_Instant_subtract_time_duration_result {union {Instant* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_subtract_time_duration_result;
-temporal_rs_Instant_subtract_time_duration_result temporal_rs_Instant_subtract_time_duration(const Instant* self, const TimeDuration* duration);
 
 typedef struct temporal_rs_Instant_since_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_since_result;
 temporal_rs_Instant_since_result temporal_rs_Instant_since(const Instant* self, const Instant* other, DifferenceSettings settings);
