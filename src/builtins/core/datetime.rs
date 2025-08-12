@@ -1,8 +1,8 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use super::{
-    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-    Duration, PartialTime, PlainDate, PlainTime, ZonedDateTime,
+    duration::normalized::NormalizedDurationRecord, Duration, PartialTime, PlainDate, PlainTime,
+    ZonedDateTime,
 };
 use crate::parsed_intermediates::ParsedDateTime;
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
     parsers::IxdtfStringBuilder,
     primitive::FiniteF64,
     provider::{NeverProvider, TimeZoneProvider},
-    temporal_assert, MonthCode, TemporalError, TemporalResult, TimeZone,
+    MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
@@ -225,33 +225,26 @@ impl PlainDateTime {
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
         // SKIP: 1, 2, 3, 4
-        // 1. If operation is subtract, let sign be -1. Otherwise, let sign be 1.
-        // 2. Let duration be ? ToTemporalDurationRecord(temporalDurationLike).
-        // 3. Set options to ? GetOptionsObject(options).
-        // 4. Let calendarRec be ? CreateCalendarMethodsRecord(dateTime.[[Calendar]], « date-add »).
-
-        // 5. Let norm be NormalizeTimeDuration(sign × duration.[[Hours]], sign × duration.[[Minutes]], sign × duration.[[Seconds]], sign × duration.[[Milliseconds]], sign × duration.[[Microseconds]], sign × duration.[[Nanoseconds]]).
-        let norm = NormalizedTimeDuration::from_time_duration(duration.time());
-
-        // TODO: validate Constrain is default with all the recent changes.
-        // 6. Let result be ? AddDateTime(dateTime.[[ISOYear]], dateTime.[[ISOMonth]], dateTime.[[ISODay]], dateTime.[[ISOHour]], dateTime.[[ISOMinute]], dateTime.[[ISOSecond]], dateTime.[[ISOMillisecond]], dateTime.[[ISOMicrosecond]], dateTime.[[ISONanosecond]], calendarRec, sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], norm, options).
-        let result =
-            self.iso
-                .add_date_duration(self.calendar().clone(), duration.date(), norm, overflow)?;
-
-        // 7. Assert: IsValidISODate(result.[[Year]], result.[[Month]], result.[[Day]]) is true.
-        // 8. Assert: IsValidTime(result.[[Hour]], result.[[Minute]], result.[[Second]], result.[[Millisecond]],
-        // result.[[Microsecond]], result.[[Nanosecond]]) is true.
-        temporal_assert!(
-            result.is_within_limits(),
-            "Assertion failed: the below datetime is not within valid limits:\n{:?}",
-            result
-        );
-
-        // 9. Return ? CreateTemporalDateTime(result.[[Year]], result.[[Month]], result.[[Day]], result.[[Hour]],
-        // result.[[Minute]], result.[[Second]], result.[[Millisecond]], result.[[Microsecond]],
-        // result.[[Nanosecond]], dateTime.[[Calendar]]).
-        Ok(Self::new_unchecked(result, self.calendar.clone()))
+        // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration =
+            NormalizedDurationRecord::from_duration_with_24_hour_days(duration)?;
+        // 6. Let timeResult be AddTime(dateTime.[[ISODateTime]].[[Time]], internalDuration.[[Time]]).
+        let (days, time_result) = self
+            .iso
+            .time
+            .add(internal_duration.normalized_time_duration());
+        // 7. Let dateDuration be ? AdjustDateDurationRecord(internalDuration.[[Date]], timeResult.[[Days]]).
+        let date_duration = internal_duration.date().adjust(days, None, None)?;
+        // 8. Let addedDate be ? CalendarDateAdd(dateTime.[[Calendar]], dateTime.[[ISODateTime]].[[ISODate]], dateDuration, overflow).
+        let added_date = self.calendar().date_add(
+            &self.iso.date,
+            &date_duration,
+            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+        )?;
+        // 9. Let result be CombineISODateAndTimeRecord(addedDate, timeResult).
+        let result = IsoDateTime::new(added_date.iso, time_result)?;
+        // 10. Return ? CreateTemporalDateTime(result, dateTime.[[Calendar]]).
+        Ok(Self::new_unchecked(result, self.calendar().clone()))
     }
 
     /// Difference two `DateTime`s together.
@@ -284,7 +277,7 @@ impl PlainDateTime {
         // Step 10-11.
         let norm_record = self.diff_dt_with_rounding(other, options)?;
 
-        let result = Duration::from_normalized(norm_record, options.largest_unit)?;
+        let result = Duration::from_internal(norm_record, options.largest_unit)?;
 
         // Step 12
         match op {
@@ -1248,13 +1241,13 @@ mod tests {
             PlainDateTime::try_new(2019, 10, 29, 10, 46, 38, 271, 986, 102, Calendar::default())
                 .unwrap();
 
-        let result = dt.subtract(&Duration::hour(12), None).unwrap();
+        let result = dt.subtract(&Duration::from_hours(12), None).unwrap();
         assert_datetime(
             result,
             (2019, 10, tinystr!(4, "M10"), 28, 22, 46, 38, 271, 986, 102),
         );
 
-        let result = dt.add(&Duration::hour(-12), None).unwrap();
+        let result = dt.add(&Duration::from_hours(-12), None).unwrap();
         assert_datetime(
             result,
             (2019, 10, tinystr!(4, "M10"), 28, 22, 46, 38, 271, 986, 102),
@@ -1542,5 +1535,22 @@ mod tests {
             "1976-11-18T15:23:30.123400000",
             "pads 4 decimal places to 9"
         );
+    }
+
+    #[test]
+    fn datetime_add() {
+        use crate::{Duration, PlainDateTime};
+        use core::str::FromStr;
+
+        let dt = PlainDateTime::from_str("2024-01-15T12:00:00").unwrap();
+
+        let duration = Duration::from_str("P1M2DT3H4M").unwrap();
+
+        // Add duration
+        let later = dt.add(&duration, None).unwrap();
+        assert_eq!(later.month(), 2);
+        assert_eq!(later.day(), 17);
+        assert_eq!(later.hour(), 15);
+        assert_eq!(later.minute(), 4);
     }
 }

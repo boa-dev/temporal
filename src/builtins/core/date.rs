@@ -23,10 +23,7 @@ use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
-use super::{
-    duration::{normalized::NormalizedDurationRecord, TimeDuration},
-    PlainMonthDay, PlainYearMonth,
-};
+use super::{duration::normalized::NormalizedDurationRecord, PlainMonthDay, PlainYearMonth};
 use tinystr::TinyAsciiStr;
 
 // TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate
@@ -185,53 +182,31 @@ impl PlainDate {
         Self { iso, calendar }
     }
 
+    // Updated: 2025-08-03
     /// Returns the date after adding the given duration to date.
     ///
-    /// Temporal Equivalent: 3.5.13 `AddDate ( calendar, plainDate, duration [ , options [ , dateAdd ] ] )`
+    /// 3.5.14 `AddDurationToDate`
+    ///
+    /// More information:
+    ///
+    ///  - [AO specification](https://tc39.es/proposal-temporal/#sec-temporal-adddurationtodate)
     #[inline]
-    pub(crate) fn add_date(
+    pub(crate) fn add_duration_to_date(
         &self,
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        // 2. If options is not present, set options to undefined.
+        // 3. If operation is subtract, set duration to CreateNegatedTemporalDuration(duration).
+        // 4. Let dateDuration be ToDateDurationRecordWithoutTime(duration).
+        // TODO: Look into why this is fallible, and make some adjustments
+        let date_duration = duration.to_date_duration_record_without_time()?;
+        // 5. Let resolvedOptions be ? GetOptionsObject(options).
+        // 6. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
         let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
-        // 3. If duration.[[Years]] ≠ 0, or duration.[[Months]] ≠ 0, or duration.[[Weeks]] ≠ 0, then
-        if duration.date().years != 0 || duration.date().months != 0 || duration.date().weeks != 0 {
-            // a. If dateAdd is not present, then
-            // i. Set dateAdd to unused.
-            // ii. If calendar is an Object, set dateAdd to ? GetMethod(calendar, "dateAdd").
-            // b. Return ? CalendarDateAdd(calendar, plainDate, duration, options, dateAdd).
-            return self
-                .calendar()
-                .date_add(&self.iso, duration.date(), overflow);
-        }
-
-        // 4. Let overflow be ? ToTemporalOverflow(options).
-        // 5. Let norm be NormalizeTimeDuration(duration.[[Hours]],
-        //    duration.[[Minutes]], duration.[[Seconds]],
-        //    duration.[[Milliseconds]], duration.[[Microseconds]],
-        //    duration.[[Nanoseconds]]).
-        // 6. Let days be duration.[[Days]] + BalanceTimeDuration(norm,
-        //    "day").[[Days]].
-        let days = duration
-            .days()
-            .checked_add(
-                TimeDuration::from_normalized(duration.time().to_normalized(), Unit::Day)?.0,
-            )
-            .ok_or(TemporalError::range())?;
-
-        // 7. Let result be ? AddISODate(plainDate.[[ISOYear]], plainDate.[[ISOMonth]], plainDate.[[ISODay]], 0, 0, 0, days, overflow).
-        let result = self
-            .iso
-            .add_date_duration(&DateDuration::new(0, 0, 0, days)?, overflow)?;
-
-        Self::try_new(
-            result.year,
-            result.month,
-            result.day,
-            self.calendar().clone(),
-        )
+        // 7. Let result be ? CalendarDateAdd(calendar, temporalDate.[[ISODate]], dateDuration, overflow).
+        // 8. Return ! CreateTemporalDate(result, calendar).
+        self.calendar()
+            .date_add(&self.iso, &date_duration, overflow)
     }
 
     /// Returns a duration representing the difference between the dates one and two.
@@ -298,7 +273,7 @@ impl PlainDate {
         let result = self.internal_diff_date(other, resolved.largest_unit)?;
 
         // 10. Let duration be ! CreateNormalizedDurationRecord(result.[[Years]], result.[[Months]], result.[[Weeks]], result.[[Days]], ZeroTimeDuration()).
-        let mut duration = NormalizedDurationRecord::from_date_duration(*result.date())?;
+        let mut duration = NormalizedDurationRecord::from_date_duration(result.date())?;
         // 11. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
         let rounding_granularity_is_noop =
             resolved.smallest_unit == Unit::Day && resolved.increment.get() == 1;
@@ -319,7 +294,7 @@ impl PlainDate {
                 resolved,
             )?
         }
-        let result = Duration::from_normalized(duration, Unit::Day)?;
+        let result = Duration::from_internal(duration, Unit::Day)?;
         // 13. Return ! CreateTemporalDuration(sign × duration.[[Years]], sign × duration.[[Months]], sign × duration.[[Weeks]], sign × duration.[[Days]], 0, 0, 0, 0, 0, 0).
         match op {
             DifferenceOperation::Until => Ok(result),
@@ -520,7 +495,7 @@ impl PlainDate {
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        self.add_date(duration, overflow)
+        self.add_duration_to_date(duration, overflow)
     }
 
     #[inline]
@@ -530,7 +505,7 @@ impl PlainDate {
         duration: &Duration,
         overflow: Option<ArithmeticOverflow>,
     ) -> TemporalResult<Self> {
-        self.add_date(&duration.negated(), overflow)
+        self.add_duration_to_date(&duration.negated(), overflow)
     }
 
     #[inline]

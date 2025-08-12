@@ -22,10 +22,6 @@ pub mod ffi {
 
     #[diplomat::opaque]
     #[diplomat::transparent_convert]
-    pub struct TimeDuration(pub(crate) temporal_rs::TimeDuration);
-
-    #[diplomat::opaque]
-    #[diplomat::transparent_convert]
     pub struct DateDuration(pub(crate) temporal_rs::DateDuration);
 
     pub struct PartialDuration {
@@ -53,42 +49,6 @@ pub mod ffi {
             temporal_rs::partial::PartialDuration::try_from(self)
                 .map(|p| p.is_empty())
                 .unwrap_or(false)
-        }
-    }
-
-    impl TimeDuration {
-        pub fn try_new(
-            hours: i64,
-            minutes: i64,
-            seconds: i64,
-            milliseconds: i64,
-            microseconds: f64,
-            nanoseconds: f64,
-        ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::TimeDuration::new(
-                hours,
-                minutes,
-                seconds,
-                milliseconds,
-                i128::from_f64(microseconds).ok_or(TemporalError::range("μs out of range"))?,
-                i128::from_f64(nanoseconds).ok_or(TemporalError::range("ns out of range"))?,
-            )
-            .map(|x| Box::new(TimeDuration(x)))
-            .map_err(Into::into)
-        }
-
-        pub fn abs(&self) -> Box<Self> {
-            Box::new(Self(self.0.abs()))
-        }
-        pub fn negated(&self) -> Box<Self> {
-            Box::new(Self(self.0.negated()))
-        }
-
-        pub fn is_within_range(&self) -> bool {
-            self.0.is_within_range()
-        }
-        pub fn sign(&self) -> Sign {
-            self.0.sign().into()
         }
     }
 
@@ -195,16 +155,8 @@ pub mod ffi {
             self.0.is_time_within_range()
         }
 
-        pub fn time<'a>(&'a self) -> &'a TimeDuration {
-            TimeDuration::transparent_convert(self.0.time())
-        }
-        pub fn date<'a>(&'a self) -> &'a DateDuration {
-            DateDuration::transparent_convert(self.0.date())
-        }
-
         // set_time_duration is NOT safe to expose over FFI if the date()/time() methods are available
         // Diplomat plans to make this a hard error.
-        // If needed, implement it as with_time_duration(&self, TimeDuration) -> Self
 
         pub fn years(&self) -> i64 {
             self.0.years()

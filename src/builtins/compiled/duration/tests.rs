@@ -3,7 +3,7 @@ use crate::{
         OffsetDisambiguation, RelativeTo, RoundingIncrement, RoundingMode, RoundingOptions, Unit,
     },
     partial::PartialDuration,
-    Calendar, DateDuration, PlainDate, TimeDuration, TimeZone, ZonedDateTime,
+    Calendar, DateDuration, PlainDate, TimeZone, ZonedDateTime,
 };
 
 use core::{num::NonZeroU32, str::FromStr};
@@ -373,7 +373,7 @@ fn basic_negative_expand_rounding() {
 
 #[test]
 fn rounding_to_fractional_day_tests() {
-    let twenty_five_hours = Duration::from(TimeDuration::new(25, 0, 0, 0, 0, 0).unwrap());
+    let twenty_five_hours = Duration::from_hours(25);
     let options = RoundingOptions {
         largest_unit: Some(Unit::Day),
         smallest_unit: None,
@@ -485,7 +485,7 @@ fn basic_subtract_duration() {
 // days-24-hours-relative-to-zoned-date-time.js
 #[test]
 fn round_relative_to_zoned_datetime() {
-    let duration = Duration::from(TimeDuration::new(25, 0, 0, 0, 0, 0).unwrap());
+    let duration = Duration::from_hours(25);
     let zdt = ZonedDateTime::try_new(
         1_000_000_000_000_000_000,
         Calendar::default(),

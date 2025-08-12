@@ -339,7 +339,7 @@ impl PlainYearMonth {
         }
 
         // 17. Let result be ! TemporalDurationFromInternal(duration, day).
-        let result = Duration::from_normalized(duration, Unit::Day)?;
+        let result = Duration::from_internal(duration, Unit::Day)?;
 
         // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 19. Return result.

@@ -267,23 +267,25 @@ impl ZonedDateTime {
         }
     }
 
-    pub(crate) fn add_as_instant(
+    pub(crate) fn add_zoned_date_time(
         &self,
-        duration: &Duration,
+        duration: NormalizedDurationRecord,
         overflow: ArithmeticOverflow,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Instant> {
         // 1. If DateDurationSign(duration.[[Date]]) = 0, then
         if duration.date().sign() == Sign::Zero {
             // a. Return ? AddInstant(epochNanoseconds, duration.[[Time]]).
-            return self.instant.add_to_instant(duration.time());
+            return self
+                .instant
+                .add_to_instant(&duration.normalized_time_duration());
         }
         // 2. Let isoDateTime be GetISODateTimeFor(timeZone, epochNanoseconds).
         let iso_datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         // 3. Let addedDate be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], overflow).
-        let added_date = self
-            .calendar()
-            .date_add(&iso_datetime.date, duration.date(), overflow)?;
+        let added_date =
+            self.calendar()
+                .date_add(&iso_datetime.date, &duration.date(), overflow)?;
         // 4. Let intermediateDateTime be CombineISODateAndTimeRecord(addedDate, isoDateTime.[[Time]]).
         let intermediate = IsoDateTime::new_unchecked(added_date.iso, iso_datetime.time);
         // 5. If ISODateTimeWithinLimits(intermediateDateTime) is false, throw a RangeError exception.
@@ -300,7 +302,7 @@ impl ZonedDateTime {
         )?;
 
         // 7. Return ? AddInstant(intermediateNs, duration.[[Time]]).
-        Instant::from(intermediate_ns).add_to_instant(duration.time())
+        Instant::from(intermediate_ns).add_to_instant(&duration.normalized_time_duration())
     }
 
     /// Adds a duration to the current `ZonedDateTime`, returning the resulting `ZonedDateTime`.
@@ -320,8 +322,9 @@ impl ZonedDateTime {
         // 5. Let calendar be zonedDateTime.[[Calendar]].
         // 6. Let timeZone be zonedDateTime.[[TimeZone]].
         // 7. Let internalDuration be ToInternalDurationRecord(duration).
+        let internal_duration = duration.to_internal_duration_record();
         // 8. Let epochNanoseconds be ? AddZonedDateTime(zonedDateTime.[[EpochNanoseconds]], timeZone, calendar, internalDuration, overflow).
-        let epoch_ns = self.add_as_instant(duration, overflow, provider)?;
+        let epoch_ns = self.add_zoned_date_time(internal_duration, overflow, provider)?;
         // 9. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
         Ok(Self::new_unchecked(
             epoch_ns,
@@ -474,7 +477,7 @@ impl ZonedDateTime {
         let date_diff =
             self.calendar()
                 .date_until(&start.date, &intermediate_dt.date, date_largest)?;
-        NormalizedDurationRecord::new(*date_diff.date(), time_duration)
+        NormalizedDurationRecord::new(date_diff.date(), time_duration)
     }
 
     /// `temporal_rs` equivalent to `DifferenceTemporalZonedDateTime`.
@@ -507,7 +510,7 @@ impl ZonedDateTime {
                 .instant
                 .diff_instant_internal(&other.instant, resolved_options)?;
             // b. Let result be ! TemporalDurationFromInternal(internalDuration, settings.[[LargestUnit]]).
-            let result = Duration::from_normalized(internal, resolved_options.largest_unit)?;
+            let result = Duration::from_internal(internal, resolved_options.largest_unit)?;
             // c. If operation is since, set result to CreateNegatedTemporalDuration(result).
             // d. Return result.
             match op {
@@ -537,7 +540,7 @@ impl ZonedDateTime {
         // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal = self.diff_with_rounding(other, resolved_options, provider)?;
         // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
-        let result = Duration::from_normalized(internal, Unit::Hour)?;
+        let result = Duration::from_internal(internal, Unit::Hour)?;
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 12. Return result.
         match op {
