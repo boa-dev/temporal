@@ -1,7 +1,7 @@
 //! This module implements `DateTime` any directly related algorithms.
 
 use super::{
-    duration::normalized::NormalizedDurationRecord, Duration, PartialTime, PlainDate, PlainTime,
+    duration::normalized::InternalDurationRecord, Duration, PartialTime, PlainDate, PlainTime,
     ZonedDateTime,
 };
 use crate::parsed_intermediates::ParsedDateTime;
@@ -226,8 +226,7 @@ impl PlainDateTime {
     ) -> TemporalResult<Self> {
         // SKIP: 1, 2, 3, 4
         // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
-        let internal_duration =
-            NormalizedDurationRecord::from_duration_with_24_hour_days(duration)?;
+        let internal_duration = InternalDurationRecord::from_duration_with_24_hour_days(duration)?;
         // 6. Let timeResult be AddTime(dateTime.[[ISODateTime]].[[Time]], internalDuration.[[Time]]).
         let (days, time_result) = self
             .iso
@@ -293,12 +292,12 @@ impl PlainDateTime {
         &self,
         other: &Self,
         options: ResolvedRoundingOptions,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         // 1. If CompareISODateTime(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) = 0, then
         if matches!(self.iso.cmp(&other.iso), Ordering::Equal) {
             // a. Let durationRecord be CreateDurationRecord(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).
             // b. Return the Record { [[DurationRecord]]: durationRecord, [[Total]]: 0 }.
-            return Ok(NormalizedDurationRecord::default());
+            return Ok(InternalDurationRecord::default());
         }
         // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
         self.iso.check_validity()?;

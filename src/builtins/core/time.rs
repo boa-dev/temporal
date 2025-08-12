@@ -1,7 +1,7 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    builtins::{core::Duration, duration::normalized::NormalizedDurationRecord},
+    builtins::{core::Duration, duration::normalized::InternalDurationRecord},
     iso::IsoTime,
     options::{
         ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
@@ -14,7 +14,7 @@ use alloc::string::String;
 use core::str::FromStr;
 use writeable::Writeable;
 
-use super::{duration::normalized::NormalizedTimeDuration, PlainDateTime};
+use super::{duration::normalized::TimeDuration, PlainDateTime};
 
 /// A `PartialTime` represents partially filled `Time` fields.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -216,10 +216,10 @@ impl PlainTime {
     /// Specification equivalent to `4.5.15 AddTime ( time, timeDuration )`
     ///
     /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal-addtime>
-    pub(crate) fn add_normalized_time_duration(&self, norm: NormalizedTimeDuration) -> (i64, Self) {
-        // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
+    pub(crate) fn add_normalized_time_duration(&self, norm: TimeDuration) -> (i64, Self) {
+        // 1. Set second to second + TimeDurationSeconds(norm).
         let second = i64::from(self.second()) + norm.seconds();
-        // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
+        // 2. Set nanosecond to nanosecond + TimeDurationSubseconds(norm).
         let nanosecond = i32::from(self.nanosecond()) + norm.subseconds();
         // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
         let (day, balance_result) = IsoTime::balance(
@@ -276,7 +276,7 @@ impl PlainTime {
         // 5. Set timeDuration to ! RoundTimeDuration(timeDuration, settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         normalized_time = normalized_time.round(resolved)?;
         // 6. Let duration be CombineDateAndTimeDuration(ZeroDateDuration(), timeDuration).
-        let duration = NormalizedDurationRecord::combine(DateDuration::default(), normalized_time);
+        let duration = InternalDurationRecord::combine(DateDuration::default(), normalized_time);
         // 7. Let result be ! TemporalDurationFromInternal(duration, settings.[[LargestUnit]]).
         let result = Duration::from_internal(duration, resolved.largest_unit)?;
         // 8. If operation is since, set result to CreateNegatedTemporalDuration(result).

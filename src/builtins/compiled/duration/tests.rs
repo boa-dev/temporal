@@ -609,7 +609,7 @@ fn balance_days_up_to_both_years_and_months() {
     );
 }
 
-// relativeto-plaindate-add24hourdaystonormalizedtimeduration-out-of-range.js
+// relativeto-plaindate-add24hourdaystoTimeDuration-out-of-range.js
 #[test]
 fn add_normalized_time_duration_out_of_range() {
     let duration = Duration::from_partial_duration(PartialDuration {

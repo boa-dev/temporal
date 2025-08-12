@@ -19,10 +19,10 @@ use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{
     encoding::Utf8, parsers::IsoDurationParser, records::Fraction, records::TimeDurationRecord,
 };
-use normalized::NormalizedDurationRecord;
+use normalized::InternalDurationRecord;
 use num_traits::Euclid;
 
-use self::normalized::NormalizedTimeDuration;
+use self::normalized::TimeDuration;
 
 mod date;
 pub(crate) mod normalized;
@@ -391,7 +391,7 @@ impl Duration {
 
     #[inline]
     pub(crate) fn from_internal(
-        duration_record: NormalizedDurationRecord,
+        duration_record: InternalDurationRecord,
         largest_unit: Unit,
     ) -> TemporalResult<Self> {
         // 1. Let days, hours, minutes, seconds, milliseconds, and microseconds be 0.
@@ -532,10 +532,10 @@ impl Duration {
         )
     }
 
-    /// Returns this `Duration` as a `NormalizedTimeDuration`.
+    /// Returns this `Duration` as a `TimeDuration`.
     #[inline]
-    pub(crate) fn to_normalized(self) -> NormalizedTimeDuration {
-        NormalizedTimeDuration::from_duration(&self)
+    pub(crate) fn to_normalized(self) -> TimeDuration {
+        TimeDuration::from_duration(&self)
     }
 
     /// Returns the a `Vec` of the fields values.
@@ -568,12 +568,12 @@ impl Duration {
     }
 
     // 7.5.5 ToInternalDurationRecord ( duration )
-    pub(crate) fn to_internal_duration_record(self) -> NormalizedDurationRecord {
+    pub(crate) fn to_internal_duration_record(self) -> InternalDurationRecord {
         // 1. Let dateDuration be ! CreateDateDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], duration.[[Days]]).
         let date_duration =
             DateDuration::new_unchecked(self.years(), self.months(), self.weeks(), self.days());
         // 2. Let timeDuration be TimeDurationFromComponents(duration.[[Hours]], duration.[[Minutes]], duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-        let time_duration = NormalizedTimeDuration::from_components(
+        let time_duration = TimeDuration::from_components(
             self.hours(),
             self.minutes(),
             self.seconds(),
@@ -582,7 +582,7 @@ impl Duration {
             self.nanoseconds(),
         );
         // 3. Return CombineDateAndTimeDuration(dateDuration, timeDuration).
-        NormalizedDurationRecord::combine(date_duration, time_duration)
+        InternalDurationRecord::combine(date_duration, time_duration)
     }
 
     /// Equivalent of [`7.5.7 ToDateDurationRecordWithoutTime ( duration )`][spec]
@@ -593,7 +593,7 @@ impl Duration {
     #[allow(clippy::wrong_self_convention)]
     pub(crate) fn to_date_duration_record_without_time(&self) -> TemporalResult<DateDuration> {
         // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
-        let internal_duration = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+        let internal_duration = InternalDurationRecord::from_duration_with_24_hour_days(self)?;
 
         // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
         // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
@@ -1023,13 +1023,13 @@ impl Duration {
         }
 
         // 7. Let d1 be ToInternalDurationRecordWith24HourDays(duration).
-        let d1 = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+        let d1 = InternalDurationRecord::from_duration_with_24_hour_days(self)?;
         // 8. Let d2 be ToInternalDurationRecordWith24HourDays(other).
-        let d2 = NormalizedDurationRecord::from_duration_with_24_hour_days(other)?;
+        let d2 = InternalDurationRecord::from_duration_with_24_hour_days(other)?;
         // 9. Let timeResult be ? AddTimeDuration(d1.[[Time]], d2.[[Time]]).
         let time_result = (d1.normalized_time_duration() + d2.normalized_time_duration())?;
         // 10. Let result be CombineDateAndTimeDuration(ZeroDateDuration(), timeResult).
-        let result = NormalizedDurationRecord::combine(DateDuration::default(), time_result);
+        let result = InternalDurationRecord::combine(DateDuration::default(), time_result);
         // 11. Return ? TemporalDurationFromInternal(result, largestUnit).
         Duration::from_internal(result, largest_unit)
     }
@@ -1187,7 +1187,7 @@ impl Duration {
             Some(RelativeTo::PlainDate(plain_relative_to)) => {
                 // a. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
                 let internal_duration =
-                    NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+                    InternalDurationRecord::from_duration_with_24_hour_days(self)?;
 
                 // b. Let targetTime be AddTime(MidnightTimeRecord(), internalDuration.[[Time]]).
                 let (target_time_days, target_time) = PlainTime::default()
@@ -1243,7 +1243,7 @@ impl Duration {
         temporal_assert!(!resolved_options.smallest_unit.is_calendar_unit());
 
         // 30. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
-        let internal_duration = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+        let internal_duration = InternalDurationRecord::from_duration_with_24_hour_days(self)?;
 
         // 31. If smallestUnit is day, then
         let internal_duration = if resolved_options.smallest_unit == Unit::Day {
@@ -1260,7 +1260,7 @@ impl Duration {
             let date = DateDuration::new(0, 0, 0, days)?;
 
             // d. Set internalDuration to CombineDateAndTimeDuration(dateDuration, 0).
-            NormalizedDurationRecord::new(date, NormalizedTimeDuration::default())?
+            InternalDurationRecord::new(date, TimeDuration::default())?
         } else {
             // 32. Else,
             // a. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], roundingIncrement, smallestUnit, roundingMode).
@@ -1269,7 +1269,7 @@ impl Duration {
                 .round(resolved_options)?;
 
             // b. Set internalDuration to CombineDateAndTimeDuration(ZeroDateDuration(), timeDuration).
-            NormalizedDurationRecord::new(DateDuration::default(), time_duration)?
+            InternalDurationRecord::new(DateDuration::default(), time_duration)?
         };
 
         // 33. Return ? TemporalDurationFromInternal(internalDuration, largestUnit).
@@ -1353,7 +1353,7 @@ impl Duration {
                     return Err(TemporalError::range());
                 }
                 // c. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
-                let internal = NormalizedDurationRecord::from_duration_with_24_hour_days(self)?;
+                let internal = InternalDurationRecord::from_duration_with_24_hour_days(self)?;
                 // d. Let total be TotalTimeDuration(internalDuration.[[Time]], unit).
                 let total = internal.normalized_time_duration().total(unit)?;
                 Ok(total)
@@ -1390,7 +1390,7 @@ impl Duration {
             .round(rounding_options)?;
         // 15. Set internalDuration to CombineDateAndTimeDuration(internalDuration.[[Date]], timeDuration).
         let internal_duration =
-            NormalizedDurationRecord::combine(internal_duration.date(), time_duration);
+            InternalDurationRecord::combine(internal_duration.date(), time_duration);
         // 16. Let roundedLargestUnit be LargerOfTwoTemporalUnits(largestUnit, second).
         let rounded_largest_unit = largest.max(Unit::Second);
 
@@ -1423,7 +1423,7 @@ pub fn duration_to_formattable(
     let hours = duration.hours().abs();
     let minutes = duration.minutes().abs();
 
-    let time = NormalizedTimeDuration::from_components(
+    let time = TimeDuration::from_components(
         0,
         0,
         duration.seconds(),

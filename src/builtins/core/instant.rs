@@ -23,7 +23,7 @@ use num_traits::Euclid;
 use writeable::Writeable;
 
 use super::{
-    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    duration::normalized::{InternalDurationRecord, TimeDuration},
     DateDuration, ZonedDateTime,
 };
 
@@ -161,7 +161,7 @@ impl Instant {
     /// Adds a `TimeDuration` to the current `Instant`.
     ///
     /// Temporal-Proposal equivalent: `AddInstant`.
-    pub(crate) fn add_to_instant(&self, duration: &NormalizedTimeDuration) -> TemporalResult<Self> {
+    pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         // 1. Let result be AddTimeDurationToEpochNanoseconds(timeDuration, epochNanoseconds).
         let result = self.epoch_nanoseconds().0 + duration.0;
         let ns = EpochNanoseconds::from(result);
@@ -181,8 +181,7 @@ impl Instant {
             return Err(TemporalError::range().with_enum(ErrorMessage::LargestUnitCannotBeDateUnit));
         }
         // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
-        let internal_duration =
-            NormalizedDurationRecord::from_duration_with_24_hour_days(duration)?;
+        let internal_duration = InternalDurationRecord::from_duration_with_24_hour_days(duration)?;
         // 6. Let ns be ? AddInstant(instant.[[EpochNanoseconds]], internalDuration.[[Time]]).
         // 7. Return ! CreateTemporalInstant(ns).
         self.add_to_instant(&internal_duration.normalized_time_duration())
@@ -193,11 +192,10 @@ impl Instant {
         &self,
         other: &Self,
         resolved_options: ResolvedRoundingOptions,
-    ) -> TemporalResult<NormalizedDurationRecord> {
-        let diff =
-            NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
+    ) -> TemporalResult<InternalDurationRecord> {
+        let diff = TimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let normalized_time = diff.round(resolved_options)?;
-        NormalizedDurationRecord::new(DateDuration::default(), normalized_time)
+        InternalDurationRecord::new(DateDuration::default(), normalized_time)
     }
 
     // TODO: Add test for `diff_instant`.
@@ -229,7 +227,7 @@ impl Instant {
 
         let result = Duration::from_internal(internal_record, resolved_options.largest_unit)?;
 
-        // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
+        // 6. Let norm be diffRecord.[[TimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
         match op {

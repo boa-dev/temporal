@@ -29,7 +29,7 @@ use crate::{
     builtins::core::{
         calendar::Calendar,
         duration::{
-            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+            normalized::{InternalDurationRecord, TimeDuration},
             DateDuration,
         },
         PartialTime, PlainDate,
@@ -176,7 +176,7 @@ impl IsoDateTime {
         other: &Self,
         calendar: &Calendar,
         largest_unit: Unit,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         // 1. Assert: ISODateTimeWithinLimits(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1) is true.
         // 2. Assert: ISODateTimeWithinLimits(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) is true.
         // 3. Assert: If y1 ≠ y2, and mon1 ≠ mon2, and d1 ≠ d2, and LargerOfTwoUnits(largestUnit, "day")
@@ -185,7 +185,7 @@ impl IsoDateTime {
         // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
         let mut time_duration = self.time.diff(&other.time);
 
-        // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
+        // 5. Let timeSign be TimeDurationSign(timeDuration).
         let time_sign = time_duration.sign() as i8;
 
         // 6. Let dateSign be CompareISODate(y2, mon2, d2, y1, mon1, d1).
@@ -201,7 +201,7 @@ impl IsoDateTime {
                 i32::from(adjusted_date.month),
                 i32::from(adjusted_date.day) + i32::from(time_sign),
             );
-            // b. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, -timeSign).
+            // b. Set timeDuration to ? Add24HourDaysToTimeDuration(timeDuration, -timeSign).
             time_duration = time_duration.add_days(-i64::from(time_sign))?;
         }
 
@@ -229,14 +229,14 @@ impl IsoDateTime {
             // 15. Let days be dateDifference.[[Days]].
             date_diff.days()
         } else {
-            // a. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, dateDifference.[[Days]]).
+            // a. Set timeDuration to ? Add24HourDaysToTimeDuration(timeDuration, dateDifference.[[Days]]).
             time_duration = time_duration.add_days(date_diff.days())?;
             // b. Set days to 0.
             0
         };
 
         // 17. Return ? CreateNormalizedDurationRecord(dateDifference.[[Years]], dateDifference.[[Months]], dateDifference.[[Weeks]], days, timeDuration).
-        NormalizedDurationRecord::new(
+        InternalDurationRecord::new(
             DateDuration::new_unchecked(
                 date_diff.years(),
                 date_diff.months(),
@@ -697,7 +697,7 @@ impl IsoTime {
     }
 
     /// Difference this `IsoTime` against another and returning a `TimeDuration`.
-    pub(crate) fn diff(&self, other: &Self) -> NormalizedTimeDuration {
+    pub(crate) fn diff(&self, other: &Self) -> TimeDuration {
         let h = i64::from(other.hour) - i64::from(self.hour);
         let m = i64::from(other.minute) - i64::from(self.minute);
         let s = i64::from(other.second) - i64::from(self.second);
@@ -705,7 +705,7 @@ impl IsoTime {
         let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
-        NormalizedTimeDuration::from_components(h, m, s, ms, mis, ns)
+        TimeDuration::from_components(h, m, s, ms, mis, ns)
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the
@@ -859,10 +859,10 @@ impl IsoTime {
             && sub_second.contains(&self.nanosecond)
     }
 
-    pub(crate) fn add(&self, norm: NormalizedTimeDuration) -> (i64, Self) {
-        // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
+    pub(crate) fn add(&self, norm: TimeDuration) -> (i64, Self) {
+        // 1. Set second to second + TimeDurationSeconds(norm).
         let seconds = i64::from(self.second) + norm.seconds();
-        // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
+        // 2. Set nanosecond to nanosecond + TimeDurationSubseconds(norm).
         let nanos = i32::from(self.nanosecond) + norm.subseconds();
         // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
         Self::balance(

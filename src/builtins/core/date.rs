@@ -23,7 +23,7 @@ use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
 
-use super::{duration::normalized::NormalizedDurationRecord, PlainMonthDay, PlainYearMonth};
+use super::{duration::normalized::InternalDurationRecord, PlainMonthDay, PlainYearMonth};
 use tinystr::TinyAsciiStr;
 
 // TODO (potentially): Bump era up to TinyAsciiStr<18> to accomodate
@@ -273,7 +273,7 @@ impl PlainDate {
         let result = self.internal_diff_date(other, resolved.largest_unit)?;
 
         // 10. Let duration be ! CreateNormalizedDurationRecord(result.[[Years]], result.[[Months]], result.[[Weeks]], result.[[Days]], ZeroTimeDuration()).
-        let mut duration = NormalizedDurationRecord::from_date_duration(result.date())?;
+        let mut duration = InternalDurationRecord::from_date_duration(result.date())?;
         // 11. If settings.[[SmallestUnit]] is "day" and settings.[[RoundingIncrement]] = 1, let roundingGranularityIsNoop be true; else let roundingGranularityIsNoop be false.
         let rounding_granularity_is_noop =
             resolved.smallest_unit == Unit::Day && resolved.increment.get() == 1;
