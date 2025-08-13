@@ -177,7 +177,6 @@ impl Instant {
         let largest_unit = duration.default_largest_unit();
         // 4. If TemporalUnitCategory(largestUnit) is date, throw a RangeError exception.
         if largest_unit.is_date_unit() {
-            // TODO: Add enum
             return Err(TemporalError::range().with_enum(ErrorMessage::LargestUnitCannotBeDateUnit));
         }
         // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
@@ -459,6 +458,7 @@ mod tests {
     use crate::{
         builtins::{core::Instant, duration::duration_sign},
         options::{DifferenceSettings, RoundingMode, Unit},
+        partial::PartialDuration,
         unix_time::EpochNanoseconds,
         Duration, NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
@@ -790,5 +790,35 @@ mod tests {
         assert_eq!(&inst_string, "1969-12-25T12:23:45.678901234Z");
         assert_eq!(&one_string, "1969-12-15T12:23:45.678900434Z");
         assert_eq!(&two_string, "1970-01-04T12:23:45.678902034Z");
+    }
+
+    // Adapted from add[subtract]/minimum-maximum-instant.js
+    #[test]
+    fn instant_add_subtract_max_min() {
+        let min = Instant::try_new(-86_40000_00000_00000_00000).unwrap();
+        let max = Instant::try_new(86_40000_00000_00000_00000).unwrap();
+
+        let zero = Duration::from_partial_duration(PartialDuration::default().with_nanoseconds(0))
+            .unwrap();
+        let one = Duration::from_partial_duration(PartialDuration::default().with_nanoseconds(1))
+            .unwrap();
+        let neg_one =
+            Duration::from_partial_duration(PartialDuration::default().with_nanoseconds(-1))
+                .unwrap();
+        // Adding/subtracting zero does not cross max/min boundary.
+        assert_eq!(min.add(&zero).unwrap(), min);
+        assert_eq!(min.subtract(&zero).unwrap(), min);
+
+        // Addition or subtraction crosses boundary.
+        assert!(max.add(&one).is_err());
+        assert!(max.subtract(&neg_one).is_err());
+        assert!(min.add(&neg_one).is_err());
+        assert!(min.subtract(&one).is_err());
+
+        let insanely_large_partial =
+            PartialDuration::default().with_nanoseconds(-86_40000_00000_00000_00000 * 2);
+        let large_duration = Duration::from_partial_duration(insanely_large_partial).unwrap();
+        assert_eq!(min.subtract(&large_duration).unwrap(), max);
+        assert_eq!(max.add(&large_duration).unwrap(), min);
     }
 }
