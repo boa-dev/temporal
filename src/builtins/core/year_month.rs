@@ -22,8 +22,7 @@ use crate::{
 };
 
 use super::{
-    duration::normalized::NormalizedDurationRecord, DateDuration, Duration, PlainDate,
-    PlainDateTime,
+    duration::normalized::InternalDurationRecord, DateDuration, Duration, PlainDate, PlainDateTime,
 };
 use writeable::Writeable;
 
@@ -319,7 +318,7 @@ impl PlainYearMonth {
         let result = result.date().adjust(0, Some(0), None)?;
 
         // 15. Let duration be CombineDateAndTimeDuration(yearsMonthsDifference, 0).
-        let mut duration = NormalizedDurationRecord::from_date_duration(result)?;
+        let mut duration = InternalDurationRecord::from_date_duration(result)?;
 
         // 16. If settings.[[SmallestUnit]] is not month or settings.[[RoundingIncrement]] ≠ 1, then
         if resolved.smallest_unit != Unit::Month || resolved.increment != RoundingIncrement::ONE {
@@ -339,7 +338,7 @@ impl PlainYearMonth {
         }
 
         // 17. Let result be ! TemporalDurationFromInternal(duration, day).
-        let result = Duration::from_normalized(duration, Unit::Day)?;
+        let result = Duration::from_internal(duration, Unit::Day)?;
 
         // 18. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 19. Return result.

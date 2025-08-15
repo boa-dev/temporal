@@ -4,9 +4,8 @@ use alloc::string::String;
 use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
-    builtins::core::{
-        duration::TimeDuration, zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration,
-    },
+    builtins::core::{zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration},
+    error::ErrorMessage,
     iso::IsoDateTime,
     options::{
         DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
@@ -24,7 +23,7 @@ use num_traits::Euclid;
 use writeable::Writeable;
 
 use super::{
-    duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+    duration::normalized::{InternalDurationRecord, TimeDuration},
     DateDuration, ZonedDateTime,
 };
 
@@ -84,7 +83,7 @@ const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 /// let instant = Instant::try_new(1609459200000000000).unwrap(); // 2021-01-01T00:00:00Z
 ///
 /// // Add time duration (only time durations, not date durations)
-/// let later = instant.add(Duration::from_str("PT1H30M").unwrap()).unwrap();
+/// let later = instant.add(&Duration::from_str("PT1H30M").unwrap()).unwrap();
 /// let expected_ns = 1609459200000000000 + (1 * 3600 + 30 * 60) * 1_000_000_000;
 /// assert_eq!(later.epoch_nanoseconds().as_i128(), expected_ns);
 ///
@@ -164,8 +163,7 @@ impl Instant {
     /// Temporal-Proposal equivalent: `AddInstant`.
     pub(crate) fn add_to_instant(&self, duration: &TimeDuration) -> TemporalResult<Self> {
         // 1. Let result be AddTimeDurationToEpochNanoseconds(timeDuration, epochNanoseconds).
-        let norm = NormalizedTimeDuration::from_time_duration(duration);
-        let result = self.epoch_nanoseconds().0 + norm.0;
+        let result = self.epoch_nanoseconds().0 + duration.0;
         let ns = EpochNanoseconds::from(result);
         // 2. If IsValidEpochNanoseconds(result) is false, throw a RangeError exception.
         ns.check_validity()?;
@@ -173,16 +171,30 @@ impl Instant {
         Ok(Self::from(ns))
     }
 
+    /// 8.5.10 AddDurationToInstant ( operation, instant, temporalDurationLike )
+    pub(crate) fn add_duration_to_instant(&self, duration: &Duration) -> TemporalResult<Self> {
+        // 3. Let largestUnit be DefaultTemporalLargestUnit(duration).
+        let largest_unit = duration.default_largest_unit();
+        // 4. If TemporalUnitCategory(largestUnit) is date, throw a RangeError exception.
+        if largest_unit.is_date_unit() {
+            return Err(TemporalError::range().with_enum(ErrorMessage::LargestUnitCannotBeDateUnit));
+        }
+        // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        let internal_duration = InternalDurationRecord::from_duration_with_24_hour_days(duration)?;
+        // 6. Let ns be ? AddInstant(instant.[[EpochNanoseconds]], internalDuration.[[Time]]).
+        // 7. Return ! CreateTemporalInstant(ns).
+        self.add_to_instant(&internal_duration.normalized_time_duration())
+    }
+
     /// `temporal_rs` equivalent of `DifferenceInstant`
     pub(crate) fn diff_instant_internal(
         &self,
         other: &Self,
         resolved_options: ResolvedRoundingOptions,
-    ) -> TemporalResult<NormalizedDurationRecord> {
-        let diff =
-            NormalizedTimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
+    ) -> TemporalResult<InternalDurationRecord> {
+        let diff = TimeDuration::from_nanosecond_difference(other.as_i128(), self.as_i128())?;
         let normalized_time = diff.round(resolved_options)?;
-        NormalizedDurationRecord::new(DateDuration::default(), normalized_time)
+        InternalDurationRecord::new(DateDuration::default(), normalized_time)
     }
 
     // TODO: Add test for `diff_instant`.
@@ -212,9 +224,9 @@ impl Instant {
         // settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal_record = self.diff_instant_internal(other, resolved_options)?;
 
-        let result = Duration::from_normalized(internal_record, resolved_options.largest_unit)?;
+        let result = Duration::from_internal(internal_record, resolved_options.largest_unit)?;
 
-        // 6. Let norm be diffRecord.[[NormalizedTimeDuration]].
+        // 6. Let norm be diffRecord.[[TimeDuration]].
         // 7. Let result be ! BalanceTimeDuration(norm, settings.[[LargestUnit]]).
         // 8. Return ! CreateTemporalDuration(0, 0, 0, 0, sign × result.[[Hours]], sign × result.[[Minutes]], sign × result.[[Seconds]], sign × result.[[Milliseconds]], sign × result.[[Microseconds]], sign × result.[[Nanoseconds]]).
         match op {
@@ -333,44 +345,24 @@ impl Instant {
     /// Adds a `Duration` to the current `Instant`, returning an error if the `Duration`
     /// contains a `DateDuration`.
     #[inline]
-    pub fn add(&self, duration: Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to instant."));
-        }
-        self.add_time_duration(duration.time())
-    }
-
-    /// Adds a `TimeDuration` to `Instant`.
-    #[inline]
-    pub fn add_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
-        self.add_to_instant(duration)
+    pub fn add(&self, duration: &Duration) -> TemporalResult<Self> {
+        self.add_duration_to_instant(duration)
     }
 
     /// Subtract a `Duration` to the current `Instant`, returning an error if the `Duration`
     /// contains a `DateDuration`.
     #[inline]
-    pub fn subtract(&self, duration: Duration) -> TemporalResult<Self> {
-        if !duration.is_time_duration() {
-            return Err(TemporalError::range()
-                .with_message("DateDuration values cannot be added to instant."));
-        }
-        self.subtract_time_duration(duration.time())
+    pub fn subtract(&self, duration: &Duration) -> TemporalResult<Self> {
+        self.add_duration_to_instant(&duration.negated())
     }
 
-    /// Subtracts a `TimeDuration` to `Instant`.
-    #[inline]
-    pub fn subtract_time_duration(&self, duration: &TimeDuration) -> TemporalResult<Self> {
-        self.add_to_instant(&duration.negated())
-    }
-
-    /// Returns a `TimeDuration` representing the duration since provided `Instant`
+    /// Returns a `Duration` representing the duration since provided `Instant`
     #[inline]
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_instant(DifferenceOperation::Since, other, settings)
     }
 
-    /// Returns a `TimeDuration` representing the duration until provided `Instant`
+    /// Returns a `Duration` representing the duration until provided `Instant`
     #[inline]
     pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_instant(DifferenceOperation::Until, other, settings)
@@ -464,10 +456,11 @@ mod tests {
     use core::str::FromStr;
 
     use crate::{
-        builtins::core::{duration::TimeDuration, Instant},
+        builtins::{core::Instant, duration::duration_sign},
         options::{DifferenceSettings, RoundingMode, Unit},
+        partial::PartialDuration,
         unix_time::EpochNanoseconds,
-        NS_MAX_INSTANT, NS_MIN_INSTANT,
+        Duration, NS_MAX_INSTANT, NS_MIN_INSTANT,
     };
 
     #[test]
@@ -568,20 +561,28 @@ mod tests {
             }
         };
 
-        let assert_time_duration =
-            |td: &TimeDuration, expected: (i64, i64, i64, i64, i128, i128)| {
-                assert_eq!(
-                    td,
-                    &TimeDuration {
-                        hours: expected.0,
-                        minutes: expected.1,
-                        seconds: expected.2,
-                        milliseconds: expected.3,
-                        microseconds: expected.4,
-                        nanoseconds: expected.5,
-                    }
-                )
-            };
+        let assert_duration = |td: Duration, expected: (i64, i64, i64, i64, i128, i128)| {
+            assert_eq!(
+                td,
+                Duration {
+                    sign: duration_sign(&[
+                        expected.0,
+                        expected.1,
+                        expected.2,
+                        expected.3,
+                        expected.4 as i64,
+                        expected.5 as i64
+                    ]),
+                    hours: expected.0.unsigned_abs(),
+                    minutes: expected.1.unsigned_abs(),
+                    seconds: expected.2.unsigned_abs(),
+                    milliseconds: expected.3.unsigned_abs(),
+                    microseconds: expected.4.unsigned_abs(),
+                    nanoseconds: expected.5.unsigned_abs(),
+                    ..Default::default()
+                }
+            )
+        };
 
         let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
@@ -595,40 +596,40 @@ mod tests {
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376436, 0, 0, 0, 0, 0));
+        assert_duration(positive_result, (376436, 0, 0, 0, 0, 0));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, 0, 0, 0, 0, 0));
+        assert_duration(negative_result, (-376435, 0, 0, 0, 0, 0));
 
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435, 24, 0, 0, 0, 0));
+        assert_duration(positive_result, (376435, 24, 0, 0, 0, 0));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, -23, 0, 0, 0, 0));
+        assert_duration(negative_result, (-376435, -23, 0, 0, 0, 0));
 
         // ... Skip to lower units ...
 
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 530, 0));
+        assert_duration(positive_result, (376435, 23, 8, 148, 530, 0));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, 0));
+        assert_duration(negative_result, (-376435, -23, -8, -148, -529, 0));
 
         let positive_result = earlier
             .until(&later, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 529, 500));
+        assert_duration(positive_result, (376435, 23, 8, 148, 529, 500));
         let negative_result = later
             .until(&earlier, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, -500));
+        assert_duration(negative_result, (-376435, -23, -8, -148, -529, -500));
     }
 
     #[test]
@@ -642,20 +643,28 @@ mod tests {
             }
         };
 
-        let assert_time_duration =
-            |td: &TimeDuration, expected: (i64, i64, i64, i64, i128, i128)| {
-                assert_eq!(
-                    td,
-                    &TimeDuration {
-                        hours: expected.0,
-                        minutes: expected.1,
-                        seconds: expected.2,
-                        milliseconds: expected.3,
-                        microseconds: expected.4,
-                        nanoseconds: expected.5,
-                    }
-                )
-            };
+        let assert_duration = |td: Duration, expected: (i64, i64, i64, i64, i128, i128)| {
+            assert_eq!(
+                td,
+                Duration {
+                    sign: duration_sign(&[
+                        expected.0,
+                        expected.1,
+                        expected.2,
+                        expected.3,
+                        expected.4 as i64,
+                        expected.5 as i64
+                    ]),
+                    hours: expected.0.unsigned_abs(),
+                    minutes: expected.1.unsigned_abs(),
+                    seconds: expected.2.unsigned_abs(),
+                    milliseconds: expected.3.unsigned_abs(),
+                    microseconds: expected.4.unsigned_abs(),
+                    nanoseconds: expected.5.unsigned_abs(),
+                    ..Default::default()
+                }
+            )
+        };
 
         let earlier = Instant::try_new(
             217_178_610_123_456_789, /* 1976-11-18T15:23:30.123456789Z */
@@ -669,40 +678,40 @@ mod tests {
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376436, 0, 0, 0, 0, 0));
+        assert_duration(positive_result, (376436, 0, 0, 0, 0, 0));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Hour))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, 0, 0, 0, 0, 0));
+        assert_duration(negative_result, (-376435, 0, 0, 0, 0, 0));
 
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435, 24, 0, 0, 0, 0));
+        assert_duration(positive_result, (376435, 24, 0, 0, 0, 0));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Minute))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, -23, 0, 0, 0, 0));
+        assert_duration(negative_result, (-376435, -23, 0, 0, 0, 0));
 
         // ... Skip to lower units ...
 
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 530, 0));
+        assert_duration(positive_result, (376435, 23, 8, 148, 530, 0));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Microsecond))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, 0));
+        assert_duration(negative_result, (-376435, -23, -8, -148, -529, 0));
 
         let positive_result = later
             .since(&earlier, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(positive_result.time(), (376435, 23, 8, 148, 529, 500));
+        assert_duration(positive_result, (376435, 23, 8, 148, 529, 500));
         let negative_result = earlier
             .since(&later, init_diff_setting(Unit::Nanosecond))
             .unwrap();
-        assert_time_duration(negative_result.time(), (-376435, -23, -8, -148, -529, -500));
+        assert_duration(negative_result, (-376435, -23, -8, -148, -529, -500));
     }
 
     // /test/built-ins/Temporal/Instant/prototype/add/cross-epoch.js
@@ -718,7 +727,7 @@ mod tests {
         let instant = Instant::from_str("1969-12-25T12:23:45.678901234Z").unwrap();
         let one = instant
             .subtract(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(240.into()),
                     nanoseconds: Some(800.into()),
                     ..Default::default()
@@ -728,7 +737,7 @@ mod tests {
             .unwrap();
         let two = instant
             .add(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(240.into()),
                     nanoseconds: Some(800.into()),
                     ..Default::default()
@@ -738,7 +747,7 @@ mod tests {
             .unwrap();
         let three = two
             .subtract(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(480.into()),
                     nanoseconds: Some(1600.into()),
                     ..Default::default()
@@ -748,7 +757,7 @@ mod tests {
             .unwrap();
         let four = one
             .add(
-                Duration::from_partial_duration(PartialDuration {
+                &Duration::from_partial_duration(PartialDuration {
                     hours: Some(480.into()),
                     nanoseconds: Some(1600.into()),
                     ..Default::default()
@@ -781,5 +790,35 @@ mod tests {
         assert_eq!(&inst_string, "1969-12-25T12:23:45.678901234Z");
         assert_eq!(&one_string, "1969-12-15T12:23:45.678900434Z");
         assert_eq!(&two_string, "1970-01-04T12:23:45.678902034Z");
+    }
+
+    // Adapted from add[subtract]/minimum-maximum-instant.js
+    #[test]
+    fn instant_add_subtract_max_min() {
+        let min = Instant::try_new(-86_40000_00000_00000_00000).unwrap();
+        let max = Instant::try_new(86_40000_00000_00000_00000).unwrap();
+
+        let zero = Duration::from_partial_duration(PartialDuration::default().with_nanoseconds(0))
+            .unwrap();
+        let one = Duration::from_partial_duration(PartialDuration::default().with_nanoseconds(1))
+            .unwrap();
+        let neg_one =
+            Duration::from_partial_duration(PartialDuration::default().with_nanoseconds(-1))
+                .unwrap();
+        // Adding/subtracting zero does not cross max/min boundary.
+        assert_eq!(min.add(&zero).unwrap(), min);
+        assert_eq!(min.subtract(&zero).unwrap(), min);
+
+        // Addition or subtraction crosses boundary.
+        assert!(max.add(&one).is_err());
+        assert!(max.subtract(&neg_one).is_err());
+        assert!(min.add(&neg_one).is_err());
+        assert!(min.subtract(&one).is_err());
+
+        let insanely_large_partial =
+            PartialDuration::default().with_nanoseconds(-86_40000_00000_00000_00000 * 2);
+        let large_duration = Duration::from_partial_duration(insanely_large_partial).unwrap();
+        assert_eq!(min.subtract(&large_duration).unwrap(), max);
+        assert_eq!(max.add(&large_duration).unwrap(), min);
     }
 }

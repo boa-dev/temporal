@@ -4,7 +4,7 @@
 pub mod ffi {
     use alloc::boxed::Box;
 
-    use crate::duration::ffi::{Duration, TimeDuration};
+    use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
@@ -133,24 +133,6 @@ pub mod ffi {
         pub fn subtract(&self, duration: &Duration) -> Result<Box<Self>, TemporalError> {
             self.0
                 .subtract(&duration.0)
-                .map(|x| Box::new(Self(x)))
-                .map_err(Into::into)
-        }
-        pub fn add_time_duration(
-            &self,
-            duration: &TimeDuration,
-        ) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .add_time_duration(&duration.0)
-                .map(|x| Box::new(Self(x)))
-                .map_err(Into::into)
-        }
-        pub fn subtract_time_duration(
-            &self,
-            duration: &TimeDuration,
-        ) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .subtract_time_duration(&duration.0)
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }

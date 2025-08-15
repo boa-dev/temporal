@@ -29,10 +29,10 @@ use crate::{
     builtins::core::{
         calendar::Calendar,
         duration::{
-            normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
-            DateDuration, TimeDuration,
+            normalized::{InternalDurationRecord, TimeDuration},
+            DateDuration,
         },
-        Duration, PartialTime, PlainDate,
+        PartialTime, PlainDate,
     },
     error::{ErrorMessage, TemporalError},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
@@ -158,45 +158,6 @@ impl IsoDateTime {
         utc_epoch_nanos(self.date, &self.time)
     }
 
-    /// Specification equivalent to 5.5.9 `AddDateTime`.
-    pub(crate) fn add_date_duration(
-        &self,
-        calendar: Calendar,
-        date_duration: &DateDuration,
-        norm: NormalizedTimeDuration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
-        // 1. Assert: IsValidISODate(year, month, day) is true.
-        // 2. Assert: ISODateTimeWithinLimits(year, month, day, hour, minute, second, millisecond, microsecond, nanosecond) is true.
-        // 3. Let timeResult be AddTime(hour, minute, second, millisecond, microsecond, nanosecond, norm).
-        let t_result = self.time.add(norm);
-
-        // 4. Let datePart be ! CreateTemporalDate(year, month, day, calendarRec.[[Receiver]]).
-        let date = PlainDate::new_unchecked(self.date, calendar);
-
-        // 5. Let dateDuration be ? CreateTemporalDuration(years, months, weeks, days + timeResult.[[Days]], 0, 0, 0, 0, 0, 0).
-        let date_duration = DateDuration::new(
-            date_duration.years,
-            date_duration.months,
-            date_duration.weeks,
-            date_duration
-                .days
-                .checked_add(t_result.0)
-                .ok_or(TemporalError::range())?,
-        )?;
-        let duration = Duration::from(date_duration);
-
-        // 6. Let addedDate be ? AddDate(calendarRec, datePart, dateDuration, options).
-        // The within-limits check gets handled below in Self::new
-        let added_date = date.add_date(&duration, overflow)?;
-
-        // 7. Return ISO Date-Time Record { [[Year]]: addedDate.[[ISOYear]], [[Month]]: addedDate.[[ISOMonth]],
-        // [[Day]]: addedDate.[[ISODay]], [[Hour]]: timeResult.[[Hour]], [[Minute]]: timeResult.[[Minute]],
-        // [[Second]]: timeResult.[[Second]], [[Millisecond]]: timeResult.[[Millisecond]],
-        // [[Microsecond]]: timeResult.[[Microsecond]], [[Nanosecond]]: timeResult.[[Nanosecond]]  }.
-        Self::new(added_date.iso, t_result.1)
-    }
-
     pub(crate) fn round(&self, resolved_options: ResolvedRoundingOptions) -> TemporalResult<Self> {
         let (rounded_days, rounded_time) = self.time.round(resolved_options)?;
         let balance_result = IsoDate::try_balance(
@@ -207,6 +168,7 @@ impl IsoDateTime {
         Self::new(balance_result, rounded_time)
     }
 
+    // TODO: UPDATE TO CURRENT SPECIFICATION
     // TODO: Determine whether to provide an options object...seems duplicative.
     /// 5.5.11 DifferenceISODateTime ( y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1, y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2, calendarRec, largestUnit, options )
     pub(crate) fn diff(
@@ -214,17 +176,16 @@ impl IsoDateTime {
         other: &Self,
         calendar: &Calendar,
         largest_unit: Unit,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         // 1. Assert: ISODateTimeWithinLimits(y1, mon1, d1, h1, min1, s1, ms1, mus1, ns1) is true.
         // 2. Assert: ISODateTimeWithinLimits(y2, mon2, d2, h2, min2, s2, ms2, mus2, ns2) is true.
         // 3. Assert: If y1 ≠ y2, and mon1 ≠ mon2, and d1 ≠ d2, and LargerOfTwoUnits(largestUnit, "day")
         // is not "day", CalendarMethodsRecordHasLookedUp(calendarRec, date-until) is true.
 
         // 4. Let timeDuration be DifferenceTime(h1, min1, s1, ms1, mus1, ns1, h2, min2, s2, ms2, mus2, ns2).
-        let mut time_duration =
-            NormalizedTimeDuration::from_time_duration(&self.time.diff(&other.time));
+        let mut time_duration = self.time.diff(&other.time);
 
-        // 5. Let timeSign be NormalizedTimeDurationSign(timeDuration).
+        // 5. Let timeSign be TimeDurationSign(timeDuration).
         let time_sign = time_duration.sign() as i8;
 
         // 6. Let dateSign be CompareISODate(y2, mon2, d2, y1, mon1, d1).
@@ -240,7 +201,7 @@ impl IsoDateTime {
                 i32::from(adjusted_date.month),
                 i32::from(adjusted_date.day) + i32::from(time_sign),
             );
-            // b. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, -timeSign).
+            // b. Set timeDuration to ? Add24HourDaysToTimeDuration(timeDuration, -timeSign).
             time_duration = time_duration.add_days(-i64::from(time_sign))?;
         }
 
@@ -268,14 +229,14 @@ impl IsoDateTime {
             // 15. Let days be dateDifference.[[Days]].
             date_diff.days()
         } else {
-            // a. Set timeDuration to ? Add24HourDaysToNormalizedTimeDuration(timeDuration, dateDifference.[[Days]]).
+            // a. Set timeDuration to ? Add24HourDaysToTimeDuration(timeDuration, dateDifference.[[Days]]).
             time_duration = time_duration.add_days(date_diff.days())?;
             // b. Set days to 0.
             0
         };
 
         // 17. Return ? CreateNormalizedDurationRecord(dateDifference.[[Years]], dateDifference.[[Months]], dateDifference.[[Weeks]], days, timeDuration).
-        NormalizedDurationRecord::new(
+        InternalDurationRecord::new(
             DateDuration::new_unchecked(
                 date_diff.years(),
                 date_diff.months(),
@@ -423,8 +384,9 @@ impl IsoDate {
             Self::new_with_overflow(intermediate.0, intermediate.1, self.day, overflow)?;
 
         // 5. Set days to days + 7 × weeks.
-        let additional_days = duration.days + (7 * duration.weeks); // Verify
-                                                                    // 6. Let d be intermediate.[[Day]] + days.
+        let additional_days = duration.days + (7 * duration.weeks);
+
+        // 6. Let d be intermediate.[[Day]] + days.
         let intermediate_days = i64::from(intermediate.day) + additional_days;
 
         // 7. Return BalanceISODate(intermediate.[[Year]], intermediate.[[Month]], d).
@@ -743,7 +705,7 @@ impl IsoTime {
         let mis = i128::from(other.microsecond) - i128::from(self.microsecond);
         let ns = i128::from(other.nanosecond) - i128::from(self.nanosecond);
 
-        TimeDuration::new_unchecked(h, m, s, ms, mis, ns)
+        TimeDuration::from_components(h, m, s, ms, mis, ns)
     }
 
     // NOTE (nekevss): Specification seemed to be off / not entirely working, so the below was adapted from the
@@ -897,10 +859,10 @@ impl IsoTime {
             && sub_second.contains(&self.nanosecond)
     }
 
-    pub(crate) fn add(&self, norm: NormalizedTimeDuration) -> (i64, Self) {
-        // 1. Set second to second + NormalizedTimeDurationSeconds(norm).
+    pub(crate) fn add(&self, norm: TimeDuration) -> (i64, Self) {
+        // 1. Set second to second + TimeDurationSeconds(norm).
         let seconds = i64::from(self.second) + norm.seconds();
-        // 2. Set nanosecond to nanosecond + NormalizedTimeDurationSubseconds(norm).
+        // 2. Set nanosecond to nanosecond + TimeDurationSubseconds(norm).
         let nanos = i32::from(self.nanosecond) + norm.subseconds();
         // 3. Return BalanceTime(hour, minute, second, millisecond, microsecond, nanosecond).
         Self::balance(

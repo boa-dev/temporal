@@ -17,7 +17,7 @@ use crate::{
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY, NS_PER_DAY_NONZERO,
 };
 
-use super::{DateDuration, Duration, Sign, TimeDuration};
+use super::{DateDuration, Duration, Sign};
 
 const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
 
@@ -27,7 +27,7 @@ const NS_PER_DAY_128BIT: i128 = NS_PER_DAY as i128;
 const NANOSECONDS_PER_MINUTE: i128 = 60 * 1_000_000_000;
 const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 
-// ==== NormalizedTimeDuration ====
+// ==== TimeDuration ====
 //
 // A time duration represented in pure nanoseconds.
 //
@@ -37,40 +37,66 @@ const NANOSECONDS_PER_HOUR: i128 = 60 * NANOSECONDS_PER_MINUTE;
 
 /// A Normalized `TimeDuration` that represents the current `TimeDuration` in nanoseconds.
 #[derive(Debug, Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord)]
-pub(crate) struct NormalizedTimeDuration(pub(crate) i128);
+pub(crate) struct TimeDuration(pub(crate) i128);
 
-impl NormalizedTimeDuration {
+impl TimeDuration {
+    /// Creates a `TimeDuration` from signed integer components.
+    /// This method preserves the sign of each component during the calculation.
+    pub(crate) fn from_components(
+        hours: i64,
+        minutes: i64,
+        seconds: i64,
+        milliseconds: i64,
+        microseconds: i128,
+        nanoseconds: i128,
+    ) -> Self {
+        let mut total_nanoseconds: i128 = 0;
+
+        total_nanoseconds += i128::from(hours) * NANOSECONDS_PER_HOUR;
+        total_nanoseconds += i128::from(minutes) * NANOSECONDS_PER_MINUTE;
+        total_nanoseconds += i128::from(seconds) * 1_000_000_000;
+        total_nanoseconds += i128::from(milliseconds) * 1_000_000;
+        total_nanoseconds += microseconds * 1_000;
+        total_nanoseconds += nanoseconds;
+
+        debug_assert!(total_nanoseconds.abs() <= MAX_TIME_DURATION);
+        Self(total_nanoseconds)
+    }
+
     /// Equivalent: 7.5.20 NormalizeTimeDuration ( hours, minutes, seconds, milliseconds, microseconds, nanoseconds )
-    pub(crate) fn from_time_duration(time: &TimeDuration) -> Self {
+    pub(crate) fn from_duration(duration: &Duration) -> Self {
         // Note: Calculations must be done after casting to `i128` in order to preserve precision
-        let mut nanoseconds: i128 = time.hours as i128 * NANOSECONDS_PER_HOUR;
-        nanoseconds += time.minutes as i128 * NANOSECONDS_PER_MINUTE;
-        nanoseconds += time.seconds as i128 * 1_000_000_000;
-        nanoseconds += time.milliseconds as i128 * 1_000_000;
-        nanoseconds += time.microseconds * 1_000;
-        nanoseconds += time.nanoseconds;
+        let sign_multiplier = duration.sign().as_sign_multiplier() as i128;
+        let mut nanoseconds: i128 =
+            i128::from(duration.hours) * NANOSECONDS_PER_HOUR * sign_multiplier;
+        nanoseconds += i128::from(duration.minutes) * NANOSECONDS_PER_MINUTE * sign_multiplier;
+        nanoseconds += i128::from(duration.seconds) * 1_000_000_000 * sign_multiplier;
+        nanoseconds += i128::from(duration.milliseconds) * 1_000_000 * sign_multiplier;
+        nanoseconds += duration.microseconds as i128 * 1_000 * sign_multiplier;
+        nanoseconds += duration.nanoseconds as i128 * sign_multiplier;
         // NOTE(nekevss): Is it worth returning a `RangeError` below.
         debug_assert!(nanoseconds.abs() <= MAX_TIME_DURATION);
         Self(nanoseconds)
     }
 
-    /// Equivalent to 7.5.27 NormalizedTimeDurationFromEpochNanosecondsDifference ( one, two )
+    /// Equivalent to 7.5.27 TimeDurationFromEpochNanosecondsDifference ( one, two )
     pub(crate) fn from_nanosecond_difference(one: i128, two: i128) -> TemporalResult<Self> {
         let result = one - two;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range()
-                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+            return Err(
+                TemporalError::range().with_message("TimeDuration exceeds maxTimeDuration.")
+            );
         }
         Ok(Self(result))
     }
 
-    /// Equivalent: 7.5.23 Add24HourDaysToNormalizedTimeDuration ( d, days )
+    /// Equivalent: 7.5.23 Add24HourDaysToTimeDuration ( d, days )
     /// Add24HourDaysToTimeDuration??
     pub(crate) fn add_days(&self, days: i64) -> TemporalResult<Self> {
         let result = self.0 + i128::from(days) * i128::from(NS_PER_DAY);
         if result.abs() > MAX_TIME_DURATION {
             return Err(TemporalError::range()
-                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+                .with_message("SubtractTimeDuration exceeded a valid Duration range."));
         }
         Ok(Self(result))
     }
@@ -82,13 +108,7 @@ impl NormalizedTimeDuration {
         self.0 / i128::from(divisor)
     }
 
-    // NOTE(nekevss): non-euclid is required here for negative rounding.
-    /// Returns the div_rem of this NormalizedTimeDuration.
-    pub(super) fn div_rem(&self, divisor: u64) -> (i128, i128) {
-        (self.0 / i128::from(divisor), self.0 % i128::from(divisor))
-    }
-
-    /// Equivalent: 7.5.31 NormalizedTimeDurationSign ( d )
+    /// Equivalent: 7.5.31 TimeDurationSign ( d )
     #[inline]
     #[must_use]
     pub(crate) fn sign(&self) -> Sign {
@@ -96,14 +116,14 @@ impl NormalizedTimeDuration {
     }
 
     // NOTE(nekevss): non-euclid is required here for negative rounding.
-    /// Return the seconds value of the `NormalizedTimeDuration`.
+    /// Return the seconds value of the `TimeDuration`.
     pub(crate) fn seconds(&self) -> i64 {
         // SAFETY: See validate_second_cast test.
         (self.0 / 1_000_000_000) as i64
     }
 
     // NOTE(nekevss): non-euclid is required here for negative rounding.
-    /// Returns the subsecond components of the `NormalizedTimeDuration`.
+    /// Returns the subsecond components of the `TimeDuration`.
     pub(crate) fn subseconds(&self) -> i32 {
         // SAFETY: Remainder is 10e9 which is in range of i32
         (self.0 % 1_000_000_000) as i32
@@ -116,9 +136,8 @@ impl NormalizedTimeDuration {
     pub(crate) fn checked_sub(&self, other: &Self) -> TemporalResult<Self> {
         let result = self.0 - other.0;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range().with_message(
-                "SubtractNormalizedTimeDuration exceeded a valid TimeDuration range.",
-            ));
+            return Err(TemporalError::range()
+                .with_message("SubtractTimeDuration exceeded a valid TimeDuration range."));
         }
         Ok(Self(result))
     }
@@ -128,13 +147,13 @@ impl NormalizedTimeDuration {
         // a. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains unit, is time.
         // b. Let divisor be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains unit.
         let divisor = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
-        // c. Let total be DivideNormalizedTimeDuration(norm, divisor).
+        // c. Let total be DivideTimeDuration(norm, divisor).
         let increment = options
             .increment
             .as_extended_increment()
             .checked_mul(divisor)
             .temporal_unwrap()?;
-        // d. Set norm to ? RoundNormalizedTimeDurationToIncrement(norm, divisor × increment, roundingMode).
+        // d. Set norm to ? RoundTimeDurationToIncrement(norm, divisor × increment, roundingMode).
         self.round_inner(increment, options.rounding_mode)
     }
 
@@ -163,7 +182,7 @@ impl NormalizedTimeDuration {
         Ok((rounded / NS_PER_DAY_128BIT) as i64)
     }
 
-    /// Round the current `NormalizedTimeDuration`.
+    /// Round the current `TimeDuration`.
     pub(super) fn round_inner(
         &self,
         increment: NonZeroU128,
@@ -171,8 +190,9 @@ impl NormalizedTimeDuration {
     ) -> TemporalResult<Self> {
         let rounded = IncrementRounder::<i128>::from_signed_num(self.0, increment)?.round(mode);
         if rounded.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range()
-                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+            return Err(
+                TemporalError::range().with_message("TimeDuration exceeds maxTimeDuration.")
+            );
         }
         Ok(Self(rounded))
     }
@@ -180,23 +200,25 @@ impl NormalizedTimeDuration {
     pub(super) fn checked_add(&self, other: i128) -> TemporalResult<Self> {
         let result = self.0 + other;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range()
-                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+            return Err(
+                TemporalError::range().with_message("TimeDuration exceeds maxTimeDuration.")
+            );
         }
         Ok(Self(result))
     }
 }
 
 // NOTE(nekevss): As this `Add` impl is fallible. Maybe it would be best implemented as a method.
-/// Equivalent: 7.5.22 AddNormalizedTimeDuration ( one, two )
-impl Add<Self> for NormalizedTimeDuration {
+/// Equivalent: 7.5.22 AddTimeDuration ( one, two )
+impl Add<Self> for TimeDuration {
     type Output = TemporalResult<Self>;
 
     fn add(self, rhs: Self) -> Self::Output {
         let result = self.0 + rhs.0;
         if result.abs() > MAX_TIME_DURATION {
-            return Err(TemporalError::range()
-                .with_message("normalizedTimeDuration exceeds maxTimeDuration."));
+            return Err(
+                TemporalError::range().with_message("TimeDuration exceeds maxTimeDuration.")
+            );
         }
         Ok(Self(result))
     }
@@ -228,28 +250,35 @@ impl DurationTotal {
     }
 }
 
-// ==== NormalizedDurationRecord ====
+// ==== Internal Duration record ====
 //
-// A record consisting of a DateDuration and NormalizedTimeDuration
+// A record consisting of a DateDuration and TimeDuration
 //
 
-/// A NormalizedDurationRecord is a duration record that contains
-/// a `DateDuration` and `NormalizedTimeDuration`.
+/// An InternalDurationRecord is a duration record that contains
+/// a `DateDuration` and `TimeDuration`.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct NormalizedDurationRecord {
+pub struct InternalDurationRecord {
     date: DateDuration,
-    norm: NormalizedTimeDuration,
+    norm: TimeDuration,
 }
 
-impl NormalizedDurationRecord {
+impl InternalDurationRecord {
+    pub(crate) fn combine(date: DateDuration, norm: TimeDuration) -> Self {
+        // 1. Let dateSign be DateDurationSign(dateDuration).
+        // 2. Let timeSign be TimeDurationSign(timeDuration).
+        // 3. Assert: If dateSign ≠ 0 and timeSign ≠ 0, dateSign = timeSign.
+        // 4. Return Internal Duration Record { [[Date]]: dateDuration, [[Time]]: timeDuration  }.
+        Self { date, norm }
+    }
+
     /// Creates a new `NormalizedDurationRecord`.
     ///
-    /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndNormalizedTimeDuration`.
-    pub(crate) fn new(date: DateDuration, norm: NormalizedTimeDuration) -> TemporalResult<Self> {
+    /// Equivalent: `CreateNormalizedDurationRecord` & `CombineDateAndTimeDuration`.
+    pub(crate) fn new(date: DateDuration, norm: TimeDuration) -> TemporalResult<Self> {
         if date.sign() != Sign::Zero && norm.sign() != Sign::Zero && date.sign() != norm.sign() {
-            return Err(TemporalError::range().with_message(
-                "DateDuration and NormalizedTimeDuration must agree if both are not zero.",
-            ));
+            return Err(TemporalError::range()
+                .with_message("DateDuration and TimeDuration must agree if both are not zero."));
         }
         Ok(Self { date, norm })
     }
@@ -260,7 +289,7 @@ impl NormalizedDurationRecord {
     pub(crate) fn from_duration_with_24_hour_days(duration: &Duration) -> TemporalResult<Self> {
         // 1. Let timeDuration be TimeDurationFromComponents(duration.[[Hours]], duration.[[Minutes]],
         // duration.[[Seconds]], duration.[[Milliseconds]], duration.[[Microseconds]], duration.[[Nanoseconds]]).
-        let normalized_time = NormalizedTimeDuration::from_time_duration(&duration.time);
+        let normalized_time = TimeDuration::from_duration(duration);
         // 2. Set timeDuration to ! Add24HourDaysToTimeDuration(timeDuration, duration.[[Days]]).
         let normalized_time = normalized_time.add_days(duration.days())?;
         // 3. Let dateDuration be ! CreateDateDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], 0).
@@ -280,27 +309,29 @@ impl NormalizedDurationRecord {
         // 1. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
         let internal_duration = self;
 
+        // NOTE: days SHOULD be in range of an i64.
+        // MAX_TIME_DURATION / NS_PER_DAY <= i64::MAX
         // 2. Let days be truncate(internalDuration.[[Time]] / nsPerDay).
-        let days = internal_duration.normalized_time_duration().0 / i128::from(NS_PER_DAY);
+        let days = (internal_duration.normalized_time_duration().0 / i128::from(NS_PER_DAY)) as i64;
 
         // 3. Return ! CreateDateDurationRecord(internalDuration.[[Date]].[[Years]], internalDuration.[[Date]].[[Months]], internalDuration.[[Date]].[[Weeks]], days).
-        Ok(DateDuration::new_unchecked(
+        DateDuration::new(
             internal_duration.date().years,
             internal_duration.date().months,
             internal_duration.date().weeks,
-            days.try_into().ok().temporal_unwrap()?,
-        ))
+            days,
+        )
     }
 
     pub(crate) fn from_date_duration(date: DateDuration) -> TemporalResult<Self> {
-        Self::new(date, NormalizedTimeDuration::default())
+        Self::new(date, TimeDuration::default())
     }
 
     pub(crate) fn date(&self) -> DateDuration {
         self.date
     }
 
-    pub(crate) fn normalized_time_duration(&self) -> NormalizedTimeDuration {
+    pub(crate) fn normalized_time_duration(&self) -> TimeDuration {
         self.norm
     }
 
@@ -323,13 +354,13 @@ impl NormalizedDurationRecord {
 
 #[derive(Debug)]
 struct NudgeRecord {
-    normalized: NormalizedDurationRecord,
+    normalized: InternalDurationRecord,
     total: Option<FiniteF64>,
     nudge_epoch_ns: i128,
     expanded: bool,
 }
 
-impl NormalizedDurationRecord {
+impl InternalDurationRecord {
     // TODO: Add assertion into impl.
     // TODO: Add unit tests specifically for nudge_calendar_unit if possible.
     fn nudge_calendar_unit(
@@ -527,29 +558,20 @@ impl NormalizedDurationRecord {
             _ => unreachable!(), // TODO: potentially reject with range error?
         };
 
-        // 5. Let start be ? AddDateTime(dateTime.[[Year]], dateTime.[[Month]], dateTime.[[Day]], dateTime.[[Hour]], dateTime.[[Minute]],
-        // dateTime.[[Second]], dateTime.[[Millisecond]], dateTime.[[Microsecond]], dateTime.[[Nanosecond]], calendarRec,
-        // startDuration.[[Years]], startDuration.[[Months]], startDuration.[[Weeks]], startDuration.[[Days]], startDuration.[[NormalizedTime]], undefined).
-        let start = dt.iso.add_date_duration(
-            dt.calendar().clone(),
-            &start_duration,
-            NormalizedTimeDuration::default(),
-            None,
-        )?;
+        // 7. Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], startDuration, constrain).
+        let start =
+            dt.calendar()
+                .date_add(&dt.iso.date, &start_duration, ArithmeticOverflow::Constrain)?;
+        // 8. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
+        let end =
+            dt.calendar()
+                .date_add(&dt.iso.date, &end_duration, ArithmeticOverflow::Constrain)?;
+        // 9. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
+        let start = IsoDateTime::new_unchecked(start.iso, dt.iso.time);
+        // 10. Let endDateTime be CombineISODateAndTimeRecord(end, isoDateTime.[[Time]]).
+        let end = IsoDateTime::new_unchecked(end.iso, dt.iso.time);
 
-        // 6. Let end be ? AddDateTime(dateTime.[[Year]], dateTime.[[Month]], dateTime.[[Day]], dateTime.[[Hour]],
-        // dateTime.[[Minute]], dateTime.[[Second]], dateTime.[[Millisecond]], dateTime.[[Microsecond]],
-        // dateTime.[[Nanosecond]], calendarRec, endDuration.[[Years]], endDuration.[[Months]], endDuration.[[Weeks]],
-        // endDuration.[[Days]], endDuration.[[NormalizedTime]], undefined).
-        let end = dt.iso.add_date_duration(
-            dt.calendar().clone(),
-            &end_duration,
-            NormalizedTimeDuration::default(),
-            None,
-        )?;
-
-        // NOTE: 7-8 are inversed
-        // 8. Else,
+        // 12. Else,
         let (start_epoch_ns, end_epoch_ns) = if let Some((tz, provider)) = tz {
             // a. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
             // b. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
@@ -558,39 +580,31 @@ impl NormalizedDurationRecord {
             let end_epoch_ns =
                 tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
             (start_epoch_ns, end_epoch_ns)
-        // 7. If timeZoneRec is unset, then
+        // 11. If timeZoneRec is unset, then
         } else {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
             (start.as_nanoseconds(), end.as_nanoseconds())
         };
 
-        // 9. If endEpochNs = startEpochNs, throw a RangeError exception.
-        if end_epoch_ns == start_epoch_ns {
-            return Err(
-                TemporalError::range().with_message("endEpochNs cannot be equal to startEpochNs")
-            );
-        }
+        // TODO: look into handling asserts
+        // 13. If sign is 1, then
+        // a. Assert: startEpochNs ≤ destEpochNs ≤ endEpochNs.
+        // 14. Else,
+        // a. Assert: endEpochNs ≤ destEpochNs ≤ startEpochNs.
+        // 15. Assert: startEpochNs ≠ endEpochNs.
 
-        // TODO: Add early RangeError steps that are currently missing
-
-        // NOTE: Below is removed in place of using `IncrementRounder`
-        // 10. If sign < 0, let isNegative be negative; else let isNegative be positive.
-        // 11. Let unsignedRoundingMode be GetUnsignedRoundingMode(roundingMode, isNegative).
-
+        // TODO: Don't use f64 below ...
         // NOTE(nekevss): Step 12..13 could be problematic...need tests
         // and verify, or completely change the approach involved.
         // TODO(nekevss): Validate that the `f64` casts here are valid in all scenarios
-        // 12. Let progress be (destEpochNs - startEpochNs) / (endEpochNs - startEpochNs).
-        // 13. Let total be r1 + progress × increment × sign.
+        // 16. Let progress be (destEpochNs - startEpochNs) / (endEpochNs - startEpochNs).
+        // 17. Let total be r1 + progress × increment × sign.
         let progress =
             (dest_epoch_ns - start_epoch_ns.0) as f64 / (end_epoch_ns.0 - start_epoch_ns.0) as f64;
         let total = r1 as f64
             + progress * options.increment.get() as f64 * f64::from(sign.as_sign_multiplier());
 
-        // TODO: Test and verify that `IncrementRounder` handles the below case.
-        // NOTE(nekevss): Below will not return the calculated r1 or r2, so it is imporant to not use
-        // the result beyond determining rounding direction.
         // 14. NOTE: The above two steps cannot be implemented directly using floating-point arithmetic.
         // This division can be implemented as if constructing Normalized Time Duration Records for the denominator
         // and numerator of total and performing one division operation with a floating-point result.
@@ -607,10 +621,7 @@ impl NormalizedDurationRecord {
             // b. Let resultDuration be endDuration.
             // c. Let nudgedEpochNs be endEpochNs.
             Ok(NudgeRecord {
-                normalized: NormalizedDurationRecord::new(
-                    end_duration,
-                    NormalizedTimeDuration::default(),
-                )?,
+                normalized: InternalDurationRecord::new(end_duration, TimeDuration::default())?,
                 total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: end_epoch_ns.0,
                 expanded: true,
@@ -621,10 +632,7 @@ impl NormalizedDurationRecord {
             // b. Let resultDuration be startDuration.
             // c. Let nudgedEpochNs be startEpochNs.
             Ok(NudgeRecord {
-                normalized: NormalizedDurationRecord::new(
-                    start_duration,
-                    NormalizedTimeDuration::default(),
-                )?,
+                normalized: InternalDurationRecord::new(start_duration, TimeDuration::default())?,
                 total: Some(FiniteF64::try_from(total)?),
                 nudge_epoch_ns: start_epoch_ns.0,
                 expanded: false,
@@ -665,7 +673,7 @@ impl NormalizedDurationRecord {
         // 6. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
         let end_ns = tz.get_epoch_nanoseconds_for(end_dt, Disambiguation::Compatible, provider)?;
         // 7. Let daySpan be TimeDurationFromEpochNanosecondsDifference(endEpochNs, startEpochNs).
-        let day_span = NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
+        let day_span = TimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
         // 8. Assert: TimeDurationSign(daySpan) = sign.
         // 9. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
         let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
@@ -712,7 +720,7 @@ impl NormalizedDurationRecord {
                 .ok_or(TemporalError::range())?,
         )?;
         // 15. Let resultDuration be CombineDateAndTimeDuration(dateDuration, roundedTimeDuration).
-        let normalized = NormalizedDurationRecord::new(date, rounded_time)?;
+        let normalized = InternalDurationRecord::new(date, rounded_time)?;
         // 16. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didRoundBeyondDay }.
         Ok(NudgeRecord {
             normalized,
@@ -728,70 +736,61 @@ impl NormalizedDurationRecord {
         dest_epoch_ns: i128,
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
-        // 1. Assert: The value in the "Category" column of the row of Table 22 whose "Singular" column contains smallestUnit, is time.
-        // 2. Let norm be ! Add24HourDaysToNormalizedTimeDuration(duration.[[NormalizedTime]], duration.[[Days]]).
-        let norm = self
-            .normalized_time_duration()
-            .add_days(self.date().days.as_())?;
-
-        // 3. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 22 whose "Singular" column contains smallestUnit.
+        // 1. Let timeDuration be ! Add24HourDaysToTimeDuration(duration.[[Time]], duration.[[Date]].[[Days]]).
+        let time_duration = self.normalized_time_duration().add_days(self.date().days)?;
+        // 2. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains smallestUnit.
         let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
-        // 4. Let total be DivideNormalizedTimeDuration(norm, unitLength).
-        let total = norm.divide(unit_length.get() as i64);
-
-        // 5. Let roundedNorm be ? RoundNormalizedTimeDurationToIncrement(norm, unitLength × increment, roundingMode).
-        let rounded_norm = norm.round_inner(
+        // 3. Let roundedTime be ? RoundTimeDurationToIncrement(timeDuration, unitLength × increment, roundingMode).
+        let rounded_time = time_duration.round_inner(
             unit_length
                 .checked_mul(options.increment.as_extended_increment())
                 .temporal_unwrap()?,
             options.rounding_mode,
         )?;
 
-        // 6. Let diffNorm be ! SubtractNormalizedTimeDuration(roundedNorm, norm).
-        let diff_norm = rounded_norm.checked_sub(&norm)?;
+        // 4. Let diffTime be ! AddTimeDuration(roundedTime, -timeDuration).
+        let diff_time = rounded_time.checked_sub(&time_duration)?;
 
-        // 7. Let wholeDays be truncate(DivideNormalizedTimeDuration(norm, nsPerDay)).
-        let whole_days = norm.divide(NS_PER_DAY as i64);
+        // 5. Let wholeDays be truncate(TotalTimeDuration(timeDuration, day)).
+        let whole_days = time_duration.divide(NS_PER_DAY as i64) as i64;
 
-        // 8. Let roundedFractionalDays be DivideNormalizedTimeDuration(roundedNorm, nsPerDay).
-        let (rounded_whole_days, rounded_remainder) = rounded_norm.div_rem(NS_PER_DAY);
-
-        // 9. Let roundedWholeDays be truncate(roundedFractionalDays).
-        // 10. Let dayDelta be roundedWholeDays - wholeDays.
+        // 6. Let roundedWholeDays be truncate(TotalTimeDuration(roundedTime, day)).
+        let rounded_whole_days = rounded_time.divide(NS_PER_DAY as i64) as i64;
+        // 7. Let dayDelta be roundedWholeDays - wholeDays.
         let delta = rounded_whole_days - whole_days;
-        // 11. If dayDelta < 0, let dayDeltaSign be -1; else if dayDelta > 0, let dayDeltaSign be 1; else let dayDeltaSign be 0.
-        // 12. If dayDeltaSign = NormalizedTimeDurationSign(norm), let didExpandDays be true; else let didExpandDays be false.
-        let did_expand_days = delta.signum() as i8 == norm.sign() as i8;
+        // 8. If dayDelta < 0, let dayDeltaSign be -1; else if dayDelta > 0, let dayDeltaSign be 1; else let dayDeltaSign be 0.
+        // 9. If dayDeltaSign = TimeDurationSign(timeDuration), let didExpandDays be true; else let didExpandDays be false.
+        let did_expand_days = delta.signum() as i8 == time_duration.sign() as i8;
+        // 10. Let nudgedEpochNs be AddTimeDurationToEpochNanoseconds(diffTime, destEpochNs).
+        let nudged_ns = diff_time.0 + dest_epoch_ns;
 
-        // 13. Let nudgedEpochNs be AddNormalizedTimeDurationToEpochNanoseconds(diffNorm, destEpochNs).
-        let nudged_ns = diff_norm.0 + dest_epoch_ns;
-
-        // 14. Let days be 0.
+        // 11. Let days be 0.
         let mut days = 0;
-        // 15. Let remainder be roundedNorm.
-        let mut remainder = rounded_norm;
-        // 16. If LargerOfTwoUnits(largestUnit, "day") is largestUnit, then
-        if options.largest_unit.max(Unit::Day) == options.largest_unit {
+        // 12. Let remainder be roundedTime.
+        let mut remainder = rounded_time;
+        // 13. If TemporalUnitCategory(largestUnit) is date, then
+        if options.largest_unit.is_date_unit() {
             // a. Set days to roundedWholeDays.
             days = rounded_whole_days;
-            // b. Set remainder to remainder(roundedFractionalDays, 1) × nsPerDay.
-            remainder = NormalizedTimeDuration(rounded_remainder);
+            // b. Set remainder to ! AddTimeDuration(roundedTime, TimeDurationFromComponents(-roundedWholeDays * HoursPerDay, 0, 0, 0, 0, 0)).
+            remainder = rounded_time.add(TimeDuration::from_components(
+                -rounded_whole_days * 24,
+                0,
+                0,
+                0,
+                0,
+                0,
+            ))?;
         }
-        // 17. Let resultDuration be ? CreateNormalizedDurationRecord(duration.[[Years]], duration.[[Months]], duration.[[Weeks]], days, remainder).
-        let result_duration = NormalizedDurationRecord::new(
-            DateDuration::new(
-                self.date().years,
-                self.date().months,
-                self.date().weeks,
-                days as i64,
-            )?,
-            remainder,
-        )?;
-        // 18. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[Total]]: total,
-        // [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandDays }.
+
+        // 14. Let dateDuration be ! AdjustDateDurationRecord(duration.[[Date]], days).
+        let date_duration = self.date().adjust(days, None, None)?;
+        // 15. Let resultDuration be CombineDateAndTimeDuration(dateDuration, remainder).
+        let result_duration = Self::combine(date_duration, remainder);
+        // 16. Return Duration Nudge Result Record { [[Duration]]: resultDuration, [[NudgedEpochNs]]: nudgedEpochNs, [[DidExpandCalendarUnit]]: didExpandDays }.
         Ok(NudgeRecord {
             normalized: result_duration,
-            total: Some(FiniteF64::try_from(total)?),
+            total: None,
             nudge_epoch_ns: nudged_ns,
             expanded: did_expand_days,
         })
@@ -813,7 +812,7 @@ impl NormalizedDurationRecord {
         calendar: &Calendar,
         largest_unit: Unit,
         smallest_unit: Unit,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         let mut duration = *self;
 
         // 1. If smallestUnit is largestUnit, return duration.
@@ -915,7 +914,7 @@ impl NormalizedDurationRecord {
                 // x. If beyondEndSign ≠ -sign, then
                 if beyound_end_sign != -i128::from(sign.as_sign_multiplier()) {
                     // 1. Set duration to CombineDateAndTimeDuration(endDuration, 0).
-                    duration = NormalizedDurationRecord::from_date_duration(end_duration)?;
+                    duration = InternalDurationRecord::from_date_duration(end_duration)?;
                 } else {
                     // 1. Set done to true.
                     break;
@@ -943,7 +942,7 @@ impl NormalizedDurationRecord {
         dt: &PlainDateTime,
         time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
         options: ResolvedRoundingOptions,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         let duration = *self;
 
         // 1. Let irregularLengthUnit be false.

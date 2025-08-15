@@ -18,7 +18,6 @@
 #include "PartialTime.hpp"
 #include "RoundingMode.hpp"
 #include "TemporalError.hpp"
-#include "TimeDuration.hpp"
 #include "TimeZone.hpp"
 #include "ToStringRoundingOptions.hpp"
 #include "Unit.hpp"
@@ -66,12 +65,6 @@ namespace capi {
 
     typedef struct temporal_rs_PlainTime_subtract_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_subtract_result;
     temporal_rs_PlainTime_subtract_result temporal_rs_PlainTime_subtract(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::Duration* duration);
-
-    typedef struct temporal_rs_PlainTime_add_time_duration_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_add_time_duration_result;
-    temporal_rs_PlainTime_add_time_duration_result temporal_rs_PlainTime_add_time_duration(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::TimeDuration* duration);
-
-    typedef struct temporal_rs_PlainTime_subtract_time_duration_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_subtract_time_duration_result;
-    temporal_rs_PlainTime_subtract_time_duration_result temporal_rs_PlainTime_subtract_time_duration(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::TimeDuration* duration);
 
     typedef struct temporal_rs_PlainTime_until_result {union {temporal_rs::capi::Duration* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_until_result;
     temporal_rs_PlainTime_until_result temporal_rs_PlainTime_until(const temporal_rs::capi::PlainTime* self, const temporal_rs::capi::PlainTime* other, temporal_rs::capi::DifferenceSettings settings);
@@ -184,18 +177,6 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::Te
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::subtract(const temporal_rs::Duration& duration) const {
   auto result = temporal_rs::capi::temporal_rs_PlainTime_subtract(this->AsFFI(),
-    duration.AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::add_time_duration(const temporal_rs::TimeDuration& duration) const {
-  auto result = temporal_rs::capi::temporal_rs_PlainTime_add_time_duration(this->AsFFI(),
-    duration.AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::subtract_time_duration(const temporal_rs::TimeDuration& duration) const {
-  auto result = temporal_rs::capi::temporal_rs_PlainTime_subtract_time_duration(this->AsFFI(),
     duration.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
