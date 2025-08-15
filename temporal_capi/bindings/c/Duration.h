@@ -7,13 +7,11 @@
 #include <stdbool.h>
 #include "diplomat_runtime.h"
 
-#include "DateDuration.d.h"
 #include "PartialDuration.d.h"
 #include "RelativeTo.d.h"
 #include "RoundingOptions.d.h"
 #include "Sign.d.h"
 #include "TemporalError.d.h"
-#include "TimeDuration.d.h"
 #include "ToStringRoundingOptions.d.h"
 #include "Unit.d.h"
 
@@ -40,10 +38,6 @@ typedef struct temporal_rs_Duration_from_utf16_result {union {Duration* ok; Temp
 temporal_rs_Duration_from_utf16_result temporal_rs_Duration_from_utf16(DiplomatString16View s);
 
 bool temporal_rs_Duration_is_time_within_range(const Duration* self);
-
-const TimeDuration* temporal_rs_Duration_time(const Duration* self);
-
-const DateDuration* temporal_rs_Duration_date(const Duration* self);
 
 int64_t temporal_rs_Duration_years(const Duration* self);
 

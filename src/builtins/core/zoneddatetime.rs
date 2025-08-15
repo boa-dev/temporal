@@ -10,7 +10,7 @@ use crate::{
         calendar::CalendarFields,
         core::{
             calendar::Calendar,
-            duration::normalized::{NormalizedDurationRecord, NormalizedTimeDuration},
+            duration::normalized::{InternalDurationRecord, TimeDuration},
             timezone::{TimeZone, UtcOffset},
             Duration, Instant, PlainDate, PlainDateTime, PlainTime,
         },
@@ -267,23 +267,25 @@ impl ZonedDateTime {
         }
     }
 
-    pub(crate) fn add_as_instant(
+    pub(crate) fn add_zoned_date_time(
         &self,
-        duration: &Duration,
+        duration: InternalDurationRecord,
         overflow: ArithmeticOverflow,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Instant> {
         // 1. If DateDurationSign(duration.[[Date]]) = 0, then
         if duration.date().sign() == Sign::Zero {
             // a. Return ? AddInstant(epochNanoseconds, duration.[[Time]]).
-            return self.instant.add_to_instant(duration.time());
+            return self
+                .instant
+                .add_to_instant(&duration.normalized_time_duration());
         }
         // 2. Let isoDateTime be GetISODateTimeFor(timeZone, epochNanoseconds).
         let iso_datetime = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         // 3. Let addedDate be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], overflow).
-        let added_date = self
-            .calendar()
-            .date_add(&iso_datetime.date, duration.date(), overflow)?;
+        let added_date =
+            self.calendar()
+                .date_add(&iso_datetime.date, &duration.date(), overflow)?;
         // 4. Let intermediateDateTime be CombineISODateAndTimeRecord(addedDate, isoDateTime.[[Time]]).
         let intermediate = IsoDateTime::new_unchecked(added_date.iso, iso_datetime.time);
         // 5. If ISODateTimeWithinLimits(intermediateDateTime) is false, throw a RangeError exception.
@@ -300,7 +302,7 @@ impl ZonedDateTime {
         )?;
 
         // 7. Return ? AddInstant(intermediateNs, duration.[[Time]]).
-        Instant::from(intermediate_ns).add_to_instant(duration.time())
+        Instant::from(intermediate_ns).add_to_instant(&duration.normalized_time_duration())
     }
 
     /// Adds a duration to the current `ZonedDateTime`, returning the resulting `ZonedDateTime`.
@@ -320,8 +322,9 @@ impl ZonedDateTime {
         // 5. Let calendar be zonedDateTime.[[Calendar]].
         // 6. Let timeZone be zonedDateTime.[[TimeZone]].
         // 7. Let internalDuration be ToInternalDurationRecord(duration).
+        let internal_duration = duration.to_internal_duration_record();
         // 8. Let epochNanoseconds be ? AddZonedDateTime(zonedDateTime.[[EpochNanoseconds]], timeZone, calendar, internalDuration, overflow).
-        let epoch_ns = self.add_as_instant(duration, overflow, provider)?;
+        let epoch_ns = self.add_zoned_date_time(internal_duration, overflow, provider)?;
         // 9. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
         Ok(Self::new_unchecked(
             epoch_ns,
@@ -336,7 +339,7 @@ impl ZonedDateTime {
         other: &Self,
         resolved_options: ResolvedRoundingOptions,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         // 1. If UnitCategory(largestUnit) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Return DifferenceInstant(ns1, ns2, roundingIncrement, smallestUnit, roundingMode).
@@ -375,7 +378,7 @@ impl ZonedDateTime {
         // 1. If UnitCategory(unit) is time, then
         if unit.is_time_unit() {
             // a. Let difference be TimeDurationFromEpochNanosecondsDifference(ns2, ns1).
-            let diff = NormalizedTimeDuration::from_nanosecond_difference(
+            let diff = TimeDuration::from_nanosecond_difference(
                 other.epoch_nanoseconds().as_i128(),
                 self.epoch_nanoseconds().as_i128(),
             )?;
@@ -403,10 +406,10 @@ impl ZonedDateTime {
         other: &Self,
         largest_unit: Unit,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<NormalizedDurationRecord> {
+    ) -> TemporalResult<InternalDurationRecord> {
         // 1. If ns1 = ns2, return CombineDateAndTimeDuration(ZeroDateDuration(), 0).
         if self.epoch_nanoseconds() == other.epoch_nanoseconds() {
-            return Ok(NormalizedDurationRecord::default());
+            return Ok(InternalDurationRecord::default());
         }
         // 2. Let startDateTime be GetISODateTimeFor(timeZone, ns1).
         let start = self.tz.get_iso_datetime_for(&self.instant, provider)?;
@@ -432,7 +435,7 @@ impl ZonedDateTime {
 
         // 9. Let success be false.
         let mut intermediate_dt = IsoDateTime::default();
-        let mut time_duration = NormalizedTimeDuration::default();
+        let mut time_duration = TimeDuration::default();
         let mut is_success = false;
         // 10. Repeat, while dayCorrection ≤ maxDayCorrection and success is false,
         while day_correction <= max_correction && !is_success {
@@ -452,7 +455,7 @@ impl ZonedDateTime {
                 provider,
             )?;
             // d. Set timeDuration to TimeDurationFromEpochNanosecondsDifference(ns2, intermediateNs).
-            time_duration = NormalizedTimeDuration::from_nanosecond_difference(
+            time_duration = TimeDuration::from_nanosecond_difference(
                 other.epoch_nanoseconds().as_i128(),
                 intermediate_ns.0,
             )?;
@@ -474,7 +477,7 @@ impl ZonedDateTime {
         let date_diff =
             self.calendar()
                 .date_until(&start.date, &intermediate_dt.date, date_largest)?;
-        NormalizedDurationRecord::new(*date_diff.date(), time_duration)
+        InternalDurationRecord::new(date_diff.date(), time_duration)
     }
 
     /// `temporal_rs` equivalent to `DifferenceTemporalZonedDateTime`.
@@ -507,7 +510,7 @@ impl ZonedDateTime {
                 .instant
                 .diff_instant_internal(&other.instant, resolved_options)?;
             // b. Let result be ! TemporalDurationFromInternal(internalDuration, settings.[[LargestUnit]]).
-            let result = Duration::from_normalized(internal, resolved_options.largest_unit)?;
+            let result = Duration::from_internal(internal, resolved_options.largest_unit)?;
             // c. If operation is since, set result to CreateNegatedTemporalDuration(result).
             // d. Return result.
             match op {
@@ -537,7 +540,7 @@ impl ZonedDateTime {
         // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
         let internal = self.diff_with_rounding(other, resolved_options, provider)?;
         // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
-        let result = Duration::from_normalized(internal, Unit::Hour)?;
+        let result = Duration::from_internal(internal, Unit::Hour)?;
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).
         // 12. Return result.
         match op {
@@ -790,7 +793,7 @@ impl ZonedDateTime {
         // 8. Let tomorrowNs be ? GetStartOfDay(timeZone, tomorrow).
         let tomorrow_ns = self.tz.get_start_of_day(&tomorrow, provider)?;
         // 9. Let diff be TimeDurationFromEpochNanosecondsDifference(tomorrowNs, todayNs).
-        let diff = NormalizedTimeDuration::from_nanosecond_difference(tomorrow_ns.0, today_ns.0)?;
+        let diff = TimeDuration::from_nanosecond_difference(tomorrow_ns.0, today_ns.0)?;
         // NOTE: The below should be safe as today_ns and tomorrow_ns should be at most 25 hours.
         // TODO: Tests for the below cast.
         // 10. Return 𝔽(TotalTimeDuration(diff, hour)).
@@ -1251,10 +1254,8 @@ impl ZonedDateTime {
             }
             // g. Let dayLengthNs be ℝ(endNs - startNs).
             // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
-            let day_len_ns =
-                NormalizedTimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
-            let day_progress_ns =
-                NormalizedTimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0)?;
+            let day_len_ns = TimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
+            let day_progress_ns = TimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0)?;
             // i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
             let rounded = if let Some(increment) = NonZeroU128::new(day_len_ns.0.unsigned_abs()) {
                 IncrementRounder::<i128>::from_signed_num(day_progress_ns.0, increment)?

@@ -12,13 +12,11 @@
 #include <optional>
 #include <cstdlib>
 #include "../diplomat_runtime.hpp"
-#include "DateDuration.hpp"
 #include "PartialDuration.hpp"
 #include "RelativeTo.hpp"
 #include "RoundingOptions.hpp"
 #include "Sign.hpp"
 #include "TemporalError.hpp"
-#include "TimeDuration.hpp"
 #include "ToStringRoundingOptions.hpp"
 #include "Unit.hpp"
 
@@ -43,10 +41,6 @@ namespace capi {
     temporal_rs_Duration_from_utf16_result temporal_rs_Duration_from_utf16(diplomat::capi::DiplomatString16View s);
 
     bool temporal_rs_Duration_is_time_within_range(const temporal_rs::capi::Duration* self);
-
-    const temporal_rs::capi::TimeDuration* temporal_rs_Duration_time(const temporal_rs::capi::Duration* self);
-
-    const temporal_rs::capi::DateDuration* temporal_rs_Duration_date(const temporal_rs::capi::Duration* self);
 
     int64_t temporal_rs_Duration_years(const temporal_rs::capi::Duration* self);
 
@@ -148,16 +142,6 @@ inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::Tem
 inline bool temporal_rs::Duration::is_time_within_range() const {
   auto result = temporal_rs::capi::temporal_rs_Duration_is_time_within_range(this->AsFFI());
   return result;
-}
-
-inline const temporal_rs::TimeDuration& temporal_rs::Duration::time() const {
-  auto result = temporal_rs::capi::temporal_rs_Duration_time(this->AsFFI());
-  return *temporal_rs::TimeDuration::FromFFI(result);
-}
-
-inline const temporal_rs::DateDuration& temporal_rs::Duration::date() const {
-  auto result = temporal_rs::capi::temporal_rs_Duration_date(this->AsFFI());
-  return *temporal_rs::DateDuration::FromFFI(result);
 }
 
 inline int64_t temporal_rs::Duration::years() const {

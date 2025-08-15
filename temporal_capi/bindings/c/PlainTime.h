@@ -13,7 +13,6 @@
 #include "PartialTime.d.h"
 #include "RoundingMode.d.h"
 #include "TemporalError.d.h"
-#include "TimeDuration.d.h"
 #include "TimeZone.d.h"
 #include "ToStringRoundingOptions.d.h"
 #include "Unit.d.h"
@@ -63,12 +62,6 @@ temporal_rs_PlainTime_add_result temporal_rs_PlainTime_add(const PlainTime* self
 
 typedef struct temporal_rs_PlainTime_subtract_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_subtract_result;
 temporal_rs_PlainTime_subtract_result temporal_rs_PlainTime_subtract(const PlainTime* self, const Duration* duration);
-
-typedef struct temporal_rs_PlainTime_add_time_duration_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_add_time_duration_result;
-temporal_rs_PlainTime_add_time_duration_result temporal_rs_PlainTime_add_time_duration(const PlainTime* self, const TimeDuration* duration);
-
-typedef struct temporal_rs_PlainTime_subtract_time_duration_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_subtract_time_duration_result;
-temporal_rs_PlainTime_subtract_time_duration_result temporal_rs_PlainTime_subtract_time_duration(const PlainTime* self, const TimeDuration* duration);
 
 typedef struct temporal_rs_PlainTime_until_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_until_result;
 temporal_rs_PlainTime_until_result temporal_rs_PlainTime_until(const PlainTime* self, const PlainTime* other, DifferenceSettings settings);

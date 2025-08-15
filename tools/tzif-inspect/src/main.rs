@@ -1,7 +1,8 @@
 use std::env;
 use std::string::ToString;
+use temporal_rs::partial::PartialDuration;
 use temporal_rs::tzdb::Tzif;
-use temporal_rs::{Duration, PlainDate, PlainTime, TimeDuration, TimeZone, ZonedDateTime};
+use temporal_rs::{Duration, PlainDate, PlainTime, TimeZone, ZonedDateTime};
 use tzif::data::posix::TransitionDay;
 use tzif::data::time::Seconds;
 use tzif::data::tzif::{StandardWallIndicator, UtLocalIndicator};
@@ -36,9 +37,10 @@ fn seconds_to_zdt_string(s: Seconds, time_zone: &TimeZone) -> String {
 fn seconds_to_offset_time(s: Seconds) -> String {
     let is_negative = s.0 < 0;
     let seconds = s.0.abs();
-    let mut duration = TimeDuration::default();
-    duration.seconds = seconds;
-    let time = PlainTime::default().add_time_duration(&duration).unwrap();
+    let partial = PartialDuration::default().with_seconds(seconds);
+    let time = PlainTime::default()
+        .add(&Duration::from_partial_duration(partial).unwrap())
+        .unwrap();
     let string = time.to_ixdtf_string(Default::default()).unwrap();
     if is_negative {
         format!("-{string}")

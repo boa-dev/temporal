@@ -16,7 +16,7 @@ use crate::parsers::{
 use crate::provider::{CandidateEpochNanoseconds, TimeZoneProvider};
 use crate::Sign;
 use crate::{
-    builtins::core::{duration::normalized::NormalizedTimeDuration, Instant},
+    builtins::core::{duration::normalized::TimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
     unix_time::EpochNanoseconds,
@@ -448,7 +448,7 @@ impl TimeZone {
         // 16. If disambiguation is earlier, then
         if disambiguation == Disambiguation::Earlier {
             // a. Let timeDuration be TimeDurationFromComponents(0, 0, 0, 0, 0, -nanoseconds).
-            let time_duration = NormalizedTimeDuration(-nanoseconds);
+            let time_duration = TimeDuration(-nanoseconds);
             // b. Let earlierTime be AddTime(isoDateTime.[[Time]], timeDuration).
             let earlier_time = iso.time.add(time_duration);
             // c. Let earlierDate be BalanceISODate(isoDateTime.[[ISODate]].[[Year]],
@@ -471,7 +471,7 @@ impl TimeZone {
         }
         // 17. Assert: disambiguation is compatible or later.
         // 18. Let timeDuration be TimeDurationFromComponents(0, 0, 0, 0, 0, nanoseconds).
-        let time_duration = NormalizedTimeDuration(nanoseconds);
+        let time_duration = TimeDuration(nanoseconds);
         // 19. Let laterTime be AddTime(isoDateTime.[[Time]], timeDuration).
         let later_time = iso.time.add(time_duration);
         // 20. Let laterDate be BalanceISODate(isoDateTime.[[ISODate]].[[Year]],
