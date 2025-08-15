@@ -641,8 +641,8 @@ impl Duration {
             minutes,
             seconds,
             milliseconds,
-            microseconds as i64,
-            nanoseconds as i64,
+            microseconds.signum() as i64,
+            nanoseconds.signum() as i64,
         ]);
         Ok(Duration::new_unchecked(
             sign,
