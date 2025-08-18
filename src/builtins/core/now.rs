@@ -71,16 +71,16 @@ impl Now {
     }
 
     /// Converts the current [`Now`] into an [`ZonedDateTime`] with an ISO8601 calendar.
-    pub fn zoned_date_time_iso(self, time_zone: Option<TimeZone>) -> TemporalResult<ZonedDateTime> {
+    pub fn zoned_date_time_iso(
+        self,
+        time_zone: Option<TimeZone>,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<ZonedDateTime> {
         let Now { clock, zone } = self;
         let system_nanoseconds = clock.ok_or(TemporalError::general("system clock unavailable"))?;
         let time_zone = time_zone.unwrap_or(zone);
         let instant = Instant::from(system_nanoseconds);
-        Ok(ZonedDateTime::new_unchecked(
-            instant,
-            Calendar::ISO,
-            time_zone,
-        ))
+        ZonedDateTime::new_unchecked_with_provider(instant, Calendar::ISO, time_zone, provider)
     }
 }
 

@@ -252,6 +252,7 @@ pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
     tz: TimeZone,
+    cached_offset: UtcOffset,
 }
 
 // ==== Private API ====
@@ -260,14 +261,36 @@ impl ZonedDateTime {
     /// Creates a `ZonedDateTime` without validating the input.
     #[inline]
     #[must_use]
-    pub(crate) fn new_unchecked(instant: Instant, calendar: Calendar, tz: TimeZone) -> Self {
+    pub(crate) fn new_unchecked(
+        instant: Instant,
+        calendar: Calendar,
+        tz: TimeZone,
+        cached_offset: UtcOffset,
+    ) -> Self {
         Self {
             instant,
             calendar,
             tz,
+            cached_offset,
         }
     }
 
+    pub(crate) fn new_unchecked_with_provider(
+        instant: Instant,
+        calendar: Calendar,
+        tz: TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        let offset = tz
+            .get_utcoffset_for(instant.epoch_nanoseconds().0, provider)
+            .temporal_unwrap()?;
+        Ok(Self {
+            instant,
+            calendar,
+            tz,
+            cached_offset: offset,
+        })
+    }
     pub(crate) fn add_zoned_date_time(
         &self,
         duration: InternalDurationRecord,
@@ -327,11 +350,12 @@ impl ZonedDateTime {
         // 8. Let epochNanoseconds be ? AddZonedDateTime(zonedDateTime.[[EpochNanoseconds]], timeZone, calendar, internalDuration, overflow).
         let epoch_ns = self.add_zoned_date_time(internal_duration, overflow, provider)?;
         // 9. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
-        Ok(Self::new_unchecked(
+        Self::new_unchecked_with_provider(
             epoch_ns,
             self.calendar().clone(),
             self.timezone().clone(),
-        ))
+            provider,
+        )
     }
 
     /// Internal representation of Abstract Op 6.5.7
@@ -556,16 +580,40 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn try_new(nanos: i128, calendar: Calendar, time_zone: TimeZone) -> TemporalResult<Self> {
+    pub fn try_new_with_provider(
+        nanos: i128,
+        calendar: Calendar,
+        time_zone: TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
-        Ok(Self::new_unchecked(instant, calendar, time_zone))
+        Self::new_unchecked_with_provider(instant, calendar, time_zone, provider)
     }
-
+    /// Creates a new valid `ZonedDateTime`.
+    #[inline]
+    pub fn try_new(
+        nanos: i128,
+        calendar: Calendar,
+        time_zone: TimeZone,
+        cached_offset: UtcOffset,
+    ) -> TemporalResult<Self> {
+        let instant = Instant::try_new(nanos)?;
+        Ok(Self::new_unchecked(
+            instant,
+            calendar,
+            time_zone,
+            cached_offset,
+        ))
+    }
     /// Creates a new valid `ZonedDateTime` with an ISO 8601 calendar.
     #[inline]
-    pub fn try_new_iso(nanos: i128, time_zone: TimeZone) -> TemporalResult<Self> {
+    pub fn try_new_iso_with_provider(
+        nanos: i128,
+        time_zone: TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
-        Ok(Self::new_unchecked(instant, Calendar::default(), time_zone))
+        Self::new_unchecked_with_provider(instant, Calendar::default(), time_zone, provider)
     }
 
     /// Returns `ZonedDateTime`'s Calendar.
@@ -622,6 +670,7 @@ impl ZonedDateTime {
             Instant::from(epoch_nanos.ns),
             partial.calendar,
             timezone,
+            epoch_nanos.offset,
         ))
     }
 
@@ -698,16 +747,22 @@ impl ZonedDateTime {
             Instant::from(epoch_nanos.ns),
             self.calendar.clone(),
             self.tz.clone(),
+            epoch_nanos.offset,
         ))
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `TimeZone`.
-    pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
-        Self::try_new(
+    pub fn with_timezone_with_provider(
+        &self,
+        timezone: TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Self::try_new_with_provider(
             self.epoch_nanoseconds().as_i128(),
             self.calendar.clone(),
             timezone,
+            provider,
         )
     }
 
@@ -718,6 +773,7 @@ impl ZonedDateTime {
             self.epoch_nanoseconds().as_i128(),
             calendar,
             self.tz.clone(),
+            self.cached_offset,
         )
     }
 
@@ -772,9 +828,14 @@ impl ZonedDateTime {
         }
         // 12. Return ! CreateTemporalZonedDateTime(transition, timeZone, zonedDateTime.[[Calendar]]).
         Ok(Some(
-            ZonedDateTime::try_new(transition.0, self.calendar().clone(), self.tz.clone())
-                .ok()
-                .temporal_unwrap()?,
+            ZonedDateTime::try_new_with_provider(
+                transition.0,
+                self.calendar().clone(),
+                self.tz.clone(),
+                provider,
+            )
+            .ok()
+            .temporal_unwrap()?,
         ))
     }
 
@@ -1065,7 +1126,12 @@ impl ZonedDateTime {
         } else {
             self.tz.get_start_of_day(&iso.date, provider)?
         };
-        Self::try_new(epoch_ns.ns.0, self.calendar.clone(), self.tz.clone())
+        Self::try_new(
+            epoch_ns.ns.0,
+            self.calendar.clone(),
+            self.tz.clone(),
+            epoch_ns.offset,
+        )
     }
 
     /// Add a duration to the current `ZonedDateTime`
@@ -1145,7 +1211,12 @@ impl ZonedDateTime {
     ) -> TemporalResult<Self> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let epoch_nanos = self.tz.get_start_of_day(&iso.date, provider)?;
-        Self::try_new(epoch_nanos.ns.0, self.calendar.clone(), self.tz.clone())
+        Self::try_new(
+            epoch_nanos.ns.0,
+            self.calendar.clone(),
+            self.tz.clone(),
+            epoch_nanos.offset,
+        )
     }
 
     /// Convert the current `ZonedDateTime` to a [`PlainDate`] with
@@ -1269,7 +1340,12 @@ impl ZonedDateTime {
             let candidate = start.ns.0 + rounded;
             Instant::try_new(candidate)?;
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
-            ZonedDateTime::try_new(candidate, self.calendar.clone(), self.tz.clone())
+            ZonedDateTime::try_new(
+                candidate,
+                self.calendar.clone(),
+                self.tz.clone(),
+                start.offset,
+            )
         } else {
             // 19. Else,
             // a. Let roundResult be RoundISODateTime(isoDateTime, roundingIncrement, smallestUnit, roundingMode).
@@ -1293,7 +1369,12 @@ impl ZonedDateTime {
                 provider,
             )?;
 
-            ZonedDateTime::try_new(epoch_ns.ns.0, self.calendar.clone(), self.tz.clone())
+            ZonedDateTime::try_new(
+                epoch_ns.ns.0,
+                self.calendar.clone(),
+                self.tz.clone(),
+                epoch_ns.offset,
+            )
         }
     }
 
@@ -1371,6 +1452,7 @@ impl ZonedDateTime {
             Instant::from(epoch_nanos.ns),
             Calendar::new(parsed.date.calendar),
             parsed.timezone,
+            epoch_nanos.offset,
         ))
     }
 }

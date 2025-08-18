@@ -1168,7 +1168,12 @@ impl Duration {
 
                 // f. Set internalDuration to ? DifferenceZonedDateTimeWithRounding(relativeEpochNs, targetEpochNs, timeZone, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
                 let internal = zoned_relative_to.diff_with_rounding(
-                    &ZonedDateTime::new_unchecked(target_epoch_ns, calendar, time_zone),
+                    &ZonedDateTime::new_unchecked_with_provider(
+                        target_epoch_ns,
+                        calendar,
+                        time_zone,
+                        provider,
+                    )?,
                     resolved_options,
                     provider,
                 )?;
@@ -1293,18 +1298,19 @@ impl Duration {
                 // c. Let calendar be zonedRelativeTo.[[Calendar]].
                 // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
                 // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar, internalDuration, constrain).
-                let target_epcoh_ns = zoned_datetime.add_zoned_date_time(
+                let target_epoch_ns = zoned_datetime.add_zoned_date_time(
                     internal_duration,
                     ArithmeticOverflow::Constrain,
                     provider,
                 )?;
                 // f. Let total be ? DifferenceZonedDateTimeWithTotal(relativeEpochNs, targetEpochNs, timeZone, calendar, unit).
                 let total = zoned_datetime.diff_with_total(
-                    &ZonedDateTime::new_unchecked(
-                        target_epcoh_ns,
+                    &ZonedDateTime::new_unchecked_with_provider(
+                        target_epoch_ns,
                         zoned_datetime.calendar().clone(),
                         zoned_datetime.timezone().clone(),
-                    ),
+                        provider,
+                    )?,
                     unit,
                     provider,
                 )?;

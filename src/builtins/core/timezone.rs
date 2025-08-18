@@ -128,6 +128,15 @@ impl UtcOffset {
     pub fn is_sub_minute(&self) -> bool {
         self.0 % NS_IN_MIN != 0
     }
+
+    /// Partial implementation of GetISODateTimeFor for a cached offset
+    pub(crate) fn get_iso_datetime_for(&self, instant: &Instant) -> TemporalResult<IsoDateTime> {
+        // 2. Let result be GetISOPartsFromEpoch(ℝ(epochNs)).
+        // 3. Return BalanceISODateTime(result.[[ISODate]].[[Year]], result.[[ISODate]].[[Month]], result.[[ISODate]].[[Day]],
+        // result.[[Time]].[[Hour]], result.[[Time]].[[Minute]], result.[[Time]].[[Second]], result.[[Time]].[[Millisecond]],
+        // result.[[Time]].[[Microsecond]], result.[[Time]].[[Nanosecond]] + offsetNanoseconds).
+        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), self.nanoseconds())
+    }
 }
 
 impl core::str::FromStr for UtcOffset {
@@ -294,6 +303,17 @@ impl TimeZone {
                 .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
                 .map(|transition| i128::from(transition.offset.0) * 1_000_000_000),
         }
+    }
+
+    /// Get the offset for this current `TimeZoneSlot` as a `UtcOffset`
+    pub(crate) fn get_utcoffset_for(
+        &self,
+        utc_epoch: i128,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<UtcOffset> {
+        let offset = self.get_offset_nanos_for(utc_epoch, provider)?;
+        let offset = i64::try_from(offset).ok().temporal_unwrap()?;
+        Ok(UtcOffset(offset))
     }
 
     pub(crate) fn get_epoch_nanoseconds_for(

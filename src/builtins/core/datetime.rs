@@ -903,6 +903,7 @@ impl PlainDateTime {
             Instant::from(epoch_ns.ns),
             self.calendar.clone(),
             time_zone.clone(),
+            epoch_ns.offset,
         ))
     }
 
