@@ -134,115 +134,120 @@ impl ZonedDateTimeFields {
 /// ### Creating a ZonedDateTime
 ///
 /// ```rust
-/// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime, tzdb::FsTzdbProvider};
-///
-/// // Get a time zones provider
-/// let provider = FsTzdbProvider::default();
+/// # #[cfg(feature = "compiled_data")] {
+/// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime};
 ///
 /// // Create from epoch nanoseconds
-/// let zdt = ZonedDateTime::try_new_with_provider(
+/// let zdt = ZonedDateTime::try_new(
 ///     0,                    // epoch nanoseconds (Unix epoch)
 ///     Calendar::default(),  // ISO 8601 calendar
 ///     TimeZone::default(),  // UTC timezone
-///     &provider
 /// ).unwrap();
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
 /// assert_eq!(zdt.timezone().identifier(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
+/// # }
 /// ```
 ///
-/// ### Working with timezones (requires provider)
+/// ### Working with timezones (requires provider, or compiled data)
 ///
-/// ```rust,ignore
-/// use temporal_rs::{ZonedDateTime, TimeZone, tzdb::FsTzdbProvider};
+/// ```rust
+/// # #[cfg(feature = "compiled_data")] {
+/// use temporal_rs::{ZonedDateTime, TimeZone, Calendar};
 ///
-/// let provider = FsTzdbProvider::default();
 /// let tz = TimeZone::try_from_str("America/New_York").unwrap();
-/// let zdt = ZonedDateTime::try_new_with_cached_offset(
+/// let zdt = ZonedDateTime::try_new(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
 ///     Calendar::default(),
 ///     tz,
 /// ).unwrap();
 ///
 /// // Get local time in New York timezone
-/// let year = zdt.year_with_provider(&provider).unwrap();
-/// let month = zdt.month_with_provider(&provider).unwrap();
-/// let day = zdt.day_with_provider(&provider).unwrap();
-/// let hour = zdt.hour_with_provider(&provider).unwrap();
+/// let year = zdt.year().unwrap();
+/// let month = zdt.month().unwrap();
+/// let day = zdt.day().unwrap();
+/// let hour = zdt.hour().unwrap();
 ///
 /// // Note: This would be December 31, 2020 19:00 in New York (EST)
 /// assert_eq!(year, 2020);
 /// assert_eq!(month, 12);
 /// assert_eq!(day, 31);
 /// assert_eq!(hour, 19);
+/// # }
 /// ```
 ///
 /// ### ZonedDateTime arithmetic (requires provider)
 ///
-/// ```rust,ignore
-/// use temporal_rs::{ZonedDateTime, Duration, TimeZone, tzdb::FsTzdbProvider};
+/// ```rust
+/// # #[cfg(feature = "compiled_data")] {
+/// use temporal_rs::{ZonedDateTime, Duration, TimeZone, Calendar, tzdb::FsTzdbProvider};
+/// use std::str::FromStr;
 ///
-/// let provider = FsTzdbProvider::default();
 /// let tz = TimeZone::try_from_str("Europe/London").unwrap();
-/// let zdt = ZonedDateTime::try_new_with_cached_offset(
+/// let zdt = ZonedDateTime::try_new(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
 ///     Calendar::default(),
 ///     tz,
 /// ).unwrap();
 ///
 /// // Add 6 months
-/// let later = zdt.add_with_provider(
+/// let later = zdt.add(
 ///     &Duration::from_str("P6M").unwrap(),
 ///     None,
-///     &provider
 /// ).unwrap();
 ///
-/// let later_month = later.month_with_provider(&provider).unwrap();
+/// let later_month = later.month().unwrap();
 /// assert_eq!(later_month, 7); // July
+/// # }
 /// ```
 ///
 /// ### Converting from PlainDateTime
 ///
-/// ```rust,ignore
-/// use temporal_rs::{PlainDateTime, ZonedDateTime, TimeZone, options::Disambiguation, tzdb::FsTzdbProvider};
+/// ```rust
+/// # #[cfg(feature = "compiled_data")] {
+/// use temporal_rs::{PlainDateTime, ZonedDateTime, TimeZone, options::Disambiguation};
+/// use std::str::FromStr;
 ///
-/// let provider = FsTzdbProvider::default();
 /// let dt = PlainDateTime::from_str("2024-03-15T14:30:00").unwrap();
 /// let tz = TimeZone::try_from_str("America/Los_Angeles").unwrap();
 ///
-/// let zdt = dt.to_zoned_date_time_with_provider(
+/// let zdt = dt.to_zoned_date_time(
 ///     &tz,
 ///     Disambiguation::Compatible,
-///     &provider
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
 /// assert_eq!(zdt.timezone().identifier(), "America/Los_Angeles");
+/// # }
 /// ```
 ///
 /// ### String formatting (requires provider)
 ///
-/// ```rust,ignore
-/// use temporal_rs::{ZonedDateTime, TimeZone, options::ToStringRoundingOptions, tzdb::FsTzdbProvider};
+/// ```rust
+/// # #[cfg(feature = "compiled_data")] {
+/// use temporal_rs::{ZonedDateTime, Calendar, TimeZone};
+/// use temporal_rs::options::{DisplayOffset, DisplayTimeZone, DisplayCalendar, ToStringRoundingOptions};
 ///
-/// let provider = FsTzdbProvider::default();
-/// let zdt = ZonedDateTime::try_new_with_cached_offset(
+/// let zdt = ZonedDateTime::try_new(
 ///     1609459200000000000,
 ///     Calendar::default(),
 ///     TimeZone::try_from_str("Asia/Tokyo").unwrap(),
 /// ).unwrap();
 ///
-/// let iso_string = zdt.to_ixdtf_string_with_provider(
-///     ToStringRoundingOptions::default(),
-///     &provider
+/// let iso_string = zdt.to_ixdtf_string(
+///     DisplayOffset::default(),
+///     DisplayTimeZone::default(),
+///     DisplayCalendar::default(),
+///     ToStringRoundingOptions::default()
 /// ).unwrap();
 ///
 /// // Results in something like "2021-01-01T09:00:00+09:00[Asia/Tokyo]"
 /// assert!(iso_string.contains("2021-01-01"));
 /// assert!(iso_string.contains("+09:00"));
 /// assert!(iso_string.contains("[Asia/Tokyo]"));
+/// # }
 /// ```
 ///
 /// ## Reference
