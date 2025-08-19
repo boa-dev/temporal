@@ -137,7 +137,7 @@ impl ZonedDateTimeFields {
 /// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime};
 ///
 /// // Create from epoch nanoseconds
-/// let zdt = ZonedDateTime::try_new(
+/// let zdt = ZonedDateTime::try_new_with_cached_offset(
 ///     0,                    // epoch nanoseconds (Unix epoch)
 ///     Calendar::default(),  // ISO 8601 calendar
 ///     TimeZone::default(),  // UTC timezone
@@ -156,7 +156,7 @@ impl ZonedDateTimeFields {
 ///
 /// let provider = FsTzdbProvider::default();
 /// let tz = TimeZone::try_from_str("America/New_York").unwrap();
-/// let zdt = ZonedDateTime::try_new(
+/// let zdt = ZonedDateTime::try_new_with_cached_offset(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
 ///     Calendar::default(),
 ///     tz,
@@ -182,7 +182,7 @@ impl ZonedDateTimeFields {
 ///
 /// let provider = FsTzdbProvider::default();
 /// let tz = TimeZone::try_from_str("Europe/London").unwrap();
-/// let zdt = ZonedDateTime::try_new(
+/// let zdt = ZonedDateTime::try_new_with_cached_offset(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
 ///     Calendar::default(),
 ///     tz,
@@ -224,7 +224,7 @@ impl ZonedDateTimeFields {
 /// use temporal_rs::{ZonedDateTime, TimeZone, options::ToStringRoundingOptions, tzdb::FsTzdbProvider};
 ///
 /// let provider = FsTzdbProvider::default();
-/// let zdt = ZonedDateTime::try_new(
+/// let zdt = ZonedDateTime::try_new_with_cached_offset(
 ///     1609459200000000000,
 ///     Calendar::default(),
 ///     TimeZone::try_from_str("Asia/Tokyo").unwrap(),
@@ -595,7 +595,7 @@ impl ZonedDateTime {
     }
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn try_new(
+    pub(crate) fn try_new_with_cached_offset(
         nanos: i128,
         calendar: Calendar,
         time_zone: TimeZone,
@@ -773,7 +773,7 @@ impl ZonedDateTime {
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `Calendar`.
     pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::try_new(
+        Self::try_new_with_cached_offset(
             self.epoch_nanoseconds().as_i128(),
             calendar,
             self.tz.clone(),
@@ -1078,7 +1078,7 @@ impl ZonedDateTime {
         } else {
             self.tz.get_start_of_day(&iso.date, provider)?
         };
-        Self::try_new(
+        Self::try_new_with_cached_offset(
             epoch_ns.ns.0,
             self.calendar.clone(),
             self.tz.clone(),
@@ -1163,7 +1163,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Self> {
         let iso = self.get_iso_datetime()?;
         let epoch_nanos = self.tz.get_start_of_day(&iso.date, provider)?;
-        Self::try_new(
+        Self::try_new_with_cached_offset(
             epoch_nanos.ns.0,
             self.calendar.clone(),
             self.tz.clone(),
@@ -1280,7 +1280,7 @@ impl ZonedDateTime {
             let candidate = start.ns.0 + rounded;
             Instant::try_new(candidate)?;
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
-            ZonedDateTime::try_new(
+            ZonedDateTime::try_new_with_cached_offset(
                 candidate,
                 self.calendar.clone(),
                 self.tz.clone(),
@@ -1309,7 +1309,7 @@ impl ZonedDateTime {
                 provider,
             )?;
 
-            ZonedDateTime::try_new(
+            ZonedDateTime::try_new_with_cached_offset(
                 epoch_ns.ns.0,
                 self.calendar.clone(),
                 self.tz.clone(),

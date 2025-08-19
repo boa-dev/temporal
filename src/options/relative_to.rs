@@ -123,7 +123,13 @@ impl RelativeTo {
             provider,
         )?;
 
-        Ok(ZonedDateTime::try_new(epoch_ns.ns.0, calendar, timezone, epoch_ns.offset)?.into())
+        Ok(ZonedDateTime::try_new_with_cached_offset(
+            epoch_ns.ns.0,
+            calendar,
+            timezone,
+            epoch_ns.offset,
+        )?
+        .into())
     }
 }
 

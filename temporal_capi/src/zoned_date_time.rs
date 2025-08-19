@@ -114,7 +114,7 @@ pub mod ffi {
             calendar: AnyCalendarKind,
             time_zone: &TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::ZonedDateTime::try_new(
+            temporal_rs::ZonedDateTime::try_new_with_cached_offset(
                 nanosecond.into(),
                 temporal_rs::Calendar::new(calendar.into()),
                 time_zone.0.clone(),

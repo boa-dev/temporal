@@ -181,7 +181,7 @@ namespace capi {
 } // namespace capi
 } // namespace
 
-inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::try_new(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, const temporal_rs::TimeZone& time_zone) {
+inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::try_new_with_cached_offset(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, const temporal_rs::TimeZone& time_zone) {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_try_new(nanosecond.AsFFI(),
     calendar.AsFFI(),
     time_zone.AsFFI());

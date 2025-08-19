@@ -682,7 +682,12 @@ impl PlainDate {
             tz.get_start_of_day(&self.iso, provider)?
         };
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
-        ZonedDateTime::try_new(epoch_ns.ns.0, self.calendar.clone(), tz, epoch_ns.offset)
+        ZonedDateTime::try_new_with_cached_offset(
+            epoch_ns.ns.0,
+            self.calendar.clone(),
+            tz,
+            epoch_ns.offset,
+        )
     }
 }
 // ==== Trait impls ====

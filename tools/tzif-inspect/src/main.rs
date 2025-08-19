@@ -25,7 +25,7 @@ macro_rules! format_line(
 );
 
 fn seconds_to_zdt_string(s: Seconds, time_zone: &TimeZone) -> String {
-    ZonedDateTime::try_new(
+    ZonedDateTime::try_new_with_cached_offset(
         s.0 as i128 * 1_000_000_000,
         Default::default(),
         time_zone.clone(),

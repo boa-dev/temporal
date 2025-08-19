@@ -8,7 +8,7 @@ use crate::{
         ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
         DisplayTimeZone, OffsetDisambiguation, RoundingOptions, ToStringRoundingOptions,
     },
-    Duration, PlainTime, TemporalResult,
+    Calendar, Duration, PlainTime, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 
@@ -61,6 +61,11 @@ impl ZonedDateTime {
 /// The following [`ZonedDateTime`] methods are feature gated behind the
 /// `compiled_data` feature flag.
 impl ZonedDateTime {
+    /// Creates a new valid `ZonedDateTime`.
+    #[inline]
+    pub fn try_new(nanos: i128, calendar: Calendar, time_zone: TimeZone) -> TemporalResult<Self> {
+        Self::try_new_with_provider(nanos, calendar, time_zone, &*TZ_PROVIDER)
+    }
     #[inline]
     pub fn from_partial(
         partial: PartialZonedDateTime,
