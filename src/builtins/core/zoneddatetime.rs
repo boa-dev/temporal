@@ -385,7 +385,7 @@ impl ZonedDateTime {
         // 1. If UnitCategory(largestUnit) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Return DifferenceInstant(ns1, ns2, roundingIncrement, smallestUnit, roundingMode).
-            return self.instant.diff_instant_internal(&other, resolved_options);
+            return self.instant.diff_instant_internal(other, resolved_options);
         }
         // 2. let difference be ? differencezoneddatetime(ns1, ns2, timezone, calendar, largestunit).
         let diff = self.diff_zoned_datetime(other, resolved_options.largest_unit, provider)?;
@@ -450,7 +450,7 @@ impl ZonedDateTime {
         // 2. Let startDateTime be GetISODateTimeFor(timeZone, ns1).
         let start = self.get_iso_datetime()?;
         // 3. Let endDateTime be GetISODateTimeFor(timeZone, ns2).
-        let end = self.tz.get_iso_datetime_for(&other, provider)?;
+        let end = self.tz.get_iso_datetime_for(other, provider)?;
         // 4. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
         let sign = if other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128() < 0 {
             Sign::Negative
@@ -950,8 +950,7 @@ impl ZonedDateTime {
 
     /// Returns the offset nanoseconds for the current `ZonedDateTime`.
     pub fn offset_nanoseconds(&self) -> i64 {
-        let offset = self.cached_offset.nanoseconds();
-        offset as i64
+        self.cached_offset.nanoseconds()
     }
 }
 
@@ -1573,10 +1572,11 @@ mod tests {
         let provider = &FsTzdbProvider::default();
         let nov_30_2023_utc = 1_701_308_952_000_000_000i128;
 
-        let zdt = ZonedDateTime::try_new(
+        let zdt = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
+            provider,
         )
         .unwrap();
 
@@ -1587,10 +1587,11 @@ mod tests {
         assert_eq!(zdt.minute().unwrap(), 49);
         assert_eq!(zdt.second().unwrap(), 12);
 
-        let zdt_minus_five = ZonedDateTime::try_new(
+        let zdt_minus_five = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
+            provider,
         )
         .unwrap();
 
@@ -1601,10 +1602,11 @@ mod tests {
         assert_eq!(zdt_minus_five.minute().unwrap(), 49);
         assert_eq!(zdt_minus_five.second().unwrap(), 12);
 
-        let zdt_plus_eleven = ZonedDateTime::try_new(
+        let zdt_plus_eleven = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
+            provider,
         )
         .unwrap();
 
@@ -1878,14 +1880,19 @@ mod tests {
             "Rounding not accepted between ISO offset and timezone"
         );
     }
+
     // overflow-reject-throws.js
     #[test]
     fn overflow_reject_throws() {
         let provider = &FsTzdbProvider::default();
 
-        let zdt =
-            ZonedDateTime::try_new(217178610123456789, Calendar::default(), TimeZone::default())
-                .unwrap();
+        let zdt = ZonedDateTime::try_new_with_provider(
+            217178610123456789,
+            Calendar::default(),
+            TimeZone::default(),
+            provider,
+        )
+        .unwrap();
 
         let overflow = ArithmeticOverflow::Reject;
 
