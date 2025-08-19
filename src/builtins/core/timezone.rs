@@ -114,9 +114,7 @@ impl UtcOffset {
     pub(crate) fn from_seconds(seconds: i64) -> Self {
         Self(seconds * crate::builtins::core::instant::NANOSECONDS_PER_SECOND)
     }
-    pub(crate) fn from_nanos(nanos: i64) -> Self {
-        Self(nanos)
-    }
+
     pub fn minutes(&self) -> i16 {
         i16::try_from(self.0 / NS_IN_MIN).unwrap_or(0)
     }

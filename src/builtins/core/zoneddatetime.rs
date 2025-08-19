@@ -1463,10 +1463,11 @@ pub(crate) fn interpret_isodatetime_offset(
             let ns = iso.as_nanoseconds();
             // d. If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
             ns.check_validity()?;
+
             // e. Return epochNanoseconds.
             Ok(EpochNanosecondsAndOffset {
                 ns,
-                offset: UtcOffset::from_nanos(offset),
+                offset: timezone.get_utcoffset_for(ns.0, provider)?,
             })
         }
         // 5. Assert: offsetBehaviour is option.
