@@ -373,16 +373,14 @@ impl ZonedDateTime {
     /// Internal representation of Abstract Op 6.5.7
     pub(crate) fn diff_with_rounding(
         &self,
-        other: &Self,
+        other: &Instant,
         resolved_options: ResolvedRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<InternalDurationRecord> {
         // 1. If UnitCategory(largestUnit) is time, then
         if resolved_options.largest_unit.is_time_unit() {
             // a. Return DifferenceInstant(ns1, ns2, roundingIncrement, smallestUnit, roundingMode).
-            return self
-                .instant
-                .diff_instant_internal(&other.instant, resolved_options);
+            return self.instant.diff_instant_internal(&other, resolved_options);
         }
         // 2. let difference be ? differencezoneddatetime(ns1, ns2, timezone, calendar, largestunit).
         let diff = self.diff_zoned_datetime(other, resolved_options.largest_unit, provider)?;
@@ -406,7 +404,7 @@ impl ZonedDateTime {
     /// Internal representation of Abstract Op 6.5.8
     pub(crate) fn diff_with_total(
         &self,
-        other: &Self,
+        other: &Instant,
         unit: Unit,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<FiniteF64> {
@@ -436,7 +434,7 @@ impl ZonedDateTime {
 
     pub(crate) fn diff_zoned_datetime(
         &self,
-        other: &Self,
+        other: &Instant,
         largest_unit: Unit,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<InternalDurationRecord> {
@@ -447,7 +445,7 @@ impl ZonedDateTime {
         // 2. Let startDateTime be GetISODateTimeFor(timeZone, ns1).
         let start = self.get_iso_datetime()?;
         // 3. Let endDateTime be GetISODateTimeFor(timeZone, ns2).
-        let end = self.tz.get_iso_datetime_for(&other.instant, provider)?;
+        let end = self.tz.get_iso_datetime_for(&other, provider)?;
         // 4. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
         let sign = if other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128() < 0 {
             Sign::Negative
@@ -571,7 +569,7 @@ impl ZonedDateTime {
         }
 
         // 9. Let internalDuration be ? DifferenceZonedDateTimeWithRounding(zonedDateTime.[[EpochNanoseconds]], other.[[EpochNanoseconds]], zonedDateTime.[[TimeZone]], zonedDateTime.[[Calendar]], settings.[[LargestUnit]], settings.[[RoundingIncrement]], settings.[[SmallestUnit]], settings.[[RoundingMode]]).
-        let internal = self.diff_with_rounding(other, resolved_options, provider)?;
+        let internal = self.diff_with_rounding(&other.instant, resolved_options, provider)?;
         // 10. Let result be ! TemporalDurationFromInternal(internalDuration, hour).
         let result = Duration::from_internal(internal, Unit::Hour)?;
         // 11. If operation is since, set result to CreateNegatedTemporalDuration(result).

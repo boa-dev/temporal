@@ -1,5 +1,6 @@
 use crate::{
-    builtins::TZ_PROVIDER, options::ToStringRoundingOptions, Instant, TemporalResult, TimeZone, ZonedDateTime
+    builtins::TZ_PROVIDER, options::ToStringRoundingOptions, Instant, TemporalResult, TimeZone,
+    ZonedDateTime,
 };
 use alloc::string::String;
 
@@ -28,10 +29,7 @@ impl Instant {
         self.to_ixdtf_writeable_with_provider(timezone, options, &*TZ_PROVIDER)
     }
 
-    pub fn to_zoned_date_time_iso(
-        &self,
-        time_zone: TimeZone,
-    ) -> TemporalResult<ZonedDateTime> {
+    pub fn to_zoned_date_time_iso(&self, time_zone: TimeZone) -> TemporalResult<ZonedDateTime> {
         self.to_zoned_date_time_iso_with_provider(time_zone, &*TZ_PROVIDER)
     }
 }
