@@ -900,7 +900,7 @@ impl PlainDateTime {
         let epoch_ns = time_zone.get_epoch_nanoseconds_for(self.iso, disambiguation, provider)?;
         // 7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, dateTime.[[Calendar]]).
         Ok(ZonedDateTime::new_unchecked(
-            Instant::from(epoch_ns),
+            Instant::from(epoch_ns.ns),
             self.calendar.clone(),
             time_zone.clone(),
         ))

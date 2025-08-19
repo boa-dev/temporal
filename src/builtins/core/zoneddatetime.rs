@@ -1,6 +1,7 @@
 //! This module contains the core implementation of the `ZonedDateTime`
 //! builtin type.
 
+use crate::provider::EpochNanosecondsAndOffset;
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
 use tinystr::TinyAsciiStr;
@@ -302,7 +303,7 @@ impl ZonedDateTime {
         )?;
 
         // 7. Return ? AddInstant(intermediateNs, duration.[[Time]]).
-        Instant::from(intermediate_ns).add_to_instant(&duration.normalized_time_duration())
+        Instant::from(intermediate_ns.ns).add_to_instant(&duration.normalized_time_duration())
     }
 
     /// Adds a duration to the current `ZonedDateTime`, returning the resulting `ZonedDateTime`.
@@ -457,7 +458,7 @@ impl ZonedDateTime {
             // d. Set timeDuration to TimeDurationFromEpochNanosecondsDifference(ns2, intermediateNs).
             time_duration = TimeDuration::from_nanosecond_difference(
                 other.epoch_nanoseconds().as_i128(),
-                intermediate_ns.0,
+                intermediate_ns.ns.0,
             )?;
             // e. Let timeSign be TimeDurationSign(timeDuration).
             let time_sign = time_duration.sign() as i8;
@@ -618,7 +619,7 @@ impl ZonedDateTime {
         )?;
 
         Ok(Self::new_unchecked(
-            Instant::from(epoch_nanos),
+            Instant::from(epoch_nanos.ns),
             partial.calendar,
             timezone,
         ))
@@ -694,7 +695,7 @@ impl ZonedDateTime {
 
         // 26. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
         Ok(Self::new_unchecked(
-            Instant::from(epoch_nanos),
+            Instant::from(epoch_nanos.ns),
             self.calendar.clone(),
             self.tz.clone(),
         ))
@@ -789,11 +790,11 @@ impl ZonedDateTime {
         // 6. Let tomorrow be BalanceISODate(today.[[Year]], today.[[Month]], today.[[Day]] + 1).
         let tomorrow = IsoDate::balance(today.year, today.month.into(), i32::from(today.day + 1));
         // 7. Let todayNs be ? GetStartOfDay(timeZone, today).
-        let today_ns = self.tz.get_start_of_day(&today, provider)?;
+        let today = self.tz.get_start_of_day(&today, provider)?;
         // 8. Let tomorrowNs be ? GetStartOfDay(timeZone, tomorrow).
-        let tomorrow_ns = self.tz.get_start_of_day(&tomorrow, provider)?;
+        let tomorrow = self.tz.get_start_of_day(&tomorrow, provider)?;
         // 9. Let diff be TimeDurationFromEpochNanosecondsDifference(tomorrowNs, todayNs).
-        let diff = TimeDuration::from_nanosecond_difference(tomorrow_ns.0, today_ns.0)?;
+        let diff = TimeDuration::from_nanosecond_difference(tomorrow.ns.0, today.ns.0)?;
         // NOTE: The below should be safe as today_ns and tomorrow_ns should be at most 25 hours.
         // TODO: Tests for the below cast.
         // 10. Return 𝔽(TotalTimeDuration(diff, hour)).
@@ -1064,7 +1065,7 @@ impl ZonedDateTime {
         } else {
             self.tz.get_start_of_day(&iso.date, provider)?
         };
-        Self::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
+        Self::try_new(epoch_ns.ns.0, self.calendar.clone(), self.tz.clone())
     }
 
     /// Add a duration to the current `ZonedDateTime`
@@ -1144,7 +1145,7 @@ impl ZonedDateTime {
     ) -> TemporalResult<Self> {
         let iso = self.tz.get_iso_datetime_for(&self.instant, provider)?;
         let epoch_nanos = self.tz.get_start_of_day(&iso.date, provider)?;
-        Self::try_new(epoch_nanos.0, self.calendar.clone(), self.tz.clone())
+        Self::try_new(epoch_nanos.ns.0, self.calendar.clone(), self.tz.clone())
     }
 
     /// Convert the current `ZonedDateTime` to a [`PlainDate`] with
@@ -1247,15 +1248,15 @@ impl ZonedDateTime {
             // d. Assert: thisNs ≥ startNs.
             // e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
             // f. Assert: thisNs < endNs.
-            let start_ns = self.tz.get_start_of_day(&iso_start.date, provider)?;
-            let end_ns = self.tz.get_start_of_day(&iso_end, provider)?;
-            if !(this_ns.0 >= start_ns.0 && this_ns.0 < end_ns.0) {
+            let start = self.tz.get_start_of_day(&iso_start.date, provider)?;
+            let end = self.tz.get_start_of_day(&iso_end, provider)?;
+            if !(this_ns.0 >= start.ns.0 && this_ns.0 < end.ns.0) {
                 return Err(TemporalError::range().with_enum(ErrorMessage::ZDTOutOfDayBounds));
             }
             // g. Let dayLengthNs be ℝ(endNs - startNs).
             // h. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
-            let day_len_ns = TimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
-            let day_progress_ns = TimeDuration::from_nanosecond_difference(this_ns.0, start_ns.0)?;
+            let day_len_ns = TimeDuration::from_nanosecond_difference(end.ns.0, start.ns.0)?;
+            let day_progress_ns = TimeDuration::from_nanosecond_difference(this_ns.0, start.ns.0)?;
             // i. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
             let rounded = if let Some(increment) = NonZeroU128::new(day_len_ns.0.unsigned_abs()) {
                 IncrementRounder::<i128>::from_signed_num(day_progress_ns.0, increment)?
@@ -1265,7 +1266,7 @@ impl ZonedDateTime {
             };
 
             // j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
-            let candidate = start_ns.0 + rounded;
+            let candidate = start.ns.0 + rounded;
             Instant::try_new(candidate)?;
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
             ZonedDateTime::try_new(candidate, self.calendar.clone(), self.tz.clone())
@@ -1292,7 +1293,7 @@ impl ZonedDateTime {
                 provider,
             )?;
 
-            ZonedDateTime::try_new(epoch_ns.0, self.calendar.clone(), self.tz.clone())
+            ZonedDateTime::try_new(epoch_ns.ns.0, self.calendar.clone(), self.tz.clone())
         }
     }
 
@@ -1367,7 +1368,7 @@ impl ZonedDateTime {
             provider,
         )?;
         Ok(Self::new_unchecked(
-            Instant::from(epoch_nanos),
+            Instant::from(epoch_nanos.ns),
             Calendar::new(parsed.date.calendar),
             parsed.timezone,
         ))
@@ -1393,7 +1394,7 @@ pub(crate) fn interpret_isodatetime_offset(
     offset_option: OffsetDisambiguation,
     match_minutes: bool,
     provider: &impl TimeZoneProvider,
-) -> TemporalResult<EpochNanoseconds> {
+) -> TemporalResult<EpochNanosecondsAndOffset> {
     // 1.  If time is start-of-day, then
     let Some(time) = time else {
         // a. Assert: offsetBehaviour is wall.
@@ -1437,7 +1438,10 @@ pub(crate) fn interpret_isodatetime_offset(
             // d. If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
             ns.check_validity()?;
             // e. Return epochNanoseconds.
-            Ok(ns)
+            Ok(EpochNanosecondsAndOffset {
+                ns,
+                offset: UtcOffset::from_nanos(offset),
+            })
         }
         // 5. Assert: offsetBehaviour is option.
         // 6. Assert: offsetOption is prefer or reject.
@@ -1453,7 +1457,7 @@ pub(crate) fn interpret_isodatetime_offset(
             // 10. For each element candidate of possibleEpochNs, do
             for candidate in possible_nanos.as_slice() {
                 // a. Let candidateOffset be utcEpochNanoseconds - candidate.
-                let candidate_offset = utc_epochs.0 - candidate.0;
+                let candidate_offset = utc_epochs.0 - candidate.ns.0;
                 // b. If candidateOffset = offsetNanoseconds, then
                 if candidate_offset == offset.into() {
                     // i. Return candidate.

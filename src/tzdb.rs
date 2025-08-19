@@ -31,6 +31,7 @@ use std::path::Path;
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 
+use crate::provider::EpochNanosecondsAndOffset;
 use crate::TemporalUnwrap;
 use alloc::borrow::Cow;
 use alloc::collections::BTreeMap;
@@ -626,14 +627,26 @@ impl Tzif {
             LocalTimeRecordResult::Empty(bounds) => CandidateEpochNanoseconds::Zero(bounds),
             LocalTimeRecordResult::Single(r) => {
                 let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
-                CandidateEpochNanoseconds::One(epoch_ns)
+                CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
+                    ns: epoch_ns,
+                    offset: r.into(),
+                })
             }
             LocalTimeRecordResult::Ambiguous { first, second } => {
                 let first_epoch_ns =
                     EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(first.0));
                 let second_epoch_ns =
                     EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(second.0));
-                CandidateEpochNanoseconds::Two([first_epoch_ns, second_epoch_ns])
+                CandidateEpochNanoseconds::Two([
+                    EpochNanosecondsAndOffset {
+                        ns: first_epoch_ns,
+                        offset: first.into(),
+                    },
+                    EpochNanosecondsAndOffset {
+                        ns: second_epoch_ns,
+                        offset: second.into(),
+                    },
+                ])
             }
         };
         Ok(result)
