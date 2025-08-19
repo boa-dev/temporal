@@ -73,7 +73,7 @@ public:
 
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
 
-  inline diplomat::result<int64_t, temporal_rs::TemporalError> offset_nanoseconds() const;
+  inline int64_t offset_nanoseconds() const;
 
   inline std::unique_ptr<temporal_rs::Instant> to_instant() const;
 

@@ -114,7 +114,7 @@ pub mod ffi {
             calendar: AnyCalendarKind,
             time_zone: &TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::ZonedDateTime::try_new_with_cached_offset(
+            temporal_rs::ZonedDateTime::try_new(
                 nanosecond.into(),
                 temporal_rs::Calendar::new(calendar.into()),
                 time_zone.0.clone(),
@@ -196,8 +196,8 @@ pub mod ffi {
             self.0.epoch_nanoseconds().as_i128().into()
         }
 
-        pub fn offset_nanoseconds(&self) -> Result<i64, TemporalError> {
-            self.0.offset_nanoseconds().map_err(Into::into)
+        pub fn offset_nanoseconds(&self) -> i64 {
+            self.0.offset_nanoseconds()
         }
 
         pub fn to_instant(&self) -> Box<Instant> {
@@ -242,7 +242,7 @@ pub mod ffi {
         }
 
         pub fn offset(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
-            let string = self.0.offset()?;
+            let string = self.0.offset();
             // throw away the error, this should always succeed
             let _ = write.write_str(&string);
             Ok(())
@@ -493,7 +493,9 @@ pub(crate) fn zdt_from_epoch_ms(
     time_zone: &temporal_rs::TimeZone,
 ) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
     let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
-    Ok(instant.to_zoned_date_time_iso(time_zone.clone()))
+    instant
+        .to_zoned_date_time_iso(time_zone.clone())
+        .map_err(Into::into)
 }
 
 #[cfg(feature = "compiled_data")]

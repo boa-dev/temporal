@@ -145,8 +145,14 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn to_zoned_date_time_iso(&self, zone: &TimeZone) -> Box<ZonedDateTime> {
-            Box::new(ZonedDateTime(self.0.to_zoned_date_time_iso(zone.0.clone())))
+        pub fn to_zoned_date_time_iso(
+            &self,
+            zone: &TimeZone,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            self.0
+                .to_zoned_date_time_iso(zone.0.clone())
+                .map(|c| Box::new(ZonedDateTime(c)))
+                .map_err(Into::into)
         }
 
         #[allow(clippy::should_implement_trait)]
