@@ -1523,7 +1523,7 @@ mod tests {
                 &provider,
             )
             .unwrap();
-            assert_eq!(result.offset_with_provider(&provider).unwrap(), offset);
+            assert_eq!(result.offset(), offset);
         }
     }
 
@@ -2015,10 +2015,10 @@ mod tests {
             let after_seconds = after_possible.first().unwrap();
 
             let before_transition = provider
-                .get_named_tz_offset_nanoseconds(id, before_seconds.0)
+                .get_named_tz_offset_nanoseconds(id, before_seconds.ns.0)
                 .unwrap();
             let after_transition = provider
-                .get_named_tz_offset_nanoseconds(id, after_seconds.0)
+                .get_named_tz_offset_nanoseconds(id, after_seconds.ns.0)
                 .unwrap();
             assert_ne!(
                 before_transition, after_transition,

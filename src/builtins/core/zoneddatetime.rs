@@ -134,13 +134,17 @@ impl ZonedDateTimeFields {
 /// ### Creating a ZonedDateTime
 ///
 /// ```rust
-/// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime};
+/// use temporal_rs::{Calendar, Instant, TimeZone, ZonedDateTime, tzdb::FsTzdbProvider};
+///
+/// // Get a time zones provider
+/// let provider = FsTzdbProvider::default();
 ///
 /// // Create from epoch nanoseconds
-/// let zdt = ZonedDateTime::try_new_with_cached_offset(
+/// let zdt = ZonedDateTime::try_new_with_provider(
 ///     0,                    // epoch nanoseconds (Unix epoch)
 ///     Calendar::default(),  // ISO 8601 calendar
 ///     TimeZone::default(),  // UTC timezone
+///     &provider
 /// ).unwrap();
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
@@ -1572,12 +1576,12 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(zdt.year_with_provider(provider).unwrap(), 2023);
-        assert_eq!(zdt.month_with_provider(provider).unwrap(), 11);
-        assert_eq!(zdt.day_with_provider(provider).unwrap(), 30);
-        assert_eq!(zdt.hour_with_provider(provider).unwrap(), 1);
-        assert_eq!(zdt.minute_with_provider(provider).unwrap(), 49);
-        assert_eq!(zdt.second_with_provider(provider).unwrap(), 12);
+        assert_eq!(zdt.year().unwrap(), 2023);
+        assert_eq!(zdt.month().unwrap(), 11);
+        assert_eq!(zdt.day().unwrap(), 30);
+        assert_eq!(zdt.hour().unwrap(), 1);
+        assert_eq!(zdt.minute().unwrap(), 49);
+        assert_eq!(zdt.second().unwrap(), 12);
 
         let zdt_minus_five = ZonedDateTime::try_new(
             nov_30_2023_utc,
@@ -1586,12 +1590,12 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(zdt_minus_five.year_with_provider(provider).unwrap(), 2023);
-        assert_eq!(zdt_minus_five.month_with_provider(provider).unwrap(), 11);
-        assert_eq!(zdt_minus_five.day_with_provider(provider).unwrap(), 29);
-        assert_eq!(zdt_minus_five.hour_with_provider(provider).unwrap(), 20);
-        assert_eq!(zdt_minus_five.minute_with_provider(provider).unwrap(), 49);
-        assert_eq!(zdt_minus_five.second_with_provider(provider).unwrap(), 12);
+        assert_eq!(zdt_minus_five.year().unwrap(), 2023);
+        assert_eq!(zdt_minus_five.month().unwrap(), 11);
+        assert_eq!(zdt_minus_five.day().unwrap(), 29);
+        assert_eq!(zdt_minus_five.hour().unwrap(), 20);
+        assert_eq!(zdt_minus_five.minute().unwrap(), 49);
+        assert_eq!(zdt_minus_five.second().unwrap(), 12);
 
         let zdt_plus_eleven = ZonedDateTime::try_new(
             nov_30_2023_utc,
@@ -1600,12 +1604,12 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(zdt_plus_eleven.year_with_provider(provider).unwrap(), 2023);
-        assert_eq!(zdt_plus_eleven.month_with_provider(provider).unwrap(), 11);
-        assert_eq!(zdt_plus_eleven.day_with_provider(provider).unwrap(), 30);
-        assert_eq!(zdt_plus_eleven.hour_with_provider(provider).unwrap(), 12);
-        assert_eq!(zdt_plus_eleven.minute_with_provider(provider).unwrap(), 49);
-        assert_eq!(zdt_plus_eleven.second_with_provider(provider).unwrap(), 12);
+        assert_eq!(zdt_plus_eleven.year().unwrap(), 2023);
+        assert_eq!(zdt_plus_eleven.month().unwrap(), 11);
+        assert_eq!(zdt_plus_eleven.day().unwrap(), 30);
+        assert_eq!(zdt_plus_eleven.hour().unwrap(), 12);
+        assert_eq!(zdt_plus_eleven.minute().unwrap(), 49);
+        assert_eq!(zdt_plus_eleven.second().unwrap(), 12);
     }
 
     #[test]

@@ -106,6 +106,12 @@ impl ZonedDateTime {
         self.with_plain_time_and_provider(time, &*TZ_PROVIDER)
     }
 
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `TimeZone`.
+    pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
+        self.with_timezone_with_provider(timezone, &*TZ_PROVIDER)
+    }
+
     /// Adds a [`Duration`] to the current `ZonedDateTime`.
     ///
     /// Enable with the `compiled_data` feature flag.
