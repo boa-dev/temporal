@@ -209,13 +209,9 @@ impl PlainDateTime {
     /// Create a new `DateTime` from an `Instant`.
     #[allow(unused)]
     #[inline]
-    pub(crate) fn from_instant(
-        instant: &Instant,
-        offset: i64,
-        calendar: Calendar,
-    ) -> TemporalResult<Self> {
-        let iso = IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), offset)?;
-        Ok(Self { iso, calendar })
+    pub(crate) fn from_instant(instant: &Instant, offset: i64, calendar: Calendar) -> Self {
+        let iso = IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), offset);
+        Self { iso, calendar }
     }
 
     // 5.5.14 AddDurationToOrSubtractDurationFromPlainDateTime ( operation, dateTime, temporalDurationLike, options )

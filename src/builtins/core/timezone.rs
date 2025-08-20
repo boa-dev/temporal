@@ -128,7 +128,7 @@ impl UtcOffset {
     }
 
     /// Partial implementation of GetISODateTimeFor for a cached offset
-    pub(crate) fn get_iso_datetime_for(&self, instant: &Instant) -> TemporalResult<IsoDateTime> {
+    pub(crate) fn get_iso_datetime_for(&self, instant: &Instant) -> IsoDateTime {
         // 2. Let result be GetISOPartsFromEpoch(ℝ(epochNs)).
         // 3. Return BalanceISODateTime(result.[[ISODate]].[[Year]], result.[[ISODate]].[[Month]], result.[[ISODate]].[[Day]],
         // result.[[Time]].[[Hour]], result.[[Time]].[[Minute]], result.[[Time]].[[Second]], result.[[Time]].[[Millisecond]],
@@ -283,7 +283,10 @@ impl TimeZone {
         // 3. Return BalanceISODateTime(result.[[ISODate]].[[Year]], result.[[ISODate]].[[Month]], result.[[ISODate]].[[Day]],
         // result.[[Time]].[[Hour]], result.[[Time]].[[Minute]], result.[[Time]].[[Second]], result.[[Time]].[[Millisecond]],
         // result.[[Time]].[[Microsecond]], result.[[Time]].[[Nanosecond]] + offsetNanoseconds).
-        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.to_i64().unwrap_or(0))
+        Ok(IsoDateTime::from_epoch_nanos(
+            instant.epoch_nanoseconds(),
+            nanos.to_i64().unwrap_or(0),
+        ))
     }
 
     /// Get the offset for this current `TimeZoneSlot`.

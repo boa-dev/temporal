@@ -37,7 +37,6 @@ use crate::{
     error::{ErrorMessage, TemporalError},
     options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
     rounding::IncrementRounder,
-    temporal_assert,
     unix_time::EpochNanoseconds,
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
 };
@@ -84,10 +83,7 @@ impl IsoDateTime {
     // TODO: Move away from offset use of f64
     /// Creates an `IsoDateTime` from a `BigInt` of epochNanoseconds.
     #[allow(clippy::neg_cmp_op_on_partial_ord)]
-    pub(crate) fn from_epoch_nanos(
-        epoch_nanoseconds: &EpochNanoseconds,
-        offset: i64,
-    ) -> TemporalResult<Self> {
+    pub(crate) fn from_epoch_nanos(epoch_nanoseconds: &EpochNanoseconds, offset: i64) -> Self {
         // Skip the assert as nanos should be validated by Instant.
         // TODO: Determine whether value needs to be validated as integral.
         // Get the component ISO parts
@@ -112,11 +108,11 @@ impl IsoDateTime {
         // 11. Let microsecond be floor(remainderNs / 1000).
         let micros = remainder_nanos.div_euclid(1_000) as i64;
         // 12. Assert: microsecond < 1000.
-        temporal_assert!(micros < 1000);
+        debug_assert!(micros < 1000);
         // 13. Let nanosecond be remainderNs modulo 1000.
         let nanos = remainder_nanos.rem_euclid(1000) as i64;
 
-        Ok(Self::balance(
+        Self::balance(
             year,
             i32::from(month),
             i32::from(day),
@@ -126,7 +122,7 @@ impl IsoDateTime {
             millis,
             micros.into(),
             (nanos + offset).into(),
-        ))
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
