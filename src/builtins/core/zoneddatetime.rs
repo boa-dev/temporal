@@ -291,7 +291,7 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let offset = tz
-            .get_utcoffset_for(instant.epoch_nanoseconds().0, provider)
+            .get_utc_offset_for(instant.epoch_nanoseconds().0, provider)
             .temporal_unwrap()?;
         Ok(Self {
             instant,
@@ -1469,7 +1469,7 @@ pub(crate) fn interpret_isodatetime_offset(
             // e. Return epochNanoseconds.
             Ok(EpochNanosecondsAndOffset {
                 ns,
-                offset: timezone.get_utcoffset_for(ns.0, provider)?,
+                offset: timezone.get_utc_offset_for(ns.0, provider)?,
             })
         }
         // 5. Assert: offsetBehaviour is option.

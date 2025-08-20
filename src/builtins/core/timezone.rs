@@ -304,7 +304,7 @@ impl TimeZone {
     }
 
     /// Get the offset for this current `TimeZoneSlot` as a `UtcOffset`
-    pub(crate) fn get_utcoffset_for(
+    pub(crate) fn get_utc_offset_for(
         &self,
         utc_epoch: i128,
         provider: &impl TimeZoneProvider,

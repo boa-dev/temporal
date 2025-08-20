@@ -71,7 +71,7 @@ impl Now {
     }
 
     /// Converts the current [`Now`] into an [`ZonedDateTime`] with an ISO8601 calendar.
-    pub fn zoned_date_time_iso(
+    pub fn zoned_date_time_iso_with_provider(
         self,
         time_zone: Option<TimeZone>,
         provider: &impl TimeZoneProvider,
