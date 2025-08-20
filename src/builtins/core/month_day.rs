@@ -369,7 +369,9 @@ impl PlainMonthDay {
         // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalYearMonth.[[ISODate]], NoonTimeRecord()).
         let iso = IsoDateTime::new(self.iso, IsoTime::noon())?;
         // 3. Let epochNs be ? GetEpochNanosecondsFor(dateTimeFormat.[[TimeZone]], isoDateTime, compatible).
-        time_zone.get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)
+        Ok(time_zone
+            .get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)?
+            .ns)
     }
 
     /// Creates a RFC9557 IXDTF string from the current `PlainMonthDay`.

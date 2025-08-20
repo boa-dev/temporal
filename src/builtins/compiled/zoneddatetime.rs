@@ -8,10 +8,9 @@ use crate::{
         ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
         DisplayTimeZone, OffsetDisambiguation, RoundingOptions, ToStringRoundingOptions,
     },
-    Duration, MonthCode, PlainDate, PlainDateTime, PlainTime, TemporalResult,
+    Calendar, Duration, PlainTime, TemporalResult, TimeZone,
 };
 use alloc::string::String;
-use tinystr::TinyAsciiStr;
 
 impl core::fmt::Display for ZonedDateTime {
     /// The [`core::fmt::Display`] implementation for `ZonedDateTime`.
@@ -32,84 +31,6 @@ impl core::fmt::Display for ZonedDateTime {
     }
 }
 
-// ===== Experimental TZ_PROVIDER accessor implementations =====
-
-/// `ZonedDateTime` methods for accessing primary date/time unit fields.
-///
-/// The following [`ZonedDateTime`] methods are feature gated behind the
-/// `compiled_data` feature flag.
-impl ZonedDateTime {
-    /// Returns the `ZonedDateTime`'s calendar year.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn year(&self) -> TemporalResult<i32> {
-        self.year_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the `ZonedDateTime`'s calendar month.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn month(&self) -> TemporalResult<u8> {
-        self.month_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the `ZonedDateTime`'s calendar month code.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn month_code(&self) -> TemporalResult<MonthCode> {
-        self.month_code_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the `ZonedDateTime`'s calendar day.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn day(&self) -> TemporalResult<u8> {
-        self.day_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the `ZonedDateTime`'s hour.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn hour(&self) -> TemporalResult<u8> {
-        self.hour_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Enable with the `compiled_data` feature flag.
-    pub fn minute(&self) -> TemporalResult<u8> {
-        self.minute_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Enable with the `compiled_data` feature flag.
-    pub fn second(&self) -> TemporalResult<u8> {
-        self.second_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Enable with the `compiled_data` feature flag.
-    pub fn millisecond(&self) -> TemporalResult<u16> {
-        self.millisecond_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Enable with the `compiled_data` feature flag.
-    pub fn microsecond(&self) -> TemporalResult<u16> {
-        self.microsecond_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Enable with the `compiled_data` feature flag.
-    pub fn nanosecond(&self) -> TemporalResult<u16> {
-        self.nanosecond_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the current offset as a formatted offset string.
-    pub fn offset(&self) -> TemporalResult<String> {
-        self.offset_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the current offset in nanoseconds
-    pub fn offset_nanoseconds(&self) -> TemporalResult<i64> {
-        self.offset_nanoseconds_with_provider(&*TZ_PROVIDER)
-    }
-}
-
 // ==== Experimental TZ_PROVIDER calendar method implementations ====
 
 /// Calendar method implementations for `ZonedDateTime`.
@@ -117,91 +38,6 @@ impl ZonedDateTime {
 /// The following [`ZonedDateTime`] methods are feature gated behind the
 /// `compiled_data` feature flag.
 impl ZonedDateTime {
-    /// Returns the era for the current `ZonedDateTime`
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    ///
-    /// # Experimental
-    ///
-    /// Please note that era support is still experimental. Use with caution.
-    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
-        self.era_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Return the era year for the current `ZonedDateTime`.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    ///
-    /// # Experimental
-    ///
-    /// Please note that era year support is still experimental. Use with caution.
-    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
-        self.era_year_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar day of week value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
-        self.day_of_week_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar day of year value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn day_of_year(&self) -> TemporalResult<u16> {
-        self.day_of_year_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar week of year value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn week_of_year(&self) -> TemporalResult<Option<u8>> {
-        self.week_of_year_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar year of week value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
-        self.year_of_week_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar days in week value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
-        self.days_in_week_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar days in month value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
-        self.days_in_month_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar days in year value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
-        self.days_in_year_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns the calendar months in year value.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
-        self.months_in_year_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Returns returns whether the date in a leap year for the given calendar.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn in_leap_year(&self) -> TemporalResult<bool> {
-        self.in_leap_year_with_provider(&*TZ_PROVIDER)
-    }
-
     // TODO: Update direction to correct option
     pub fn get_time_zone_transition(
         &self,
@@ -225,6 +61,11 @@ impl ZonedDateTime {
 /// The following [`ZonedDateTime`] methods are feature gated behind the
 /// `compiled_data` feature flag.
 impl ZonedDateTime {
+    /// Creates a new valid `ZonedDateTime`.
+    #[inline]
+    pub fn try_new(nanos: i128, calendar: Calendar, time_zone: TimeZone) -> TemporalResult<Self> {
+        Self::try_new_with_provider(nanos, calendar, time_zone, &*TZ_PROVIDER)
+    }
     #[inline]
     pub fn from_partial(
         partial: PartialZonedDateTime,
@@ -263,6 +104,12 @@ impl ZonedDateTime {
     /// combined with the provided `TimeZone`.
     pub fn with_plain_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
         self.with_plain_time_and_provider(time, &*TZ_PROVIDER)
+    }
+
+    /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
+    /// combined with the provided `TimeZone`.
+    pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
+        self.with_timezone_with_provider(timezone, &*TZ_PROVIDER)
     }
 
     /// Adds a [`Duration`] to the current `ZonedDateTime`.
@@ -310,27 +157,6 @@ impl ZonedDateTime {
     /// Enable with the `compiled_data` feature flag.
     pub fn start_of_day(&self) -> TemporalResult<Self> {
         self.start_of_day_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Creates a new [`PlainDate`] from this `ZonedDateTime`.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
-        self.to_plain_date_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Creates a new [`PlainTime`] from this `ZonedDateTime`.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
-        self.to_plain_time_with_provider(&*TZ_PROVIDER)
-    }
-
-    /// Creates a new [`PlainDateTime`] from this `ZonedDateTime`.
-    ///
-    /// Enable with the `compiled_data` feature flag.
-    pub fn to_plain_datetime(&self) -> TemporalResult<PlainDateTime> {
-        self.to_plain_datetime_with_provider(&*TZ_PROVIDER)
     }
 
     /// Rounds this [`ZonedDateTime`] to the nearest value according to the given rounding options.

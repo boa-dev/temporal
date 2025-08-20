@@ -2,12 +2,29 @@
 
 use core::str::FromStr;
 
+use crate::UtcOffset;
 use crate::{iso::IsoDateTime, unix_time::EpochNanoseconds, TemporalResult};
 use alloc::borrow::Cow;
 
 /// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UtcOffsetSeconds(pub i64);
+
+impl From<UtcOffsetSeconds> for UtcOffset {
+    fn from(other: UtcOffsetSeconds) -> Self {
+        Self::from_seconds(other.0)
+    }
+}
+
+/// An EpochNanoseconds and a UTC offset
+#[derive(Copy, Clone, Debug)]
+pub struct EpochNanosecondsAndOffset {
+    /// The resolved nanoseconds value
+    pub ns: EpochNanoseconds,
+    /// The resolved time zone offset corresponding
+    /// to the nanoseconds value, in the given time zone
+    pub offset: UtcOffset,
+}
 
 /// `TimeZoneTransitionInfo` represents information about a timezone transition.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -69,12 +86,12 @@ pub struct GapEntryOffsets {
 #[derive(Copy, Clone, Debug)]
 pub enum CandidateEpochNanoseconds {
     Zero(GapEntryOffsets),
-    One(EpochNanoseconds),
-    Two([EpochNanoseconds; 2]),
+    One(EpochNanosecondsAndOffset),
+    Two([EpochNanosecondsAndOffset; 2]),
 }
 
 impl CandidateEpochNanoseconds {
-    pub(crate) fn as_slice(&self) -> &[EpochNanoseconds] {
+    pub(crate) fn as_slice(&self) -> &[EpochNanosecondsAndOffset] {
         match *self {
             Self::Zero(..) => &[],
             Self::One(ref one) => core::slice::from_ref(one),
@@ -96,14 +113,14 @@ impl CandidateEpochNanoseconds {
         }
     }
 
-    pub(crate) fn first(&self) -> Option<EpochNanoseconds> {
+    pub(crate) fn first(&self) -> Option<EpochNanosecondsAndOffset> {
         match *self {
             Self::Zero(..) => None,
             Self::One(one) | Self::Two([one, _]) => Some(one),
         }
     }
 
-    pub(crate) fn last(&self) -> Option<EpochNanoseconds> {
+    pub(crate) fn last(&self) -> Option<EpochNanosecondsAndOffset> {
         match *self {
             Self::Zero(..) => None,
             Self::One(last) | Self::Two([_, last]) => Some(last),

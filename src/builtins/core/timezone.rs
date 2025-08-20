@@ -19,9 +19,10 @@ use crate::{
     builtins::core::{duration::normalized::TimeDuration, Instant},
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::Disambiguation,
-    unix_time::EpochNanoseconds,
     TemporalError, TemporalResult, TemporalUnwrap, ZonedDateTime,
 };
+
+use crate::provider::EpochNanosecondsAndOffset;
 
 const NS_IN_S: i64 = 1_000_000_000;
 const NS_IN_MIN: i64 = 60_000_000_000;
@@ -110,6 +111,10 @@ impl UtcOffset {
         Self(i64::from(minutes) * NS_IN_MIN)
     }
 
+    pub(crate) fn from_seconds(seconds: i64) -> Self {
+        Self(seconds * crate::builtins::core::instant::NANOSECONDS_PER_SECOND)
+    }
+
     pub fn minutes(&self) -> i16 {
         i16::try_from(self.0 / NS_IN_MIN).unwrap_or(0)
     }
@@ -120,6 +125,15 @@ impl UtcOffset {
 
     pub fn is_sub_minute(&self) -> bool {
         self.0 % NS_IN_MIN != 0
+    }
+
+    /// Partial implementation of GetISODateTimeFor for a cached offset
+    pub(crate) fn get_iso_datetime_for(&self, instant: &Instant) -> IsoDateTime {
+        // 2. Let result be GetISOPartsFromEpoch(ℝ(epochNs)).
+        // 3. Return BalanceISODateTime(result.[[ISODate]].[[Year]], result.[[ISODate]].[[Month]], result.[[ISODate]].[[Day]],
+        // result.[[Time]].[[Hour]], result.[[Time]].[[Minute]], result.[[Time]].[[Second]], result.[[Time]].[[Millisecond]],
+        // result.[[Time]].[[Microsecond]], result.[[Time]].[[Nanosecond]] + offsetNanoseconds).
+        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), self.nanoseconds())
     }
 }
 
@@ -269,7 +283,10 @@ impl TimeZone {
         // 3. Return BalanceISODateTime(result.[[ISODate]].[[Year]], result.[[ISODate]].[[Month]], result.[[ISODate]].[[Day]],
         // result.[[Time]].[[Hour]], result.[[Time]].[[Minute]], result.[[Time]].[[Second]], result.[[Time]].[[Millisecond]],
         // result.[[Time]].[[Microsecond]], result.[[Time]].[[Nanosecond]] + offsetNanoseconds).
-        IsoDateTime::from_epoch_nanos(instant.epoch_nanoseconds(), nanos.to_i64().unwrap_or(0))
+        Ok(IsoDateTime::from_epoch_nanos(
+            instant.epoch_nanoseconds(),
+            nanos.to_i64().unwrap_or(0),
+        ))
     }
 
     /// Get the offset for this current `TimeZoneSlot`.
@@ -289,12 +306,23 @@ impl TimeZone {
         }
     }
 
+    /// Get the offset for this current `TimeZoneSlot` as a `UtcOffset`
+    pub(crate) fn get_utc_offset_for(
+        &self,
+        utc_epoch: i128,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<UtcOffset> {
+        let offset = self.get_offset_nanos_for(utc_epoch, provider)?;
+        let offset = i64::try_from(offset).ok().temporal_unwrap()?;
+        Ok(UtcOffset(offset))
+    }
+
     pub(crate) fn get_epoch_nanoseconds_for(
         &self,
         local_iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<EpochNanoseconds> {
+    ) -> TemporalResult<EpochNanosecondsAndOffset> {
         // 1. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
         let possible_nanos = self.get_possible_epoch_ns_for(local_iso, provider)?;
         // 2. Return ? DisambiguatePossibleEpochNanoseconds(possibleEpochNs, timeZone, isoDateTime, disambiguation).
@@ -351,7 +379,10 @@ impl TimeZone {
                 // c. Let epochNanoseconds be GetUTCEpochNanoseconds(balanced).
                 let epoch_ns = balanced.as_nanoseconds();
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
-                CandidateEpochNanoseconds::One(epoch_ns)
+                CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
+                    offset: *offset,
+                    ns: epoch_ns,
+                })
             }
             // 3. Else,
             Self::IanaIdentifier(identifier) => {
@@ -366,7 +397,7 @@ impl TimeZone {
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
         // a . If IsValidEpochNanoseconds(epochNanoseconds) is false, throw a RangeError exception.
         for ns in possible_nanoseconds.as_slice() {
-            ns.check_validity()?;
+            ns.ns.check_validity()?;
         }
         // 5. Return possibleEpochNanoseconds.
         Ok(possible_nanoseconds)
@@ -381,7 +412,7 @@ impl TimeZone {
         iso: IsoDateTime,
         disambiguation: Disambiguation,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<EpochNanoseconds> {
+    ) -> TemporalResult<EpochNanosecondsAndOffset> {
         // 1. Let n be possibleEpochNs's length.
         let valid_bounds = match nanos {
             // 2. If n = 1, then
@@ -495,7 +526,7 @@ impl TimeZone {
         &self,
         iso_date: &IsoDate,
         provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<EpochNanoseconds> {
+    ) -> TemporalResult<EpochNanosecondsAndOffset> {
         // 1. Let isoDateTime be CombineISODateAndTimeRecord(isoDate, MidnightTimeRecord()).
         let iso = IsoDateTime::new_unchecked(*iso_date, IsoTime::default());
         // 2. Let possibleEpochNs be ? GetPossibleEpochNanoseconds(timeZone, isoDateTime).
@@ -520,7 +551,10 @@ impl TimeZone {
         // 6. Assert: possibleEpochNsAfter's length = 1.
         // 7. Return possibleEpochNsAfter[0].
 
-        Ok(gap.transition_epoch)
+        Ok(EpochNanosecondsAndOffset {
+            offset: gap.offset_after.into(),
+            ns: gap.transition_epoch,
+        })
     }
 }
 

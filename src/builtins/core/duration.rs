@@ -1,7 +1,7 @@
 //! This module implements `Duration` along with it's methods and components.
 
 use crate::{
-    builtins::core::{PlainDateTime, PlainTime, ZonedDateTime},
+    builtins::core::{PlainDateTime, PlainTime},
     error::ErrorMessage,
     iso::{IsoDateTime, IsoTime},
     options::{
@@ -1151,10 +1151,8 @@ impl Duration {
                 let internal_duration = self.to_internal_duration_record();
 
                 // b. Let timeZone be zonedRelativeTo.[[TimeZone]].
-                let time_zone = zoned_relative_to.timezone().clone();
-
                 // c. Let calendar be zonedRelativeTo.[[Calendar]].
-                let calendar = zoned_relative_to.calendar().clone();
+                // (bundled in zoned_relative_to)
 
                 // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
                 // let relative_epoch_ns = zoned_relative_to.epoch_nanoseconds();
@@ -1168,7 +1166,7 @@ impl Duration {
 
                 // f. Set internalDuration to ? DifferenceZonedDateTimeWithRounding(relativeEpochNs, targetEpochNs, timeZone, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
                 let internal = zoned_relative_to.diff_with_rounding(
-                    &ZonedDateTime::new_unchecked(target_epoch_ns, calendar, time_zone),
+                    &target_epoch_ns,
                     resolved_options,
                     provider,
                 )?;
@@ -1293,21 +1291,13 @@ impl Duration {
                 // c. Let calendar be zonedRelativeTo.[[Calendar]].
                 // d. Let relativeEpochNs be zonedRelativeTo.[[EpochNanoseconds]].
                 // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar, internalDuration, constrain).
-                let target_epcoh_ns = zoned_datetime.add_zoned_date_time(
+                let target_epoch_ns = zoned_datetime.add_zoned_date_time(
                     internal_duration,
                     ArithmeticOverflow::Constrain,
                     provider,
                 )?;
                 // f. Let total be ? DifferenceZonedDateTimeWithTotal(relativeEpochNs, targetEpochNs, timeZone, calendar, unit).
-                let total = zoned_datetime.diff_with_total(
-                    &ZonedDateTime::new_unchecked(
-                        target_epcoh_ns,
-                        zoned_datetime.calendar().clone(),
-                        zoned_datetime.timezone().clone(),
-                    ),
-                    unit,
-                    provider,
-                )?;
+                let total = zoned_datetime.diff_with_total(&target_epoch_ns, unit, provider)?;
                 Ok(total)
             }
             // 12. Else if plainRelativeTo is not undefined, then

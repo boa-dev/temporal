@@ -27,7 +27,7 @@ use super::{
     DateDuration, ZonedDateTime,
 };
 
-const NANOSECONDS_PER_SECOND: i64 = 1_000_000_000;
+pub(crate) const NANOSECONDS_PER_SECOND: i64 = 1_000_000_000;
 const NANOSECONDS_PER_MINUTE: i64 = 60 * NANOSECONDS_PER_SECOND;
 const NANOSECONDS_PER_HOUR: i64 = 60 * NANOSECONDS_PER_MINUTE;
 
@@ -388,9 +388,12 @@ impl Instant {
         &self.0
     }
 
-    // TODO: May end up needing a provider API during impl
-    pub fn to_zoned_date_time_iso(&self, time_zone: TimeZone) -> ZonedDateTime {
-        ZonedDateTime::new_unchecked(*self, Calendar::default(), time_zone)
+    pub fn to_zoned_date_time_iso_with_provider(
+        &self,
+        time_zone: TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<ZonedDateTime> {
+        ZonedDateTime::new_unchecked_with_provider(*self, Calendar::default(), time_zone, provider)
     }
 }
 

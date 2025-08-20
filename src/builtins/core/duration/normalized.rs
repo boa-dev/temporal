@@ -579,7 +579,7 @@ impl InternalDurationRecord {
                 tz.get_epoch_nanoseconds_for(start, Disambiguation::Compatible, provider)?;
             let end_epoch_ns =
                 tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
-            (start_epoch_ns, end_epoch_ns)
+            (start_epoch_ns.ns, end_epoch_ns.ns)
         // 11. If timeZoneRec is unset, then
         } else {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
@@ -668,12 +668,11 @@ impl InternalDurationRecord {
         // 4. Let endDateTime be CombineISODateAndTimeRecord(endDate, isoDateTime.[[Time]]).
         let end_dt = IsoDateTime::new_unchecked(end_date, dt.iso.time);
         // 5. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
-        let start_ns =
-            tz.get_epoch_nanoseconds_for(start_dt, Disambiguation::Compatible, provider)?;
+        let start = tz.get_epoch_nanoseconds_for(start_dt, Disambiguation::Compatible, provider)?;
         // 6. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
-        let end_ns = tz.get_epoch_nanoseconds_for(end_dt, Disambiguation::Compatible, provider)?;
+        let end = tz.get_epoch_nanoseconds_for(end_dt, Disambiguation::Compatible, provider)?;
         // 7. Let daySpan be TimeDurationFromEpochNanosecondsDifference(endEpochNs, startEpochNs).
-        let day_span = TimeDuration::from_nanosecond_difference(end_ns.0, start_ns.0)?;
+        let day_span = TimeDuration::from_nanosecond_difference(end.ns.0, start.ns.0)?;
         // 8. Assert: TimeDurationSign(daySpan) = sign.
         // 9. Let unitLength be the value in the "Length in Nanoseconds" column of the row of Table 21 whose "Value" column contains unit.
         let unit_length = options.smallest_unit.as_nanoseconds().temporal_unwrap()?;
@@ -699,14 +698,14 @@ impl InternalDurationRecord {
                     options.rounding_mode,
                 )?;
                 // d. Let nudgedEpochNs be AddTimeDurationToEpochNanoseconds(roundedTimeDuration, endEpochNs).
-                let nudged_ns = rounded_time.checked_add(end_ns.0)?;
+                let nudged_ns = rounded_time.checked_add(end.ns.0)?;
                 (true, sign as i8, rounded_time, nudged_ns)
             // 13. Else,
             } else {
                 // a. Let didRoundBeyondDay be false.
                 // b. Let dayDelta be 0.
                 // c. Let nudgedEpochNs be AddTimeDurationToEpochNanoseconds(roundedTimeDuration, startEpochNs).
-                let nudge_ns = rounded_time.checked_add(start_ns.0)?;
+                let nudge_ns = rounded_time.checked_add(start.ns.0)?;
                 (false, 0, rounded_time, nudge_ns)
             };
         // 14. Let dateDuration be ! AdjustDateDurationRecord(duration.[[Date]], duration.[[Date]].[[Days]] + dayDelta).
@@ -897,11 +896,13 @@ impl InternalDurationRecord {
                     // vii. Else,
                     Some((time_zone, time_zone_provider)) => {
                         // 1. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
-                        time_zone.get_epoch_nanoseconds_for(
-                            end_date_time,
-                            Disambiguation::Compatible,
-                            time_zone_provider,
-                        )?
+                        time_zone
+                            .get_epoch_nanoseconds_for(
+                                end_date_time,
+                                Disambiguation::Compatible,
+                                time_zone_provider,
+                            )?
+                            .ns
                     }
                 };
 

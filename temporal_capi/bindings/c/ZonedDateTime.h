@@ -59,8 +59,7 @@ temporal_rs_ZonedDateTime_from_epoch_milliseconds_result temporal_rs_ZonedDateTi
 
 I128Nanoseconds temporal_rs_ZonedDateTime_epoch_nanoseconds(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_offset_nanoseconds_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_offset_nanoseconds_result;
-temporal_rs_ZonedDateTime_offset_nanoseconds_result temporal_rs_ZonedDateTime_offset_nanoseconds(const ZonedDateTime* self);
+int64_t temporal_rs_ZonedDateTime_offset_nanoseconds(const ZonedDateTime* self);
 
 Instant* temporal_rs_ZonedDateTime_to_instant(const ZonedDateTime* self);
 

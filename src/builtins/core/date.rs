@@ -682,7 +682,12 @@ impl PlainDate {
             tz.get_start_of_day(&self.iso, provider)?
         };
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
-        ZonedDateTime::try_new(epoch_ns.0, self.calendar.clone(), tz)
+        ZonedDateTime::try_new_with_cached_offset(
+            epoch_ns.ns.0,
+            self.calendar.clone(),
+            tz,
+            epoch_ns.offset,
+        )
     }
 }
 // ==== Trait impls ====
@@ -955,15 +960,15 @@ mod tests {
         let zdt = date
             .to_zoned_date_time_with_provider(tz, None, provider)
             .unwrap();
-        assert_eq!(zdt.year_with_provider(provider).unwrap(), 2020);
-        assert_eq!(zdt.month_with_provider(provider).unwrap(), 1);
-        assert_eq!(zdt.day_with_provider(provider).unwrap(), 1);
-        assert_eq!(zdt.hour_with_provider(provider).unwrap(), 0);
-        assert_eq!(zdt.minute_with_provider(provider).unwrap(), 0);
-        assert_eq!(zdt.second_with_provider(provider).unwrap(), 0);
-        assert_eq!(zdt.millisecond_with_provider(provider).unwrap(), 0);
-        assert_eq!(zdt.microsecond_with_provider(provider).unwrap(), 0);
-        assert_eq!(zdt.nanosecond_with_provider(provider).unwrap(), 0);
+        assert_eq!(zdt.year().unwrap(), 2020);
+        assert_eq!(zdt.month().unwrap(), 1);
+        assert_eq!(zdt.day().unwrap(), 1);
+        assert_eq!(zdt.hour().unwrap(), 0);
+        assert_eq!(zdt.minute().unwrap(), 0);
+        assert_eq!(zdt.second().unwrap(), 0);
+        assert_eq!(zdt.millisecond().unwrap(), 0);
+        assert_eq!(zdt.microsecond().unwrap(), 0);
+        assert_eq!(zdt.nanosecond().unwrap(), 0);
     }
 
     #[cfg(feature = "tzdb")]
