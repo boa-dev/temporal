@@ -796,3 +796,28 @@ fn rounding_cross_boundary_time_units() {
     let result = neg_duration.round(options, None).unwrap();
     assert_duration(result, (0, 0, 0, 0, -2, 0, 0, 0, 0, 0));
 }
+
+#[test]
+fn nudge_past_end() {
+    // built-ins/Temporal/Duration/prototype/round/next-day-out-of-range
+    let duration = Duration::default();
+    let relative_to = ZonedDateTime::try_new(
+        86_40000_00000_00000_00000,
+        Default::default(),
+        TimeZone::try_from_str("UTC").unwrap(),
+    )
+    .unwrap();
+    let options = RoundingOptions {
+        largest_unit: Some(Unit::Day),
+        smallest_unit: Some(Unit::Minute),
+        increment: None,
+        rounding_mode: None,
+    };
+    // This constructs an endDate of MAX_DATE + 1 day (even though the sign is zero).
+    // This must error.
+    let rounded = duration.round(options, Some(relative_to.into()));
+    assert!(
+        rounded.is_err(),
+        "Expected rounding to fail, got {rounded:?}"
+    );
+}
