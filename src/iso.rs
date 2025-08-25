@@ -305,9 +305,7 @@ impl IsoDate {
     ) -> TemporalResult<Self> {
         let date = Self::regulate(year, month, day, overflow)?;
         if !iso_dt_within_valid_limits(date, &IsoTime::noon()) {
-            return Err(
-                TemporalError::range().with_message("Date is not within ISO date time limits.")
-            );
+            return Err(TemporalError::range().with_enum(ErrorMessage::DateOutOfRange));
         }
         Ok(date)
     }
