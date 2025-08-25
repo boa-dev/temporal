@@ -666,7 +666,8 @@ impl InternalDurationRecord {
         let end_date = IsoDate::balance(
             start.iso_year(),
             start.iso_month().into(),
-            start.iso_day() as i32 + sign as i32,
+            // Use sign_multiplier here, not sign as i8, since spec wants sign to be nonzero (0 => +1)
+            start.iso_day() as i32 + i32::from(sign.as_sign_multiplier()),
         );
 
         // 4. Let endDateTime be CombineISODateAndTimeRecord(endDate, isoDateTime.[[Time]]).
