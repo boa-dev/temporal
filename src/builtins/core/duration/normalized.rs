@@ -101,11 +101,15 @@ impl TimeDuration {
         Ok(Self(result))
     }
 
-    // TODO: Potentially, update divisor to u64?
-    /// `Divide the NormalizedTimeDuraiton` by a divisor.
-    pub(crate) fn divide(&self, divisor: i64) -> i128 {
+    /// `Divide the NormalizedTimeDuraiton` by a divisor, truncating
+    /// the result
+    pub(crate) fn truncated_divide(&self, divisor: u64) -> i128 {
         // TODO: Validate.
         self.0 / i128::from(divisor)
+    }
+
+    pub(crate) fn divide(&self, divisor: f64) -> f64 {
+        self.0 as f64 / divisor
     }
 
     /// Equivalent: 7.5.31 TimeDurationSign ( d )
@@ -751,10 +755,10 @@ impl InternalDurationRecord {
         let diff_time = rounded_time.checked_sub(&time_duration)?;
 
         // 5. Let wholeDays be truncate(TotalTimeDuration(timeDuration, day)).
-        let whole_days = time_duration.divide(NS_PER_DAY as i64) as i64;
+        let whole_days = time_duration.truncated_divide(NS_PER_DAY) as i64;
 
         // 6. Let roundedWholeDays be truncate(TotalTimeDuration(roundedTime, day)).
-        let rounded_whole_days = rounded_time.divide(NS_PER_DAY as i64) as i64;
+        let rounded_whole_days = rounded_time.truncated_divide(NS_PER_DAY) as i64;
         // 7. Let dayDelta be roundedWholeDays - wholeDays.
         let delta = rounded_whole_days - whole_days;
         // 8. If dayDelta < 0, let dayDeltaSign be -1; else if dayDelta > 0, let dayDeltaSign be 1; else let dayDeltaSign be 0.

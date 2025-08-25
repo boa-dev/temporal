@@ -49,7 +49,7 @@ impl ZonedDateTime {
     /// Returns the hours in the day.
     ///
     /// Enable with the `compiled_data` feature flag.
-    pub fn hours_in_day(&self) -> TemporalResult<u8> {
+    pub fn hours_in_day(&self) -> TemporalResult<f64> {
         self.hours_in_day_with_provider(&*TZ_PROVIDER)
     }
 }
@@ -725,10 +725,10 @@ mod tests {
             .add(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None)
             .unwrap();
 
-        assert_eq!(zdt.hours_in_day().unwrap(), 24);
+        assert_eq!(zdt.hours_in_day().unwrap(), 24.);
 
         let samoa_before = parse_zdt_with_reject(SAMOA_IDL_CHANGE_MINUS_ONE).unwrap();
-        assert_eq!(samoa_before.hours_in_day().unwrap(), 24);
+        assert_eq!(samoa_before.hours_in_day().unwrap(), 24.);
     }
 
     #[test]
@@ -822,5 +822,11 @@ mod tests {
             )
             .unwrap();
         assert_eq!(difference.to_string(), "P3D");
+    }
+
+    #[test]
+    fn test_toronto_half_hour() {
+        let zdt = parse_zdt_with_reject("1919-03-30T12:00:00-05:00[America/Toronto]").unwrap();
+        assert_eq!(zdt.hours_in_day().unwrap(), 23.5);
     }
 }

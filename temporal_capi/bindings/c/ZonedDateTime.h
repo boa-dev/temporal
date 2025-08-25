@@ -84,7 +84,7 @@ temporal_rs_ZonedDateTime_start_of_day_result temporal_rs_ZonedDateTime_start_of
 typedef struct temporal_rs_ZonedDateTime_get_time_zone_transition_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_get_time_zone_transition_result;
 temporal_rs_ZonedDateTime_get_time_zone_transition_result temporal_rs_ZonedDateTime_get_time_zone_transition(const ZonedDateTime* self, TransitionDirection direction);
 
-typedef struct temporal_rs_ZonedDateTime_hours_in_day_result {union {uint8_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_hours_in_day_result;
+typedef struct temporal_rs_ZonedDateTime_hours_in_day_result {union {double ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_hours_in_day_result;
 temporal_rs_ZonedDateTime_hours_in_day_result temporal_rs_ZonedDateTime_hours_in_day(const ZonedDateTime* self);
 
 typedef struct temporal_rs_ZonedDateTime_to_plain_datetime_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_plain_datetime_result;
