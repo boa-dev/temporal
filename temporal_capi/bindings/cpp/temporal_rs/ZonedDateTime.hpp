@@ -87,7 +87,7 @@ namespace capi {
     typedef struct temporal_rs_ZonedDateTime_get_time_zone_transition_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_get_time_zone_transition_result;
     temporal_rs_ZonedDateTime_get_time_zone_transition_result temporal_rs_ZonedDateTime_get_time_zone_transition(const temporal_rs::capi::ZonedDateTime* self, temporal_rs::capi::TransitionDirection direction);
 
-    typedef struct temporal_rs_ZonedDateTime_hours_in_day_result {union {uint8_t ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_hours_in_day_result;
+    typedef struct temporal_rs_ZonedDateTime_hours_in_day_result {union {double ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_hours_in_day_result;
     temporal_rs_ZonedDateTime_hours_in_day_result temporal_rs_ZonedDateTime_hours_in_day(const temporal_rs::capi::ZonedDateTime* self);
 
     typedef struct temporal_rs_ZonedDateTime_to_plain_datetime_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_plain_datetime_result;
@@ -300,9 +300,9 @@ inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::ZonedDateTime>>(std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<uint8_t, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::hours_in_day() const {
+inline diplomat::result<double, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::hours_in_day() const {
   auto result = temporal_rs::capi::temporal_rs_ZonedDateTime_hours_in_day(this->AsFFI());
-  return result.is_ok ? diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Ok<uint8_t>(result.ok)) : diplomat::result<uint8_t, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return result.is_ok ? diplomat::result<double, temporal_rs::TemporalError>(diplomat::Ok<double>(result.ok)) : diplomat::result<double, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::ZonedDateTime::to_plain_datetime() const {

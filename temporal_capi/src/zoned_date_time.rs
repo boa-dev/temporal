@@ -265,7 +265,7 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn hours_in_day(&self) -> Result<u8, TemporalError> {
+        pub fn hours_in_day(&self) -> Result<f64, TemporalError> {
             self.0.hours_in_day().map_err(Into::into)
         }
 

@@ -95,7 +95,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> get_time_zone_transition(temporal_rs::TransitionDirection direction) const;
 
-  inline diplomat::result<uint8_t, temporal_rs::TemporalError> hours_in_day() const;
+  inline diplomat::result<double, temporal_rs::TemporalError> hours_in_day() const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> to_plain_datetime() const;
 
