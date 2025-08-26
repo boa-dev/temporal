@@ -1282,6 +1282,13 @@ impl ZonedDateTime {
                 0 // Zero-length day: round to start of day
             };
 
+            // The cached offset will be based on which way we round
+            let offset = if rounded == 0 {
+                start.offset
+            } else {
+                end.offset
+            };
+
             // j. Let epochNanoseconds be AddTimeDurationToEpochNanoseconds(roundedDayNs, startNs).
             let candidate = start.ns.0 + rounded;
             Instant::try_new(candidate)?;
@@ -1290,7 +1297,7 @@ impl ZonedDateTime {
                 candidate,
                 self.calendar.clone(),
                 self.tz.clone(),
-                start.offset,
+                offset,
             )
         } else {
             // 19. Else,

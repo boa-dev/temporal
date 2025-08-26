@@ -217,7 +217,7 @@ mod tests {
     use super::ZonedDateTime;
     use crate::options::{
         DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
-        OffsetDisambiguation, RoundingMode, Unit,
+        OffsetDisambiguation, RoundingMode, RoundingOptions, Unit,
     };
     use crate::provider::TransitionDirection;
     use crate::Calendar;
@@ -828,5 +828,43 @@ mod tests {
     fn test_toronto_half_hour() {
         let zdt = parse_zdt_with_reject("1919-03-30T12:00:00-05:00[America/Toronto]").unwrap();
         assert_eq!(zdt.hours_in_day().unwrap(), 23.5);
+    }
+
+    #[test]
+    fn test_round_to_start_of_day() {
+        // Round up to DST
+        let zdt = parse_zdt_with_reject("1919-03-30T11:45-05:00[America/Toronto]").unwrap();
+        let rounded = zdt
+            .round(RoundingOptions {
+                smallest_unit: Some(Unit::Day),
+                ..Default::default()
+            })
+            .unwrap();
+        let known_rounded =
+            parse_zdt_with_reject("1919-03-31T00:30:00-04:00[America/Toronto]").unwrap();
+
+        assert!(
+            rounded.equals(&known_rounded).unwrap(),
+            "Expected {known_rounded}, found {rounded}"
+        );
+        assert_eq!(rounded.get_iso_datetime(), known_rounded.get_iso_datetime());
+
+        // Round down (ensure the offset picked is the correct one)
+        // See https://github.com/boa-dev/temporal/pull/520
+        let zdt = parse_zdt_with_reject("1919-03-30T01:45-05:00[America/Toronto]").unwrap();
+        let rounded = zdt
+            .round(RoundingOptions {
+                smallest_unit: Some(Unit::Day),
+                ..Default::default()
+            })
+            .unwrap();
+        let known_rounded =
+            parse_zdt_with_reject("1919-03-30T00:00:00-05:00[America/Toronto]").unwrap();
+
+        assert!(
+            rounded.equals(&known_rounded).unwrap(),
+            "Expected {known_rounded}, found {rounded}"
+        );
+        assert_eq!(rounded.get_iso_datetime(), known_rounded.get_iso_datetime());
     }
 }
