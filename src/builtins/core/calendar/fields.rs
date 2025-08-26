@@ -4,9 +4,10 @@ use tinystr::TinyAsciiStr;
 
 use super::types::month_to_month_code;
 use crate::{
-    options::ArithmeticOverflow, Calendar, MonthCode, PlainDate, PlainDateTime, PlainMonthDay,
-    PlainYearMonth, TemporalError, TemporalResult,
+    error::ErrorMessage, options::ArithmeticOverflow, Calendar, MonthCode, PlainDate,
+    PlainDateTime, PlainMonthDay, PlainYearMonth, TemporalError, TemporalResult,
 };
+use core::ops::Range;
 
 /// The return value of CalendarFieldKeysToIgnore
 #[derive(Copy, Clone, Default)]
@@ -45,6 +46,35 @@ impl CalendarFields {
             era: None,
             era_year: None,
         }
+    }
+
+    /// Temporal dates are valid between ISO -271821-04-20 and +275760-09-13,
+    /// but this may not correspond to the same thing for other calendars.
+    ///
+    /// These year values are well in range for not needing to worry about overflow/underflow,
+    /// but we cannot check for them without converting to the calendar first (via ISO).
+    ///
+    /// This method provides a quick and easy way to check that the years are in a safe arithmetic
+    /// range without necessarily needing to resolve calendar specific stuff.
+    ///
+    /// This is primarily a defense in depth mechanism; we should still use saturating/checked ops
+    /// where possible. This works nicely since we have an unambiguous answer for "GIGO or error"
+    /// since this check can always produce an error when out of range.
+    pub(crate) fn check_year_in_safe_arithmetical_range(&self) -> TemporalResult<()> {
+        // No calendars have eras offset more than 6000 years from the ISO epoch,
+        // and we generously round it up to ±300k
+        const ROUGH_YEAR_RANGE: Range<i32> = -300000..300000;
+        if let Some(year) = self.year {
+            if !ROUGH_YEAR_RANGE.contains(&year) {
+                return Err(TemporalError::range().with_enum(ErrorMessage::DateOutOfRange));
+            }
+        }
+        if let Some(era_year) = self.era_year {
+            if !ROUGH_YEAR_RANGE.contains(&era_year) {
+                return Err(TemporalError::range().with_enum(ErrorMessage::DateOutOfRange));
+            }
+        }
+        Ok(())
     }
 
     pub const fn with_era(mut self, era: Option<TinyAsciiStr<19>>) -> Self {

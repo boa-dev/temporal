@@ -728,6 +728,19 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         );
     }
 
+    if let Some(date) = record.date {
+        if !crate::iso::is_valid_date(date.year, date.month, date.day) {
+            return Err(TemporalError::range()
+                .with_message("DateTime strings must contain a valid ISO date."));
+        }
+    }
+
+    if let Some(time) = record.time {
+        if !crate::iso::is_valid_time(time.hour, time.minute, time.second, 0, 0, 0) {
+            return Err(TemporalError::range()
+                .with_message("DateTime strings must contain a valid ISO time."));
+        }
+    }
     Ok(record)
 }
 
