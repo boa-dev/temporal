@@ -21,11 +21,6 @@ All notable changes to this project will be documented in this file.
 * Handle week=5 MWD cases in posix TZ strings by @Manishearth in [#499](https://github.com/boa-dev/temporal/pull/499)
 * Exclude tzif files from publish by @Manishearth in [#495](https://github.com/boa-dev/temporal/pull/495)
 
-## New Contributors
-* @Manishearth made their first contribution in [#517](https://github.com/boa-dev/temporal/pull/517)
-* @dependabot[bot] made their first contribution in [#511](https://github.com/boa-dev/temporal/pull/511)
-* @nekevss made their first contribution in [#507](https://github.com/boa-dev/temporal/pull/507)
-
 **Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.12...v0.0.13
 
 ## What's Changed in v0.0.12
