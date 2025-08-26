@@ -31,8 +31,8 @@ fn extract_kind(calendar: Option<&[u8]>) -> TemporalResult<AnyCalendarKind> {
 /// A parsed-but-not-validated date
 #[derive(Copy, Clone, Debug)]
 pub struct ParsedDate {
-    pub record: DateRecord,
-    pub calendar: AnyCalendarKind,
+    pub(crate) record: DateRecord,
+    pub(crate) calendar: AnyCalendarKind,
 }
 
 impl ParsedDate {
@@ -74,8 +74,8 @@ impl ParsedDate {
 /// A parsed-but-not-validated datetime
 #[derive(Copy, Clone, Debug)]
 pub struct ParsedDateTime {
-    pub date: ParsedDate,
-    pub time: IsoTime,
+    pub(crate) date: ParsedDate,
+    pub(crate) time: IsoTime,
 }
 
 impl ParsedDateTime {
@@ -102,21 +102,21 @@ impl ParsedDateTime {
 /// A parsed-but-not-validated zoned datetime
 #[derive(Clone, Debug)]
 pub struct ParsedZonedDateTime {
-    pub date: ParsedDate,
+    pub(crate) date: ParsedDate,
     /// None time is START-OF-DAY
-    pub time: Option<IsoTime>,
+    pub(crate) time: Option<IsoTime>,
     /// Whether or not the string has a UTC designator (`Z`)
     ///
     /// Incompatible with having an offset (you can still have a offset-format timezone)
-    pub has_utc_designator: bool,
+    pub(crate) has_utc_designator: bool,
     /// Whether or not to allow offsets rounded to the minute
     ///
     /// (Typically only needs to be set when parsing, can be false otherwise)
-    pub match_minutes: bool,
+    pub(crate) match_minutes: bool,
     /// An optional offset string
-    pub offset: Option<UtcOffset>,
+    pub(crate) offset: Option<UtcOffset>,
     /// The time zone
-    pub timezone: TimeZone,
+    pub(crate) timezone: TimeZone,
 }
 
 impl ParsedZonedDateTime {
@@ -203,6 +203,8 @@ fn test_parsed_intermediate_invalid_dates() {
     assert!(ParsedDate::month_day_from_utf8(b"1001").is_ok());
     assert!(ParsedDateTime::from_utf8(b"2025-02-28T25:69:69").is_err());
     assert!(ParsedDateTime::from_utf8(b"2025-02-28T23:59:59").is_ok());
+    #[cfg(feature = "compiled_data")]
     assert!(ParsedZonedDateTime::from_utf8(b"2025-02-29T00:00:00Z[utc]").is_err());
+    #[cfg(feature = "compiled_data")]
     assert!(ParsedZonedDateTime::from_utf8(b"2025-02-28T00:00:00Z[utc]").is_ok());
 }

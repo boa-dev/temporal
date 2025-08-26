@@ -69,7 +69,7 @@ impl IsoDateTime {
         Ok(Self::new_unchecked(date, time))
     }
 
-    /// https://tc39.es/proposal-temporal/#sec-temporal-isodatetimewithinlimits
+    /// <https://tc39.es/proposal-temporal/#sec-temporal-isodatetimewithinlimits>
     pub fn check_within_limits(&self) -> TemporalResult<()> {
         if !iso_dt_within_valid_limits(self.date, &self.time) {
             return Err(
@@ -292,7 +292,7 @@ impl IsoDate {
         }
     }
 
-    /// https://tc39.es/proposal-temporal/#sec-temporal-isodatetimewithinlimits
+    /// <https://tc39.es/proposal-temporal/#sec-temporal-isodatetimewithinlimits>
     pub fn check_within_limits(self) -> TemporalResult<()> {
         if !iso_dt_within_valid_limits(self, &IsoTime::noon()) {
             return Err(TemporalError::range().with_message("IsoDate not within a valid range."));
@@ -300,7 +300,7 @@ impl IsoDate {
         Ok(())
     }
 
-    // https://tc39.es/proposal-temporal/#sec-temporal-isvalidisodate
+    // <https://tc39.es/proposal-temporal/#sec-temporal-isvalidisodate>
     pub fn check_validity(&self) -> TemporalResult<()> {
         if !self.is_valid() {
             return Err(
