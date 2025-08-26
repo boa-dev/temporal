@@ -172,6 +172,7 @@ pub(crate) enum ErrorMessage {
     IntermediateDateTimeOutOfRange,
     ZDTOutOfDayBounds,
     LargestUnitCannotBeDateUnit,
+    DateOutOfRange,
 
     // Numerical errors
     NumberNotFinite,
@@ -214,6 +215,7 @@ impl ErrorMessage {
             }
             Self::ZDTOutOfDayBounds => "ZonedDateTime is outside the expected day bounds",
             Self::LargestUnitCannotBeDateUnit => "Largest unit cannot be a date unit",
+            Self::DateOutOfRange => "Date is not within ISO date time limits.",
             Self::NumberNotFinite => "number value is not a finite value.",
             Self::NumberNotIntegral => "value must be integral.",
             Self::NumberNotPositive => "integer must be positive.",
