@@ -37,6 +37,7 @@ impl ResolvedCalendarFields {
         overflow: ArithmeticOverflow,
         resolve_type: ResolutionType,
     ) -> TemporalResult<Self> {
+        fields.check_year_in_safe_arithmetical_range()?;
         let era_year = EraYear::try_from_fields(calendar, fields, resolve_type)?;
         if calendar.is_iso() {
             let month_code = resolve_iso_month(calendar, fields, overflow)?;
