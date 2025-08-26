@@ -821,3 +821,24 @@ fn nudge_past_end() {
         "Expected rounding to fail, got {rounded:?}"
     );
 }
+
+#[test]
+fn bubble_smallest_becomes_day() {
+    // built-ins/Temporal/Duration/prototype/round/bubble-time-unit
+    let duration = Duration::new(0, 0, 0, 0, /* hours = */ 14, 0, 0, 0, 0, 0).unwrap();
+    let relative_to = PlainDate::try_new(2025, 6, 14, Default::default()).unwrap();
+    let options = RoundingOptions {
+        largest_unit: None,
+        smallest_unit: Some(Unit::Hour),
+        increment: Some(RoundingIncrement::try_new(12).unwrap()),
+        rounding_mode: Some(RoundingMode::Ceil),
+    };
+    // This constructs an endDate of MAX_DATE + 1 day (even though the sign is zero).
+    // This must error.
+    let rounded = duration.round(options, Some(relative_to.into())).unwrap();
+    assert_eq!(
+        rounded.hours(),
+        24,
+        "Expected rounding to fail, got {rounded:?}"
+    );
+}

@@ -1,6 +1,6 @@
 //! This module implements the normalized `Duration` records.
 
-use core::{num::NonZeroU128, ops::Add};
+use core::{cmp, num::NonZeroU128, ops::Add};
 
 use num_traits::AsPrimitive;
 
@@ -834,8 +834,11 @@ impl InternalDurationRecord {
         // 5. Let done be false.
         // 6. Repeat, while unitIndex ≥ largestUnitIndex and done is false,
         //     a. Let unit be the value in the "Value" column of Table 21 in the row whose ordinal index is unitIndex.
+        // The caller is able to set smallest_unit_index to `day` here, which would result in a backwards range get
+        // We clamp to handle that case
+        let clamped_upper_bound = cmp::max(smallest_unit_index, largest_unit_index);
         let unit_values = UNIT_VALUE_TABLE
-            .get(largest_unit_index..smallest_unit_index)
+            .get(largest_unit_index..clamped_upper_bound)
             .temporal_unwrap()?;
         for unit in unit_values.iter().rev().copied() {
             // b. If unit is not week, or largestUnit is week, then

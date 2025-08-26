@@ -296,8 +296,8 @@ impl PlainDateTime {
             return Ok(InternalDurationRecord::default());
         }
         // 2. If ISODateTimeWithinLimits(isoDateTime1) is false or ISODateTimeWithinLimits(isoDateTime2) is false, throw a RangeError exception.
-        self.iso.check_validity()?;
-        other.iso.check_validity()?;
+        self.iso.check_within_limits()?;
+        other.iso.check_within_limits()?;
 
         // 3. Let diff be DifferenceISODateTime(isoDateTime1, isoDateTime2, calendar, largestUnit).
         let diff = self
