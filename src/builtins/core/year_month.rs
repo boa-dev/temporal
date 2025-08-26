@@ -303,13 +303,13 @@ impl PlainYearMonth {
         // 9. Let thisDate be ? CalendarDateFromFields(calendar, thisFields, constrain).
         let mut this_iso = self.iso;
         this_iso.day = 1;
-        this_iso.check_validity()?;
+        this_iso.check_within_limits()?;
         // 10. Let otherFields be ISODateToFields(calendar, other.[[ISODate]], year-month).
         // 11. Set otherFields.[[Day]] to 1.
         // 12. Let otherDate be ? CalendarDateFromFields(calendar, otherFields, constrain).
         let mut other_iso = other.iso;
         other_iso.day = 1;
-        other_iso.check_validity()?;
+        other_iso.check_within_limits()?;
         // 13. Let dateDifference be CalendarDateUntil(calendar, thisDate, otherDate, settings.[[LargestUnit]]).
         let result = self
             .calendar()
@@ -445,6 +445,7 @@ impl PlainYearMonth {
         if !year_month_within_limits(iso.year, iso.month) {
             return Err(TemporalError::range().with_message("Exceeded valid range."));
         }
+        debug_assert!(iso.check_validity().is_ok(), "Found invalid ParsedDate");
 
         let intermediate = Self::new_unchecked(iso, Calendar::new(parsed.calendar));
         // 12. Set result to ISODateToFields(calendar, isoDate, year-month).

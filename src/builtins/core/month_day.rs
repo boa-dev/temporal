@@ -209,6 +209,7 @@ impl PlainMonthDay {
             // b. Let isoDate be CreateISODateRecord(referenceISOYear, result.[[Month]], result.[[Day]]).
             // c. Return !CreateTemporalMonthDay(isoDate, calendar).
             let iso = IsoDate::new_unchecked(1972, parsed.record.month, parsed.record.day);
+            debug_assert!(iso.check_validity().is_ok(), "Found invalid ParsedDate");
             return Ok(Self::new_unchecked(iso, calendar));
         }
         // 11. Let isoDate be CreateISODateRecord(result.[[Year]], result.[[Month]], result.[[Day]]).
@@ -218,7 +219,8 @@ impl PlainMonthDay {
         // could potentially be out of Temporal range.
         let iso =
             IsoDate::new_unchecked(parsed.record.year, parsed.record.month, parsed.record.day);
-        iso.check_validity()?;
+        iso.check_within_limits()?;
+        debug_assert!(iso.check_validity().is_ok(), "Found invalid ParsedDate");
 
         // 13. Set result to ISODateToFields(calendar, isoDate, month-day).
 

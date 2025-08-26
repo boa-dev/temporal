@@ -189,3 +189,20 @@ impl ParsedZonedDateTime {
         })
     }
 }
+
+#[test]
+fn test_parsed_intermediate_invalid_dates() {
+    // https://tc39.es/proposal-temporal/#sec-temporal-iso8601grammar-static-semantics-early-errors
+    //
+    // We need to error on invalid date/times *before* producing a ParsedFoo, since this is observable
+    assert!(ParsedDate::from_utf8(b"2025-02-29").is_err());
+    assert!(ParsedDate::from_utf8(b"2025-02-28").is_ok());
+    assert!(ParsedDate::year_month_from_utf8(b"202513").is_err());
+    assert!(ParsedDate::year_month_from_utf8(b"202512").is_ok());
+    assert!(ParsedDate::month_day_from_utf8(b"1000").is_err());
+    assert!(ParsedDate::month_day_from_utf8(b"1001").is_ok());
+    assert!(ParsedDateTime::from_utf8(b"2025-02-28T25:69:69").is_err());
+    assert!(ParsedDateTime::from_utf8(b"2025-02-28T23:59:59").is_ok());
+    assert!(ParsedZonedDateTime::from_utf8(b"2025-02-29T00:00:00Z[utc]").is_err());
+    assert!(ParsedZonedDateTime::from_utf8(b"2025-02-28T00:00:00Z[utc]").is_ok());
+}

@@ -69,7 +69,8 @@ impl IsoDateTime {
         Ok(Self::new_unchecked(date, time))
     }
 
-    pub fn check_validity(&self) -> TemporalResult<()> {
+    /// https://tc39.es/proposal-temporal/#sec-temporal-isodatetimewithinlimits
+    pub fn check_within_limits(&self) -> TemporalResult<()> {
         if !iso_dt_within_valid_limits(self.date, &self.time) {
             return Err(
                 TemporalError::range().with_message("IsoDateTime not within a valid range.")
@@ -291,12 +292,24 @@ impl IsoDate {
         }
     }
 
-    pub fn check_validity(self) -> TemporalResult<()> {
+    /// https://tc39.es/proposal-temporal/#sec-temporal-isodatetimewithinlimits
+    pub fn check_within_limits(self) -> TemporalResult<()> {
         if !iso_dt_within_valid_limits(self, &IsoTime::noon()) {
             return Err(TemporalError::range().with_message("IsoDate not within a valid range."));
         }
         Ok(())
     }
+
+    // https://tc39.es/proposal-temporal/#sec-temporal-isvalidisodate
+    pub fn check_validity(&self) -> TemporalResult<()> {
+        if !self.is_valid() {
+            return Err(
+                TemporalError::range().with_message("IsoDateTime does not have valid fields.")
+            );
+        }
+        Ok(())
+    }
+
     pub(crate) fn new_with_overflow(
         year: i32,
         month: u8,
@@ -935,7 +948,7 @@ pub(crate) fn iso_date_to_epoch_days(year: i32, month: i32, day: i32) -> i64 {
 
 #[inline]
 // Determines if the month and day are valid for the given year.
-fn is_valid_date(year: i32, month: u8, day: u8) -> bool {
+pub(crate) fn is_valid_date(year: i32, month: u8, day: u8) -> bool {
     if !(1..=12).contains(&month) {
         return false;
     }
@@ -1004,7 +1017,7 @@ pub(crate) fn is_valid_iso_day(year: i32, month: u8, day: u8) -> bool {
 // ==== `IsoTime` specific utilities ====
 
 #[inline]
-fn is_valid_time(hour: u8, minute: u8, second: u8, ms: u16, mis: u16, ns: u16) -> bool {
+pub(crate) fn is_valid_time(hour: u8, minute: u8, second: u8, ms: u16, mis: u16, ns: u16) -> bool {
     if !(0..=23).contains(&hour) {
         return false;
     }
