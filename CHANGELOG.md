@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## What's Changed in v0.0.13
+* Bump versions to 0.13
+* Add validity checks on parse by @Manishearth in [#517](https://github.com/boa-dev/temporal/pull/517)
+* Use correct cached offset when rounding ZDTs by @Manishearth in [#520](https://github.com/boa-dev/temporal/pull/520)
+* Clamp unit indices before checking table by @Manishearth in [#516](https://github.com/boa-dev/temporal/pull/516)
+* Check that year values are in safe arithmetical range by @Manishearth in [#513](https://github.com/boa-dev/temporal/pull/513)
+* Use correct sign value in nudge code by @Manishearth in [#514](https://github.com/boa-dev/temporal/pull/514)
+* Support fractional hour values in hoursInDay by @Manishearth in [#515](https://github.com/boa-dev/temporal/pull/515)
+* Cache offsets on ZDT by @Manishearth in [#510](https://github.com/boa-dev/temporal/pull/510)
+* Update duration to unsigned fields + specification updates by @nekevss in [#507](https://github.com/boa-dev/temporal/pull/507)
+* Reduce (and lint-disallow) panics in main code by @Manishearth in [#506](https://github.com/boa-dev/temporal/pull/506)
+* Further normalize MWDs, add Vancouver and Santiago tests by @Manishearth in [#504](https://github.com/boa-dev/temporal/pull/504)
+* Duration rounding: is_date_unit(), not is_calendar_unit() by @Manishearth in [#503](https://github.com/boa-dev/temporal/pull/503)
+* Use beyondDaySpan in NudgeToZonedDateTime by @Manishearth in [#501](https://github.com/boa-dev/temporal/pull/501)
+* Remove use of unsafe from the main crate by @Manishearth in [#502](https://github.com/boa-dev/temporal/pull/502)
+* Simplify calendar API over FFI by @Manishearth in [#498](https://github.com/boa-dev/temporal/pull/498)
+* Handle week=5 MWD cases in posix TZ strings by @Manishearth in [#499](https://github.com/boa-dev/temporal/pull/499)
+* Exclude tzif files from publish by @Manishearth in [#495](https://github.com/boa-dev/temporal/pull/495)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.12...v0.0.13
+
 ## What's Changed in v0.0.12
 * Bump versions
 * cleanup: Remove parsing functionality from PartialZDT by @Manishearth in [#493](https://github.com/boa-dev/temporal/pull/493)
