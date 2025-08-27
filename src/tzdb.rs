@@ -587,7 +587,7 @@ impl Tzif {
         &self,
         local_datetime: timezone_provider::provider::IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
-        let epoch_nanos = crate::iso::IsoDateTime::from(local_datetime).as_nanoseconds();
+        let epoch_nanos = (local_datetime).as_nanoseconds();
         let mut seconds = (epoch_nanos.0 / NS_IN_S) as i64;
 
         // We just rounded our ns value to seconds.
@@ -1567,8 +1567,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let edge_case_seconds =
-            (crate::iso::IsoDateTime::from(edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = ((edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -1601,8 +1600,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let seconds =
-            (crate::iso::IsoDateTime::from(today).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let seconds = ((today).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -1633,8 +1631,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let edge_case_seconds =
-            (crate::iso::IsoDateTime::from(edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = ((edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -1677,8 +1674,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let seconds =
-            (crate::iso::IsoDateTime::from(today).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let seconds = ((today).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -1722,8 +1718,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let edge_case_seconds =
-            (crate::iso::IsoDateTime::from(edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = ((edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let locals = new_york
             .v2_estimate_tz_pair(&Seconds(edge_case_seconds))
@@ -1757,8 +1752,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let seconds =
-            (crate::iso::IsoDateTime::from(today).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let seconds = ((today).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let locals = sydney.v2_estimate_tz_pair(&Seconds(seconds)).unwrap();
 
@@ -1789,8 +1783,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let edge_case_seconds =
-            (crate::iso::IsoDateTime::from(edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let edge_case_seconds = ((edge_case).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let new_york = Tzif::read_tzif("America/New_York");
@@ -1829,8 +1822,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let seconds =
-            (crate::iso::IsoDateTime::from(today).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let seconds = ((today).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         #[cfg(not(target_os = "windows"))]
         let sydney = Tzif::read_tzif("Australia/Sydney");
@@ -1863,8 +1855,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let start_dt_secs =
-            (crate::iso::IsoDateTime::from(start_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let start_dt_secs = ((start_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let start_seconds = &Seconds(start_dt_secs);
 
@@ -1885,8 +1876,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let end_dt_secs =
-            (crate::iso::IsoDateTime::from(end_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let end_dt_secs = ((end_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let end_seconds = &Seconds(end_dt_secs);
 
@@ -1914,8 +1904,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let start_dt_secs =
-            (crate::iso::IsoDateTime::from(start_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let start_dt_secs = ((start_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let start_seconds = &Seconds(start_dt_secs);
 
@@ -1936,8 +1925,7 @@ mod tests {
             microsecond: 0,
             nanosecond: 0,
         };
-        let end_dt_secs =
-            (crate::iso::IsoDateTime::from(end_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
+        let end_dt_secs = ((end_dt).as_nanoseconds().0 / 1_000_000_000) as i64;
 
         let end_seconds = &Seconds(end_dt_secs);
 

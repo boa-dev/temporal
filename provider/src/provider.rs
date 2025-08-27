@@ -3,6 +3,7 @@
 use core::str::FromStr;
 
 // use crate::UtcOffset;
+use crate::utils;
 use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 use alloc::borrow::Cow;
 
@@ -21,6 +22,35 @@ pub struct IsoDateTime {
     pub millisecond: u16,
     pub microsecond: u16,
     pub nanosecond: u16,
+}
+
+impl IsoDateTime {
+    fn to_epoch_days(self) -> i32 {
+        // NOTE: cast to i32 is safe as IsoDate is in a valid range.
+        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day) as i32
+    }
+    /// `IsoTimeToEpochMs`
+    ///
+    /// Note: This method is library specific and not in spec
+    ///
+    /// Functionally the same as Date's `MakeTime`
+    fn time_to_epoch_ms(self) -> i64 {
+        ((i64::from(self.hour) * utils::MS_PER_HOUR
+            + i64::from(self.minute) * utils::MS_PER_MINUTE)
+            + i64::from(self.second) * 1000i64)
+            + i64::from(self.millisecond)
+    }
+
+    /// Convert this datetime to nanoseconds since the Unix epoch
+    pub fn as_nanoseconds(&self) -> EpochNanoseconds {
+        let time_ms = self.time_to_epoch_ms();
+        let epoch_ms = utils::epoch_days_to_epoch_ms(self.to_epoch_days() as i64, time_ms);
+        EpochNanoseconds(
+            epoch_ms as i128 * 1_000_000
+                + self.microsecond as i128 * 1_000
+                + self.nanosecond as i128,
+        )
+    }
 }
 
 #[cfg(feature = "tzif")]
