@@ -15,12 +15,11 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-pub mod posix;
 mod tzdb;
+#[cfg(feature = "experimental_tzif")]
 pub mod tzif;
 
 pub use tzdb::IanaIdentifierNormalizer;
-pub use tzif::ZoneInfoProvider;
 
 #[cfg(feature = "datagen")]
 pub use tzdb::IanaDataError;
@@ -34,6 +33,7 @@ pub mod prelude {
 include!("./data/mod.rs");
 
 #[cfg(test)]
+#[cfg(feature = "experimental_tzif")]
 mod tests {
     use crate as timezone_provider;
     extern crate alloc;

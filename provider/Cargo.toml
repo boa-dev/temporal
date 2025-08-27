@@ -30,9 +30,11 @@ datagen = [
     "zerovec/serde",
     "zerovec/databake",
     "zerovec/derive",
-    "zoneinfo_rs",
+    "dep:zoneinfo_rs",
+    "experimental_tzif",
 ]
 std = []
+experimental_tzif = []
 
 [dependencies]
 

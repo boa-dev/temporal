@@ -29,7 +29,7 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
             #[macro_export]
             macro_rules! compiled_zoneinfo_provider {
                 () => {
-                    pub const COMPILED_ZONEINFO_PROVIDER: &'static timezone_provider::ZoneInfoProvider = &#baked;
+                    pub const COMPILED_ZONEINFO_PROVIDER: &'static timezone_provider::tzif::ZoneInfoProvider = &#baked;
                 }
             }
         };
