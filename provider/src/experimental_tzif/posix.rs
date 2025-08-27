@@ -8,7 +8,7 @@ use zoneinfo_rs::posix::{MonthWeekDay, PosixDate, PosixDateTime, PosixTimeZone, 
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif::posix))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif::posix))]
 pub struct PosixZone {
     pub abbr: TinyAsciiStr<5>,
     pub offset: i64,
@@ -40,7 +40,7 @@ impl From<&PosixTimeZone> for PosixZone {
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif::posix))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif::posix))]
 pub struct ZeroPosixTransition {
     pub abbr: TinyAsciiStr<5>,
     pub savings: i64,
@@ -71,7 +71,7 @@ impl From<&PosixTransition> for ZeroPosixTransition {
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif::posix))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif::posix))]
 pub struct ZeroTransitionDateTime {
     /// The date at which a transition should occur.
     date: ZeroTransitionDate,
@@ -95,7 +95,7 @@ impl From<&PosixDateTime> for ZeroTransitionDateTime {
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif::posix))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif::posix))]
 pub struct ZeroTransitionDate {
     kind: DateKind,
     day: Option<u16>,
@@ -123,7 +123,7 @@ impl From<PosixDate> for ZeroTransitionDate {
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif::posix))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif::posix))]
 #[repr(u8)]
 pub enum DateKind {
     JulianNoLeap = 0,
