@@ -22,8 +22,12 @@ mod private {
 
 mod tzdb;
 pub use tzdb::IanaIdentifierNormalizer;
-#[cfg(feature = "experimental_tzif")]
+
+#[cfg(feature = "tzif")]
 pub mod tzif;
+
+#[cfg(feature = "experimental_tzif")]
+pub mod experimental_tzif;
 
 pub mod epoch_nanoseconds;
 
@@ -75,7 +79,7 @@ mod tests {
     #[test]
     #[cfg(feature = "experimental_tzif")]
     fn zone_info_basic() {
-        let tzif = crate::tzif::COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
+        let tzif = crate::experimental_tzif::COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
         assert!(tzif.is_some())
     }
 }

@@ -141,7 +141,7 @@ pub(crate) mod sys;
 mod builtins;
 
 #[cfg(feature = "tzdb")]
-pub mod tzdb;
+pub(crate) mod tzdb;
 
 #[doc(hidden)]
 pub(crate) mod rounding;

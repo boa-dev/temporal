@@ -1,13 +1,10 @@
 //! Utility date and time equations for Temporal
 
-use alloc::format;
-use alloc::string::String;
-
 use crate::epoch_nanoseconds::MS_PER_DAY;
 
-mod neri_schneider;
+pub mod neri_schneider;
 
-pub(crate) use neri_schneider::epoch_days_from_gregorian_date;
+pub use neri_schneider::epoch_days_from_gregorian_date;
 
 // NOTE: Potentially add more of tests.
 
@@ -21,18 +18,6 @@ pub(crate) const MS_PER_MINUTE: i64 = 60_000;
 /// Functionally the same as Date's abstract operation `MakeDate`
 pub(crate) fn epoch_days_to_epoch_ms(day: i64, time: i64) -> i64 {
     (day * MS_PER_DAY as i64) + time
-}
-
-/// 3.5.11 PadISOYear ( y )
-///
-/// returns a String representation of y suitable for inclusion in an ISO 8601 string
-pub(crate) fn pad_iso_year(year: i32) -> String {
-    if (0..9999).contains(&year) {
-        return format!("{year:04}");
-    }
-    let year_sign = if year > 0 { "+" } else { "-" };
-    let year_string = format!("{:06}", year.abs());
-    format!("{year_sign}{year_string}",)
 }
 
 /// `EpochTimeToDayNumber`

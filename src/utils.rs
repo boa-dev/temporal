@@ -5,9 +5,8 @@ use alloc::string::String;
 
 use crate::MS_PER_DAY;
 
-mod neri_schneider;
-
-pub(crate) use neri_schneider::epoch_days_from_gregorian_date;
+pub(crate) use timezone_provider::utils::epoch_days_from_gregorian_date;
+use timezone_provider::utils::neri_schneider;
 
 // NOTE: Potentially add more of tests.
 

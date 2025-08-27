@@ -38,7 +38,10 @@ std = []
 experimental_tzif = []
 
 # Performing timezone resolution with the `tzif` crate
-tzif = ["dep:tzif"]
+tzif = ["dep:tzif", 
+    "dep:jiff-tzdb",
+    "dep:combine",
+    "std"]
 
 [dependencies]
 
@@ -52,7 +55,8 @@ zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
 
 # tzif dependency
 tzif = { workspace = true, optional = true }
-
+jiff-tzdb = { workspace = true, optional = true }
+combine = { workspace = true, optional = true }
 
 # Databake dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true }
