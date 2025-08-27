@@ -30,15 +30,17 @@ datagen = [
     "zerovec/serde",
     "zerovec/databake",
     "zerovec/derive",
-    "zoneinfo_rs",
+    "dep:zoneinfo_rs",
+    "experimental_tzif",
 ]
 std = []
+experimental_tzif = []
 
 [dependencies]
 
 # Provider dependency
 zerotrie = "0.2.2"
-zerovec = { version = "0.11.4", features = ["derive", "alloc"] }
+zerovec = { workspace = true, features = ["derive", "alloc"] }
 tinystr = { workspace = true, features = ["zerovec"] }
 
 # IANA dependency

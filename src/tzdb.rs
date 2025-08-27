@@ -42,8 +42,6 @@ use std::sync::RwLock;
 
 use combine::Parser;
 
-use timezone_provider::prelude::*;
-
 use tzif::{
     self,
     data::{
@@ -65,7 +63,7 @@ use crate::{
     utils, TemporalError, TemporalResult,
 };
 
-timezone_provider::iana_normalizer_singleton!();
+use timezone_provider::SINGLETON_IANA_NORMALIZER;
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";

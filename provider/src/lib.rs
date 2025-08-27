@@ -15,31 +15,24 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate std;
 
-pub mod posix;
+#[macro_use]
+mod private {
+    include!("./data/mod.rs");
+}
+
 mod tzdb;
+#[cfg(feature = "experimental_tzif")]
 pub mod tzif;
 
 pub use tzdb::IanaIdentifierNormalizer;
-pub use tzif::ZoneInfoProvider;
 
-#[cfg(feature = "datagen")]
-pub use tzdb::IanaDataError;
-
-/// A prelude of needed types for interacting with `timezone_provider` data.
-pub mod prelude {
-    pub use zerotrie;
-    pub use zerovec;
-}
-
-include!("./data/mod.rs");
+use crate as timezone_provider;
+iana_normalizer_singleton!(SINGLETON_IANA_NORMALIZER);
 
 #[cfg(test)]
 mod tests {
-    use crate as timezone_provider;
     extern crate alloc;
-
-    iana_normalizer_singleton!();
-    compiled_zoneinfo_provider!();
+    use super::SINGLETON_IANA_NORMALIZER;
 
     #[test]
     fn basic_normalization() {
@@ -72,8 +65,9 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "experimental_tzif")]
     fn zone_info_basic() {
-        let tzif = COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
+        let tzif = crate::tzif::COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
         assert!(tzif.is_some())
     }
 }
