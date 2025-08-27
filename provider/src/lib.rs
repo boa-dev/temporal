@@ -21,10 +21,14 @@ mod private {
 }
 
 mod tzdb;
+pub use tzdb::IanaIdentifierNormalizer;
 #[cfg(feature = "experimental_tzif")]
 pub mod tzif;
 
-pub use tzdb::IanaIdentifierNormalizer;
+pub mod epoch_nanoseconds;
+mod error;
+pub mod provider;
+pub use error::TimeZoneProviderError;
 
 use crate as timezone_provider;
 iana_normalizer_singleton!(SINGLETON_IANA_NORMALIZER);
