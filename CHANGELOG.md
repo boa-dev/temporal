@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## What's Changed in v0.0.14
+* Release 0.0.14
+* Fix validity checks by @Manishearth in [#523](https://github.com/boa-dev/temporal/pull/523)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.13...v0.0.14
+
 ## What's Changed in v0.0.13
 * Bump versions to 0.13
 * Add validity checks on parse by @Manishearth in [#517](https://github.com/boa-dev/temporal/pull/517)
