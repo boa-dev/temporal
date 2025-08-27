@@ -255,7 +255,9 @@ impl From<TimeZoneProviderError> for TemporalError {
             TimeZoneProviderError::InstantOutOfRange => {
                 Self::range().with_enum(ErrorMessage::InstantOutOfRange)
             }
-            _ => Self::assert(),
+            TimeZoneProviderError::Assert(s) => Self::assert().with_message(s),
+            TimeZoneProviderError::Range(s) => Self::range().with_message(s),
+            _ => Self::assert().with_message("Unknown TimeZoneProviderError"),
         }
     }
 }

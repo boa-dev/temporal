@@ -12,12 +12,15 @@ pub struct UtcOffsetSeconds(pub i64);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IsoDateTime {
-    year: i32,
-    month: u8,
-    day: u8,
-    hour: u8,
-    minute: u8,
-    second: u8,
+    pub year: i32,
+    pub month: u8,
+    pub day: u8,
+    pub hour: u8,
+    pub minute: u8,
+    pub second: u8,
+    pub millisecond: u16,
+    pub microsecond: u16,
+    pub nanosecond: u16,
 }
 
 #[cfg(feature = "tzif")]

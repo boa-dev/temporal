@@ -1037,6 +1037,38 @@ fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
     (dividend.div_euclid(divisor), dividend.rem_euclid(divisor))
 }
 
+impl From<timezone_provider::provider::IsoDateTime> for IsoDateTime {
+    fn from(other: timezone_provider::provider::IsoDateTime) -> Self {
+        Self::new_unchecked(
+            IsoDate::new_unchecked(other.year, other.month, other.day),
+            IsoTime::new_unchecked(
+                other.hour,
+                other.minute,
+                other.second,
+                other.millisecond,
+                other.microsecond,
+                other.nanosecond,
+            ),
+        )
+    }
+}
+
+impl From<IsoDateTime> for timezone_provider::provider::IsoDateTime {
+    fn from(other: IsoDateTime) -> Self {
+        Self {
+            year: other.date.year,
+            month: other.date.month,
+            day: other.date.day,
+            hour: other.time.hour,
+            minute: other.time.minute,
+            second: other.time.second,
+            millisecond: other.time.millisecond,
+            microsecond: other.time.microsecond,
+            nanosecond: other.time.nanosecond,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{iso_date_to_epoch_days, IsoDate};
