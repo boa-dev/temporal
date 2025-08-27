@@ -16,7 +16,7 @@ pub(crate) const MS_PER_MINUTE: i64 = 60_000;
 /// `EpochDaysToEpochMS`
 ///
 /// Functionally the same as Date's abstract operation `MakeDate`
-pub(crate) fn epoch_days_to_epoch_ms(day: i64, time: i64) -> i64 {
+pub fn epoch_days_to_epoch_ms(day: i64, time: i64) -> i64 {
     (day * MS_PER_DAY as i64) + time
 }
 
@@ -66,7 +66,7 @@ pub(crate) const fn epoch_ms_to_epoch_days(ms: i64) -> i32 {
     (ms.div_euclid(MS_PER_DAY as i64)) as i32
 }
 
-pub(crate) fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
+pub fn ymd_from_epoch_milliseconds(epoch_milliseconds: i64) -> (i32, u8, u8) {
     let epoch_days = epoch_ms_to_epoch_days(epoch_milliseconds);
     neri_schneider::ymd_from_epoch_days(epoch_days)
 }
@@ -114,7 +114,7 @@ pub(crate) fn epoch_seconds_to_day_of_week(t: i64) -> u8 {
 /// 12.2.31 `ISODaysInMonth ( year, month )`
 ///
 /// NOTE: month is 1 based
-pub(crate) fn iso_days_in_month(year: i32, month: u8) -> u8 {
+pub fn iso_days_in_month(year: i32, month: u8) -> u8 {
     match month {
         1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
         4 | 6 | 9 | 11 => 30,

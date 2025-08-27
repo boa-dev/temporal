@@ -2,8 +2,6 @@
 
 #[cfg(test)]
 pub use timezone_provider::tzif::{CompiledTzdbProvider, FsTzdbProvider};
-#[cfg(test)]
-pub use timezone_provider::SINGLETON_IANA_NORMALIZER;
 
 #[cfg(test)]
 mod tests {
