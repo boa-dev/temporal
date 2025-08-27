@@ -78,7 +78,7 @@ log = { workspace = true, optional = true }
 tzif = { workspace = true, optional = true }
 jiff-tzdb = { workspace = true, optional = true }
 combine = { workspace = true, optional = true }
-timezone_provider = { workspace = true, optional = true }
+timezone_provider = { workspace = true }
 
 # System time feature
 web-time = { workspace = true, optional = true }
@@ -94,7 +94,7 @@ tzdb = [
     "std",
     "dep:jiff-tzdb",
     "dep:combine",
-    "dep:timezone_provider",
+    "timezone_provider/tzif",
 ]
 std = []
 

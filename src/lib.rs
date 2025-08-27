@@ -139,7 +139,6 @@ pub mod provider;
 pub(crate) mod sys;
 
 mod builtins;
-mod epoch_nanoseconds;
 
 #[cfg(feature = "tzdb")]
 pub mod tzdb;
@@ -181,7 +180,7 @@ pub mod parsed_intermediates;
 
 // TODO: Potentially bikeshed how `EpochNanoseconds` should be exported.
 pub mod unix_time {
-    pub use crate::epoch_nanoseconds::EpochNanoseconds;
+    pub use timezone_provider::epoch_nanoseconds::EpochNanoseconds;
 }
 
 /// The `Now` module includes type for building a Now.

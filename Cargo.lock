@@ -861,6 +861,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tinystr",
+ "tzif",
  "yoke",
  "zerotrie",
  "zerovec",

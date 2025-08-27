@@ -14,7 +14,7 @@ pub(crate) const NS_MAX_INSTANT: i128 = NS_PER_DAY as i128 * 100_000_000i128;
 pub(crate) const NS_MIN_INSTANT: i128 = -NS_MAX_INSTANT;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
-pub struct EpochNanoseconds(pub(crate) i128);
+pub struct EpochNanoseconds(pub i128);
 
 impl From<i128> for EpochNanoseconds {
     fn from(value: i128) -> Self {
@@ -41,4 +41,17 @@ impl EpochNanoseconds {
 #[must_use]
 pub fn is_valid_epoch_nanos(nanos: &i128) -> bool {
     (NS_MIN_INSTANT..=NS_MAX_INSTANT).contains(nanos)
+}
+
+#[cfg(feature = "tzif")]
+impl From<tzif::data::time::Seconds> for EpochNanoseconds {
+    fn from(value: tzif::data::time::Seconds) -> Self {
+        seconds_to_nanoseconds(value.0).into()
+    }
+}
+
+const NS_IN_S: i128 = 1_000_000_000;
+#[inline]
+fn seconds_to_nanoseconds(seconds: i64) -> i128 {
+    seconds as i128 * NS_IN_S
 }

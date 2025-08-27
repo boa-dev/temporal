@@ -1036,7 +1036,7 @@ impl InternalDurationRecord {
             .normalized_time_duration()
             .add_days(self.date().days.as_())?;
         // Return TotalTimeDuration(timeDuration, unit).
-        Ok(time_duration.total(unit))?
+        Ok(time_duration.total(unit)?)
     }
 }
 

@@ -82,12 +82,6 @@ impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
     }
 }
 
-impl From<Seconds> for EpochNanoseconds {
-    fn from(value: Seconds) -> Self {
-        seconds_to_nanoseconds(value.0).into()
-    }
-}
-
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a
 /// time zone transition without the offset seconds applied to the

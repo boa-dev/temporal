@@ -421,7 +421,7 @@ impl ZonedDateTime {
                 self.epoch_nanoseconds().as_i128(),
             )?;
             // b. Return TotalTimeDuration(difference, unit).
-            return Ok(diff.total(unit))?;
+            return Ok(diff.total(unit)?);
         }
 
         // 2. Let difference be ? DifferenceZonedDateTime(ns1, ns2, timeZone, calendar, unit).
