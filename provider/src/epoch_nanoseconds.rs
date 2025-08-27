@@ -4,8 +4,10 @@ use crate::TimeZoneProviderError;
 #[doc(hidden)]
 pub const NS_PER_DAY: u64 = MS_PER_DAY as u64 * 1_000_000;
 
+const NS_IN_S: i128 = 1_000_000_000;
+
 /// Milliseconds per day constant: 8.64e+7
-const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
+pub(crate) const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
 /// Max Instant nanosecond constant
 #[doc(hidden)]
 pub(crate) const NS_MAX_INSTANT: i128 = NS_PER_DAY as i128 * 100_000_000i128;
@@ -34,6 +36,10 @@ impl EpochNanoseconds {
         }
         Ok(())
     }
+
+    pub fn from_seconds(seconds: i64) -> Self {
+        Self(seconds as i128 * NS_IN_S)
+    }
 }
 
 /// Utility for determining if the nanos are within a valid range.
@@ -46,12 +52,6 @@ pub fn is_valid_epoch_nanos(nanos: &i128) -> bool {
 #[cfg(feature = "tzif")]
 impl From<tzif::data::time::Seconds> for EpochNanoseconds {
     fn from(value: tzif::data::time::Seconds) -> Self {
-        seconds_to_nanoseconds(value.0).into()
+        EpochNanoseconds::from_seconds(value.0)
     }
-}
-
-const NS_IN_S: i128 = 1_000_000_000;
-#[inline]
-fn seconds_to_nanoseconds(seconds: i64) -> i128 {
-    seconds as i128 * NS_IN_S
 }

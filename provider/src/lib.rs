@@ -26,6 +26,10 @@ pub use tzdb::IanaIdentifierNormalizer;
 pub mod tzif;
 
 pub mod epoch_nanoseconds;
+
+#[doc(hidden)]
+pub mod utils;
+
 mod error;
 pub mod provider;
 pub use error::TimeZoneProviderError;

@@ -34,7 +34,11 @@ datagen = [
     "experimental_tzif",
 ]
 std = []
+# Experimental tzif/tzdb compiled data
 experimental_tzif = []
+
+# Performing timezone resolution with the `tzif` crate
+tzif = ["dep:tzif"]
 
 [dependencies]
 

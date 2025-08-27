@@ -50,18 +50,14 @@ use tzif::{
     },
 };
 
-use crate::{
-    iso::IsoDateTime,
-    provider::{
-        CandidateEpochNanoseconds, GapEntryOffsets, TimeZoneProvider, TimeZoneTransitionInfo,
-        TransitionDirection, UtcOffsetSeconds,
-    },
-    unix_time::EpochNanoseconds,
-    utils,
-};
+use crate::utils;
 
-use timezone_provider::TimeZoneProviderError;
+use timezone_provider::provider::{
+    CandidateEpochNanoseconds, GapEntryOffsets, TimeZoneProvider, TimeZoneTransitionInfo,
+    TransitionDirection, UtcOffsetSeconds,
+};
 use timezone_provider::SINGLETON_IANA_NORMALIZER;
+use timezone_provider::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
@@ -591,7 +587,7 @@ impl Tzif {
         &self,
         local_datetime: timezone_provider::provider::IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
-        let epoch_nanos = IsoDateTime::from(local_datetime).as_nanoseconds();
+        let epoch_nanos = crate::iso::IsoDateTime::from(local_datetime).as_nanoseconds();
         let mut seconds = (epoch_nanos.0 / NS_IN_S) as i64;
 
         // We just rounded our ns value to seconds.
