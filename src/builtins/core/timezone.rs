@@ -132,7 +132,7 @@ impl UtcOffset {
     }
 
     pub fn seconds(&self) -> i64 {
-        i64::try_from(self.0 / NS_IN_S).unwrap_or(0)
+        self.0 / NS_IN_S
     }
 
     pub fn nanoseconds(&self) -> i64 {
@@ -569,7 +569,7 @@ impl TimeZone {
         // 7. Return possibleEpochNsAfter[0].
 
         Ok(EpochNanosecondsAndOffset {
-            offset: gap.offset_after.into(),
+            offset: gap.offset_after,
             ns: gap.transition_epoch,
         })
     }

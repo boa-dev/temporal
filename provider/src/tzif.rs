@@ -610,7 +610,7 @@ impl Tzif {
                 let epoch_ns = EpochNanoseconds::from(epoch_nanos.0 - seconds_to_nanoseconds(r.0));
                 CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
                     ns: epoch_ns,
-                    offset: r.into(),
+                    offset: r,
                 })
             }
             LocalTimeRecordResult::Ambiguous { first, second } => {
@@ -621,11 +621,11 @@ impl Tzif {
                 CandidateEpochNanoseconds::Two([
                     EpochNanosecondsAndOffset {
                         ns: first_epoch_ns,
-                        offset: first.into(),
+                        offset: first,
                     },
                     EpochNanosecondsAndOffset {
                         ns: second_epoch_ns,
-                        offset: second.into(),
+                        offset: second,
                     },
                 ])
             }

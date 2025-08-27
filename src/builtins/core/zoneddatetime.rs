@@ -182,7 +182,7 @@ impl ZonedDateTimeFields {
 ///
 /// ```rust
 /// # #[cfg(feature = "compiled_data")] {
-/// use temporal_rs::{ZonedDateTime, Duration, TimeZone, Calendar, tzdb::FsTzdbProvider};
+/// use temporal_rs::{ZonedDateTime, Duration, TimeZone, Calendar};
 /// use std::str::FromStr;
 ///
 /// let tz = TimeZone::try_from_str("Europe/London").unwrap();
@@ -421,7 +421,7 @@ impl ZonedDateTime {
                 self.epoch_nanoseconds().as_i128(),
             )?;
             // b. Return TotalTimeDuration(difference, unit).
-            return Ok(diff.total(unit)?);
+            return diff.total(unit);
         }
 
         // 2. Let difference be ? DifferenceZonedDateTime(ns1, ns2, timeZone, calendar, unit).
