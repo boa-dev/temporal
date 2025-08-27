@@ -13,6 +13,9 @@ use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 
 use posix::PosixZone;
 
+use crate as timezone_provider;
+compiled_zoneinfo_provider!(COMPILED_ZONEINFO_PROVIDER);
+
 #[derive(Debug, Clone)]
 #[cfg_attr(
     feature = "datagen",

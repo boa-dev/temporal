@@ -8,10 +8,10 @@ use std::{
     path::Path,
 };
 use timezone_provider::{
-    prelude::zerovec::ule::VarULE,
     tzif::{ZeroTzifULE, ZoneInfoProvider},
     IanaIdentifierNormalizer,
 };
+use zerovec::ule::VarULE;
 
 trait BakedDataProvider {
     fn write_data(&self, data_path: &Path) -> io::Result<()>;
@@ -28,8 +28,8 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
         let baked_macro = quote! {
             #[macro_export]
             macro_rules! compiled_zoneinfo_provider {
-                () => {
-                    pub const COMPILED_ZONEINFO_PROVIDER: &'static timezone_provider::tzif::ZoneInfoProvider = &#baked;
+                ($providername:ident) => {
+                    pub const $providername: &'static timezone_provider::tzif::ZoneInfoProvider = &#baked;
                 }
             }
         };
@@ -109,8 +109,8 @@ impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
         let baked_macro = quote! {
             #[macro_export]
             macro_rules! iana_normalizer_singleton {
-                () => {
-                    pub const SINGLETON_IANA_NORMALIZER: &'static timezone_provider::IanaIdentifierNormalizer = &#baked;
+                ($providername:ident) => {
+                    pub const $providername: &'static timezone_provider::IanaIdentifierNormalizer = &#baked;
                 }
             }
         };

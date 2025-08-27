@@ -45,6 +45,7 @@ tzif = "0.4.0"
 jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
+zerovec = "0.11.4"
 
 [package]
 name = "temporal_rs"

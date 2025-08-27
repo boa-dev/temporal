@@ -125,6 +125,7 @@ dependencies = [
  "serde_json",
  "syn",
  "timezone_provider",
+ "zerovec",
 ]
 
 [[package]]
