@@ -31,6 +31,18 @@ const NS_IN_MIN: i64 = 60_000_000_000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UtcOffset(i64);
 
+impl From<timezone_provider::provider::UtcOffsetSeconds> for UtcOffset {
+    fn from(other: timezone_provider::provider::UtcOffsetSeconds) -> Self {
+        Self::from_seconds(other.0)
+    }
+}
+
+impl From<UtcOffset> for timezone_provider::provider::UtcOffsetSeconds {
+    fn from(other: UtcOffset) -> Self {
+        Self(other.seconds())
+    }
+}
+
 impl UtcOffset {
     pub(crate) fn from_ixdtf_minute_record(record: MinutePrecisionOffset) -> Self {
         // NOTE: ixdtf parser restricts minute/second to 0..=60
@@ -117,6 +129,10 @@ impl UtcOffset {
 
     pub fn minutes(&self) -> i16 {
         i16::try_from(self.0 / NS_IN_MIN).unwrap_or(0)
+    }
+
+    pub fn seconds(&self) -> i64 {
+        i64::try_from(self.0 / NS_IN_S).unwrap_or(0)
     }
 
     pub fn nanoseconds(&self) -> i64 {
@@ -380,7 +396,7 @@ impl TimeZone {
                 let epoch_ns = balanced.as_nanoseconds();
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
                 CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
-                    offset: *offset,
+                    offset: (*offset).into(),
                     ns: epoch_ns,
                 })
             }

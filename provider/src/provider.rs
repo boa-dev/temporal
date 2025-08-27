@@ -20,11 +20,24 @@ pub struct IsoDateTime {
     second: u8,
 }
 
-// impl From<UtcOffsetSeconds> for UtcOffset {
-//     fn from(other: UtcOffsetSeconds) -> Self {
-//         Self::from_seconds(other.0)
-//     }
-// }
+#[cfg(feature = "tzif")]
+use tzif::data::{posix::TimeZoneVariantInfo, tzif::LocalTimeTypeRecord};
+
+#[cfg(feature = "tzif")]
+impl From<&TimeZoneVariantInfo> for UtcOffsetSeconds {
+    fn from(value: &TimeZoneVariantInfo) -> Self {
+        // The POSIX tz string stores offsets as negative offsets;
+        // i.e. "seconds that must be added to reach UTC"
+        Self(-value.offset.0)
+    }
+}
+
+#[cfg(feature = "tzif")]
+impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
+    fn from(value: LocalTimeTypeRecord) -> Self {
+        Self(value.utoff.0)
+    }
+}
 
 /// An EpochNanoseconds and a UTC offset
 #[derive(Copy, Clone, Debug)]
@@ -101,7 +114,7 @@ pub enum CandidateEpochNanoseconds {
 }
 
 impl CandidateEpochNanoseconds {
-    pub(crate) fn as_slice(&self) -> &[EpochNanosecondsAndOffset] {
+    pub fn as_slice(&self) -> &[EpochNanosecondsAndOffset] {
         match *self {
             Self::Zero(..) => &[],
             Self::One(ref one) => core::slice::from_ref(one),
@@ -110,12 +123,12 @@ impl CandidateEpochNanoseconds {
     }
 
     #[allow(unused)] // Used in tests in some feature configurations
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         matches!(*self, Self::Zero(..))
     }
 
     #[allow(unused)] // Used in tests in some feature configurations
-    pub(crate) fn len(&self) -> usize {
+    pub fn len(&self) -> usize {
         match *self {
             Self::Zero(..) => 0,
             Self::One(..) => 1,
@@ -123,14 +136,14 @@ impl CandidateEpochNanoseconds {
         }
     }
 
-    pub(crate) fn first(&self) -> Option<EpochNanosecondsAndOffset> {
+    pub fn first(&self) -> Option<EpochNanosecondsAndOffset> {
         match *self {
             Self::Zero(..) => None,
             Self::One(one) | Self::Two([one, _]) => Some(one),
         }
     }
 
-    pub(crate) fn last(&self) -> Option<EpochNanosecondsAndOffset> {
+    pub fn last(&self) -> Option<EpochNanosecondsAndOffset> {
         match *self {
             Self::Zero(..) => None,
             Self::One(last) | Self::Two([_, last]) => Some(last),

@@ -45,9 +45,7 @@ use combine::Parser;
 use tzif::{
     self,
     data::{
-        posix::{
-            DstTransitionInfo, PosixTzString, TimeZoneVariantInfo, TransitionDate, TransitionDay,
-        },
+        posix::{DstTransitionInfo, PosixTzString, TransitionDate, TransitionDay},
         time::Seconds,
         tzif::{DataBlock, LocalTimeTypeRecord, TzifData, TzifHeader},
     },
@@ -67,20 +65,6 @@ use timezone_provider::SINGLETON_IANA_NORMALIZER;
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
-
-impl From<&TimeZoneVariantInfo> for UtcOffsetSeconds {
-    fn from(value: &TimeZoneVariantInfo) -> Self {
-        // The POSIX tz string stores offsets as negative offsets;
-        // i.e. "seconds that must be added to reach UTC"
-        Self(-value.offset.0)
-    }
-}
-
-impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
-    fn from(value: LocalTimeTypeRecord) -> Self {
-        Self(value.utoff.0)
-    }
-}
 
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a

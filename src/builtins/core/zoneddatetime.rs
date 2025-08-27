@@ -28,7 +28,7 @@ use crate::{
     parsers::{FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
     partial::PartialTime,
     primitive::FiniteF64,
-    provider::{TimeZoneProvider, TransitionDirection},
+    provider::{TimeZoneProvider, TransitionDirection, UtcOffsetSeconds},
     rounding::IncrementRounder,
     temporal_assert,
     unix_time::EpochNanoseconds,
@@ -274,13 +274,13 @@ impl ZonedDateTime {
         instant: Instant,
         calendar: Calendar,
         tz: TimeZone,
-        cached_offset: UtcOffset,
+        cached_offset: UtcOffsetSeconds,
     ) -> Self {
         Self {
             instant,
             calendar,
             tz,
-            cached_offset,
+            cached_offset: cached_offset.into(),
         }
     }
 
@@ -606,7 +606,7 @@ impl ZonedDateTime {
         nanos: i128,
         calendar: Calendar,
         time_zone: TimeZone,
-        cached_offset: UtcOffset,
+        cached_offset: UtcOffsetSeconds,
     ) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
         Ok(Self::new_unchecked(
@@ -784,7 +784,7 @@ impl ZonedDateTime {
             self.epoch_nanoseconds().as_i128(),
             calendar,
             self.tz.clone(),
-            self.cached_offset,
+            self.cached_offset.into(),
         )
     }
 
@@ -1476,7 +1476,7 @@ pub(crate) fn interpret_isodatetime_offset(
             // e. Return epochNanoseconds.
             Ok(EpochNanosecondsAndOffset {
                 ns,
-                offset: timezone.get_utc_offset_for(ns.0, provider)?,
+                offset: timezone.get_utc_offset_for(ns.0, provider)?.into(),
             })
         }
         // 5. Assert: offsetBehaviour is option.
