@@ -21,9 +21,6 @@ pub mod tzif;
 
 pub use tzdb::IanaIdentifierNormalizer;
 
-#[cfg(feature = "datagen")]
-pub use tzdb::IanaDataError;
-
 /// A prelude of needed types for interacting with `timezone_provider` data.
 pub mod prelude {
     pub use zerotrie;

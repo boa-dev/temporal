@@ -1,5 +1,5 @@
 use super::*;
-use crate::tzdb::TzdbDataSource;
+use crate::tzdb::datagen::TzdbDataSource;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use std::path::Path;
