@@ -935,6 +935,7 @@ version = "0.0.14"
 dependencies = [
  "jiff-tzdb",
  "temporal_rs",
+ "timezone_provider",
  "tzif",
 ]
 

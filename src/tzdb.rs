@@ -1,7 +1,10 @@
 // We can clean these imports up eventually
 
+#[cfg(feature = "compiled_data")]
 #[cfg(test)]
-pub use timezone_provider::tzif::{CompiledTzdbProvider, FsTzdbProvider};
+pub use timezone_provider::tzif::CompiledTzdbProvider;
+#[cfg(test)]
+pub use timezone_provider::tzif::FsTzdbProvider;
 
 #[cfg(test)]
 mod tests {
