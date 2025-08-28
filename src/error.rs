@@ -133,11 +133,11 @@ impl TemporalError {
     }
 
     pub(crate) fn from_icu4x(error: DateError) -> Self {
-        TemporalError::range().with_message("TODO DATE ERROR")
+        TemporalError::range().with_enum(ErrorMessage::Icu4xDate(error))
     }
 
     pub(crate) fn from_ixdtf(error: ixdtf::ParseError) -> Self {
-        TemporalError::range().with_message("TODO IXDTF ERROR")
+        TemporalError::range().with_enum(ErrorMessage::Ixdtf(error))
     }
 }
 
@@ -155,7 +155,7 @@ impl fmt::Display for TemporalError {
 }
 
 /// The error message
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub(crate) enum ErrorMessage {
     // Range
     InstantOutOfRange,
@@ -198,6 +198,8 @@ pub(crate) enum ErrorMessage {
     // Typed
     None,
     String(&'static str),
+    Ixdtf(ixdtf::ParseError),
+    Icu4xDate(DateError),
 }
 
 impl ErrorMessage {
@@ -240,6 +242,18 @@ impl ErrorMessage {
             }
             Self::None => "",
             Self::String(s) => s,
+            // Todo: produce helpful strings
+            // https://github.com/unicode-org/icu4x/issues/6904
+            Self::Ixdtf(s) => "IXDTF parsing error",
+            Self::Icu4xDate(DateError::Range { field, .. }) => match field {
+                "year" => "Year out of range.",
+                "month" => "Month out of range.",
+                "day" => "Day out of range.",
+                _ => "Field out of range.",
+            },
+            Self::Icu4xDate(DateError::UnknownEra) => "Unknown era.",
+            Self::Icu4xDate(DateError::UnknownMonthCode(..)) => "Unknown month code.",
+            Self::Icu4xDate(_) => "Date error.",
         }
     }
 }
