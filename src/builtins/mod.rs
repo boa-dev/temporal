@@ -7,11 +7,11 @@ pub mod core;
 pub use core::*;
 
 #[cfg(feature = "compiled_data")]
-use crate::tzdb::CompiledTzdbProvider;
-#[cfg(all(test, feature = "compiled_data"))]
-use crate::tzdb::FsTzdbProvider;
-#[cfg(feature = "compiled_data")]
 use std::sync::LazyLock;
+#[cfg(feature = "compiled_data")]
+use timezone_provider::tzif::CompiledTzdbProvider;
+#[cfg(all(test, feature = "compiled_data"))]
+use timezone_provider::tzif::FsTzdbProvider;
 
 #[cfg(feature = "compiled_data")]
 pub static TZ_PROVIDER: LazyLock<CompiledTzdbProvider> =

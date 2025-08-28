@@ -75,10 +75,7 @@ writeable = "0.6.1"
 log = { workspace = true, optional = true }
 
 # tzdb feature
-tzif = { workspace = true, optional = true }
-jiff-tzdb = { workspace = true, optional = true }
-combine = { workspace = true, optional = true }
-timezone_provider = { workspace = true, optional = true }
+timezone_provider = { workspace = true }
 
 # System time feature
 web-time = { workspace = true, optional = true }
@@ -90,11 +87,8 @@ log = ["dep:log"]
 compiled_data = ["tzdb"]
 sys = ["std", "compiled_data", "dep:web-time", "dep:iana-time-zone"]
 tzdb = [
-    "dep:tzif",
     "std",
-    "dep:jiff-tzdb",
-    "dep:combine",
-    "dep:timezone_provider",
+    "timezone_provider/tzif",
 ]
 std = []
 

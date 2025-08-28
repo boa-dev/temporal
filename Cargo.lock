@@ -837,18 +837,15 @@ dependencies = [
 name = "temporal_rs"
 version = "0.0.14"
 dependencies = [
- "combine",
  "core_maths",
  "iana-time-zone",
  "icu_calendar",
  "icu_locale",
  "ixdtf",
- "jiff-tzdb",
  "log",
  "num-traits",
  "timezone_provider",
  "tinystr",
- "tzif",
  "web-time",
  "writeable",
 ]
@@ -857,10 +854,13 @@ dependencies = [
 name = "timezone_provider"
 version = "0.0.14"
 dependencies = [
+ "combine",
  "databake",
+ "jiff-tzdb",
  "serde",
  "serde_json",
  "tinystr",
+ "tzif",
  "yoke",
  "zerotrie",
  "zerovec",
@@ -935,6 +935,7 @@ version = "0.0.14"
 dependencies = [
  "jiff-tzdb",
  "temporal_rs",
+ "timezone_provider",
  "tzif",
 ]
 

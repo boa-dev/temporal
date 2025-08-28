@@ -153,6 +153,7 @@ fn main() {
 pub const BASIC_RUNTIME_DEPS: &[&str] = &[
     // temporal_rs crates
     "temporal_rs",
+    "timezone_provider",
     // ICU4X components and utils
     "calendrical_calculations",
     "core_maths",

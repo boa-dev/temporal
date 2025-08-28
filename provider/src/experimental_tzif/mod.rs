@@ -21,7 +21,7 @@ compiled_zoneinfo_provider!(COMPILED_ZONEINFO_PROVIDER);
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif))]
 pub struct ZoneInfoProvider<'data> {
     // IANA identifier map to TZif index.
     pub ids: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
@@ -45,7 +45,7 @@ impl ZoneInfoProvider<'_> {
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
 #[cfg_attr(feature = "datagen", zerovec::derive(Serialize))]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif))]
 pub struct ZeroTzif<'data> {
     pub transitions: ZeroVec<'data, i64>,
     pub transition_types: ZeroVec<'data, u8>,
@@ -60,7 +60,7 @@ pub struct ZeroTzif<'data> {
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)
 )]
-#[cfg_attr(feature = "datagen", databake(path = timezone_provider::tzif))]
+#[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif))]
 pub struct LocalTimeRecord {
     pub offset: i64,
 }

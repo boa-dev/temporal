@@ -31,6 +31,18 @@ const NS_IN_MIN: i64 = 60_000_000_000;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UtcOffset(i64);
 
+impl From<timezone_provider::provider::UtcOffsetSeconds> for UtcOffset {
+    fn from(other: timezone_provider::provider::UtcOffsetSeconds) -> Self {
+        Self::from_seconds(other.0)
+    }
+}
+
+impl From<UtcOffset> for timezone_provider::provider::UtcOffsetSeconds {
+    fn from(other: UtcOffset) -> Self {
+        Self(other.seconds())
+    }
+}
+
 impl UtcOffset {
     pub(crate) fn from_ixdtf_minute_record(record: MinutePrecisionOffset) -> Self {
         // NOTE: ixdtf parser restricts minute/second to 0..=60
@@ -117,6 +129,10 @@ impl UtcOffset {
 
     pub fn minutes(&self) -> i16 {
         i16::try_from(self.0 / NS_IN_MIN).unwrap_or(0)
+    }
+
+    pub fn seconds(&self) -> i64 {
+        self.0 / NS_IN_S
     }
 
     pub fn nanoseconds(&self) -> i64 {
@@ -300,9 +316,10 @@ impl TimeZone {
             // 2. If parseResult.[[OffsetMinutes]] is not empty, return parseResult.[[OffsetMinutes]] × (60 × 10**9).
             Self::UtcOffset(offset) => Ok(i128::from(offset.nanoseconds())),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
-            Self::IanaIdentifier(identifier) => provider
-                .get_named_tz_offset_nanoseconds(identifier, utc_epoch)
-                .map(|transition| i128::from(transition.offset.0) * 1_000_000_000),
+            Self::IanaIdentifier(identifier) => {
+                let transition = provider.get_named_tz_offset_nanoseconds(identifier, utc_epoch)?;
+                Ok(i128::from(transition.offset.0) * 1_000_000_000)
+            }
         }
     }
 
@@ -380,7 +397,7 @@ impl TimeZone {
                 let epoch_ns = balanced.as_nanoseconds();
                 // d. Let possibleEpochNanoseconds be « epochNanoseconds ».
                 CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
-                    offset: *offset,
+                    offset: (*offset).into(),
                     ns: epoch_ns,
                 })
             }
@@ -391,7 +408,7 @@ impl TimeZone {
                 // b. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
-                provider.get_named_tz_epoch_nanoseconds(identifier, local_iso)?
+                provider.get_named_tz_epoch_nanoseconds(identifier, local_iso.into())?
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
@@ -552,7 +569,7 @@ impl TimeZone {
         // 7. Return possibleEpochNsAfter[0].
 
         Ok(EpochNanosecondsAndOffset {
-            offset: gap.offset_after.into(),
+            offset: gap.offset_after,
             ns: gap.transition_epoch,
         })
     }

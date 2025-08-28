@@ -8,7 +8,7 @@ use std::{
     path::Path,
 };
 use timezone_provider::{
-    tzif::{ZeroTzifULE, ZoneInfoProvider},
+    experimental_tzif::{ZeroTzifULE, ZoneInfoProvider},
     IanaIdentifierNormalizer,
 };
 use zerovec::ule::VarULE;
@@ -29,7 +29,7 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
             #[macro_export]
             macro_rules! compiled_zoneinfo_provider {
                 ($providername:ident) => {
-                    pub const $providername: &'static timezone_provider::tzif::ZoneInfoProvider = &#baked;
+                    pub const $providername: &'static timezone_provider::experimental_tzif::ZoneInfoProvider = &#baked;
                 }
             }
         };

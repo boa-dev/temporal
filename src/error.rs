@@ -3,6 +3,7 @@
 use alloc::borrow::Cow;
 use alloc::format;
 use core::fmt;
+use timezone_provider::TimeZoneProviderError;
 
 use icu_calendar::DateError;
 
@@ -244,6 +245,19 @@ impl ErrorMessage {
             Self::OffsetNeedsDisambiguation => {
                 "Offsets could not be determined without disambiguation"
             }
+        }
+    }
+}
+
+impl From<TimeZoneProviderError> for TemporalError {
+    fn from(other: TimeZoneProviderError) -> Self {
+        match other {
+            TimeZoneProviderError::InstantOutOfRange => {
+                Self::range().with_enum(ErrorMessage::InstantOutOfRange)
+            }
+            TimeZoneProviderError::Assert(s) => Self::assert().with_message(s),
+            TimeZoneProviderError::Range(s) => Self::range().with_message(s),
+            _ => Self::assert().with_message("Unknown TimeZoneProviderError"),
         }
     }
 }

@@ -953,7 +953,7 @@ mod tests {
     #[cfg(feature = "tzdb")]
     #[test]
     fn to_zoned_date_time() {
-        use crate::tzdb::FsTzdbProvider;
+        use timezone_provider::tzif::FsTzdbProvider;
         let provider = &FsTzdbProvider::default();
         let date = PlainDate::from_str("2020-01-01").unwrap();
         let tz = TimeZone::try_from_str_with_provider("UTC", provider).unwrap();
@@ -974,7 +974,7 @@ mod tests {
     #[cfg(feature = "tzdb")]
     #[test]
     fn to_zoned_date_time_error() {
-        use crate::tzdb::FsTzdbProvider;
+        use timezone_provider::tzif::FsTzdbProvider;
         let provider = &FsTzdbProvider::default();
         let date = PlainDate::try_new_iso(-271_821, 4, 19).unwrap();
         let time_zone = TimeZone::try_from_str_with_provider("+00", provider).unwrap();

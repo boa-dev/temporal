@@ -1,8 +1,8 @@
 use std::env;
 use std::string::ToString;
 use temporal_rs::partial::PartialDuration;
-use temporal_rs::tzdb::Tzif;
 use temporal_rs::{Duration, PlainDate, PlainTime, TimeZone, ZonedDateTime};
+use timezone_provider::tzif::Tzif;
 use tzif::data::posix::TransitionDay;
 use tzif::data::time::Seconds;
 use tzif::data::tzif::{StandardWallIndicator, UtLocalIndicator};

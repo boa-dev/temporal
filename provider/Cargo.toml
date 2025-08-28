@@ -34,7 +34,14 @@ datagen = [
     "experimental_tzif",
 ]
 std = []
+# Experimental tzif/tzdb compiled data
 experimental_tzif = []
+
+# Performing timezone resolution with the `tzif` crate
+tzif = ["dep:tzif", 
+    "dep:jiff-tzdb",
+    "dep:combine",
+    "std"]
 
 [dependencies]
 
@@ -45,6 +52,11 @@ tinystr = { workspace = true, features = ["zerovec"] }
 
 # IANA dependency
 zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
+
+# tzif dependency
+tzif = { workspace = true, optional = true }
+jiff-tzdb = { workspace = true, optional = true }
+combine = { workspace = true, optional = true }
 
 # Databake dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true }

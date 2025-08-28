@@ -21,10 +21,22 @@ mod private {
 }
 
 mod tzdb;
-#[cfg(feature = "experimental_tzif")]
+pub use tzdb::IanaIdentifierNormalizer;
+
+#[cfg(feature = "tzif")]
 pub mod tzif;
 
-pub use tzdb::IanaIdentifierNormalizer;
+#[cfg(feature = "experimental_tzif")]
+pub mod experimental_tzif;
+
+pub mod epoch_nanoseconds;
+
+#[doc(hidden)]
+pub mod utils;
+
+mod error;
+pub mod provider;
+pub use error::TimeZoneProviderError;
 
 use crate as timezone_provider;
 iana_normalizer_singleton!(SINGLETON_IANA_NORMALIZER);
@@ -67,7 +79,7 @@ mod tests {
     #[test]
     #[cfg(feature = "experimental_tzif")]
     fn zone_info_basic() {
-        let tzif = crate::tzif::COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
+        let tzif = crate::experimental_tzif::COMPILED_ZONEINFO_PROVIDER.get("America/Chicago");
         assert!(tzif.is_some())
     }
 }
