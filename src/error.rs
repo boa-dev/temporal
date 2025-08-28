@@ -35,7 +35,7 @@ impl fmt::Display for ErrorKind {
 }
 
 /// The error type for `boa_temporal`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TemporalError {
     kind: ErrorKind,
     msg: ErrorMessage,
