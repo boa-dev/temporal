@@ -76,9 +76,7 @@ impl UtcOffset {
     }
 
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
-        let record = TimeZoneParser::from_utf8(source)
-            .parse_offset()
-            .map_err(|e| TemporalError::from_ixdtf(e))?;
+        let record = TimeZoneParser::from_utf8(source).parse_offset()?;
         Self::from_ixdtf_record(record)
     }
 

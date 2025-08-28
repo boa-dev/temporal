@@ -694,9 +694,7 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s)
-            .parse()
-            .map_err(|e| TemporalError::from_ixdtf(e))?;
+        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s).parse()?;
 
         fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
             if let Some(fraction) = fraction {

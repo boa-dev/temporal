@@ -691,8 +691,7 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
         ParseVariant::Time => parser.parse_time_with_annotation_handler(handler),
-    }
-    .map_err(|e| TemporalError::from_ixdtf(e))?;
+    }?;
 
     record.calendar = first_calendar.map(|v| v.value);
 

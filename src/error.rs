@@ -132,14 +132,6 @@ impl TemporalError {
     pub fn into_message(self) -> &'static str {
         self.msg.to_string()
     }
-
-    pub(crate) fn from_icu4x(error: DateError) -> Self {
-        TemporalError::range().with_enum(ErrorMessage::Icu4xDate(error))
-    }
-
-    pub(crate) fn from_ixdtf(error: ParseError) -> Self {
-        TemporalError::range().with_enum(ErrorMessage::Ixdtf(error))
-    }
 }
 
 impl fmt::Display for TemporalError {
@@ -152,6 +144,18 @@ impl fmt::Display for TemporalError {
         }
 
         Ok(())
+    }
+}
+
+impl From<DateError> for TemporalError {
+    fn from(error: DateError) -> Self {
+        TemporalError::range().with_enum(ErrorMessage::Icu4xDate(error))
+    }
+}
+
+impl From<ParseError> for TemporalError {
+    fn from(error: ParseError) -> Self {
+        TemporalError::range().with_enum(ErrorMessage::Ixdtf(error))
     }
 }
 
