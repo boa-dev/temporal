@@ -1533,7 +1533,8 @@ pub(crate) fn is_valid_duration(
         + microseconds.saturating_mul(1_000)
         + nanoseconds;
 
-    let total_normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
+    let total_normalized_seconds =
+        normalized_nanoseconds.saturating_add(normalized_subseconds_parts);
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
     if total_normalized_seconds.saturating_abs() >= MAX_SAFE_NS_PRECISION {
         return false;
