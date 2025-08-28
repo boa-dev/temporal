@@ -18,7 +18,7 @@ use crate::{
     provider::{NeverProvider, TimeZoneProvider},
     MonthCode, TemporalError, TemporalResult, TimeZone,
 };
-use alloc::{format, string::String};
+use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use icu_calendar::AnyCalendarKind;
 use writeable::Writeable;
@@ -620,7 +620,7 @@ impl PlainDate {
             .era()
             .map(|e| {
                 TinyAsciiStr::<19>::try_from_utf8(e.as_bytes())
-                    .map_err(|e| TemporalError::general(format!("{e}")))
+                    .map_err(|_| TemporalError::general("Parsing era failed"))
             })
             .transpose()?;
         let fields = YearMonthCalendarFields::new()

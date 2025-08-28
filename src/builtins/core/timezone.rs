@@ -1,6 +1,6 @@
 //! This module implements the Temporal `TimeZone` and components.
 
-use alloc::string::{String, ToString};
+use alloc::string::String;
 
 use ixdtf::encoding::Utf8;
 use ixdtf::{
@@ -78,7 +78,7 @@ impl UtcOffset {
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
         let record = TimeZoneParser::from_utf8(source)
             .parse_offset()
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|e| TemporalError::from_ixdtf(e))?;
         Self::from_ixdtf_record(record)
     }
 

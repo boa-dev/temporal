@@ -13,7 +13,6 @@ use crate::{
     provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult, NS_PER_DAY,
 };
-use alloc::format;
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{
@@ -697,7 +696,7 @@ impl Duration {
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parse_record = IsoDurationParser::<Utf8>::from_utf8(s)
             .parse()
-            .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
+            .map_err(|e| TemporalError::from_ixdtf(e))?;
 
         fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
             if let Some(fraction) = fraction {

@@ -1,7 +1,5 @@
 //! This module implements `TemporalError`.
 
-use alloc::borrow::Cow;
-use alloc::format;
 use core::fmt;
 use timezone_provider::TimeZoneProviderError;
 
@@ -40,7 +38,7 @@ impl fmt::Display for ErrorKind {
 #[derive(Debug, Clone, PartialEq)]
 pub struct TemporalError {
     kind: ErrorKind,
-    msg: Cow<'static, str>,
+    msg: ErrorMessage,
 }
 
 impl TemporalError {
@@ -49,17 +47,14 @@ impl TemporalError {
     const fn new(kind: ErrorKind) -> Self {
         Self {
             kind,
-            msg: Cow::Borrowed(""),
+            msg: ErrorMessage::None,
         }
     }
 
     /// Create a generic error
     #[inline]
     #[must_use]
-    pub fn general<S>(msg: S) -> Self
-    where
-        S: Into<Cow<'static, str>>,
-    {
+    pub fn general(msg: &'static str) -> Self {
         Self::new(ErrorKind::Generic).with_message(msg)
     }
 
@@ -96,7 +91,7 @@ impl TemporalError {
         #[cfg(debug_assertions)]
         Self {
             kind: ErrorKind::Assert,
-            msg: Cow::Borrowed(core::panic::Location::caller().file()),
+            msg: ErrorMessage::String(core::panic::Location::caller().file()),
         }
     }
 
@@ -110,11 +105,8 @@ impl TemporalError {
     /// Add a message to the error.
     #[inline]
     #[must_use]
-    pub fn with_message<S>(mut self, msg: S) -> Self
-    where
-        S: Into<Cow<'static, str>>,
-    {
-        self.msg = msg.into();
+    pub fn with_message(mut self, msg: &'static str) -> Self {
+        self.msg = ErrorMessage::String(msg);
         self
     }
 
@@ -122,7 +114,7 @@ impl TemporalError {
     #[inline]
     #[must_use]
     pub(crate) fn with_enum(mut self, msg: ErrorMessage) -> Self {
-        self.msg = msg.to_string().into();
+        self.msg = msg;
         self
     }
 
@@ -133,22 +125,19 @@ impl TemporalError {
         self.kind
     }
 
-    /// Returns the error message.
-    #[inline]
-    #[must_use]
-    pub fn message(&self) -> &str {
-        &self.msg
-    }
-
     /// Extracts the error message.
     #[inline]
     #[must_use]
-    pub fn into_message(self) -> Cow<'static, str> {
-        self.msg
+    pub fn into_message(self) -> &'static str {
+        self.msg.to_string()
     }
 
-    pub fn from_icu4x(error: DateError) -> Self {
-        TemporalError::range().with_message(format!("{error}"))
+    pub(crate) fn from_icu4x(error: DateError) -> Self {
+        TemporalError::range().with_message("TODO DATE ERROR")
+    }
+
+    pub(crate) fn from_ixdtf(error: ixdtf::ParseError) -> Self {
+        TemporalError::range().with_message("TODO IXDTF ERROR")
     }
 }
 
@@ -156,7 +145,7 @@ impl fmt::Display for TemporalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.kind)?;
 
-        let msg = self.msg.trim();
+        let msg = self.msg.to_string();
         if !msg.is_empty() {
             write!(f, ": {msg}")?;
         }
@@ -205,6 +194,10 @@ pub(crate) enum ErrorMessage {
 
     // Other
     OffsetNeedsDisambiguation,
+
+    // Typed
+    None,
+    String(&'static str),
 }
 
 impl ErrorMessage {
@@ -245,6 +238,21 @@ impl ErrorMessage {
             Self::OffsetNeedsDisambiguation => {
                 "Offsets could not be determined without disambiguation"
             }
+            Self::None => "",
+            Self::String(s) => s,
+        }
+    }
+}
+
+impl From<TimeZoneProviderError> for TemporalError {
+    fn from(other: TimeZoneProviderError) -> Self {
+        match other {
+            TimeZoneProviderError::InstantOutOfRange => {
+                Self::range().with_enum(ErrorMessage::InstantOutOfRange)
+            }
+            TimeZoneProviderError::Assert(s) => Self::assert().with_message(s),
+            TimeZoneProviderError::Range(s) => Self::range().with_message(s),
+            _ => Self::assert().with_message("Unknown TimeZoneProviderError"),
         }
     }
 }

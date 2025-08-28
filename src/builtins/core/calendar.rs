@@ -12,7 +12,6 @@ use crate::{
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
-use alloc::string::ToString;
 use core::str::FromStr;
 
 use icu_calendar::{
@@ -142,9 +141,9 @@ impl Calendar {
         // TODO: Determine the best way to handle "julian" here.
         // Not supported by `CalendarAlgorithm`
         let icu_locale_value = Value::try_from_utf8(&bytes.to_ascii_lowercase())
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|_| TemporalError::range().with_message("unknown calendar"))?;
         let algorithm = CalendarAlgorithm::try_from(&icu_locale_value)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|_| TemporalError::range().with_message("unknown calendar"))?;
         let calendar_kind = match AnyCalendarKind::try_from(algorithm) {
             Ok(c) => c,
             // Handle `islamic` calendar idenitifier.

@@ -5,7 +5,6 @@ use crate::{
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
     Sign, TemporalError, TemporalResult,
 };
-use alloc::format;
 use ixdtf::{
     encoding::Utf8,
     parsers::IxdtfParser,
@@ -693,7 +692,7 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
         ParseVariant::Time => parser.parse_time_with_annotation_handler(handler),
     }
-    .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
+    .map_err(|e| TemporalError::from_ixdtf(e))?;
 
     record.calendar = first_calendar.map(|v| v.value);
 
@@ -823,7 +822,7 @@ fn check_offset(record: IxdtfParseRecord<'_, Utf8>) -> TemporalResult<IxdtfParse
 pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
-    let Err(ref e) = ym_record else {
+    let Err(e) = ym_record else {
         return ym_record.and_then(check_offset);
     };
 
@@ -832,14 +831,14 @@ pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord
     match dt_parse {
         Ok(dt) => check_offset(dt),
         // Format and return the error from parsing YearMonth.
-        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(e),
     }
 }
 
 /// A utilty function for parsing a `MonthDay` String.
 pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
-    let Err(ref e) = md_record else {
+    let Err(e) = md_record else {
         return md_record.and_then(check_offset);
     };
 
@@ -848,7 +847,7 @@ pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<
     match dt_parse {
         Ok(dt) => check_offset(dt),
         // Format and return the error from parsing MonthDay.
-        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(e),
     }
 }
 
@@ -868,7 +867,7 @@ fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecor
 pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     let time_record = parse_ixdtf(source, ParseVariant::Time);
 
-    let Err(ref e) = time_record else {
+    let Err(e) = time_record else {
         return time_record.and_then(check_time_record);
     };
 
@@ -877,7 +876,7 @@ pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     match dt_parse {
         Ok(dt) => check_time_record(dt),
         // Format and return the error from parsing MonthDay.
-        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(e),
     }
 }
 

@@ -5,7 +5,6 @@ use crate::TemporalResult;
 use crate::unix_time::EpochNanoseconds;
 use crate::TemporalError;
 use crate::TimeZone;
-use alloc::string::ToString;
 use web_time::{SystemTime, UNIX_EPOCH};
 
 // TODO: Need to implement SystemTime handling for non_std.
@@ -54,7 +53,7 @@ pub(crate) fn get_system_timezone() -> TemporalResult<TimeZone> {
         .map(|s| {
             TimeZone::try_from_identifier_str_with_provider(&s, &*crate::builtins::TZ_PROVIDER)
         })
-        .map_err(|e| TemporalError::general(e.to_string()))?
+        .map_err(|_| TemporalError::general("Error fetching system time"))?
 }
 
 /// Returns the system time in nanoseconds.
@@ -64,6 +63,6 @@ pub(crate) fn get_system_nanoseconds() -> TemporalResult<EpochNanoseconds> {
 
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map_err(|e| TemporalError::general(e.to_string()))
+        .map_err(|_| TemporalError::general("Error fetching system time"))
         .map(|d| EpochNanoseconds::from(d.as_nanos() as i128))
 }
