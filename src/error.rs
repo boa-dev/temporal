@@ -382,16 +382,3 @@ pub fn ixdtf_error_to_static_string(error: ParseError) -> &'static str {
         _ => "General IXDTF parsing error",
     }
 }
-
-impl From<TimeZoneProviderError> for TemporalError {
-    fn from(other: TimeZoneProviderError) -> Self {
-        match other {
-            TimeZoneProviderError::InstantOutOfRange => {
-                Self::range().with_enum(ErrorMessage::InstantOutOfRange)
-            }
-            TimeZoneProviderError::Assert(s) => Self::assert().with_message(s),
-            TimeZoneProviderError::Range(s) => Self::range().with_message(s),
-            _ => Self::assert().with_message("Unknown TimeZoneProviderError"),
-        }
-    }
-}
