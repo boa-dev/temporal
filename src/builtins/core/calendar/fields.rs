@@ -1,5 +1,3 @@
-use alloc::format;
-
 use tinystr::TinyAsciiStr;
 
 use super::types::month_to_month_code;
@@ -260,7 +258,7 @@ impl YearMonthCalendarFields {
                     .era()
                     .map(|t| TinyAsciiStr::<19>::try_from_utf8(t.as_bytes()))
                     .transpose()
-                    .map_err(|e| TemporalError::general(format!("{e}")))?,
+                    .map_err(|_| TemporalError::general("Invalid era"))?,
                 year_month.era_year(),
             )
         } else {

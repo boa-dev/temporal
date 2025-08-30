@@ -12,7 +12,6 @@ use crate::{
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
-use alloc::string::ToString;
 use core::str::FromStr;
 
 use icu_calendar::{
@@ -142,9 +141,9 @@ impl Calendar {
         // TODO: Determine the best way to handle "julian" here.
         // Not supported by `CalendarAlgorithm`
         let icu_locale_value = Value::try_from_utf8(&bytes.to_ascii_lowercase())
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|_| TemporalError::range().with_message("unknown calendar"))?;
         let algorithm = CalendarAlgorithm::try_from(&icu_locale_value)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|_| TemporalError::range().with_message("unknown calendar"))?;
         let calendar_kind = match AnyCalendarKind::try_from(algorithm) {
             Ok(c) => c,
             // Handle `islamic` calendar idenitifier.
@@ -208,15 +207,12 @@ impl Calendar {
             );
         }
 
-        let calendar_date = self
-            .0
-            .from_codes(
-                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-                resolved_fields.era_year.year,
-                IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day,
-            )
-            .map_err(TemporalError::from_icu4x)?;
+        let calendar_date = self.0.from_codes(
+            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+            resolved_fields.era_year.year,
+            IcuMonthCode(resolved_fields.month_code.0),
+            resolved_fields.day,
+        )?;
         let iso = self.0.to_iso(&calendar_date);
         PlainDate::new_with_overflow(
             Iso.extended_year(&iso),
@@ -267,15 +263,12 @@ impl Calendar {
         }
 
         // We trust ResolvedCalendarFields to have calculated an appropriate reference year for us
-        let calendar_date = self
-            .0
-            .from_codes(
-                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-                resolved_fields.era_year.year,
-                IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day,
-            )
-            .map_err(TemporalError::from_icu4x)?;
+        let calendar_date = self.0.from_codes(
+            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+            resolved_fields.era_year.year,
+            IcuMonthCode(resolved_fields.month_code.0),
+            resolved_fields.day,
+        )?;
         let iso = self.0.to_iso(&calendar_date);
         PlainMonthDay::new_with_overflow(
             Iso.month(&iso).ordinal,
@@ -310,15 +303,12 @@ impl Calendar {
         }
 
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
-        let calendar_date = self
-            .0
-            .from_codes(
-                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-                resolved_fields.era_year.year,
-                IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day,
-            )
-            .map_err(TemporalError::from_icu4x)?;
+        let calendar_date = self.0.from_codes(
+            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+            resolved_fields.era_year.year,
+            IcuMonthCode(resolved_fields.month_code.0),
+            resolved_fields.day,
+        )?;
         let iso = self.0.to_iso(&calendar_date);
         PlainYearMonth::new_with_overflow(
             Iso.year_info(&iso).year,

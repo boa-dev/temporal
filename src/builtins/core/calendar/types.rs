@@ -3,8 +3,6 @@
 use tinystr::tinystr;
 use tinystr::TinyAsciiStr;
 
-use alloc::format;
-
 use crate::fields::CalendarFields;
 use crate::iso::{constrain_iso_day, is_valid_iso_day};
 use crate::options::ArithmeticOverflow;
@@ -162,10 +160,8 @@ impl EraYear {
                     return Err(TemporalError::range().with_message("Invalid era provided."));
                 };
                 if !era_info.range.contains(&era_year) {
-                    return Err(TemporalError::range().with_message(format!(
-                        "Year is not valid for the era {}",
-                        era_info.name.as_str()
-                    )));
+                    return Err(TemporalError::range()
+                        .with_message("Year is not valid for the provided era"));
                 }
                 let calculated_arith = era_info.arithmetic_year_for(era_year);
                 // or a RangeError exception if the fields are sufficient but their values are internally inconsistent
@@ -544,7 +540,7 @@ pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
     let first = month / 10;
     let second = month % 10;
     let tinystr = TinyAsciiStr::<4>::try_from_raw([b'M', first + 48, second + 48, b'\0'])
-        .map_err(|e| TemporalError::range().with_message(format!("tinystr error {e}")))?;
+        .map_err(|_| TemporalError::range().with_message("Invalid month code"))?;
     Ok(MonthCode(tinystr))
 }
 
