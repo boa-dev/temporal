@@ -7,6 +7,8 @@ use crate::utils;
 use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 use alloc::borrow::Cow;
 
+pub(crate) type TimeZoneProviderResult<T> = Result<T, TimeZoneProviderError>;
+
 /// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UtcOffsetSeconds(pub i64);

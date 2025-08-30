@@ -43,6 +43,10 @@ tzif = ["dep:tzif",
     "dep:combine",
     "std"]
 
+# Performing timezone resolution using the `zoneinfo64` crate
+# (ICU4C zoneinfo64.res)
+zoneinfo64 = ["dep:zoneinfo64"]
+
 [dependencies]
 
 # Provider dependency
@@ -57,6 +61,9 @@ zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
 tzif = { workspace = true, optional = true }
 jiff-tzdb = { workspace = true, optional = true }
 combine = { workspace = true, optional = true }
+
+# zoneinfo64 dependency
+zoneinfo64 = { version = "0.1.0", optional = true }
 
 # Databake dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true }

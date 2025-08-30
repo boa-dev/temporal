@@ -10,6 +10,9 @@
 
 use alloc::borrow::Cow;
 
+use crate::provider::TimeZoneProviderResult;
+use crate::TimeZoneProviderError;
+use crate::SINGLETON_IANA_NORMALIZER;
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{VarZeroVec, ZeroVec};
 
@@ -36,4 +39,37 @@ pub struct IanaIdentifierNormalizer<'data> {
     /// The normalized IANA identifier
     #[cfg_attr(feature = "datagen", serde(borrow))]
     pub normalized_identifiers: VarZeroVec<'data, str>,
+}
+
+pub(crate) fn normalize_identifier_with_compiled(
+    identifier: &[u8],
+) -> TimeZoneProviderResult<Cow<'static, str>> {
+    if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
+        return SINGLETON_IANA_NORMALIZER
+            .normalized_identifiers
+            .get(index)
+            .map(Cow::Borrowed)
+            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
+    }
+
+    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
+}
+
+pub(crate) fn canonicalize_identifier_with_compiled(
+    identifier: &[u8],
+) -> TimeZoneProviderResult<Cow<'static, str>> {
+    let idx = SINGLETON_IANA_NORMALIZER
+        .non_canonical_identifiers
+        .get(identifier)
+        .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
+
+    if let Some(index) = idx {
+        return SINGLETON_IANA_NORMALIZER
+            .normalized_identifiers
+            .get(index)
+            .map(Cow::Borrowed)
+            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
+    }
+
+    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
 }

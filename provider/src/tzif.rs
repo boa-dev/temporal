@@ -54,15 +54,12 @@ use crate::utils;
 
 use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, TimeZoneProvider,
-    TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds,
+    TimeZoneProviderResult, TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds,
 };
-use crate::SINGLETON_IANA_NORMALIZER;
 use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
-
-type TimeZoneProviderResult<T> = Result<T, TimeZoneProviderError>;
 
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a
@@ -1238,39 +1235,6 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
     offset_two..offset_one
 }
 
-fn normalize_identifier_with_compiled(
-    identifier: &[u8],
-) -> TimeZoneProviderResult<Cow<'static, str>> {
-    if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
-        return SINGLETON_IANA_NORMALIZER
-            .normalized_identifiers
-            .get(index)
-            .map(Cow::Borrowed)
-            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
-    }
-
-    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
-}
-
-fn canonicalize_identifier_with_compiled(
-    identifier: &[u8],
-) -> TimeZoneProviderResult<Cow<'static, str>> {
-    let idx = SINGLETON_IANA_NORMALIZER
-        .non_canonical_identifiers
-        .get(identifier)
-        .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
-
-    if let Some(index) = idx {
-        return SINGLETON_IANA_NORMALIZER
-            .normalized_identifiers
-            .get(index)
-            .map(Cow::Borrowed)
-            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
-    }
-
-    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
-}
-
 /// Timezone provider that uses compiled data.
 ///
 /// Currently uses jiff_tzdb and performs parsing; will eventually
@@ -1313,10 +1277,10 @@ impl CompiledTzdbProvider {
 
 impl TimeZoneProvider for CompiledTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        normalize_identifier_with_compiled(ident)
+        crate::tzdb::normalize_identifier_with_compiled(ident)
     }
     fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        canonicalize_identifier_with_compiled(ident)
+        crate::tzdb::canonicalize_identifier_with_compiled(ident)
     }
     fn get_named_tz_epoch_nanoseconds(
         &self,
@@ -1387,10 +1351,10 @@ impl FsTzdbProvider {
 
 impl TimeZoneProvider for FsTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        normalize_identifier_with_compiled(ident)
+        crate::tzdb::normalize_identifier_with_compiled(ident)
     }
     fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        canonicalize_identifier_with_compiled(ident)
+        crate::tzdb::canonicalize_identifier_with_compiled(ident)
     }
 
     fn get_named_tz_epoch_nanoseconds(
