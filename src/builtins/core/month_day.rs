@@ -6,7 +6,7 @@ use core::str::FromStr;
 use crate::{
     builtins::calendar::CalendarFields,
     iso::{IsoDate, IsoDateTime, IsoTime},
-    options::{ArithmeticOverflow, Disambiguation, DisplayCalendar},
+    options::{Disambiguation, DisplayCalendar, Overflow},
     parsed_intermediates::ParsedDate,
     parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
     provider::TimeZoneProvider,
@@ -33,13 +33,13 @@ use writeable::Writeable;
 /// ### Creating a PlainMonthDay
 ///
 /// ```rust
-/// use temporal_rs::{PlainMonthDay, Calendar, MonthCode, options::ArithmeticOverflow};
+/// use temporal_rs::{PlainMonthDay, Calendar, MonthCode, options::Overflow};
 ///
 /// // Create March 15th
 /// let md = PlainMonthDay::new_with_overflow(
 ///     3, 15,                           // month, day
 ///     Calendar::default(),             // ISO 8601 calendar
-///     ArithmeticOverflow::Reject,      // reject invalid dates
+///     Overflow::Reject,      // reject invalid dates
 ///     None                             // no reference year
 /// ).unwrap();
 ///
@@ -107,13 +107,13 @@ use writeable::Writeable;
 /// ### Handling leap year dates
 ///
 /// ```rust
-/// use temporal_rs::{PlainMonthDay, MonthCode, fields::CalendarFields, Calendar, options::ArithmeticOverflow};
+/// use temporal_rs::{PlainMonthDay, MonthCode, fields::CalendarFields, Calendar, options::Overflow};
 ///
 /// // February 29th (leap day)
 /// let leap_day = PlainMonthDay::new_with_overflow(
 ///     2, 29,
 ///     Calendar::default(),
-///     ArithmeticOverflow::Reject,
+///     Overflow::Reject,
 ///     Some(2024) // reference year 2024 (a leap year)
 /// ).unwrap();
 ///
@@ -183,7 +183,7 @@ impl PlainMonthDay {
         month: u8,
         day: u8,
         calendar: Calendar,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
         ref_year: Option<i32>,
     ) -> TemporalResult<Self> {
         let ry = ref_year.unwrap_or(1972);
@@ -231,25 +231,18 @@ impl PlainMonthDay {
         // 15. Set isoDate to ? CalendarMonthDayFromFields(calendar, result, constrain).
         intermediate
             .calendar()
-            .month_day_from_fields(fields, ArithmeticOverflow::Constrain)
+            .month_day_from_fields(fields, Overflow::Constrain)
     }
 
     /// Create a `PlainYearMonth` from a `PartialDate`
-    pub fn from_partial(
-        partial: PartialDate,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn from_partial(partial: PartialDate, overflow: Option<Overflow>) -> TemporalResult<Self> {
         partial
             .calendar
             .month_day_from_fields(partial.calendar_fields, overflow.unwrap_or_default())
     }
 
     /// Create a `PlainMonthDay` with the provided fields from a [`PartialDate`].
-    pub fn with(
-        &self,
-        fields: CalendarFields,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn with(&self, fields: CalendarFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         // Steps 1-6 are engine specific.
         // 5. Let fields be ISODateToFields(calendar, monthDay.[[ISODate]], month-day).
         // 6. Let partialMonthDay be ? PrepareCalendarFields(calendar, temporalMonthDayLike, « year, month, month-code, day », « », partial).
@@ -276,7 +269,7 @@ impl PlainMonthDay {
         // 10. Let isoDate be ? CalendarMonthDayFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalMonthDay(isoDate, calendar).
         self.calendar
-            .month_day_from_fields(merged, overflow.unwrap_or(ArithmeticOverflow::Constrain))
+            .month_day_from_fields(merged, overflow.unwrap_or(Overflow::Constrain))
     }
 
     /// Returns the ISO day value of `PlainMonthDay`.
@@ -355,8 +348,7 @@ impl PlainMonthDay {
         }
 
         // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
-        self.calendar
-            .date_from_fields(fields, ArithmeticOverflow::Constrain)
+        self.calendar.date_from_fields(fields, Overflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
@@ -434,14 +426,9 @@ mod tests {
 
     #[test]
     fn test_to_plain_date_with_year() {
-        let month_day = PlainMonthDay::new_with_overflow(
-            5,
-            15,
-            Calendar::default(),
-            ArithmeticOverflow::Reject,
-            None,
-        )
-        .unwrap();
+        let month_day =
+            PlainMonthDay::new_with_overflow(5, 15, Calendar::default(), Overflow::Reject, None)
+                .unwrap();
 
         let fields = CalendarFields::new().with_year(2025);
         let plain_date = month_day.to_plain_date(Some(fields)).unwrap();
@@ -454,14 +441,9 @@ mod tests {
     fn test_to_plain_date_with_era_and_era_year() {
         // Use a calendar that supports era/era_year, e.g., "gregory"
         let calendar = Calendar::from_str("gregory").unwrap();
-        let month_day = PlainMonthDay::new_with_overflow(
-            3,
-            10,
-            calendar.clone(),
-            ArithmeticOverflow::Reject,
-            None,
-        )
-        .unwrap();
+        let month_day =
+            PlainMonthDay::new_with_overflow(3, 10, calendar.clone(), Overflow::Reject, None)
+                .unwrap();
 
         // Era "ce" and era_year 2020 should resolve to year 2020 in Gregorian
         let fields = CalendarFields::new()
@@ -484,14 +466,9 @@ mod tests {
 
     #[test]
     fn test_to_plain_date_missing_year_and_era() {
-        let month_day = PlainMonthDay::new_with_overflow(
-            7,
-            4,
-            Calendar::default(),
-            ArithmeticOverflow::Reject,
-            None,
-        )
-        .unwrap();
+        let month_day =
+            PlainMonthDay::new_with_overflow(7, 4, Calendar::default(), Overflow::Reject, None)
+                .unwrap();
 
         // No year, no era/era_year
         let fields = CalendarFields::new();
@@ -503,14 +480,9 @@ mod tests {
     fn test_to_plain_date_with_fallback_logic_matches_date() {
         // This test ensures that the fallback logic in month_day matches the fallback logic in date.rs
         let calendar = Calendar::from_str("gregory").unwrap();
-        let month_day = PlainMonthDay::new_with_overflow(
-            12,
-            25,
-            calendar.clone(),
-            ArithmeticOverflow::Reject,
-            None,
-        )
-        .unwrap();
+        let month_day =
+            PlainMonthDay::new_with_overflow(12, 25, calendar.clone(), Overflow::Reject, None)
+                .unwrap();
 
         // Provide only era/era_year, not year
         let fields = CalendarFields::new()
@@ -579,7 +551,7 @@ mod tests {
                     };
 
                     let md = calendar
-                        .month_day_from_fields(calendar_fields, ArithmeticOverflow::Reject)
+                        .month_day_from_fields(calendar_fields, Overflow::Reject)
                         .unwrap();
 
                     assert!(
@@ -651,7 +623,7 @@ mod tests {
 
             let md_from_partial = md
                 .calendar()
-                .month_day_from_fields(calendar_fields, ArithmeticOverflow::Reject)
+                .month_day_from_fields(calendar_fields, Overflow::Reject)
                 .expect(string);
 
             assert_eq!(

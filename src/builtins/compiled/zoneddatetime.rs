@@ -5,8 +5,8 @@ use crate::provider::TransitionDirection;
 use crate::ZonedDateTime;
 use crate::{
     options::{
-        ArithmeticOverflow, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
-        DisplayTimeZone, OffsetDisambiguation, RoundingOptions, ToStringRoundingOptions,
+        DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
+        OffsetDisambiguation, Overflow, RoundingOptions, ToStringRoundingOptions,
     },
     Calendar, Duration, PlainTime, TemporalResult, TimeZone,
 };
@@ -69,7 +69,7 @@ impl ZonedDateTime {
     #[inline]
     pub fn from_partial(
         partial: PartialZonedDateTime,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
     ) -> TemporalResult<Self> {
@@ -88,7 +88,7 @@ impl ZonedDateTime {
         fields: ZonedDateTimeFields,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         self.with_with_provider(
             fields,
@@ -115,11 +115,7 @@ impl ZonedDateTime {
     /// Adds a [`Duration`] to the current `ZonedDateTime`.
     ///
     /// Enable with the `compiled_data` feature flag.
-    pub fn add(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn add(&self, duration: &Duration, overflow: Option<Overflow>) -> TemporalResult<Self> {
         self.add_with_provider(duration, overflow, &*TZ_PROVIDER)
     }
 
@@ -129,7 +125,7 @@ impl ZonedDateTime {
     pub fn subtract(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         self.subtract_with_provider(duration, overflow, &*TZ_PROVIDER)
     }

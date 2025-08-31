@@ -9,8 +9,8 @@ use crate::{
     builtins::calendar::{CalendarFields, YearMonthCalendarFields},
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
+        DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, Overflow,
+        ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
     parsed_intermediates::ParsedDate,
     parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
@@ -183,7 +183,7 @@ impl PlainYearMonth {
     pub(crate) fn add_duration(
         &self,
         duration: &Duration,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         // NOTE: The following are engine specific:
         //    SKIP: 1. Let duration be ? ToTemporalDuration(temporalDurationLike).
@@ -219,7 +219,7 @@ impl PlainYearMonth {
             let next_month = calendar.date_add(
                 &intermediate_date.iso,
                 &one_month_duration,
-                ArithmeticOverflow::Constrain,
+                Overflow::Constrain,
             )?;
 
             // c. Let date be BalanceISODate(nextMonth.[[Year]], nextMonth.[[Month]], nextMonth.[[Day]] - 1).
@@ -360,13 +360,7 @@ impl PlainYearMonth {
         reference_day: Option<u8>,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
-        Self::new_with_overflow(
-            year,
-            month,
-            reference_day,
-            calendar,
-            ArithmeticOverflow::Constrain,
-        )
+        Self::new_with_overflow(year, month, reference_day, calendar, Overflow::Constrain)
     }
 
     /// Creates a new `PlainYearMonth`, rejecting any date that may be invalid.
@@ -377,13 +371,7 @@ impl PlainYearMonth {
         reference_day: Option<u8>,
         calendar: Calendar,
     ) -> TemporalResult<Self> {
-        Self::new_with_overflow(
-            year,
-            month,
-            reference_day,
-            calendar,
-            ArithmeticOverflow::Reject,
-        )
+        Self::new_with_overflow(year, month, reference_day, calendar, Overflow::Reject)
     }
 
     /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, rejecting any date that may be invalid.
@@ -399,14 +387,14 @@ impl PlainYearMonth {
         Self::new(year, month, reference_day, Calendar::default())
     }
 
-    /// Creates a new valid `YearMonth` with provided `ArithmeticOverflow` option.
+    /// Creates a new valid `YearMonth` with provided [`Overflow`] option.
     #[inline]
     pub fn new_with_overflow(
         year: i32,
         month: u8,
         reference_day: Option<u8>,
         calendar: Calendar,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         let day = reference_day.unwrap_or(1);
         let iso = IsoDate::regulate(year, month, day, overflow)?;
@@ -419,7 +407,7 @@ impl PlainYearMonth {
     /// Create a `PlainYearMonth` from a `PartialYearMonth`
     pub fn from_partial(
         partial: PartialYearMonth,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         partial
             .calendar
@@ -457,7 +445,7 @@ impl PlainYearMonth {
         // 15. Return ! CreateTemporalYearMonth(isoDate, calendar).
         intermediate
             .calendar()
-            .year_month_from_fields(fields, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(fields, Overflow::Constrain)
     }
 
     /// Returns the iso year value for this `YearMonth`.
@@ -560,7 +548,7 @@ impl PlainYearMonth {
     pub fn with(
         &self,
         fields: YearMonthCalendarFields,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         // 1. Let yearMonth be the this value.
         // 2. Perform ? RequireInternalSlot(yearMonth, [[InitializedTemporalYearMonth]]).
@@ -573,7 +561,7 @@ impl PlainYearMonth {
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
         // 10. Let isoDate be ? CalendarYearMonthFromFields(calendar, fields, overflow).
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
-        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let overflow = overflow.unwrap_or(Overflow::Constrain);
         self.calendar.year_month_from_fields(
             fields.with_fallback_year_month(self, self.calendar.kind(), overflow)?,
             overflow,
@@ -596,17 +584,13 @@ impl PlainYearMonth {
 
     /// Adds a [`Duration`] from the current `PlainYearMonth`.
     #[inline]
-    pub fn add(&self, duration: &Duration, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
+    pub fn add(&self, duration: &Duration, overflow: Overflow) -> TemporalResult<Self> {
         self.add_duration(duration, overflow)
     }
 
     /// Subtracts a [`Duration`] from the current `PlainYearMonth`.
     #[inline]
-    pub fn subtract(
-        &self,
-        duration: &Duration,
-        overflow: ArithmeticOverflow,
-    ) -> TemporalResult<Self> {
+    pub fn subtract(&self, duration: &Duration, overflow: Overflow) -> TemporalResult<Self> {
         self.add_duration(&duration.negated(), overflow)
     }
 
@@ -636,8 +620,7 @@ impl PlainYearMonth {
             .with_day(day_value);
 
         // 8. Let isoDate be ? CalendarDateFromFields(calendar, mergedFields, constrain).
-        self.calendar
-            .date_from_fields(fields, ArithmeticOverflow::Constrain)
+        self.calendar.date_from_fields(fields, Overflow::Constrain)
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
@@ -838,7 +821,7 @@ mod tests {
             1,
             None,
             Calendar::from_str("islamic").unwrap(),
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )
         .unwrap();
 
@@ -847,7 +830,7 @@ mod tests {
             1,
             None,
             Calendar::from_str("hebrew").unwrap(),
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )
         .unwrap();
 
@@ -944,14 +927,9 @@ mod tests {
 
     #[test]
     fn test_plain_year_month_with() {
-        let base = PlainYearMonth::new_with_overflow(
-            2025,
-            3,
-            None,
-            Calendar::default(),
-            ArithmeticOverflow::Reject,
-        )
-        .unwrap();
+        let base =
+            PlainYearMonth::new_with_overflow(2025, 3, None, Calendar::default(), Overflow::Reject)
+                .unwrap();
 
         // Year
         let fields = YearMonthCalendarFields::new().with_year(2001);
@@ -1041,7 +1019,7 @@ mod tests {
             5,    // month
             None, // reference_day
             Calendar::default(),
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )
         .unwrap();
 

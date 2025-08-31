@@ -586,11 +586,11 @@ impl fmt::Display for Unit {
     }
 }
 
-/// `ArithmeticOverflow` can also be used as an
+/// `Overflow` can also be used as an
 /// assignment overflow and consists of the "constrain"
 /// and "reject" options.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum ArithmeticOverflow {
+pub enum Overflow {
     /// Constrain option
     #[default]
     Constrain,
@@ -600,27 +600,27 @@ pub enum ArithmeticOverflow {
 
 /// A parsing error for `ArithemeticOverflow`
 #[derive(Debug, Clone, Copy)]
-pub struct ParseArithmeticOverflowError;
+pub struct ParseOverflowError;
 
-impl fmt::Display for ParseArithmeticOverflowError {
+impl fmt::Display for ParseOverflowError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid overflow value")
     }
 }
 
-impl FromStr for ArithmeticOverflow {
-    type Err = ParseArithmeticOverflowError;
+impl FromStr for Overflow {
+    type Err = ParseOverflowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "constrain" => Ok(Self::Constrain),
             "reject" => Ok(Self::Reject),
-            _ => Err(ParseArithmeticOverflowError),
+            _ => Err(ParseOverflowError),
         }
     }
 }
 
-impl fmt::Display for ArithmeticOverflow {
+impl fmt::Display for Overflow {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Constrain => "constrain",
