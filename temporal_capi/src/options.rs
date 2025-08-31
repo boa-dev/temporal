@@ -7,7 +7,7 @@ pub mod ffi {
     use diplomat_runtime::DiplomatOption;
     use temporal_rs::options;
 
-    #[diplomat::enum_convert(options::ArithmeticOverflow)]
+    #[diplomat::enum_convert(options::Overflow)]
     pub enum ArithmeticOverflow {
         #[diplomat::attr(auto, default)]
         Constrain,
@@ -44,12 +44,6 @@ pub mod ffi {
         Auto,
         Never,
         Critical,
-    }
-
-    #[diplomat::enum_convert(options::DurationOverflow)]
-    pub enum DurationOverflow {
-        Constrain,
-        Balance,
     }
 
     #[diplomat::enum_convert(options::OffsetDisambiguation)]

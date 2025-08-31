@@ -19,10 +19,9 @@ use crate::{
     error::ErrorMessage,
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, DisplayOffset, DisplayTimeZone, OffsetDisambiguation,
-        ResolvedRoundingOptions, RoundingIncrement, RoundingMode, RoundingOptions,
-        ToStringRoundingOptions, Unit, UnitGroup,
+        DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset,
+        DisplayTimeZone, OffsetDisambiguation, Overflow, ResolvedRoundingOptions,
+        RoundingIncrement, RoundingMode, RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsed_intermediates::ParsedZonedDateTime,
     parsers::{FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
@@ -311,7 +310,7 @@ impl ZonedDateTime {
     pub(crate) fn add_zoned_date_time(
         &self,
         duration: InternalDurationRecord,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Instant> {
         // 1. If DateDurationSign(duration.[[Date]]) = 0, then
@@ -353,7 +352,7 @@ impl ZonedDateTime {
     pub(crate) fn add_internal(
         &self,
         duration: &Duration,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         // 1. Let duration be ? ToTemporalDuration(temporalDurationLike).
@@ -645,12 +644,12 @@ impl ZonedDateTime {
     #[inline]
     pub fn from_partial_with_provider(
         partial: PartialZonedDateTime,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let overflow = overflow.unwrap_or(Overflow::Constrain);
         let disambiguation = disambiguation.unwrap_or(Disambiguation::Compatible);
         let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);
 
@@ -708,7 +707,7 @@ impl ZonedDateTime {
         fields: ZonedDateTimeFields,
         disambiguation: Option<Disambiguation>,
         offset_option: Option<OffsetDisambiguation>,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let overflow = overflow.unwrap_or_default();
@@ -1096,26 +1095,22 @@ impl ZonedDateTime {
     pub fn add_with_provider(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        self.add_internal(
-            duration,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
-            provider,
-        )
+        self.add_internal(duration, overflow.unwrap_or(Overflow::Constrain), provider)
     }
 
     /// Subtract a duration to the current `ZonedDateTime`
     pub fn subtract_with_provider(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         self.add_internal(
             &duration.negated(),
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            overflow.unwrap_or(Overflow::Constrain),
             provider,
         )
     }
@@ -1387,7 +1382,7 @@ impl ZonedDateTime {
             parsed.date.record.year,
             parsed.date.record.month,
             parsed.date.record.day,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )?;
 
         let epoch_nanos = interpret_isodatetime_offset(
@@ -1563,8 +1558,8 @@ mod tests {
     use crate::{
         builtins::{calendar::CalendarFields, zoneddatetime::ZonedDateTimeFields},
         options::{
-            ArithmeticOverflow, DifferenceSettings, Disambiguation, OffsetDisambiguation,
-            RoundingIncrement, RoundingMode, RoundingOptions, Unit,
+            DifferenceSettings, Disambiguation, OffsetDisambiguation, Overflow, RoundingIncrement,
+            RoundingMode, RoundingOptions, Unit,
         },
         partial::{PartialTime, PartialZonedDateTime},
         tzdb::FsTzdbProvider,
@@ -1901,7 +1896,7 @@ mod tests {
         )
         .unwrap();
 
-        let overflow = ArithmeticOverflow::Reject;
+        let overflow = Overflow::Reject;
 
         let result_1 = zdt.with_with_provider(
             ZonedDateTimeFields {

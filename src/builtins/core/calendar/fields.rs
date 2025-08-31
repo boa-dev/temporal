@@ -2,8 +2,8 @@ use tinystr::TinyAsciiStr;
 
 use super::types::month_to_month_code;
 use crate::{
-    error::ErrorMessage, options::ArithmeticOverflow, Calendar, MonthCode, PlainDate,
-    PlainDateTime, PlainMonthDay, PlainYearMonth, TemporalError, TemporalResult,
+    error::ErrorMessage, options::Overflow, Calendar, MonthCode, PlainDate, PlainDateTime,
+    PlainMonthDay, PlainYearMonth, TemporalError, TemporalResult,
 };
 use core::ops::Range;
 
@@ -286,7 +286,7 @@ impl YearMonthCalendarFields {
 #[macro_export]
 macro_rules! impl_with_fallback_method {
     ($method_name:ident, $fields_type:ident, ( $(with_day: $day:ident)? ) $component_type:ty) => {
-        pub(crate) fn $method_name(&self, fallback: &$component_type, calendar: icu_calendar::AnyCalendarKind, overflow: ArithmeticOverflow) -> TemporalResult<Self> {
+        pub(crate) fn $method_name(&self, fallback: &$component_type, calendar: icu_calendar::AnyCalendarKind, overflow: Overflow) -> TemporalResult<Self> {
             let keys_to_ignore = self.field_keys_to_ignore(calendar);
             let mut era = self.era;
 
@@ -315,7 +315,7 @@ macro_rules! impl_with_fallback_method {
             let (month, month_code) = match (self.month, self.month_code) {
                 (Some(month), Some(mc)) => (Some(month), Some(mc)),
                 (Some(month), None) => {
-                    let month_maybe_clamped = if overflow == ArithmeticOverflow::Constrain {
+                    let month_maybe_clamped = if overflow == Overflow::Constrain {
                         // TODO (manishearth) this should be managed by ICU4X
                         // https://github.com/unicode-org/icu4x/issues/6790
                         month.clamp(1, 12)

@@ -11,8 +11,8 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, ResolvedRoundingOptions, Unit, UnitGroup,
+        DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, Overflow,
+        ResolvedRoundingOptions, Unit, UnitGroup,
     },
     parsers::IxdtfStringBuilder,
     provider::{NeverProvider, TimeZoneProvider},
@@ -194,7 +194,7 @@ impl PlainDate {
     pub(crate) fn add_duration_to_date(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         // 3. If operation is subtract, set duration to CreateNegatedTemporalDuration(duration).
         // 4. Let dateDuration be ToDateDurationRecordWithoutTime(duration).
@@ -202,7 +202,7 @@ impl PlainDate {
         let date_duration = duration.to_date_duration_record_without_time()?;
         // 5. Let resolvedOptions be ? GetOptionsObject(options).
         // 6. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
-        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let overflow = overflow.unwrap_or(Overflow::Constrain);
         // 7. Let result be ? CalendarDateAdd(calendar, temporalDate.[[ISODate]], dateDuration, overflow).
         // 8. Return ! CreateTemporalDate(result, calendar).
         self.calendar()
@@ -318,7 +318,7 @@ impl PlainDate {
     /// Creates a new `PlainDate` automatically constraining any values that may be invalid.
     #[inline]
     pub fn new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
-        Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Constrain)
+        Self::new_with_overflow(year, month, day, calendar, Overflow::Constrain)
     }
 
     /// Creates a new `PlainDate` with an ISO 8601 calendar automatically constraining any
@@ -331,7 +331,7 @@ impl PlainDate {
     /// Creates a new `PlainDate` rejecting any date that may be invalid.
     #[inline]
     pub fn try_new(year: i32, month: u8, day: u8, calendar: Calendar) -> TemporalResult<Self> {
-        Self::new_with_overflow(year, month, day, calendar, ArithmeticOverflow::Reject)
+        Self::new_with_overflow(year, month, day, calendar, Overflow::Reject)
     }
 
     /// Creates a new `PlainDate` with an ISO 8601 calendar rejecting any date that may be invalid.
@@ -349,7 +349,7 @@ impl PlainDate {
         month: u8,
         day: u8,
         calendar: Calendar,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         let iso = IsoDate::new_with_overflow(year, month, day, overflow)?;
         Ok(Self::new_unchecked(iso, calendar))
@@ -377,10 +377,7 @@ impl PlainDate {
     ///
     /// ```
     #[inline]
-    pub fn from_partial(
-        partial: PartialDate,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn from_partial(partial: PartialDate, overflow: Option<Overflow>) -> TemporalResult<Self> {
         let year_check = partial.calendar_fields.year.is_some()
             || (partial.calendar_fields.era.is_some()
                 && partial.calendar_fields.era_year.is_some());
@@ -413,11 +410,7 @@ impl PlainDate {
     }
 
     /// Creates a date time with values from a `PartialDate`.
-    pub fn with(
-        &self,
-        fields: CalendarFields,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn with(&self, fields: CalendarFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         if fields.is_empty() {
             return Err(TemporalError::r#type().with_message("CalendarFields must have a field."));
         }
@@ -426,7 +419,7 @@ impl PlainDate {
         // 8. Let fields be ? CalendarMergeFields(calendarRec, fieldsResult.[[Fields]], partialDate).
         // 9. Set fields to ? PrepareTemporalFields(fields, fieldsResult.[[FieldNames]], «»).
         // 10. Return ? CalendarDateFromFields(calendarRec, fields, resolvedOptions).
-        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let overflow = overflow.unwrap_or(Overflow::Constrain);
         self.calendar.date_from_fields(
             fields.with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
@@ -490,11 +483,7 @@ impl PlainDate {
 
     #[inline]
     /// Adds a `Duration` to the current `Date`
-    pub fn add(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn add(&self, duration: &Duration, overflow: Option<Overflow>) -> TemporalResult<Self> {
         self.add_duration_to_date(duration, overflow)
     }
 
@@ -503,7 +492,7 @@ impl PlainDate {
     pub fn subtract(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         self.add_duration_to_date(&duration.negated(), overflow)
     }
@@ -630,13 +619,13 @@ impl PlainDate {
             .with_month(self.month())
             .with_month_code(self.month_code());
         self.calendar()
-            .year_month_from_fields(fields, ArithmeticOverflow::Constrain)
+            .year_month_from_fields(fields, Overflow::Constrain)
     }
 
     /// Converts the current `Date` into a `PlainMonthDay`
     #[inline]
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
-        let overflow = ArithmeticOverflow::Constrain;
+        let overflow = Overflow::Constrain;
         self.calendar().month_day_from_fields(
             CalendarFields::default().with_fallback_date(self, self.calendar.kind(), overflow)?,
             overflow,
