@@ -46,12 +46,6 @@ pub mod ffi {
         Critical,
     }
 
-    #[diplomat::enum_convert(options::DurationOverflow)]
-    pub enum DurationOverflow {
-        Constrain,
-        Balance,
-    }
-
     #[diplomat::enum_convert(options::OffsetDisambiguation)]
     pub enum OffsetDisambiguation {
         Use,

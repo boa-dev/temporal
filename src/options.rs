@@ -630,47 +630,6 @@ impl fmt::Display for ArithmeticOverflow {
     }
 }
 
-/// `Duration` overflow options.
-#[derive(Debug, Clone, Copy)]
-pub enum DurationOverflow {
-    /// Constrain option
-    Constrain,
-    /// Balance option
-    Balance,
-}
-
-/// A parsing error for `DurationOverflow`.
-#[derive(Debug, Clone, Copy)]
-pub struct ParseDurationOverflowError;
-
-impl fmt::Display for ParseDurationOverflowError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("provided string was not a valid duration overflow value")
-    }
-}
-
-impl FromStr for DurationOverflow {
-    type Err = ParseDurationOverflowError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "constrain" => Ok(Self::Constrain),
-            "balance" => Ok(Self::Balance),
-            _ => Err(ParseDurationOverflowError),
-        }
-    }
-}
-
-impl fmt::Display for DurationOverflow {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Constrain => "constrain",
-            Self::Balance => "balance",
-        }
-        .fmt(f)
-    }
-}
-
 /// The disambiguation options for an instant.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Disambiguation {
