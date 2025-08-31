@@ -312,6 +312,7 @@ impl PlainDateTime {
         let dest_epoch_ns = other.iso.as_nanoseconds();
         // 6. Return ? RoundRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
         diff.round_relative_duration(
+            self.iso.as_nanoseconds(),
             dest_epoch_ns.0,
             self,
             Option::<(&TimeZone, &NeverProvider)>::None,
@@ -336,10 +337,12 @@ impl PlainDateTime {
         if unit == Unit::Nanosecond {
             return FiniteF64::try_from(diff.normalized_time_duration().0);
         }
+        let origin_epoch_ns = self.iso.as_nanoseconds();
         // 5. Let destEpochNs be GetUTCEpochNanoseconds(isoDateTime2).
         let dest_epoch_ns = other.iso.as_nanoseconds();
         // 6. Return ? TotalRelativeDuration(diff, destEpochNs, isoDateTime1, unset, calendar, unit).
         diff.total_relative_duration(
+            origin_epoch_ns,
             dest_epoch_ns.0,
             self,
             Option::<(&TimeZone, &NeverProvider)>::None,
