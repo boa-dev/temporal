@@ -399,6 +399,7 @@ impl ZonedDateTime {
         let iso = self.get_iso_datetime();
         // 5. Return ? RoundRelativeDuration(difference, ns2, dateTime, timeZone, calendar, largestUnit, roundingIncrement, smallestUnit, roundingMode).
         diff.round_relative_duration(
+            *self.epoch_nanoseconds(),
             other.epoch_nanoseconds().as_i128(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
             Some((self.timezone(), provider)),
@@ -430,6 +431,7 @@ impl ZonedDateTime {
         let iso = self.get_iso_datetime();
         // 4. Return ? TotalRelativeDuration(difference, ns2, dateTime, timeZone, calendar, unit).
         diff.total_relative_duration(
+            *self.epoch_nanoseconds(),
             other.epoch_nanoseconds().as_i128(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
             Some((self.timezone(), provider)),

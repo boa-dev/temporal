@@ -3,6 +3,7 @@
 use core::{cmp, num::NonZeroU128, ops::Add};
 
 use num_traits::AsPrimitive;
+use timezone_provider::epoch_nanoseconds::EpochNanoseconds;
 
 use crate::{
     builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
@@ -370,6 +371,7 @@ impl InternalDurationRecord {
     fn nudge_calendar_unit(
         &self,
         sign: Sign,
+        origin_epoch_ns: EpochNanoseconds,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
         tz: Option<(&TimeZone, &impl TimeZoneProvider)>, // ???
@@ -562,33 +564,43 @@ impl InternalDurationRecord {
             _ => unreachable!(), // TODO: potentially reject with range error?
         };
 
-        // 7. Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], startDuration, constrain).
-        let start =
-            dt.calendar()
-                .date_add(&dt.iso.date, &start_duration, ArithmeticOverflow::Constrain)?;
+        let start_epoch_ns = if r1 == 0 {
+            origin_epoch_ns
+        } else {
+            // 7. Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], startDuration, constrain).
+            let start = dt.calendar().date_add(
+                &dt.iso.date,
+                &start_duration,
+                ArithmeticOverflow::Constrain,
+            )?;
+            // 9. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
+            let start_date_time = IsoDateTime::new_unchecked(start.iso, dt.iso.time);
+            if let Some((tz, provider)) = tz {
+                tz.get_epoch_nanoseconds_for(start_date_time, Disambiguation::Compatible, provider)?
+                    .ns
+            } else {
+                start_date_time.as_nanoseconds()
+            }
+        };
+
         // 8. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
         let end =
             dt.calendar()
                 .date_add(&dt.iso.date, &end_duration, ArithmeticOverflow::Constrain)?;
-        // 9. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
-        let start = IsoDateTime::new_unchecked(start.iso, dt.iso.time);
         // 10. Let endDateTime be CombineISODateAndTimeRecord(end, isoDateTime.[[Time]]).
         let end = IsoDateTime::new_unchecked(end.iso, dt.iso.time);
 
         // 12. Else,
-        let (start_epoch_ns, end_epoch_ns) = if let Some((tz, provider)) = tz {
+        let end_epoch_ns = if let Some((tz, provider)) = tz {
             // a. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
             // b. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
-            let start_epoch_ns =
-                tz.get_epoch_nanoseconds_for(start, Disambiguation::Compatible, provider)?;
-            let end_epoch_ns =
-                tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
-            (start_epoch_ns.ns, end_epoch_ns.ns)
+            tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?
+                .ns
         // 11. If timeZoneRec is unset, then
         } else {
             // a. Let startEpochNs be GetUTCEpochNanoseconds(start.[[Year]], start.[[Month]], start.[[Day]], start.[[Hour]], start.[[Minute]], start.[[Second]], start.[[Millisecond]], start.[[Microsecond]], start.[[Nanosecond]]).
             // b. Let endEpochNs be GetUTCEpochNanoseconds(end.[[Year]], end.[[Month]], end.[[Day]], end.[[Hour]], end.[[Minute]], end.[[Second]], end.[[Millisecond]], end.[[Microsecond]], end.[[Nanosecond]]).
-            (start.as_nanoseconds(), end.as_nanoseconds())
+            end.as_nanoseconds()
         };
 
         // TODO: look into handling asserts
@@ -947,6 +959,7 @@ impl InternalDurationRecord {
     #[inline]
     pub(crate) fn round_relative_duration(
         &self,
+        origin_epoch_ns: EpochNanoseconds,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
         time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
@@ -967,7 +980,14 @@ impl InternalDurationRecord {
         let nudge_result = if irregular_length_unit {
             // a. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, increment, smallestUnit, roundingMode).
             // b. Let nudgeResult be record.[[NudgeResult]].
-            duration.nudge_calendar_unit(sign, dest_epoch_ns, dt, time_zone, options)?
+            duration.nudge_calendar_unit(
+                sign,
+                origin_epoch_ns,
+                dest_epoch_ns,
+                dt,
+                time_zone,
+                options,
+            )?
         } else if let Some((time_zone, time_zone_provider)) = time_zone {
             // 6. Else if timeZone is not unset, then
             //      a. Let nudgeResult be ? NudgeToZonedTime(sign, duration, isoDateTime, timeZone, calendar, increment, smallestUnit, roundingMode).
@@ -1005,6 +1025,7 @@ impl InternalDurationRecord {
     // 7.5.38 TotalRelativeDuration ( duration, destEpochNs, isoDateTime, timeZone, calendar, unit )
     pub(crate) fn total_relative_duration(
         &self,
+        origin_epoch_ns: EpochNanoseconds,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
         tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
@@ -1017,6 +1038,7 @@ impl InternalDurationRecord {
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
             let record = self.nudge_calendar_unit(
                 sign,
+                origin_epoch_ns,
                 dest_epoch_ns,
                 dt,
                 tz,
