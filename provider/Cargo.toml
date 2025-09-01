@@ -45,7 +45,7 @@ tzif = ["dep:tzif",
 
 # Performing timezone resolution using the `zoneinfo64` crate
 # (ICU4C zoneinfo64.res)
-zoneinfo64 = ["dep:zoneinfo64"]
+zoneinfo64 = ["dep:zoneinfo64", "dep:icu_time"]
 
 [dependencies]
 
@@ -56,6 +56,7 @@ tinystr = { workspace = true, features = ["zerovec"] }
 
 # IANA dependency
 zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
+icu_time = { workspace = true, optional = true}
 
 # tzif dependency
 tzif = { workspace = true, optional = true }

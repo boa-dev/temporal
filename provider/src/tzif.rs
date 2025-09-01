@@ -56,7 +56,10 @@ use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, TimeZoneProvider,
     TimeZoneProviderResult, TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds,
 };
-use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
+use crate::{
+    epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
+    TimeZoneProviderError,
+};
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
@@ -1384,12 +1387,6 @@ impl TimeZoneProvider for FsTzdbProvider {
         let tzif = self.get(identifier)?;
         tzif.get_named_tz_transition(epoch_nanoseconds, direction)
     }
-}
-
-const NS_IN_S: i128 = 1_000_000_000;
-#[inline]
-fn seconds_to_nanoseconds(seconds: i64) -> i128 {
-    seconds as i128 * NS_IN_S
 }
 
 #[cfg(test)]

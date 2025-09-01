@@ -883,6 +883,7 @@ version = "0.0.14"
 dependencies = [
  "combine",
  "databake",
+ "icu_time",
  "jiff-tzdb",
  "serde",
  "serde_json",
