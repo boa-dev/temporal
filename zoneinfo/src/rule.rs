@@ -4,24 +4,13 @@
 
 use core::ops::RangeInclusive;
 
-use alloc::{borrow::ToOwned, collections::BTreeSet, string::String, vec, vec::Vec};
+use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 
 use crate::{
-    compiler::Transition,
     parser::{next_split, ContextParse, LineParseContext, ZoneInfoParseError},
-    types::{DayOfMonth, Month, QualifiedTime, QualifiedTimeKind, Time, ToYear},
+    types::{DayOfMonth, Month, QualifiedTime, Time, ToYear},
     utils::{self, epoch_seconds_for_epoch_days},
-    zone::ZoneBuildContext,
 };
-
-/// An internal struct for returning the applicable rules found
-/// for a year.
-#[derive(Debug)]
-pub(crate) struct ApplicableRules {
-    // Preloaded saving of the applicable rules' dst
-    pub(crate) saving: Time,
-    pub(crate) transitions: BTreeSet<Transition>,
-}
 
 #[derive(Debug)]
 pub struct LastRules {
@@ -82,91 +71,6 @@ impl Rules {
             .find(|rule| rule.save == Time::default())
             .expect("A rule must exist with a SAVE = 0");
         first_rule.letter.clone()
-    }
-
-    // NOTE: To be precise, we will need the savings value active across year boundaries.
-    pub(crate) fn get_rules_for_year(
-        &self,
-        year: i32,
-        std_offset: &Time,
-        use_until: i64,
-        ctx: &mut ZoneBuildContext,
-    ) -> ApplicableRules {
-        let ordered = self
-            .rules
-            .iter()
-            .filter_map(|rule| {
-                if rule.range().contains(&year) {
-                    let transition_time =
-                        rule.transition_time_for_year(year, std_offset, &Time::default());
-                    Some(Transition {
-                        at_time: transition_time,
-                        offset: std_offset.as_secs() + rule.save.as_secs(),
-                        dst: rule.is_dst(),
-                        savings: rule.save,
-                        letter: rule.letter.clone(),
-                        time_type: rule.at.time_kind(),
-                        format: String::new(),
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect::<BTreeSet<_>>();
-
-        let mut saving = ctx.saving;
-
-        // We must first build an ordered collection of transitions, as rules
-        // are unordered, but transition savings values must be evaluated in
-        // order.
-        let transitions = ordered
-            .into_iter()
-            .filter_map(|mut transition| {
-                let new_time = match transition.time_type {
-                    QualifiedTimeKind::Local => transition.at_time - saving.as_secs(),
-                    _ => transition.at_time,
-                };
-                // Check and see if this transition is valid for use until
-                if new_time < use_until {
-                    saving = transition.savings;
-                    transition.at_time = new_time;
-                    Some(transition)
-                } else {
-                    None
-                }
-            })
-            .collect::<BTreeSet<_>>();
-
-        ApplicableRules {
-            saving,
-            transitions,
-        }
-    }
-
-    /// A method to search for the last applicable savings for a transition point.
-    ///
-    /// The last savings needs to be searched for from the beginning because the
-    /// rules are sorted by start date, not the end date. So, in theory, a rule
-    /// could be the second rule of ten, but still be active longer then the
-    /// following eight rules.
-    pub(crate) fn search_last_active_savings(&self, transition_point: i64) -> Time {
-        // Reasonable assumption: when searching for a last savings value,
-        // we are dealing with an orphan. This means we do not need to check years
-        // with an upper bound or inside them
-        let mut rule_savings = (i64::MIN, Time::default());
-        for rule in &self.rules {
-            let year = rule.to.map(ToYear::to_i32).unwrap_or(i32::from(rule.from));
-            let epoch_days = epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
-            let rule_date_in_seconds = epoch_seconds_for_epoch_days(epoch_days);
-            // But we do want to keep track of the savings.
-            if rule_date_in_seconds < transition_point && rule_savings.0 < rule_date_in_seconds {
-                rule_savings = (rule_date_in_seconds, rule.save)
-            } else if transition_point < rule_date_in_seconds {
-                break;
-            }
-        }
-
-        rule_savings.1
     }
 
     pub(crate) fn search_last_active_rule(&self, transition_point: i64) -> Option<&Rule> {

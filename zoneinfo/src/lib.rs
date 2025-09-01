@@ -37,7 +37,6 @@ extern crate alloc;
 
 use alloc::string::String;
 use parser::ZoneInfoParseError;
-use utils::epoch_seconds_for_year;
 
 use hashbrown::HashMap;
 

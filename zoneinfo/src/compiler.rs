@@ -4,8 +4,6 @@
 //! with output types.
 //!
 
-use core::ops::RangeInclusive;
-
 use alloc::collections::BTreeSet;
 use alloc::string::String;
 use hashbrown::HashMap;
@@ -127,10 +125,9 @@ pub struct CompiledTransitionsMap {
 
 use crate::{
     posix::PosixTimeZone,
-    rule::Rules,
-    types::{QualifiedTimeKind, RuleIdentifier, Time},
+    types::{QualifiedTimeKind, Time},
     tzif::TzifBlockV2,
-    zone::{self, ZoneBuildContext, ZoneEntry, ZoneRecord},
+    zone::ZoneRecord,
     ZoneInfoData,
 };
 
@@ -165,6 +162,7 @@ impl ZoneInfoCompiler {
         zoneinfo
     }
 
+    /// The internal method for retrieving a zone table and compiling it.
     pub(crate) fn build_zone_internal(&self, target: &str) -> CompiledTransitions {
         let zone_table = self
             .data
@@ -173,83 +171,6 @@ impl ZoneInfoCompiler {
             .expect("Invalid identifier provided.");
         zone_table.compile()
     }
-
-    /// Builds the `ZoneInfoTransitionData` for a provided zone identifier (AKA IANA identifier)
-    ///
-    /// NOTE: Make sure to associate first!
-    /*
-    pub(crate) fn build_for_zone(&self, target: &str) -> CompiledTransitions {
-        let zone_table = self
-            .data
-            .zones
-            .get(target)
-            .expect("Invalid identifier provided.");
-        let initial_record = zone_table.get_first_local_record();
-        let mut transitions = BTreeSet::default();
-        if let Some(until_date) = zone_table.get_first_until_date() {
-            // Arbitrary end year, expose as option?
-            // TODO: Handle max year better.
-            let range = until_date.date.year..=2050;
-
-            let mut build_context = ZoneBuildContext::new(&initial_record);
-            for year in range {
-                build_context.update(year, until_date);
-                zone_table.calculate_transitions_for_year(
-                    year,
-                    &mut build_context,
-                    &mut transitions,
-                );
-            }
-        }
-
-        let posix_time_zone = zone_table.get_posix_time_zone();
-
-        // First entry must exist.
-        let first_zone_line = &zone_table.entries[0];
-        let range = first_zone_line.date.map(|date| {
-            let savings_time = match &first_zone_line.rule {
-                RuleIdentifier::None => 0,
-                RuleIdentifier::Numeric(num) => num.as_secs(),
-                // All time zones with a transition should begin with a LMT line
-                RuleIdentifier::Named(name) => unreachable!("No zone begins with a Rule offset.")
-                ,
-            };
-            let first_transition_time = date.as_precise_ut_time(first_zone_line.std_offset.as_secs(), savings_time);
-
-            // We want the second to last zone line, because the last zone line will not have an until / end date.
-            let second_to_last_zone_line = &zone_table.entries[zone_table.entries.len() - 2];
-            let final_until_date = second_to_last_zone_line.date.expect("UNTIL must exist if not on last zone line");
-            let savings_time = match &first_zone_line.rule {
-                RuleIdentifier::None => 0,
-                RuleIdentifier::Numeric(num) => num.as_secs(),
-                // All time zones with a transition should begin with a LMT line
-                RuleIdentifier::Named(name) => {
-                    let associated_rules = zone_table.associates.get(name).expect("Rules must be associated");
-                    let last_rules = associated_rules.get_last_rules();
-                    if let Some(dst_rule) = last_rules.saving {
-                        let _dst_transition_timestamp = dst_rule
-                            .transition_time_for_year(final_until_date.date.year, &second_to_last_zone_line.std_offset, &Time::default());
-                        let _std_transition_timestamp = last_rules
-                            .standard
-                            .transition_time_for_year(final_until_date.date.year, &second_to_last_zone_line.std_offset, &dst_rule.save);
-                    } else {
-
-                    }
-                    todo!()
-                }
-            };
-            let date = second_to_last_zone_line.date.expect("UntilDateTime must exist if multiple zone entries exists");
-            let last_transition_time = date.as_precise_ut_time(second_to_last_zone_line.std_offset.as_secs(), savings_time);
-            first_transition_time..=last_transition_time
-        });
-
-        CompiledTransitions {
-            initial_record,
-            transitions,
-            posix_time_zone,
-        }
-    }
-    */
 
     pub fn get_posix_time_zone(&mut self, target: &str) -> Option<PosixTimeZone> {
         self.associate();
@@ -266,8 +187,3 @@ impl ZoneInfoCompiler {
         }
     }
 }
-
-/// A compiler to compile all the transitions for a zone line.
-pub struct ZoneLineCompiler;
-
-impl ZoneLineCompiler {}
