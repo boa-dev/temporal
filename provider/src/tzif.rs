@@ -54,7 +54,7 @@ use crate::utils;
 
 use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, TimeZoneProvider,
-    TimeZoneProviderResult, TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds,
+    TimeZoneProviderResult, TransitionDirection, UtcOffsetSeconds,
 };
 use crate::{
     epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
@@ -80,6 +80,15 @@ pub enum LocalTimeRecordResult {
         first: UtcOffsetSeconds,
         second: UtcOffsetSeconds,
     },
+}
+
+/// `TimeZoneTransitionInfo` represents information about a timezone transition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeZoneTransitionInfo {
+    /// The transition time epoch at which the offset needs to be applied.
+    pub transition_epoch: Option<i64>,
+    /// The time zone offset in seconds.
+    pub offset: UtcOffsetSeconds,
 }
 
 impl From<UtcOffsetSeconds> for LocalTimeRecordResult {
@@ -249,7 +258,7 @@ impl Tzif {
     fn get_named_tz_offset_nanoseconds(
         &self,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         let mut seconds = (utc_epoch / NS_IN_S) as i64;
         // The rounding is inexact. Transitions are only at second
         // boundaries, so the offset at N s is the same as the offset at N.001,
@@ -258,7 +267,7 @@ impl Tzif {
         if seconds < 0 && utc_epoch % NS_IN_S != 0 {
             seconds -= 1;
         }
-        self.get(&Seconds(seconds))
+        self.get(&Seconds(seconds)).map(|t| t.offset)
     }
 
     // Helper function to call resolve_posix_tz_string
@@ -1298,7 +1307,7 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
             .get_named_tz_offset_nanoseconds(utc_epoch)
     }
@@ -1373,7 +1382,7 @@ impl TimeZoneProvider for FsTzdbProvider {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
             .get_named_tz_offset_nanoseconds(utc_epoch)
     }
@@ -1392,6 +1401,7 @@ impl TimeZoneProvider for FsTzdbProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SINGLETON_IANA_NORMALIZER;
     use tzif::data::time::Seconds;
 
     fn get_singleton_identifier(id: &str) -> Option<&'static str> {
@@ -1870,8 +1880,8 @@ mod tests {
                 before_transition, after_transition,
                 "Transition info must not be the same"
             );
-            assert_eq!(after_transition.offset.0, after_offset);
-            assert_eq!(before_transition.offset.0, before_offset);
+            assert_eq!(after_transition.0, after_offset);
+            assert_eq!(before_transition.0, before_offset);
         }
 
         // Test Northern hemisphere

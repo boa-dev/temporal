@@ -10,8 +10,11 @@
 
 use alloc::borrow::Cow;
 
+#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
 use crate::provider::TimeZoneProviderResult;
+#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
 use crate::TimeZoneProviderError;
+#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
 use crate::SINGLETON_IANA_NORMALIZER;
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{VarZeroVec, ZeroVec};
@@ -41,6 +44,7 @@ pub struct IanaIdentifierNormalizer<'data> {
     pub normalized_identifiers: VarZeroVec<'data, str>,
 }
 
+#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
 pub(crate) fn normalize_identifier_with_compiled(
     identifier: &[u8],
 ) -> TimeZoneProviderResult<Cow<'static, str>> {
@@ -55,6 +59,7 @@ pub(crate) fn normalize_identifier_with_compiled(
     Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
 }
 
+#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
 pub(crate) fn canonicalize_identifier_with_compiled(
     identifier: &[u8],
 ) -> TimeZoneProviderResult<Cow<'static, str>> {

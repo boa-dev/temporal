@@ -2,8 +2,7 @@ use zoneinfo64::{PossibleOffset, ZoneInfo64};
 
 use crate::provider::{
     CandidateEpochNanoseconds, EpochNanosecondsAndOffset, GapEntryOffsets, IsoDateTime,
-    TimeZoneProvider, TimeZoneProviderResult, TimeZoneTransitionInfo, TransitionDirection,
-    UtcOffsetSeconds,
+    TimeZoneProvider, TimeZoneProviderResult, TransitionDirection, UtcOffsetSeconds,
 };
 use crate::{
     epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
@@ -80,7 +79,7 @@ impl TimeZoneProvider for ZoneInfo64<'_> {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         let Some(zone) = self.get(identifier) else {
             return Err(TimeZoneProviderError::Range("Unknown timezone identifier"));
         };
@@ -99,11 +98,7 @@ impl TimeZoneProvider for ZoneInfo64<'_> {
         }
         let offset = zone.for_timestamp(seconds);
 
-        Ok(TimeZoneTransitionInfo {
-            // TODO(Manishearth) this is incorrect
-            transition_epoch: None,
-            offset: offset.offset.into(),
-        })
+        Ok(offset.offset.into())
     }
 
     fn get_named_tz_transition(
