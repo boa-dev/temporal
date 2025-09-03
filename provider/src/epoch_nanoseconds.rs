@@ -4,7 +4,7 @@ use crate::TimeZoneProviderError;
 #[doc(hidden)]
 pub const NS_PER_DAY: u64 = MS_PER_DAY as u64 * 1_000_000;
 
-const NS_IN_S: i128 = 1_000_000_000;
+pub(crate) const NS_IN_S: i128 = 1_000_000_000;
 
 /// Milliseconds per day constant: 8.64e+7
 pub(crate) const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
@@ -54,4 +54,10 @@ impl From<tzif::data::time::Seconds> for EpochNanoseconds {
     fn from(value: tzif::data::time::Seconds) -> Self {
         EpochNanoseconds::from_seconds(value.0)
     }
+}
+
+#[inline]
+#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
+pub(crate) fn seconds_to_nanoseconds(seconds: i64) -> i128 {
+    seconds as i128 * NS_IN_S
 }

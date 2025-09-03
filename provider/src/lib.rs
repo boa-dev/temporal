@@ -29,6 +29,9 @@ pub mod tzif;
 #[cfg(feature = "experimental_tzif")]
 pub mod experimental_tzif;
 
+#[cfg(feature = "zoneinfo64")]
+pub mod zoneinfo64;
+
 pub mod epoch_nanoseconds;
 
 #[doc(hidden)]

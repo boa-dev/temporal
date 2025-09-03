@@ -315,8 +315,8 @@ impl TimeZone {
             Self::UtcOffset(offset) => Ok(i128::from(offset.nanoseconds())),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => {
-                let transition = provider.get_named_tz_offset_nanoseconds(identifier, utc_epoch)?;
-                Ok(i128::from(transition.offset.0) * 1_000_000_000)
+                let offset = provider.get_named_tz_offset_nanoseconds(identifier, utc_epoch)?;
+                Ok(i128::from(offset.0) * 1_000_000_000)
             }
         }
     }

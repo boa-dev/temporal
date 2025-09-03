@@ -7,6 +7,8 @@ use crate::utils;
 use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 use alloc::borrow::Cow;
 
+pub(crate) type TimeZoneProviderResult<T> = Result<T, TimeZoneProviderError>;
+
 /// `UtcOffsetSeconds` represents the amount of seconds we need to add to the UTC to reach the local time.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UtcOffsetSeconds(pub i64);
@@ -79,15 +81,6 @@ pub struct EpochNanosecondsAndOffset {
     pub ns: EpochNanoseconds,
     /// The resolved time zone offset corresponding
     /// to the nanoseconds value, in the given time zone
-    pub offset: UtcOffsetSeconds,
-}
-
-/// `TimeZoneTransitionInfo` represents information about a timezone transition.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TimeZoneTransitionInfo {
-    /// The transition time epoch at which the offset needs to be applied.
-    pub transition_epoch: Option<i64>,
-    /// The time zone offset in seconds.
     pub offset: UtcOffsetSeconds,
 }
 
@@ -189,53 +182,44 @@ impl CandidateEpochNanoseconds {
 /// The `TimeZoneProvider` trait provides methods required for a provider
 /// to implement in order to source time zone data from that provider.
 pub trait TimeZoneProvider {
-    fn normalize_identifier(&self, ident: &'_ [u8]) -> Result<Cow<'_, str>, TimeZoneProviderError>;
+    fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>>;
 
-    fn canonicalize_identifier(
-        &self,
-        ident: &'_ [u8],
-    ) -> Result<Cow<'_, str>, TimeZoneProviderError>;
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>>;
 
     fn get_named_tz_epoch_nanoseconds(
         &self,
         identifier: &str,
         local_datetime: IsoDateTime,
-    ) -> Result<CandidateEpochNanoseconds, TimeZoneProviderError>;
+    ) -> TimeZoneProviderResult<CandidateEpochNanoseconds>;
 
     fn get_named_tz_offset_nanoseconds(
         &self,
         identifier: &str,
         epoch_nanoseconds: i128,
-    ) -> Result<TimeZoneTransitionInfo, TimeZoneProviderError>;
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds>;
 
     fn get_named_tz_transition(
         &self,
         identifier: &str,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
-    ) -> Result<Option<EpochNanoseconds>, TimeZoneProviderError>;
+    ) -> TimeZoneProviderResult<Option<EpochNanoseconds>>;
 }
 
 pub struct NeverProvider;
 
 impl TimeZoneProvider for NeverProvider {
-    fn normalize_identifier(
-        &self,
-        _ident: &'_ [u8],
-    ) -> Result<Cow<'_, str>, TimeZoneProviderError> {
+    fn normalize_identifier(&self, _ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
         unimplemented!()
     }
-    fn canonicalize_identifier(
-        &self,
-        _ident: &'_ [u8],
-    ) -> Result<Cow<'_, str>, TimeZoneProviderError> {
+    fn canonicalize_identifier(&self, _ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
         unimplemented!()
     }
     fn get_named_tz_epoch_nanoseconds(
         &self,
         _: &str,
         _: IsoDateTime,
-    ) -> Result<CandidateEpochNanoseconds, TimeZoneProviderError> {
+    ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
         unimplemented!()
     }
 
@@ -243,7 +227,7 @@ impl TimeZoneProvider for NeverProvider {
         &self,
         _: &str,
         _: i128,
-    ) -> Result<TimeZoneTransitionInfo, TimeZoneProviderError> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         unimplemented!()
     }
 
@@ -252,7 +236,7 @@ impl TimeZoneProvider for NeverProvider {
         _: &str,
         _: i128,
         _: TransitionDirection,
-    ) -> Result<Option<EpochNanoseconds>, TimeZoneProviderError> {
+    ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
         unimplemented!()
     }
 }

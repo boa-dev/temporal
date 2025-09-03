@@ -54,15 +54,15 @@ use crate::utils;
 
 use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, TimeZoneProvider,
-    TimeZoneTransitionInfo, TransitionDirection, UtcOffsetSeconds,
+    TimeZoneProviderResult, TransitionDirection, UtcOffsetSeconds,
 };
-use crate::SINGLETON_IANA_NORMALIZER;
-use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
+use crate::{
+    epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
+    TimeZoneProviderError,
+};
 
 #[cfg(target_family = "unix")]
 const ZONEINFO_DIR: &str = "/usr/share/zoneinfo/";
-
-type TimeZoneProviderResult<T> = Result<T, TimeZoneProviderError>;
 
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a
@@ -80,6 +80,15 @@ pub enum LocalTimeRecordResult {
         first: UtcOffsetSeconds,
         second: UtcOffsetSeconds,
     },
+}
+
+/// `TimeZoneTransitionInfo` represents information about a timezone transition.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TimeZoneTransitionInfo {
+    /// The transition time epoch at which the offset needs to be applied.
+    pub transition_epoch: Option<i64>,
+    /// The time zone offset in seconds.
+    pub offset: UtcOffsetSeconds,
 }
 
 impl From<UtcOffsetSeconds> for LocalTimeRecordResult {
@@ -249,7 +258,7 @@ impl Tzif {
     fn get_named_tz_offset_nanoseconds(
         &self,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         let mut seconds = (utc_epoch / NS_IN_S) as i64;
         // The rounding is inexact. Transitions are only at second
         // boundaries, so the offset at N s is the same as the offset at N.001,
@@ -258,7 +267,7 @@ impl Tzif {
         if seconds < 0 && utc_epoch % NS_IN_S != 0 {
             seconds -= 1;
         }
-        self.get(&Seconds(seconds))
+        self.get(&Seconds(seconds)).map(|t| t.offset)
     }
 
     // Helper function to call resolve_posix_tz_string
@@ -1238,39 +1247,6 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
     offset_two..offset_one
 }
 
-fn normalize_identifier_with_compiled(
-    identifier: &[u8],
-) -> TimeZoneProviderResult<Cow<'static, str>> {
-    if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
-        return SINGLETON_IANA_NORMALIZER
-            .normalized_identifiers
-            .get(index)
-            .map(Cow::Borrowed)
-            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
-    }
-
-    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
-}
-
-fn canonicalize_identifier_with_compiled(
-    identifier: &[u8],
-) -> TimeZoneProviderResult<Cow<'static, str>> {
-    let idx = SINGLETON_IANA_NORMALIZER
-        .non_canonical_identifiers
-        .get(identifier)
-        .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
-
-    if let Some(index) = idx {
-        return SINGLETON_IANA_NORMALIZER
-            .normalized_identifiers
-            .get(index)
-            .map(Cow::Borrowed)
-            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
-    }
-
-    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
-}
-
 /// Timezone provider that uses compiled data.
 ///
 /// Currently uses jiff_tzdb and performs parsing; will eventually
@@ -1313,10 +1289,10 @@ impl CompiledTzdbProvider {
 
 impl TimeZoneProvider for CompiledTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        normalize_identifier_with_compiled(ident)
+        crate::tzdb::normalize_identifier_with_compiled(ident)
     }
     fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        canonicalize_identifier_with_compiled(ident)
+        crate::tzdb::canonicalize_identifier_with_compiled(ident)
     }
     fn get_named_tz_epoch_nanoseconds(
         &self,
@@ -1331,7 +1307,7 @@ impl TimeZoneProvider for CompiledTzdbProvider {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
             .get_named_tz_offset_nanoseconds(utc_epoch)
     }
@@ -1387,10 +1363,10 @@ impl FsTzdbProvider {
 
 impl TimeZoneProvider for FsTzdbProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        normalize_identifier_with_compiled(ident)
+        crate::tzdb::normalize_identifier_with_compiled(ident)
     }
     fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        canonicalize_identifier_with_compiled(ident)
+        crate::tzdb::canonicalize_identifier_with_compiled(ident)
     }
 
     fn get_named_tz_epoch_nanoseconds(
@@ -1406,7 +1382,7 @@ impl TimeZoneProvider for FsTzdbProvider {
         &self,
         identifier: &str,
         utc_epoch: i128,
-    ) -> TimeZoneProviderResult<TimeZoneTransitionInfo> {
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
             .get_named_tz_offset_nanoseconds(utc_epoch)
     }
@@ -1422,15 +1398,10 @@ impl TimeZoneProvider for FsTzdbProvider {
     }
 }
 
-const NS_IN_S: i128 = 1_000_000_000;
-#[inline]
-fn seconds_to_nanoseconds(seconds: i64) -> i128 {
-    seconds as i128 * NS_IN_S
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::SINGLETON_IANA_NORMALIZER;
     use tzif::data::time::Seconds;
 
     fn get_singleton_identifier(id: &str) -> Option<&'static str> {
@@ -1909,8 +1880,8 @@ mod tests {
                 before_transition, after_transition,
                 "Transition info must not be the same"
             );
-            assert_eq!(after_transition.offset.0, after_offset);
-            assert_eq!(before_transition.offset.0, before_offset);
+            assert_eq!(after_transition.0, after_offset);
+            assert_eq!(before_transition.0, before_offset);
         }
 
         // Test Northern hemisphere
