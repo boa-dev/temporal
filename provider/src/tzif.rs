@@ -32,11 +32,13 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use crate::provider::EpochNanosecondsAndOffset;
-use alloc::borrow::Cow;
+use crate::CompiledNormalizer;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::ops::Range;
+use core::str;
 use std::sync::RwLock;
 
 use combine::Parser;
@@ -53,8 +55,8 @@ use tzif::{
 use crate::utils;
 
 use crate::provider::{
-    CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, TimeZoneProvider,
-    TimeZoneProviderResult, TransitionDirection, UtcOffsetSeconds,
+    CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, NormalizerAndResolver, ResolverId,
+    TimeZoneProviderResult, TimeZoneResolver, TransitionDirection, UtcOffsetSeconds,
 };
 use crate::{
     epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
@@ -1251,145 +1253,189 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
 ///
 /// Currently uses jiff_tzdb and performs parsing; will eventually
 /// use pure compiled data (<https://github.com/boa-dev/temporal/pull/264>)
+pub type CompiledTzdbProvider =
+    NormalizerAndResolver<CompiledNormalizer, TzdbResolver<CompiledTzdbResolver>>;
+/// Timezone provider that uses filesystem based tzif data.
+///
+/// Currently uses jiff_tzdb and performs parsing; will eventually
+/// use pure compiled data (<https://github.com/boa-dev/temporal/pull/264>)
+pub type FsTzdbProvider = NormalizerAndResolver<CompiledNormalizer, TzdbResolver<FsTzdbResolver>>;
+
+/// [`TimeZoneResolver`] that uses compiled data.
+///
+/// Currently uses jiff_tzdb and performs parsing; will eventually
+/// use pure compiled data (<https://github.com/boa-dev/temporal/pull/264>)
 #[derive(Debug, Default)]
-pub struct CompiledTzdbProvider {
-    cache: RwLock<BTreeMap<String, Tzif>>,
+pub struct TzdbResolver<Kind> {
+    id_cache: RwLock<BTreeMap<String, ResolverId>>,
+    cache: RwLock<Vec<Tzif>>,
+    kind: Kind,
 }
 
-impl CompiledTzdbProvider {
-    /// Get timezone data for a single identifier
-    pub fn get(&self, identifier: &str) -> TimeZoneProviderResult<Tzif> {
-        if let Some(tzif) = self
-            .cache
-            .read()
-            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
-            .get(identifier)
-        {
-            return Ok(tzif.clone());
-        }
+mod sealed {
+    pub trait Sealed {}
+}
+pub trait TzdbResolverBackend: sealed::Sealed {
+    /// The intermediate unparsed Tzif data
+    type IntermediateTzif<'a>;
+    /// Looks up a normalized timezone identifier, returning the identifier as
+    /// used in this timezone database and the Tzif bytes data
+    fn get<'a, 'b>(
+        &'a self,
+        normalized_identifier: &'b [u8],
+    ) -> TimeZoneProviderResult<(&'b str, Self::IntermediateTzif<'a>)>;
 
-        let (identifier, tzif) = {
-            let Some((canonical_name, data)) = jiff_tzdb::get(identifier) else {
-                return Err(TimeZoneProviderError::Range(
-                    "Time zone identifier does not exist.",
-                ));
-            };
-            (canonical_name, Tzif::from_bytes(data)?)
+    fn load_tzif<'a>(
+        &self,
+        intermediate: Self::IntermediateTzif<'a>,
+    ) -> TimeZoneProviderResult<Tzif>;
+}
+
+#[derive(Debug, Default)]
+pub struct CompiledTzdbResolver;
+
+impl sealed::Sealed for CompiledTzdbResolver {}
+impl TzdbResolverBackend for CompiledTzdbResolver {
+    type IntermediateTzif<'a> = &'a [u8];
+    fn get<'a, 'b>(
+        &'a self,
+        normalized_identifier: &'b [u8],
+    ) -> TimeZoneProviderResult<(&'b str, &'a [u8])> {
+        let tzdb_val =
+            jiff_tzdb::get(str::from_utf8(normalized_identifier).map_err(|_| {
+                TimeZoneProviderError::Range("Time zone identifier does not exist.")
+            })?);
+        let Some((canonical_name, tzif_bytes)) = tzdb_val else {
+            return Err(TimeZoneProviderError::Range(
+                "Time zone identifier does not exist.",
+            ));
         };
+        Ok((canonical_name, tzif_bytes))
+    }
 
-        Ok(self
-            .cache
-            .write()
-            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
-            .entry(identifier.into())
-            .or_insert(tzif)
-            .clone())
-    }
-}
-
-impl TimeZoneProvider for CompiledTzdbProvider {
-    fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        crate::tzdb::normalize_identifier_with_compiled(ident)
-    }
-    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        crate::tzdb::canonicalize_identifier_with_compiled(ident)
-    }
-    fn get_named_tz_epoch_nanoseconds(
+    fn load_tzif<'a>(
         &self,
-        identifier: &str,
-        local_datetime: IsoDateTime,
-    ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
-        self.get(identifier)?
-            .get_named_tz_epoch_nanoseconds(local_datetime)
-    }
-
-    fn get_named_tz_offset_nanoseconds(
-        &self,
-        identifier: &str,
-        utc_epoch: i128,
-    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
-        self.get(identifier)?
-            .get_named_tz_offset_nanoseconds(utc_epoch)
-    }
-
-    fn get_named_tz_transition(
-        &self,
-        identifier: &str,
-        epoch_nanoseconds: i128,
-        direction: TransitionDirection,
-    ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
-        let tzif = self.get(identifier)?;
-        tzif.get_named_tz_transition(epoch_nanoseconds, direction)
+        intermediate: Self::IntermediateTzif<'a>,
+    ) -> TimeZoneProviderResult<Tzif> {
+        Tzif::from_bytes(intermediate)
     }
 }
 
 #[derive(Debug, Default)]
-pub struct FsTzdbProvider {
-    cache: RwLock<BTreeMap<String, Tzif>>,
-}
+pub struct FsTzdbResolver;
 
-impl FsTzdbProvider {
-    pub fn get(&self, identifier: &str) -> TimeZoneProviderResult<Tzif> {
-        if let Some(tzif) = self
-            .cache
-            .read()
-            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
-            .get(identifier)
-        {
-            return Ok(tzif.clone());
-        }
+impl sealed::Sealed for FsTzdbResolver {}
+impl TzdbResolverBackend for FsTzdbResolver {
+    #[cfg(target_family = "unix")]
+    type IntermediateTzif<'a> = PathBuf;
+    #[cfg(any(target_family = "windows", target_family = "wasm"))]
+    type IntermediateTzif<'a> = &'a [u8];
+    fn get<'a, 'b>(
+        &'a self,
+        normalized_identifier: &'b [u8],
+    ) -> TimeZoneProviderResult<(&'b str, Self::IntermediateTzif<'a>)> {
+        let normalized_identifier = str::from_utf8(normalized_identifier)
+            .map_err(|_| TimeZoneProviderError::Range("Time zone identifier does not exist."))?;
         #[cfg(target_family = "unix")]
-        let (identifier, tzif) = { (identifier, Tzif::read_tzif(identifier)?) };
+        {
+            // Protect from path traversal attacks
+            if normalized_identifier.starts_with('/') || normalized_identifier.contains('.') {
+                return Err(TimeZoneProviderError::Range(
+                    "Ill-formed timezone identifier",
+                ));
+            }
+
+            let mut path = PathBuf::from(ZONEINFO_DIR);
+            path.push(normalized_identifier);
+            Ok((normalized_identifier, path))
+        }
 
         #[cfg(any(target_family = "windows", target_family = "wasm"))]
-        let (identifier, tzif) = {
-            let Some((canonical_name, data)) = jiff_tzdb::get(identifier) else {
+        {
+            let Some((canonical_name, data)) = jiff_tzdb::get(normalized_identifier) else {
                 return Err(TimeZoneProviderError::Range(
                     "Time zone identifier does not exist.",
                 ));
             };
-            (canonical_name, Tzif::from_bytes(data)?)
+            return Ok((canonical_name, data));
         };
+    }
 
-        Ok(self
-            .cache
-            .write()
-            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
-            .entry(identifier.into())
-            .or_insert(tzif)
-            .clone())
+    fn load_tzif<'a>(
+        &self,
+        intermediate: Self::IntermediateTzif<'a>,
+    ) -> TimeZoneProviderResult<Tzif> {
+        #[cfg(target_family = "unix")]
+        let bytes = std::fs::read(intermediate)
+            .map_err(|_| TimeZoneProviderError::Range("Time zone identifier does not exist."))?;
+        #[cfg(any(target_family = "windows", target_family = "wasm"))]
+        let bytes = intermediate;
+        Tzif::from_bytes(&bytes)
     }
 }
 
-impl TimeZoneProvider for FsTzdbProvider {
-    fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        crate::tzdb::normalize_identifier_with_compiled(ident)
+impl<Kind> TzdbResolver<Kind> {
+    /// Get timezone data for a single identifier
+    fn get(&self, id: ResolverId) -> TimeZoneProviderResult<Tzif> {
+        self.cache
+            .read()
+            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
+            .get(id.0)
+            .cloned()
+            .ok_or(TimeZoneProviderError::Assert(
+                "Time zone identifier does not exist.",
+            ))
     }
-    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        crate::tzdb::canonicalize_identifier_with_compiled(ident)
+}
+
+impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
+    fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolverId> {
+        let (identifier, tzif_intermediate) = self.kind.get(normalized_identifier)?;
+        if let Some(id) = self
+            .id_cache
+            .read()
+            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
+            .get(identifier)
+        {
+            return Ok(*id);
+        }
+
+        let mut vec = self
+            .cache
+            .write()
+            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?;
+
+        let id = ResolverId(vec.len());
+        vec.push(self.kind.load_tzif(tzif_intermediate)?);
+
+        self.id_cache
+            .write()
+            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
+            .insert(identifier.into(), id);
+        Ok(id)
     }
 
-    fn get_named_tz_epoch_nanoseconds(
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
-        identifier: &str,
+        identifier: ResolverId,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
             .get_named_tz_epoch_nanoseconds(local_datetime)
     }
 
-    fn get_named_tz_offset_nanoseconds(
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
-        identifier: &str,
-        utc_epoch: i128,
+        identifier: ResolverId,
+        epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
-            .get_named_tz_offset_nanoseconds(utc_epoch)
+            .get_named_tz_offset_nanoseconds(epoch_nanoseconds)
     }
 
-    fn get_named_tz_transition(
+    fn get_time_zone_transition(
         &self,
-        identifier: &str,
+        identifier: ResolverId,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
@@ -1401,6 +1447,7 @@ impl TimeZoneProvider for FsTzdbProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::provider::TimeZoneProvider;
     use crate::SINGLETON_IANA_NORMALIZER;
     use tzif::data::time::Seconds;
 
@@ -1802,9 +1849,7 @@ mod tests {
 
     #[test]
     fn compiled_mwd_transition_epoch() {
-        let tzif = CompiledTzdbProvider::default()
-            .get("Europe/Berlin")
-            .unwrap();
+        let tzif = Tzif::from_bytes(CompiledTzdbResolver.get(b"Europe/Berlin").unwrap().1).unwrap();
 
         let start_dt = IsoDateTime {
             year: 2028,

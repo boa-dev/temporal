@@ -10,11 +10,8 @@
 
 use alloc::borrow::Cow;
 
-#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
-use crate::provider::TimeZoneProviderResult;
-#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
+use crate::provider::{NormalizedId, TimeZoneNormalizer, TimeZoneProviderResult};
 use crate::TimeZoneProviderError;
-#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
 use crate::SINGLETON_IANA_NORMALIZER;
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{VarZeroVec, ZeroVec};
@@ -37,44 +34,52 @@ pub struct IanaIdentifierNormalizer<'data> {
     pub available_id_index: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
     /// A "links" table mapping non-canonical IDs to their canonical IDs
     #[cfg_attr(feature = "datagen", serde(borrow))]
-    pub non_canonical_identifiers: ZeroAsciiIgnoreCaseTrie<ZeroVec<'data, u8>>,
-
+    pub non_canonical_identifiers: ZeroVec<'data, (u32, u32)>,
     /// The normalized IANA identifier
     #[cfg_attr(feature = "datagen", serde(borrow))]
     pub normalized_identifiers: VarZeroVec<'data, str>,
 }
 
-#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
-pub(crate) fn normalize_identifier_with_compiled(
-    identifier: &[u8],
-) -> TimeZoneProviderResult<Cow<'static, str>> {
-    if let Some(index) = SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier) {
-        return SINGLETON_IANA_NORMALIZER
-            .normalized_identifiers
-            .get(index)
-            .map(Cow::Borrowed)
-            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
+/// A simple [`TimeZoneNormalizer`] that uses compiled data.
+#[derive(Default, Copy, Clone, Debug)]
+pub struct CompiledNormalizer;
+
+impl TimeZoneNormalizer for CompiledNormalizer {
+    fn normalized(&self, identifier: &[u8]) -> TimeZoneProviderResult<NormalizedId> {
+        SINGLETON_IANA_NORMALIZER
+            .available_id_index
+            .get(identifier)
+            .map(NormalizedId)
+            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"))
     }
 
-    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
-}
+    fn canonicalized(&self, index: NormalizedId) -> TimeZoneProviderResult<NormalizedId> {
+        let Ok(u32_index) = u32::try_from(index.0) else {
+            return Ok(index);
+        };
+        let Ok(canonicalized_idx) = SINGLETON_IANA_NORMALIZER
+            .non_canonical_identifiers
+            .binary_search_by(|probe| probe.0.cmp(&u32_index))
+        else {
+            return Ok(index);
+        };
 
-#[cfg(any(feature = "tzif", feature = "zoneinfo64"))]
-pub(crate) fn canonicalize_identifier_with_compiled(
-    identifier: &[u8],
-) -> TimeZoneProviderResult<Cow<'static, str>> {
-    let idx = SINGLETON_IANA_NORMALIZER
-        .non_canonical_identifiers
-        .get(identifier)
-        .or(SINGLETON_IANA_NORMALIZER.available_id_index.get(identifier));
-
-    if let Some(index) = idx {
-        return SINGLETON_IANA_NORMALIZER
-            .normalized_identifiers
-            .get(index)
-            .map(Cow::Borrowed)
-            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"));
+        Ok(NormalizedId(
+            usize::try_from(
+                SINGLETON_IANA_NORMALIZER
+                    .non_canonical_identifiers
+                    .get(canonicalized_idx)
+                    .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"))?
+                    .1,
+            )
+            .unwrap_or(0),
+        ))
     }
 
-    Err(TimeZoneProviderError::Range("Unknown time zone identifier"))
+    fn identifier(&self, index: NormalizedId) -> TimeZoneProviderResult<&str> {
+        SINGLETON_IANA_NORMALIZER
+            .normalized_identifiers
+            .get(index.0)
+            .ok_or(TimeZoneProviderError::Range("Unknown time zone identifier"))
+    }
 }

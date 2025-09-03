@@ -2,8 +2,8 @@
 
 use core::str::FromStr;
 
-// use crate::UtcOffset;
 use crate::utils;
+use crate::CompiledNormalizer;
 use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 use alloc::borrow::Cow;
 
@@ -177,10 +177,6 @@ impl CandidateEpochNanoseconds {
     }
 }
 
-// NOTE: It may be a good idea to eventually move this into it's
-// own individual crate rather than having it tied directly into `temporal_rs`
-/// The `TimeZoneProvider` trait provides methods required for a provider
-/// to implement in order to source time zone data from that provider.
 pub trait TimeZoneProvider {
     fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>>;
 
@@ -206,37 +202,161 @@ pub trait TimeZoneProvider {
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>>;
 }
 
-pub struct NeverProvider;
+/// An id for a resolved timezone, for use with a [`TimeZoneNormalizer`]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct NormalizedId(pub usize);
 
-impl TimeZoneProvider for NeverProvider {
-    fn normalize_identifier(&self, _ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        unimplemented!()
+/// A type capable of normalizing and canonicalizing time zones
+pub trait TimeZoneNormalizer {
+    // Needed for temporal support
+    fn normalized(&self, _: &[u8]) -> TimeZoneProviderResult<NormalizedId>;
+
+    // Support for Intl support and canonicalize-tz proposal
+    fn canonicalized(&self, _: NormalizedId) -> TimeZoneProviderResult<NormalizedId>;
+
+    fn identifier(&self, _: NormalizedId) -> TimeZoneProviderResult<&str>;
+}
+
+/// An id for a resolved timezone, for use with a [`TimeZoneResolver`]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ResolverId(pub usize);
+
+/// A type capable of resolving time zone data
+pub trait TimeZoneResolver {
+    fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolverId>;
+
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
+        &self,
+        identifier: ResolverId,
+        local_datetime: IsoDateTime,
+    ) -> TimeZoneProviderResult<CandidateEpochNanoseconds>;
+
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
+        &self,
+        identifier: ResolverId,
+        epoch_nanoseconds: i128,
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds>;
+
+    fn get_time_zone_transition(
+        &self,
+        identifier: ResolverId,
+        epoch_nanoseconds: i128,
+        direction: TransitionDirection,
+    ) -> TimeZoneProviderResult<Option<EpochNanoseconds>>;
+}
+
+/// A type that can both normalize and resolve, which implements [`TimeZoneProvider`]
+#[derive(Default, Copy, Clone, Debug)]
+pub struct NormalizerAndResolver<C, R> {
+    resolver: R,
+    canonicalizer: C,
+}
+
+impl<R> NormalizerAndResolver<CompiledNormalizer, R> {
+    /// Create a new [`NormalizerAndResolver`] with a given resolver and compiled normalizer data
+    pub fn new(resolver: R) -> Self {
+        Self {
+            resolver,
+            canonicalizer: CompiledNormalizer,
+        }
     }
-    fn canonicalize_identifier(&self, _ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
-        unimplemented!()
+}
+impl<C: TimeZoneNormalizer, R: TimeZoneResolver> TimeZoneProvider for NormalizerAndResolver<C, R> {
+    fn normalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
+        let id = self.canonicalizer.normalized(ident)?;
+        self.canonicalizer.identifier(id).map(Into::into)
+    }
+    fn canonicalize_identifier(&self, ident: &'_ [u8]) -> TimeZoneProviderResult<Cow<'_, str>> {
+        let id = self.canonicalizer.normalized(ident)?;
+        let canonical = self.canonicalizer.canonicalized(id)?;
+        self.canonicalizer.identifier(canonical).map(Into::into)
     }
     fn get_named_tz_epoch_nanoseconds(
         &self,
-        _: &str,
-        _: IsoDateTime,
+        tz: &str,
+        local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
-        unimplemented!()
+        let id = self.resolver.get_id(tz.as_bytes())?;
+
+        self.resolver
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(id, local_datetime)
     }
 
     fn get_named_tz_offset_nanoseconds(
         &self,
-        _: &str,
-        _: i128,
+        tz: &str,
+        epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
-        unimplemented!()
+        let id = self.resolver.get_id(tz.as_bytes())?;
+
+        self.resolver
+            .transition_nanoseconds_for_utc_epoch_nanoseconds(id, epoch_nanoseconds)
     }
 
     fn get_named_tz_transition(
         &self,
-        _: &str,
-        _: i128,
-        _: TransitionDirection,
+        tz: &str,
+        epoch_nanoseconds: i128,
+        direction: TransitionDirection,
+    ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
+        let id = self.resolver.get_id(tz.as_bytes())?;
+
+        self.resolver
+            .get_time_zone_transition(id, epoch_nanoseconds, direction)
+    }
+}
+
+/// A [`TimeZoneNormalizer`] that always panics
+#[derive(Copy, Clone, Debug, Default)]
+pub struct NeverNormalizer;
+/// A [`TimeZoneResolver`] that always panics
+#[derive(Copy, Clone, Debug, Default)]
+pub struct NeverResolver;
+
+impl TimeZoneNormalizer for NeverNormalizer {
+    fn normalized(&self, _: &[u8]) -> TimeZoneProviderResult<NormalizedId> {
+        unimplemented!()
+    }
+
+    fn canonicalized(&self, _: NormalizedId) -> TimeZoneProviderResult<NormalizedId> {
+        unimplemented!()
+    }
+
+    fn identifier(&self, _: NormalizedId) -> TimeZoneProviderResult<&str> {
+        unimplemented!()
+    }
+}
+
+impl TimeZoneResolver for NeverResolver {
+    fn get_id(&self, _normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolverId> {
+        unimplemented!()
+    }
+
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
+        &self,
+        _identifier: ResolverId,
+        _local_datetime: IsoDateTime,
+    ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
+        unimplemented!()
+    }
+
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
+        &self,
+        _identifier: ResolverId,
+        _epoch_nanoseconds: i128,
+    ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
+        unimplemented!()
+    }
+
+    fn get_time_zone_transition(
+        &self,
+        _identifier: ResolverId,
+        _epoch_nanoseconds: i128,
+        _direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
         unimplemented!()
     }
 }
+
+/// A [`TimeZoneProvider`] which just calls `unimplemented!()`
+pub type NeverProvider = NormalizerAndResolver<NeverNormalizer, NeverResolver>;
