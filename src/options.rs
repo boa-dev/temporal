@@ -586,11 +586,11 @@ impl fmt::Display for Unit {
     }
 }
 
-/// `ArithmeticOverflow` can also be used as an
+/// `Overflow` can also be used as an
 /// assignment overflow and consists of the "constrain"
 /// and "reject" options.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum ArithmeticOverflow {
+pub enum Overflow {
     /// Constrain option
     #[default]
     Constrain,
@@ -600,72 +600,31 @@ pub enum ArithmeticOverflow {
 
 /// A parsing error for `ArithemeticOverflow`
 #[derive(Debug, Clone, Copy)]
-pub struct ParseArithmeticOverflowError;
+pub struct ParseOverflowError;
 
-impl fmt::Display for ParseArithmeticOverflowError {
+impl fmt::Display for ParseOverflowError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.write_str("provided string was not a valid overflow value")
     }
 }
 
-impl FromStr for ArithmeticOverflow {
-    type Err = ParseArithmeticOverflowError;
+impl FromStr for Overflow {
+    type Err = ParseOverflowError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "constrain" => Ok(Self::Constrain),
             "reject" => Ok(Self::Reject),
-            _ => Err(ParseArithmeticOverflowError),
+            _ => Err(ParseOverflowError),
         }
     }
 }
 
-impl fmt::Display for ArithmeticOverflow {
+impl fmt::Display for Overflow {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Constrain => "constrain",
             Self::Reject => "reject",
-        }
-        .fmt(f)
-    }
-}
-
-/// `Duration` overflow options.
-#[derive(Debug, Clone, Copy)]
-pub enum DurationOverflow {
-    /// Constrain option
-    Constrain,
-    /// Balance option
-    Balance,
-}
-
-/// A parsing error for `DurationOverflow`.
-#[derive(Debug, Clone, Copy)]
-pub struct ParseDurationOverflowError;
-
-impl fmt::Display for ParseDurationOverflowError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("provided string was not a valid duration overflow value")
-    }
-}
-
-impl FromStr for DurationOverflow {
-    type Err = ParseDurationOverflowError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "constrain" => Ok(Self::Constrain),
-            "balance" => Ok(Self::Balance),
-            _ => Err(ParseDurationOverflowError),
-        }
-    }
-}
-
-impl fmt::Display for DurationOverflow {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Constrain => "constrain",
-            Self::Balance => "balance",
         }
         .fmt(f)
     }

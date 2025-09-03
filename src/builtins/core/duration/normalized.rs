@@ -8,8 +8,8 @@ use crate::{
     builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
     iso::{IsoDate, IsoDateTime},
     options::{
-        ArithmeticOverflow, Disambiguation, ResolvedRoundingOptions, RoundingIncrement,
-        RoundingMode, Unit, UNIT_VALUE_TABLE,
+        Disambiguation, Overflow, ResolvedRoundingOptions, RoundingIncrement, RoundingMode, Unit,
+        UNIT_VALUE_TABLE,
     },
     primitive::FiniteF64,
     provider::TimeZoneProvider,
@@ -563,13 +563,13 @@ impl InternalDurationRecord {
         };
 
         // 7. Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], startDuration, constrain).
-        let start =
-            dt.calendar()
-                .date_add(&dt.iso.date, &start_duration, ArithmeticOverflow::Constrain)?;
+        let start = dt
+            .calendar()
+            .date_add(&dt.iso.date, &start_duration, Overflow::Constrain)?;
         // 8. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
-        let end =
-            dt.calendar()
-                .date_add(&dt.iso.date, &end_duration, ArithmeticOverflow::Constrain)?;
+        let end = dt
+            .calendar()
+            .date_add(&dt.iso.date, &end_duration, Overflow::Constrain)?;
         // 9. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
         let start = IsoDateTime::new_unchecked(start.iso, dt.iso.time);
         // 10. Let endDateTime be CombineISODateAndTimeRecord(end, isoDateTime.[[Time]]).
@@ -658,7 +658,7 @@ impl InternalDurationRecord {
         // 1.Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], duration.[[Date]], constrain).
         let start = dt
             .calendar()
-            .date_add(&dt.iso.date, &d, ArithmeticOverflow::Constrain)?;
+            .date_add(&dt.iso.date, &d, Overflow::Constrain)?;
         // 2. Let startDateTime be CombineISODateAndTimeRecord(start, isoDateTime.[[Time]]).
         let start_dt = IsoDateTime::new_unchecked(start.iso, dt.iso.time);
 
@@ -886,11 +886,8 @@ impl InternalDurationRecord {
                 };
 
                 // iv. Let end be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], endDuration, constrain).
-                let end = calendar.date_add(
-                    &iso_date_time.date,
-                    &end_duration,
-                    ArithmeticOverflow::Constrain,
-                )?;
+                let end =
+                    calendar.date_add(&iso_date_time.date, &end_duration, Overflow::Constrain)?;
 
                 // v. Let endDateTime be CombineISODateAndTimeRecord(end, isoDateTime.[[Time]]).
                 let end_date_time = IsoDateTime::new_unchecked(end.iso, iso_date_time.time);

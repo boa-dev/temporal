@@ -8,7 +8,7 @@ use crate::{
         duration::DateDuration, Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
     iso::IsoDate,
-    options::{ArithmeticOverflow, Unit},
+    options::{Overflow, Unit},
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
@@ -191,7 +191,7 @@ impl Calendar {
     pub fn date_from_fields(
         &self,
         fields: CalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
             ResolvedCalendarFields::try_from_fields(self, &fields, overflow, ResolutionType::Date)?;
@@ -227,7 +227,7 @@ impl Calendar {
     pub fn month_day_from_fields(
         &self,
         mut fields: CalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainMonthDay> {
         // You are allowed to specify year information, however
         // it is *only* used for resolving the given month/day data.
@@ -283,7 +283,7 @@ impl Calendar {
     pub fn year_month_from_fields(
         &self,
         fields: YearMonthCalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainYearMonth> {
         // TODO: add a from_partial_year_month method on ResolvedCalendarFields
         let resolved_fields = ResolvedCalendarFields::try_from_fields(
@@ -324,7 +324,7 @@ impl Calendar {
         &self,
         date: &IsoDate,
         duration: &DateDuration,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainDate> {
         // 1. If calendar is "iso8601", then
         if self.is_iso() {

@@ -12,9 +12,8 @@ use crate::{
     },
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, Disambiguation,
-        DisplayCalendar, ResolvedRoundingOptions, RoundingOptions, ToStringRoundingOptions, Unit,
-        UnitGroup,
+        DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, Overflow,
+        ResolvedRoundingOptions, RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::IxdtfStringBuilder,
     primitive::FiniteF64,
@@ -218,7 +217,7 @@ impl PlainDateTime {
     fn add_or_subtract_duration(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         // SKIP: 1, 2, 3, 4
         // 5. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
@@ -234,7 +233,7 @@ impl PlainDateTime {
         let added_date = self.calendar().date_add(
             &self.iso.date,
             &date_duration,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            overflow.unwrap_or(Overflow::Constrain),
         )?;
         // 9. Let result be CombineISODateAndTimeRecord(addedDate, timeResult).
         let result = IsoDateTime::new(added_date.iso, time_result)?;
@@ -378,7 +377,7 @@ impl PlainDateTime {
             microsecond,
             nanosecond,
             calendar,
-            ArithmeticOverflow::Constrain,
+            Overflow::Constrain,
         )
     }
 
@@ -437,7 +436,7 @@ impl PlainDateTime {
             microsecond,
             nanosecond,
             calendar,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )
     }
 
@@ -469,7 +468,7 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime` with the provided [`ArithmeticOverflow`] option.
+    /// Creates a new `DateTime` with the provided [`Overflow`] option.
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_overflow(
@@ -483,7 +482,7 @@ impl PlainDateTime {
         microsecond: u16,
         nanosecond: u16,
         calendar: Calendar,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         let iso_date = IsoDate::new_with_overflow(year, month, day, overflow)?;
         let iso_time = IsoTime::new(
@@ -547,7 +546,7 @@ impl PlainDateTime {
     /// ```
     pub fn from_partial(
         partial: PartialDateTime,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         if partial.fields.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialDateTime cannot be empty."));
@@ -556,7 +555,7 @@ impl PlainDateTime {
         // 1. Let isoDate be ? CalendarDateFromFields(calendar, fields, overflow).
         let date = partial.calendar.date_from_fields(
             partial.fields.calendar_fields,
-            overflow.unwrap_or(ArithmeticOverflow::Constrain),
+            overflow.unwrap_or(Overflow::Constrain),
         )?;
         // 2. Let time be ? RegulateTime(fields.[[Hour]], fields.[[Minute]], fields.[[Second]], fields.[[Millisecond]], fields.[[Microsecond]], fields.[[Nanosecond]], overflow).
         let iso_time =
@@ -577,7 +576,7 @@ impl PlainDateTime {
             parsed.date.record.year,
             parsed.date.record.month,
             parsed.date.record.day,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )?;
         let iso = IsoDateTime::new(date, parsed.time)?;
 
@@ -618,17 +617,13 @@ impl PlainDateTime {
     ///
     /// ```
     #[inline]
-    pub fn with(
-        &self,
-        fields: DateTimeFields,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn with(&self, fields: DateTimeFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         if fields.is_empty() {
             return Err(
                 TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
             );
         }
-        let overflow = overflow.unwrap_or(ArithmeticOverflow::Constrain);
+        let overflow = overflow.unwrap_or(Overflow::Constrain);
 
         let result_date = self.calendar.date_from_fields(
             fields
@@ -843,11 +838,7 @@ impl PlainDateTime {
 
     #[inline]
     /// Adds a `Duration` to the current `DateTime`.
-    pub fn add(
-        &self,
-        duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn add(&self, duration: &Duration, overflow: Option<Overflow>) -> TemporalResult<Self> {
         self.add_or_subtract_duration(duration, overflow)
     }
 
@@ -856,7 +847,7 @@ impl PlainDateTime {
     pub fn subtract(
         &self,
         duration: &Duration,
-        overflow: Option<ArithmeticOverflow>,
+        overflow: Option<Overflow>,
     ) -> TemporalResult<Self> {
         self.add_or_subtract_duration(&duration.negated(), overflow)
     }

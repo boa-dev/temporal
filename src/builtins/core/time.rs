@@ -4,7 +4,7 @@ use crate::{
     builtins::{core::Duration, duration::normalized::InternalDurationRecord},
     iso::IsoTime,
     options::{
-        ArithmeticOverflow, DifferenceOperation, DifferenceSettings, ResolvedRoundingOptions,
+        DifferenceOperation, DifferenceSettings, Overflow, ResolvedRoundingOptions,
         RoundingIncrement, RoundingMode, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
@@ -317,7 +317,7 @@ impl PlainTime {
             millisecond,
             microsecond,
             nanosecond,
-            ArithmeticOverflow::Constrain,
+            Overflow::Constrain,
         )
     }
 
@@ -346,11 +346,11 @@ impl PlainTime {
             millisecond,
             microsecond,
             nanosecond,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )
     }
 
-    /// Creates a new `PlainTime` with the provided [`ArithmeticOverflow`] option.
+    /// Creates a new `PlainTime` with the provided [`Overflow`] option.
     #[inline]
     pub fn new_with_overflow(
         hour: u8,
@@ -359,7 +359,7 @@ impl PlainTime {
         millisecond: u16,
         microsecond: u16,
         nanosecond: u16,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         let time = IsoTime::new(
             hour,
@@ -393,10 +393,7 @@ impl PlainTime {
     /// assert_eq!(time.nanosecond(), 0);
     ///
     /// ```
-    pub fn from_partial(
-        partial: PartialTime,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn from_partial(partial: PartialTime, overflow: Option<Overflow>) -> TemporalResult<Self> {
         // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
         if partial.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
@@ -436,11 +433,7 @@ impl PlainTime {
     /// assert_eq!(time.nanosecond(), 789);
     ///
     /// ```
-    pub fn with(
-        &self,
-        partial: PartialTime,
-        overflow: Option<ArithmeticOverflow>,
-    ) -> TemporalResult<Self> {
+    pub fn with(&self, partial: PartialTime, overflow: Option<Overflow>) -> TemporalResult<Self> {
         // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
         if partial.is_empty() {
             return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
@@ -448,7 +441,7 @@ impl PlainTime {
 
         let iso = self
             .iso
-            .with(partial, overflow.unwrap_or(ArithmeticOverflow::Constrain))?;
+            .with(partial, overflow.unwrap_or(Overflow::Constrain))?;
         Ok(Self::new_unchecked(iso))
     }
 
@@ -594,7 +587,7 @@ mod tests {
     use crate::{
         builtins::core::Duration,
         iso::IsoTime,
-        options::{ArithmeticOverflow, DifferenceSettings, RoundingIncrement, Unit},
+        options::{DifferenceSettings, Overflow, RoundingIncrement, Unit},
     };
     use num_traits::FromPrimitive;
 
@@ -725,14 +718,11 @@ mod tests {
     #[test]
     fn since_basic() {
         let one =
-            PlainTime::new_with_overflow(15, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(15, 23, 30, 123, 456, 789, Overflow::Constrain).unwrap();
         let two =
-            PlainTime::new_with_overflow(14, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(14, 23, 30, 123, 456, 789, Overflow::Constrain).unwrap();
         let three =
-            PlainTime::new_with_overflow(13, 30, 30, 123, 456, 789, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(13, 30, 30, 123, 456, 789, Overflow::Constrain).unwrap();
 
         let result = one.since(&two, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1);
@@ -752,14 +742,11 @@ mod tests {
     #[test]
     fn until_basic() {
         let one =
-            PlainTime::new_with_overflow(15, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(15, 23, 30, 123, 456, 789, Overflow::Constrain).unwrap();
         let two =
-            PlainTime::new_with_overflow(16, 23, 30, 123, 456, 789, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(16, 23, 30, 123, 456, 789, Overflow::Constrain).unwrap();
         let three =
-            PlainTime::new_with_overflow(17, 0, 30, 123, 456, 789, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(17, 0, 30, 123, 456, 789, Overflow::Constrain).unwrap();
 
         let result = one.until(&two, DifferenceSettings::default()).unwrap();
         assert_eq!(result.hours(), 1);
@@ -806,83 +793,67 @@ mod tests {
     // test262/test/built-ins/Temporal/PlainTime/prototype/round/roundingincrement-nanoseconds.js
     fn rounding_increment_nanos() {
         let time =
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain)
-                .unwrap();
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, Overflow::Constrain).unwrap();
 
         assert_eq!(
             time.round(Unit::Nanosecond, Some(1.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 321, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(2.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 322, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 322, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(4.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(5.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(8.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(10.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(20.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(25.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 325, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 325, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(40.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 320, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(50.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(100.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 300, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(125.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 375, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 375, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(200.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 400, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 400, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(250.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 250, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 250, Overflow::Constrain).unwrap()
         );
         assert_eq!(
             time.round(Unit::Nanosecond, Some(500.0), None).unwrap(),
-            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 500, ArithmeticOverflow::Constrain)
-                .unwrap()
+            PlainTime::new_with_overflow(3, 34, 56, 987, 654, 500, Overflow::Constrain).unwrap()
         );
     }
 

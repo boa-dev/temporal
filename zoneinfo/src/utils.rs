@@ -45,11 +45,6 @@ pub(crate) fn epoch_days_for_year(y: i32) -> i32 {
         + (y - 1601).div_euclid(400)
 }
 
-// TODO: test limits
-pub(crate) fn epoch_seconds_for_year(y: i32) -> i64 {
-    SECONDS_PER_DAY * i64::from(epoch_days_for_year(y))
-}
-
 pub(crate) fn epoch_seconds_for_epoch_days(epoch_days: i32) -> i64 {
     epoch_days as i64 * SECONDS_PER_DAY
 }

@@ -1,8 +1,8 @@
 //! Implementation of a `DateDuration`
 
 use crate::{
-    iso::iso_date_to_epoch_days, options::ArithmeticOverflow, Duration, PlainDate, Sign,
-    TemporalError, TemporalResult,
+    iso::iso_date_to_epoch_days, options::Overflow, Duration, PlainDate, Sign, TemporalError,
+    TemporalResult,
 };
 
 use super::duration_sign;
@@ -134,7 +134,7 @@ impl DateDuration {
         let later = relative_to.calendar().date_add(
             &relative_to.iso,
             &ymw_duration,
-            ArithmeticOverflow::Constrain,
+            Overflow::Constrain,
         )?;
         // 4. Let epochDays1 be ISODateToEpochDays(plainRelativeTo.[[ISODate]].[[Year]], plainRelativeTo.[[ISODate]].[[Month]] - 1, plainRelativeTo.[[ISODate]].[[Day]]).
         let epoch_days_1 = iso_date_to_epoch_days(
