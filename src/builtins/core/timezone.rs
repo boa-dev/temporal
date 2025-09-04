@@ -329,7 +329,8 @@ impl TimeZone {
             Self::UtcOffset(offset) => Ok(i128::from(offset.nanoseconds())),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => {
-                let offset = provider.get_named_tz_offset_nanoseconds(*identifier, utc_epoch)?;
+                let offset = provider
+                    .transition_nanoseconds_for_utc_epoch_nanoseconds(*identifier, utc_epoch)?;
                 Ok(i128::from(offset.0) * 1_000_000_000)
             }
         }
@@ -420,7 +421,10 @@ impl TimeZone {
                 // b. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
-                provider.get_named_tz_epoch_nanoseconds(*identifier, local_iso.into())?
+                provider.candidate_nanoseconds_for_local_epoch_nanoseconds(
+                    *identifier,
+                    local_iso.into(),
+                )?
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do

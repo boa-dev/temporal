@@ -189,19 +189,19 @@ pub trait TimeZoneProvider {
 
     fn canonicalized(&self, id: TimeZoneId) -> TimeZoneProviderResult<TimeZoneId>;
 
-    fn get_named_tz_epoch_nanoseconds(
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
         id: TimeZoneId,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds>;
 
-    fn get_named_tz_offset_nanoseconds(
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
         id: TimeZoneId,
         epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds>;
 
-    fn get_named_tz_transition(
+    fn get_time_zone_transition(
         &self,
         id: TimeZoneId,
         epoch_nanoseconds: i128,
@@ -290,7 +290,7 @@ impl<C: TimeZoneNormalizer, R: TimeZoneResolver> TimeZoneProvider for Normalizer
             resolved: id.resolved,
         })
     }
-    fn get_named_tz_epoch_nanoseconds(
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
         id: TimeZoneId,
         local_datetime: IsoDateTime,
@@ -299,7 +299,7 @@ impl<C: TimeZoneNormalizer, R: TimeZoneResolver> TimeZoneProvider for Normalizer
             .candidate_nanoseconds_for_local_epoch_nanoseconds(id.resolved, local_datetime)
     }
 
-    fn get_named_tz_offset_nanoseconds(
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
         id: TimeZoneId,
         epoch_nanoseconds: i128,
@@ -308,7 +308,7 @@ impl<C: TimeZoneNormalizer, R: TimeZoneResolver> TimeZoneProvider for Normalizer
             .transition_nanoseconds_for_utc_epoch_nanoseconds(id.resolved, epoch_nanoseconds)
     }
 
-    fn get_named_tz_transition(
+    fn get_time_zone_transition(
         &self,
         id: TimeZoneId,
         epoch_nanoseconds: i128,

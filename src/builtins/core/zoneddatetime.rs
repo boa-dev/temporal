@@ -820,7 +820,7 @@ impl ZonedDateTime {
         // 10. Else,
         // a. Assert: direction is previous.
         // b. Let transition be GetNamedTimeZonePreviousTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
-        let transition = provider.get_named_tz_transition(
+        let transition = provider.get_time_zone_transition(
             identifier,
             self.epoch_nanoseconds().as_i128(),
             direction,

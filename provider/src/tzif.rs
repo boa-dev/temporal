@@ -257,7 +257,7 @@ impl Tzif {
         }
     }
 
-    fn get_named_tz_offset_nanoseconds(
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
         utc_epoch: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
@@ -285,7 +285,7 @@ impl Tzif {
         )
     }
 
-    pub fn get_named_tz_transition(
+    pub fn get_time_zone_transition(
         &self,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
@@ -594,7 +594,7 @@ impl Tzif {
     }
 
     /// Given a *local* datetime, return all possible epoch nanosecond values for it
-    fn get_named_tz_epoch_nanoseconds(
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
@@ -1421,7 +1421,7 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
-            .get_named_tz_epoch_nanoseconds(local_datetime)
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(local_datetime)
     }
 
     fn transition_nanoseconds_for_utc_epoch_nanoseconds(
@@ -1430,7 +1430,7 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
         epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
-            .get_named_tz_offset_nanoseconds(epoch_nanoseconds)
+            .transition_nanoseconds_for_utc_epoch_nanoseconds(epoch_nanoseconds)
     }
 
     fn get_time_zone_transition(
@@ -1440,7 +1440,7 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
         let tzif = self.get(identifier)?;
-        tzif.get_named_tz_transition(epoch_nanoseconds, direction)
+        tzif.get_time_zone_transition(epoch_nanoseconds, direction)
     }
 }
 
@@ -1488,7 +1488,9 @@ mod tests {
         };
 
         let ny = provider.get(b"America/New_York").unwrap();
-        let local = provider.get_named_tz_epoch_nanoseconds(ny, today).unwrap();
+        let local = provider
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(ny, today)
+            .unwrap();
         assert_eq!(local.len(), 1);
     }
 
@@ -1508,7 +1510,9 @@ mod tests {
         };
 
         let ny = provider.get(b"America/New_York").unwrap();
-        let local = provider.get_named_tz_epoch_nanoseconds(ny, today).unwrap();
+        let local = provider
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(ny, today)
+            .unwrap();
         assert!(local.is_empty());
     }
 
@@ -1906,19 +1910,23 @@ mod tests {
             provider: &impl TimeZoneProvider,
         ) {
             let id = provider.get(id.as_bytes()).unwrap();
-            let before_possible = provider.get_named_tz_epoch_nanoseconds(id, before).unwrap();
+            let before_possible = provider
+                .candidate_nanoseconds_for_local_epoch_nanoseconds(id, before)
+                .unwrap();
             assert_eq!(before_possible.len(), 1);
 
-            let after_possible = provider.get_named_tz_epoch_nanoseconds(id, after).unwrap();
+            let after_possible = provider
+                .candidate_nanoseconds_for_local_epoch_nanoseconds(id, after)
+                .unwrap();
             assert_eq!(after_possible.len(), 1);
             let before_seconds = before_possible.first().unwrap();
             let after_seconds = after_possible.first().unwrap();
 
             let before_transition = provider
-                .get_named_tz_offset_nanoseconds(id, before_seconds.ns.0)
+                .transition_nanoseconds_for_utc_epoch_nanoseconds(id, before_seconds.ns.0)
                 .unwrap();
             let after_transition = provider
-                .get_named_tz_offset_nanoseconds(id, after_seconds.ns.0)
+                .transition_nanoseconds_for_utc_epoch_nanoseconds(id, after_seconds.ns.0)
                 .unwrap();
             assert_ne!(
                 before_transition, after_transition,
