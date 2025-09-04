@@ -1,3 +1,7 @@
+// Temporary: A lot of the zi64 tests fail, and they make other imports unused if we
+// are only testing zi64. Remove when fixed
+#![cfg_attr(not(any(feature = "compiled_data", feature = "tzdb")), allow(unused))]
+
 use super::ZonedDateTime;
 use crate::{
     builtins::{calendar::CalendarFields, zoneddatetime::ZonedDateTimeFields},
@@ -14,11 +18,36 @@ use alloc::string::ToString;
 use core::str::FromStr;
 use tinystr::tinystr;
 
-macro_rules! test_all_providers {
-    ($provider:ident: $b:block) => {{
-        let $provider = &*crate::builtins::TZ_PROVIDER;
+pub const ZONEINFO64_RES_FOR_TESTING: &[u32] =
+    resb::include_bytes_as_u32!("../../../../tests/data/zoneinfo64.res");
 
-        $b
+macro_rules! test_all_providers {
+    ($(#[cfg_for_fs($cfg_fs:meta)])? $(#[cfg_for_zi64($cfg_zi:meta)])? $provider:ident: $b:block) => {{
+        #[cfg(feature = "compiled_data")]
+        {
+            std::println!("Testing compiled_data:");
+            let $provider = &*crate::builtins::TZ_PROVIDER;
+
+            $b
+        }
+        $(#[cfg($cfg_zi)])? {
+            std::println!("Testing ZoneInfo64Provider:");
+            let zi_data =
+                zoneinfo64::ZoneInfo64::try_from_u32s(&ZONEINFO64_RES_FOR_TESTING).unwrap();
+            let zi_provider = timezone_provider::zoneinfo64::ZoneInfo64TzdbProvider::new(zi_data);
+            let $provider = &zi_provider;
+
+            $b
+        }
+
+
+        $(#[cfg($cfg_fs)])? #[cfg(feature = "tzdb")] {
+            std::println!("Testing FS (note: May fail with bad local tzdb data):");
+            let fs = timezone_provider::tzif::FsTzdbProvider::default();
+            let $provider = &fs;
+
+            $b
+        }
     }};
 }
 
@@ -155,8 +184,6 @@ fn zdt_from_partial() {
         assert!(result.is_ok());
 
         // This ensures that the start-of-day branch isn't hit by default time
-        let provider = &*crate::builtins::TZ_PROVIDER;
-
         let fields = ZonedDateTimeFields {
             calendar_fields: CalendarFields::new()
                 .with_year(1970)
@@ -209,7 +236,7 @@ fn zdt_hours_in_day() {
 #[test]
 // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
 fn dst_skipped_cross_midnight() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         let start_of_day =
             parse_zdt_with_compatible("1919-03-31[America/Toronto]", provider).unwrap();
         let midnight_disambiguated =
@@ -284,7 +311,7 @@ fn zdt_offset_match_minutes() {
                         time: PartialTime::default(),
                         offset: Some(UtcOffset::from_minutes(30)),
                     },
-                    timezone: Some(TimeZone::try_from_identifier_str("Africa/Monrovia").unwrap()),
+                    timezone: Some(TimeZone::try_from_identifier_str_with_provider("Africa/Monrovia", provider).unwrap()),
                     ..PartialZonedDateTime::default()
                 },
                 None,
@@ -375,7 +402,7 @@ fn overflow_reject_throws() {
 
 #[test]
 fn static_tzdb_zdt_test() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_fs(not(target_os = "windows"))] provider: {
         use crate::{Calendar, TimeZone};
         use core::str::FromStr;
 
@@ -384,7 +411,7 @@ fn static_tzdb_zdt_test() {
         let zdt = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("UTC").unwrap(),
+            TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
             provider,
         )
         .unwrap();
@@ -399,7 +426,7 @@ fn static_tzdb_zdt_test() {
         let zdt_minus_five = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("America/New_York").unwrap(),
+            TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
             provider,
         )
         .unwrap();
@@ -414,7 +441,7 @@ fn static_tzdb_zdt_test() {
         let zdt_plus_eleven = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
             Calendar::from_str("iso8601").unwrap(),
-            TimeZone::try_from_str("Australia/Sydney").unwrap(),
+            TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
             provider,
         )
         .unwrap();
@@ -431,7 +458,7 @@ fn static_tzdb_zdt_test() {
 #[test]
 fn basic_zdt_add() {
     use crate::{Calendar, Duration, TimeZone};
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_fs(not(target_os = "windows"))] provider: {
         let zdt = ZonedDateTime::try_new_with_provider(
             -560174321098766,
             Calendar::default(),
@@ -462,7 +489,7 @@ fn basic_zdt_add() {
         .unwrap();
 
         let result = zdt.add_with_provider(&d, None, provider).unwrap();
-        assert!(result.equals(&expected).unwrap());
+        assert!(result.equals_with_provider(&expected, provider).unwrap());
     })
 }
 
@@ -492,7 +519,7 @@ fn parse_zdt_with_compatible(
 
 #[test]
 fn test_pacific_niue() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
         // Pacific/Niue on October 15, 1952, where
         // the offset shifted by 20 seconds to a whole-minute boundary.
@@ -592,7 +619,7 @@ fn total_seconds_for_one_day(s: &str, provider: &impl TimeZoneProvider) -> Tempo
 
 #[test]
 fn test_pacific_niue_duration() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         // Also tests add_to_instant codepaths
         // From intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset
         let total =
@@ -631,7 +658,8 @@ fn assert_tr(
         zdt.get_time_zone_transition_with_provider(direction, provider)
             .unwrap()
             .unwrap()
-            .to_string(),
+            .to_string_with_provider(provider)
+            .unwrap(),
         s
     );
 }
@@ -757,7 +785,7 @@ fn get_time_zone_transition() {
     // This stops it from wrapping
     use TransitionDirection::*;
 
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         // Modern dates that utilize the posix string
 
         // During DST
@@ -905,21 +933,22 @@ fn get_time_zone_transition() {
 
 #[test]
 fn test_to_string_roundtrip() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         for (test, is_unambiguous) in TO_STRING_TESTCASES {
             let zdt = parse_zdt_with_reject(test, provider).expect(test);
-            let string = zdt.to_string();
+            let string = zdt.to_string_with_provider(provider).unwrap();
 
             assert_eq!(
                 *test, &*string,
                 "ZonedDateTime {test} round trips on ToString"
             );
             let without_offset = zdt
-                .to_ixdtf_string(
+                .to_ixdtf_string_with_provider(
                     DisplayOffset::Never,
                     DisplayTimeZone::Auto,
                     DisplayCalendar::Never,
                     Default::default(),
+                    provider
                 )
                 .unwrap();
             assert_eq!(
@@ -931,7 +960,7 @@ fn test_to_string_roundtrip() {
             // These testcases should all also parse unambiguously when the offset is removed.
             if *is_unambiguous {
                 let zdt = parse_zdt_with_reject(&without_offset, provider).expect(test);
-                let string = zdt.to_string();
+                let string = zdt.to_string_with_provider(provider).unwrap();
                 assert_eq!(
                     *test, &*string,
                     "ZonedDateTime {without_offset} round trips to {test} on ToString"
@@ -943,19 +972,19 @@ fn test_to_string_roundtrip() {
 
 #[test]
 fn test_apia() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         // This transition skips an entire day
         // From: 2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]
         // To: 2011-12-31T00:00:00+14:00[Pacific/Apia]
         let zdt = parse_zdt_with_reject(SAMOA_IDL_CHANGE, provider).unwrap();
         let _ = zdt
-            .add(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None)
+            .add_with_provider(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None, provider)
             .unwrap();
 
-        assert_eq!(zdt.hours_in_day().unwrap(), 24.);
+        assert_eq!(zdt.hours_in_day_with_provider(provider).unwrap(), 24.);
 
         let samoa_before = parse_zdt_with_reject(SAMOA_IDL_CHANGE_MINUS_ONE, provider).unwrap();
-        assert_eq!(samoa_before.hours_in_day().unwrap(), 24.);
+        assert_eq!(samoa_before.hours_in_day_with_provider(provider).unwrap(), 24.);
     })
 }
 
@@ -966,46 +995,46 @@ fn test_london() {
         // last sundays of March and October.
 
         // Test that they correctly compute from nanoseconds
-        let zdt = ZonedDateTime::try_new(
+        let zdt = ZonedDateTime::try_new_with_provider(
             1_553_993_999_999_999_999,
             Calendar::ISO,
-            TimeZone::try_from_str("Europe/London").unwrap(),
+            TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap(), provider,
         )
         .unwrap();
         assert_eq!(
-            zdt.to_string(),
+            zdt.to_string_with_provider(provider).unwrap(),
             LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE,
         );
-        let zdt = ZonedDateTime::try_new(
+        let zdt = ZonedDateTime::try_new_with_provider(
             1_553_994_000_000_000_000,
             Calendar::ISO,
-            TimeZone::try_from_str("Europe/London").unwrap(),
+            TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap(), provider,
         )
         .unwrap();
-        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31,);
+        assert_eq!(zdt.to_string_with_provider(provider).unwrap(), LONDON_POSIX_TRANSITION_2019_03_31,);
 
         // Test that they correctly compute from ZDT strings without explicit offset
         let zdt = parse_zdt_with_reject("2019-03-31T00:59:59.999999999[Europe/London]", provider)
             .unwrap();
         assert_eq!(
-            zdt.to_string(),
+            zdt.to_string_with_provider(provider).unwrap(),
             LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE
         );
 
         let zdt =
             parse_zdt_with_reject("2019-03-31T02:00:00+01:00[Europe/London]", provider).unwrap();
-        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31);
+        assert_eq!(zdt.to_string_with_provider(provider).unwrap(), LONDON_POSIX_TRANSITION_2019_03_31);
 
         let zdt = parse_zdt_with_reject("2017-03-26T00:59:59.999999999[Europe/London]", provider)
             .unwrap();
         assert_eq!(
-            zdt.to_string(),
+            zdt.to_string_with_provider(provider).unwrap(),
             LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE
         );
 
         let zdt =
             parse_zdt_with_reject("2017-03-26T02:00:00+01:00[Europe/London]", provider).unwrap();
-        assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2017_03_26);
+        assert_eq!(zdt.to_string_with_provider(provider).unwrap(), LONDON_POSIX_TRANSITION_2017_03_26);
     })
 }
 
@@ -1014,13 +1043,12 @@ fn test_berlin() {
     test_all_providers!(provider: {
         // Need to ensure that when the transition is the last day of the month it still works
         let zdt = parse_zdt_with_reject("2021-03-28T01:00:00Z[Europe/Berlin]", provider).unwrap();
-        std::println!("GET");
         let prev = zdt
-            .get_time_zone_transition(TransitionDirection::Previous)
+            .get_time_zone_transition_with_provider(TransitionDirection::Previous, provider)
             .unwrap()
             .unwrap();
 
-        assert_eq!(prev.to_string(), "2020-10-25T02:00:00+01:00[Europe/Berlin]");
+        assert_eq!(prev.to_string_with_provider(provider).unwrap(), "2020-10-25T02:00:00+01:00[Europe/Berlin]");
     })
 }
 
@@ -1031,16 +1059,16 @@ fn test_troll() {
         let zdt = ZonedDateTime::try_new_with_provider(
             0,
             Calendar::ISO,
-            TimeZone::try_from_str("Antarctica/Troll").unwrap(),
+            TimeZone::try_from_str_with_provider("Antarctica/Troll", provider).unwrap(),
             provider,
         )
         .unwrap();
 
         let next = zdt
-            .get_time_zone_transition(TransitionDirection::Next)
+            .get_time_zone_transition_with_provider(TransitionDirection::Next, provider)
             .unwrap()
             .unwrap();
-        assert_eq!(next.to_string(), TROLL_FIRST_TRANSITION);
+        assert_eq!(next.to_string_with_provider(provider).unwrap(), TROLL_FIRST_TRANSITION);
     })
 }
 
@@ -1051,7 +1079,7 @@ fn test_zdt_until_rounding() {
         let start = parse_zdt_with_reject("2020-01-01T00:00-08:00[-08:00]", provider).unwrap();
         let end = parse_zdt_with_reject("2020-01-03T23:59-08:00[-08:00]", provider).unwrap();
         let difference = start
-            .until(
+            .until_with_provider(
                 &end,
                 DifferenceSettings {
                     largest_unit: Some(Unit::Day),
@@ -1059,6 +1087,7 @@ fn test_zdt_until_rounding() {
                     rounding_mode: Some(RoundingMode::HalfExpand),
                     ..Default::default()
                 },
+                provider
             )
             .unwrap();
         assert_eq!(difference.to_string(), "P3D");
@@ -1067,31 +1096,33 @@ fn test_zdt_until_rounding() {
 
 #[test]
 fn test_toronto_half_hour() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         let zdt =
             parse_zdt_with_reject("1919-03-30T12:00:00-05:00[America/Toronto]", provider).unwrap();
-        assert_eq!(zdt.hours_in_day().unwrap(), 23.5);
+        assert_eq!(zdt.hours_in_day_with_provider(provider).unwrap(), 23.5);
     })
 }
 
 #[test]
 fn test_round_to_start_of_day() {
-    test_all_providers!(provider: {
+    test_all_providers!(#[cfg_for_zi64(any())] provider: {
         // Round up to DST
         let zdt =
             parse_zdt_with_reject("1919-03-30T11:45-05:00[America/Toronto]", provider).unwrap();
         let rounded = zdt
-            .round(RoundingOptions {
+            .round_with_provider(RoundingOptions {
                 smallest_unit: Some(Unit::Day),
                 ..Default::default()
-            })
+            }, provider)
             .unwrap();
         let known_rounded =
             parse_zdt_with_reject("1919-03-31T00:30:00-04:00[America/Toronto]", provider).unwrap();
 
         assert!(
-            rounded.equals(&known_rounded).unwrap(),
-            "Expected {known_rounded}, found {rounded}"
+            rounded.equals_with_provider(&known_rounded, provider).unwrap(),
+            "Expected {}, found {}",
+            known_rounded.to_string_with_provider(provider).unwrap(),
+            rounded.to_string_with_provider(provider).unwrap()
         );
         assert_eq!(rounded.get_iso_datetime(), known_rounded.get_iso_datetime());
 
@@ -1100,17 +1131,19 @@ fn test_round_to_start_of_day() {
         let zdt =
             parse_zdt_with_reject("1919-03-30T01:45-05:00[America/Toronto]", provider).unwrap();
         let rounded = zdt
-            .round(RoundingOptions {
+            .round_with_provider(RoundingOptions {
                 smallest_unit: Some(Unit::Day),
                 ..Default::default()
-            })
+            }, provider)
             .unwrap();
         let known_rounded =
             parse_zdt_with_reject("1919-03-30T00:00:00-05:00[America/Toronto]", provider).unwrap();
 
         assert!(
-            rounded.equals(&known_rounded).unwrap(),
-            "Expected {known_rounded}, found {rounded}"
+            rounded.equals_with_provider(&known_rounded, provider).unwrap(),
+            "Expected {}, found {}",
+            known_rounded.to_string_with_provider(provider).unwrap(),
+            rounded.to_string_with_provider(provider).unwrap()
         );
         assert_eq!(rounded.get_iso_datetime(), known_rounded.get_iso_datetime());
     })

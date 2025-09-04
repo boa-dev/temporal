@@ -34,7 +34,7 @@ use crate::{
     MonthCode, Sign, TemporalError, TemporalResult, TemporalUnwrap,
 };
 
-#[cfg(all(test, feature = "compiled_data"))]
+#[cfg(test)]
 mod tests;
 
 /// A struct representing a partial `ZonedDateTime`.
