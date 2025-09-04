@@ -548,9 +548,10 @@ fn test_pacific_niue() {
 fn total_seconds_for_one_day(s: &str, provider: &impl TimeZoneProvider) -> TemporalResult<f64> {
     Ok(Duration::new(0, 0, 0, 1, 0, 0, 0, 0, 0, 0)
         .unwrap()
-        .total(
+        .total_with_provider(
             Unit::Second,
             Some(parse_zdt_with_reject(s, provider).unwrap().into()),
+            provider,
         )?
         .as_inner())
 }
@@ -583,9 +584,14 @@ fn test_pacific_niue_duration() {
 }
 
 #[track_caller]
-fn assert_tr(zdt: &ZonedDateTime, direction: TransitionDirection, s: &str) {
+fn assert_tr(
+    zdt: &ZonedDateTime,
+    direction: TransitionDirection,
+    s: &str,
+    provider: &impl TimeZoneProvider,
+) {
     assert_eq!(
-        zdt.get_time_zone_transition(direction)
+        zdt.get_time_zone_transition_with_provider(direction, provider)
             .unwrap()
             .unwrap()
             .to_string(),
@@ -720,102 +726,113 @@ fn get_time_zone_transition() {
 
     // During DST
     let zdt = parse_zdt_with_reject(IN_DST_2025_07_31, provider).unwrap();
-    assert_tr(&zdt, Previous, DST_2025_03_09);
-    assert_tr(&zdt, Next, STD_2025_11_02);
+    assert_tr(&zdt, Previous, DST_2025_03_09, provider);
+    assert_tr(&zdt, Next, STD_2025_11_02, provider);
 
     // After DST
     let zdt = parse_zdt_with_reject(AFTER_DST_2025_12_31, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_2025_11_02);
-    assert_tr(&zdt, Next, DST_2026_03_08);
+    assert_tr(&zdt, Previous, STD_2025_11_02, provider);
+    assert_tr(&zdt, Next, DST_2026_03_08, provider);
 
     // Before DST
     let zdt = parse_zdt_with_reject(BEFORE_DST_2025_01_31, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_2024_11_03);
-    assert_tr(&zdt, Next, DST_2025_03_09);
+    assert_tr(&zdt, Previous, STD_2024_11_03, provider);
+    assert_tr(&zdt, Next, DST_2025_03_09, provider);
 
     // Boundary test
     // Modern date (On start of DST)
     let zdt = parse_zdt_with_reject(DST_2025_03_09, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_2024_11_03);
-    assert_tr(&zdt, Next, STD_2025_11_02);
+    assert_tr(&zdt, Previous, STD_2024_11_03, provider);
+    assert_tr(&zdt, Next, STD_2025_11_02, provider);
     // Modern date (one ns after DST)
     let zdt = parse_zdt_with_reject(DST_2025_03_09_PLUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, DST_2025_03_09);
-    assert_tr(&zdt, Next, STD_2025_11_02);
+    assert_tr(&zdt, Previous, DST_2025_03_09, provider);
+    assert_tr(&zdt, Next, STD_2025_11_02, provider);
     // Modern date (one ns before DST)
     let zdt = parse_zdt_with_reject(DST_2025_03_09_MINUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_2024_11_03);
-    assert_tr(&zdt, Next, DST_2025_03_09);
+    assert_tr(&zdt, Previous, STD_2024_11_03, provider);
+    assert_tr(&zdt, Next, DST_2025_03_09, provider);
 
     // Modern date (On start of STD)
     let zdt = parse_zdt_with_reject(STD_2025_11_02, provider).unwrap();
-    assert_tr(&zdt, Previous, DST_2025_03_09);
-    assert_tr(&zdt, Next, DST_2026_03_08);
+    assert_tr(&zdt, Previous, DST_2025_03_09, provider);
+    assert_tr(&zdt, Next, DST_2026_03_08, provider);
     // Modern date (one ns after STD)
     let zdt = parse_zdt_with_reject(STD_2025_11_02_PLUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_2025_11_02);
-    assert_tr(&zdt, Next, DST_2026_03_08);
+    assert_tr(&zdt, Previous, STD_2025_11_02, provider);
+    assert_tr(&zdt, Next, DST_2026_03_08, provider);
     // Modern date (one ns before STD)
     let zdt = parse_zdt_with_reject(STD_2025_11_02_MINUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, DST_2025_03_09);
-    assert_tr(&zdt, Next, STD_2025_11_02);
+    assert_tr(&zdt, Previous, DST_2025_03_09, provider);
+    assert_tr(&zdt, Next, STD_2025_11_02, provider);
 
     // Old dates using the Tzif data
 
     // During DST
     let zdt = parse_zdt_with_reject(IN_DST_1999_07_31, provider).unwrap();
-    assert_tr(&zdt, Previous, DST_1999_04_04);
-    assert_tr(&zdt, Next, STD_1999_10_31);
+    assert_tr(&zdt, Previous, DST_1999_04_04, provider);
+    assert_tr(&zdt, Next, STD_1999_10_31, provider);
 
     // After DST
     let zdt = parse_zdt_with_reject(AFTER_DST_1999_12_31, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_1999_10_31);
-    assert_tr(&zdt, Next, DST_2000_04_02);
+    assert_tr(&zdt, Previous, STD_1999_10_31, provider);
+    assert_tr(&zdt, Next, DST_2000_04_02, provider);
 
     // Before DST
     let zdt = parse_zdt_with_reject(BEFORE_DST_1999_01_31, provider).unwrap();
-    assert_tr(&zdt, Previous, STD_1998_01_31);
-    assert_tr(&zdt, Next, DST_1999_04_04);
+    assert_tr(&zdt, Previous, STD_1998_01_31, provider);
+    assert_tr(&zdt, Next, DST_1999_04_04, provider);
 
     // Santiago tests, testing that transitions with the offset = 24:00:00
     // still work
     let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_MINUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
-    assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
+    assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL, provider);
+    assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT, provider);
     let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT, provider).unwrap();
-    assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
-    assert_tr(&zdt, Next, SANTIAGO_STD_2026);
+    assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL, provider);
+    assert_tr(&zdt, Next, SANTIAGO_STD_2026, provider);
     let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_PLUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, SANTIAGO_DST_2025_SEPT);
-    assert_tr(&zdt, Next, SANTIAGO_STD_2026);
+    assert_tr(&zdt, Previous, SANTIAGO_DST_2025_SEPT, provider);
+    assert_tr(&zdt, Next, SANTIAGO_STD_2026, provider);
 
     let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_MINUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, SANTIAGO_DST_2024);
-    assert_tr(&zdt, Next, SANTIAGO_STD_2025_APRIL);
+    assert_tr(&zdt, Previous, SANTIAGO_DST_2024, provider);
+    assert_tr(&zdt, Next, SANTIAGO_STD_2025_APRIL, provider);
     let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL, provider).unwrap();
-    assert_tr(&zdt, Previous, SANTIAGO_DST_2024);
-    assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
+    assert_tr(&zdt, Previous, SANTIAGO_DST_2024, provider);
+    assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT, provider);
     let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_PLUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
-    assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
+    assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL, provider);
+    assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT, provider);
 
     // Test case from intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition
     // This ensures we skip "fake" transition entries that do not actually change the offset
 
     let zdt = parse_zdt_with_reject("1970-01-01T01:00:00+01:00[Europe/London]", provider).unwrap();
-    assert_tr(&zdt, Previous, LONDON_TRANSITION_1968_02_18);
+    assert_tr(&zdt, Previous, LONDON_TRANSITION_1968_02_18, provider);
     let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]", provider).unwrap();
-    assert_tr(&zdt, Next, "1971-10-31T02:00:00+00:00[Europe/London]");
+    assert_tr(
+        &zdt,
+        Next,
+        "1971-10-31T02:00:00+00:00[Europe/London]",
+        provider,
+    );
     let zdt =
         parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]", provider).unwrap();
     assert_tr(
         &zdt,
         Previous,
         "1945-09-30T01:00:00-10:00[America/Anchorage]",
+        provider,
     );
     let zdt =
         parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]", provider).unwrap();
-    assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
+    assert_tr(
+        &zdt,
+        Next,
+        "1969-04-27T03:00:00-09:00[America/Anchorage]",
+        provider,
+    );
     // These dates are one second after a "fake" transition at the end of the tzif data
     // Ensure that they find a real transition, not the fake one
     let zdt =
@@ -824,14 +841,25 @@ fn get_time_zone_transition() {
         &zdt,
         Previous,
         "2020-03-08T03:00:00-07:00[America/Whitehorse]",
+        provider,
     );
     let zdt = parse_zdt_with_reject("1996-05-13T00:00:01+03:00[Europe/Kyiv]", provider).unwrap();
-    assert_tr(&zdt, Previous, "1996-03-31T03:00:00+03:00[Europe/Kyiv]");
+    assert_tr(
+        &zdt,
+        Previous,
+        "1996-03-31T03:00:00+03:00[Europe/Kyiv]",
+        provider,
+    );
 
     // This ensures that nanosecond-to-second casting works correctly
     let zdt = parse_zdt_with_reject(LONDON_TRANSITION_1968_02_18_MINUS_ONE, provider).unwrap();
-    assert_tr(&zdt, Next, LONDON_TRANSITION_1968_02_18);
-    assert_tr(&zdt, Previous, "1967-10-29T02:00:00+00:00[Europe/London]");
+    assert_tr(&zdt, Next, LONDON_TRANSITION_1968_02_18, provider);
+    assert_tr(
+        &zdt,
+        Previous,
+        "1967-10-29T02:00:00+00:00[Europe/London]",
+        provider,
+    );
 }
 
 #[test]
