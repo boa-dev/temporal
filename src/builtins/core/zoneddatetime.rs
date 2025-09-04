@@ -140,12 +140,12 @@ impl ZonedDateTimeFields {
 /// let zdt = ZonedDateTime::try_new(
 ///     0,                    // epoch nanoseconds (Unix epoch)
 ///     Calendar::default(),  // ISO 8601 calendar
-///     TimeZone::default(),  // UTC timezone
+///     TimeZone::utc(),  // UTC timezone
 /// ).unwrap();
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zdt.timezone().identifier(), "UTC");
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// # }
 /// ```
@@ -218,7 +218,7 @@ impl ZonedDateTimeFields {
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
-/// assert_eq!(zdt.timezone().identifier(), "America/Los_Angeles");
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
 /// # }
 /// ```
 ///
@@ -812,7 +812,7 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Option<Self>> {
         // 8. If IsOffsetTimeZoneIdentifier(timeZone) is true, return null.
-        let TimeZone::IanaIdentifier(identifier) = &self.tz else {
+        let TimeZone::IanaIdentifier(identifier) = self.tz else {
             return Ok(None);
         };
         // 9. If direction is next, then
@@ -1347,7 +1347,7 @@ impl ZonedDateTime {
         let offset = self.tz.get_offset_nanos_for(result, provider)?;
         let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
-        let timezone_id = self.timezone().identifier();
+        let timezone_id = self.timezone().identifier_with_provider(provider)?;
 
         let ixdtf_string = IxdtfStringBuilder::default()
             .with_date(datetime.date)

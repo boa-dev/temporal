@@ -38,15 +38,16 @@ pub mod ffi {
 
         pub fn identifier(&self, write: &mut DiplomatWrite) {
             // TODO ideally this would use Writeable instead of allocating
-            let s = self.0.identifier();
+            let s = self.0.identifier().unwrap_or_default();
 
             // This can only fail in cases where the DiplomatWriteable is capped, we
             // don't care about that.
             let _ = write.write_str(&s);
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn utc() -> Box<Self> {
-            Box::new(Self(temporal_rs::TimeZone::IanaIdentifier("UTC".into())))
+            Box::new(Self(temporal_rs::TimeZone::utc()))
         }
 
         #[allow(clippy::should_implement_trait)]

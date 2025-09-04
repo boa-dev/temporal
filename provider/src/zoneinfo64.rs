@@ -4,7 +4,7 @@ use zoneinfo64::{PossibleOffset, Zone, ZoneInfo64};
 
 use crate::provider::{
     CandidateEpochNanoseconds, EpochNanosecondsAndOffset, GapEntryOffsets, IsoDateTime,
-    NormalizerAndResolver, ResolverId, TimeZoneProviderResult, TimeZoneResolver,
+    NormalizerAndResolver, ResolvedId, TimeZoneProviderResult, TimeZoneResolver,
     TransitionDirection, UtcOffsetSeconds,
 };
 use crate::{
@@ -22,26 +22,26 @@ impl From<UtcOffset> for UtcOffsetSeconds {
 /// A TimeZoneProvider that works using ICU4C zoneinfo64.res data
 pub type ZoneInfo64TzdbProvider<'a> = NormalizerAndResolver<CompiledNormalizer, ZoneInfo64<'a>>;
 
-fn get<'a>(zi: &'a ZoneInfo64<'a>, id: ResolverId) -> TimeZoneProviderResult<Zone<'a>> {
+fn get<'a>(zi: &'a ZoneInfo64<'a>, id: ResolvedId) -> TimeZoneProviderResult<Zone<'a>> {
     let id = u16::try_from(id.0)
         .map_err(|_| TimeZoneProviderError::Range("Unknown timezone identifier"))?;
     Ok(Zone::from_raw_parts((id, zi)))
 }
 
 impl TimeZoneResolver for ZoneInfo64<'_> {
-    fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolverId> {
+    fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolvedId> {
         let utf8 = str::from_utf8(normalized_identifier)
             .map_err(|_| TimeZoneProviderError::Range("Unknown timezone identifier"))?;
         let zone = self
             .get(utf8)
             .ok_or(TimeZoneProviderError::Range("Unknown timezone identifier"))?;
         let (id, _) = zone.into_raw_parts();
-        Ok(ResolverId(usize::from(id)))
+        Ok(ResolvedId(usize::from(id)))
     }
 
     fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
-        identifier: ResolverId,
+        identifier: ResolvedId,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
         let zone = get(self, identifier)?;
@@ -90,7 +90,7 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
 
     fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
-        identifier: ResolverId,
+        identifier: ResolvedId,
         epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         let zone = get(self, identifier)?;
@@ -114,7 +114,7 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
 
     fn get_time_zone_transition(
         &self,
-        identifier: ResolverId,
+        identifier: ResolvedId,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {

@@ -2,5 +2,5 @@
 
 pub use timezone_provider::provider::{
     CandidateEpochNanoseconds, EpochNanosecondsAndOffset, GapEntryOffsets, NeverProvider,
-    ParseDirectionError, TimeZoneProvider, TransitionDirection, UtcOffsetSeconds,
+    ParseDirectionError, TimeZoneId, TimeZoneProvider, TransitionDirection, UtcOffsetSeconds,
 };
