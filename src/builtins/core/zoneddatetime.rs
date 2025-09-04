@@ -369,7 +369,7 @@ impl ZonedDateTime {
         Self::new_unchecked_with_provider(
             epoch_ns,
             self.calendar().clone(),
-            self.timezone().clone(),
+            *self.timezone(),
             provider,
         )
     }
@@ -756,7 +756,7 @@ impl ZonedDateTime {
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos.ns),
             self.calendar.clone(),
-            self.tz.clone(),
+            self.tz,
             epoch_nanos.offset,
         ))
     }
@@ -782,7 +782,7 @@ impl ZonedDateTime {
         Self::try_new_with_cached_offset(
             self.epoch_nanoseconds().as_i128(),
             calendar,
-            self.tz.clone(),
+            self.tz,
             self.cached_offset.into(),
         )
     }
@@ -841,7 +841,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_provider(
                 transition.0,
                 self.calendar().clone(),
-                self.tz.clone(),
+                self.tz,
                 provider,
             )
             .ok()
@@ -1086,7 +1086,7 @@ impl ZonedDateTime {
         Self::try_new_with_cached_offset(
             epoch_ns.ns.0,
             self.calendar.clone(),
-            self.tz.clone(),
+            self.tz,
             epoch_ns.offset,
         )
     }
@@ -1167,7 +1167,7 @@ impl ZonedDateTime {
         Self::try_new_with_cached_offset(
             epoch_nanos.ns.0,
             self.calendar.clone(),
-            self.tz.clone(),
+            self.tz,
             epoch_nanos.offset,
         )
     }
@@ -1291,7 +1291,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_cached_offset(
                 candidate,
                 self.calendar.clone(),
-                self.tz.clone(),
+                self.tz,
                 offset,
             )
         } else {
@@ -1320,7 +1320,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_cached_offset(
                 epoch_ns.ns.0,
                 self.calendar.clone(),
-                self.tz.clone(),
+                self.tz,
                 epoch_ns.offset,
             )
         }

@@ -24,14 +24,10 @@ macro_rules! format_line(
     };
 );
 
-fn seconds_to_zdt_string(s: Seconds, time_zone: &TimeZone) -> String {
-    ZonedDateTime::try_new(
-        s.0 as i128 * 1_000_000_000,
-        Default::default(),
-        time_zone.clone(),
-    )
-    .unwrap()
-    .to_string()
+fn seconds_to_zdt_string(s: Seconds, time_zone: TimeZone) -> String {
+    ZonedDateTime::try_new(s.0 as i128 * 1_000_000_000, Default::default(), time_zone)
+        .unwrap()
+        .to_string()
 }
 
 fn seconds_to_offset_time(s: Seconds) -> String {
@@ -131,7 +127,7 @@ fn main() {
             transitions[i],
             seconds.0,
             db.transition_types[i],
-            seconds_to_zdt_string(*seconds, &time_zone)
+            seconds_to_zdt_string(*seconds, time_zone)
         );
     }
 
@@ -158,7 +154,7 @@ fn main() {
             leap[i],
             leap.occurrence.0,
             leap.correction,
-            seconds_to_zdt_string(leap.occurrence, &utc)
+            seconds_to_zdt_string(leap.occurrence, utc)
         );
     }
 

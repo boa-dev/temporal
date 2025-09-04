@@ -149,7 +149,7 @@ mod tests {
         let base = EpochNanoseconds::from(TIME_BASE);
         let now = NowBuilder::default()
             .with_system_nanoseconds(base)
-            .with_system_zone(cdt.clone())
+            .with_system_zone(cdt)
             .build();
         let cdt_datetime = now
             .plain_date_time_iso_with_provider(None, &provider)
@@ -167,7 +167,7 @@ mod tests {
 
         let now_cdt = NowBuilder::default()
             .with_system_nanoseconds(base)
-            .with_system_zone(cdt.clone())
+            .with_system_zone(cdt)
             .build();
         let uschi_datetime = now_cdt
             .plain_date_time_iso_with_provider(Some(uschi), &provider)
