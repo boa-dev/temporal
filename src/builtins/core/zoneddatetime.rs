@@ -140,12 +140,12 @@ impl ZonedDateTimeFields {
 /// let zdt = ZonedDateTime::try_new(
 ///     0,                    // epoch nanoseconds (Unix epoch)
 ///     Calendar::default(),  // ISO 8601 calendar
-///     TimeZone::default(),  // UTC timezone
+///     TimeZone::utc(),  // UTC timezone
 /// ).unwrap();
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zdt.timezone().identifier(), "UTC");
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// # }
 /// ```
@@ -218,7 +218,7 @@ impl ZonedDateTimeFields {
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
-/// assert_eq!(zdt.timezone().identifier(), "America/Los_Angeles");
+/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
 /// # }
 /// ```
 ///
@@ -369,7 +369,7 @@ impl ZonedDateTime {
         Self::new_unchecked_with_provider(
             epoch_ns,
             self.calendar().clone(),
-            self.timezone().clone(),
+            *self.timezone(),
             provider,
         )
     }
@@ -756,7 +756,7 @@ impl ZonedDateTime {
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos.ns),
             self.calendar.clone(),
-            self.tz.clone(),
+            self.tz,
             epoch_nanos.offset,
         ))
     }
@@ -782,7 +782,7 @@ impl ZonedDateTime {
         Self::try_new_with_cached_offset(
             self.epoch_nanoseconds().as_i128(),
             calendar,
-            self.tz.clone(),
+            self.tz,
             self.cached_offset.into(),
         )
     }
@@ -812,7 +812,7 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Option<Self>> {
         // 8. If IsOffsetTimeZoneIdentifier(timeZone) is true, return null.
-        let TimeZone::IanaIdentifier(identifier) = &self.tz else {
+        let TimeZone::IanaIdentifier(identifier) = self.tz else {
             return Ok(None);
         };
         // 9. If direction is next, then
@@ -820,7 +820,7 @@ impl ZonedDateTime {
         // 10. Else,
         // a. Assert: direction is previous.
         // b. Let transition be GetNamedTimeZonePreviousTransition(timeZone, zonedDateTime.[[EpochNanoseconds]]).
-        let transition = provider.get_named_tz_transition(
+        let transition = provider.get_time_zone_transition(
             identifier,
             self.epoch_nanoseconds().as_i128(),
             direction,
@@ -841,7 +841,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_provider(
                 transition.0,
                 self.calendar().clone(),
-                self.tz.clone(),
+                self.tz,
                 provider,
             )
             .ok()
@@ -1086,7 +1086,7 @@ impl ZonedDateTime {
         Self::try_new_with_cached_offset(
             epoch_ns.ns.0,
             self.calendar.clone(),
-            self.tz.clone(),
+            self.tz,
             epoch_ns.offset,
         )
     }
@@ -1167,7 +1167,7 @@ impl ZonedDateTime {
         Self::try_new_with_cached_offset(
             epoch_nanos.ns.0,
             self.calendar.clone(),
-            self.tz.clone(),
+            self.tz,
             epoch_nanos.offset,
         )
     }
@@ -1291,7 +1291,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_cached_offset(
                 candidate,
                 self.calendar.clone(),
-                self.tz.clone(),
+                self.tz,
                 offset,
             )
         } else {
@@ -1320,7 +1320,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_cached_offset(
                 epoch_ns.ns.0,
                 self.calendar.clone(),
-                self.tz.clone(),
+                self.tz,
                 epoch_ns.offset,
             )
         }
@@ -1347,7 +1347,7 @@ impl ZonedDateTime {
         let offset = self.tz.get_offset_nanos_for(result, provider)?;
         let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
-        let timezone_id = self.timezone().identifier();
+        let timezone_id = self.timezone().identifier_with_provider(provider)?;
 
         let ixdtf_string = IxdtfStringBuilder::default()
             .with_date(datetime.date)

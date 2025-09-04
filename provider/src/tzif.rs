@@ -55,7 +55,7 @@ use tzif::{
 use crate::utils;
 
 use crate::provider::{
-    CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, NormalizerAndResolver, ResolverId,
+    CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, NormalizerAndResolver, ResolvedId,
     TimeZoneProviderResult, TimeZoneResolver, TransitionDirection, UtcOffsetSeconds,
 };
 use crate::{
@@ -257,7 +257,7 @@ impl Tzif {
         }
     }
 
-    fn get_named_tz_offset_nanoseconds(
+    fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
         utc_epoch: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
@@ -285,7 +285,7 @@ impl Tzif {
         )
     }
 
-    pub fn get_named_tz_transition(
+    pub fn get_time_zone_transition(
         &self,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
@@ -594,7 +594,7 @@ impl Tzif {
     }
 
     /// Given a *local* datetime, return all possible epoch nanosecond values for it
-    fn get_named_tz_epoch_nanoseconds(
+    fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
@@ -1267,7 +1267,7 @@ pub type FsTzdbProvider = NormalizerAndResolver<CompiledNormalizer, TzdbResolver
 /// use pure compiled data (<https://github.com/boa-dev/temporal/pull/264>)
 #[derive(Debug, Default)]
 pub struct TzdbResolver<Kind> {
-    id_cache: RwLock<BTreeMap<String, ResolverId>>,
+    id_cache: RwLock<BTreeMap<String, ResolvedId>>,
     cache: RwLock<Vec<Tzif>>,
     kind: Kind,
 }
@@ -1376,7 +1376,7 @@ impl TzdbResolverBackend for FsTzdbResolver {
 
 impl<Kind> TzdbResolver<Kind> {
     /// Get timezone data for a single identifier
-    fn get(&self, id: ResolverId) -> TimeZoneProviderResult<Tzif> {
+    fn get(&self, id: ResolvedId) -> TimeZoneProviderResult<Tzif> {
         self.cache
             .read()
             .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
@@ -1389,7 +1389,7 @@ impl<Kind> TzdbResolver<Kind> {
 }
 
 impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
-    fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolverId> {
+    fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolvedId> {
         let (identifier, tzif_intermediate) = self.kind.get(normalized_identifier)?;
         if let Some(id) = self
             .id_cache
@@ -1405,7 +1405,7 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
             .write()
             .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?;
 
-        let id = ResolverId(vec.len());
+        let id = ResolvedId(vec.len());
         vec.push(self.kind.load_tzif(tzif_intermediate)?);
 
         self.id_cache
@@ -1417,30 +1417,30 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
 
     fn candidate_nanoseconds_for_local_epoch_nanoseconds(
         &self,
-        identifier: ResolverId,
+        identifier: ResolvedId,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
         self.get(identifier)?
-            .get_named_tz_epoch_nanoseconds(local_datetime)
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(local_datetime)
     }
 
     fn transition_nanoseconds_for_utc_epoch_nanoseconds(
         &self,
-        identifier: ResolverId,
+        identifier: ResolvedId,
         epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
         self.get(identifier)?
-            .get_named_tz_offset_nanoseconds(epoch_nanoseconds)
+            .transition_nanoseconds_for_utc_epoch_nanoseconds(epoch_nanoseconds)
     }
 
     fn get_time_zone_transition(
         &self,
-        identifier: ResolverId,
+        identifier: ResolvedId,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
         let tzif = self.get(identifier)?;
-        tzif.get_named_tz_transition(epoch_nanoseconds, direction)
+        tzif.get_time_zone_transition(epoch_nanoseconds, direction)
     }
 }
 
@@ -1467,9 +1467,9 @@ mod tests {
     #[test]
     fn available_ids() {
         let provider = FsTzdbProvider::default();
-        assert!(provider.normalize_identifier(b"uTC").is_ok());
-        assert!(provider.normalize_identifier(b"Etc/uTc").is_ok());
-        assert!(provider.normalize_identifier(b"AMERIca/CHIcago").is_ok());
+        assert!(provider.get(b"uTC").is_ok());
+        assert!(provider.get(b"Etc/uTc").is_ok());
+        assert!(provider.get(b"AMERIca/CHIcago").is_ok());
     }
 
     #[test]
@@ -1487,8 +1487,9 @@ mod tests {
             nanosecond: 0,
         };
 
+        let ny = provider.get(b"America/New_York").unwrap();
         let local = provider
-            .get_named_tz_epoch_nanoseconds("America/New_York", today)
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(ny, today)
             .unwrap();
         assert_eq!(local.len(), 1);
     }
@@ -1508,8 +1509,9 @@ mod tests {
             nanosecond: 0,
         };
 
+        let ny = provider.get(b"America/New_York").unwrap();
         let local = provider
-            .get_named_tz_epoch_nanoseconds("America/New_York", today)
+            .candidate_nanoseconds_for_local_epoch_nanoseconds(ny, today)
             .unwrap();
         assert!(local.is_empty());
     }
@@ -1907,19 +1909,24 @@ mod tests {
             after_offset: i64,
             provider: &impl TimeZoneProvider,
         ) {
-            let before_possible = provider.get_named_tz_epoch_nanoseconds(id, before).unwrap();
+            let id = provider.get(id.as_bytes()).unwrap();
+            let before_possible = provider
+                .candidate_nanoseconds_for_local_epoch_nanoseconds(id, before)
+                .unwrap();
             assert_eq!(before_possible.len(), 1);
 
-            let after_possible = provider.get_named_tz_epoch_nanoseconds(id, after).unwrap();
+            let after_possible = provider
+                .candidate_nanoseconds_for_local_epoch_nanoseconds(id, after)
+                .unwrap();
             assert_eq!(after_possible.len(), 1);
             let before_seconds = before_possible.first().unwrap();
             let after_seconds = after_possible.first().unwrap();
 
             let before_transition = provider
-                .get_named_tz_offset_nanoseconds(id, before_seconds.ns.0)
+                .transition_nanoseconds_for_utc_epoch_nanoseconds(id, before_seconds.ns.0)
                 .unwrap();
             let after_transition = provider
-                .get_named_tz_offset_nanoseconds(id, after_seconds.ns.0)
+                .transition_nanoseconds_for_utc_epoch_nanoseconds(id, after_seconds.ns.0)
                 .unwrap();
             assert_ne!(
                 before_transition, after_transition,

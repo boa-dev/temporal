@@ -13,7 +13,7 @@ use crate::error::ErrorMessage;
 use crate::parsers::{
     parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime, Precision,
 };
-use crate::provider::{CandidateEpochNanoseconds, TimeZoneProvider};
+use crate::provider::{CandidateEpochNanoseconds, TimeZoneId, TimeZoneProvider};
 use crate::Sign;
 use crate::{
     builtins::core::{duration::normalized::TimeDuration, Instant},
@@ -161,9 +161,9 @@ impl core::str::FromStr for UtcOffset {
 // TODO: Potentially migrate to Cow<'a, str>
 // TODO: There may be an argument to have Offset minutes be a (Cow<'a, str>,, i16) to
 // prevent allocations / writing, TBD
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TimeZone {
-    IanaIdentifier(String),
+    IanaIdentifier(TimeZoneId),
     UtcOffset(UtcOffset),
 }
 
@@ -175,9 +175,7 @@ impl TimeZone {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let timezone = match record {
-            TimeZoneRecord::Name(name) => {
-                TimeZone::IanaIdentifier(provider.normalize_identifier(name)?.into())
-            }
+            TimeZoneRecord::Name(name) => TimeZone::IanaIdentifier(provider.get(name)?),
             TimeZoneRecord::Offset(offset_record) => {
                 let offset = UtcOffset::from_ixdtf_minute_record(offset_record);
                 TimeZone::UtcOffset(offset)
@@ -195,9 +193,7 @@ impl TimeZone {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         parse_identifier(identifier).map(|tz| match tz {
-            TimeZoneRecord::Name(name) => Ok(TimeZone::IanaIdentifier(
-                provider.normalize_identifier(name)?.into(),
-            )),
+            TimeZoneRecord::Name(name) => Ok(TimeZone::IanaIdentifier(provider.get(name)?)),
             TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
                 UtcOffset::from_ixdtf_minute_record(minute_precision_offset),
             )),
@@ -229,11 +225,20 @@ impl TimeZone {
     }
 
     /// Returns the current `TimeZoneSlot`'s identifier.
-    pub fn identifier(&self) -> String {
-        match self {
-            TimeZone::IanaIdentifier(s) => s.clone(),
+    pub fn identifier_with_provider(
+        &self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<String> {
+        Ok(match self {
+            TimeZone::IanaIdentifier(s) => provider.identifier(*s)?.into(),
             TimeZone::UtcOffset(offset) => offset.to_string(),
-        }
+        })
+    }
+
+    /// Returns the current `TimeZoneSlot`'s identifier.
+    #[cfg(feature = "compiled_data")]
+    pub fn identifier(&self) -> TemporalResult<String> {
+        self.identifier_with_provider(&*crate::builtins::TZ_PROVIDER)
     }
 
     /// Get the primary identifier for this timezone
@@ -242,9 +247,7 @@ impl TimeZone {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         Ok(match self {
-            TimeZone::IanaIdentifier(s) => {
-                TimeZone::IanaIdentifier(provider.canonicalize_identifier(s.as_bytes())?.into())
-            }
+            TimeZone::IanaIdentifier(s) => TimeZone::IanaIdentifier(provider.canonicalized(*s)?),
             TimeZone::UtcOffset(offset) => TimeZone::UtcOffset(*offset),
         })
     }
@@ -263,25 +266,36 @@ impl TimeZone {
     ) -> TemporalResult<bool> {
         Ok(match (self, other) {
             (TimeZone::IanaIdentifier(one), TimeZone::IanaIdentifier(two)) => {
-                let one = provider.canonicalize_identifier(one.as_bytes())?;
-                let two = provider.canonicalize_identifier(two.as_bytes())?;
-                one == two
+                let one = provider.canonicalized(*one)?;
+                let two = provider.canonicalized(*two)?;
+                one.normalized == two.normalized
             }
             (&TimeZone::UtcOffset(one), &TimeZone::UtcOffset(two)) => one == two,
             _ => false,
         })
     }
+
+    /// Return an identifier representing `utc`
+    #[cfg(feature = "compiled_data")]
+    pub fn utc() -> Self {
+        Self::utc_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
+
+    /// Get the primary identifier for this timezone
+    pub fn utc_with_provider(provider: &impl TimeZoneProvider) -> Self {
+        Self::IanaIdentifier(provider.get(b"UTC").unwrap_or_default())
+    }
 }
 
 impl Default for TimeZone {
     fn default() -> Self {
-        Self::IanaIdentifier("UTC".into())
+        Self::UtcOffset(UtcOffset(0))
     }
 }
 
 impl From<&ZonedDateTime> for TimeZone {
     fn from(value: &ZonedDateTime) -> Self {
-        value.timezone().clone()
+        *value.timezone()
     }
 }
 
@@ -315,7 +329,8 @@ impl TimeZone {
             Self::UtcOffset(offset) => Ok(i128::from(offset.nanoseconds())),
             // 3. Return GetNamedTimeZoneOffsetNanoseconds(parseResult.[[Name]], epochNs).
             Self::IanaIdentifier(identifier) => {
-                let offset = provider.get_named_tz_offset_nanoseconds(identifier, utc_epoch)?;
+                let offset = provider
+                    .transition_nanoseconds_for_utc_epoch_nanoseconds(*identifier, utc_epoch)?;
                 Ok(i128::from(offset.0) * 1_000_000_000)
             }
         }
@@ -406,7 +421,10 @@ impl TimeZone {
                 // b. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
-                provider.get_named_tz_epoch_nanoseconds(identifier, local_iso.into())?
+                provider.candidate_nanoseconds_for_local_epoch_nanoseconds(
+                    *identifier,
+                    local_iso.into(),
+                )?
             }
         };
         // 4. For each value epochNanoseconds in possibleEpochNanoseconds, do
@@ -583,19 +601,19 @@ mod tests {
     fn from_and_to_string() {
         let src = "+09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier(), src);
+        assert_eq!(tz.identifier().unwrap(), src);
 
         let src = "-09:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier(), src);
+        assert_eq!(tz.identifier().unwrap(), src);
 
         let src = "-12:30";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier(), src);
+        assert_eq!(tz.identifier().unwrap(), src);
 
         let src = "America/New_York";
         let tz = TimeZone::try_from_identifier_str(src).unwrap();
-        assert_eq!(tz.identifier(), src);
+        assert_eq!(tz.identifier().unwrap(), src);
     }
 
     #[test]

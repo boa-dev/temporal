@@ -43,7 +43,10 @@ mod tests {
             let time_zone =
                 TimeZone::try_from_str_with_provider(valid_iana_identifier, &provider).unwrap();
 
-            assert_eq!(time_zone.identifier(), canonical);
+            assert_eq!(
+                time_zone.identifier_with_provider(&provider).unwrap(),
+                canonical
+            );
             let result = ZonedDateTime::from_partial_with_provider(
                 PartialZonedDateTime::default()
                     .with_calendar_fields(
