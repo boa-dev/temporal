@@ -54,9 +54,30 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
             local_datetime.minute,
             local_datetime.second,
         );
+
+        const FIVE_DAYS_NANOS: i128 = 5 * 24 * 60 * 60 * 1_000_000_000;
         let result = match possible_offset {
-            // TODO(Manishearth) This is wrong
-            PossibleOffset::None => CandidateEpochNanoseconds::Zero(GapEntryOffsets::default()),
+            // TODO(Manishearth) This is wrong. It mostly works: we do not have any transitions with gaps that last
+            // longer than 5 days, and for the purpose of calculating an offset when you are that far away from a transition
+            // treating local datetime as epoch time works fine.
+            // Can be fixed once we have https://github.com/unicode-org/icu4x/pull/6913
+            PossibleOffset::None => CandidateEpochNanoseconds::Zero(GapEntryOffsets {
+                offset_before: self.transition_nanoseconds_for_utc_epoch_nanoseconds(
+                    identifier,
+                    epoch_nanos.0 - FIVE_DAYS_NANOS,
+                )?,
+                offset_after: self.transition_nanoseconds_for_utc_epoch_nanoseconds(
+                    identifier,
+                    epoch_nanos.0 + FIVE_DAYS_NANOS,
+                )?,
+                transition_epoch: self
+                    .get_time_zone_transition(
+                        identifier,
+                        epoch_nanos.0 - FIVE_DAYS_NANOS,
+                        TransitionDirection::Next,
+                    )?
+                    .unwrap_or_default(),
+            }),
             PossibleOffset::Single(o) => {
                 let epoch_ns = EpochNanoseconds::from(
                     epoch_nanos.0 - seconds_to_nanoseconds(i64::from(o.offset.to_seconds())),
@@ -71,7 +92,7 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
                     epoch_nanos.0 - seconds_to_nanoseconds(i64::from(first.offset.to_seconds())),
                 );
                 let second_epoch_ns = EpochNanoseconds::from(
-                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(first.offset.to_seconds())),
+                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(second.offset.to_seconds())),
                 );
                 CandidateEpochNanoseconds::Two([
                     EpochNanosecondsAndOffset {
@@ -119,7 +140,9 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
         let zone = get(self, identifier)?;
-        let Ok(seconds) = i64::try_from(epoch_nanoseconds / NS_IN_S) else {
+        // We want div_floor behavior
+        let div = epoch_nanoseconds.div_euclid(NS_IN_S);
+        let Ok(seconds) = i64::try_from(div) else {
             return Err(TimeZoneProviderError::Range(
                 "Epoch nanoseconds out of range",
             ));

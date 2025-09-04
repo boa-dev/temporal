@@ -1,7 +1,3 @@
-// Temporary: A lot of the zi64 tests fail, and they make other imports unused if we
-// are only testing zi64. Remove when fixed
-#![cfg_attr(not(any(feature = "compiled_data", feature = "tzdb")), allow(unused))]
-
 use super::ZonedDateTime;
 use crate::{
     builtins::{calendar::CalendarFields, zoneddatetime::ZonedDateTimeFields},
@@ -30,6 +26,7 @@ macro_rules! test_all_providers {
 
             $b
         }
+
         $(#[cfg($cfg_zi)])? {
             std::println!("Testing ZoneInfo64Provider:");
             let zi_data =
@@ -39,7 +36,6 @@ macro_rules! test_all_providers {
 
             $b
         }
-
 
         $(#[cfg($cfg_fs)])? #[cfg(feature = "tzdb")] {
             std::println!("Testing FS (note: May fail with bad local tzdb data):");
@@ -236,7 +232,7 @@ fn zdt_hours_in_day() {
 #[test]
 // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
 fn dst_skipped_cross_midnight() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         let start_of_day =
             parse_zdt_with_compatible("1919-03-31[America/Toronto]", provider).unwrap();
         let midnight_disambiguated =
@@ -519,7 +515,7 @@ fn parse_zdt_with_compatible(
 
 #[test]
 fn test_pacific_niue() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
         // Pacific/Niue on October 15, 1952, where
         // the offset shifted by 20 seconds to a whole-minute boundary.
@@ -619,7 +615,7 @@ fn total_seconds_for_one_day(s: &str, provider: &impl TimeZoneProvider) -> Tempo
 
 #[test]
 fn test_pacific_niue_duration() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         // Also tests add_to_instant codepaths
         // From intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset
         let total =
@@ -785,7 +781,7 @@ fn get_time_zone_transition() {
     // This stops it from wrapping
     use TransitionDirection::*;
 
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         // Modern dates that utilize the posix string
 
         // During DST
@@ -933,7 +929,7 @@ fn get_time_zone_transition() {
 
 #[test]
 fn test_to_string_roundtrip() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         for (test, is_unambiguous) in TO_STRING_TESTCASES {
             let zdt = parse_zdt_with_reject(test, provider).expect(test);
             let string = zdt.to_string_with_provider(provider).unwrap();
@@ -972,7 +968,7 @@ fn test_to_string_roundtrip() {
 
 #[test]
 fn test_apia() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         // This transition skips an entire day
         // From: 2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]
         // To: 2011-12-31T00:00:00+14:00[Pacific/Apia]
@@ -1096,7 +1092,7 @@ fn test_zdt_until_rounding() {
 
 #[test]
 fn test_toronto_half_hour() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         let zdt =
             parse_zdt_with_reject("1919-03-30T12:00:00-05:00[America/Toronto]", provider).unwrap();
         assert_eq!(zdt.hours_in_day_with_provider(provider).unwrap(), 23.5);
@@ -1105,7 +1101,7 @@ fn test_toronto_half_hour() {
 
 #[test]
 fn test_round_to_start_of_day() {
-    test_all_providers!(#[cfg_for_zi64(any())] provider: {
+    test_all_providers!(provider: {
         // Round up to DST
         let zdt =
             parse_zdt_with_reject("1919-03-30T11:45-05:00[America/Toronto]", provider).unwrap();
