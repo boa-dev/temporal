@@ -6,7 +6,7 @@ use crate::{
         OffsetDisambiguation, Overflow, RoundingIncrement, RoundingMode, RoundingOptions, Unit,
     },
     partial::{PartialTime, PartialZonedDateTime},
-    provider::TransitionDirection,
+    provider::{TimeZoneProvider, TransitionDirection},
     unix_time::EpochNanoseconds,
     Calendar, Duration, MonthCode, TemporalResult, TimeZone, UtcOffset,
 };
@@ -188,14 +188,7 @@ fn zdt_from_str() {
 #[test]
 fn zdt_hours_in_day() {
     let provider = &*crate::builtins::TZ_PROVIDER;
-    let zdt_str = b"2025-07-04T12:00[UTC][u-ca=iso8601]";
-    let result = ZonedDateTime::from_utf8_with_provider(
-        zdt_str,
-        Disambiguation::Compatible,
-        OffsetDisambiguation::Reject,
-        provider,
-    )
-    .unwrap();
+    let result = parse_zdt_with_reject("2025-07-04T12:00[UTC][u-ca=iso8601]", provider).unwrap();
 
     assert_eq!(result.hours_in_day_with_provider(provider).unwrap(), 24.)
 }
@@ -204,20 +197,9 @@ fn zdt_hours_in_day() {
 // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
 fn dst_skipped_cross_midnight() {
     let provider = &*crate::builtins::TZ_PROVIDER;
-    let start_of_day = ZonedDateTime::from_utf8_with_provider(
-        b"1919-03-31[America/Toronto]",
-        Disambiguation::Compatible,
-        OffsetDisambiguation::Reject,
-        provider,
-    )
-    .unwrap();
-    let midnight_disambiguated = ZonedDateTime::from_utf8_with_provider(
-        b"1919-03-31T00[America/Toronto]",
-        Disambiguation::Compatible,
-        OffsetDisambiguation::Reject,
-        provider,
-    )
-    .unwrap();
+    let start_of_day = parse_zdt_with_compatible("1919-03-31[America/Toronto]", provider).unwrap();
+    let midnight_disambiguated =
+        parse_zdt_with_compatible("1919-03-31T00[America/Toronto]", provider).unwrap();
 
     assert_eq!(
         start_of_day.epoch_nanoseconds(),
@@ -250,7 +232,6 @@ fn dst_skipped_cross_midnight() {
     assert_eq!(diff.nanoseconds(), 0);
 }
 
-#[cfg(feature = "compiled_data")]
 #[test]
 fn zdt_offset_match_minutes() {
     // Cases taken from intl402/Temporal/ZonedDateTime/compare/sub-minute-offset
@@ -258,49 +239,22 @@ fn zdt_offset_match_minutes() {
     let provider = &*crate::builtins::TZ_PROVIDER;
 
     // Rounded mm accepted
-    let _ = ZonedDateTime::from_utf8_with_provider(
-        b"1970-01-01T00:00-00:45[Africa/Monrovia]",
-        Default::default(),
-        OffsetDisambiguation::Reject,
-        provider,
-    )
-    .unwrap();
+    let _ = parse_zdt_with_reject("1970-01-01T00:00-00:45[Africa/Monrovia]", provider).unwrap();
     // unrounded mm::ss accepted
-    let _ = ZonedDateTime::from_utf8_with_provider(
-        b"1970-01-01T00:00:00-00:44:30[Africa/Monrovia]",
-        Default::default(),
-        OffsetDisambiguation::Reject,
-        provider,
-    )
-    .unwrap();
+    let _ =
+        parse_zdt_with_reject("1970-01-01T00:00:00-00:44:30[Africa/Monrovia]", provider).unwrap();
     assert!(
-        ZonedDateTime::from_utf8_with_provider(
-            b"1970-01-01T00:00:00-00:44:40[Africa/Monrovia]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-            provider
-        )
-        .is_err(),
+        parse_zdt_with_compatible("1970-01-01T00:00:00-00:44:40[Africa/Monrovia]", provider)
+            .is_err(),
         "Incorrect unrounded mm::ss rejected"
     );
     assert!(
-        ZonedDateTime::from_utf8_with_provider(
-            b"1970-01-01T00:00:00-00:45:00[Africa/Monrovia]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-            provider
-        )
-        .is_err(),
+        parse_zdt_with_compatible("1970-01-01T00:00:00-00:45:00[Africa/Monrovia]", provider)
+            .is_err(),
         "Rounded mm::ss rejected"
     );
     assert!(
-        ZonedDateTime::from_utf8_with_provider(
-            b"1970-01-01T00:00+00:44:30.123456789[+00:45]",
-            Default::default(),
-            OffsetDisambiguation::Reject,
-            provider
-        )
-        .is_err(),
+        parse_zdt_with_compatible("1970-01-01T00:00+00:44:30.123456789[+00:45]", provider).is_err(),
         "Rounding not accepted between ISO offset and timezone"
     );
 
@@ -480,16 +434,33 @@ fn basic_zdt_add() {
     assert!(result.equals(&expected).unwrap());
 }
 
-fn parse_zdt_with_reject(s: &str) -> TemporalResult<ZonedDateTime> {
-    ZonedDateTime::from_utf8(
+fn parse_zdt_with_reject(
+    s: &str,
+    provider: &impl TimeZoneProvider,
+) -> TemporalResult<ZonedDateTime> {
+    ZonedDateTime::from_utf8_with_provider(
         s.as_bytes(),
         Disambiguation::Reject,
         OffsetDisambiguation::Reject,
+        provider,
+    )
+}
+
+fn parse_zdt_with_compatible(
+    s: &str,
+    provider: &impl TimeZoneProvider,
+) -> TemporalResult<ZonedDateTime> {
+    ZonedDateTime::from_utf8_with_provider(
+        s.as_bytes(),
+        Disambiguation::Compatible,
+        OffsetDisambiguation::Reject,
+        provider,
     )
 }
 
 #[test]
 fn test_pacific_niue() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // test/intl402/Temporal/ZonedDateTime/compare/sub-minute-offset.js
     // Pacific/Niue on October 15, 1952, where
     // the offset shifted by 20 seconds to a whole-minute boundary.
@@ -497,14 +468,15 @@ fn test_pacific_niue() {
     // The precise transition is from
     // 1952-10-15T23:59:59-11:19:40[-11:19:40] to 1952-10-15T23:59:40-11:19:00[-11:19:00]
     let ms_pre = -543_069_621_000;
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:19:40[Pacific/Niue]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1952-10-15T23:59:59-11:19:40[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_pre,
         "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
     );
 
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20[Pacific/Niue]").unwrap();
+    let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_pre,
@@ -513,7 +485,8 @@ fn test_pacific_niue() {
 
     let ms_post = -543_069_601_000;
 
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:59-11:20:00[Pacific/Niue]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1952-10-15T23:59:59-11:20:00[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_post,
@@ -522,26 +495,29 @@ fn test_pacific_niue() {
 
     // Additional tests ensuring that boundary cases are handled
 
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:40-11:20:00[Pacific/Niue]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1952-10-15T23:59:40-11:20:00[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_post - 19_000,
         "Post-transition Niue time allows up to `1952-10-15T23:59:40`"
     );
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:20:00[Pacific/Niue]");
+    let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:20:00[Pacific/Niue]", provider);
     assert!(
         zdt.is_err(),
         "Post-transition Niue time does not allow times before `1952-10-15T23:59:40`"
     );
 
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:40-11:19:40[Pacific/Niue]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1952-10-15T23:59:40-11:19:40[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_pre - 19_000,
         "Pre-transition Niue time also allows `1952-10-15T23:59:40`"
     );
 
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:39-11:19:40[Pacific/Niue]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1952-10-15T23:59:39-11:19:40[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_pre - 20_000,
@@ -549,50 +525,57 @@ fn test_pacific_niue() {
     );
 
     // Tests without explicit offset
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:39[Pacific/Niue]").unwrap();
+    let zdt = parse_zdt_with_reject("1952-10-15T23:59:39[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_pre - 20_000,
         "Unambiguous before 1952-10-15T23:59:39"
     );
 
-    let zdt = parse_zdt_with_reject("1952-10-16T00:00:00[Pacific/Niue]").unwrap();
+    let zdt = parse_zdt_with_reject("1952-10-16T00:00:00[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         zdt.epoch_milliseconds(),
         ms_post + 1_000,
         "Unambiguous after 1952-10-16T00:00:00"
     );
 
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:40[Pacific/Niue]");
+    let zdt = parse_zdt_with_reject("1952-10-15T23:59:40[Pacific/Niue]", provider);
     assert!(zdt.is_err(), "Ambiguity starts at 1952-10-15T23:59:40");
-    let zdt = parse_zdt_with_reject("1952-10-15T23:59:59[Pacific/Niue]");
+    let zdt = parse_zdt_with_reject("1952-10-15T23:59:59[Pacific/Niue]", provider);
     assert!(zdt.is_err(), "Ambiguity ends at 1952-10-15T23:59:59");
 }
 
-fn total_seconds_for_one_day(s: &str) -> TemporalResult<f64> {
+fn total_seconds_for_one_day(s: &str, provider: &impl TimeZoneProvider) -> TemporalResult<f64> {
     Ok(Duration::new(0, 0, 0, 1, 0, 0, 0, 0, 0, 0)
         .unwrap()
-        .total(Unit::Second, Some(parse_zdt_with_reject(s).unwrap().into()))?
+        .total(
+            Unit::Second,
+            Some(parse_zdt_with_reject(s, provider).unwrap().into()),
+        )?
         .as_inner())
 }
 
 #[test]
 fn test_pacific_niue_duration() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // Also tests add_to_instant codepaths
     // From intl402/Temporal/Duration/prototype/total/relativeto-sub-minute-offset
-    let total = total_seconds_for_one_day("1952-10-15T23:59:59-11:19:40[Pacific/Niue]").unwrap();
+    let total =
+        total_seconds_for_one_day("1952-10-15T23:59:59-11:19:40[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         total, 86420.,
         "-11:19:40 is accepted as -11:19:40 in Pacific/Niue edge case"
     );
 
-    let total = total_seconds_for_one_day("1952-10-15T23:59:59-11:20[Pacific/Niue]").unwrap();
+    let total =
+        total_seconds_for_one_day("1952-10-15T23:59:59-11:20[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         total, 86420.,
         "-11:20 matches the first candidate -11:19:40 in the Pacific/Niue edge case"
     );
 
-    let total = total_seconds_for_one_day("1952-10-15T23:59:59-11:20:00[Pacific/Niue]").unwrap();
+    let total =
+        total_seconds_for_one_day("1952-10-15T23:59:59-11:20:00[Pacific/Niue]", provider).unwrap();
     assert_eq!(
         total, 86400.,
         "-11:20:00 is accepted as -11:20:00 in the Pacific/Niue edge case"
@@ -731,125 +714,131 @@ fn get_time_zone_transition() {
     // This stops it from wrapping
     use TransitionDirection::*;
 
+    let provider = &*crate::builtins::TZ_PROVIDER;
+
     // Modern dates that utilize the posix string
 
     // During DST
-    let zdt = parse_zdt_with_reject(IN_DST_2025_07_31).unwrap();
+    let zdt = parse_zdt_with_reject(IN_DST_2025_07_31, provider).unwrap();
     assert_tr(&zdt, Previous, DST_2025_03_09);
     assert_tr(&zdt, Next, STD_2025_11_02);
 
     // After DST
-    let zdt = parse_zdt_with_reject(AFTER_DST_2025_12_31).unwrap();
+    let zdt = parse_zdt_with_reject(AFTER_DST_2025_12_31, provider).unwrap();
     assert_tr(&zdt, Previous, STD_2025_11_02);
     assert_tr(&zdt, Next, DST_2026_03_08);
 
     // Before DST
-    let zdt = parse_zdt_with_reject(BEFORE_DST_2025_01_31).unwrap();
+    let zdt = parse_zdt_with_reject(BEFORE_DST_2025_01_31, provider).unwrap();
     assert_tr(&zdt, Previous, STD_2024_11_03);
     assert_tr(&zdt, Next, DST_2025_03_09);
 
     // Boundary test
     // Modern date (On start of DST)
-    let zdt = parse_zdt_with_reject(DST_2025_03_09).unwrap();
+    let zdt = parse_zdt_with_reject(DST_2025_03_09, provider).unwrap();
     assert_tr(&zdt, Previous, STD_2024_11_03);
     assert_tr(&zdt, Next, STD_2025_11_02);
     // Modern date (one ns after DST)
-    let zdt = parse_zdt_with_reject(DST_2025_03_09_PLUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(DST_2025_03_09_PLUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, DST_2025_03_09);
     assert_tr(&zdt, Next, STD_2025_11_02);
     // Modern date (one ns before DST)
-    let zdt = parse_zdt_with_reject(DST_2025_03_09_MINUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(DST_2025_03_09_MINUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, STD_2024_11_03);
     assert_tr(&zdt, Next, DST_2025_03_09);
 
     // Modern date (On start of STD)
-    let zdt = parse_zdt_with_reject(STD_2025_11_02).unwrap();
+    let zdt = parse_zdt_with_reject(STD_2025_11_02, provider).unwrap();
     assert_tr(&zdt, Previous, DST_2025_03_09);
     assert_tr(&zdt, Next, DST_2026_03_08);
     // Modern date (one ns after STD)
-    let zdt = parse_zdt_with_reject(STD_2025_11_02_PLUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(STD_2025_11_02_PLUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, STD_2025_11_02);
     assert_tr(&zdt, Next, DST_2026_03_08);
     // Modern date (one ns before STD)
-    let zdt = parse_zdt_with_reject(STD_2025_11_02_MINUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(STD_2025_11_02_MINUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, DST_2025_03_09);
     assert_tr(&zdt, Next, STD_2025_11_02);
 
     // Old dates using the Tzif data
 
     // During DST
-    let zdt = parse_zdt_with_reject(IN_DST_1999_07_31).unwrap();
+    let zdt = parse_zdt_with_reject(IN_DST_1999_07_31, provider).unwrap();
     assert_tr(&zdt, Previous, DST_1999_04_04);
     assert_tr(&zdt, Next, STD_1999_10_31);
 
     // After DST
-    let zdt = parse_zdt_with_reject(AFTER_DST_1999_12_31).unwrap();
+    let zdt = parse_zdt_with_reject(AFTER_DST_1999_12_31, provider).unwrap();
     assert_tr(&zdt, Previous, STD_1999_10_31);
     assert_tr(&zdt, Next, DST_2000_04_02);
 
     // Before DST
-    let zdt = parse_zdt_with_reject(BEFORE_DST_1999_01_31).unwrap();
+    let zdt = parse_zdt_with_reject(BEFORE_DST_1999_01_31, provider).unwrap();
     assert_tr(&zdt, Previous, STD_1998_01_31);
     assert_tr(&zdt, Next, DST_1999_04_04);
 
     // Santiago tests, testing that transitions with the offset = 24:00:00
     // still work
-    let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_MINUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_MINUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
     assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
-    let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT).unwrap();
+    let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT, provider).unwrap();
     assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
     assert_tr(&zdt, Next, SANTIAGO_STD_2026);
-    let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_PLUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(SANTIAGO_DST_2025_SEPT_PLUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, SANTIAGO_DST_2025_SEPT);
     assert_tr(&zdt, Next, SANTIAGO_STD_2026);
 
-    let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_MINUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_MINUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, SANTIAGO_DST_2024);
     assert_tr(&zdt, Next, SANTIAGO_STD_2025_APRIL);
-    let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL).unwrap();
+    let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL, provider).unwrap();
     assert_tr(&zdt, Previous, SANTIAGO_DST_2024);
     assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
-    let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_PLUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(SANTIAGO_STD_2025_APRIL_PLUS_ONE, provider).unwrap();
     assert_tr(&zdt, Previous, SANTIAGO_STD_2025_APRIL);
     assert_tr(&zdt, Next, SANTIAGO_DST_2025_SEPT);
 
     // Test case from intl402/Temporal/ZonedDateTime/prototype/getTimeZoneTransition/rule-change-without-offset-transition
     // This ensures we skip "fake" transition entries that do not actually change the offset
 
-    let zdt = parse_zdt_with_reject("1970-01-01T01:00:00+01:00[Europe/London]").unwrap();
+    let zdt = parse_zdt_with_reject("1970-01-01T01:00:00+01:00[Europe/London]", provider).unwrap();
     assert_tr(&zdt, Previous, LONDON_TRANSITION_1968_02_18);
-    let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]").unwrap();
+    let zdt = parse_zdt_with_reject("1968-10-01T00:00:00+01:00[Europe/London]", provider).unwrap();
     assert_tr(&zdt, Next, "1971-10-31T02:00:00+00:00[Europe/London]");
-    let zdt = parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1967-05-01T00:00:00-10:00[America/Anchorage]", provider).unwrap();
     assert_tr(
         &zdt,
         Previous,
         "1945-09-30T01:00:00-10:00[America/Anchorage]",
     );
-    let zdt = parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("1967-01-01T00:00:00-10:00[America/Anchorage]", provider).unwrap();
     assert_tr(&zdt, Next, "1969-04-27T03:00:00-09:00[America/Anchorage]");
     // These dates are one second after a "fake" transition at the end of the tzif data
     // Ensure that they find a real transition, not the fake one
-    let zdt = parse_zdt_with_reject("2020-11-01T00:00:01-07:00[America/Whitehorse]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("2020-11-01T00:00:01-07:00[America/Whitehorse]", provider).unwrap();
     assert_tr(
         &zdt,
         Previous,
         "2020-03-08T03:00:00-07:00[America/Whitehorse]",
     );
-    let zdt = parse_zdt_with_reject("1996-05-13T00:00:01+03:00[Europe/Kyiv]").unwrap();
+    let zdt = parse_zdt_with_reject("1996-05-13T00:00:01+03:00[Europe/Kyiv]", provider).unwrap();
     assert_tr(&zdt, Previous, "1996-03-31T03:00:00+03:00[Europe/Kyiv]");
 
     // This ensures that nanosecond-to-second casting works correctly
-    let zdt = parse_zdt_with_reject(LONDON_TRANSITION_1968_02_18_MINUS_ONE).unwrap();
+    let zdt = parse_zdt_with_reject(LONDON_TRANSITION_1968_02_18_MINUS_ONE, provider).unwrap();
     assert_tr(&zdt, Next, LONDON_TRANSITION_1968_02_18);
     assert_tr(&zdt, Previous, "1967-10-29T02:00:00+00:00[Europe/London]");
 }
 
 #[test]
 fn test_to_string_roundtrip() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     for (test, is_unambiguous) in TO_STRING_TESTCASES {
-        let zdt = parse_zdt_with_reject(test).expect(test);
+        let zdt = parse_zdt_with_reject(test, provider).expect(test);
         let string = zdt.to_string();
 
         assert_eq!(
@@ -872,7 +861,7 @@ fn test_to_string_roundtrip() {
 
         // These testcases should all also parse unambiguously when the offset is removed.
         if *is_unambiguous {
-            let zdt = parse_zdt_with_reject(&without_offset).expect(test);
+            let zdt = parse_zdt_with_reject(&without_offset, provider).expect(test);
             let string = zdt.to_string();
             assert_eq!(
                 *test, &*string,
@@ -884,22 +873,24 @@ fn test_to_string_roundtrip() {
 
 #[test]
 fn test_apia() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // This transition skips an entire day
     // From: 2011-12-29T23:59:59.999999999-10:00[Pacific/Apia]
     // To: 2011-12-31T00:00:00+14:00[Pacific/Apia]
-    let zdt = parse_zdt_with_reject(SAMOA_IDL_CHANGE).unwrap();
+    let zdt = parse_zdt_with_reject(SAMOA_IDL_CHANGE, provider).unwrap();
     let _ = zdt
         .add(&Duration::new(0, 0, 0, 1, 1, 0, 0, 0, 0, 0).unwrap(), None)
         .unwrap();
 
     assert_eq!(zdt.hours_in_day().unwrap(), 24.);
 
-    let samoa_before = parse_zdt_with_reject(SAMOA_IDL_CHANGE_MINUS_ONE).unwrap();
+    let samoa_before = parse_zdt_with_reject(SAMOA_IDL_CHANGE_MINUS_ONE, provider).unwrap();
     assert_eq!(samoa_before.hours_in_day().unwrap(), 24.);
 }
 
 #[test]
 fn test_london() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // Europe/London has an MWD transition where the transitions are on the
     // last sundays of March and October.
 
@@ -923,29 +914,32 @@ fn test_london() {
     assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31,);
 
     // Test that they correctly compute from ZDT strings without explicit offset
-    let zdt = parse_zdt_with_reject("2019-03-31T00:59:59.999999999[Europe/London]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("2019-03-31T00:59:59.999999999[Europe/London]", provider).unwrap();
     assert_eq!(
         zdt.to_string(),
         LONDON_POSIX_TRANSITION_2019_03_31_MINUS_ONE
     );
 
-    let zdt = parse_zdt_with_reject("2019-03-31T02:00:00+01:00[Europe/London]").unwrap();
+    let zdt = parse_zdt_with_reject("2019-03-31T02:00:00+01:00[Europe/London]", provider).unwrap();
     assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2019_03_31);
 
-    let zdt = parse_zdt_with_reject("2017-03-26T00:59:59.999999999[Europe/London]").unwrap();
+    let zdt =
+        parse_zdt_with_reject("2017-03-26T00:59:59.999999999[Europe/London]", provider).unwrap();
     assert_eq!(
         zdt.to_string(),
         LONDON_POSIX_TRANSITION_2017_03_26_MINUS_ONE
     );
 
-    let zdt = parse_zdt_with_reject("2017-03-26T02:00:00+01:00[Europe/London]").unwrap();
+    let zdt = parse_zdt_with_reject("2017-03-26T02:00:00+01:00[Europe/London]", provider).unwrap();
     assert_eq!(zdt.to_string(), LONDON_POSIX_TRANSITION_2017_03_26);
 }
 
 #[test]
 fn test_berlin() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // Need to ensure that when the transition is the last day of the month it still works
-    let zdt = parse_zdt_with_reject("2021-03-28T01:00:00Z[Europe/Berlin]").unwrap();
+    let zdt = parse_zdt_with_reject("2021-03-28T01:00:00Z[Europe/Berlin]", provider).unwrap();
     std::println!("GET");
     let prev = zdt
         .get_time_zone_transition(TransitionDirection::Previous)
@@ -957,11 +951,13 @@ fn test_berlin() {
 
 #[test]
 fn test_troll() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // Antarctica/Troll started DST in 2005, but had no other transitions before that
-    let zdt = ZonedDateTime::try_new(
+    let zdt = ZonedDateTime::try_new_with_provider(
         0,
         Calendar::ISO,
         TimeZone::try_from_str("Antarctica/Troll").unwrap(),
+        provider,
     )
     .unwrap();
 
@@ -974,9 +970,10 @@ fn test_troll() {
 
 #[test]
 fn test_zdt_until_rounding() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // Regression test for beyondDaySpan rounding behavior
-    let start = parse_zdt_with_reject("2020-01-01T00:00-08:00[-08:00]").unwrap();
-    let end = parse_zdt_with_reject("2020-01-03T23:59-08:00[-08:00]").unwrap();
+    let start = parse_zdt_with_reject("2020-01-01T00:00-08:00[-08:00]", provider).unwrap();
+    let end = parse_zdt_with_reject("2020-01-03T23:59-08:00[-08:00]", provider).unwrap();
     let difference = start
         .until(
             &end,
@@ -993,14 +990,17 @@ fn test_zdt_until_rounding() {
 
 #[test]
 fn test_toronto_half_hour() {
-    let zdt = parse_zdt_with_reject("1919-03-30T12:00:00-05:00[America/Toronto]").unwrap();
+    let provider = &*crate::builtins::TZ_PROVIDER;
+    let zdt =
+        parse_zdt_with_reject("1919-03-30T12:00:00-05:00[America/Toronto]", provider).unwrap();
     assert_eq!(zdt.hours_in_day().unwrap(), 23.5);
 }
 
 #[test]
 fn test_round_to_start_of_day() {
+    let provider = &*crate::builtins::TZ_PROVIDER;
     // Round up to DST
-    let zdt = parse_zdt_with_reject("1919-03-30T11:45-05:00[America/Toronto]").unwrap();
+    let zdt = parse_zdt_with_reject("1919-03-30T11:45-05:00[America/Toronto]", provider).unwrap();
     let rounded = zdt
         .round(RoundingOptions {
             smallest_unit: Some(Unit::Day),
@@ -1008,7 +1008,7 @@ fn test_round_to_start_of_day() {
         })
         .unwrap();
     let known_rounded =
-        parse_zdt_with_reject("1919-03-31T00:30:00-04:00[America/Toronto]").unwrap();
+        parse_zdt_with_reject("1919-03-31T00:30:00-04:00[America/Toronto]", provider).unwrap();
 
     assert!(
         rounded.equals(&known_rounded).unwrap(),
@@ -1018,7 +1018,7 @@ fn test_round_to_start_of_day() {
 
     // Round down (ensure the offset picked is the correct one)
     // See https://github.com/boa-dev/temporal/pull/520
-    let zdt = parse_zdt_with_reject("1919-03-30T01:45-05:00[America/Toronto]").unwrap();
+    let zdt = parse_zdt_with_reject("1919-03-30T01:45-05:00[America/Toronto]", provider).unwrap();
     let rounded = zdt
         .round(RoundingOptions {
             smallest_unit: Some(Unit::Day),
@@ -1026,7 +1026,7 @@ fn test_round_to_start_of_day() {
         })
         .unwrap();
     let known_rounded =
-        parse_zdt_with_reject("1919-03-30T00:00:00-05:00[America/Toronto]").unwrap();
+        parse_zdt_with_reject("1919-03-30T00:00:00-05:00[America/Toronto]", provider).unwrap();
 
     assert!(
         rounded.equals(&known_rounded).unwrap(),
