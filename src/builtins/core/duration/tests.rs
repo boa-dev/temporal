@@ -217,7 +217,7 @@ fn duration_max_safe() {
     )
     .unwrap();
     let _ = d
-        .round_with_provider(options, None, &NeverProvider)
+        .round_with_provider(options, None, &NeverProvider::default())
         .expect("Must successfully round");
     let d = Duration::new(
         0,
@@ -233,12 +233,12 @@ fn duration_max_safe() {
     )
     .unwrap();
     assert!(d
-        .round_with_provider(options, None, &NeverProvider)
+        .round_with_provider(options, None, &NeverProvider::default())
         .is_err());
 
     options.largest_unit = Some(Unit::Microsecond);
     let _ = d
-        .round_with_provider(options, None, &NeverProvider)
+        .round_with_provider(options, None, &NeverProvider::default())
         .expect("Must successfully round");
     let d = Duration::new(
         0,
@@ -254,12 +254,12 @@ fn duration_max_safe() {
     )
     .unwrap();
     assert!(d
-        .round_with_provider(options, None, &NeverProvider)
+        .round_with_provider(options, None, &NeverProvider::default())
         .is_err());
 
     options.largest_unit = Some(Unit::Millisecond);
     let _ = d
-        .round_with_provider(options, None, &NeverProvider)
+        .round_with_provider(options, None, &NeverProvider::default())
         .expect("Must successfully round");
 }
 
@@ -312,7 +312,7 @@ fn duration_max() {
     for (duration, description, result) in cases {
         assert_eq!(
             duration
-                .total_with_provider(Unit::Second, None, &NeverProvider)
+                .total_with_provider(Unit::Second, None, &NeverProvider::default())
                 .unwrap()
                 .0,
             result,
@@ -331,7 +331,7 @@ fn duration_round_negative() {
                 ..Default::default()
             },
             None,
-            &NeverProvider,
+            &NeverProvider::default(),
         )
         .unwrap();
     assert_eq!(result.days(), -3);
@@ -414,7 +414,7 @@ fn duration_round_out_of_range_norm_conversion() {
         largest_unit: Some(Unit::Nanosecond),
         increment: Some(RoundingIncrement::ONE),
         ..Default::default()
-    }, None, &NeverProvider);
+    }, None, &NeverProvider::default());
     assert!(err.is_err())
 }
 */

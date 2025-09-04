@@ -92,23 +92,24 @@ impl IanaIdentifierNormalizer<'_> {
             })
             .collect();
 
-        let mut primary_id_map: BTreeMap<Vec<u8>, usize> = BTreeMap::new();
+        let mut primary_id_map: BTreeMap<usize, usize> = BTreeMap::new();
         // ECMAScript implementations must support an available named time zone with the identifier "UTC", which must be
         // the primary time zone identifier for the UTC time zone. In addition, implementations may support any number of other available named time zones.
         let utc_index = norm_vec.binary_search(&"UTC").unwrap();
-        primary_id_map.insert(b"etc/utc".into(), utc_index);
-        primary_id_map.insert(b"etc/gmt".into(), utc_index);
+        primary_id_map.insert(norm_vec.binary_search(&"Etc/UTC").unwrap(), utc_index);
+        primary_id_map.insert(norm_vec.binary_search(&"Etc/GMT").unwrap(), utc_index);
 
         for (link_from, link_to) in &provider.data.links {
             if link_from == "UTC" {
                 continue;
             }
+            let link_from = norm_vec.binary_search(&&**link_from).unwrap();
             let index = if link_to == "Etc/UTC" || link_to == "Etc/GMT" {
                 utc_index
             } else {
                 norm_vec.binary_search(&&**link_to).unwrap()
             };
-            primary_id_map.insert(link_from.to_ascii_lowercase().as_bytes().to_vec(), index);
+            primary_id_map.insert(link_from, index);
         }
 
         Ok(IanaIdentifierNormalizer {
@@ -116,9 +117,10 @@ impl IanaIdentifierNormalizer<'_> {
             available_id_index: ZeroAsciiIgnoreCaseTrie::try_from(&identifier_map)
                 .map_err(IanaDataError::Build)?
                 .convert_store(),
-            non_canonical_identifiers: ZeroAsciiIgnoreCaseTrie::try_from(&primary_id_map)
-                .map_err(IanaDataError::Build)?
-                .convert_store(),
+            non_canonical_identifiers: primary_id_map
+                .iter()
+                .map(|(x, y)| (u32::try_from(*x).unwrap(), u32::try_from(*y).unwrap()))
+                .collect(),
             normalized_identifiers: norm_zerovec,
         })
     }

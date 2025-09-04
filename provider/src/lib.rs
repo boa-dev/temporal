@@ -21,7 +21,7 @@ mod private {
 }
 
 mod tzdb;
-pub use tzdb::IanaIdentifierNormalizer;
+pub use tzdb::{CompiledNormalizer, IanaIdentifierNormalizer};
 
 #[cfg(feature = "tzif")]
 pub mod tzif;
