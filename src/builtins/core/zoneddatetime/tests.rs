@@ -7,7 +7,6 @@ use crate::{
     },
     partial::{PartialTime, PartialZonedDateTime},
     provider::TransitionDirection,
-    tzdb::FsTzdbProvider,
     unix_time::EpochNanoseconds,
     Calendar, Duration, MonthCode, TemporalResult, TimeZone, UtcOffset,
 };
@@ -17,7 +16,7 @@ use tinystr::tinystr;
 
 #[test]
 fn basic_zdt_test() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
     let nov_30_2023_utc = 1_701_308_952_000_000_000i128;
 
     let zdt = ZonedDateTime::try_new_with_provider(
@@ -69,7 +68,7 @@ fn basic_zdt_test() {
 #[test]
 // https://tc39.es/proposal-temporal/docs/zoneddatetime.html#round
 fn round_with_provider_test() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
     let dt = b"1995-12-07T03:24:30.000003500-08:00[America/Los_Angeles]";
     let zdt = ZonedDateTime::from_utf8_with_provider(
         dt,
@@ -127,7 +126,7 @@ fn round_with_provider_test() {
 
 #[test]
 fn zdt_from_partial() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
     let fields = ZonedDateTimeFields {
         calendar_fields: CalendarFields::new()
             .with_year(1970)
@@ -146,7 +145,7 @@ fn zdt_from_partial() {
     assert!(result.is_ok());
 
     // This ensures that the start-of-day branch isn't hit by default time
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
 
     let fields = ZonedDateTimeFields {
         calendar_fields: CalendarFields::new()
@@ -174,7 +173,7 @@ fn zdt_from_partial() {
 
 #[test]
 fn zdt_from_str() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
 
     let zdt_str = b"1970-01-01T00:00[UTC][u-ca=iso8601]";
     let result = ZonedDateTime::from_utf8_with_provider(
@@ -188,7 +187,7 @@ fn zdt_from_str() {
 
 #[test]
 fn zdt_hours_in_day() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
     let zdt_str = b"2025-07-04T12:00[UTC][u-ca=iso8601]";
     let result = ZonedDateTime::from_utf8_with_provider(
         zdt_str,
@@ -204,7 +203,7 @@ fn zdt_hours_in_day() {
 #[test]
 // https://github.com/tc39/test262/blob/d9b10790bc4bb5b3e1aa895f11cbd2d31a5ec743/test/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
 fn dst_skipped_cross_midnight() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
     let start_of_day = ZonedDateTime::from_utf8_with_provider(
         b"1919-03-31[America/Toronto]",
         Disambiguation::Compatible,
@@ -332,7 +331,7 @@ fn zdt_offset_match_minutes() {
 // overflow-reject-throws.js
 #[test]
 fn overflow_reject_throws() {
-    let provider = &FsTzdbProvider::default();
+    let provider = &*crate::builtins::TZ_PROVIDER;
 
     let zdt = ZonedDateTime::try_new_with_provider(
         217178610123456789,
@@ -404,7 +403,6 @@ fn overflow_reject_throws() {
     assert!(result_4.is_err());
 }
 
-#[cfg(not(target_os = "windows"))]
 #[test]
 fn static_tzdb_zdt_test() {
     use crate::{Calendar, TimeZone};
@@ -455,7 +453,6 @@ fn static_tzdb_zdt_test() {
     assert_eq!(zdt_plus_eleven.second().unwrap(), 12);
 }
 
-#[cfg(not(target_os = "windows"))]
 #[test]
 fn basic_zdt_add() {
     use crate::{Calendar, Duration, TimeZone};
