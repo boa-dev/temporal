@@ -125,7 +125,7 @@
 extern crate alloc;
 extern crate core;
 
-#[cfg(feature = "std")]
+#[cfg(any(test, feature = "std"))]
 extern crate std;
 
 pub mod error;

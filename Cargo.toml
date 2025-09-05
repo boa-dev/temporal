@@ -24,6 +24,7 @@ exclude = [
     ".gitignore",
     "CONTRIBUTING.md",
     "cliff.toml",
+    "tests/data/zoneinfo64.res",
 ]
 
 [workspace.dependencies]
@@ -47,6 +48,7 @@ jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
 zerovec = "0.11.4"
+zoneinfo64 = "0.1.0"
 
 [package]
 name = "temporal_rs"
@@ -81,6 +83,11 @@ timezone_provider = { workspace = true }
 # System time feature
 web-time = { workspace = true, optional = true }
 iana-time-zone = { workspace = true, optional = true }
+
+[dev-dependencies]
+timezone_provider = { workspace = true, features = ["zoneinfo64"] }
+zoneinfo64 = { workspace = true }
+resb = "0.1.0"
 
 [features]
 default = ["sys"]
