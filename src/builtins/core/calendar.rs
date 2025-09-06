@@ -66,8 +66,40 @@ impl PartialEq for Calendar {
 impl Eq for Calendar {}
 
 impl Calendar {
+    /// The Buddhist calendar
+    pub const BUDDHIST: Self = Self::new(AnyCalendarKind::Buddhist);
+    /// The Chinese calendar
+    pub const CHINESE: Self = Self::new(AnyCalendarKind::Chinese);
+    /// The Coptic calendar
+    pub const COPTIC: Self = Self::new(AnyCalendarKind::Coptic);
+    /// The Dangi calendar
+    pub const DANGI: Self = Self::new(AnyCalendarKind::Dangi);
+    /// The Ethiopian calendar
+    pub const ETHIOPIAN: Self = Self::new(AnyCalendarKind::Ethiopian);
+    /// The Ethiopian Amete Alem calendar
+    pub const ETHIOPIAN_AMETE_ALEM: Self = Self::new(AnyCalendarKind::EthiopianAmeteAlem);
+    /// The Gregorian calendar
+    pub const GREGORIAN: Self = Self::new(AnyCalendarKind::Gregorian);
+    /// The Hebrew calendar
+    pub const HEBREW: Self = Self::new(AnyCalendarKind::Hebrew);
+    /// The Indian calendar
+    pub const INDIAN: Self = Self::new(AnyCalendarKind::Indian);
+    /// The Hijri Tabular calendar with a Friday epoch
+    pub const HIJRI_TABULAR_FRIDAY: Self = Self::new(AnyCalendarKind::HijriTabularTypeIIFriday);
+    /// The Hijri Tabular calendar with a Thursday epoch
+    pub const HIJRI_TABULAR_THURSDAY: Self = Self::new(AnyCalendarKind::HijriTabularTypeIIThursday);
+    /// The Hijri Umm al-Qura calendar
+    pub const HIJRI_UMM_AL_QURA: Self = Self::new(AnyCalendarKind::HijriUmmAlQura);
+    /// The Hijri simulated calendar
+    pub const HIJRI_SIMULATED: Self = Self::new(AnyCalendarKind::HijriSimulatedMecca);
     /// The ISO 8601 calendar
     pub const ISO: Self = Self::new(AnyCalendarKind::Iso);
+    /// The Japanese calendar
+    pub const JAPANESE: Self = Self::new(AnyCalendarKind::Japanese);
+    /// The Persian calendar
+    pub const PERSIAN: Self = Self::new(AnyCalendarKind::Persian);
+    /// The ROC calendar
+    pub const ROC: Self = Self::new(AnyCalendarKind::Roc);
 
     /// Create a `Calendar` from an ICU [`AnyCalendarKind`].
     #[warn(clippy::wildcard_enum_match_arm)] // Warns if the calendar kind gets out of sync.
