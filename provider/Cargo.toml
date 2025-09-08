@@ -30,19 +30,41 @@ datagen = [
     "zerovec/serde",
     "zerovec/databake",
     "zerovec/derive",
-    "zoneinfo_rs",
+    "dep:zoneinfo_rs",
+    "experimental_tzif",
 ]
 std = []
+# Experimental tzif/tzdb compiled data
+experimental_tzif = []
+
+# Performing timezone resolution with the `tzif` crate
+tzif = ["dep:tzif", 
+    "dep:jiff-tzdb",
+    "dep:combine",
+    "std"]
+
+# Performing timezone resolution using the `zoneinfo64` crate
+# (ICU4C zoneinfo64.res)
+zoneinfo64 = ["dep:zoneinfo64", "dep:icu_time"]
 
 [dependencies]
 
 # Provider dependency
 zerotrie = "0.2.2"
-zerovec = { version = "0.11.4", features = ["derive", "alloc"] }
+zerovec = { workspace = true, features = ["derive", "alloc"] }
 tinystr = { workspace = true, features = ["zerovec"] }
 
 # IANA dependency
 zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
+icu_time = { workspace = true, optional = true}
+
+# tzif dependency
+tzif = { workspace = true, optional = true }
+jiff-tzdb = { workspace = true, optional = true }
+combine = { workspace = true, optional = true }
+
+# zoneinfo64 dependency
+zoneinfo64 = { workspace = true, optional = true }
 
 # Databake dependencies
 serde = { version = "1.0.219", features = ["derive"], optional = true }

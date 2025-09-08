@@ -117,7 +117,7 @@ pub mod ffi {
             temporal_rs::ZonedDateTime::try_new(
                 nanosecond.into(),
                 temporal_rs::Calendar::new(calendar.into()),
-                time_zone.0.clone(),
+                time_zone.0,
             )
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
@@ -224,7 +224,7 @@ pub mod ffi {
 
         pub fn with_timezone(&self, zone: &TimeZone) -> Result<Box<Self>, TemporalError> {
             self.0
-                .with_timezone(zone.0.clone())
+                .with_timezone(zone.0)
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
@@ -494,7 +494,7 @@ pub(crate) fn zdt_from_epoch_ms(
 ) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
     let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
     instant
-        .to_zoned_date_time_iso(time_zone.clone())
+        .to_zoned_date_time_iso(*time_zone)
         .map_err(Into::into)
 }
 
@@ -502,7 +502,7 @@ pub(crate) fn zdt_from_epoch_ms(
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZonedDateTime {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
-        let timezone = other.timezone.map(|x| x.0.clone());
+        let timezone = other.timezone.map(|x| x.0);
         let calendar = temporal_rs::Calendar::new(other.date.calendar.into());
         Ok(Self {
             fields: other.try_into()?,

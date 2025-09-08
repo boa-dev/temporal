@@ -8,11 +8,10 @@ use crate::{
         duration::DateDuration, Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
     iso::IsoDate,
-    options::{ArithmeticOverflow, Unit},
+    options::{Overflow, Unit},
     parsers::parse_allowed_calendar_formats,
     TemporalError, TemporalResult,
 };
-use alloc::string::ToString;
 use core::str::FromStr;
 
 use icu_calendar::{
@@ -67,8 +66,40 @@ impl PartialEq for Calendar {
 impl Eq for Calendar {}
 
 impl Calendar {
+    /// The Buddhist calendar
+    pub const BUDDHIST: Self = Self::new(AnyCalendarKind::Buddhist);
+    /// The Chinese calendar
+    pub const CHINESE: Self = Self::new(AnyCalendarKind::Chinese);
+    /// The Coptic calendar
+    pub const COPTIC: Self = Self::new(AnyCalendarKind::Coptic);
+    /// The Dangi calendar
+    pub const DANGI: Self = Self::new(AnyCalendarKind::Dangi);
+    /// The Ethiopian calendar
+    pub const ETHIOPIAN: Self = Self::new(AnyCalendarKind::Ethiopian);
+    /// The Ethiopian Amete Alem calendar
+    pub const ETHIOPIAN_AMETE_ALEM: Self = Self::new(AnyCalendarKind::EthiopianAmeteAlem);
+    /// The Gregorian calendar
+    pub const GREGORIAN: Self = Self::new(AnyCalendarKind::Gregorian);
+    /// The Hebrew calendar
+    pub const HEBREW: Self = Self::new(AnyCalendarKind::Hebrew);
+    /// The Indian calendar
+    pub const INDIAN: Self = Self::new(AnyCalendarKind::Indian);
+    /// The Hijri Tabular calendar with a Friday epoch
+    pub const HIJRI_TABULAR_FRIDAY: Self = Self::new(AnyCalendarKind::HijriTabularTypeIIFriday);
+    /// The Hijri Tabular calendar with a Thursday epoch
+    pub const HIJRI_TABULAR_THURSDAY: Self = Self::new(AnyCalendarKind::HijriTabularTypeIIThursday);
+    /// The Hijri Umm al-Qura calendar
+    pub const HIJRI_UMM_AL_QURA: Self = Self::new(AnyCalendarKind::HijriUmmAlQura);
+    /// The Hijri simulated calendar
+    pub const HIJRI_SIMULATED: Self = Self::new(AnyCalendarKind::HijriSimulatedMecca);
     /// The ISO 8601 calendar
     pub const ISO: Self = Self::new(AnyCalendarKind::Iso);
+    /// The Japanese calendar
+    pub const JAPANESE: Self = Self::new(AnyCalendarKind::Japanese);
+    /// The Persian calendar
+    pub const PERSIAN: Self = Self::new(AnyCalendarKind::Persian);
+    /// The ROC calendar
+    pub const ROC: Self = Self::new(AnyCalendarKind::Roc);
 
     /// Create a `Calendar` from an ICU [`AnyCalendarKind`].
     #[warn(clippy::wildcard_enum_match_arm)] // Warns if the calendar kind gets out of sync.
@@ -124,8 +155,13 @@ impl Calendar {
             }
             AnyCalendarKind::Persian => &AnyCalendar::Persian(Persian),
             AnyCalendarKind::Roc => &AnyCalendar::Roc(Roc),
-            // NOTE: `unreachable!` is not const, but panic is.
-            _ => panic!("Unreachable: match must handle all variants of `AnyCalendarKind`"),
+            _ => {
+                debug_assert!(
+                    false,
+                    "Unreachable: match must handle all variants of `AnyCalendarKind`"
+                );
+                &AnyCalendar::Iso(Iso)
+            }
         };
 
         Self(Ref(cal))
@@ -142,9 +178,9 @@ impl Calendar {
         // TODO: Determine the best way to handle "julian" here.
         // Not supported by `CalendarAlgorithm`
         let icu_locale_value = Value::try_from_utf8(&bytes.to_ascii_lowercase())
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|_| TemporalError::range().with_message("unknown calendar"))?;
         let algorithm = CalendarAlgorithm::try_from(&icu_locale_value)
-            .map_err(|e| TemporalError::range().with_message(e.to_string()))?;
+            .map_err(|_| TemporalError::range().with_message("unknown calendar"))?;
         let calendar_kind = match AnyCalendarKind::try_from(algorithm) {
             Ok(c) => c,
             // Handle `islamic` calendar idenitifier.
@@ -192,7 +228,7 @@ impl Calendar {
     pub fn date_from_fields(
         &self,
         fields: CalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainDate> {
         let resolved_fields =
             ResolvedCalendarFields::try_from_fields(self, &fields, overflow, ResolutionType::Date)?;
@@ -208,15 +244,12 @@ impl Calendar {
             );
         }
 
-        let calendar_date = self
-            .0
-            .from_codes(
-                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-                resolved_fields.era_year.year,
-                IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day,
-            )
-            .map_err(TemporalError::from_icu4x)?;
+        let calendar_date = self.0.from_codes(
+            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+            resolved_fields.era_year.year,
+            IcuMonthCode(resolved_fields.month_code.0),
+            resolved_fields.day,
+        )?;
         let iso = self.0.to_iso(&calendar_date);
         PlainDate::new_with_overflow(
             Iso.extended_year(&iso),
@@ -231,7 +264,7 @@ impl Calendar {
     pub fn month_day_from_fields(
         &self,
         mut fields: CalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainMonthDay> {
         // You are allowed to specify year information, however
         // it is *only* used for resolving the given month/day data.
@@ -267,15 +300,12 @@ impl Calendar {
         }
 
         // We trust ResolvedCalendarFields to have calculated an appropriate reference year for us
-        let calendar_date = self
-            .0
-            .from_codes(
-                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-                resolved_fields.era_year.year,
-                IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day,
-            )
-            .map_err(TemporalError::from_icu4x)?;
+        let calendar_date = self.0.from_codes(
+            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+            resolved_fields.era_year.year,
+            IcuMonthCode(resolved_fields.month_code.0),
+            resolved_fields.day,
+        )?;
         let iso = self.0.to_iso(&calendar_date);
         PlainMonthDay::new_with_overflow(
             Iso.month(&iso).ordinal,
@@ -290,7 +320,7 @@ impl Calendar {
     pub fn year_month_from_fields(
         &self,
         fields: YearMonthCalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainYearMonth> {
         // TODO: add a from_partial_year_month method on ResolvedCalendarFields
         let resolved_fields = ResolvedCalendarFields::try_from_fields(
@@ -310,15 +340,12 @@ impl Calendar {
         }
 
         // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
-        let calendar_date = self
-            .0
-            .from_codes(
-                resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-                resolved_fields.era_year.year,
-                IcuMonthCode(resolved_fields.month_code.0),
-                resolved_fields.day,
-            )
-            .map_err(TemporalError::from_icu4x)?;
+        let calendar_date = self.0.from_codes(
+            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
+            resolved_fields.era_year.year,
+            IcuMonthCode(resolved_fields.month_code.0),
+            resolved_fields.day,
+        )?;
         let iso = self.0.to_iso(&calendar_date);
         PlainYearMonth::new_with_overflow(
             Iso.year_info(&iso).year,
@@ -334,7 +361,7 @@ impl Calendar {
         &self,
         date: &IsoDate,
         duration: &DateDuration,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<PlainDate> {
         // 1. If calendar is "iso8601", then
         if self.is_iso() {

@@ -3,11 +3,9 @@
 use tinystr::tinystr;
 use tinystr::TinyAsciiStr;
 
-use alloc::format;
-
 use crate::fields::CalendarFields;
 use crate::iso::{constrain_iso_day, is_valid_iso_day};
-use crate::options::ArithmeticOverflow;
+use crate::options::Overflow;
 use crate::Calendar;
 use crate::{TemporalError, TemporalResult};
 use icu_calendar::AnyCalendarKind;
@@ -34,7 +32,7 @@ impl ResolvedCalendarFields {
     pub fn try_from_fields(
         calendar: &Calendar,
         fields: &CalendarFields,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
         resolve_type: ResolutionType,
     ) -> TemporalResult<Self> {
         fields.check_year_in_safe_arithmetical_range()?;
@@ -48,7 +46,7 @@ impl ResolvedCalendarFields {
                 month_code,
                 calendar,
             )?;
-            let day = if overflow == ArithmeticOverflow::Constrain {
+            let day = if overflow == Overflow::Constrain {
                 constrain_iso_day(era_year.year, month_code.to_month_integer(), day)
             } else {
                 if !is_valid_iso_day(era_year.year, month_code.to_month_integer(), day) {
@@ -162,10 +160,8 @@ impl EraYear {
                     return Err(TemporalError::range().with_message("Invalid era provided."));
                 };
                 if !era_info.range.contains(&era_year) {
-                    return Err(TemporalError::range().with_message(format!(
-                        "Year is not valid for the era {}",
-                        era_info.name.as_str()
-                    )));
+                    return Err(TemporalError::range()
+                        .with_message("Year is not valid for the provided era"));
                 }
                 let calculated_arith = era_info.arithmetic_year_for(era_year);
                 // or a RangeError exception if the fields are sufficient but their values are internally inconsistent
@@ -544,7 +540,7 @@ pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
     let first = month / 10;
     let second = month % 10;
     let tinystr = TinyAsciiStr::<4>::try_from_raw([b'M', first + 48, second + 48, b'\0'])
-        .map_err(|e| TemporalError::range().with_message(format!("tinystr error {e}")))?;
+        .map_err(|_| TemporalError::range().with_message("Invalid month code"))?;
     Ok(MonthCode(tinystr))
 }
 
@@ -576,14 +572,14 @@ const fn ascii_digit_to_int(ascii_digit: u8) -> u8 {
 fn resolve_iso_month(
     calendar: &Calendar,
     fields: &CalendarFields,
-    overflow: ArithmeticOverflow,
+    overflow: Overflow,
 ) -> TemporalResult<MonthCode> {
     let month_code = match (fields.month_code, fields.month) {
         (None, None) => {
             return Err(TemporalError::r#type().with_message("Month or monthCode must be provided."))
         }
         (None, Some(month)) => {
-            if overflow == ArithmeticOverflow::Constrain {
+            if overflow == Overflow::Constrain {
                 return month_to_month_code(month.clamp(1, 12));
             }
             if !(1..=12).contains(&month) {
@@ -617,7 +613,7 @@ mod tests {
             calendar::{types::ResolutionType, CalendarFields},
             core::{calendar::Calendar, PartialDate, PlainDate},
         },
-        options::ArithmeticOverflow,
+        options::Overflow,
     };
 
     use super::{month_to_month_code, MonthCode, ResolvedCalendarFields};
@@ -669,9 +665,9 @@ mod tests {
 
         let cal = Calendar::default();
 
-        let err = cal.date_from_fields(bad_fields.clone(), ArithmeticOverflow::Reject);
+        let err = cal.date_from_fields(bad_fields.clone(), Overflow::Reject);
         assert!(err.is_err());
-        let result = cal.date_from_fields(bad_fields, ArithmeticOverflow::Constrain);
+        let result = cal.date_from_fields(bad_fields, Overflow::Constrain);
         assert!(result.is_ok());
     }
 
@@ -702,8 +698,7 @@ mod tests {
                 };
 
                 let plain_date =
-                    PlainDate::from_partial(partial, Some(ArithmeticOverflow::Constrain))
-                        .expect(&expect_str);
+                    PlainDate::from_partial(partial, Some(Overflow::Constrain)).expect(&expect_str);
 
                 assert_eq!(
                     plain_date.year(),
@@ -714,7 +709,7 @@ mod tests {
 
                 // Get the full partial date.
                 let full_partial = CalendarFields::default()
-                    .with_fallback_date(&plain_date, *cal, ArithmeticOverflow::Constrain)
+                    .with_fallback_date(&plain_date, *cal, Overflow::Constrain)
                     .expect(&expect_str);
 
                 let era_year = super::EraYear::try_from_fields(
@@ -752,7 +747,7 @@ mod tests {
         let err = ResolvedCalendarFields::try_from_fields(
             &Calendar::ISO,
             &bad_fields,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
             ResolutionType::Date,
         );
         assert!(err.is_err());
@@ -769,7 +764,7 @@ mod tests {
         let err = ResolvedCalendarFields::try_from_fields(
             &Calendar::ISO,
             &bad_fields,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
             ResolutionType::Date,
         );
         assert!(err.is_err());
@@ -778,7 +773,7 @@ mod tests {
         let err = ResolvedCalendarFields::try_from_fields(
             &Calendar::ISO,
             &bad_fields,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
             ResolutionType::Date,
         );
         assert!(err.is_err());

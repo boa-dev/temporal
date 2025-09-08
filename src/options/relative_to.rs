@@ -3,7 +3,7 @@
 use crate::builtins::core::zoneddatetime::interpret_isodatetime_offset;
 use crate::builtins::core::{calendar::Calendar, timezone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
-use crate::options::{ArithmeticOverflow, Disambiguation, OffsetDisambiguation};
+use crate::options::{Disambiguation, OffsetDisambiguation, Overflow};
 use crate::parsers::{parse_date_time, parse_zoned_date_time};
 use crate::provider::TimeZoneProvider;
 use crate::{TemporalResult, TemporalUnwrap};
@@ -104,12 +104,7 @@ impl RelativeTo {
         let time = result.time.map(IsoTime::from_time_record).transpose()?;
 
         let date = result.date.temporal_unwrap()?;
-        let iso = IsoDate::new_with_overflow(
-            date.year,
-            date.month,
-            date.day,
-            ArithmeticOverflow::Constrain,
-        )?;
+        let iso = IsoDate::new_with_overflow(date.year, date.month, date.day, Overflow::Constrain)?;
 
         let epoch_ns = interpret_isodatetime_offset(
             iso,

@@ -347,7 +347,7 @@ pub mod ffi {
             time: Option<&PlainTime>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.0
-                .to_zoned_date_time(time_zone.0.clone(), time.map(|x| x.0))
+                .to_zoned_date_time(time_zone.0, time.map(|x| x.0))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }

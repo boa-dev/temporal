@@ -5,15 +5,14 @@ use crate::{
     error::ErrorMessage,
     iso::{IsoDateTime, IsoTime},
     options::{
-        ArithmeticOverflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement,
-        RoundingOptions, ToStringRoundingOptions, Unit,
+        Overflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions,
+        ToStringRoundingOptions, Unit,
     },
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
     temporal_assert, Sign, TemporalError, TemporalResult, NS_PER_DAY,
 };
-use alloc::format;
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{
@@ -219,7 +218,7 @@ impl PartialDuration {
 /// ### Date arithmetic with durations
 ///
 /// ```rust
-/// use temporal_rs::{PlainDate, Duration, options::ArithmeticOverflow};
+/// use temporal_rs::{PlainDate, Duration, options::Overflow};
 /// use core::str::FromStr;
 ///
 /// // January 31st in different years
@@ -229,8 +228,8 @@ impl PartialDuration {
 /// let one_month = Duration::from_str("P1M").unwrap();
 ///
 /// // Adding 1 month to Jan 31st gives different results:
-/// let feb_2023 = jan_31_2023.add(&one_month, Some(ArithmeticOverflow::Constrain)).unwrap();
-/// let feb_2024 = jan_31_2024.add(&one_month, Some(ArithmeticOverflow::Constrain)).unwrap();
+/// let feb_2023 = jan_31_2023.add(&one_month, Some(Overflow::Constrain)).unwrap();
+/// let feb_2024 = jan_31_2024.add(&one_month, Some(Overflow::Constrain)).unwrap();
 ///
 /// // 2023: Jan 31 + 1 month = Feb 28 (no Feb 31st exists)
 /// assert_eq!(feb_2023.day(), 28);
@@ -695,9 +694,7 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s)
-            .parse()
-            .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
+        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s).parse()?;
 
         fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
             if let Some(fraction) = fraction {
@@ -847,9 +844,9 @@ impl Duration {
                 // c. Let after1 be ? AddZonedDateTime(zonedRelativeTo.[[EpochNanoseconds]], timeZone, calendar, duration1, constrain).
                 // d. Let after2 be ? AddZonedDateTime(zonedRelativeTo.[[EpochNanoseconds]], timeZone, calendar, duration2, constrain).
                 let after1 =
-                    zdt.add_zoned_date_time(duration_one, ArithmeticOverflow::Constrain, provider)?;
+                    zdt.add_zoned_date_time(duration_one, Overflow::Constrain, provider)?;
                 let after2 =
-                    zdt.add_zoned_date_time(duration_two, ArithmeticOverflow::Constrain, provider)?;
+                    zdt.add_zoned_date_time(duration_two, Overflow::Constrain, provider)?;
                 // e. If after1 > after2, return 1𝔽.
                 // f. If after1 < after2, return -1𝔽.
                 // g. Return +0𝔽.
@@ -1160,7 +1157,7 @@ impl Duration {
                 // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar, internalDuration, constrain).
                 let target_epoch_ns = zoned_relative_to.add_zoned_date_time(
                     internal_duration,
-                    ArithmeticOverflow::Constrain,
+                    Overflow::Constrain,
                     provider,
                 )?;
 
@@ -1204,7 +1201,7 @@ impl Duration {
                 let target_date = calendar.date_add(
                     &plain_relative_to.iso,
                     &date_duration,
-                    ArithmeticOverflow::Constrain,
+                    Overflow::Constrain,
                 )?;
 
                 // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
@@ -1293,7 +1290,7 @@ impl Duration {
                 // e. Let targetEpochNs be ? AddZonedDateTime(relativeEpochNs, timeZone, calendar, internalDuration, constrain).
                 let target_epoch_ns = zoned_datetime.add_zoned_date_time(
                     internal_duration,
-                    ArithmeticOverflow::Constrain,
+                    Overflow::Constrain,
                     provider,
                 )?;
                 // f. Let total be ? DifferenceZonedDateTimeWithTotal(relativeEpochNs, targetEpochNs, timeZone, calendar, unit).
@@ -1320,7 +1317,7 @@ impl Duration {
                 let target_date = plain_date.calendar().date_add(
                     &plain_date.iso,
                     &date_duration,
-                    ArithmeticOverflow::Constrain,
+                    Overflow::Constrain,
                 )?;
                 // f. Let isoDateTime be CombineISODateAndTimeRecord(plainRelativeTo.[[ISODate]], MidnightTimeRecord()).
                 let iso_date_time = IsoDateTime::new_unchecked(plain_date.iso, IsoTime::default());
@@ -1533,7 +1530,8 @@ pub(crate) fn is_valid_duration(
         + microseconds.saturating_mul(1_000)
         + nanoseconds;
 
-    let total_normalized_seconds = normalized_nanoseconds + normalized_subseconds_parts;
+    let total_normalized_seconds =
+        normalized_nanoseconds.saturating_add(normalized_subseconds_parts);
     // 8. If abs(normalizedSeconds) ≥ 2**53, return false.
     if total_normalized_seconds.saturating_abs() >= MAX_SAFE_NS_PRECISION {
         return false;

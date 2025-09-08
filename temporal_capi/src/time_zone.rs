@@ -4,7 +4,9 @@
 pub mod ffi {
     use crate::error::ffi::TemporalError;
     use alloc::boxed::Box;
+    #[cfg(feature = "compiled_data")]
     use core::fmt::Write;
+    #[cfg(feature = "compiled_data")]
     use diplomat_runtime::DiplomatWrite;
 
     #[diplomat::opaque]
@@ -36,22 +38,24 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn identifier(&self, write: &mut DiplomatWrite) {
             // TODO ideally this would use Writeable instead of allocating
-            let s = self.0.identifier();
+            let s = self.0.identifier().unwrap_or_default();
 
             // This can only fail in cases where the DiplomatWriteable is capped, we
             // don't care about that.
             let _ = write.write_str(&s);
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn utc() -> Box<Self> {
-            Box::new(Self(temporal_rs::TimeZone::IanaIdentifier("UTC".into())))
+            Box::new(Self(temporal_rs::TimeZone::utc()))
         }
 
         #[allow(clippy::should_implement_trait)]
         pub fn clone(&self) -> Box<TimeZone> {
-            Box::new(TimeZone(self.0.clone()))
+            Box::new(TimeZone(self.0))
         }
 
         /// Get the primary time zone identifier corresponding to this time zone

@@ -150,7 +150,7 @@ pub mod ffi {
             zone: &TimeZone,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.0
-                .to_zoned_date_time_iso(zone.0.clone())
+                .to_zoned_date_time_iso(zone.0)
                 .map(|c| Box::new(ZonedDateTime(c)))
                 .map_err(Into::into)
         }

@@ -35,7 +35,7 @@ use crate::{
         PartialTime, PlainDate,
     },
     error::{ErrorMessage, TemporalError},
-    options::{ArithmeticOverflow, ResolvedRoundingOptions, Unit},
+    options::{Overflow, ResolvedRoundingOptions, Unit},
     rounding::IncrementRounder,
     unix_time::EpochNanoseconds,
     utils, TemporalResult, TemporalUnwrap, NS_PER_DAY,
@@ -273,16 +273,16 @@ impl IsoDate {
         year: i32,
         month: u8,
         day: u8,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         match overflow {
-            ArithmeticOverflow::Constrain => {
+            Overflow::Constrain => {
                 let month = month.clamp(1, 12);
                 let day = constrain_iso_day(year, month, day);
                 // NOTE: Values are clamped in a u8 range.
                 Ok(Self::new_unchecked(year, month, day))
             }
-            ArithmeticOverflow::Reject => {
+            Overflow::Reject => {
                 if !is_valid_date(year, month, day) {
                     return Err(TemporalError::range().with_message("not a valid ISO date."));
                 }
@@ -314,7 +314,7 @@ impl IsoDate {
         year: i32,
         month: u8,
         day: u8,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         let date = Self::regulate(year, month, day, overflow)?;
         if !iso_dt_within_valid_limits(date, &IsoTime::noon()) {
@@ -376,7 +376,7 @@ impl IsoDate {
     pub(crate) fn add_date_duration(
         self,
         duration: &DateDuration,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<Self> {
         // 1. Assert: year, month, day, years, months, weeks, and days are integers.
         // 2. Assert: overflow is either "constrain" or "reject".
@@ -480,7 +480,7 @@ impl IsoDate {
             intermediate.0,
             intermediate.1,
             self.day,
-            ArithmeticOverflow::Constrain,
+            Overflow::Constrain,
         )?;
 
         // NOTE: Below is adapted from the polyfill. Preferring this as it avoids looping.
@@ -561,10 +561,10 @@ impl IsoTime {
         millisecond: u16,
         microsecond: u16,
         nanosecond: u16,
-        overflow: ArithmeticOverflow,
+        overflow: Overflow,
     ) -> TemporalResult<IsoTime> {
         match overflow {
-            ArithmeticOverflow::Constrain => {
+            Overflow::Constrain => {
                 let h = hour.clamp(0, 23);
                 let min = minute.clamp(0, 59);
                 let sec = second.clamp(0, 59);
@@ -573,7 +573,7 @@ impl IsoTime {
                 let nano = nanosecond.clamp(0, 999);
                 Ok(Self::new_unchecked(h, min, sec, milli, micro, nano))
             }
-            ArithmeticOverflow::Reject => {
+            Overflow::Reject => {
                 if !is_valid_time(hour, minute, second, millisecond, microsecond, nanosecond) {
                     return Err(TemporalError::range().with_message("IsoTime is not valid"));
                 };
@@ -591,11 +591,7 @@ impl IsoTime {
 
     /// Creates a new `Time` with the fields provided from a `PartialTime`.
     #[inline]
-    pub(crate) fn with(
-        &self,
-        partial: PartialTime,
-        overflow: ArithmeticOverflow,
-    ) -> TemporalResult<Self> {
+    pub(crate) fn with(&self, partial: PartialTime, overflow: Overflow) -> TemporalResult<Self> {
         let hour = partial.hour.unwrap_or(self.hour);
         let minute = partial.minute.unwrap_or(self.minute);
         let second = partial.second.unwrap_or(self.second);
@@ -649,7 +645,7 @@ impl IsoTime {
             millisecond as u16,
             micros as u16,
             nanos as u16,
-            ArithmeticOverflow::Reject,
+            Overflow::Reject,
         )
     }
 
@@ -1035,6 +1031,38 @@ pub(crate) fn is_valid_time(hour: u8, minute: u8, second: u8, ms: u16, mis: u16,
 #[inline]
 fn div_mod(dividend: i64, divisor: i64) -> (i64, i64) {
     (dividend.div_euclid(divisor), dividend.rem_euclid(divisor))
+}
+
+impl From<timezone_provider::provider::IsoDateTime> for IsoDateTime {
+    fn from(other: timezone_provider::provider::IsoDateTime) -> Self {
+        Self::new_unchecked(
+            IsoDate::new_unchecked(other.year, other.month, other.day),
+            IsoTime::new_unchecked(
+                other.hour,
+                other.minute,
+                other.second,
+                other.millisecond,
+                other.microsecond,
+                other.nanosecond,
+            ),
+        )
+    }
+}
+
+impl From<IsoDateTime> for timezone_provider::provider::IsoDateTime {
+    fn from(other: IsoDateTime) -> Self {
+        Self {
+            year: other.date.year,
+            month: other.date.month,
+            day: other.date.day,
+            hour: other.time.hour,
+            minute: other.time.minute,
+            second: other.time.second,
+            millisecond: other.time.millisecond,
+            microsecond: other.time.microsecond,
+            nanosecond: other.time.nanosecond,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -94,8 +94,10 @@ pub struct CompiledTransitions {
     ///
     /// This is used in the case where a time predates a transition time.
     pub initial_record: LocalTimeRecord,
+
     /// The full set of calculated time zone transitions
     pub transitions: BTreeSet<Transition>,
+
     /// The POSIX time zone string
     ///
     /// This string should be used to calculate the time zone beyond the last available transition.
@@ -125,7 +127,7 @@ use crate::{
     posix::PosixTimeZone,
     types::{QualifiedTimeKind, Time},
     tzif::TzifBlockV2,
-    zone::{ZoneBuildContext, ZoneRecord},
+    zone::ZoneRecord,
     ZoneInfoData,
 };
 
@@ -145,7 +147,7 @@ impl ZoneInfoCompiler {
         if let Some(zone) = self.data.zones.get_mut(target) {
             zone.associate_rules(&self.data.rules);
         }
-        self.build_for_zone(target)
+        self.build_zone_internal(target)
     }
 
     pub fn build(&mut self) -> CompiledTransitionsMap {
@@ -154,45 +156,20 @@ impl ZoneInfoCompiler {
         // TODO: Validate and resolve settings here.
         let mut zoneinfo = CompiledTransitionsMap::default();
         for identifier in self.data.zones.keys() {
-            let transition_data = self.build_for_zone(identifier);
+            let transition_data = self.build_zone_internal(identifier);
             let _ = zoneinfo.data.insert(identifier.clone(), transition_data);
         }
         zoneinfo
     }
 
-    /// Builds the `ZoneInfoTransitionData` for a provided zone identifier (AKA IANA identifier)
-    ///
-    /// NOTE: Make sure to associate first!
-    pub(crate) fn build_for_zone(&self, target: &str) -> CompiledTransitions {
+    /// The internal method for retrieving a zone table and compiling it.
+    pub(crate) fn build_zone_internal(&self, target: &str) -> CompiledTransitions {
         let zone_table = self
             .data
             .zones
             .get(target)
             .expect("Invalid identifier provided.");
-        let initial_record = zone_table.get_first_local_record();
-        let mut transitions = BTreeSet::default();
-        if let Some(until_date) = zone_table.get_first_until_date() {
-            // TODO: Handle max year better.
-            let range = until_date.date.year..=2037;
-
-            let mut build_context = ZoneBuildContext::new(&initial_record);
-            for year in range {
-                build_context.update(year, until_date);
-                zone_table.calculate_transitions_for_year(
-                    year,
-                    &mut build_context,
-                    &mut transitions,
-                );
-            }
-        }
-
-        let posix_time_zone = zone_table.get_posix_time_zone();
-
-        CompiledTransitions {
-            initial_record,
-            transitions,
-            posix_time_zone,
-        }
+        zone_table.compile()
     }
 
     pub fn get_posix_time_zone(&mut self, target: &str) -> Option<PosixTimeZone> {

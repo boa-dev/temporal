@@ -11,7 +11,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-version = "0.0.13"
+version = "0.0.14"
 rust-version = "1.82.0"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
@@ -24,17 +24,19 @@ exclude = [
     ".gitignore",
     "CONTRIBUTING.md",
     "cliff.toml",
+    "tests/data/zoneinfo64.res",
 ]
 
 [workspace.dependencies]
 # Self
-temporal_rs = { version = "~0.0.13", path = ".", default-features = false }
-timezone_provider = { version = "~0.0.13", path = "./provider" }
-zoneinfo_rs = { version = "~0.0.13", path = "./zoneinfo" }
+temporal_rs = { version = "~0.0.14", path = ".", default-features = false }
+timezone_provider = { version = "~0.0.14", path = "./provider" }
+zoneinfo_rs = { version = "~0.0.14", path = "./zoneinfo" }
 
 # Dependencies
 tinystr = "0.8.1"
 icu_calendar = { version = "2.0.3", default-features = false }
+icu_time = { version = "2.0.0", default-features = false }
 icu_locale = "2.0.0"
 rustc-hash = "2.1.0"
 num-traits = { version = "0.2.19", default-features = false }
@@ -45,6 +47,8 @@ tzif = "0.4.0"
 jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
+zerovec = "0.11.4"
+zoneinfo64 = "0.1.0"
 
 [package]
 name = "temporal_rs"
@@ -74,14 +78,16 @@ writeable = "0.6.1"
 log = { workspace = true, optional = true }
 
 # tzdb feature
-tzif = { workspace = true, optional = true }
-jiff-tzdb = { workspace = true, optional = true }
-combine = { workspace = true, optional = true }
-timezone_provider = { workspace = true, optional = true }
+timezone_provider = { workspace = true }
 
 # System time feature
 web-time = { workspace = true, optional = true }
 iana-time-zone = { workspace = true, optional = true }
+
+[dev-dependencies]
+timezone_provider = { workspace = true, features = ["zoneinfo64"] }
+zoneinfo64 = { workspace = true }
+resb = "0.1.0"
 
 [features]
 default = ["sys"]
@@ -89,11 +95,8 @@ log = ["dep:log"]
 compiled_data = ["tzdb"]
 sys = ["std", "compiled_data", "dep:web-time", "dep:iana-time-zone"]
 tzdb = [
-    "dep:tzif",
     "std",
-    "dep:jiff-tzdb",
-    "dep:combine",
-    "dep:timezone_provider",
+    "timezone_provider/tzif",
 ]
 std = []
 

@@ -117,7 +117,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "databake",
  "prettyplease",
@@ -125,6 +125,7 @@ dependencies = [
  "serde_json",
  "syn",
  "timezone_provider",
+ "zerovec",
 ]
 
 [[package]]
@@ -156,9 +157,9 @@ checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
 
 [[package]]
 name = "calendrical_calculations"
-version = "0.2.0"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f6df87e869fb08be61c7e97ced8e69ab802df1d8bc612ed67dba78c07fbc12c"
+checksum = "53c5d386a9f2c8b97e1a036420bcf937db4e5c9df33eb0232025008ced6104c0"
 dependencies = [
  "core_maths",
  "displaydoc",
@@ -284,7 +285,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.0.13"
+version = "0.0.14"
 
 [[package]]
 name = "diplomat"
@@ -300,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "diplomat-tool",
 ]
@@ -517,6 +518,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "icu_time"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10d01a4a2dcbc5e5180ef113920e7461d0e9caaddb3567d81c4eca262efe55c0"
+dependencies = [
+ "calendrical_calculations",
+ "displaydoc",
+ "icu_calendar",
+ "icu_locale_core",
+ "icu_provider",
+ "tinystr",
+ "writeable",
+ "zerotrie",
+ "zerovec",
+]
+
+[[package]]
 name = "indenter"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -640,9 +658,9 @@ checksum = "e3148f5046208a5d56bcfc03053e3ca6334e51da8dfb19b6cdc8b306fae3283e"
 
 [[package]]
 name = "potential_utf"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5a7c30837279ca13e7c867e9e40053bc68740f988cb07f7ca6df43cc734b585"
+checksum = "84df19adbe5b5a0782edcab45899906947ab039ccf4573713735ee7de1e6b08a"
 dependencies = [
  "serde",
  "zerovec",
@@ -693,6 +711,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1885c039570dc00dcb4ff087a89e185fd56bae234ddc7f056a945bf36467248d"
 dependencies = [
  "proc-macro2",
+]
+
+[[package]]
+name = "resb"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd6572f8cee86c6a691a8a1cf8bbf7be8b3d0c02d9f8786ed1929f75e9910dbb"
+dependencies = [
+ "potential_utf",
+ "serde",
 ]
 
 [[package]]
@@ -821,7 +849,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -834,35 +862,39 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
- "combine",
  "core_maths",
  "iana-time-zone",
  "icu_calendar",
  "icu_locale",
  "ixdtf",
- "jiff-tzdb",
  "log",
  "num-traits",
+ "resb",
  "timezone_provider",
  "tinystr",
- "tzif",
  "web-time",
  "writeable",
+ "zoneinfo64",
 ]
 
 [[package]]
 name = "timezone_provider"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
+ "combine",
  "databake",
+ "icu_time",
+ "jiff-tzdb",
  "serde",
  "serde_json",
  "tinystr",
+ "tzif",
  "yoke",
  "zerotrie",
  "zerovec",
+ "zoneinfo64",
  "zoneinfo_rs",
 ]
 
@@ -930,10 +962,11 @@ dependencies = [
 
 [[package]]
 name = "tzif-inspect"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "jiff-tzdb",
  "temporal_rs",
+ "timezone_provider",
  "tzif",
 ]
 
@@ -1231,6 +1264,8 @@ dependencies = [
  "displaydoc",
  "litemap",
  "serde",
+ "yoke",
+ "zerofrom",
  "zerovec",
 ]
 
@@ -1260,7 +1295,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo-test-gen"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "clap",
  "serde",
@@ -1269,8 +1304,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "zoneinfo64"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecb05a4021a0c67056a78c948c7d320a4e549126c3dc53f3f206e1a1e43a5c56"
+dependencies = [
+ "calendrical_calculations",
+ "icu_locale_core",
+ "icu_time",
+ "potential_utf",
+ "resb",
+ "serde",
+]
+
+[[package]]
 name = "zoneinfo_rs"
-version = "0.0.13"
+version = "0.0.14"
 dependencies = [
  "hashbrown",
  "indexmap",

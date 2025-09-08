@@ -1,5 +1,3 @@
-use alloc::borrow::Cow;
-
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
@@ -41,14 +39,9 @@ impl From<temporal_rs::TemporalError> for ffi::TemporalError {
     fn from(other: temporal_rs::TemporalError) -> Self {
         let kind = other.kind().into();
         let msg = other.into_message();
-        let msg = if let Cow::Borrowed(s) = msg {
-            Some(s)
-        } else {
-            None
-        };
         Self {
             kind,
-            msg: msg.map(Into::into).into(),
+            msg: Some(msg.into()).into(),
         }
     }
 }

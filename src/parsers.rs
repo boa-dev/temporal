@@ -5,7 +5,6 @@ use crate::{
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
     Sign, TemporalError, TemporalResult,
 };
-use alloc::format;
 use ixdtf::{
     encoding::Utf8,
     parsers::IxdtfParser,
@@ -692,8 +691,7 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
         ParseVariant::Time => parser.parse_time_with_annotation_handler(handler),
-    }
-    .map_err(|e| TemporalError::range().with_message(format!("{e}")))?;
+    }?;
 
     record.calendar = first_calendar.map(|v| v.value);
 
@@ -728,19 +726,30 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         );
     }
 
+    // Temporal requires parsed dates to be checked for validity at parse time
+    // https://tc39.es/proposal-temporal/#sec-temporal-iso8601grammar-static-semantics-early-errors
+    // https://tc39.es/proposal-temporal/#sec-temporal-iso8601grammar-static-semantics-isvaliddate
+    // https://tc39.es/proposal-temporal/#sec-temporal-iso8601grammar-static-semantics-isvalidmonthday
     if let Some(date) = record.date {
-        if !crate::iso::is_valid_date(date.year, date.month, date.day) {
+        // ixdtf currently returns always-valid reference years/days
+        // in these cases (year = 0, day = 1), but we should set our own
+        // for robustness.
+        let year = if variant == ParseVariant::MonthDay {
+            1972
+        } else {
+            date.year
+        };
+        let day = if variant == ParseVariant::YearMonth {
+            1
+        } else {
+            date.day
+        };
+        if !crate::iso::is_valid_date(year, date.month, day) {
             return Err(TemporalError::range()
                 .with_message("DateTime strings must contain a valid ISO date."));
         }
     }
 
-    if let Some(time) = record.time {
-        if !crate::iso::is_valid_time(time.hour, time.minute, time.second, 0, 0, 0) {
-            return Err(TemporalError::range()
-                .with_message("DateTime strings must contain a valid ISO time."));
-        }
-    }
     Ok(record)
 }
 
@@ -812,7 +821,7 @@ fn check_offset(record: IxdtfParseRecord<'_, Utf8>) -> TemporalResult<IxdtfParse
 pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
     let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
 
-    let Err(ref e) = ym_record else {
+    let Err(e) = ym_record else {
         return ym_record.and_then(check_offset);
     };
 
@@ -821,14 +830,14 @@ pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord
     match dt_parse {
         Ok(dt) => check_offset(dt),
         // Format and return the error from parsing YearMonth.
-        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(e),
     }
 }
 
 /// A utilty function for parsing a `MonthDay` String.
 pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
     let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
-    let Err(ref e) = md_record else {
+    let Err(e) = md_record else {
         return md_record.and_then(check_offset);
     };
 
@@ -837,7 +846,7 @@ pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<
     match dt_parse {
         Ok(dt) => check_offset(dt),
         // Format and return the error from parsing MonthDay.
-        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(e),
     }
 }
 
@@ -857,7 +866,7 @@ fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecor
 pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     let time_record = parse_ixdtf(source, ParseVariant::Time);
 
-    let Err(ref e) = time_record else {
+    let Err(e) = time_record else {
         return time_record.and_then(check_time_record);
     };
 
@@ -866,7 +875,7 @@ pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
     match dt_parse {
         Ok(dt) => check_time_record(dt),
         // Format and return the error from parsing MonthDay.
-        _ => Err(TemporalError::range().with_message(format!("{e}"))),
+        _ => Err(e),
     }
 }
 

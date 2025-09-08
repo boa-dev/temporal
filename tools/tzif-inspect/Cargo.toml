@@ -14,3 +14,4 @@ publish = false
 jiff-tzdb.workspace = true
 tzif.workspace = true
 temporal_rs = {workspace = true, features = ["tzdb", "compiled_data"]}
+timezone_provider = {workspace = true, features = ["tzif"]}
