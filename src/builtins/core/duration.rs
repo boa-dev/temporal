@@ -6,7 +6,7 @@ use crate::{
     iso::{IsoDateTime, IsoTime},
     options::{
         Overflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions,
-        ToStringRoundingOptions, Unit,
+        ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
@@ -1041,7 +1041,7 @@ impl Duration {
     ///
     /// Spec: <https://tc39.es/proposal-temporal/#sec-temporal.duration.prototype.round>
     ///
-    // Spec last accessed: 2025-05-16, <https://github.com/tc39/proposal-temporal/tree/c150e7135c56afc9114032e93b53ac49f980d254>
+    // Spec last accessed: 2025-09-08, <https://github.com/tc39/proposal-temporal/commit/9b64df55465ef25a20bada50eca26515bb82669d>
     #[inline]
     pub fn round_with_provider(
         &self,
@@ -1067,7 +1067,7 @@ impl Duration {
         //          (GetTemporalRelativeToOption reads "relativeTo",
         //           GetRoundingIncrementOption reads "roundingIncrement"
         //           and GetRoundingModeOption reads "roundingMode").
-        // SKIP: 9. Let largestUnit be ? GetTemporalUnitValuedOption(roundTo, "largestUnit", datetime, unset, « auto »).
+        // SKIP: 9. Let largestUnit be ? GetTemporalUnitValuedOption(roundTo, "largestUnit", unset).
         // SKIP: 10. Let relativeToRecord be ? GetTemporalRelativeToOption(roundTo).
         // SKIP: 11. Let zonedRelativeTo be relativeToRecord.[[ZonedRelativeTo]].
         // SKIP: 12. Let plainRelativeTo be relativeToRecord.[[PlainRelativeTo]].
@@ -1081,50 +1081,53 @@ impl Duration {
         // 15. Let smallestUnit be ? GetTemporalUnitValuedOption(roundTo, "smallestUnit", datetime, unset).
         let smallest_unit = options.smallest_unit;
 
-        // 16. If smallestUnit is unset, then
+        // 16. Perform ?ValidateTemporalUnitValue(smallestUnit, datetime).
+        UnitGroup::DateTime.validate_unit(smallest_unit, None)?;
+
+        // 17. If smallestUnit is unset, then
         //     a. Set smallestUnitPresent to false.
         //     b. Set smallestUnit to nanosecond.
         let smallest_unit = smallest_unit.unwrap_or(Unit::Nanosecond);
 
-        // 17. Let existingLargestUnit be DefaultTemporalLargestUnit(duration).
+        // 18. Let existingLargestUnit be DefaultTemporalLargestUnit(duration).
         let existing_largest_unit = self.default_largest_unit();
 
-        // 18. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
+        // 19. Let defaultLargestUnit be LargerOfTwoTemporalUnits(existingLargestUnit, smallestUnit).
         let default_largest_unit = Unit::larger(existing_largest_unit, smallest_unit)?;
 
         let largest_unit = match options.largest_unit {
-            // 19. If largestUnit is unset, then
+            // 20. If largestUnit is unset, then
             //     a. Set largestUnitPresent to false.
             //     b. Set largestUnit to defaultLargestUnit.
-            // 20. Else if largestUnit is auto, then
+            // 21. Else if largestUnit is auto, then
             //     a. Set largestUnit to defaultLargestUnit.
             Some(Unit::Auto) | None => default_largest_unit,
             Some(unit) => unit,
         };
 
-        // 21. If smallestUnitPresent is false and largestUnitPresent is false, then
+        // 22. If smallestUnitPresent is false and largestUnitPresent is false, then
         if options.largest_unit.is_none() && options.smallest_unit.is_none() {
             // a. Throw a RangeError exception.
             return Err(TemporalError::range()
                 .with_message("smallestUnit and largestUnit cannot both be None."));
         }
 
-        // 22. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
+        // 23. If LargerOfTwoTemporalUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if Unit::larger(largest_unit, smallest_unit)? != largest_unit {
             return Err(
                 TemporalError::range().with_message("smallestUnit is larger than largestUnit.")
             );
         }
 
-        // 23. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
+        // 24. Let maximum be MaximumTemporalDurationRoundingIncrement(smallestUnit).
         let maximum = smallest_unit.to_maximum_rounding_increment();
 
-        // 24. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
+        // 25. If maximum is not unset, perform ? ValidateTemporalRoundingIncrement(roundingIncrement, maximum, false).
         if let Some(maximum) = maximum {
             rounding_increment.validate(maximum.into(), false)?;
         }
 
-        // 25. If roundingIncrement > 1, and largestUnit is not smallestUnit, and TemporalUnitCategory(smallestUnit) is date, throw a RangeError exception.
+        // 26. If roundingIncrement > 1, and largestUnit is not smallestUnit, and TemporalUnitCategory(smallestUnit) is date, throw a RangeError exception.
         if rounding_increment > RoundingIncrement::ONE
             && largest_unit != smallest_unit
             && smallest_unit.is_date_unit()
@@ -1142,7 +1145,7 @@ impl Duration {
         };
 
         match relative_to {
-            // 26. If zonedRelativeTo is not undefined, then
+            // 27. If zonedRelativeTo is not undefined, then
             Some(RelativeTo::ZonedDateTime(zoned_relative_to)) => {
                 // a. Let internalDuration be ToInternalDurationRecord(duration).
                 let internal_duration = self.to_internal_duration_record();
@@ -1178,7 +1181,7 @@ impl Duration {
                 return Duration::from_internal(internal, largest_unit);
             }
 
-            // 27. If plainRelativeTo is not undefined, then
+            // 28. If plainRelativeTo is not undefined, then
             Some(RelativeTo::PlainDate(plain_relative_to)) => {
                 // a. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
                 let internal_duration =
@@ -1225,7 +1228,7 @@ impl Duration {
             None => {}
         }
 
-        // 28. If IsCalendarUnit(existingLargestUnit) is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
+        // 29. If IsCalendarUnit(existingLargestUnit) is true, or IsCalendarUnit(largestUnit) is true, throw a RangeError exception.
         if existing_largest_unit.is_calendar_unit()
             || resolved_options.largest_unit.is_calendar_unit()
         {
@@ -1234,13 +1237,13 @@ impl Duration {
             ));
         }
 
-        // 29. Assert: IsCalendarUnit(smallestUnit) is false.
+        // 30. Assert: IsCalendarUnit(smallestUnit) is false.
         temporal_assert!(!resolved_options.smallest_unit.is_calendar_unit());
 
-        // 30. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
+        // 31. Let internalDuration be ToInternalDurationRecordWith24HourDays(duration).
         let internal_duration = InternalDurationRecord::from_duration_with_24_hour_days(self)?;
 
-        // 31. If smallestUnit is day, then
+        // 32. If smallestUnit is day, then
         let internal_duration = if resolved_options.smallest_unit == Unit::Day {
             // a. Let fractionalDays be TotalTimeDuration(internalDuration.[[Time]], day).
             // b. Let days be RoundNumberToIncrement(fractionalDays, roundingIncrement, roundingMode).
@@ -1257,7 +1260,7 @@ impl Duration {
             // d. Set internalDuration to CombineDateAndTimeDuration(dateDuration, 0).
             InternalDurationRecord::new(date, TimeDuration::default())?
         } else {
-            // 32. Else,
+            // 33. Else,
             // a. Let timeDuration be ? RoundTimeDuration(internalDuration.[[Time]], roundingIncrement, smallestUnit, roundingMode).
             let time_duration = internal_duration
                 .normalized_time_duration()
@@ -1267,7 +1270,7 @@ impl Duration {
             InternalDurationRecord::new(DateDuration::default(), time_duration)?
         };
 
-        // 33. Return ? TemporalDurationFromInternal(internalDuration, largestUnit).
+        // 34. Return ? TemporalDurationFromInternal(internalDuration, largestUnit).
         Duration::from_internal(internal_duration, resolved_options.largest_unit)
     }
 

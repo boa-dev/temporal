@@ -1129,4 +1129,19 @@ mod tests {
             1
         );
     }
+
+    #[test]
+    /// https://g-issues.chromium.org/issues/443275104
+    fn test_max_rounding_increment_auto() {
+        let ym = PlainYearMonth::try_new_iso(1639, 11, None).unwrap();
+        assert!(ym
+            .until(
+                &ym,
+                DifferenceSettings {
+                    smallest_unit: Some(Unit::Auto),
+                    ..Default::default()
+                }
+            )
+            .is_err());
+    }
 }

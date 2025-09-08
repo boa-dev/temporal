@@ -200,14 +200,16 @@ impl ResolvedRoundingOptions {
             DifferenceOperation::Until => options.rounding_mode.unwrap_or(RoundingMode::Trunc),
         };
         // 7. Let smallestUnit be ? GetUnitValuedOption(options, "smallestUnit", unitGroup, fallbackSmallestUnit).
-        unit_group.validate_unit(options.smallest_unit, None)?;
         let smallest_unit = options.smallest_unit.unwrap_or(fallback_smallest);
         // 8. If disallowedUnits contains smallestUnit, throw a RangeError exception.
+        unit_group.validate_unit(options.smallest_unit, None)?;
         // 9. Let defaultLargestUnit be LargerOfTwoUnits(smallestLargestDefaultUnit, smallestUnit).
+        let default_largest_unit = smallest_unit.max(fallback_largest);
         // 10. If largestUnit is auto, set largestUnit to defaultLargestUnit.
-        let largest_unit = options
-            .largest_unit
-            .unwrap_unit_or(smallest_unit.max(fallback_largest));
+        let mut largest_unit = options.largest_unit.unwrap_unit_or(default_largest_unit);
+        if largest_unit == Unit::Auto {
+            largest_unit = default_largest_unit;
+        }
         // 11. If LargerOfTwoUnits(largestUnit, smallestUnit) is not largestUnit, throw a RangeError exception.
         if largest_unit < smallest_unit {
             return Err(
@@ -307,22 +309,24 @@ impl UnitGroup {
         Ok(unit)
     }
 
+    /// Note: this always rejects Auto unless extra_unit is specified
+    ///
+    /// <https://tc39.es/proposal-temporal/#sec-temporal-validatetemporalunitvaluedoption>
     pub fn validate_unit(self, unit: Option<Unit>, extra_unit: Option<Unit>) -> TemporalResult<()> {
-        // TODO: Determine proper handling of Auto.
         match self {
+            _ if unit == extra_unit => Ok(()),
             UnitGroup::Date => match unit {
-                Some(unit) if !unit.is_time_unit() => Ok(()),
+                Some(unit) if unit.is_date_unit() => Ok(()),
                 None => Ok(()),
-                _ if unit == extra_unit => Ok(()),
                 _ => Err(TemporalError::range().with_enum(ErrorMessage::UnitNotDate)),
             },
             UnitGroup::Time => match unit {
                 Some(unit) if unit.is_time_unit() => Ok(()),
                 None => Ok(()),
-                _ if unit == extra_unit => Ok(()),
                 _ => Err(TemporalError::range().with_enum(ErrorMessage::UnitNotTime)),
             },
-            UnitGroup::DateTime => Ok(()),
+            UnitGroup::DateTime if unit != Some(Unit::Auto) => Ok(()),
+            _ => Err(TemporalError::range().with_enum(ErrorMessage::UnitNoAutoDuringComparison)),
         }
     }
 }
@@ -399,7 +403,10 @@ impl Unit {
             Hour => 24,
             Minute | Second => 60,
             Millisecond | Microsecond | Nanosecond => 1000,
-            Auto => unreachable!(),
+            Auto => {
+                debug_assert!(false, "Auto units should be resolved by this point");
+                return None;
+            }
         };
 
         Some(max)
