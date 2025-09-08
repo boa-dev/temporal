@@ -123,8 +123,13 @@ impl Calendar {
             }
             AnyCalendarKind::Persian => &AnyCalendar::Persian(Persian),
             AnyCalendarKind::Roc => &AnyCalendar::Roc(Roc),
-            // NOTE: `unreachable!` is not const, but panic is.
-            _ => panic!("Unreachable: match must handle all variants of `AnyCalendarKind`"),
+            _ => {
+                debug_assert!(
+                    false,
+                    "Unreachable: match must handle all variants of `AnyCalendarKind`"
+                );
+                &AnyCalendar::Iso(Iso)
+            }
         };
 
         Self(Ref(cal))
