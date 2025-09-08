@@ -559,7 +559,15 @@ impl InternalDurationRecord {
                     )?,
                 )
             }
-            _ => unreachable!(), // TODO: potentially reject with range error?
+            _ => {
+                debug_assert!(
+                    false,
+                    "Found unexpected unit {} in NudgeToCalendarUnit",
+                    options.smallest_unit
+                );
+                return Err(TemporalError::assert()
+                    .with_message("NudgeCalendarUnit invoked with unexpected unit"));
+            }
         };
 
         // 7. Let start be ? CalendarDateAdd(calendar, isoDateTime.[[ISODate]], startDuration, constrain).
