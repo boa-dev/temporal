@@ -20,7 +20,7 @@ pub(crate) trait Roundable:
     /// Is dividend an exact multiple of divisor?
     fn is_exact(dividend: Self, divisor: Self) -> bool;
     /// Compare dividend/divisor with the midpoint of result_floor/result_ceil.
-    fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering>;
+    fn compare_remainder(dividend: Self, divisor: Self) -> Ordering;
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool;
     /// Return dividend/divisor rounded down (floor)
     fn result_floor(dividend: Self, divisor: Self) -> i128;
@@ -93,13 +93,13 @@ impl Roundable for i128 {
         dividend.rem_euclid(divisor) == 0
     }
 
-    fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
+    fn compare_remainder(dividend: Self, divisor: Self) -> Ordering {
         let midway = divisor.div_euclid(2);
         let cmp = dividend.rem_euclid(divisor).cmp(&midway);
         if cmp == Ordering::Equal && divisor.rem_euclid(2) != 0 {
-            Some(Ordering::Less)
+            Ordering::Less
         } else {
-            Some(cmp)
+            cmp
         }
     }
 
@@ -118,11 +118,16 @@ impl Roundable for f64 {
         quotient_abs == quotient_abs.floor()
     }
 
-    fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
+    fn compare_remainder(dividend: Self, divisor: Self) -> Ordering {
         let quotient = dividend / divisor;
         let d1 = quotient - FloatCore::floor(quotient);
         let d2 = FloatCore::ceil(quotient) - quotient;
-        d1.partial_cmp(&d2)
+        let result = d1.partial_cmp(&d2);
+        debug_assert!(
+            result.is_some(),
+            "Should never have non-finite floats in rounding code"
+        );
+        result.unwrap_or(Ordering::Equal)
     }
 
     fn is_even_cardinal(dividend: Self, divisor: Self) -> bool {
@@ -142,13 +147,13 @@ impl Roundable for i64 {
         dividend.rem_euclid(divisor) == 0
     }
 
-    fn compare_remainder(dividend: Self, divisor: Self) -> Option<Ordering> {
+    fn compare_remainder(dividend: Self, divisor: Self) -> Ordering {
         let midway = divisor.div_euclid(2);
         let cmp = dividend.rem_euclid(divisor).cmp(&midway);
         if cmp == Ordering::Equal && divisor.rem_euclid(2) != 0 {
-            Some(Ordering::Less)
+            Ordering::Less
         } else {
-            Some(cmp)
+            cmp
         }
     }
 
@@ -197,9 +202,9 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
     // 8. If d1 < d2, return r1.
     // 9. If d2 < d1, return r2.
     match Roundable::compare_remainder(dividend, divisor) {
-        Some(Ordering::Less) => r1,
-        Some(Ordering::Greater) => r2,
-        Some(Ordering::Equal) => {
+        Ordering::Less => r1,
+        Ordering::Greater => r2,
+        Ordering::Equal => {
             // 10. Assert: d1 is equal to d2.
             // 11. If unsignedRoundingMode is half-zero, return r1.
             if unsigned_rounding_mode == UnsignedRoundingMode::HalfZero {
@@ -219,7 +224,6 @@ fn apply_unsigned_rounding_mode<T: Roundable>(
             // 16. Return r2.
             r2
         }
-        None => unreachable!(),
     }
 }
 
