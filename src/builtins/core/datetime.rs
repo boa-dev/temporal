@@ -889,7 +889,7 @@ impl PlainDateTime {
         Ok(ZonedDateTime::new_unchecked(
             Instant::from(epoch_ns.ns),
             self.calendar.clone(),
-            time_zone.clone(),
+            *time_zone,
             epoch_ns.offset,
         ))
     }

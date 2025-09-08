@@ -599,266 +599,1040 @@
     "wet": 595,
     "zulu": 596
   },
-  "non_canonical_identifiers": {
-    "africa/accra": 0,
-    "africa/addis_ababa": 43,
-    "africa/asmara": 43,
-    "africa/asmera": 43,
-    "africa/bamako": 0,
-    "africa/bangui": 31,
-    "africa/banjul": 0,
-    "africa/blantyre": 38,
-    "africa/brazzaville": 31,
-    "africa/bujumbura": 38,
-    "africa/conakry": 0,
-    "africa/dakar": 0,
-    "africa/dar_es_salaam": 43,
-    "africa/djibouti": 43,
-    "africa/douala": 31,
-    "africa/freetown": 0,
-    "africa/gaborone": 38,
-    "africa/harare": 38,
-    "africa/kampala": 43,
-    "africa/kigali": 38,
-    "africa/kinshasa": 31,
-    "africa/libreville": 31,
-    "africa/lome": 0,
-    "africa/luanda": 31,
-    "africa/lubumbashi": 38,
-    "africa/lusaka": 38,
-    "africa/malabo": 31,
-    "africa/maseru": 25,
-    "africa/mbabane": 25,
-    "africa/mogadishu": 43,
-    "africa/niamey": 31,
-    "africa/nouakchott": 0,
-    "africa/ouagadougou": 0,
-    "africa/porto-novo": 31,
-    "africa/timbuktu": 0,
-    "america/anguilla": 187,
-    "america/antigua": 187,
-    "america/argentina/comodrivadavia": 60,
-    "america/aruba": 187,
-    "america/atikokan": 179,
-    "america/atka": 54,
-    "america/blanc-sablon": 187,
-    "america/buenos_aires": 59,
-    "america/catamarca": 60,
-    "america/cayman": 179,
-    "america/coral_harbour": 179,
-    "america/cordoba": 62,
-    "america/creston": 182,
-    "america/curacao": 187,
-    "america/dominica": 187,
-    "america/ensenada": 214,
-    "america/fort_wayne": 128,
-    "america/godthab": 177,
-    "america/grenada": 187,
-    "america/guadeloupe": 187,
-    "america/indianapolis": 128,
-    "america/jujuy": 63,
-    "america/knox_in": 129,
-    "america/kralendijk": 187,
-    "america/louisville": 142,
-    "america/lower_princes": 187,
-    "america/marigot": 187,
-    "america/mendoza": 65,
-    "america/montreal": 215,
-    "america/montserrat": 187,
-    "america/nassau": 215,
-    "america/nipigon": 215,
-    "america/pangnirtung": 138,
-    "america/port_of_spain": 187,
-    "america/porto_acre": 194,
-    "america/rainy_river": 220,
-    "america/rosario": 62,
-    "america/santa_isabel": 214,
-    "america/shiprock": 106,
-    "america/st_barthelemy": 187,
-    "america/st_kitts": 187,
-    "america/st_lucia": 187,
-    "america/st_thomas": 187,
-    "america/st_vincent": 187,
-    "america/thunder_bay": 215,
-    "america/tortola": 187,
-    "america/virgin": 187,
-    "america/yellowknife": 109,
-    "antarctica/dumontdurville": 562,
-    "antarctica/mcmurdo": 530,
-    "antarctica/south_pole": 530,
-    "antarctica/syowa": 307,
-    "arctic/longyearbyen": 433,
-    "asia/aden": 307,
-    "asia/ashkhabad": 242,
-    "asia/bahrain": 303,
-    "asia/brunei": 287,
-    "asia/calcutta": 284,
-    "asia/choibalsan": 325,
-    "asia/chongqing": 312,
-    "asia/chungking": 312,
-    "asia/dacca": 261,
-    "asia/harbin": 312,
-    "asia/istanbul": 446,
-    "asia/kashgar": 327,
-    "asia/katmandu": 281,
-    "asia/kuala_lumpur": 313,
-    "asia/kuwait": 307,
-    "asia/macao": 290,
-    "asia/muscat": 263,
-    "asia/phnom_penh": 248,
-    "asia/rangoon": 332,
-    "asia/saigon": 269,
-    "asia/tel_aviv": 276,
-    "asia/thimbu": 321,
-    "asia/ujung_pandang": 292,
-    "asia/ulan_bator": 325,
-    "asia/vientiane": 248,
-    "atlantic/faeroe": 340,
-    "atlantic/jan_mayen": 433,
-    "atlantic/reykjavik": 0,
-    "atlantic/st_helena": 0,
-    "australia/act": 365,
-    "australia/canberra": 365,
-    "australia/currie": 355,
-    "australia/lhi": 358,
-    "australia/north": 353,
-    "australia/nsw": 365,
-    "australia/queensland": 349,
-    "australia/south": 348,
-    "australia/tasmania": 355,
-    "australia/victoria": 359,
-    "australia/west": 362,
-    "australia/yancowinna": 350,
-    "brazil/acre": 194,
-    "brazil/denoronha": 173,
-    "brazil/east": 200,
-    "brazil/west": 153,
-    "canada/atlantic": 125,
-    "canada/central": 220,
-    "canada/eastern": 215,
-    "canada/mountain": 109,
-    "canada/newfoundland": 205,
-    "canada/pacific": 217,
-    "canada/saskatchewan": 192,
-    "canada/yukon": 219,
-    "cet": 435,
-    "chile/continental": 198,
-    "chile/easterisland": 534,
-    "cst6cdt": 93,
-    "cuba": 126,
-    "eet": 430,
-    "egypt": 13,
-    "eire": 441,
-    "est": 179,
-    "est5edt": 170,
-    "etc/gmt": 592,
-    "etc/gmt+0": 592,
-    "etc/gmt-0": 592,
-    "etc/gmt0": 592,
-    "etc/greenwich": 592,
-    "etc/uct": 592,
-    "etc/universal": 592,
-    "etc/utc": 592,
-    "etc/zulu": 592,
-    "europe/amsterdam": 435,
-    "europe/belfast": 454,
-    "europe/bratislava": 466,
-    "europe/busingen": 490,
-    "europe/copenhagen": 433,
-    "europe/guernsey": 454,
-    "europe/isle_of_man": 454,
-    "europe/jersey": 454,
-    "europe/kiev": 451,
-    "europe/ljubljana": 432,
-    "europe/luxembourg": 435,
-    "europe/mariehamn": 444,
-    "europe/monaco": 464,
-    "europe/nicosia": 295,
-    "europe/oslo": 433,
-    "europe/podgorica": 432,
-    "europe/san_marino": 468,
-    "europe/sarajevo": 432,
-    "europe/skopje": 432,
-    "europe/stockholm": 433,
-    "europe/tiraspol": 439,
-    "europe/uzhgorod": 451,
-    "europe/vaduz": 490,
-    "europe/vatican": 468,
-    "europe/zagreb": 432,
-    "europe/zaporozhye": 451,
-    "gb": 454,
-    "gb-eire": 454,
-    "gmt": 592,
-    "gmt+0": 592,
-    "gmt-0": 592,
-    "gmt0": 592,
-    "greenwich": 592,
-    "hongkong": 270,
-    "hst": 544,
-    "iceland": 0,
-    "indian/antananarivo": 43,
-    "indian/christmas": 248,
-    "indian/cocos": 332,
-    "indian/comoro": 43,
-    "indian/kerguelen": 508,
-    "indian/mahe": 263,
-    "indian/mayotte": 43,
-    "indian/reunion": 263,
-    "iran": 318,
-    "israel": 276,
-    "jamaica": 139,
-    "japan": 322,
-    "kwajalein": 549,
-    "libya": 51,
-    "met": 435,
-    "mexico/bajanorte": 214,
-    "mexico/bajasur": 157,
-    "mexico/general": 162,
-    "mst": 182,
-    "mst7mdt": 106,
-    "navajo": 106,
-    "nz": 530,
-    "nz-chat": 532,
-    "pacific/chuuk": 562,
-    "pacific/enderbury": 546,
-    "pacific/funafuti": 567,
-    "pacific/johnston": 544,
-    "pacific/majuro": 567,
-    "pacific/midway": 557,
-    "pacific/pohnpei": 542,
-    "pacific/ponape": 542,
-    "pacific/saipan": 543,
-    "pacific/samoa": 557,
-    "pacific/truk": 562,
-    "pacific/wake": 567,
-    "pacific/wallis": 567,
-    "pacific/yap": 562,
-    "poland": 487,
-    "portugal": 452,
-    "prc": 312,
-    "pst8pdt": 148,
-    "roc": 315,
-    "rok": 311,
-    "singapore": 313,
-    "turkey": 446,
-    "uct": 592,
-    "universal": 592,
-    "us/alaska": 55,
-    "us/aleutian": 54,
-    "us/arizona": 182,
-    "us/central": 93,
-    "us/east-indiana": 128,
-    "us/eastern": 170,
-    "us/hawaii": 544,
-    "us/indiana-starke": 129,
-    "us/michigan": 107,
-    "us/mountain": 106,
-    "us/pacific": 148,
-    "us/samoa": 557,
-    "w-su": 461,
-    "wet": 452,
-    "zulu": 592
-  },
+  "non_canonical_identifiers": [
+    [
+      1,
+      0
+    ],
+    [
+      2,
+      43
+    ],
+    [
+      4,
+      43
+    ],
+    [
+      5,
+      43
+    ],
+    [
+      6,
+      0
+    ],
+    [
+      7,
+      31
+    ],
+    [
+      8,
+      0
+    ],
+    [
+      10,
+      38
+    ],
+    [
+      11,
+      31
+    ],
+    [
+      12,
+      38
+    ],
+    [
+      16,
+      0
+    ],
+    [
+      17,
+      0
+    ],
+    [
+      18,
+      43
+    ],
+    [
+      19,
+      43
+    ],
+    [
+      20,
+      31
+    ],
+    [
+      22,
+      0
+    ],
+    [
+      23,
+      38
+    ],
+    [
+      24,
+      38
+    ],
+    [
+      27,
+      43
+    ],
+    [
+      29,
+      38
+    ],
+    [
+      30,
+      31
+    ],
+    [
+      32,
+      31
+    ],
+    [
+      33,
+      0
+    ],
+    [
+      34,
+      31
+    ],
+    [
+      35,
+      38
+    ],
+    [
+      36,
+      38
+    ],
+    [
+      37,
+      31
+    ],
+    [
+      39,
+      25
+    ],
+    [
+      40,
+      25
+    ],
+    [
+      41,
+      43
+    ],
+    [
+      45,
+      31
+    ],
+    [
+      46,
+      0
+    ],
+    [
+      47,
+      0
+    ],
+    [
+      48,
+      31
+    ],
+    [
+      50,
+      0
+    ],
+    [
+      56,
+      187
+    ],
+    [
+      57,
+      187
+    ],
+    [
+      61,
+      60
+    ],
+    [
+      72,
+      187
+    ],
+    [
+      74,
+      179
+    ],
+    [
+      75,
+      54
+    ],
+    [
+      81,
+      187
+    ],
+    [
+      85,
+      59
+    ],
+    [
+      90,
+      60
+    ],
+    [
+      92,
+      179
+    ],
+    [
+      96,
+      179
+    ],
+    [
+      97,
+      62
+    ],
+    [
+      100,
+      182
+    ],
+    [
+      102,
+      187
+    ],
+    [
+      108,
+      187
+    ],
+    [
+      112,
+      214
+    ],
+    [
+      114,
+      128
+    ],
+    [
+      117,
+      177
+    ],
+    [
+      120,
+      187
+    ],
+    [
+      121,
+      187
+    ],
+    [
+      136,
+      128
+    ],
+    [
+      140,
+      63
+    ],
+    [
+      144,
+      129
+    ],
+    [
+      145,
+      187
+    ],
+    [
+      149,
+      142
+    ],
+    [
+      150,
+      187
+    ],
+    [
+      154,
+      187
+    ],
+    [
+      158,
+      65
+    ],
+    [
+      167,
+      215
+    ],
+    [
+      168,
+      187
+    ],
+    [
+      169,
+      215
+    ],
+    [
+      171,
+      215
+    ],
+    [
+      180,
+      138
+    ],
+    [
+      184,
+      187
+    ],
+    [
+      185,
+      194
+    ],
+    [
+      189,
+      220
+    ],
+    [
+      195,
+      62
+    ],
+    [
+      196,
+      214
+    ],
+    [
+      202,
+      106
+    ],
+    [
+      204,
+      187
+    ],
+    [
+      206,
+      187
+    ],
+    [
+      207,
+      187
+    ],
+    [
+      208,
+      187
+    ],
+    [
+      209,
+      187
+    ],
+    [
+      213,
+      215
+    ],
+    [
+      216,
+      187
+    ],
+    [
+      218,
+      187
+    ],
+    [
+      222,
+      109
+    ],
+    [
+      225,
+      562
+    ],
+    [
+      228,
+      530
+    ],
+    [
+      231,
+      530
+    ],
+    [
+      232,
+      307
+    ],
+    [
+      235,
+      433
+    ],
+    [
+      236,
+      307
+    ],
+    [
+      243,
+      242
+    ],
+    [
+      246,
+      303
+    ],
+    [
+      252,
+      287
+    ],
+    [
+      253,
+      284
+    ],
+    [
+      255,
+      325
+    ],
+    [
+      256,
+      312
+    ],
+    [
+      257,
+      312
+    ],
+    [
+      259,
+      261
+    ],
+    [
+      267,
+      312
+    ],
+    [
+      273,
+      446
+    ],
+    [
+      280,
+      327
+    ],
+    [
+      282,
+      281
+    ],
+    [
+      286,
+      313
+    ],
+    [
+      288,
+      307
+    ],
+    [
+      289,
+      290
+    ],
+    [
+      294,
+      263
+    ],
+    [
+      300,
+      248
+    ],
+    [
+      306,
+      332
+    ],
+    [
+      308,
+      269
+    ],
+    [
+      319,
+      276
+    ],
+    [
+      320,
+      321
+    ],
+    [
+      324,
+      292
+    ],
+    [
+      326,
+      325
+    ],
+    [
+      329,
+      248
+    ],
+    [
+      339,
+      340
+    ],
+    [
+      341,
+      433
+    ],
+    [
+      343,
+      0
+    ],
+    [
+      345,
+      0
+    ],
+    [
+      347,
+      365
+    ],
+    [
+      351,
+      365
+    ],
+    [
+      352,
+      355
+    ],
+    [
+      356,
+      358
+    ],
+    [
+      360,
+      365
+    ],
+    [
+      361,
+      353
+    ],
+    [
+      363,
+      349
+    ],
+    [
+      364,
+      348
+    ],
+    [
+      366,
+      355
+    ],
+    [
+      367,
+      359
+    ],
+    [
+      368,
+      362
+    ],
+    [
+      369,
+      350
+    ],
+    [
+      370,
+      194
+    ],
+    [
+      371,
+      173
+    ],
+    [
+      372,
+      200
+    ],
+    [
+      373,
+      153
+    ],
+    [
+      374,
+      435
+    ],
+    [
+      375,
+      93
+    ],
+    [
+      376,
+      125
+    ],
+    [
+      377,
+      220
+    ],
+    [
+      378,
+      215
+    ],
+    [
+      379,
+      109
+    ],
+    [
+      380,
+      205
+    ],
+    [
+      381,
+      217
+    ],
+    [
+      382,
+      192
+    ],
+    [
+      383,
+      219
+    ],
+    [
+      384,
+      198
+    ],
+    [
+      385,
+      534
+    ],
+    [
+      386,
+      126
+    ],
+    [
+      387,
+      430
+    ],
+    [
+      388,
+      179
+    ],
+    [
+      389,
+      170
+    ],
+    [
+      390,
+      13
+    ],
+    [
+      391,
+      441
+    ],
+    [
+      392,
+      592
+    ],
+    [
+      393,
+      592
+    ],
+    [
+      406,
+      592
+    ],
+    [
+      421,
+      592
+    ],
+    [
+      422,
+      592
+    ],
+    [
+      423,
+      592
+    ],
+    [
+      424,
+      592
+    ],
+    [
+      425,
+      592
+    ],
+    [
+      426,
+      592
+    ],
+    [
+      427,
+      435
+    ],
+    [
+      431,
+      454
+    ],
+    [
+      434,
+      466
+    ],
+    [
+      438,
+      490
+    ],
+    [
+      440,
+      433
+    ],
+    [
+      443,
+      454
+    ],
+    [
+      445,
+      454
+    ],
+    [
+      447,
+      454
+    ],
+    [
+      449,
+      451
+    ],
+    [
+      453,
+      432
+    ],
+    [
+      455,
+      435
+    ],
+    [
+      458,
+      444
+    ],
+    [
+      460,
+      464
+    ],
+    [
+      462,
+      295
+    ],
+    [
+      463,
+      433
+    ],
+    [
+      465,
+      432
+    ],
+    [
+      470,
+      468
+    ],
+    [
+      471,
+      432
+    ],
+    [
+      474,
+      432
+    ],
+    [
+      476,
+      433
+    ],
+    [
+      479,
+      439
+    ],
+    [
+      481,
+      451
+    ],
+    [
+      482,
+      490
+    ],
+    [
+      483,
+      468
+    ],
+    [
+      488,
+      432
+    ],
+    [
+      489,
+      451
+    ],
+    [
+      491,
+      454
+    ],
+    [
+      492,
+      454
+    ],
+    [
+      493,
+      592
+    ],
+    [
+      494,
+      592
+    ],
+    [
+      495,
+      592
+    ],
+    [
+      496,
+      592
+    ],
+    [
+      497,
+      592
+    ],
+    [
+      498,
+      544
+    ],
+    [
+      499,
+      270
+    ],
+    [
+      500,
+      0
+    ],
+    [
+      501,
+      43
+    ],
+    [
+      503,
+      248
+    ],
+    [
+      504,
+      332
+    ],
+    [
+      505,
+      43
+    ],
+    [
+      506,
+      508
+    ],
+    [
+      507,
+      263
+    ],
+    [
+      510,
+      43
+    ],
+    [
+      511,
+      263
+    ],
+    [
+      512,
+      318
+    ],
+    [
+      513,
+      276
+    ],
+    [
+      514,
+      139
+    ],
+    [
+      515,
+      322
+    ],
+    [
+      516,
+      549
+    ],
+    [
+      517,
+      51
+    ],
+    [
+      518,
+      435
+    ],
+    [
+      519,
+      182
+    ],
+    [
+      520,
+      106
+    ],
+    [
+      521,
+      214
+    ],
+    [
+      522,
+      157
+    ],
+    [
+      523,
+      162
+    ],
+    [
+      524,
+      530
+    ],
+    [
+      525,
+      532
+    ],
+    [
+      526,
+      106
+    ],
+    [
+      527,
+      312
+    ],
+    [
+      528,
+      148
+    ],
+    [
+      533,
+      562
+    ],
+    [
+      536,
+      546
+    ],
+    [
+      539,
+      567
+    ],
+    [
+      545,
+      544
+    ],
+    [
+      550,
+      567
+    ],
+    [
+      552,
+      557
+    ],
+    [
+      560,
+      542
+    ],
+    [
+      561,
+      542
+    ],
+    [
+      564,
+      543
+    ],
+    [
+      565,
+      557
+    ],
+    [
+      569,
+      562
+    ],
+    [
+      570,
+      567
+    ],
+    [
+      571,
+      567
+    ],
+    [
+      572,
+      562
+    ],
+    [
+      573,
+      487
+    ],
+    [
+      574,
+      452
+    ],
+    [
+      575,
+      315
+    ],
+    [
+      576,
+      311
+    ],
+    [
+      577,
+      313
+    ],
+    [
+      578,
+      446
+    ],
+    [
+      579,
+      592
+    ],
+    [
+      580,
+      55
+    ],
+    [
+      581,
+      54
+    ],
+    [
+      582,
+      182
+    ],
+    [
+      583,
+      93
+    ],
+    [
+      584,
+      128
+    ],
+    [
+      585,
+      170
+    ],
+    [
+      586,
+      544
+    ],
+    [
+      587,
+      129
+    ],
+    [
+      588,
+      107
+    ],
+    [
+      589,
+      106
+    ],
+    [
+      590,
+      148
+    ],
+    [
+      591,
+      557
+    ],
+    [
+      593,
+      592
+    ],
+    [
+      594,
+      461
+    ],
+    [
+      595,
+      452
+    ],
+    [
+      596,
+      592
+    ]
+  ],
   "normalized_identifiers": [
     "Africa/Abidjan",
     "Africa/Accra",
