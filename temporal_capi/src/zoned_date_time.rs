@@ -1,12 +1,9 @@
-#[cfg(feature = "compiled_data")]
 use crate::error::ffi::TemporalError;
-#[cfg(feature = "compiled_data")]
 use temporal_rs::options::RelativeTo;
 
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
 #[diplomat::attr(auto, namespace = "temporal_rs")]
-#[cfg(feature = "compiled_data")]
 pub mod ffi {
     use crate::calendar::ffi::AnyCalendarKind;
     use crate::calendar::ffi::Calendar;
@@ -55,12 +52,7 @@ pub mod ffi {
     }
 
     impl OwnedRelativeTo {
-        // Retained for compatability
-        // TODO remove in any version after 0.0.10
-        pub fn try_from_str(s: &DiplomatStr) -> Result<Self, TemporalError> {
-            Self::from_utf8(s)
-        }
-
+        #[cfg(feature = "compiled_data")]
         pub fn from_utf8(s: &DiplomatStr) -> Result<Self, TemporalError> {
             // TODO(#275) This should not need to check
             let s = core::str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -70,6 +62,7 @@ pub mod ffi {
                 .map_err(Into::<TemporalError>::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn from_utf16(s: &DiplomatStr16) -> Result<Self, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -90,11 +83,15 @@ pub mod ffi {
     pub struct ParsedZonedDateTime(temporal_rs::parsed_intermediates::ParsedZonedDateTime);
 
     impl ParsedZonedDateTime {
+        #[cfg(feature = "compiled_data")]
+
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             temporal_rs::parsed_intermediates::ParsedZonedDateTime::from_utf8(s)
                 .map(|x| Box::new(ParsedZonedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }
+        #[cfg(feature = "compiled_data")]
+
         pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -109,6 +106,8 @@ pub mod ffi {
     pub struct ZonedDateTime(pub(crate) temporal_rs::ZonedDateTime);
 
     impl ZonedDateTime {
+        #[cfg(feature = "compiled_data")]
+
         pub fn try_new(
             nanosecond: I128Nanoseconds,
             calendar: AnyCalendarKind,
@@ -122,6 +121,7 @@ pub mod ffi {
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn from_partial(
             partial: PartialZonedDateTime,
@@ -138,6 +138,7 @@ pub mod ffi {
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn from_parsed(
             parsed: &ParsedZonedDateTime,
@@ -152,6 +153,7 @@ pub mod ffi {
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn from_utf8(
             s: &DiplomatStr,
@@ -167,6 +169,7 @@ pub mod ffi {
             .map(|c| Box::new(Self(c)))
             .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn from_utf16(
             s: &DiplomatStr16,
@@ -187,6 +190,7 @@ pub mod ffi {
         pub fn epoch_milliseconds(&self) -> i64 {
             self.0.epoch_milliseconds()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
             super::zdt_from_epoch_ms(ms, &tz.0).map(|c| Box::new(Self(c)))
@@ -203,6 +207,8 @@ pub mod ffi {
         pub fn to_instant(&self) -> Box<Instant> {
             Box::new(Instant(self.0.to_instant()))
         }
+
+        #[cfg(feature = "compiled_data")]
 
         pub fn with(
             &self,
@@ -222,6 +228,8 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
+
         pub fn with_timezone(&self, zone: &TimeZone) -> Result<Box<Self>, TemporalError> {
             self.0
                 .with_timezone(zone.0)
@@ -237,9 +245,13 @@ pub mod ffi {
             self.0.compare_instant(&other.0)
         }
 
+        #[cfg(feature = "compiled_data")]
+
         pub fn equals(&self, other: &Self) -> bool {
             self.0.equals(&other.0).unwrap_or(false)
         }
+
+        #[cfg(feature = "compiled_data")]
 
         pub fn offset(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
             let string = self.0.offset();
@@ -248,6 +260,8 @@ pub mod ffi {
             Ok(())
         }
 
+        #[cfg(feature = "compiled_data")]
+
         pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.0
                 .start_of_day()
@@ -255,6 +269,7 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn get_time_zone_transition(
             &self,
             direction: TransitionDirection,
@@ -265,10 +280,12 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn hours_in_day(&self) -> Result<f64, TemporalError> {
             self.0.hours_in_day().map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn to_plain_datetime(&self) -> Result<Box<PlainDateTime>, TemporalError> {
             self.0
                 .to_plain_datetime()
@@ -276,6 +293,7 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
             self.0
                 .to_plain_date()
@@ -283,6 +301,7 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn to_plain_time(&self) -> Result<Box<PlainTime>, TemporalError> {
             self.0
                 .to_plain_time()
@@ -290,6 +309,7 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
+        #[cfg(feature = "compiled_data")]
         pub fn to_ixdtf_string(
             &self,
             display_offset: DisplayOffset,
@@ -312,6 +332,7 @@ pub mod ffi {
         }
 
         // Same as PlainDateTime (non-getters)
+        #[cfg(feature = "compiled_data")]
 
         pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Result<Box<Self>, TemporalError> {
             self.0
@@ -319,6 +340,7 @@ pub mod ffi {
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn with_plain_time(
             &self,
@@ -329,6 +351,7 @@ pub mod ffi {
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn add(
             &self,
@@ -340,6 +363,8 @@ pub mod ffi {
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
+
         pub fn subtract(
             &self,
             duration: &Duration,
@@ -350,6 +375,8 @@ pub mod ffi {
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
+
         pub fn until(
             &self,
             other: &Self,
@@ -360,6 +387,8 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
+
         pub fn since(
             &self,
             other: &Self,
@@ -370,6 +399,7 @@ pub mod ffi {
                 .map(|x| Box::new(Duration(x)))
                 .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
             self.0
@@ -379,28 +409,34 @@ pub mod ffi {
         }
 
         // Same as PlainDateTime (getters)
+        #[cfg(feature = "compiled_data")]
 
         pub fn hour(&self) -> u8 {
             // unwrap_or_default because of
             // https://github.com/boa-dev/temporal/issues/328
             self.0.hour().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn minute(&self) -> u8 {
             self.0.minute().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn second(&self) -> u8 {
             self.0.second().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn millisecond(&self) -> u16 {
             self.0.millisecond().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn microsecond(&self) -> u16 {
             self.0.microsecond().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn nanosecond(&self) -> u16 {
             self.0.nanosecond().unwrap_or_default()
@@ -409,14 +445,17 @@ pub mod ffi {
         pub fn calendar<'a>(&'a self) -> &'a Calendar {
             Calendar::transparent_convert(self.0.calendar())
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn year(&self) -> i32 {
             self.0.year().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn month(&self) -> u8 {
             self.0.month().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn month_code(&self, write: &mut DiplomatWrite) {
             // https://github.com/boa-dev/temporal/issues/328 for the fallibility
@@ -426,47 +465,58 @@ pub mod ffi {
             // throw away the error, this should always succeed
             let _ = write.write_str(code.as_str());
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn day(&self) -> u8 {
             self.0.day().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn day_of_week(&self) -> Result<u16, TemporalError> {
             self.0.day_of_week().map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn day_of_year(&self) -> u16 {
             self.0.day_of_year().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn week_of_year(&self) -> Option<u8> {
             self.0.week_of_year().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn year_of_week(&self) -> Option<i32> {
             self.0.year_of_week().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn days_in_week(&self) -> Result<u16, TemporalError> {
             self.0.days_in_week().map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn days_in_month(&self) -> u16 {
             self.0.days_in_month().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn days_in_year(&self) -> u16 {
             self.0.days_in_year().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn months_in_year(&self) -> u16 {
             self.0.months_in_year().unwrap_or_default()
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn in_leap_year(&self) -> bool {
             self.0.in_leap_year().unwrap_or_default()
         }
         // Writes an empty string for no era
+        #[cfg(feature = "compiled_data")]
 
         pub fn era(&self, write: &mut DiplomatWrite) {
             let era = self.0.era().unwrap_or_default();
@@ -475,6 +525,7 @@ pub mod ffi {
                 let _ = write.write_str(&era);
             }
         }
+        #[cfg(feature = "compiled_data")]
 
         pub fn era_year(&self) -> Option<i32> {
             self.0.era_year().unwrap_or_default()
@@ -498,7 +549,6 @@ pub(crate) fn zdt_from_epoch_ms(
         .map_err(Into::into)
 }
 
-#[cfg(feature = "compiled_data")]
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZonedDateTime {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
@@ -512,7 +562,6 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZon
     }
 }
 
-#[cfg(feature = "compiled_data")]
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::fields::ZonedDateTimeFields {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
@@ -528,7 +577,6 @@ impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::fields::ZonedDateTi
     }
 }
 
-#[cfg(feature = "compiled_data")]
 impl From<ffi::RelativeTo<'_>> for Option<temporal_rs::options::RelativeTo> {
     fn from(other: ffi::RelativeTo) -> Self {
         if let Some(pd) = other.date {
@@ -541,7 +589,6 @@ impl From<ffi::RelativeTo<'_>> for Option<temporal_rs::options::RelativeTo> {
     }
 }
 
-#[cfg(feature = "compiled_data")]
 impl From<RelativeTo> for ffi::OwnedRelativeTo {
     fn from(other: RelativeTo) -> Self {
         use alloc::boxed::Box;
