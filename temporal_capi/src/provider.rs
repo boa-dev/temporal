@@ -50,6 +50,10 @@ pub mod ffi {
         /// Construct a provider backed by a zoneinfo64.res file
         ///
         /// This failing to construct is not a Temporal error, so it just returns ()
+        #[allow(
+            clippy::result_unit_err,
+            reason = "Diplomat distinguishes between Result and Option"
+        )]
         pub fn new_zoneinfo64(data: &'a [u32]) -> Result<Box<Provider<'a>>, ()> {
             let zi64 = ZoneInfo64::try_from_u32s(data).map_err(|_| ())?;
             let data = super::ZoneInfo64TzdbProvider::new(zi64);
