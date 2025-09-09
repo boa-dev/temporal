@@ -12,6 +12,8 @@
 #include "../diplomat_runtime.hpp"
 
 namespace temporal_rs {
+namespace capi { struct Provider; }
+class Provider;
 namespace capi { struct TimeZone; }
 class TimeZone;
 struct TemporalError;
@@ -30,15 +32,25 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_identifier_str(std::string_view ident);
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_identifier_str_with_provider(std::string_view ident, const temporal_rs::Provider& p);
+
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_offset_str(std::string_view ident);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_str(std::string_view ident);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> try_from_str_with_provider(std::string_view ident, const temporal_rs::Provider& p);
 
   inline std::string identifier() const;
   template<typename W>
   inline void identifier_write(W& writeable_output) const;
 
+  inline diplomat::result<std::string, temporal_rs::TemporalError> identifier_with_provider(const temporal_rs::Provider& p) const;
+  template<typename W>
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> identifier_with_provider_write(const temporal_rs::Provider& p, W& writeable_output) const;
+
   inline static std::unique_ptr<temporal_rs::TimeZone> utc();
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> utc_with_provider(const temporal_rs::Provider& p);
 
   inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
 
@@ -47,7 +59,7 @@ public:
    */
   inline diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> primary_identifier() const;
 
-  inline bool is_valid() const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> primary_identifier_with_provider(const temporal_rs::Provider& p) const;
 
   inline const temporal_rs::capi::TimeZone* AsFFI() const;
   inline temporal_rs::capi::TimeZone* AsFFI();

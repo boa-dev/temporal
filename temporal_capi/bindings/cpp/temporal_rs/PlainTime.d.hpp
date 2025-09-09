@@ -16,6 +16,8 @@ namespace capi { struct Duration; }
 class Duration;
 namespace capi { struct PlainTime; }
 class PlainTime;
+namespace capi { struct Provider; }
+class Provider;
 namespace capi { struct TimeZone; }
 class TimeZone;
 struct DifferenceSettings;
@@ -45,6 +47,8 @@ public:
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::TimeZone& tz, const temporal_rs::Provider& p);
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> with(temporal_rs::PartialTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 

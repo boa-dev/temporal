@@ -14,6 +14,8 @@
 namespace temporal_rs {
 namespace capi { struct ParsedZonedDateTime; }
 class ParsedZonedDateTime;
+namespace capi { struct Provider; }
+class Provider;
 struct TemporalError;
 }
 
@@ -30,7 +32,11 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::ParsedZonedDateTime>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ParsedZonedDateTime>, temporal_rs::TemporalError> from_utf8_with_provider(std::string_view s, const temporal_rs::Provider& p);
+
   inline static diplomat::result<std::unique_ptr<temporal_rs::ParsedZonedDateTime>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
+
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ParsedZonedDateTime>, temporal_rs::TemporalError> from_utf16_with_provider(std::u16string_view s, const temporal_rs::Provider& p);
 
   inline const temporal_rs::capi::ParsedZonedDateTime* AsFFI() const;
   inline temporal_rs::capi::ParsedZonedDateTime* AsFFI();

@@ -14,6 +14,8 @@
 namespace temporal_rs {
 namespace capi { struct PlainDate; }
 class PlainDate;
+namespace capi { struct Provider; }
+class Provider;
 namespace capi { struct ZonedDateTime; }
 class ZonedDateTime;
 struct OwnedRelativeTo;
@@ -42,11 +44,13 @@ struct OwnedRelativeTo {
   std::unique_ptr<temporal_rs::PlainDate> date;
   std::unique_ptr<temporal_rs::ZonedDateTime> zoned;
 
-  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> try_from_str(std::string_view s);
-
   inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
+  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> from_utf8_with_provider(std::string_view s, const temporal_rs::Provider& p);
+
   inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
+
+  inline static diplomat::result<temporal_rs::OwnedRelativeTo, temporal_rs::TemporalError> from_utf16_with_provider(std::u16string_view s, const temporal_rs::Provider& p);
 
   inline static temporal_rs::OwnedRelativeTo empty();
 

@@ -19,6 +19,7 @@
 #include "PlainMonthDay.d.h"
 #include "PlainTime.d.h"
 #include "PlainYearMonth.d.h"
+#include "Provider.d.h"
 #include "TemporalError.d.h"
 #include "TimeZone.d.h"
 #include "ZonedDateTime.d.h"
@@ -47,6 +48,9 @@ temporal_rs_PlainDate_from_parsed_result temporal_rs_PlainDate_from_parsed(const
 
 typedef struct temporal_rs_PlainDate_from_epoch_milliseconds_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_milliseconds_result;
 temporal_rs_PlainDate_from_epoch_milliseconds_result temporal_rs_PlainDate_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+
+typedef struct temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result;
+temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDate_from_epoch_milliseconds_with_provider(int64_t ms, const TimeZone* tz, const Provider* p);
 
 typedef struct temporal_rs_PlainDate_with_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_result;
 temporal_rs_PlainDate_with_result temporal_rs_PlainDate_with(const PlainDate* self, PartialDate partial, ArithmeticOverflow_option overflow);
@@ -130,6 +134,9 @@ temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_
 
 typedef struct temporal_rs_PlainDate_to_zoned_date_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_result;
 temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const PlainDate* self, const TimeZone* time_zone, const PlainTime* time);
+
+typedef struct temporal_rs_PlainDate_to_zoned_date_time_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_with_provider_result;
+temporal_rs_PlainDate_to_zoned_date_time_with_provider_result temporal_rs_PlainDate_to_zoned_date_time_with_provider(const PlainDate* self, const TimeZone* time_zone, const PlainTime* time, const Provider* p);
 
 void temporal_rs_PlainDate_to_ixdtf_string(const PlainDate* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 

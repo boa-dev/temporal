@@ -16,6 +16,7 @@
 #include "DifferenceSettings.hpp"
 #include "Duration.hpp"
 #include "PartialTime.hpp"
+#include "Provider.hpp"
 #include "RoundingMode.hpp"
 #include "TemporalError.hpp"
 #include "TimeZone.hpp"
@@ -38,6 +39,9 @@ namespace capi {
 
     typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_result;
     temporal_rs_PlainTime_from_epoch_milliseconds_result temporal_rs_PlainTime_from_epoch_milliseconds(int64_t ms, const temporal_rs::capi::TimeZone* tz);
+
+    typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result;
+    temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainTime_from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::capi::TimeZone* tz, const temporal_rs::capi::Provider* p);
 
     typedef struct temporal_rs_PlainTime_with_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_with_result;
     temporal_rs_PlainTime_with_result temporal_rs_PlainTime_with(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::PartialTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -119,6 +123,13 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::Te
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz) {
   auto result = temporal_rs::capi::temporal_rs_PlainTime_from_epoch_milliseconds(ms,
     tz.AsFFI());
+  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::TimeZone& tz, const temporal_rs::Provider& p) {
+  auto result = temporal_rs::capi::temporal_rs_PlainTime_from_epoch_milliseconds_with_provider(ms,
+    tz.AsFFI(),
+    p.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
