@@ -134,11 +134,11 @@ pub mod ffi {
         ) -> Result<(), TemporalError> {
             self.to_ixdtf_string_with_provider(zone, options, &Provider::compiled(), write)
         }
-        pub fn to_ixdtf_string_with_provider(
+        pub fn to_ixdtf_string_with_provider<'p>(
             &self,
             zone: Option<&TimeZone>,
             options: ToStringRoundingOptions,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
             use writeable::Writeable;
@@ -162,10 +162,10 @@ pub mod ffi {
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.to_zoned_date_time_iso_with_provider(zone, &Provider::compiled())
         }
-        pub fn to_zoned_date_time_iso_with_provider(
+        pub fn to_zoned_date_time_iso_with_provider<'p>(
             &self,
             zone: &TimeZone,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             with_provider!(p, |p| self
                 .0

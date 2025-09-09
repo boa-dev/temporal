@@ -129,10 +129,10 @@ pub mod ffi {
             self.epoch_ms_for_with_provider(time_zone, &Provider::compiled())
         }
 
-        pub fn epoch_ms_for_with_provider(
+        pub fn epoch_ms_for_with_provider<'p>(
             &self,
             time_zone: &crate::time_zone::ffi::TimeZone,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<i64, TemporalError> {
             let ns = with_provider!(p, |p| self
                 .0

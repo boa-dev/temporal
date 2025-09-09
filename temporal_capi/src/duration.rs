@@ -246,11 +246,11 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             self.round_with_provider(options, relative_to, &Provider::compiled())
         }
-        pub fn round_with_provider(
+        pub fn round_with_provider<'p>(
             &self,
             options: RoundingOptions,
             relative_to: RelativeTo,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.round_with_provider(
                 options.try_into()?,
@@ -265,11 +265,11 @@ pub mod ffi {
         pub fn compare(&self, other: &Self, relative_to: RelativeTo) -> Result<i8, TemporalError> {
             self.compare_with_provider(other, relative_to, &Provider::compiled())
         }
-        pub fn compare_with_provider(
+        pub fn compare_with_provider<'p>(
             &self,
             other: &Self,
             relative_to: RelativeTo,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<i8, TemporalError> {
             // Ideally we'd return core::cmp::Ordering here but Diplomat
             // isn't happy about needing to convert the contents of a result
@@ -286,11 +286,11 @@ pub mod ffi {
         pub fn total(&self, unit: Unit, relative_to: RelativeTo) -> Result<f64, TemporalError> {
             self.total_with_provider(unit, relative_to, &Provider::compiled())
         }
-        pub fn total_with_provider(
+        pub fn total_with_provider<'p>(
             &self,
             unit: Unit,
             relative_to: RelativeTo,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<f64, TemporalError> {
             with_provider!(p, |p| self.0.total_with_provider(
                 unit.into(),

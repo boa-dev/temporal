@@ -59,9 +59,9 @@ pub mod ffi {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Self, TemporalError> {
             Self::from_utf8_with_provider(s, &Provider::compiled())
         }
-        pub fn from_utf8_with_provider(
+        pub fn from_utf8_with_provider<'p>(
             s: &DiplomatStr,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Self, TemporalError> {
             // TODO(#275) This should not need to check
             let s = core::str::from_utf8(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -75,9 +75,9 @@ pub mod ffi {
         pub fn from_utf16(s: &DiplomatStr16) -> Result<Self, TemporalError> {
             Self::from_utf16_with_provider(s, &Provider::compiled())
         }
-        pub fn from_utf16_with_provider(
+        pub fn from_utf16_with_provider<'p>(
             s: &DiplomatStr16,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Self, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -102,9 +102,9 @@ pub mod ffi {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             Self::from_utf8_with_provider(s, &Provider::compiled())
         }
-        pub fn from_utf8_with_provider(
+        pub fn from_utf8_with_provider<'p>(
             s: &DiplomatStr,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| {
                 temporal_rs::parsed_intermediates::ParsedZonedDateTime::from_utf8_with_provider(
@@ -119,9 +119,9 @@ pub mod ffi {
         pub fn from_utf16(s: &DiplomatStr16) -> Result<Box<Self>, TemporalError> {
             Self::from_utf16_with_provider(s, &Provider::compiled())
         }
-        pub fn from_utf16_with_provider(
+        pub fn from_utf16_with_provider<'p>(
             s: &DiplomatStr16,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -149,11 +149,11 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             Self::try_new_with_provider(nanosecond, calendar, time_zone, &Provider::compiled())
         }
-        pub fn try_new_with_provider(
+        pub fn try_new_with_provider<'p>(
             nanosecond: I128Nanoseconds,
             calendar: AnyCalendarKind,
             time_zone: &TimeZone,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| temporal_rs::ZonedDateTime::try_new_with_provider(
                 nanosecond.into(),
@@ -179,12 +179,12 @@ pub mod ffi {
                 &Provider::compiled(),
             )
         }
-        pub fn from_partial_with_provider(
+        pub fn from_partial_with_provider<'p>(
             partial: PartialZonedDateTime,
             overflow: Option<ArithmeticOverflow>,
             disambiguation: Option<Disambiguation>,
             offset_option: Option<OffsetDisambiguation>,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| {
                 temporal_rs::ZonedDateTime::from_partial_with_provider(
@@ -211,11 +211,11 @@ pub mod ffi {
                 &Provider::compiled(),
             )
         }
-        pub fn from_parsed_with_provider(
+        pub fn from_parsed_with_provider<'p>(
             parsed: &ParsedZonedDateTime,
             disambiguation: Disambiguation,
             offset_option: OffsetDisambiguation,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(
                 p,
@@ -242,11 +242,11 @@ pub mod ffi {
                 &Provider::compiled(),
             )
         }
-        pub fn from_utf8_with_provider(
+        pub fn from_utf8_with_provider<'p>(
             s: &DiplomatStr,
             disambiguation: Disambiguation,
             offset_disambiguation: OffsetDisambiguation,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to check
             with_provider!(p, |p| temporal_rs::ZonedDateTime::from_utf8_with_provider(
@@ -271,11 +271,11 @@ pub mod ffi {
                 &Provider::compiled(),
             )
         }
-        pub fn from_utf16_with_provider(
+        pub fn from_utf16_with_provider<'p>(
             s: &DiplomatStr16,
             disambiguation: Disambiguation,
             offset_disambiguation: OffsetDisambiguation,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
@@ -297,10 +297,10 @@ pub mod ffi {
         pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
             Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
         }
-        pub fn from_epoch_milliseconds_with_provider(
+        pub fn from_epoch_milliseconds_with_provider<'p>(
             ms: i64,
             tz: &TimeZone,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             super::zdt_from_epoch_ms_with_provider(ms, &tz.0, p).map(|c| Box::new(Self(c)))
         }
@@ -333,13 +333,13 @@ pub mod ffi {
                 &Provider::compiled(),
             )
         }
-        pub fn with_with_provider(
+        pub fn with_with_provider<'p>(
             &self,
             partial: PartialZonedDateTime,
             disambiguation: Option<Disambiguation>,
             offset_option: Option<OffsetDisambiguation>,
             overflow: Option<ArithmeticOverflow>,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.with_with_provider(
                 partial.try_into()?,
@@ -356,10 +356,10 @@ pub mod ffi {
         pub fn with_timezone(&self, zone: &TimeZone) -> Result<Box<Self>, TemporalError> {
             self.with_timezone_with_provider(zone, &Provider::compiled())
         }
-        pub fn with_timezone_with_provider(
+        pub fn with_timezone_with_provider<'p>(
             &self,
             zone: &TimeZone,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.with_timezone_with_provider(zone.0, p))
                 .map(|x| Box::new(ZonedDateTime(x)))
@@ -379,10 +379,10 @@ pub mod ffi {
             self.equals_with_provider(other, &Provider::compiled())
                 .unwrap_or(false)
         }
-        pub fn equals_with_provider(
+        pub fn equals_with_provider<'p>(
             &self,
             other: &Self,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<bool, TemporalError> {
             with_provider!(p, |p| self.0.equals_with_provider(&other.0, p)).map_err(Into::into)
         }
@@ -398,9 +398,9 @@ pub mod ffi {
         pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.start_of_day_with_provider(&Provider::compiled())
         }
-        pub fn start_of_day_with_provider(
+        pub fn start_of_day_with_provider<'p>(
             &self,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             with_provider!(p, |p| self.0.start_of_day_with_provider(p))
                 .map(|x| Box::new(ZonedDateTime(x)))
@@ -414,10 +414,10 @@ pub mod ffi {
         ) -> Result<Option<Box<Self>>, TemporalError> {
             self.get_time_zone_transition_with_provider(direction, &Provider::compiled())
         }
-        pub fn get_time_zone_transition_with_provider(
+        pub fn get_time_zone_transition_with_provider<'p>(
             &self,
             direction: TransitionDirection,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Option<Box<Self>>, TemporalError> {
             with_provider!(p, |p| self
                 .0
@@ -430,7 +430,10 @@ pub mod ffi {
         pub fn hours_in_day(&self) -> Result<f64, TemporalError> {
             self.hours_in_day_with_provider(&Provider::compiled())
         }
-        pub fn hours_in_day_with_provider(&self, p: &Provider<'_>) -> Result<f64, TemporalError> {
+        pub fn hours_in_day_with_provider<'p>(
+            &self,
+            p: &Provider<'p>,
+        ) -> Result<f64, TemporalError> {
             with_provider!(p, |p| self.0.hours_in_day_with_provider(p)).map_err(Into::into)
         }
 
@@ -473,13 +476,13 @@ pub mod ffi {
                 write,
             )
         }
-        pub fn to_ixdtf_string_with_provider(
+        pub fn to_ixdtf_string_with_provider<'p>(
             &self,
             display_offset: DisplayOffset,
             display_timezone: DisplayTimeZone,
             display_calendar: DisplayCalendar,
             options: ToStringRoundingOptions,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
             // TODO this double-allocates, an API returning a Writeable or impl Write would be better
@@ -509,10 +512,10 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             self.with_plain_time_and_provider(time, &Provider::compiled())
         }
-        pub fn with_plain_time_and_provider(
+        pub fn with_plain_time_and_provider<'p>(
             &self,
             time: Option<&PlainTime>,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self
                 .0
@@ -528,11 +531,11 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             self.add_with_provider(duration, overflow, &Provider::compiled())
         }
-        pub fn add_with_provider(
+        pub fn add_with_provider<'p>(
             &self,
             duration: &Duration,
             overflow: Option<ArithmeticOverflow>,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.add_with_provider(
                 &duration.0,
@@ -550,11 +553,11 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             self.subtract_with_provider(duration, overflow, &Provider::compiled())
         }
-        pub fn subtract_with_provider(
+        pub fn subtract_with_provider<'p>(
             &self,
             duration: &Duration,
             overflow: Option<ArithmeticOverflow>,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.subtract_with_provider(
                 &duration.0,
@@ -572,11 +575,11 @@ pub mod ffi {
         ) -> Result<Box<Duration>, TemporalError> {
             self.until_with_provider(other, settings, &Provider::compiled())
         }
-        pub fn until_with_provider(
+        pub fn until_with_provider<'p>(
             &self,
             other: &Self,
             settings: DifferenceSettings,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Duration>, TemporalError> {
             with_provider!(p, |p| self.0.until_with_provider(
                 &other.0,
@@ -594,11 +597,11 @@ pub mod ffi {
         ) -> Result<Box<Duration>, TemporalError> {
             self.since_with_provider(other, settings, &Provider::compiled())
         }
-        pub fn since_with_provider(
+        pub fn since_with_provider<'p>(
             &self,
             other: &Self,
             settings: DifferenceSettings,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Duration>, TemporalError> {
             with_provider!(p, |p| self.0.since_with_provider(
                 &other.0,
@@ -612,10 +615,10 @@ pub mod ffi {
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
             self.round_with_provider(options, &Provider::compiled())
         }
-        pub fn round_with_provider(
+        pub fn round_with_provider<'p>(
             &self,
             options: RoundingOptions,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.round_with_provider(options.try_into()?, p))
                 .map(|x| Box::new(Self(x)))
@@ -719,10 +722,10 @@ pub mod ffi {
     }
 }
 
-pub(crate) fn zdt_from_epoch_ms_with_provider(
+pub(crate) fn zdt_from_epoch_ms_with_provider<'p>(
     ms: i64,
     time_zone: &temporal_rs::TimeZone,
-    p: &Provider<'_>,
+    p: &Provider<'p>,
 ) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
     let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
     with_provider!(p, |p| instant

@@ -17,9 +17,9 @@ pub mod ffi {
         pub fn try_from_identifier_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             Self::try_from_identifier_str_with_provider(ident, &Provider::compiled())
         }
-        pub fn try_from_identifier_str_with_provider(
+        pub fn try_from_identifier_str_with_provider<'p>(
             ident: &DiplomatStr,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             let Ok(ident) = core::str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
@@ -39,9 +39,9 @@ pub mod ffi {
         pub fn try_from_str(ident: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             Self::try_from_str_with_provider(ident, &Provider::compiled())
         }
-        pub fn try_from_str_with_provider(
+        pub fn try_from_str_with_provider<'p>(
             ident: &DiplomatStr,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             let Ok(ident) = core::str::from_utf8(ident) else {
                 return Err(temporal_rs::TemporalError::range().into());
@@ -58,9 +58,9 @@ pub mod ffi {
             let _ = self.identifier_with_provider(&Provider::compiled(), write);
         }
 
-        pub fn identifier_with_provider(
+        pub fn identifier_with_provider<'p>(
             &self,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
             // TODO ideally this would use Writeable instead of allocating
@@ -77,7 +77,7 @@ pub mod ffi {
             // TODO merge signature with below
             Box::new(Self(temporal_rs::TimeZone::utc()))
         }
-        pub fn utc_with_provider(p: &Provider<'_>) -> Result<Box<Self>, TemporalError> {
+        pub fn utc_with_provider<'p>(p: &Provider<'p>) -> Result<Box<Self>, TemporalError> {
             Ok(Box::new(Self(with_provider!(p, |p| {
                 temporal_rs::TimeZone::utc_with_provider(p)
             }))))
@@ -93,9 +93,9 @@ pub mod ffi {
         pub fn primary_identifier(&self) -> Result<Box<Self>, TemporalError> {
             self.primary_identifier_with_provider(&Provider::compiled())
         }
-        pub fn primary_identifier_with_provider(
+        pub fn primary_identifier_with_provider<'p>(
             &self,
-            p: &Provider<'_>,
+            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| self.0.primary_identifier_with_provider(p))
                 .map(|x| Box::new(TimeZone(x)))
