@@ -156,7 +156,14 @@ pub mod ffi {
             ms: i64,
             tz: &crate::time_zone::ffi::TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms(ms, &tz.0)?;
+            Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_milliseconds_with_provider(
+            ms: i64,
+            tz: &crate::time_zone::ffi::TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
             zdt.to_plain_date()
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
@@ -353,11 +360,13 @@ pub mod ffi {
             time: Option<&PlainTime>,
             p: &Provider<'_>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
-            with_provider!(p, |p| self
-                .0
-                .to_zoned_date_time_with_provider(time_zone.0, time.map(|x| x.0), p)
-                .map(|x| Box::new(ZonedDateTime(x)))
-                .map_err(Into::into))
+            with_provider!(p, |p| self.0.to_zoned_date_time_with_provider(
+                time_zone.0,
+                time.map(|x| x.0),
+                p
+            ))
+            .map(|x| Box::new(ZonedDateTime(x)))
+            .map_err(Into::into)
         }
         pub fn to_ixdtf_string(
             &self,

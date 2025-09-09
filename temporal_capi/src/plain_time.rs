@@ -9,6 +9,7 @@ pub mod ffi {
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
     };
+    use crate::provider::ffi::Provider;
     use alloc::string::String;
     use core::str::FromStr;
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
@@ -74,7 +75,14 @@ pub mod ffi {
             ms: i64,
             tz: &crate::time_zone::ffi::TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms(ms, &tz.0)?;
+            Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_milliseconds_with_provider(
+            ms: i64,
+            tz: &crate::time_zone::ffi::TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
             zdt.to_plain_time()
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)

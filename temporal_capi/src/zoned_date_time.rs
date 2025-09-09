@@ -1,4 +1,5 @@
 use crate::error::ffi::TemporalError;
+use crate::provider::ffi::Provider;
 use temporal_rs::options::RelativeTo;
 
 #[diplomat::bridge]
@@ -190,8 +191,8 @@ pub mod ffi {
         pub fn epoch_milliseconds(&self) -> i64 {
             self.0.epoch_milliseconds()
         }
-        #[cfg(feature = "compiled_data")]
 
+        #[cfg(feature = "compiled_data")]
         pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
             super::zdt_from_epoch_ms(ms, &tz.0).map(|c| Box::new(Self(c)))
         }
@@ -543,10 +544,18 @@ pub(crate) fn zdt_from_epoch_ms(
     ms: i64,
     time_zone: &temporal_rs::TimeZone,
 ) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
+    zdt_from_epoch_ms_with_provider(ms, time_zone, &Provider::compiled())
+}
+
+pub(crate) fn zdt_from_epoch_ms_with_provider(
+    ms: i64,
+    time_zone: &temporal_rs::TimeZone,
+    p: &Provider<'_>,
+) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
     let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
-    instant
-        .to_zoned_date_time_iso(*time_zone)
-        .map_err(Into::into)
+    with_provider!(p, |p| instant
+        .to_zoned_date_time_iso_with_provider(*time_zone, p))
+    .map_err(Into::into)
 }
 
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZonedDateTime {

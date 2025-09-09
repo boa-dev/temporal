@@ -5,16 +5,14 @@ pub mod ffi {
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{DifferenceSettings, RoundingOptions};
-    #[cfg(feature = "compiled_data")]
     use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
     use alloc::string::String;
     use core::str::FromStr;
     use diplomat_runtime::{DiplomatStr, DiplomatStr16};
 
-    #[cfg(feature = "compiled_data")]
     use crate::options::ffi::ToStringRoundingOptions;
-    #[cfg(feature = "compiled_data")]
+    use crate::provider::ffi::Provider;
     use crate::time_zone::ffi::TimeZone;
 
     #[diplomat::opaque]
@@ -126,6 +124,7 @@ pub mod ffi {
             ns.into()
         }
 
+        // TODO: rename after 0.15/0.1.0 to remove the with_compiled_data
         #[cfg(feature = "compiled_data")]
         pub fn to_ixdtf_string_with_compiled_data(
             &self,
@@ -133,14 +132,26 @@ pub mod ffi {
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
+            self.to_ixdtf_string_with_provider(zone, options, &Provider::compiled(), write)
+        }
+        pub fn to_ixdtf_string_with_provider(
+            &self,
+            zone: Option<&TimeZone>,
+            options: ToStringRoundingOptions,
+            p: &Provider<'_>,
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
             use writeable::Writeable;
-            let writeable = self
-                .0
-                .to_ixdtf_writeable(zone.map(|x| &x.0), options.into())?;
-            // This can only fail in cases where the DiplomatWriteable is capped, we
-            // don't care about that.
-            let _ = writeable.write_to(write);
-
+            with_provider!(p, |p| {
+                let writeable = self.0.to_ixdtf_writeable_with_provider(
+                    zone.map(|x| &x.0),
+                    options.into(),
+                    p,
+                )?;
+                // This can only fail in cases where the DiplomatWriteable is capped, we
+                // don't care about that.
+                let _ = writeable.write_to(write);
+            });
             Ok(())
         }
 
@@ -149,10 +160,18 @@ pub mod ffi {
             &self,
             zone: &TimeZone,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
-            self.0
-                .to_zoned_date_time_iso(zone.0)
-                .map(|c| Box::new(ZonedDateTime(c)))
-                .map_err(Into::into)
+            self.to_zoned_date_time_iso_with_provider(zone, &Provider::compiled())
+        }
+        pub fn to_zoned_date_time_iso_with_provider(
+            &self,
+            zone: &TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            with_provider!(p, |p| self
+                .0
+                .to_zoned_date_time_iso_with_provider(zone.0, p))
+            .map(|c| Box::new(ZonedDateTime(c)))
+            .map_err(Into::into)
         }
 
         #[allow(clippy::should_implement_trait)]

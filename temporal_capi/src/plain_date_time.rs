@@ -7,18 +7,15 @@ pub mod ffi {
     use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
-    #[cfg(feature = "compiled_data")]
-    use crate::time_zone::ffi::TimeZone;
-    #[cfg(feature = "compiled_data")]
-    use crate::zoned_date_time::ffi::ZonedDateTime;
-    use alloc::boxed::Box;
-
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
         ToStringRoundingOptions,
     };
+    use crate::provider::ffi::Provider;
+    use crate::time_zone::ffi::TimeZone;
+    use crate::zoned_date_time::ffi::ZonedDateTime;
+    use alloc::boxed::Box;
 
-    #[cfg(feature = "compiled_data")]
     use crate::options::ffi::Disambiguation;
     use crate::plain_date::ffi::{PartialDate, PlainDate};
     use crate::plain_time::ffi::{PartialTime, PlainTime};
@@ -132,7 +129,14 @@ pub mod ffi {
             ms: i64,
             tz: &crate::time_zone::ffi::TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms(ms, &tz.0)?;
+            Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_milliseconds_with_provider(
+            ms: i64,
+            tz: &crate::time_zone::ffi::TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
             zdt.to_plain_datetime()
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
@@ -362,10 +366,22 @@ pub mod ffi {
             time_zone: &TimeZone,
             disambiguation: Disambiguation,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
-            self.0
-                .to_zoned_date_time(&time_zone.0, disambiguation.into())
-                .map(|x| Box::new(ZonedDateTime(x)))
-                .map_err(Into::into)
+            self.to_zoned_date_time_with_provider(time_zone, disambiguation, &Provider::compiled())
+        }
+
+        pub fn to_zoned_date_time_with_provider(
+            &self,
+            time_zone: &TimeZone,
+            disambiguation: Disambiguation,
+            p: &Provider<'_>,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            with_provider!(p, |p| self.0.to_zoned_date_time_with_provider(
+                &time_zone.0,
+                disambiguation.into(),
+                p
+            ))
+            .map(|x| Box::new(ZonedDateTime(x)))
+            .map_err(Into::into)
         }
 
         pub fn to_ixdtf_string(
