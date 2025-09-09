@@ -147,11 +147,20 @@ pub mod ffi {
             calendar: AnyCalendarKind,
             time_zone: &TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::ZonedDateTime::try_new(
+            Self::try_new_with_provider(nanosecond, calendar, time_zone, &Provider::compiled())
+        }
+        pub fn try_new_with_provider(
+            nanosecond: I128Nanoseconds,
+            calendar: AnyCalendarKind,
+            time_zone: &TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| temporal_rs::ZonedDateTime::try_new_with_provider(
                 nanosecond.into(),
                 temporal_rs::Calendar::new(calendar.into()),
                 time_zone.0,
-            )
+                p
+            ))
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
         }
@@ -162,12 +171,30 @@ pub mod ffi {
             disambiguation: Option<Disambiguation>,
             offset_option: Option<OffsetDisambiguation>,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::ZonedDateTime::from_partial(
-                partial.try_into()?,
-                overflow.map(Into::into),
-                disambiguation.map(Into::into),
-                offset_option.map(Into::into),
+            Self::from_partial_with_provider(
+                partial,
+                overflow,
+                disambiguation,
+                offset_option,
+                &Provider::compiled(),
             )
+        }
+        pub fn from_partial_with_provider(
+            partial: PartialZonedDateTime,
+            overflow: Option<ArithmeticOverflow>,
+            disambiguation: Option<Disambiguation>,
+            offset_option: Option<OffsetDisambiguation>,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| {
+                temporal_rs::ZonedDateTime::from_partial_with_provider(
+                    partial.try_into()?,
+                    overflow.map(Into::into),
+                    disambiguation.map(Into::into),
+                    offset_option.map(Into::into),
+                    p,
+                )
+            })
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
         }
@@ -177,10 +204,27 @@ pub mod ffi {
             disambiguation: Disambiguation,
             offset_option: OffsetDisambiguation,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::ZonedDateTime::from_parsed(
-                parsed.0.clone(),
-                disambiguation.into(),
-                offset_option.into(),
+            Self::from_parsed_with_provider(
+                parsed,
+                disambiguation,
+                offset_option,
+                &Provider::compiled(),
+            )
+        }
+        pub fn from_parsed_with_provider(
+            parsed: &ParsedZonedDateTime,
+            disambiguation: Disambiguation,
+            offset_option: OffsetDisambiguation,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(
+                p,
+                |p| temporal_rs::ZonedDateTime::from_parsed_with_provider(
+                    parsed.0.clone(),
+                    disambiguation.into(),
+                    offset_option.into(),
+                    p
+                )
             )
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
@@ -191,12 +235,26 @@ pub mod ffi {
             disambiguation: Disambiguation,
             offset_disambiguation: OffsetDisambiguation,
         ) -> Result<Box<Self>, TemporalError> {
+            Self::from_utf8_with_provider(
+                s,
+                disambiguation,
+                offset_disambiguation,
+                &Provider::compiled(),
+            )
+        }
+        pub fn from_utf8_with_provider(
+            s: &DiplomatStr,
+            disambiguation: Disambiguation,
+            offset_disambiguation: OffsetDisambiguation,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to check
-            temporal_rs::ZonedDateTime::from_utf8(
+            with_provider!(p, |p| temporal_rs::ZonedDateTime::from_utf8_with_provider(
                 s,
                 disambiguation.into(),
                 offset_disambiguation.into(),
-            )
+                p
+            ))
             .map(|c| Box::new(Self(c)))
             .map_err(Into::into)
         }
@@ -206,13 +264,27 @@ pub mod ffi {
             disambiguation: Disambiguation,
             offset_disambiguation: OffsetDisambiguation,
         ) -> Result<Box<Self>, TemporalError> {
+            Self::from_utf16_with_provider(
+                s,
+                disambiguation,
+                offset_disambiguation,
+                &Provider::compiled(),
+            )
+        }
+        pub fn from_utf16_with_provider(
+            s: &DiplomatStr16,
+            disambiguation: Disambiguation,
+            offset_disambiguation: OffsetDisambiguation,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal_rs::TemporalError::range())?;
-            temporal_rs::ZonedDateTime::from_utf8(
+            with_provider!(p, |p| temporal_rs::ZonedDateTime::from_utf8_with_provider(
                 s.as_bytes(),
                 disambiguation.into(),
                 offset_disambiguation.into(),
-            )
+                p
+            ))
             .map(|c| Box::new(Self(c)))
             .map_err(Into::into)
         }
@@ -223,7 +295,14 @@ pub mod ffi {
 
         #[cfg(feature = "compiled_data")]
         pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
-            super::zdt_from_epoch_ms(ms, &tz.0).map(|c| Box::new(Self(c)))
+            Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_milliseconds_with_provider(
+            ms: i64,
+            tz: &TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            super::zdt_from_epoch_ms_with_provider(ms, &tz.0, p).map(|c| Box::new(Self(c)))
         }
 
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
@@ -246,21 +325,43 @@ pub mod ffi {
             offset_option: Option<OffsetDisambiguation>,
             overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .with(
-                    partial.try_into()?,
-                    disambiguation.map(Into::into),
-                    offset_option.map(Into::into),
-                    overflow.map(Into::into),
-                )
-                .map(|x| Box::new(ZonedDateTime(x)))
-                .map_err(Into::into)
+            self.with_with_provider(
+                partial,
+                disambiguation,
+                offset_option,
+                overflow,
+                &Provider::compiled(),
+            )
+        }
+        pub fn with_with_provider(
+            &self,
+            partial: PartialZonedDateTime,
+            disambiguation: Option<Disambiguation>,
+            offset_option: Option<OffsetDisambiguation>,
+            overflow: Option<ArithmeticOverflow>,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| self.0.with_with_provider(
+                partial.try_into()?,
+                disambiguation.map(Into::into),
+                offset_option.map(Into::into),
+                overflow.map(Into::into),
+                p
+            ))
+            .map(|x| Box::new(ZonedDateTime(x)))
+            .map_err(Into::into)
         }
 
         #[cfg(feature = "compiled_data")]
         pub fn with_timezone(&self, zone: &TimeZone) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .with_timezone(zone.0)
+            self.with_timezone_with_provider(zone, &Provider::compiled())
+        }
+        pub fn with_timezone_with_provider(
+            &self,
+            zone: &TimeZone,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| self.0.with_timezone_with_provider(zone.0, p))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
@@ -275,7 +376,15 @@ pub mod ffi {
 
         #[cfg(feature = "compiled_data")]
         pub fn equals(&self, other: &Self) -> bool {
-            self.0.equals(&other.0).unwrap_or(false)
+            self.equals_with_provider(other, &Provider::compiled())
+                .unwrap_or(false)
+        }
+        pub fn equals_with_provider(
+            &self,
+            other: &Self,
+            p: &Provider<'_>,
+        ) -> Result<bool, TemporalError> {
+            with_provider!(p, |p| self.0.equals_with_provider(&other.0, p)).map_err(Into::into)
         }
 
         pub fn offset(&self, write: &mut DiplomatWrite) -> Result<(), TemporalError> {
@@ -287,8 +396,13 @@ pub mod ffi {
 
         #[cfg(feature = "compiled_data")]
         pub fn start_of_day(&self) -> Result<Box<ZonedDateTime>, TemporalError> {
-            self.0
-                .start_of_day()
+            self.start_of_day_with_provider(&Provider::compiled())
+        }
+        pub fn start_of_day_with_provider(
+            &self,
+            p: &Provider<'_>,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            with_provider!(p, |p| self.0.start_of_day_with_provider(p))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
@@ -298,15 +412,26 @@ pub mod ffi {
             &self,
             direction: TransitionDirection,
         ) -> Result<Option<Box<Self>>, TemporalError> {
-            self.0
-                .get_time_zone_transition(direction.into())
-                .map(|x| x.map(|y| Box::new(ZonedDateTime(y))))
-                .map_err(Into::into)
+            self.get_time_zone_transition_with_provider(direction, &Provider::compiled())
+        }
+        pub fn get_time_zone_transition_with_provider(
+            &self,
+            direction: TransitionDirection,
+            p: &Provider<'_>,
+        ) -> Result<Option<Box<Self>>, TemporalError> {
+            with_provider!(p, |p| self
+                .0
+                .get_time_zone_transition_with_provider(direction.into(), p))
+            .map(|x| x.map(|y| Box::new(ZonedDateTime(y))))
+            .map_err(Into::into)
         }
 
         #[cfg(feature = "compiled_data")]
         pub fn hours_in_day(&self) -> Result<f64, TemporalError> {
-            self.0.hours_in_day().map_err(Into::into)
+            self.hours_in_day_with_provider(&Provider::compiled())
+        }
+        pub fn hours_in_day_with_provider(&self, p: &Provider<'_>) -> Result<f64, TemporalError> {
+            with_provider!(p, |p| self.0.hours_in_day_with_provider(p)).map_err(Into::into)
         }
 
         pub fn to_plain_datetime(&self) -> Result<Box<PlainDateTime>, TemporalError> {
@@ -337,16 +462,34 @@ pub mod ffi {
             display_timezone: DisplayTimeZone,
             display_calendar: DisplayCalendar,
             options: ToStringRoundingOptions,
-
+            write: &mut DiplomatWrite,
+        ) -> Result<(), TemporalError> {
+            self.to_ixdtf_string_with_provider(
+                display_offset,
+                display_timezone,
+                display_calendar,
+                options,
+                &Provider::compiled(),
+                write,
+            )
+        }
+        pub fn to_ixdtf_string_with_provider(
+            &self,
+            display_offset: DisplayOffset,
+            display_timezone: DisplayTimeZone,
+            display_calendar: DisplayCalendar,
+            options: ToStringRoundingOptions,
+            p: &Provider<'_>,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
             // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.to_ixdtf_string(
+            let string = with_provider!(p, |p| self.0.to_ixdtf_string_with_provider(
                 display_offset.into(),
                 display_timezone.into(),
                 display_calendar.into(),
                 options.into(),
-            )?;
+                p
+            )?);
             // throw away the error, this should always succeed
             let _ = write.write_str(&string);
             Ok(())
@@ -364,10 +507,18 @@ pub mod ffi {
             &self,
             time: Option<&PlainTime>,
         ) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .with_plain_time(time.map(|t| t.0))
-                .map(|x| Box::new(ZonedDateTime(x)))
-                .map_err(Into::into)
+            self.with_plain_time_and_provider(time, &Provider::compiled())
+        }
+        pub fn with_plain_time_and_provider(
+            &self,
+            time: Option<&PlainTime>,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| self
+                .0
+                .with_plain_time_and_provider(time.map(|t| t.0), p))
+            .map(|x| Box::new(ZonedDateTime(x)))
+            .map_err(Into::into)
         }
         #[cfg(feature = "compiled_data")]
         pub fn add(
@@ -375,10 +526,21 @@ pub mod ffi {
             duration: &Duration,
             overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .add(&duration.0, overflow.map(Into::into))
-                .map(|x| Box::new(Self(x)))
-                .map_err(Into::into)
+            self.add_with_provider(duration, overflow, &Provider::compiled())
+        }
+        pub fn add_with_provider(
+            &self,
+            duration: &Duration,
+            overflow: Option<ArithmeticOverflow>,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| self.0.add_with_provider(
+                &duration.0,
+                overflow.map(Into::into),
+                p
+            ))
+            .map(|x| Box::new(Self(x)))
+            .map_err(Into::into)
         }
         #[cfg(feature = "compiled_data")]
         pub fn subtract(
@@ -386,10 +548,21 @@ pub mod ffi {
             duration: &Duration,
             overflow: Option<ArithmeticOverflow>,
         ) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .subtract(&duration.0, overflow.map(Into::into))
-                .map(|x| Box::new(Self(x)))
-                .map_err(Into::into)
+            self.subtract_with_provider(duration, overflow, &Provider::compiled())
+        }
+        pub fn subtract_with_provider(
+            &self,
+            duration: &Duration,
+            overflow: Option<ArithmeticOverflow>,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| self.0.subtract_with_provider(
+                &duration.0,
+                overflow.map(Into::into),
+                p
+            ))
+            .map(|x| Box::new(Self(x)))
+            .map_err(Into::into)
         }
         #[cfg(feature = "compiled_data")]
         pub fn until(
@@ -397,10 +570,21 @@ pub mod ffi {
             other: &Self,
             settings: DifferenceSettings,
         ) -> Result<Box<Duration>, TemporalError> {
-            self.0
-                .until(&other.0, settings.try_into()?)
-                .map(|x| Box::new(Duration(x)))
-                .map_err(Into::into)
+            self.until_with_provider(other, settings, &Provider::compiled())
+        }
+        pub fn until_with_provider(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+            p: &Provider<'_>,
+        ) -> Result<Box<Duration>, TemporalError> {
+            with_provider!(p, |p| self.0.until_with_provider(
+                &other.0,
+                settings.try_into()?,
+                p
+            ))
+            .map(|x| Box::new(Duration(x)))
+            .map_err(Into::into)
         }
         #[cfg(feature = "compiled_data")]
         pub fn since(
@@ -408,15 +592,32 @@ pub mod ffi {
             other: &Self,
             settings: DifferenceSettings,
         ) -> Result<Box<Duration>, TemporalError> {
-            self.0
-                .since(&other.0, settings.try_into()?)
-                .map(|x| Box::new(Duration(x)))
-                .map_err(Into::into)
+            self.since_with_provider(other, settings, &Provider::compiled())
+        }
+        pub fn since_with_provider(
+            &self,
+            other: &Self,
+            settings: DifferenceSettings,
+            p: &Provider<'_>,
+        ) -> Result<Box<Duration>, TemporalError> {
+            with_provider!(p, |p| self.0.since_with_provider(
+                &other.0,
+                settings.try_into()?,
+                p
+            ))
+            .map(|x| Box::new(Duration(x)))
+            .map_err(Into::into)
         }
         #[cfg(feature = "compiled_data")]
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .round(options.try_into()?)
+            self.round_with_provider(options, &Provider::compiled())
+        }
+        pub fn round_with_provider(
+            &self,
+            options: RoundingOptions,
+            p: &Provider<'_>,
+        ) -> Result<Box<Self>, TemporalError> {
+            with_provider!(p, |p| self.0.round_with_provider(options.try_into()?, p))
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }
@@ -516,14 +717,6 @@ pub mod ffi {
             Box::new(Self(self.0.clone()))
         }
     }
-}
-
-#[cfg(feature = "compiled_data")]
-pub(crate) fn zdt_from_epoch_ms(
-    ms: i64,
-    time_zone: &temporal_rs::TimeZone,
-) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
-    zdt_from_epoch_ms_with_provider(ms, time_zone, &Provider::compiled())
 }
 
 pub(crate) fn zdt_from_epoch_ms_with_provider(
