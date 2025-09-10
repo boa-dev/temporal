@@ -857,7 +857,10 @@ dependencies = [
  "icu_locale",
  "num-traits",
  "temporal_rs",
+ "timezone_provider",
  "writeable",
+ "yoke",
+ "zoneinfo64",
 ]
 
 [[package]]

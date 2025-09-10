@@ -18,6 +18,7 @@
 #include "PartialDateTime.d.h"
 #include "PlainDate.d.h"
 #include "PlainTime.d.h"
+#include "Provider.d.h"
 #include "RoundingOptions.d.h"
 #include "TemporalError.d.h"
 #include "TimeZone.d.h"
@@ -45,6 +46,9 @@ temporal_rs_PlainDateTime_from_parsed_result temporal_rs_PlainDateTime_from_pars
 
 typedef struct temporal_rs_PlainDateTime_from_epoch_milliseconds_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_milliseconds_result;
 temporal_rs_PlainDateTime_from_epoch_milliseconds_result temporal_rs_PlainDateTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+
+typedef struct temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result;
+temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider(int64_t ms, const TimeZone* tz, const Provider* p);
 
 typedef struct temporal_rs_PlainDateTime_with_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_result;
 temporal_rs_PlainDateTime_with_result temporal_rs_PlainDateTime_with(const PlainDateTime* self, PartialDateTime partial, ArithmeticOverflow_option overflow);
@@ -141,6 +145,9 @@ temporal_rs_PlainDateTime_to_plain_time_result temporal_rs_PlainDateTime_to_plai
 
 typedef struct temporal_rs_PlainDateTime_to_zoned_date_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_zoned_date_time_result;
 temporal_rs_PlainDateTime_to_zoned_date_time_result temporal_rs_PlainDateTime_to_zoned_date_time(const PlainDateTime* self, const TimeZone* time_zone, Disambiguation disambiguation);
+
+typedef struct temporal_rs_PlainDateTime_to_zoned_date_time_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_zoned_date_time_with_provider_result;
+temporal_rs_PlainDateTime_to_zoned_date_time_with_provider_result temporal_rs_PlainDateTime_to_zoned_date_time_with_provider(const PlainDateTime* self, const TimeZone* time_zone, Disambiguation disambiguation, const Provider* p);
 
 typedef struct temporal_rs_PlainDateTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_ixdtf_string_result;
 temporal_rs_PlainDateTime_to_ixdtf_string_result temporal_rs_PlainDateTime_to_ixdtf_string(const PlainDateTime* self, ToStringRoundingOptions options, DisplayCalendar display_calendar, DiplomatWrite* write);

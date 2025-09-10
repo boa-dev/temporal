@@ -8,6 +8,7 @@
 #include "diplomat_runtime.h"
 
 #include "PartialDuration.d.h"
+#include "Provider.d.h"
 #include "RelativeTo.d.h"
 #include "RoundingOptions.d.h"
 #include "Sign.d.h"
@@ -79,11 +80,20 @@ temporal_rs_Duration_to_string_result temporal_rs_Duration_to_string(const Durat
 typedef struct temporal_rs_Duration_round_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_round_result;
 temporal_rs_Duration_round_result temporal_rs_Duration_round(const Duration* self, RoundingOptions options, RelativeTo relative_to);
 
+typedef struct temporal_rs_Duration_round_with_provider_result {union {Duration* ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_round_with_provider_result;
+temporal_rs_Duration_round_with_provider_result temporal_rs_Duration_round_with_provider(const Duration* self, RoundingOptions options, RelativeTo relative_to, const Provider* p);
+
 typedef struct temporal_rs_Duration_compare_result {union {int8_t ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_compare_result;
 temporal_rs_Duration_compare_result temporal_rs_Duration_compare(const Duration* self, const Duration* other, RelativeTo relative_to);
 
+typedef struct temporal_rs_Duration_compare_with_provider_result {union {int8_t ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_compare_with_provider_result;
+temporal_rs_Duration_compare_with_provider_result temporal_rs_Duration_compare_with_provider(const Duration* self, const Duration* other, RelativeTo relative_to, const Provider* p);
+
 typedef struct temporal_rs_Duration_total_result {union {double ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_total_result;
 temporal_rs_Duration_total_result temporal_rs_Duration_total(const Duration* self, Unit unit, RelativeTo relative_to);
+
+typedef struct temporal_rs_Duration_total_with_provider_result {union {double ok; TemporalError err;}; bool is_ok;} temporal_rs_Duration_total_with_provider_result;
+temporal_rs_Duration_total_with_provider_result temporal_rs_Duration_total_with_provider(const Duration* self, Unit unit, RelativeTo relative_to, const Provider* p);
 
 Duration* temporal_rs_Duration_clone(const Duration* self);
 

@@ -5,6 +5,7 @@ pub mod ffi {
     use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+    use crate::provider::ffi::Provider;
     use alloc::boxed::Box;
 
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar};
@@ -202,9 +203,14 @@ pub mod ffi {
             &self,
             time_zone: &crate::time_zone::ffi::TimeZone,
         ) -> Result<i64, TemporalError> {
-            let ns = self
-                .0
-                .epoch_ns_for(&time_zone.0)
+            self.epoch_ms_for_with_provider(time_zone, &Provider::compiled())
+        }
+        pub fn epoch_ms_for_with_provider<'p>(
+            &self,
+            time_zone: &crate::time_zone::ffi::TimeZone,
+            p: &Provider<'p>,
+        ) -> Result<i64, TemporalError> {
+            let ns = with_provider!(p, |p| self.0.epoch_ns_for_with_provider(&time_zone.0, p))
                 .map_err(TemporalError::from)?;
 
             let ns_i128 = ns.as_i128();

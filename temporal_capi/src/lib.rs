@@ -21,6 +21,9 @@
 
 extern crate alloc;
 
+#[macro_use]
+pub mod provider;
+
 pub mod calendar;
 pub mod duration;
 pub mod error;

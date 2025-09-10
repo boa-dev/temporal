@@ -11,6 +11,7 @@
 #include "DifferenceSettings.d.h"
 #include "Duration.d.h"
 #include "PartialTime.d.h"
+#include "Provider.d.h"
 #include "RoundingMode.d.h"
 #include "TemporalError.d.h"
 #include "TimeZone.d.h"
@@ -35,6 +36,9 @@ temporal_rs_PlainTime_from_partial_result temporal_rs_PlainTime_from_partial(Par
 
 typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_result;
 temporal_rs_PlainTime_from_epoch_milliseconds_result temporal_rs_PlainTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+
+typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result;
+temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainTime_from_epoch_milliseconds_with_provider(int64_t ms, const TimeZone* tz, const Provider* p);
 
 typedef struct temporal_rs_PlainTime_with_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_with_result;
 temporal_rs_PlainTime_with_result temporal_rs_PlainTime_with(const PlainTime* self, PartialTime partial, ArithmeticOverflow_option overflow);

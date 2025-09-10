@@ -14,6 +14,8 @@
 namespace temporal_rs {
 namespace capi { struct Duration; }
 class Duration;
+namespace capi { struct Provider; }
+class Provider;
 struct PartialDuration;
 struct RelativeTo;
 struct RoundingOptions;
@@ -87,9 +89,15 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options, temporal_rs::RelativeTo relative_to) const;
 
+  inline diplomat::result<std::unique_ptr<temporal_rs::Duration>, temporal_rs::TemporalError> round_with_provider(temporal_rs::RoundingOptions options, temporal_rs::RelativeTo relative_to, const temporal_rs::Provider& p) const;
+
   inline diplomat::result<int8_t, temporal_rs::TemporalError> compare(const temporal_rs::Duration& other, temporal_rs::RelativeTo relative_to) const;
 
+  inline diplomat::result<int8_t, temporal_rs::TemporalError> compare_with_provider(const temporal_rs::Duration& other, temporal_rs::RelativeTo relative_to, const temporal_rs::Provider& p) const;
+
   inline diplomat::result<double, temporal_rs::TemporalError> total(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to) const;
+
+  inline diplomat::result<double, temporal_rs::TemporalError> total_with_provider(temporal_rs::Unit unit, temporal_rs::RelativeTo relative_to, const temporal_rs::Provider& p) const;
 
   inline std::unique_ptr<temporal_rs::Duration> clone() const;
 

@@ -14,9 +14,8 @@ pub mod ffi {
     use crate::plain_month_day::ffi::PlainMonthDay;
     use crate::plain_time::ffi::PlainTime;
     use crate::plain_year_month::ffi::PlainYearMonth;
-    #[cfg(feature = "compiled_data")]
+    use crate::provider::ffi::Provider;
     use crate::time_zone::ffi::TimeZone;
-    #[cfg(feature = "compiled_data")]
     use crate::zoned_date_time::ffi::ZonedDateTime;
     use alloc::boxed::Box;
     use alloc::string::String;
@@ -157,7 +156,14 @@ pub mod ffi {
             ms: i64,
             tz: &crate::time_zone::ffi::TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms(ms, &tz.0)?;
+            Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_milliseconds_with_provider<'p>(
+            ms: i64,
+            tz: &crate::time_zone::ffi::TimeZone,
+            p: &Provider<'p>,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
             zdt.to_plain_date()
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
@@ -346,12 +352,22 @@ pub mod ffi {
             time_zone: &TimeZone,
             time: Option<&PlainTime>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
-            self.0
-                .to_zoned_date_time(time_zone.0, time.map(|x| x.0))
-                .map(|x| Box::new(ZonedDateTime(x)))
-                .map_err(Into::into)
+            self.to_zoned_date_time_with_provider(time_zone, time, &Provider::compiled())
         }
-
+        pub fn to_zoned_date_time_with_provider<'p>(
+            &self,
+            time_zone: &TimeZone,
+            time: Option<&PlainTime>,
+            p: &Provider<'p>,
+        ) -> Result<Box<ZonedDateTime>, TemporalError> {
+            with_provider!(p, |p| self.0.to_zoned_date_time_with_provider(
+                time_zone.0,
+                time.map(|x| x.0),
+                p
+            ))
+            .map(|x| Box::new(ZonedDateTime(x)))
+            .map_err(Into::into)
+        }
         pub fn to_ixdtf_string(
             &self,
             display_calendar: DisplayCalendar,
