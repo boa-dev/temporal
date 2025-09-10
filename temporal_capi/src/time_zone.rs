@@ -77,6 +77,16 @@ pub mod ffi {
             // TODO merge signature with below
             Box::new(Self(temporal_rs::TimeZone::utc()))
         }
+
+        /// Create a TimeZone that represents +00:00
+        ///
+        /// This is the only way to infallibly make a TimeZone without compiled_data,
+        /// and can be used as a fallback.
+        pub fn zero() -> Box<Self> {
+            // TODO merge signature with below
+            Box::new(Self(temporal_rs::TimeZone::UtcOffset(Default::default())))
+        }
+
         pub fn utc_with_provider<'p>(p: &Provider<'p>) -> Result<Box<Self>, TemporalError> {
             Ok(Box::new(Self(with_provider!(p, |p| {
                 temporal_rs::TimeZone::utc_with_provider(p)
