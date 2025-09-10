@@ -28,7 +28,7 @@ const NS_IN_S: i64 = 1_000_000_000;
 const NS_IN_MIN: i64 = 60_000_000_000;
 
 /// A UTC time zone offset stored in nanoseconds
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct UtcOffset(i64);
 
 impl From<timezone_provider::provider::UtcOffsetSeconds> for UtcOffset {
@@ -287,15 +287,15 @@ impl TimeZone {
     }
 }
 
-impl Default for TimeZone {
-    fn default() -> Self {
-        Self::UtcOffset(UtcOffset(0))
-    }
-}
-
 impl From<&ZonedDateTime> for TimeZone {
     fn from(value: &ZonedDateTime) -> Self {
         *value.timezone()
+    }
+}
+
+impl From<UtcOffset> for TimeZone {
+    fn from(value: UtcOffset) -> Self {
+        Self::UtcOffset(value)
     }
 }
 
