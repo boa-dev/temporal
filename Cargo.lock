@@ -842,7 +842,6 @@ dependencies = [
  "temporal_rs",
  "timezone_provider",
  "writeable",
- "yoke",
  "zoneinfo64",
 ]
 
