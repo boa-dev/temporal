@@ -17,6 +17,8 @@ include = [
 ]
 
 [features]
+# Allow people to use default-features = false
+default = []
 datagen = [
     "std",
     "dep:serde",
