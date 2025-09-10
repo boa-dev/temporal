@@ -172,7 +172,7 @@ fn zdt_from_partial() {
         };
         let partial = PartialZonedDateTime {
             fields,
-            timezone: Some(TimeZone::default()),
+            timezone: Some(TimeZone::utc_with_provider(provider)),
             calendar: Calendar::ISO,
         };
 
@@ -190,7 +190,7 @@ fn zdt_from_partial() {
         };
         let partial = PartialZonedDateTime {
             fields,
-            timezone: Some(TimeZone::default()),
+            timezone: Some(TimeZone::utc_with_provider(provider)),
             calendar: Calendar::ISO,
         };
 
@@ -328,7 +328,7 @@ fn overflow_reject_throws() {
         let zdt = ZonedDateTime::try_new_with_provider(
             217178610123456789,
             Calendar::default(),
-            TimeZone::default(),
+            TimeZone::utc_with_provider(provider),
             provider,
         )
         .unwrap();
@@ -458,7 +458,7 @@ fn basic_zdt_add() {
         let zdt = ZonedDateTime::try_new_with_provider(
             -560174321098766,
             Calendar::default(),
-            TimeZone::default(),
+            TimeZone::utc_with_provider(provider),
             provider,
         )
         .unwrap();
@@ -479,7 +479,7 @@ fn basic_zdt_add() {
         let expected = ZonedDateTime::try_new_with_provider(
             303825678902034,
             Calendar::default(),
-            TimeZone::default(),
+            TimeZone::utc_with_provider(provider),
             provider,
         )
         .unwrap();

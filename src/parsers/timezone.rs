@@ -41,7 +41,7 @@ pub(crate) fn parse_allowed_timezone_formats(
 
     if let Some(offset) = offset {
         match offset {
-            UtcOffsetRecordOrZ::Z => return Some(TimeZone::default()),
+            UtcOffsetRecordOrZ::Z => return Some(TimeZone::utc_with_provider(provider)),
             UtcOffsetRecordOrZ::Offset(offset) => {
                 let offset = match offset {
                     UtcOffsetRecord::MinutePrecision(offset) => offset,

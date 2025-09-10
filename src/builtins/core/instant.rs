@@ -431,7 +431,8 @@ impl Instant {
             datetime
         } else {
             ixdtf = ixdtf.with_z(DisplayOffset::Auto);
-            TimeZone::default().get_iso_datetime_for(&rounded_instant, provider)?
+            TimeZone::utc_with_provider(provider)
+                .get_iso_datetime_for(&rounded_instant, provider)?
         };
         let builder = ixdtf
             .with_date(datetime.date)

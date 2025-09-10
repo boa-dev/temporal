@@ -6,8 +6,9 @@ use crate::TemporalResult;
 use crate::{iso::IsoDateTime, TemporalError};
 
 use super::{
-    calendar::Calendar, timezone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
-    ZonedDateTime,
+    calendar::Calendar,
+    timezone::{TimeZone, UtcOffset},
+    Instant, PlainDate, PlainDateTime, PlainTime, ZonedDateTime,
 };
 
 #[derive(Debug, Default)]
@@ -30,7 +31,7 @@ impl NowBuilder {
     pub fn build(self) -> Now {
         Now {
             clock: self.clock,
-            zone: self.zone.unwrap_or_default(),
+            zone: self.zone.unwrap_or(UtcOffset::default().into()),
         }
     }
 }

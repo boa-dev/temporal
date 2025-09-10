@@ -666,7 +666,9 @@ impl ZonedDateTime {
         // Handle time zones
         let offset_nanos = partial.fields.offset.map(|offset| offset.nanoseconds());
 
-        let timezone = partial.timezone.unwrap_or_default();
+        let timezone = partial
+            .timezone
+            .unwrap_or_else(|| TimeZone::utc_with_provider(provider));
         let epoch_nanos = interpret_isodatetime_offset(
             date,
             time,
