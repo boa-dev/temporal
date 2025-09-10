@@ -117,7 +117,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "databake",
  "prettyplease",
@@ -285,7 +285,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.0.15"
+version = "0.0.16"
 
 [[package]]
 name = "diplomat"
@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "diplomat-tool",
 ]
@@ -513,23 +513,6 @@ dependencies = [
  "writeable",
  "yoke",
  "zerofrom",
- "zerotrie",
- "zerovec",
-]
-
-[[package]]
-name = "icu_time"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d01a4a2dcbc5e5180ef113920e7461d0e9caaddb3567d81c4eca262efe55c0"
-dependencies = [
- "calendrical_calculations",
- "displaydoc",
- "icu_calendar",
- "icu_locale_core",
- "icu_provider",
- "tinystr",
- "writeable",
  "zerotrie",
  "zerovec",
 ]
@@ -849,7 +832,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -865,7 +848,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "core_maths",
  "iana-time-zone",
@@ -884,11 +867,10 @@ dependencies = [
 
 [[package]]
 name = "timezone_provider"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "combine",
  "databake",
- "icu_time",
  "jiff-tzdb",
  "serde",
  "serde_json",
@@ -965,7 +947,7 @@ dependencies = [
 
 [[package]]
 name = "tzif-inspect"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "jiff-tzdb",
  "temporal_rs",
@@ -1267,8 +1249,6 @@ dependencies = [
  "displaydoc",
  "litemap",
  "serde",
- "yoke",
- "zerofrom",
  "zerovec",
 ]
 
@@ -1298,7 +1278,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo-test-gen"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "clap",
  "serde",
@@ -1321,7 +1301,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo_rs"
-version = "0.0.15"
+version = "0.0.16"
 dependencies = [
  "hashbrown",
  "indexmap",

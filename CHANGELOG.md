@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## What's Changed in v0.0.16
+* Bump versions to 0.0.16
+* Remove extraneous icu_time dependency
+* Add TimeZone::zero() to capi by @Manishearth in [#554](https://github.com/boa-dev/temporal/pull/554)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.15...v0.0.16
+
 ## What's Changed in v0.0.15
 * Bump versions
 * Update zoneinfo64 by @Manishearth in [#552](https://github.com/boa-dev/temporal/pull/552)
