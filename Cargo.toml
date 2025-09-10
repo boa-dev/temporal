@@ -11,7 +11,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-version = "0.0.14"
+version = "0.0.15"
 rust-version = "1.82.0"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
@@ -29,9 +29,9 @@ exclude = [
 
 [workspace.dependencies]
 # Self
-temporal_rs = { version = "~0.0.14", path = ".", default-features = false }
-timezone_provider = { version = "~0.0.14", path = "./provider" }
-zoneinfo_rs = { version = "~0.0.14", path = "./zoneinfo" }
+temporal_rs = { version = "~0.0.15", path = ".", default-features = false }
+timezone_provider = { version = "~0.0.15", path = "./provider" }
+zoneinfo_rs = { version = "~0.0.15", path = "./zoneinfo" }
 
 # Dependencies
 tinystr = "0.8.1"
