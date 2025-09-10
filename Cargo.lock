@@ -1308,13 +1308,12 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo64"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecb05a4021a0c67056a78c948c7d320a4e549126c3dc53f3f206e1a1e43a5c56"
+checksum = "6916519e4a1cff59d49e0b902caed549d85dbbbf623a95af5c8320d5c08c6e13"
 dependencies = [
  "calendrical_calculations",
  "icu_locale_core",
- "icu_time",
  "potential_utf",
  "resb",
  "serde",

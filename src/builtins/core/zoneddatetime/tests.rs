@@ -12,10 +12,8 @@ use crate::{
 };
 use alloc::string::ToString;
 use core::str::FromStr;
+use timezone_provider::zoneinfo64::ZONEINFO64_RES_FOR_TESTING;
 use tinystr::tinystr;
-
-pub const ZONEINFO64_RES_FOR_TESTING: &[u32] =
-    resb::include_bytes_as_u32!("../../../../tests/data/zoneinfo64.res");
 
 macro_rules! test_all_providers {
     ($(#[cfg_for_fs($cfg_fs:meta)])? $(#[cfg_for_zi64($cfg_zi:meta)])? $provider:ident: $b:block) => {{

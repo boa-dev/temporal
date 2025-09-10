@@ -11,16 +11,28 @@ use crate::{
     epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
     TimeZoneProviderError,
 };
-use icu_time::zone::UtcOffset;
+use zoneinfo64::UtcOffset;
 
 impl From<UtcOffset> for UtcOffsetSeconds {
     fn from(other: UtcOffset) -> Self {
-        Self(i64::from(other.to_seconds()))
+        Self(i64::from(other.seconds()))
     }
 }
 
+pub use zoneinfo64::ZONEINFO64_RES_FOR_TESTING;
+
 /// A TimeZoneProvider that works using ICU4C zoneinfo64.res data
 pub type ZoneInfo64TzdbProvider<'a> = NormalizerAndResolver<CompiledNormalizer, ZoneInfo64<'a>>;
+
+impl ZoneInfo64TzdbProvider<'_> {
+    /// Produces a zoneinfo64 provider using the builtin zoneinfo64 data,
+    /// for testing use only. We do not provide strong guarantees for which version of zoneinfo64
+    /// this will be.
+    pub fn zoneinfo64_provider_for_testing() -> Option<Self> {
+        let zi_data = zoneinfo64::ZoneInfo64::try_from_u32s(ZONEINFO64_RES_FOR_TESTING).ok()?;
+        Some(ZoneInfo64TzdbProvider::new(zi_data))
+    }
+}
 
 fn get<'a>(zi: &'a ZoneInfo64<'a>, id: ResolvedId) -> TimeZoneProviderResult<Zone<'a>> {
     let id = u16::try_from(id.0)
@@ -55,53 +67,40 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
             local_datetime.second,
         );
 
-        const FIVE_DAYS_NANOS: i128 = 5 * 24 * 60 * 60 * 1_000_000_000;
         let result = match possible_offset {
-            // TODO(Manishearth) This is wrong. It mostly works: we do not have any transitions with gaps that last
-            // longer than 5 days, and for the purpose of calculating an offset when you are that far away from a transition
-            // treating local datetime as epoch time works fine.
-            // Can be fixed once we have https://github.com/unicode-org/icu4x/pull/6913
-            PossibleOffset::None => CandidateEpochNanoseconds::Zero(GapEntryOffsets {
-                offset_before: self.transition_nanoseconds_for_utc_epoch_nanoseconds(
-                    identifier,
-                    epoch_nanos.0 - FIVE_DAYS_NANOS,
-                )?,
-                offset_after: self.transition_nanoseconds_for_utc_epoch_nanoseconds(
-                    identifier,
-                    epoch_nanos.0 + FIVE_DAYS_NANOS,
-                )?,
-                transition_epoch: self
-                    .get_time_zone_transition(
-                        identifier,
-                        epoch_nanos.0 - FIVE_DAYS_NANOS,
-                        TransitionDirection::Next,
-                    )?
-                    .unwrap_or_default(),
+            PossibleOffset::None {
+                before,
+                after,
+                transition,
+            } => CandidateEpochNanoseconds::Zero(GapEntryOffsets {
+                offset_before: before.offset.into(),
+                offset_after: after.offset.into(),
+                transition_epoch: EpochNanoseconds::from(seconds_to_nanoseconds(transition)),
             }),
             PossibleOffset::Single(o) => {
                 let epoch_ns = EpochNanoseconds::from(
-                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(o.offset.to_seconds())),
+                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(o.offset.seconds())),
                 );
                 CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
                     ns: epoch_ns,
                     offset: o.offset.into(),
                 })
             }
-            PossibleOffset::Ambiguous(first, second) => {
+            PossibleOffset::Ambiguous { before, after, .. } => {
                 let first_epoch_ns = EpochNanoseconds::from(
-                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(first.offset.to_seconds())),
+                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(before.offset.seconds())),
                 );
                 let second_epoch_ns = EpochNanoseconds::from(
-                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(second.offset.to_seconds())),
+                    epoch_nanos.0 - seconds_to_nanoseconds(i64::from(after.offset.seconds())),
                 );
                 CandidateEpochNanoseconds::Two([
                     EpochNanosecondsAndOffset {
                         ns: first_epoch_ns,
-                        offset: first.offset.into(),
+                        offset: before.offset.into(),
                     },
                     EpochNanosecondsAndOffset {
                         ns: second_epoch_ns,
-                        offset: second.offset.into(),
+                        offset: after.offset.into(),
                     },
                 ])
             }
