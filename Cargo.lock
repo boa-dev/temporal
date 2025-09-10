@@ -518,23 +518,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "icu_time"
-version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10d01a4a2dcbc5e5180ef113920e7461d0e9caaddb3567d81c4eca262efe55c0"
-dependencies = [
- "calendrical_calculations",
- "displaydoc",
- "icu_calendar",
- "icu_locale_core",
- "icu_provider",
- "tinystr",
- "writeable",
- "zerotrie",
- "zerovec",
-]
-
-[[package]]
 name = "indenter"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -888,7 +871,6 @@ version = "0.0.15"
 dependencies = [
  "combine",
  "databake",
- "icu_time",
  "jiff-tzdb",
  "serde",
  "serde_json",
@@ -1267,8 +1249,6 @@ dependencies = [
  "displaydoc",
  "litemap",
  "serde",
- "yoke",
- "zerofrom",
  "zerovec",
 ]
 
