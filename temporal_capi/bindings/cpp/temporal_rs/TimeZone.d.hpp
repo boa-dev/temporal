@@ -50,6 +50,14 @@ public:
 
   inline static std::unique_ptr<temporal_rs::TimeZone> utc();
 
+  /**
+   * Create a TimeZone that represents +00:00
+   *
+   * This is the only way to infallibly make a TimeZone without compiled_data,
+   * and can be used as a fallback.
+   */
+  inline static std::unique_ptr<temporal_rs::TimeZone> zero();
+
   inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> utc_with_provider(const temporal_rs::Provider& p);
 
   inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
