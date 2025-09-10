@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## What's Changed in v0.0.15
+* Bump versions
+* Update zoneinfo64 by @Manishearth in [#552](https://github.com/boa-dev/temporal/pull/552)
+* Remove Default impl from TimeZone; use utc() everywhere by @Manishearth in [#551](https://github.com/boa-dev/temporal/pull/551)
+* Add missing header files by @Manishearth in [#550](https://github.com/boa-dev/temporal/pull/550)
+* Add provider APIs to capi by @Manishearth in [#544](https://github.com/boa-dev/temporal/pull/544)
+* Add new unit validation code by @Manishearth in [#542](https://github.com/boa-dev/temporal/pull/542)
+* Add calendar consts for calendar construction by @nekevss in [#541](https://github.com/boa-dev/temporal/pull/541)
+* Remove some unreachables by @Manishearth in [#543](https://github.com/boa-dev/temporal/pull/543)
+* Move timezone tests to testing against multiple providers by @Manishearth in [#539](https://github.com/boa-dev/temporal/pull/539)
+* Move TimeZone over to being Copy with TimeZoneId by @Manishearth in [#538](https://github.com/boa-dev/temporal/pull/538)
+* Split TimeZoneProvider trait by @Manishearth in [#537](https://github.com/boa-dev/temporal/pull/537)
+* Update compiled tzif data provider data by @nekevss in [#535](https://github.com/boa-dev/temporal/pull/535)
+* Add zoneinfo64 support to temporal_provider by @Manishearth in [#533](https://github.com/boa-dev/temporal/pull/533)
+* Update zoneinfo compilation in zoneinfo crate by @nekevss in [#532](https://github.com/boa-dev/temporal/pull/532)
+* Complete some cleanup options module by @nekevss in [#531](https://github.com/boa-dev/temporal/pull/531)
+* Make errors Copy by @Manishearth in [#528](https://github.com/boa-dev/temporal/pull/528)
+* More saturating arithmetic by @Manishearth in [#527](https://github.com/boa-dev/temporal/pull/527)
+* Move TimeZoneProvider to timezone_provider crate by @Manishearth in [#526](https://github.com/boa-dev/temporal/pull/526)
+* Clean up TimeZoneProvider crate by @Manishearth in [#525](https://github.com/boa-dev/temporal/pull/525)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.14...v0.0.15
+
 ## What's Changed in v0.0.14
 * Release 0.0.14
 * Fix validity checks by @Manishearth in [#523](https://github.com/boa-dev/temporal/pull/523)
