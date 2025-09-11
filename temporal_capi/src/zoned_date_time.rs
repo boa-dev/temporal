@@ -361,13 +361,13 @@ pub mod ffi {
             zone: &TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
-            with_provider!(p, |p| self.0.with_timezone_with_provider(zone.0, p))
+            with_provider!(p, |p| self.0.with_time_zone_with_provider(zone.0, p))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
 
         pub fn timezone<'a>(&'a self) -> &'a TimeZone {
-            TimeZone::transparent_convert(self.0.timezone())
+            TimeZone::transparent_convert(self.0.time_zone())
         }
 
         pub fn compare_instant(&self, other: &Self) -> core::cmp::Ordering {
@@ -437,25 +437,16 @@ pub mod ffi {
             with_provider!(p, |p| self.0.hours_in_day_with_provider(p)).map_err(Into::into)
         }
 
-        pub fn to_plain_datetime(&self) -> Result<Box<PlainDateTime>, TemporalError> {
-            self.0
-                .to_plain_datetime()
-                .map(|x| Box::new(PlainDateTime(x)))
-                .map_err(Into::into)
+        pub fn to_plain_datetime(&self) -> Box<PlainDateTime> {
+            Box::new(PlainDateTime(self.0.to_plain_date_time()))
         }
 
-        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
-            self.0
-                .to_plain_date()
-                .map(|x| Box::new(PlainDate(x)))
-                .map_err(Into::into)
+        pub fn to_plain_date(&self) -> Box<PlainDate> {
+            Box::new(PlainDate(self.0.to_plain_date()))
         }
 
-        pub fn to_plain_time(&self) -> Result<Box<PlainTime>, TemporalError> {
-            self.0
-                .to_plain_time()
-                .map(|x| Box::new(PlainTime(x)))
-                .map_err(Into::into)
+        pub fn to_plain_time(&self) -> Box<PlainTime> {
+            Box::new(PlainTime(self.0.to_plain_time()))
         }
 
         #[cfg(feature = "compiled_data")]
@@ -499,11 +490,8 @@ pub mod ffi {
         }
 
         // Same as PlainDateTime (non-getters)
-        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .with_calendar(temporal_rs::Calendar::new(calendar.into()))
-                .map(|x| Box::new(ZonedDateTime(x)))
-                .map_err(Into::into)
+        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Box<Self> {
+            Box::new(ZonedDateTime(self.0.with_calendar(temporal_rs::Calendar::new(calendar.into()))))
         }
         #[cfg(feature = "compiled_data")]
         pub fn with_plain_time(
@@ -629,82 +617,80 @@ pub mod ffi {
         pub fn hour(&self) -> u8 {
             // unwrap_or_default because of
             // https://github.com/boa-dev/temporal/issues/548
-            self.0.hour().unwrap_or_default()
+            self.0.hour()
         }
         pub fn minute(&self) -> u8 {
-            self.0.minute().unwrap_or_default()
+            self.0.minute()
         }
         pub fn second(&self) -> u8 {
-            self.0.second().unwrap_or_default()
+            self.0.second()
         }
         pub fn millisecond(&self) -> u16 {
-            self.0.millisecond().unwrap_or_default()
+            self.0.millisecond()
         }
         pub fn microsecond(&self) -> u16 {
-            self.0.microsecond().unwrap_or_default()
+            self.0.microsecond()
         }
         pub fn nanosecond(&self) -> u16 {
-            self.0.nanosecond().unwrap_or_default()
+            self.0.nanosecond()
         }
 
         pub fn calendar<'a>(&'a self) -> &'a Calendar {
             Calendar::transparent_convert(self.0.calendar())
         }
         pub fn year(&self) -> i32 {
-            self.0.year().unwrap_or_default()
+            self.0.year()
         }
         pub fn month(&self) -> u8 {
-            self.0.month().unwrap_or_default()
+            self.0.month()
         }
         pub fn month_code(&self, write: &mut DiplomatWrite) {
             // https://github.com/boa-dev/temporal/issues/328 for the fallibility
-            let Ok(code) = self.0.month_code() else {
-                return;
-            };
+            let code = self.0.month_code();
             // throw away the error, this should always succeed
             let _ = write.write_str(code.as_str());
         }
         pub fn day(&self) -> u8 {
-            self.0.day().unwrap_or_default()
+            self.0.day()
         }
 
-        pub fn day_of_week(&self) -> Result<u16, TemporalError> {
-            self.0.day_of_week().map_err(Into::into)
+        pub fn day_of_week(&self) -> u16 {
+            self.0.day_of_week()
         }
 
         pub fn day_of_year(&self) -> u16 {
-            self.0.day_of_year().unwrap_or_default()
+            self.0.day_of_year()
         }
 
         pub fn week_of_year(&self) -> Option<u8> {
-            self.0.week_of_year().unwrap_or_default()
+            self.0.week_of_year()
         }
 
         pub fn year_of_week(&self) -> Option<i32> {
-            self.0.year_of_week().unwrap_or_default()
+            self.0.year_of_week()
         }
 
-        pub fn days_in_week(&self) -> Result<u16, TemporalError> {
-            self.0.days_in_week().map_err(Into::into)
+        pub fn days_in_week(&self) -> u16 {
+            self.0.days_in_week()
         }
         pub fn days_in_month(&self) -> u16 {
-            self.0.days_in_month().unwrap_or_default()
+            self.0.days_in_month()
         }
 
         pub fn days_in_year(&self) -> u16 {
-            self.0.days_in_year().unwrap_or_default()
+            self.0.days_in_year()
         }
 
         pub fn months_in_year(&self) -> u16 {
-            self.0.months_in_year().unwrap_or_default()
+            self.0.months_in_year()
         }
 
         pub fn in_leap_year(&self) -> bool {
-            self.0.in_leap_year().unwrap_or_default()
+            self.0.in_leap_year()
         }
         // Writes an empty string for no era
         pub fn era(&self, write: &mut DiplomatWrite) {
-            let era = self.0.era().unwrap_or_default();
+            let era = self.0.era();
             if let Some(era) = era {
                 // throw away the error, this should always succeed
                 let _ = write.write_str(&era);
@@ -712,7 +698,7 @@ pub mod ffi {
         }
 
         pub fn era_year(&self) -> Option<i32> {
-            self.0.era_year().unwrap_or_default()
+            self.0.era_year()
         }
 
         #[allow(clippy::should_implement_trait)]
