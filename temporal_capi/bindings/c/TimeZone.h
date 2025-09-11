@@ -39,10 +39,10 @@ temporal_rs_TimeZone_identifier_with_provider_result temporal_rs_TimeZone_identi
 
 TimeZone* temporal_rs_TimeZone_utc(void);
 
-TimeZone* temporal_rs_TimeZone_zero(void);
-
 typedef struct temporal_rs_TimeZone_utc_with_provider_result {union {TimeZone* ok; TemporalError err;}; bool is_ok;} temporal_rs_TimeZone_utc_with_provider_result;
 temporal_rs_TimeZone_utc_with_provider_result temporal_rs_TimeZone_utc_with_provider(const Provider* p);
+
+TimeZone* temporal_rs_TimeZone_zero(void);
 
 TimeZone* temporal_rs_TimeZone_clone(const TimeZone* self);
 
