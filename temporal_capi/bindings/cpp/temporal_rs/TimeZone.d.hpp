@@ -50,6 +50,8 @@ public:
 
   inline static std::unique_ptr<temporal_rs::TimeZone> utc();
 
+  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> utc_with_provider(const temporal_rs::Provider& p);
+
   /**
    * Create a TimeZone that represents +00:00
    *
@@ -57,8 +59,6 @@ public:
    * and can be used as a fallback.
    */
   inline static std::unique_ptr<temporal_rs::TimeZone> zero();
-
-  inline static diplomat::result<std::unique_ptr<temporal_rs::TimeZone>, temporal_rs::TemporalError> utc_with_provider(const temporal_rs::Provider& p);
 
   inline std::unique_ptr<temporal_rs::TimeZone> clone() const;
 
