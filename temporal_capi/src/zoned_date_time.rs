@@ -491,7 +491,10 @@ pub mod ffi {
 
         // Same as PlainDateTime (non-getters)
         pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Box<Self> {
-            Box::new(ZonedDateTime(self.0.with_calendar(temporal_rs::Calendar::new(calendar.into()))))
+            Box::new(ZonedDateTime(
+                self.0
+                    .with_calendar(temporal_rs::Calendar::new(calendar.into())),
+            ))
         }
         #[cfg(feature = "compiled_data")]
         pub fn with_plain_time(
