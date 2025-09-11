@@ -4,7 +4,7 @@ use alloc::string::String;
 use core::{num::NonZeroU128, str::FromStr};
 
 use crate::{
-    builtins::core::{zoneddatetime::nanoseconds_to_formattable_offset_minutes, Duration},
+    builtins::core::{zoned_date_time::nanoseconds_to_formattable_offset_minutes, Duration},
     error::ErrorMessage,
     iso::IsoDateTime,
     options::{

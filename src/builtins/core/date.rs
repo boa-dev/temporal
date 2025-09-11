@@ -949,15 +949,15 @@ mod tests {
         let zdt = date
             .to_zoned_date_time_with_provider(tz, None, provider)
             .unwrap();
-        assert_eq!(zdt.year().unwrap(), 2020);
-        assert_eq!(zdt.month().unwrap(), 1);
-        assert_eq!(zdt.day().unwrap(), 1);
-        assert_eq!(zdt.hour().unwrap(), 0);
-        assert_eq!(zdt.minute().unwrap(), 0);
-        assert_eq!(zdt.second().unwrap(), 0);
-        assert_eq!(zdt.millisecond().unwrap(), 0);
-        assert_eq!(zdt.microsecond().unwrap(), 0);
-        assert_eq!(zdt.nanosecond().unwrap(), 0);
+        assert_eq!(zdt.year(), 2020);
+        assert_eq!(zdt.month(), 1);
+        assert_eq!(zdt.day(), 1);
+        assert_eq!(zdt.hour(), 0);
+        assert_eq!(zdt.minute(), 0);
+        assert_eq!(zdt.second(), 0);
+        assert_eq!(zdt.millisecond(), 0);
+        assert_eq!(zdt.microsecond(), 0);
+        assert_eq!(zdt.nanosecond(), 0);
     }
 
     #[cfg(feature = "tzdb")]

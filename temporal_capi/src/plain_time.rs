@@ -83,9 +83,7 @@ pub mod ffi {
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
-            zdt.to_plain_time()
-                .map(|x| Box::new(Self(x)))
-                .map_err(Into::into)
+            Ok(Box::new(Self(zdt.to_plain_time())))
         }
 
         pub fn with(

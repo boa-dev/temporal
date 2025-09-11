@@ -59,22 +59,22 @@
 //! use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
 //!
 //! let zdt = ZonedDateTime::from_utf8(b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
-//! assert_eq!(zdt.year().unwrap(), 2025);
-//! assert_eq!(zdt.month().unwrap(), 3);
-//! assert_eq!(zdt.day().unwrap(), 1);
+//! assert_eq!(zdt.year(), 2025);
+//! assert_eq!(zdt.month(), 3);
+//! assert_eq!(zdt.day(), 1);
 //! // Using Z and a timezone projects a UTC datetime into the timezone.
-//! assert_eq!(zdt.hour().unwrap(), 5);
-//! assert_eq!(zdt.minute().unwrap(), 16);
-//! assert_eq!(zdt.second().unwrap(), 10);
+//! assert_eq!(zdt.hour(), 5);
+//! assert_eq!(zdt.minute(), 16);
+//! assert_eq!(zdt.second(), 10);
 //!
 //! let zurich_zone = TimeZone::try_from_str("Europe/Zurich").unwrap();
 //! let zdt_zurich = zdt.with_timezone(zurich_zone).unwrap();
-//! assert_eq!(zdt_zurich.year().unwrap(), 2025);
-//! assert_eq!(zdt_zurich.month().unwrap(), 3);
-//! assert_eq!(zdt_zurich.day().unwrap(), 1);
-//! assert_eq!(zdt_zurich.hour().unwrap(), 12);
-//! assert_eq!(zdt_zurich.minute().unwrap(), 16);
-//! assert_eq!(zdt_zurich.second().unwrap(), 10);
+//! assert_eq!(zdt_zurich.year(), 2025);
+//! assert_eq!(zdt_zurich.month(), 3);
+//! assert_eq!(zdt_zurich.day(), 1);
+//! assert_eq!(zdt_zurich.hour(), 12);
+//! assert_eq!(zdt_zurich.minute(), 16);
+//! assert_eq!(zdt_zurich.second(), 10);
 //!
 //! # }
 //! ```

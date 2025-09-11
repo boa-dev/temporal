@@ -16,7 +16,7 @@ mod instant;
 mod month_day;
 mod time;
 mod year_month;
-pub(crate) mod zoneddatetime;
+pub(crate) mod zoned_date_time;
 
 mod now;
 
@@ -38,4 +38,4 @@ pub use time::{PartialTime, PlainTime};
 #[doc(inline)]
 pub use year_month::{PartialYearMonth, PlainYearMonth};
 #[doc(inline)]
-pub use zoneddatetime::{PartialZonedDateTime, ZonedDateTime, ZonedDateTimeFields};
+pub use zoned_date_time::{PartialZonedDateTime, ZonedDateTime, ZonedDateTimeFields};
