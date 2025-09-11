@@ -1,10 +1,17 @@
-use crate::builtins::{
-    core::{Now, PlainDate, PlainDateTime, PlainTime},
-    TZ_PROVIDER,
+use crate::{
+    builtins::{
+        core::{Now, PlainDate, PlainDateTime, PlainTime},
+        TZ_PROVIDER,
+    },
+    host::HostHooks,
+    TemporalResult, TimeZone, ZonedDateTime,
 };
-use crate::{TemporalResult, TimeZone, ZonedDateTime};
 
-impl Now {
+impl<H: HostHooks> Now<H> {
+    pub fn time_zone(self) -> TemporalResult<TimeZone> {
+        self.time_zone_with_provider(&*TZ_PROVIDER)
+    }
+
     /// Returns the current system time as a [`PlainDateTime`] with an optional
     /// [`TimeZone`].
     ///

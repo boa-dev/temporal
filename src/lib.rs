@@ -129,6 +129,7 @@ extern crate core;
 extern crate std;
 
 pub mod error;
+pub mod host;
 pub mod iso;
 pub mod options;
 pub mod parsers;
@@ -185,7 +186,7 @@ pub mod unix_time {
 
 /// The `Now` module includes type for building a Now.
 pub mod now {
-    pub use crate::builtins::{Now, NowBuilder};
+    pub use crate::builtins::Now;
 }
 
 /// This module exports all of the field types.

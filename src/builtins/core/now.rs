@@ -1,74 +1,49 @@
 //! The Temporal Now component
 
-use crate::provider::TimeZoneProvider;
-use crate::unix_time::EpochNanoseconds;
+use crate::iso::IsoDateTime;
 use crate::TemporalResult;
-use crate::{iso::IsoDateTime, TemporalError};
+use crate::{host::HostHooks, provider::TimeZoneProvider};
 
 use super::{
-    calendar::Calendar,
-    timezone::{TimeZone, UtcOffset},
-    Instant, PlainDate, PlainDateTime, PlainTime, ZonedDateTime,
+    calendar::Calendar, timezone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
+    ZonedDateTime,
 };
 
-#[derive(Debug, Default)]
-pub struct NowBuilder {
-    clock: Option<EpochNanoseconds>,
-    zone: Option<TimeZone>,
+pub struct Now<H: HostHooks> {
+    host_hooks: H,
 }
 
-impl NowBuilder {
-    pub fn with_system_nanoseconds(mut self, nanoseconds: EpochNanoseconds) -> Self {
-        self.clock = Some(nanoseconds);
-        self
-    }
-
-    pub fn with_system_zone(mut self, zone: TimeZone) -> Self {
-        self.zone = Some(zone);
-        self
-    }
-
-    pub fn build(self) -> Now {
-        Now {
-            clock: self.clock,
-            zone: self.zone.unwrap_or(UtcOffset::default().into()),
-        }
+impl<H: HostHooks> Now<H> {
+    /// Create a new `Now`
+    pub const fn new(host_hooks: H) -> Self {
+        Self { host_hooks }
     }
 }
 
-#[derive(Debug)]
-pub struct Now {
-    clock: Option<EpochNanoseconds>,
-    zone: TimeZone,
-}
-
-impl Now {
-    pub(crate) fn clock(self) -> TemporalResult<EpochNanoseconds> {
-        self.clock
-            .ok_or(TemporalError::general("system clock unavailable"))
-    }
-
+impl<H: HostHooks> Now<H> {
     pub(crate) fn system_datetime_with_provider(
         self,
         time_zone: Option<TimeZone>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<IsoDateTime> {
-        let Now { clock, zone } = self;
-        let system_nanoseconds = clock.ok_or(TemporalError::general("system clock unavailable"))?;
-        let time_zone = time_zone.unwrap_or(zone);
+        let system_nanoseconds = self.host_hooks.get_system_epoch_nanoseconds()?;
+        let time_zone = time_zone.unwrap_or(self.host_hooks.get_system_time_zone(provider)?);
         time_zone.get_iso_datetime_for(&Instant::from(system_nanoseconds), provider)
     }
-}
 
-impl Now {
     /// Converts the current [`Now`] into a [`TimeZone`].
-    pub fn time_zone(self) -> TimeZone {
-        self.zone
+    pub fn time_zone_with_provider(
+        self,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<TimeZone> {
+        self.host_hooks.get_system_time_zone(provider)
     }
 
     /// Converts the current [`Now`] into an [`Instant`].
     pub fn instant(self) -> TemporalResult<Instant> {
-        Ok(Instant::from(self.clock()?))
+        Ok(Instant::from(
+            self.host_hooks.get_system_epoch_nanoseconds()?,
+        ))
     }
 
     /// Converts the current [`Now`] into an [`ZonedDateTime`] with an ISO8601 calendar.
@@ -77,15 +52,14 @@ impl Now {
         time_zone: Option<TimeZone>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
-        let Now { clock, zone } = self;
-        let system_nanoseconds = clock.ok_or(TemporalError::general("system clock unavailable"))?;
-        let time_zone = time_zone.unwrap_or(zone);
+        let system_nanoseconds = self.host_hooks.get_system_epoch_nanoseconds()?;
+        let time_zone = time_zone.unwrap_or(self.host_hooks.get_system_time_zone(provider)?);
         let instant = Instant::from(system_nanoseconds);
         ZonedDateTime::new_unchecked_with_provider(instant, Calendar::ISO, time_zone, provider)
     }
 }
 
-impl Now {
+impl<H: HostHooks> Now<H> {
     /// Converts `Now` into the current system [`PlainDateTime`] with an ISO8601 calendar.
     ///
     /// When `TimeZone` is `None`, the value will default to the
@@ -137,21 +111,56 @@ mod tests {
     #[cfg(feature = "tzdb")]
     #[test]
     fn mocked_datetime() {
-        use crate::{now::NowBuilder, tzdb::FsTzdbProvider, TimeZone};
+        use timezone_provider::provider::TimeZoneProvider;
+
+        use crate::{
+            host::{HostClock, HostHooks, HostTimeZone},
+            now::Now,
+            tzdb::FsTzdbProvider,
+            TemporalResult, TimeZone,
+        };
         let provider = FsTzdbProvider::default();
 
-        // 2025-03-11T10:47-06:00
-        const TIME_BASE: i128 = 1_741_751_188_077_363_694;
+        // Define mock test hooks
+        struct TestHooks {
+            seconds_to_add: i128,
+            time_zone: TimeZone,
+        }
 
+        impl TestHooks {
+            fn new(seconds_to_add: i128, time_zone: TimeZone) -> Self {
+                Self {
+                    seconds_to_add,
+                    time_zone,
+                }
+            }
+        }
+
+        impl HostHooks for TestHooks {}
+
+        impl HostClock for TestHooks {
+            fn get_host_epoch_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+                // 2025-03-11T10:47-06:00
+                const TIME_BASE: i128 = 1_741_751_188_077_363_694;
+                let epoch_nanoseconds = TIME_BASE + (self.seconds_to_add * 1_000_000_000);
+                Ok(EpochNanoseconds::from(epoch_nanoseconds))
+            }
+        }
+
+        impl HostTimeZone for TestHooks {
+            fn get_host_time_zone(&self, _: &impl TimeZoneProvider) -> TemporalResult<TimeZone> {
+                Ok(self.time_zone)
+            }
+        }
+
+        // Define a UtcOffset zone
         let cdt = TimeZone::try_from_identifier_str_with_provider("-05:00", &provider).unwrap();
+
+        // Define an IANA id zone
         let uschi =
             TimeZone::try_from_identifier_str_with_provider("America/Chicago", &provider).unwrap();
 
-        let base = EpochNanoseconds::from(TIME_BASE);
-        let now = NowBuilder::default()
-            .with_system_nanoseconds(base)
-            .with_system_zone(cdt)
-            .build();
+        let now = Now::new(TestHooks::new(0, cdt));
         let cdt_datetime = now
             .plain_date_time_iso_with_provider(None, &provider)
             .unwrap();
@@ -166,21 +175,13 @@ mod tests {
         assert_eq!(cdt_datetime.microsecond(), 363);
         assert_eq!(cdt_datetime.nanosecond(), 694);
 
-        let now_cdt = NowBuilder::default()
-            .with_system_nanoseconds(base)
-            .with_system_zone(cdt)
-            .build();
+        let now_cdt = Now::new(TestHooks::new(0, cdt));
         let uschi_datetime = now_cdt
             .plain_date_time_iso_with_provider(Some(uschi), &provider)
             .unwrap();
         assert_eq!(cdt_datetime, uschi_datetime);
 
-        let plus_5_secs = TIME_BASE + (5 * 1_000_000_000);
-        let plus_5_epoch = EpochNanoseconds::from(plus_5_secs);
-        let plus_5_now = NowBuilder::default()
-            .with_system_nanoseconds(plus_5_epoch)
-            .with_system_zone(cdt)
-            .build();
+        let plus_5_now = Now::new(TestHooks::new(5, cdt));
         let plus_5_pdt = plus_5_now
             .plain_date_time_iso_with_provider(None, &provider)
             .unwrap();
