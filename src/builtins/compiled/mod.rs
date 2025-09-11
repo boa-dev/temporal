@@ -7,7 +7,7 @@ mod now;
 mod plain_date_time;
 mod plain_month_day;
 mod plain_year_month;
-mod zoneddatetime;
+mod zoned_date_time;
 
 mod options {
     use crate::{builtins::TZ_PROVIDER, options::RelativeTo, TemporalResult};

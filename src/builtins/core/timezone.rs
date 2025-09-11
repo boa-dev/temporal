@@ -289,7 +289,7 @@ impl TimeZone {
 
 impl From<&ZonedDateTime> for TimeZone {
     fn from(value: &ZonedDateTime) -> Self {
-        *value.timezone()
+        *value.time_zone()
     }
 }
 

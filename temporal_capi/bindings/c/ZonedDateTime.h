@@ -124,14 +124,11 @@ temporal_rs_ZonedDateTime_hours_in_day_result temporal_rs_ZonedDateTime_hours_in
 typedef struct temporal_rs_ZonedDateTime_hours_in_day_with_provider_result {union {double ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_hours_in_day_with_provider_result;
 temporal_rs_ZonedDateTime_hours_in_day_with_provider_result temporal_rs_ZonedDateTime_hours_in_day_with_provider(const ZonedDateTime* self, const Provider* p);
 
-typedef struct temporal_rs_ZonedDateTime_to_plain_datetime_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_plain_datetime_result;
-temporal_rs_ZonedDateTime_to_plain_datetime_result temporal_rs_ZonedDateTime_to_plain_datetime(const ZonedDateTime* self);
+PlainDateTime* temporal_rs_ZonedDateTime_to_plain_datetime(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_to_plain_date_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_plain_date_result;
-temporal_rs_ZonedDateTime_to_plain_date_result temporal_rs_ZonedDateTime_to_plain_date(const ZonedDateTime* self);
+PlainDate* temporal_rs_ZonedDateTime_to_plain_date(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_to_plain_time_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_plain_time_result;
-temporal_rs_ZonedDateTime_to_plain_time_result temporal_rs_ZonedDateTime_to_plain_time(const ZonedDateTime* self);
+PlainTime* temporal_rs_ZonedDateTime_to_plain_time(const ZonedDateTime* self);
 
 typedef struct temporal_rs_ZonedDateTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_ixdtf_string_result;
 temporal_rs_ZonedDateTime_to_ixdtf_string_result temporal_rs_ZonedDateTime_to_ixdtf_string(const ZonedDateTime* self, DisplayOffset display_offset, DisplayTimeZone display_timezone, DisplayCalendar display_calendar, ToStringRoundingOptions options, DiplomatWrite* write);
@@ -139,8 +136,7 @@ temporal_rs_ZonedDateTime_to_ixdtf_string_result temporal_rs_ZonedDateTime_to_ix
 typedef struct temporal_rs_ZonedDateTime_to_ixdtf_string_with_provider_result {union { TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_to_ixdtf_string_with_provider_result;
 temporal_rs_ZonedDateTime_to_ixdtf_string_with_provider_result temporal_rs_ZonedDateTime_to_ixdtf_string_with_provider(const ZonedDateTime* self, DisplayOffset display_offset, DisplayTimeZone display_timezone, DisplayCalendar display_calendar, ToStringRoundingOptions options, const Provider* p, DiplomatWrite* write);
 
-typedef struct temporal_rs_ZonedDateTime_with_calendar_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_with_calendar_result;
-temporal_rs_ZonedDateTime_with_calendar_result temporal_rs_ZonedDateTime_with_calendar(const ZonedDateTime* self, AnyCalendarKind calendar);
+ZonedDateTime* temporal_rs_ZonedDateTime_with_calendar(const ZonedDateTime* self, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_ZonedDateTime_with_plain_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_with_plain_time_result;
 temporal_rs_ZonedDateTime_with_plain_time_result temporal_rs_ZonedDateTime_with_plain_time(const ZonedDateTime* self, const PlainTime* time);
@@ -200,8 +196,7 @@ void temporal_rs_ZonedDateTime_month_code(const ZonedDateTime* self, DiplomatWri
 
 uint8_t temporal_rs_ZonedDateTime_day(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_day_of_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_day_of_week_result;
-temporal_rs_ZonedDateTime_day_of_week_result temporal_rs_ZonedDateTime_day_of_week(const ZonedDateTime* self);
+uint16_t temporal_rs_ZonedDateTime_day_of_week(const ZonedDateTime* self);
 
 uint16_t temporal_rs_ZonedDateTime_day_of_year(const ZonedDateTime* self);
 
@@ -211,8 +206,7 @@ temporal_rs_ZonedDateTime_week_of_year_result temporal_rs_ZonedDateTime_week_of_
 typedef struct temporal_rs_ZonedDateTime_year_of_week_result {union {int32_t ok; }; bool is_ok;} temporal_rs_ZonedDateTime_year_of_week_result;
 temporal_rs_ZonedDateTime_year_of_week_result temporal_rs_ZonedDateTime_year_of_week(const ZonedDateTime* self);
 
-typedef struct temporal_rs_ZonedDateTime_days_in_week_result {union {uint16_t ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_days_in_week_result;
-temporal_rs_ZonedDateTime_days_in_week_result temporal_rs_ZonedDateTime_days_in_week(const ZonedDateTime* self);
+uint16_t temporal_rs_ZonedDateTime_days_in_week(const ZonedDateTime* self);
 
 uint16_t temporal_rs_ZonedDateTime_days_in_month(const ZonedDateTime* self);
 

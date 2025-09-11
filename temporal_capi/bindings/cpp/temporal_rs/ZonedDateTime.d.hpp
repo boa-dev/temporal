@@ -123,11 +123,11 @@ public:
 
   inline diplomat::result<double, temporal_rs::TemporalError> hours_in_day_with_provider(const temporal_rs::Provider& p) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> to_plain_datetime() const;
+  inline std::unique_ptr<temporal_rs::PlainDateTime> to_plain_datetime() const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date() const;
+  inline std::unique_ptr<temporal_rs::PlainDate> to_plain_date() const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> to_plain_time() const;
+  inline std::unique_ptr<temporal_rs::PlainTime> to_plain_time() const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::DisplayOffset display_offset, temporal_rs::DisplayTimeZone display_timezone, temporal_rs::DisplayCalendar display_calendar, temporal_rs::ToStringRoundingOptions options) const;
   template<typename W>
@@ -137,7 +137,7 @@ public:
   template<typename W>
   inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_with_provider_write(temporal_rs::DisplayOffset display_offset, temporal_rs::DisplayTimeZone display_timezone, temporal_rs::DisplayCalendar display_calendar, temporal_rs::ToStringRoundingOptions options, const temporal_rs::Provider& p, W& writeable_output) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
+  inline std::unique_ptr<temporal_rs::ZonedDateTime> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_plain_time(const temporal_rs::PlainTime* time) const;
 
@@ -187,7 +187,7 @@ public:
 
   inline uint8_t day() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> day_of_week() const;
+  inline uint16_t day_of_week() const;
 
   inline uint16_t day_of_year() const;
 
@@ -195,7 +195,7 @@ public:
 
   inline std::optional<int32_t> year_of_week() const;
 
-  inline diplomat::result<uint16_t, temporal_rs::TemporalError> days_in_week() const;
+  inline uint16_t days_in_week() const;
 
   inline uint16_t days_in_month() const;
 
