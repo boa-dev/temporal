@@ -148,7 +148,7 @@ impl ZonedDateTimeFields {
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
 /// assert_eq!(zdt.epoch_nanoseconds().as_i128(), 0);
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "UTC");
+/// assert_eq!(zdt.time_zone().identifier().unwrap(), "UTC");
 /// assert_eq!(zdt.calendar().identifier(), "iso8601");
 /// # }
 /// ```
@@ -159,24 +159,18 @@ impl ZonedDateTimeFields {
 /// # #[cfg(feature = "compiled_data")] {
 /// use temporal_rs::{ZonedDateTime, TimeZone, Calendar};
 ///
-/// let tz = TimeZone::try_from_str("America/New_York").unwrap();
-/// let zdt = ZonedDateTime::try_new(
+/// let time_zone = TimeZone::try_from_str("America/New_York").unwrap();
+/// let zoned_date_time = ZonedDateTime::try_new(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
 ///     Calendar::default(),
-///     tz,
+///     time_zone,
 /// ).unwrap();
 ///
-/// // Get local time in New York timezone
-/// let year = zdt.year().unwrap();
-/// let month = zdt.month().unwrap();
-/// let day = zdt.day().unwrap();
-/// let hour = zdt.hour().unwrap();
-///
 /// // Note: This would be December 31, 2020 19:00 in New York (EST)
-/// assert_eq!(year, 2020);
-/// assert_eq!(month, 12);
-/// assert_eq!(day, 31);
-/// assert_eq!(hour, 19);
+/// assert_eq!(zoned_date_time.year(), 2020);
+/// assert_eq!(zoned_date_time.month(), 12);
+/// assert_eq!(zoned_date_time.day(), 31);
+/// assert_eq!(zoned_date_time.hour(), 19);
 /// # }
 /// ```
 ///
@@ -187,11 +181,11 @@ impl ZonedDateTimeFields {
 /// use temporal_rs::{ZonedDateTime, Duration, TimeZone, Calendar};
 /// use std::str::FromStr;
 ///
-/// let tz = TimeZone::try_from_str("Europe/London").unwrap();
+/// let time_zone = TimeZone::try_from_str("Europe/London").unwrap();
 /// let zdt = ZonedDateTime::try_new(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
 ///     Calendar::default(),
-///     tz,
+///     time_zone,
 /// ).unwrap();
 ///
 /// // Add 6 months
@@ -200,8 +194,7 @@ impl ZonedDateTimeFields {
 ///     None,
 /// ).unwrap();
 ///
-/// let later_month = later.month().unwrap();
-/// assert_eq!(later_month, 7); // July
+/// assert_eq!(later.month(), 7); // July
 /// # }
 /// ```
 ///
@@ -212,16 +205,16 @@ impl ZonedDateTimeFields {
 /// use temporal_rs::{PlainDateTime, ZonedDateTime, TimeZone, options::Disambiguation};
 /// use std::str::FromStr;
 ///
-/// let dt = PlainDateTime::from_str("2024-03-15T14:30:00").unwrap();
-/// let tz = TimeZone::try_from_str("America/Los_Angeles").unwrap();
+/// let plain_date_time = PlainDateTime::from_str("2024-03-15T14:30:00").unwrap();
+/// let time_zone = TimeZone::try_from_str("America/Los_Angeles").unwrap();
 ///
-/// let zdt = dt.to_zoned_date_time(
-///     &tz,
+/// let zdt = plain_date_time.to_zoned_date_time(
+///     &time_zone,
 ///     Disambiguation::Compatible,
 /// ).unwrap();
 ///
 /// // Now we have an exact moment in time in the LA timezone
-/// assert_eq!(zdt.timezone().identifier().unwrap(), "America/Los_Angeles");
+/// assert_eq!(zdt.time_zone().identifier().unwrap(), "America/Los_Angeles");
 /// # }
 /// ```
 ///
@@ -262,7 +255,7 @@ impl ZonedDateTimeFields {
 pub struct ZonedDateTime {
     instant: Instant,
     calendar: Calendar,
-    tz: TimeZone,
+    time_zone: TimeZone,
     cached_offset: UtcOffset,
 }
 
@@ -275,13 +268,13 @@ impl ZonedDateTime {
     pub(crate) fn new_unchecked(
         instant: Instant,
         calendar: Calendar,
-        tz: TimeZone,
+        time_zone: TimeZone,
         cached_offset: UtcOffsetSeconds,
     ) -> Self {
         Self {
             instant,
             calendar,
-            tz,
+            time_zone,
             cached_offset: cached_offset.into(),
         }
     }
@@ -289,16 +282,16 @@ impl ZonedDateTime {
     pub(crate) fn new_unchecked_with_provider(
         instant: Instant,
         calendar: Calendar,
-        tz: TimeZone,
+        time_zone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
-        let offset = tz
+        let offset = time_zone
             .get_utc_offset_for(instant.epoch_nanoseconds().0, provider)
             .temporal_unwrap()?;
         Ok(Self {
             instant,
             calendar,
-            tz,
+            time_zone,
             cached_offset: offset,
         })
     }
@@ -338,7 +331,7 @@ impl ZonedDateTime {
             );
         }
         // 6. Let intermediateNs be ! GetEpochNanosecondsFor(timeZone, intermediateDateTime, compatible).
-        let intermediate_ns = self.timezone().get_epoch_nanoseconds_for(
+        let intermediate_ns = self.time_zone().get_epoch_nanoseconds_for(
             intermediate,
             Disambiguation::Compatible,
             provider,
@@ -372,7 +365,7 @@ impl ZonedDateTime {
         Self::new_unchecked_with_provider(
             epoch_ns,
             self.calendar().clone(),
-            *self.timezone(),
+            *self.time_zone(),
             provider,
         )
     }
@@ -403,7 +396,7 @@ impl ZonedDateTime {
         diff.round_relative_duration(
             other.epoch_nanoseconds().as_i128(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
-            Some((self.timezone(), provider)),
+            Some((self.time_zone(), provider)),
             resolved_options,
         )
     }
@@ -434,7 +427,7 @@ impl ZonedDateTime {
         diff.total_relative_duration(
             other.epoch_nanoseconds().as_i128(),
             &PlainDateTime::new_unchecked(iso, self.calendar().clone()),
-            Some((self.timezone(), provider)),
+            Some((self.time_zone(), provider)),
             unit,
         )
     }
@@ -452,7 +445,7 @@ impl ZonedDateTime {
         // 2. Let startDateTime be GetISODateTimeFor(timeZone, ns1).
         let start = self.get_iso_datetime();
         // 3. Let endDateTime be GetISODateTimeFor(timeZone, ns2).
-        let end = self.tz.get_iso_datetime_for(other, provider)?;
+        let end = self.time_zone.get_iso_datetime_for(other, provider)?;
         // 4. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
         let sign = if other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128() < 0 {
             Sign::Negative
@@ -487,7 +480,7 @@ impl ZonedDateTime {
             // b. Let intermediateDateTime be CombineISODateAndTimeRecord(intermediateDate, startDateTime.[[Time]]).
             intermediate_dt = IsoDateTime::new_unchecked(intermediate, start.time);
             // c. Let intermediateNs be ? GetEpochNanosecondsFor(timeZone, intermediateDateTime, compatible).
-            let intermediate_ns = self.tz.get_epoch_nanoseconds_for(
+            let intermediate_ns = self.time_zone.get_epoch_nanoseconds_for(
                 intermediate_dt,
                 Disambiguation::Compatible,
                 provider,
@@ -562,8 +555,8 @@ impl ZonedDateTime {
         // can vary between time zones due to DST and other UTC offset shifts.
         // 7. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, then
         if !self
-            .tz
-            .time_zone_equals_with_provider(&other.tz, provider)?
+            .time_zone
+            .time_zone_equals_with_provider(&other.time_zone, provider)?
         {
             // a. Throw a RangeError exception.
             return Err(TemporalError::range().with_enum(ErrorMessage::TzMismatch));
@@ -602,6 +595,7 @@ impl ZonedDateTime {
         let instant = Instant::try_new(nanos)?;
         Self::new_unchecked_with_provider(instant, calendar, time_zone, provider)
     }
+
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
     pub(crate) fn try_new_with_cached_offset(
@@ -618,6 +612,7 @@ impl ZonedDateTime {
             cached_offset,
         ))
     }
+
     /// Creates a new valid `ZonedDateTime` with an ISO 8601 calendar.
     #[inline]
     pub fn try_new_iso_with_provider(
@@ -639,8 +634,8 @@ impl ZonedDateTime {
     /// Returns `ZonedDateTime`'s `TimeZone` slot.
     #[inline]
     #[must_use]
-    pub fn timezone(&self) -> &TimeZone {
-        &self.tz
+    pub fn time_zone(&self) -> &TimeZone {
+        &self.time_zone
     }
 
     /// Create a `ZonedDateTime` from a `PartialZonedDateTime`.
@@ -749,7 +744,7 @@ impl ZonedDateTime {
             // Set to Option ... we don't use an enum here, so any value will do.
             true,
             new_offset_nanos,
-            &self.tz,
+            &self.time_zone,
             disambiguation,
             offset_option,
             // match-exactly
@@ -761,33 +756,35 @@ impl ZonedDateTime {
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos.ns),
             self.calendar.clone(),
-            self.tz,
+            self.time_zone,
             epoch_nanos.offset,
         ))
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `TimeZone`.
-    pub fn with_timezone_with_provider(
+    pub fn with_time_zone_with_provider(
         &self,
-        timezone: TimeZone,
+        time_zone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         Self::try_new_with_provider(
             self.epoch_nanoseconds().as_i128(),
             self.calendar.clone(),
-            timezone,
+            time_zone,
             provider,
         )
     }
 
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `Calendar`.
-    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::try_new_with_cached_offset(
-            self.epoch_nanoseconds().as_i128(),
+    #[inline]
+    #[must_use]
+    pub fn with_calendar(&self, calendar: Calendar) -> Self {
+        Self::new_unchecked(
+            self.instant,
             calendar,
-            self.tz,
+            self.time_zone,
             self.cached_offset.into(),
         )
     }
@@ -810,14 +807,14 @@ impl ZonedDateTime {
 // ==== HoursInDay accessor method implementation ====
 
 impl ZonedDateTime {
-    // TODO: implement and stabalize
+    /// Get the previous or next time zone transition for the current `ZonedDateTime`.
     pub fn get_time_zone_transition_with_provider(
         &self,
         direction: TransitionDirection,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Option<Self>> {
         // 8. If IsOffsetTimeZoneIdentifier(timeZone) is true, return null.
-        let TimeZone::IanaIdentifier(identifier) = self.tz else {
+        let TimeZone::IanaIdentifier(identifier) = self.time_zone else {
             return Ok(None);
         };
         // 9. If direction is next, then
@@ -846,7 +843,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_provider(
                 transition.0,
                 self.calendar().clone(),
-                self.tz,
+                self.time_zone,
                 provider,
             )
             .ok()
@@ -866,9 +863,9 @@ impl ZonedDateTime {
         // 6. Let tomorrow be BalanceISODate(today.[[Year]], today.[[Month]], today.[[Day]] + 1).
         let tomorrow = IsoDate::balance(today.year, today.month.into(), i32::from(today.day + 1));
         // 7. Let todayNs be ? GetStartOfDay(timeZone, today).
-        let today = self.tz.get_start_of_day(&today, provider)?;
+        let today = self.time_zone.get_start_of_day(&today, provider)?;
         // 8. Let tomorrowNs be ? GetStartOfDay(timeZone, tomorrow).
-        let tomorrow = self.tz.get_start_of_day(&tomorrow, provider)?;
+        let tomorrow = self.time_zone.get_start_of_day(&tomorrow, provider)?;
         // 9. Let diff be TimeDurationFromEpochNanosecondsDifference(tomorrowNs, todayNs).
         let diff = TimeDuration::from_nanosecond_difference(tomorrow.ns.0, today.ns.0)?;
         // NOTE: The below should be safe as today_ns and tomorrow_ns should be at most 25 hours.
@@ -883,69 +880,70 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Returns the `year` value for this `ZonedDateTime`.
     #[inline]
-    pub fn year(&self) -> TemporalResult<i32> {
+    pub fn year(&self) -> i32 {
         let iso = self.get_iso_datetime();
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.year(&dt.iso.date))
+        self.calendar.year(&dt.iso.date)
     }
 
     /// Returns the `month` value for this `ZonedDateTime`.
-    pub fn month(&self) -> TemporalResult<u8> {
+    pub fn month(&self) -> u8 {
         let iso = self.get_iso_datetime();
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.month(&dt.iso.date))
+        self.calendar.month(&dt.iso.date)
     }
 
     /// Returns the `monthCode` value for this `ZonedDateTime`.
-    pub fn month_code(&self) -> TemporalResult<MonthCode> {
+    pub fn month_code(&self) -> MonthCode {
         let iso = self.get_iso_datetime();
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.month_code(&dt.iso.date))
+        self.calendar.month_code(&dt.iso.date)
     }
 
     /// Returns the `day` value for this `ZonedDateTime`.
-    pub fn day(&self) -> TemporalResult<u8> {
+    pub fn day(&self) -> u8 {
         let iso = self.get_iso_datetime();
         let dt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.day(&dt.iso.date))
+        self.calendar.day(&dt.iso.date)
     }
 
     /// Returns the `hour` value for this `ZonedDateTime`.
-    pub fn hour(&self) -> TemporalResult<u8> {
+    pub fn hour(&self) -> u8 {
         let iso = self.get_iso_datetime();
-        Ok(iso.time.hour)
+        iso.time.hour
     }
 
     /// Returns the `minute` value for this `ZonedDateTime`.
-    pub fn minute(&self) -> TemporalResult<u8> {
+    pub fn minute(&self) -> u8 {
         let iso = self.get_iso_datetime();
-        Ok(iso.time.minute)
+        iso.time.minute
     }
 
     /// Returns the `second` value for this `ZonedDateTime`.
-    pub fn second(&self) -> TemporalResult<u8> {
+    pub fn second(&self) -> u8 {
         let iso = self.get_iso_datetime();
-        Ok(iso.time.second)
+        iso.time.second
     }
 
     /// Returns the `millisecond` value for this `ZonedDateTime`.
-    pub fn millisecond(&self) -> TemporalResult<u16> {
+    pub fn millisecond(&self) -> u16 {
         let iso = self.get_iso_datetime();
-        Ok(iso.time.millisecond)
+        iso.time.millisecond
     }
 
     /// Returns the `microsecond` value for this `ZonedDateTime`.
-    pub fn microsecond(&self) -> TemporalResult<u16> {
+    pub fn microsecond(&self) -> u16 {
         let iso = self.get_iso_datetime();
-        Ok(iso.time.microsecond)
+        iso.time.microsecond
     }
 
     /// Returns the `nanosecond` value for this `ZonedDateTime`.
-    pub fn nanosecond(&self) -> TemporalResult<u16> {
+    pub fn nanosecond(&self) -> u16 {
         let iso = self.get_iso_datetime();
-        Ok(iso.time.nanosecond)
+        iso.time.nanosecond
     }
 
+    // TODO: Expose a format / writeable API
     /// Returns an offset string for the current `ZonedDateTime`.
     pub fn offset(&self) -> String {
         let offset = self.cached_offset.nanoseconds();
@@ -993,80 +991,80 @@ pub(crate) fn nanoseconds_to_formattable_offset(nanoseconds: i128) -> Formattabl
 
 impl ZonedDateTime {
     /// Returns the era for the current `ZonedDateTime`.
-    pub fn era(&self) -> TemporalResult<Option<TinyAsciiStr<16>>> {
+    pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.era(&pdt.iso.date))
+        self.calendar.era(&pdt.iso.date)
     }
 
     /// Returns the era-specific year for the current `ZonedDateTime`.
-    pub fn era_year(&self) -> TemporalResult<Option<i32>> {
+    pub fn era_year(&self) -> Option<i32> {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.era_year(&pdt.iso.date))
+        self.calendar.era_year(&pdt.iso.date)
     }
 
     /// Returns the calendar day of week value.
-    pub fn day_of_week(&self) -> TemporalResult<u16> {
+    pub fn day_of_week(&self) -> u16 {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.day_of_week(&pdt.iso.date))
+        self.calendar.day_of_week(&pdt.iso.date)
     }
 
     /// Returns the calendar day of year value.
-    pub fn day_of_year(&self) -> TemporalResult<u16> {
+    pub fn day_of_year(&self) -> u16 {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.day_of_year(&pdt.iso.date))
+        self.calendar.day_of_year(&pdt.iso.date)
     }
 
     /// Returns the calendar week of year value.
-    pub fn week_of_year(&self) -> TemporalResult<Option<u8>> {
+    pub fn week_of_year(&self) -> Option<u8> {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.week_of_year(&pdt.iso.date))
+        self.calendar.week_of_year(&pdt.iso.date)
     }
 
     /// Returns the calendar year of week value.
-    pub fn year_of_week(&self) -> TemporalResult<Option<i32>> {
+    pub fn year_of_week(&self) -> Option<i32> {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.year_of_week(&pdt.iso.date))
+        self.calendar.year_of_week(&pdt.iso.date)
     }
 
     /// Returns the calendar days in week value.
-    pub fn days_in_week(&self) -> TemporalResult<u16> {
+    pub fn days_in_week(&self) -> u16 {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.days_in_week(&pdt.iso.date))
+        self.calendar.days_in_week(&pdt.iso.date)
     }
 
     /// Returns the calendar days in month value.
-    pub fn days_in_month(&self) -> TemporalResult<u16> {
+    pub fn days_in_month(&self) -> u16 {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.days_in_month(&pdt.iso.date))
+        self.calendar.days_in_month(&pdt.iso.date)
     }
 
     /// Returns the calendar days in year value.
-    pub fn days_in_year(&self) -> TemporalResult<u16> {
+    pub fn days_in_year(&self) -> u16 {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.days_in_year(&pdt.iso.date))
+        self.calendar.days_in_year(&pdt.iso.date)
     }
 
     /// Returns the calendar months in year value.
-    pub fn months_in_year(&self) -> TemporalResult<u16> {
+    pub fn months_in_year(&self) -> u16 {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.months_in_year(&pdt.iso.date))
+        self.calendar.months_in_year(&pdt.iso.date)
     }
 
     /// Returns returns whether the date in a leap year for the given calendar.
-    pub fn in_leap_year(&self) -> TemporalResult<bool> {
+    pub fn in_leap_year(&self) -> bool {
         let iso = self.get_iso_datetime();
         let pdt = PlainDateTime::new_unchecked(iso, self.calendar.clone());
-        Ok(self.calendar.in_leap_year(&pdt.iso.date))
+        self.calendar.in_leap_year(&pdt.iso.date)
     }
 }
 
@@ -1083,15 +1081,18 @@ impl ZonedDateTime {
         let iso = self.get_iso_datetime();
         let epoch_ns = if let Some(time) = time {
             let result_iso = IsoDateTime::new_unchecked(iso.date, time.iso);
-            self.tz
-                .get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
+            self.time_zone.get_epoch_nanoseconds_for(
+                result_iso,
+                Disambiguation::Compatible,
+                provider,
+            )?
         } else {
-            self.tz.get_start_of_day(&iso.date, provider)?
+            self.time_zone.get_start_of_day(&iso.date, provider)?
         };
         Self::try_new_with_cached_offset(
             epoch_ns.ns.0,
             self.calendar.clone(),
-            self.tz,
+            self.time_zone,
             epoch_ns.offset,
         )
     }
@@ -1120,6 +1121,7 @@ impl ZonedDateTime {
         )
     }
 
+    /// Checks if the current `ZonedDateTime` is equal to another `ZonedDateTime`.
     pub fn equals_with_provider(
         &self,
         other: &Self,
@@ -1132,8 +1134,8 @@ impl ZonedDateTime {
 
         // 5. If TimeZoneEquals(zonedDateTime.[[TimeZone]], other.[[TimeZone]]) is false, return false.
         if !self
-            .tz
-            .time_zone_equals_with_provider(&other.tz, provider)?
+            .time_zone
+            .time_zone_equals_with_provider(&other.time_zone, provider)?
         {
             return Ok(false);
         }
@@ -1168,31 +1170,31 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let iso = self.get_iso_datetime();
-        let epoch_nanos = self.tz.get_start_of_day(&iso.date, provider)?;
+        let epoch_nanos = self.time_zone.get_start_of_day(&iso.date, provider)?;
         Self::try_new_with_cached_offset(
             epoch_nanos.ns.0,
             self.calendar.clone(),
-            self.tz,
+            self.time_zone,
             epoch_nanos.offset,
         )
     }
 
     /// Convert the current `ZonedDateTime` to a [`PlainDate`]
-    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+    pub fn to_plain_date(&self) -> PlainDate {
         let iso = self.get_iso_datetime();
-        Ok(PlainDate::new_unchecked(iso.date, self.calendar.clone()))
+        PlainDate::new_unchecked(iso.date, self.calendar.clone())
     }
 
     /// Convert the current `ZonedDateTime` to a [`PlainTime`]
-    pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
+    pub fn to_plain_time(&self) -> PlainTime {
         let iso = self.get_iso_datetime();
-        Ok(PlainTime::new_unchecked(iso.time))
+        PlainTime::new_unchecked(iso.time)
     }
 
     /// Convert the current `ZonedDateTime` to a [`PlainDateTime`]
-    pub fn to_plain_datetime(&self) -> TemporalResult<PlainDateTime> {
+    pub fn to_plain_date_time(&self) -> PlainDateTime {
         let iso = self.get_iso_datetime();
-        Ok(PlainDateTime::new_unchecked(iso, self.calendar.clone()))
+        PlainDateTime::new_unchecked(iso, self.calendar.clone())
     }
 
     /// Creates a default formatted IXDTF (RFC 9557) date/time string for the provided `ZonedDateTime`.
@@ -1265,8 +1267,8 @@ impl ZonedDateTime {
             // d. Assert: thisNs ≥ startNs.
             // e. Let endNs be ? GetStartOfDay(timeZone, dateEnd).
             // f. Assert: thisNs < endNs.
-            let start = self.tz.get_start_of_day(&iso_start.date, provider)?;
-            let end = self.tz.get_start_of_day(&iso_end, provider)?;
+            let start = self.time_zone.get_start_of_day(&iso_start.date, provider)?;
+            let end = self.time_zone.get_start_of_day(&iso_end, provider)?;
             if !(this_ns.0 >= start.ns.0 && this_ns.0 < end.ns.0) {
                 return Err(TemporalError::range().with_enum(ErrorMessage::ZDTOutOfDayBounds));
             }
@@ -1296,7 +1298,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_cached_offset(
                 candidate,
                 self.calendar.clone(),
-                self.tz,
+                self.time_zone,
                 offset,
             )
         } else {
@@ -1307,14 +1309,16 @@ impl ZonedDateTime {
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
             let iso_dt = self.get_iso_datetime();
             let rounded_dt = iso_dt.round(resolved)?;
-            let offset_ns = self.tz.get_offset_nanos_for(this_ns.as_i128(), provider)?;
+            let offset_ns = self
+                .time_zone
+                .get_offset_nanos_for(this_ns.as_i128(), provider)?;
 
             let epoch_ns = interpret_isodatetime_offset(
                 rounded_dt.date,
                 Some(rounded_dt.time),
                 false,
                 Some(offset_ns as i64),
-                &self.tz,
+                &self.time_zone,
                 Disambiguation::Compatible,
                 OffsetDisambiguation::Prefer,
                 // match-exactly
@@ -1325,7 +1329,7 @@ impl ZonedDateTime {
             ZonedDateTime::try_new_with_cached_offset(
                 epoch_ns.ns.0,
                 self.calendar.clone(),
-                self.tz,
+                self.time_zone,
                 epoch_ns.offset,
             )
         }
@@ -1349,10 +1353,12 @@ impl ZonedDateTime {
                 ))?;
         let rounded_instant = Instant::try_new(result)?;
 
-        let offset = self.tz.get_offset_nanos_for(result, provider)?;
-        let datetime = self.tz.get_iso_datetime_for(&rounded_instant, provider)?;
+        let offset = self.time_zone.get_offset_nanos_for(result, provider)?;
+        let datetime = self
+            .time_zone
+            .get_iso_datetime_for(&rounded_instant, provider)?;
         let (sign, hour, minute) = nanoseconds_to_formattable_offset_minutes(offset)?;
-        let timezone_id = self.timezone().identifier_with_provider(provider)?;
+        let timezone_id = self.time_zone().identifier_with_provider(provider)?;
 
         let ixdtf_string = IxdtfStringBuilder::default()
             .with_date(datetime.date)

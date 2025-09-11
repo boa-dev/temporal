@@ -1,4 +1,4 @@
-use crate::builtins::zoneddatetime::ZonedDateTimeFields;
+use crate::builtins::zoned_date_time::ZonedDateTimeFields;
 use crate::builtins::TZ_PROVIDER;
 use crate::partial::PartialZonedDateTime;
 use crate::provider::TransitionDirection;
@@ -109,7 +109,7 @@ impl ZonedDateTime {
     /// Creates a new `ZonedDateTime` from the current `ZonedDateTime`
     /// combined with the provided `TimeZone`.
     pub fn with_timezone(&self, timezone: TimeZone) -> TemporalResult<Self> {
-        self.with_timezone_with_provider(timezone, &*TZ_PROVIDER)
+        self.with_time_zone_with_provider(timezone, &*TZ_PROVIDER)
     }
 
     /// Adds a [`Duration`] to the current `ZonedDateTime`.

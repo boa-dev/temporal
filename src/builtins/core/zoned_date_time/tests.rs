@@ -1,6 +1,6 @@
 use super::ZonedDateTime;
 use crate::{
-    builtins::{calendar::CalendarFields, zoneddatetime::ZonedDateTimeFields},
+    builtins::{calendar::CalendarFields, zoned_date_time::ZonedDateTimeFields},
     options::{
         DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
         OffsetDisambiguation, Overflow, RoundingIncrement, RoundingMode, RoundingOptions, Unit,
@@ -58,12 +58,12 @@ fn basic_zdt_test() {
         )
         .unwrap();
 
-        assert_eq!(zdt.year().unwrap(), 2023);
-        assert_eq!(zdt.month().unwrap(), 11);
-        assert_eq!(zdt.day().unwrap(), 30);
-        assert_eq!(zdt.hour().unwrap(), 1);
-        assert_eq!(zdt.minute().unwrap(), 49);
-        assert_eq!(zdt.second().unwrap(), 12);
+        assert_eq!(zdt.year(), 2023);
+        assert_eq!(zdt.month(), 11);
+        assert_eq!(zdt.day(), 30);
+        assert_eq!(zdt.hour(), 1);
+        assert_eq!(zdt.minute(), 49);
+        assert_eq!(zdt.second(), 12);
 
         let zdt_minus_five = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
@@ -73,12 +73,12 @@ fn basic_zdt_test() {
         )
         .unwrap();
 
-        assert_eq!(zdt_minus_five.year().unwrap(), 2023);
-        assert_eq!(zdt_minus_five.month().unwrap(), 11);
-        assert_eq!(zdt_minus_five.day().unwrap(), 29);
-        assert_eq!(zdt_minus_five.hour().unwrap(), 20);
-        assert_eq!(zdt_minus_five.minute().unwrap(), 49);
-        assert_eq!(zdt_minus_five.second().unwrap(), 12);
+        assert_eq!(zdt_minus_five.year(), 2023);
+        assert_eq!(zdt_minus_five.month(), 11);
+        assert_eq!(zdt_minus_five.day(), 29);
+        assert_eq!(zdt_minus_five.hour(), 20);
+        assert_eq!(zdt_minus_five.minute(), 49);
+        assert_eq!(zdt_minus_five.second(), 12);
 
         let zdt_plus_eleven = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
@@ -88,12 +88,12 @@ fn basic_zdt_test() {
         )
         .unwrap();
 
-        assert_eq!(zdt_plus_eleven.year().unwrap(), 2023);
-        assert_eq!(zdt_plus_eleven.month().unwrap(), 11);
-        assert_eq!(zdt_plus_eleven.day().unwrap(), 30);
-        assert_eq!(zdt_plus_eleven.hour().unwrap(), 12);
-        assert_eq!(zdt_plus_eleven.minute().unwrap(), 49);
-        assert_eq!(zdt_plus_eleven.second().unwrap(), 12);
+        assert_eq!(zdt_plus_eleven.year(), 2023);
+        assert_eq!(zdt_plus_eleven.month(), 11);
+        assert_eq!(zdt_plus_eleven.day(), 30);
+        assert_eq!(zdt_plus_eleven.hour(), 12);
+        assert_eq!(zdt_plus_eleven.minute(), 49);
+        assert_eq!(zdt_plus_eleven.second(), 12);
     })
 }
 
@@ -410,12 +410,12 @@ fn static_tzdb_zdt_test() {
         )
         .unwrap();
 
-        assert_eq!(zdt.year().unwrap(), 2023);
-        assert_eq!(zdt.month().unwrap(), 11);
-        assert_eq!(zdt.day().unwrap(), 30);
-        assert_eq!(zdt.hour().unwrap(), 1);
-        assert_eq!(zdt.minute().unwrap(), 49);
-        assert_eq!(zdt.second().unwrap(), 12);
+        assert_eq!(zdt.year(), 2023);
+        assert_eq!(zdt.month(), 11);
+        assert_eq!(zdt.day(), 30);
+        assert_eq!(zdt.hour(), 1);
+        assert_eq!(zdt.minute(), 49);
+        assert_eq!(zdt.second(), 12);
 
         let zdt_minus_five = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
@@ -425,12 +425,12 @@ fn static_tzdb_zdt_test() {
         )
         .unwrap();
 
-        assert_eq!(zdt_minus_five.year().unwrap(), 2023);
-        assert_eq!(zdt_minus_five.month().unwrap(), 11);
-        assert_eq!(zdt_minus_five.day().unwrap(), 29);
-        assert_eq!(zdt_minus_five.hour().unwrap(), 20);
-        assert_eq!(zdt_minus_five.minute().unwrap(), 49);
-        assert_eq!(zdt_minus_five.second().unwrap(), 12);
+        assert_eq!(zdt_minus_five.year(), 2023);
+        assert_eq!(zdt_minus_five.month(), 11);
+        assert_eq!(zdt_minus_five.day(), 29);
+        assert_eq!(zdt_minus_five.hour(), 20);
+        assert_eq!(zdt_minus_five.minute(), 49);
+        assert_eq!(zdt_minus_five.second(), 12);
 
         let zdt_plus_eleven = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
@@ -440,12 +440,12 @@ fn static_tzdb_zdt_test() {
         )
         .unwrap();
 
-        assert_eq!(zdt_plus_eleven.year().unwrap(), 2023);
-        assert_eq!(zdt_plus_eleven.month().unwrap(), 11);
-        assert_eq!(zdt_plus_eleven.day().unwrap(), 30);
-        assert_eq!(zdt_plus_eleven.hour().unwrap(), 12);
-        assert_eq!(zdt_plus_eleven.minute().unwrap(), 49);
-        assert_eq!(zdt_plus_eleven.second().unwrap(), 12);
+        assert_eq!(zdt_plus_eleven.year(), 2023);
+        assert_eq!(zdt_plus_eleven.month(), 11);
+        assert_eq!(zdt_plus_eleven.day(), 30);
+        assert_eq!(zdt_plus_eleven.hour(), 12);
+        assert_eq!(zdt_plus_eleven.minute(), 49);
+        assert_eq!(zdt_plus_eleven.second(), 12);
     })
 }
 
