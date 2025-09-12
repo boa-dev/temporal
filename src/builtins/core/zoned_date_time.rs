@@ -267,8 +267,8 @@ impl ZonedDateTime {
     #[must_use]
     pub(crate) fn new_unchecked(
         instant: Instant,
-        calendar: Calendar,
         time_zone: TimeZone,
+        calendar: Calendar,
         cached_offset: UtcOffsetSeconds,
     ) -> Self {
         Self {
@@ -281,8 +281,8 @@ impl ZonedDateTime {
 
     pub(crate) fn new_unchecked_with_provider(
         instant: Instant,
-        calendar: Calendar,
         time_zone: TimeZone,
+        calendar: Calendar,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let offset = time_zone
@@ -364,8 +364,8 @@ impl ZonedDateTime {
         // 9. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
         Self::new_unchecked_with_provider(
             epoch_ns,
-            self.calendar().clone(),
             *self.time_zone(),
+            self.calendar().clone(),
             provider,
         )
     }
@@ -588,27 +588,27 @@ impl ZonedDateTime {
     #[inline]
     pub fn try_new_with_provider(
         nanos: i128,
-        calendar: Calendar,
         time_zone: TimeZone,
+        calendar: Calendar,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
-        Self::new_unchecked_with_provider(instant, calendar, time_zone, provider)
+        Self::new_unchecked_with_provider(instant, time_zone, calendar, provider)
     }
 
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
     pub(crate) fn try_new_with_cached_offset(
         nanos: i128,
-        calendar: Calendar,
         time_zone: TimeZone,
+        calendar: Calendar,
         cached_offset: UtcOffsetSeconds,
     ) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
         Ok(Self::new_unchecked(
             instant,
-            calendar,
             time_zone,
+            calendar,
             cached_offset,
         ))
     }
@@ -621,7 +621,28 @@ impl ZonedDateTime {
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<Self> {
         let instant = Instant::try_new(nanos)?;
-        Self::new_unchecked_with_provider(instant, Calendar::default(), time_zone, provider)
+        Self::new_unchecked_with_provider(instant, time_zone, Calendar::ISO, provider)
+    }
+
+    /// Creates a new valid `ZonedDateTime` from an [`Instant`].
+    #[inline]
+    pub fn try_new_from_instant_with_provider(
+        instant: Instant,
+        time_zone: TimeZone,
+        calendar: Calendar,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Self::new_unchecked_with_provider(instant, time_zone, calendar, provider)
+    }
+
+    /// Creates a new valid `ZonedDateTime` from an [`Instant`] with an ISO 8601 calendar.
+    #[inline]
+    pub fn try_new_iso_from_instant_with_provider(
+        instant: Instant,
+        time_zone: TimeZone,
+        provider: &impl TimeZoneProvider,
+    ) -> TemporalResult<Self> {
+        Self::new_unchecked_with_provider(instant, time_zone, Calendar::ISO, provider)
     }
 
     /// Returns `ZonedDateTime`'s Calendar.
@@ -678,8 +699,8 @@ impl ZonedDateTime {
 
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos.ns),
-            partial.calendar,
             timezone,
+            partial.calendar,
             epoch_nanos.offset,
         ))
     }
@@ -755,8 +776,8 @@ impl ZonedDateTime {
         // 26. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos.ns),
-            self.calendar.clone(),
             self.time_zone,
+            self.calendar.clone(),
             epoch_nanos.offset,
         ))
     }
@@ -770,8 +791,8 @@ impl ZonedDateTime {
     ) -> TemporalResult<Self> {
         Self::try_new_with_provider(
             self.epoch_nanoseconds().as_i128(),
-            self.calendar.clone(),
             time_zone,
+            self.calendar.clone(),
             provider,
         )
     }
@@ -783,8 +804,8 @@ impl ZonedDateTime {
     pub fn with_calendar(&self, calendar: Calendar) -> Self {
         Self::new_unchecked(
             self.instant,
-            calendar,
             self.time_zone,
+            calendar,
             self.cached_offset.into(),
         )
     }
@@ -842,8 +863,8 @@ impl ZonedDateTime {
         Ok(Some(
             ZonedDateTime::try_new_with_provider(
                 transition.0,
-                self.calendar().clone(),
                 self.time_zone,
+                self.calendar().clone(),
                 provider,
             )
             .ok()
@@ -1091,8 +1112,8 @@ impl ZonedDateTime {
         };
         Self::try_new_with_cached_offset(
             epoch_ns.ns.0,
-            self.calendar.clone(),
             self.time_zone,
+            self.calendar.clone(),
             epoch_ns.offset,
         )
     }
@@ -1173,8 +1194,8 @@ impl ZonedDateTime {
         let epoch_nanos = self.time_zone.get_start_of_day(&iso.date, provider)?;
         Self::try_new_with_cached_offset(
             epoch_nanos.ns.0,
-            self.calendar.clone(),
             self.time_zone,
+            self.calendar.clone(),
             epoch_nanos.offset,
         )
     }
@@ -1297,8 +1318,8 @@ impl ZonedDateTime {
             // 20. Return ! CreateTemporalZonedDateTime(epochNanoseconds, timeZone, calendar).
             ZonedDateTime::try_new_with_cached_offset(
                 candidate,
-                self.calendar.clone(),
                 self.time_zone,
+                self.calendar.clone(),
                 offset,
             )
         } else {
@@ -1328,8 +1349,8 @@ impl ZonedDateTime {
 
             ZonedDateTime::try_new_with_cached_offset(
                 epoch_ns.ns.0,
-                self.calendar.clone(),
                 self.time_zone,
+                self.calendar.clone(),
                 epoch_ns.offset,
             )
         }
@@ -1409,8 +1430,8 @@ impl ZonedDateTime {
         )?;
         Ok(Self::new_unchecked(
             Instant::from(epoch_nanos.ns),
-            Calendar::new(parsed.date.calendar),
             parsed.timezone,
+            Calendar::new(parsed.date.calendar),
             epoch_nanos.offset,
         ))
     }

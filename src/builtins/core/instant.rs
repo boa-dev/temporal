@@ -393,7 +393,7 @@ impl Instant {
         time_zone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
-        ZonedDateTime::new_unchecked_with_provider(*self, Calendar::default(), time_zone, provider)
+        ZonedDateTime::new_unchecked_with_provider(*self, time_zone, Calendar::ISO, provider)
     }
 }
 
