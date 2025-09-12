@@ -10,10 +10,10 @@ pub mod calendar;
 pub mod duration;
 pub mod timezone;
 
-mod datetime;
 mod instant;
 mod month_day;
 mod plain_date;
+mod plain_date_time;
 mod time;
 mod year_month;
 pub(crate) mod zoned_date_time;
@@ -24,8 +24,6 @@ mod now;
 pub use now::{Now, NowBuilder};
 
 #[doc(inline)]
-pub use datetime::{DateTimeFields, PartialDateTime, PlainDateTime};
-#[doc(inline)]
 pub use duration::{DateDuration, Duration, PartialDuration};
 #[doc(inline)]
 pub use instant::Instant;
@@ -33,6 +31,8 @@ pub use instant::Instant;
 pub use month_day::PlainMonthDay;
 #[doc(inline)]
 pub use plain_date::{PartialDate, PlainDate};
+#[doc(inline)]
+pub use plain_date_time::{DateTimeFields, PartialDateTime, PlainDateTime};
 #[doc(inline)]
 pub use time::{PartialTime, PlainTime};
 #[doc(inline)]

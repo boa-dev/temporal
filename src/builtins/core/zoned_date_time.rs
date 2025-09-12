@@ -209,7 +209,7 @@ impl ZonedDateTimeFields {
 /// let time_zone = TimeZone::try_from_str("America/Los_Angeles").unwrap();
 ///
 /// let zdt = plain_date_time.to_zoned_date_time(
-///     &time_zone,
+///     time_zone,
 ///     Disambiguation::Compatible,
 /// ).unwrap();
 ///

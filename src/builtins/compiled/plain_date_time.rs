@@ -7,11 +7,14 @@ use crate::{
 
 impl PlainDateTime {
     /// Returns a `ZonedDateTime` with the provided `PlainDateTime`, TimeZone` and
-    /// `Disambiguation`
+    /// `Disambiguation`.
+    ///
+    /// # Feature gated
+    ///
     /// Enable with the `compiled_data` feature flag.
     pub fn to_zoned_date_time(
         &self,
-        time_zone: &TimeZone,
+        time_zone: TimeZone,
         disambiguation: Disambiguation,
     ) -> TemporalResult<ZonedDateTime> {
         self.to_zoned_date_time_with_provider(time_zone, disambiguation, &*TZ_PROVIDER)
@@ -32,7 +35,7 @@ mod tests {
         let pdt = PlainDateTime::try_new_iso(2020, 3, 8, 2, 30, 0, 0, 0, 0).unwrap();
         let zdt = pdt
             .to_zoned_date_time_with_provider(
-                &TimeZone::try_from_identifier_str_with_provider("America/Los_Angeles", provider)
+                TimeZone::try_from_identifier_str_with_provider("America/Los_Angeles", provider)
                     .unwrap(),
                 Disambiguation::Compatible,
                 provider,

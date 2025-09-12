@@ -157,11 +157,11 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .with_calendar(temporal_rs::Calendar::new(calendar.into()))
-                .map(|x| Box::new(PlainDateTime(x)))
-                .map_err(Into::into)
+        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Box<Self> {
+            Box::new(PlainDateTime(
+                self.0
+                    .with_calendar(temporal_rs::Calendar::new(calendar.into())),
+            ))
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
@@ -368,7 +368,7 @@ pub mod ffi {
             p: &Provider<'p>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             with_provider!(p, |p| self.0.to_zoned_date_time_with_provider(
-                &time_zone.0,
+                time_zone.0,
                 disambiguation.into(),
                 p
             ))

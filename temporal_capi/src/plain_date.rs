@@ -178,7 +178,10 @@ pub mod ffi {
         }
 
         pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Box<Self> {
-            Box::new(PlainDate(self.0.with_calendar(temporal_rs::Calendar::new(calendar.into()))))
+            Box::new(PlainDate(
+                self.0
+                    .with_calendar(temporal_rs::Calendar::new(calendar.into())),
+            ))
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {

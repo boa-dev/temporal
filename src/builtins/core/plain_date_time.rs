@@ -1,4 +1,4 @@
-//! This module implements `DateTime` any directly related algorithms.
+//! This module implements `PlainDateTime` any directly related algorithms.
 
 use super::{
     duration::normalized::InternalDurationRecord, Duration, PartialTime, PlainDate, PlainTime,
@@ -197,7 +197,7 @@ impl core::fmt::Display for PlainDateTime {
 // ==== Private PlainDateTime API ====
 
 impl PlainDateTime {
-    /// Creates a new unchecked `DateTime`.
+    /// Creates a new unchecked `PlainDateTime`.
     #[inline]
     #[must_use]
     pub(crate) fn new_unchecked(iso: IsoDateTime, calendar: Calendar) -> Self {
@@ -205,7 +205,7 @@ impl PlainDateTime {
     }
 
     // TODO: Potentially deprecate and remove.
-    /// Create a new `DateTime` from an `Instant`.
+    /// Create a new `PlainDateTime` from an `Instant`.
     #[allow(unused)]
     #[inline]
     pub(crate) fn from_instant(instant: &Instant, offset: i64, calendar: Calendar) -> Self {
@@ -241,7 +241,7 @@ impl PlainDateTime {
         Ok(Self::new_unchecked(result, self.calendar().clone()))
     }
 
-    /// Difference two `DateTime`s together.
+    /// Difference two `PlainDateTime`s together.
     pub(crate) fn diff(
         &self,
         op: DifferenceOperation,
@@ -350,7 +350,7 @@ impl PlainDateTime {
 // ==== Public PlainDateTime API ====
 
 impl PlainDateTime {
-    /// Creates a new `DateTime`, constraining any arguments that are invalid
+    /// Creates a new `PlainDateTime`, constraining any arguments that are invalid
     /// into a valid range.
     #[inline]
     #[allow(clippy::too_many_arguments)]
@@ -381,7 +381,7 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime` with an ISO 8601 calendar, constraining any
+    /// Creates a new `PlainDateTime` with an ISO 8601 calendar, constraining any
     /// arguments that are invalid into a valid range.
     #[inline]
     #[allow(clippy::too_many_arguments)]
@@ -410,7 +410,7 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime`, rejecting any arguments that are not in a valid range.
+    /// Creates a new `PlainDateTime`, rejecting any arguments that are not in a valid range.
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn try_new(
@@ -440,7 +440,7 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime` with an ISO 8601 calendar, rejecting any arguments that are not in a valid range.
+    /// Creates a new `PlainDateTime` with an ISO 8601 calendar, rejecting any arguments that are not in a valid range.
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn try_new_iso(
@@ -468,7 +468,7 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime` with the provided [`Overflow`] option.
+    /// Creates a new `PlainDateTime` with the provided [`Overflow`] option.
     #[inline]
     #[allow(clippy::too_many_arguments)]
     pub fn new_with_overflow(
@@ -500,7 +500,7 @@ impl PlainDateTime {
         ))
     }
 
-    /// Create a `DateTime` from a `Date` and a `Time`.
+    /// Create a `PlainDateTime` from a `Date` and a `Time`.
     pub fn from_date_and_time(date: PlainDate, time: PlainTime) -> TemporalResult<Self> {
         Ok(Self::new_unchecked(
             IsoDateTime::new(date.iso, time.iso)?,
@@ -508,7 +508,7 @@ impl PlainDateTime {
         ))
     }
 
-    /// Creates a `DateTime` from a `PartialDateTime`.
+    /// Creates a `PlainDateTime` from a `PartialDateTime`.
     ///
     /// ```rust
     /// use temporal_rs::{Calendar, PlainDateTime, fields::{CalendarFields, DateTimeFields}, partial::{PartialDateTime, PartialTime, PartialDate}};
@@ -586,7 +586,7 @@ impl PlainDateTime {
         ))
     }
 
-    /// Creates a new `DateTime` with the fields of a `PartialDateTime`.
+    /// Creates a new `PlainDateTime` with the fields of a `PartialDateTime`.
     ///
     /// ```rust
     /// use temporal_rs::{Calendar, PlainDateTime, fields::{CalendarFields, DateTimeFields}, partial::{PartialDateTime, PartialTime, PartialDate}};
@@ -640,7 +640,8 @@ impl PlainDateTime {
         Ok(Self::new_unchecked(iso_datetime, self.calendar().clone()))
     }
 
-    /// Creates a new `DateTime` from the current `DateTime` and the provided `Time`.
+    /// Creates a new `PlainDateTime` from the current `PlainDateTime` and the provided `Time`.
+    #[inline]
     pub fn with_time(&self, time: Option<PlainTime>) -> TemporalResult<Self> {
         let time = time.unwrap_or_default();
         Self::try_new(
@@ -657,37 +658,27 @@ impl PlainDateTime {
         )
     }
 
-    /// Creates a new `DateTime` from the current `DateTime` and a provided `Calendar`.
-    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::try_new(
-            self.iso_year(),
-            self.iso_month(),
-            self.iso_day(),
-            self.hour(),
-            self.minute(),
-            self.second(),
-            self.millisecond(),
-            self.microsecond(),
-            self.nanosecond(),
-            calendar,
-        )
+    /// Creates a new `PlainDateTime` from the current `PlainDateTime` and a provided [`Calendar`].
+    #[inline]
+    pub fn with_calendar(&self, calendar: Calendar) -> Self {
+        Self::new_unchecked(self.iso, calendar)
     }
 
-    /// Returns this `Date`'s ISO year value.
+    /// Returns this `PlainDateTime`'s ISO year value.
     #[inline]
     #[must_use]
     pub const fn iso_year(&self) -> i32 {
         self.iso.date.year
     }
 
-    /// Returns this `Date`'s ISO month value.
+    /// Returns this `PlainDateTime`'s ISO month value.
     #[inline]
     #[must_use]
     pub const fn iso_month(&self) -> u8 {
         self.iso.date.month
     }
 
-    /// Returns this `Date`'s ISO day value.
+    /// Returns this `PlainDateTime`'s ISO day value.
     #[inline]
     #[must_use]
     pub const fn iso_day(&self) -> u8 {
@@ -748,74 +739,91 @@ impl PlainDateTime {
 
 impl PlainDateTime {
     /// Returns the calendar year value.
+    #[inline]
     pub fn year(&self) -> i32 {
         self.calendar.year(&self.iso.date)
     }
 
     /// Returns the calendar month value.
+    #[inline]
     pub fn month(&self) -> u8 {
         self.calendar.month(&self.iso.date)
     }
 
     /// Returns the calendar month code value.
+    #[inline]
     pub fn month_code(&self) -> MonthCode {
         self.calendar.month_code(&self.iso.date)
     }
 
     /// Returns the calendar day value.
+    #[inline]
     pub fn day(&self) -> u8 {
         self.calendar.day(&self.iso.date)
     }
 
     /// Returns the calendar day of week value.
+    #[inline]
     pub fn day_of_week(&self) -> u16 {
         self.calendar.day_of_week(&self.iso.date)
     }
 
     /// Returns the calendar day of year value.
+    #[inline]
     pub fn day_of_year(&self) -> u16 {
         self.calendar.day_of_year(&self.iso.date)
     }
 
     /// Returns the calendar week of year value.
+    #[inline]
     pub fn week_of_year(&self) -> Option<u8> {
         self.calendar.week_of_year(&self.iso.date)
     }
 
     /// Returns the calendar year of week value.
+    #[inline]
     pub fn year_of_week(&self) -> Option<i32> {
         self.calendar.year_of_week(&self.iso.date)
     }
 
     /// Returns the calendar days in week value.
+    #[inline]
     pub fn days_in_week(&self) -> u16 {
         self.calendar.days_in_week(&self.iso.date)
     }
 
     /// Returns the calendar days in month value.
+    #[inline]
     pub fn days_in_month(&self) -> u16 {
         self.calendar.days_in_month(&self.iso.date)
     }
 
     /// Returns the calendar days in year value.
+    #[inline]
     pub fn days_in_year(&self) -> u16 {
         self.calendar.days_in_year(&self.iso.date)
     }
 
     /// Returns the calendar months in year value.
+    #[inline]
     pub fn months_in_year(&self) -> u16 {
         self.calendar.months_in_year(&self.iso.date)
     }
 
-    /// Returns returns whether the date in a leap year for the given calendar.
+    /// Returns whether the date in a leap year for the given calendar.
+    #[inline]
     pub fn in_leap_year(&self) -> bool {
         self.calendar.in_leap_year(&self.iso.date)
     }
 
+    /// Returns the era for the current `PlainDateTime`.
+    #[inline]
     pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar.era(&self.iso.date)
     }
 
+    /// Returns the era year for the current `PlainDateTime`.
+    #[inline]
     pub fn era_year(&self) -> Option<i32> {
         self.calendar.era_year(&self.iso.date)
     }
@@ -825,7 +833,7 @@ impl PlainDateTime {
     /// Compares one `PlainDateTime` to another `PlainDateTime` using their
     /// `IsoDate` representation.
     ///
-    /// # Note on Ordering.
+    /// # Note on Ordering
     ///
     /// `temporal_rs` does not implement `PartialOrd`/`Ord` as `PlainDateTime` does
     /// not fulfill all the conditions required to implement the traits. However,
@@ -836,14 +844,14 @@ impl PlainDateTime {
         self.iso.cmp(&other.iso)
     }
 
+    /// Adds a [`Duration`] to the current `PlainDateTime`.
     #[inline]
-    /// Adds a `Duration` to the current `DateTime`.
     pub fn add(&self, duration: &Duration, overflow: Option<Overflow>) -> TemporalResult<Self> {
         self.add_or_subtract_duration(duration, overflow)
     }
 
+    /// Subtracts a [`Duration`] to the current `PlainDateTime`.
     #[inline]
-    /// Subtracts a `Duration` to the current `DateTime`.
     pub fn subtract(
         &self,
         duration: &Duration,
@@ -852,19 +860,20 @@ impl PlainDateTime {
         self.add_or_subtract_duration(&duration.negated(), overflow)
     }
 
+    /// Returns a [`Duration`] representing the period of time from this `PlainDateTime` until the other `PlainDateTime`.
     #[inline]
-    /// Returns a `Duration` representing the period of time from this `DateTime` until the other `DateTime`.
     pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff(DifferenceOperation::Until, other, settings)
     }
 
+    /// Returns a [`Duration`] representing the period of time from this `PlainDateTime` since the other `PlainDateTime`.
     #[inline]
-    /// Returns a `Duration` representing the period of time from this `DateTime` since the other `DateTime`.
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff(DifferenceOperation::Since, other, settings)
     }
 
-    /// Rounds the current datetime based on provided options.
+    /// Rounds the current `PlainDateTime` based on provided options.
+    #[inline]
     pub fn round(&self, options: RoundingOptions) -> TemporalResult<Self> {
         let resolved = ResolvedRoundingOptions::from_datetime_options(options)?;
 
@@ -877,9 +886,11 @@ impl PlainDateTime {
         Ok(Self::new_unchecked(result, self.calendar.clone()))
     }
 
+    /// Create a [`ZonedDateTime`] from the current `PlainDateTime` with the provided options.
+    #[inline]
     pub fn to_zoned_date_time_with_provider(
         &self,
-        time_zone: &TimeZone,
+        time_zone: TimeZone,
         disambiguation: Disambiguation,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
@@ -889,23 +900,28 @@ impl PlainDateTime {
         Ok(ZonedDateTime::new_unchecked(
             Instant::from(epoch_ns.ns),
             self.calendar.clone(),
-            *time_zone,
+            time_zone,
             epoch_ns.offset,
         ))
     }
 
     /// Create a [`PlainDate`] from the current `PlainDateTime`.
+    #[inline]
     pub fn to_plain_date(&self) -> PlainDate {
         // 3. Return ! CreateTemporalDate(dateTime.[[ISODateTime]].[[ISODate]], dateTime.[[Calendar]]).
         PlainDate::new_unchecked(self.iso.date, self.calendar.clone())
     }
 
     /// Create a [`PlainTime`] from the current `PlainDateTime`.
+    #[inline]
     pub fn to_plain_time(&self) -> PlainTime {
         // 3. Return ! CreateTemporalTime(dateTime.[[ISODateTime]].[[Time]]).
         PlainTime::new_unchecked(self.iso.time)
     }
 
+    /// Creates an efficient [`Writeable`] implementation for the RFC 9557 IXDTF format
+    /// using the current `PlainDateTime` and options.
+    #[inline]
     pub fn to_ixdtf_writeable(
         &self,
         options: ToStringRoundingOptions,
@@ -927,6 +943,9 @@ impl PlainDateTime {
         Ok(builder)
     }
 
+    /// Returns the RFC 9557 IXDTF string for the current `PlainDateTime` with the provided
+    /// options.
+    #[inline]
     pub fn to_ixdtf_string(
         &self,
         options: ToStringRoundingOptions,
@@ -938,15 +957,6 @@ impl PlainDateTime {
 }
 
 // ==== Trait impls ====
-
-impl From<PlainDate> for PlainDateTime {
-    fn from(value: PlainDate) -> Self {
-        PlainDateTime::new_unchecked(
-            IsoDateTime::new_unchecked(value.iso, IsoTime::default()),
-            value.calendar().clone(),
-        )
-    }
-}
 
 impl FromStr for PlainDateTime {
     type Err = TemporalError;
@@ -964,8 +974,8 @@ mod tests {
         builtins::{
             calendar::CalendarFields,
             core::{
-                calendar::Calendar, datetime::DateTimeFields, duration::DateDuration, Duration,
-                PartialTime, PlainDateTime,
+                calendar::Calendar, duration::DateDuration, plain_date_time::DateTimeFields,
+                Duration, PartialTime, PlainDateTime,
             },
         },
         iso::{IsoDate, IsoDateTime, IsoTime},
