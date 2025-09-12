@@ -785,15 +785,15 @@ enum TransitionKind {
 }
 
 /// Stores the information about DST transitions for a given year
-struct DstTransitionInfoForYear {
-    dst_start_seconds: Seconds,
-    dst_end_seconds: Seconds,
-    std_offset: UtcOffsetSeconds,
-    dst_offset: UtcOffsetSeconds,
+pub(crate) struct DstTransitionInfoForYear {
+    pub(crate) dst_start_seconds: Seconds,
+    pub(crate) dst_end_seconds: Seconds,
+    pub(crate) std_offset: UtcOffsetSeconds,
+    pub(crate) dst_offset: UtcOffsetSeconds,
 }
 
 impl DstTransitionInfoForYear {
-    fn compute(
+    pub(crate) fn compute(
         posix_tz_string: &PosixTzString,
         dst_variant: &DstTransitionInfo,
         year: i32,
@@ -1054,14 +1054,14 @@ fn resolve_posix_tz_string(
 ///
 /// For more information, see the [POSIX tz string docs](https://sourceware.org/glibc/manual/2.40/html_node/Proleptic-TZ.html)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Mwd {
+pub(crate) struct Mwd {
     month: u8,
     week: u8,
     day: u8,
 }
 
 impl Mwd {
-    fn from_u16(month: u16, week: u16, day: u16) -> Self {
+    pub(crate) fn from_u16(month: u16, week: u16, day: u16) -> Self {
         Self::from_u8(
             u8::try_from(month).unwrap_or(0),
             u8::try_from(week).unwrap_or(0),
@@ -1069,14 +1069,14 @@ impl Mwd {
         )
     }
 
-    fn from_u8(month: u8, week: u8, day: u8) -> Self {
+    pub(crate) fn from_u8(month: u8, week: u8, day: u8) -> Self {
         Self { month, week, day }
     }
 
     /// Given the day of the week of the 0th day in this month,
     /// normalize the week to being a week number (1 = first week, ...)
     /// rather than a weekday ordinal (1 = first friday, etc)
-    fn normalize_to_week_number(&mut self, day_of_week_zeroth_day: u8) {
+    pub(crate) fn normalize_to_week_number(&mut self, day_of_week_zeroth_day: u8) {
         if self.day <= day_of_week_zeroth_day {
             self.week += 1;
         }
@@ -1085,19 +1085,19 @@ impl Mwd {
 
 /// Represents an MWD for a given time
 #[derive(Debug)]
-struct MwdForTime {
+pub(crate) struct MwdForTime {
     /// This will never have day = 5
-    mwd: Mwd,
+    pub(crate) mwd: Mwd,
     /// The day of the week of the 0th day (the day before the month starts)
-    day_of_week_zeroth_day: u8,
+    pub(crate) day_of_week_zeroth_day: u8,
     /// This is the day of week of the 29th and the last day of the month,
     /// if the month has more than 28 days.
     /// Basically, this is the start and end of the "fifth $weekday of the month" period
-    extra_days: Option<(u8, u8)>,
+    pub(crate) extra_days: Option<(u8, u8)>,
 }
 
 impl MwdForTime {
-    fn from_seconds(seconds: i64) -> Self {
+    pub(crate) fn from_seconds(seconds: i64) -> Self {
         let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
         let week_of_month = day_of_month / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
@@ -1133,7 +1133,7 @@ impl MwdForTime {
     /// depending on when March starts.
     ///
     /// This normalization *only* applies to MWDs in the same month. For other MWDs, such normalization is irrelevant.
-    fn normalize_mwd(&self, other: &mut Mwd) {
+    pub(crate) fn normalize_mwd(&self, other: &mut Mwd) {
         // If we're in the same month, normalization will actually have a useful effect
         if self.mwd.month == other.month {
             // First normalize MWDs that are like "the last $weekday in the month"
@@ -1228,13 +1228,13 @@ fn cmp_seconds_to_transitions(
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TransitionType {
+pub(crate) enum TransitionType {
     Dst,
     Std,
 }
 
 impl TransitionType {
-    fn invert(&mut self) {
+    pub(crate) fn invert(&mut self) {
         *self = match *self {
             Self::Dst => Self::Std,
             Self::Std => Self::Dst,
@@ -1242,7 +1242,7 @@ impl TransitionType {
     }
 }
 
-fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
+pub(crate) fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
     if offset_one < offset_two {
         return offset_one..offset_two;
     }
