@@ -1,13 +1,15 @@
 use crate::builtins::Now;
-use crate::builtins::NowBuilder;
+use crate::host::HostClock;
+use crate::host::HostHooks;
+use crate::host::HostTimeZone;
 use crate::TemporalResult;
 
 use crate::unix_time::EpochNanoseconds;
 use crate::TemporalError;
 use crate::TimeZone;
+#[cfg(feature = "sys")]
+use timezone_provider::provider::TimeZoneProvider;
 use web_time::{SystemTime, UNIX_EPOCH};
-
-// TODO: Need to implement SystemTime handling for non_std.
 
 // TODO: Look into and potentially implement a `SystemTime` struct allows
 // providing closures or trait implementations that can then
@@ -24,35 +26,39 @@ pub struct Temporal;
 
 #[cfg(feature = "sys")]
 impl Temporal {
-    /// Returns a [`Now`] with the default system time and time zone.
-    ///
-    /// ## Panics
-    ///
-    /// This API can panic if reading the values from the system
-    /// fails or the retreived values are not valid.
-    ///
-    /// For the non-panicking version of this API, see [`Self::try_now`].
-    pub fn now() -> Now {
-        #[allow(clippy::expect_used, reason = "We are okay with panics in the sys API")]
-        Self::try_now().expect("failed to retrieve and validate system values.")
+    pub fn now() -> Now<DefaultHostSystem> {
+        Now::new(DefaultHostSystem)
     }
+}
 
-    /// Returns a [`Now`] with the default system time and time zone.
-    pub fn try_now() -> TemporalResult<Now> {
-        Ok(NowBuilder::default()
-            .with_system_zone(get_system_timezone()?)
-            .with_system_nanoseconds(get_system_nanoseconds()?)
-            .build())
+#[cfg(feature = "sys")]
+pub struct DefaultHostSystem;
+
+#[cfg(feature = "sys")]
+impl HostHooks for DefaultHostSystem {}
+
+#[cfg(feature = "sys")]
+impl HostClock for DefaultHostSystem {
+    fn get_host_epoch_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+        get_system_nanoseconds()
+    }
+}
+
+#[cfg(feature = "sys")]
+impl HostTimeZone for DefaultHostSystem {
+    fn get_host_time_zone(
+        &self,
+        provider: &impl timezone_provider::provider::TimeZoneProvider,
+    ) -> TemporalResult<TimeZone> {
+        get_system_timezone(provider)
     }
 }
 
 #[cfg(feature = "sys")]
 #[inline]
-pub(crate) fn get_system_timezone() -> TemporalResult<TimeZone> {
+pub(crate) fn get_system_timezone(provider: &impl TimeZoneProvider) -> TemporalResult<TimeZone> {
     iana_time_zone::get_timezone()
-        .map(|s| {
-            TimeZone::try_from_identifier_str_with_provider(&s, &*crate::builtins::TZ_PROVIDER)
-        })
+        .map(|s| TimeZone::try_from_identifier_str_with_provider(&s, provider))
         .map_err(|_| TemporalError::general("Error fetching system time"))?
 }
 
