@@ -344,18 +344,12 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn to_plain_date(&self) -> Result<Box<PlainDate>, TemporalError> {
-            self.0
-                .to_plain_date()
-                .map(|x| Box::new(PlainDate(x)))
-                .map_err(Into::into)
+        pub fn to_plain_date(&self) -> Box<PlainDate> {
+            Box::new(PlainDate(self.0.to_plain_date()))
         }
 
-        pub fn to_plain_time(&self) -> Result<Box<PlainTime>, TemporalError> {
-            self.0
-                .to_plain_time()
-                .map(|x| Box::new(PlainTime(x)))
-                .map_err(Into::into)
+        pub fn to_plain_time(&self) -> Box<PlainTime> {
+            Box::new(PlainTime(self.0.to_plain_time()))
         }
 
         #[cfg(feature = "compiled_data")]

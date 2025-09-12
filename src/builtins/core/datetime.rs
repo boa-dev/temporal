@@ -156,13 +156,13 @@ impl DateTimeFields {
 /// let dt = PlainDateTime::from_str("2024-03-15T14:30:45").unwrap();
 ///
 /// // Extract date component
-/// let date = dt.to_plain_date().unwrap();
+/// let date = dt.to_plain_date();
 /// assert_eq!(date.year(), 2024);
 /// assert_eq!(date.month(), 3);
 /// assert_eq!(date.day(), 15);
 ///
 /// // Extract time component
-/// let time = dt.to_plain_time().unwrap();
+/// let time = dt.to_plain_time();
 /// assert_eq!(time.hour(), 14);
 /// assert_eq!(time.minute(), 30);
 /// assert_eq!(time.second(), 45);
@@ -894,17 +894,16 @@ impl PlainDateTime {
         ))
     }
 
-    pub fn to_plain_date(&self) -> TemporalResult<PlainDate> {
+    /// Create a [`PlainDate`] from the current `PlainDateTime`.
+    pub fn to_plain_date(&self) -> PlainDate {
         // 3. Return ! CreateTemporalDate(dateTime.[[ISODateTime]].[[ISODate]], dateTime.[[Calendar]]).
-        Ok(PlainDate::new_unchecked(
-            self.iso.date,
-            self.calendar.clone(),
-        ))
+        PlainDate::new_unchecked(self.iso.date, self.calendar.clone())
     }
 
-    pub fn to_plain_time(&self) -> TemporalResult<PlainTime> {
+    /// Create a [`PlainTime`] from the current `PlainDateTime`.
+    pub fn to_plain_time(&self) -> PlainTime {
         // 3. Return ! CreateTemporalTime(dateTime.[[ISODateTime]].[[Time]]).
-        Ok(PlainTime::new_unchecked(self.iso.time))
+        PlainTime::new_unchecked(self.iso.time)
     }
 
     pub fn to_ixdtf_writeable(
