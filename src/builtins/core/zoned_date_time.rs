@@ -142,8 +142,8 @@ impl ZonedDateTimeFields {
 /// // Create from epoch nanoseconds
 /// let zdt = ZonedDateTime::try_new(
 ///     0,                    // epoch nanoseconds (Unix epoch)
-///     Calendar::default(),  // ISO 8601 calendar
 ///     TimeZone::utc(),  // UTC timezone
+///     Calendar::default(),  // ISO 8601 calendar
 /// ).unwrap();
 ///
 /// assert_eq!(zdt.epoch_milliseconds(), 0);
@@ -162,8 +162,8 @@ impl ZonedDateTimeFields {
 /// let time_zone = TimeZone::try_from_str("America/New_York").unwrap();
 /// let zoned_date_time = ZonedDateTime::try_new(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
-///     Calendar::default(),
 ///     time_zone,
+///     Calendar::default(),
 /// ).unwrap();
 ///
 /// // Note: This would be December 31, 2020 19:00 in New York (EST)
@@ -184,8 +184,8 @@ impl ZonedDateTimeFields {
 /// let time_zone = TimeZone::try_from_str("Europe/London").unwrap();
 /// let zdt = ZonedDateTime::try_new(
 ///     1609459200000000000, // 2021-01-01T00:00:00Z
-///     Calendar::default(),
 ///     time_zone,
+///     Calendar::default(),
 /// ).unwrap();
 ///
 /// // Add 6 months
@@ -227,8 +227,8 @@ impl ZonedDateTimeFields {
 ///
 /// let zdt = ZonedDateTime::try_new(
 ///     1609459200000000000,
-///     Calendar::default(),
 ///     TimeZone::try_from_str("Asia/Tokyo").unwrap(),
+///     Calendar::default(),
 /// ).unwrap();
 ///
 /// let iso_string = zdt.to_ixdtf_string(
