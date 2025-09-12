@@ -69,7 +69,7 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
+  inline std::unique_ptr<temporal_rs::PlainDate> with_calendar(temporal_rs::AnyCalendarKind calendar) const;
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 

@@ -59,8 +59,7 @@ namespace capi {
     typedef struct temporal_rs_PlainDateTime_with_time_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_time_result;
     temporal_rs_PlainDateTime_with_time_result temporal_rs_PlainDateTime_with_time(const temporal_rs::capi::PlainDateTime* self, const temporal_rs::capi::PlainTime* time);
 
-    typedef struct temporal_rs_PlainDateTime_with_calendar_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_calendar_result;
-    temporal_rs_PlainDateTime_with_calendar_result temporal_rs_PlainDateTime_with_calendar(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::AnyCalendarKind calendar);
+    temporal_rs::capi::PlainDateTime* temporal_rs_PlainDateTime_with_calendar(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::AnyCalendarKind calendar);
 
     typedef struct temporal_rs_PlainDateTime_from_utf8_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_utf8_result;
     temporal_rs_PlainDateTime_from_utf8_result temporal_rs_PlainDateTime_from_utf8(diplomat::capi::DiplomatStringView s);
@@ -140,11 +139,9 @@ namespace capi {
     typedef struct temporal_rs_PlainDateTime_round_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_round_result;
     temporal_rs_PlainDateTime_round_result temporal_rs_PlainDateTime_round(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::RoundingOptions options);
 
-    typedef struct temporal_rs_PlainDateTime_to_plain_date_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_plain_date_result;
-    temporal_rs_PlainDateTime_to_plain_date_result temporal_rs_PlainDateTime_to_plain_date(const temporal_rs::capi::PlainDateTime* self);
+    temporal_rs::capi::PlainDate* temporal_rs_PlainDateTime_to_plain_date(const temporal_rs::capi::PlainDateTime* self);
 
-    typedef struct temporal_rs_PlainDateTime_to_plain_time_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_plain_time_result;
-    temporal_rs_PlainDateTime_to_plain_time_result temporal_rs_PlainDateTime_to_plain_time(const temporal_rs::capi::PlainDateTime* self);
+    temporal_rs::capi::PlainTime* temporal_rs_PlainDateTime_to_plain_time(const temporal_rs::capi::PlainDateTime* self);
 
     typedef struct temporal_rs_PlainDateTime_to_zoned_date_time_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_zoned_date_time_result;
     temporal_rs_PlainDateTime_to_zoned_date_time_result temporal_rs_PlainDateTime_to_zoned_date_time(const temporal_rs::capi::PlainDateTime* self, const temporal_rs::capi::TimeZone* time_zone, temporal_rs::capi::Disambiguation disambiguation);
@@ -228,10 +225,10 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::with_calendar(temporal_rs::AnyCalendarKind calendar) const {
+inline std::unique_ptr<temporal_rs::PlainDateTime> temporal_rs::PlainDateTime::with_calendar(temporal_rs::AnyCalendarKind calendar) const {
   auto result = temporal_rs::capi::temporal_rs_PlainDateTime_with_calendar(this->AsFFI(),
     calendar.AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result));
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::from_utf8(std::string_view s) {
@@ -433,14 +430,14 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::to_plain_date() const {
+inline std::unique_ptr<temporal_rs::PlainDate> temporal_rs::PlainDateTime::to_plain_date() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDateTime_to_plain_date(this->AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::to_plain_time() const {
+inline std::unique_ptr<temporal_rs::PlainTime> temporal_rs::PlainDateTime::to_plain_time() const {
   auto result = temporal_rs::capi::temporal_rs_PlainDateTime_to_plain_time(this->AsFFI());
-  return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+  return std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result));
 }
 
 inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::to_zoned_date_time(const temporal_rs::TimeZone& time_zone, temporal_rs::Disambiguation disambiguation) const {
