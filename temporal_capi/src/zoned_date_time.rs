@@ -157,8 +157,8 @@ pub mod ffi {
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| temporal_rs::ZonedDateTime::try_new_with_provider(
                 nanosecond.into(),
-                temporal_rs::Calendar::new(calendar.into()),
                 time_zone.0,
+                temporal_rs::Calendar::new(calendar.into()),
                 p
             ))
             .map(|x| Box::new(ZonedDateTime(x)))
