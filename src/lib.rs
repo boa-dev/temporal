@@ -11,7 +11,7 @@
 //! Below are a few examples to give an overview of `temporal_rs`'s current
 //! API.
 //!
-//! ### Convert from an ISO8601 [`PlainDate`]  into a Japanese [`PlainDate`]
+//! ### Convert from an ISO `PlainDate` into a Japanese `PlainDate`
 //!
 //! ```rust
 //! use temporal_rs::{PlainDate, Calendar};
@@ -22,7 +22,7 @@
 //! let iso8601_date = PlainDate::try_new_iso(2025, 3, 3).unwrap();
 //!
 //! // Create a new date with the japanese calendar
-//! let japanese_date = iso8601_date.with_calendar(Calendar::from_str("japanese").unwrap()).unwrap();
+//! let japanese_date = iso8601_date.with_calendar(Calendar::JAPANESE);
 //! assert_eq!(japanese_date.era(), Some(tinystr!(16, "reiwa")));
 //! assert_eq!(japanese_date.era_year(), Some(7));
 //! assert_eq!(japanese_date.month(), 3)

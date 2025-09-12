@@ -177,11 +177,11 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Result<Box<Self>, TemporalError> {
-            self.0
-                .with_calendar(temporal_rs::Calendar::new(calendar.into()))
-                .map(|x| Box::new(PlainDate(x)))
-                .map_err(Into::into)
+        pub fn with_calendar(&self, calendar: AnyCalendarKind) -> Box<Self> {
+            Box::new(PlainDate(
+                self.0
+                    .with_calendar(temporal_rs::Calendar::new(calendar.into())),
+            ))
         }
 
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
