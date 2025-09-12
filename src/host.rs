@@ -35,28 +35,28 @@ pub trait HostHooks: HostClock + HostTimeZone {
 ///
 /// ```
 /// # #[cfg(feature = "compiled_data")] {
-/// use temporal_rs::host::EmptyHost;
+/// use temporal_rs::host::EmptyHostSystem;
 /// use temporal_rs::now::Now;
 ///
-/// let now = Now::new(EmptyHost);
+/// let now = Now::new(EmptyHostSystem);
 /// let zoned_date_time = now.zoned_date_time_iso(None).unwrap();
 ///
 /// assert_eq!(zoned_date_time.to_string(), "1970-01-01T00:00:00+00:00[+00:00]");
 ///
 /// # }
 /// ```
-pub struct EmptyHost;
+pub struct EmptyHostSystem;
 
-impl HostClock for EmptyHost {
+impl HostClock for EmptyHostSystem {
     fn get_host_epoch_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
         Ok(EpochNanoseconds::from_seconds(0))
     }
 }
 
-impl HostTimeZone for EmptyHost {
+impl HostTimeZone for EmptyHostSystem {
     fn get_host_time_zone(&self, _: &impl TimeZoneProvider) -> TemporalResult<TimeZone> {
         Ok(TimeZone::from(UtcOffset::default()))
     }
 }
 
-impl HostHooks for EmptyHost {}
+impl HostHooks for EmptyHostSystem {}
