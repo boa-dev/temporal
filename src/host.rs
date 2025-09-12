@@ -28,18 +28,35 @@ pub trait HostHooks: HostClock + HostTimeZone {
     }
 }
 
-// Implement empty providers
+/// The empty host is a default implementation of a system host.
+///
+/// This implementation will always return zero epoch nanoseconds and
+/// a +00:00 time zone.
+///
+/// ```
+/// # #[cfg(feature = "compiled_data")] {
+/// use temporal_rs::host::EmptyHost;
+/// use temporal_rs::now::Now;
+///
+/// let now = Now::new(EmptyHost);
+/// let zoned_date_time = now.zoned_date_time_iso(None).unwrap();
+///
+/// assert_eq!(zoned_date_time.to_string(), "1970-01-01T00:00:00+00:00[+00:00]");
+///
+/// # }
+/// ```
+pub struct EmptyHost;
 
-impl HostClock for () {
+impl HostClock for EmptyHost {
     fn get_host_epoch_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
         Ok(EpochNanoseconds::from_seconds(0))
     }
 }
 
-impl HostTimeZone for () {
+impl HostTimeZone for EmptyHost {
     fn get_host_time_zone(&self, _: &impl TimeZoneProvider) -> TemporalResult<TimeZone> {
         Ok(TimeZone::from(UtcOffset::default()))
     }
 }
 
-impl HostHooks for () {}
+impl HostHooks for EmptyHost {}
