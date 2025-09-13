@@ -66,12 +66,6 @@ namespace capi {
     typedef struct temporal_rs_PlainDate_from_utf16_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf16_result;
     temporal_rs_PlainDate_from_utf16_result temporal_rs_PlainDate_from_utf16(diplomat::capi::DiplomatString16View s);
 
-    int32_t temporal_rs_PlainDate_iso_year(const temporal_rs::capi::PlainDate* self);
-
-    uint8_t temporal_rs_PlainDate_iso_month(const temporal_rs::capi::PlainDate* self);
-
-    uint8_t temporal_rs_PlainDate_iso_day(const temporal_rs::capi::PlainDate* self);
-
     const temporal_rs::capi::Calendar* temporal_rs_PlainDate_calendar(const temporal_rs::capi::PlainDate* self);
 
     bool temporal_rs_PlainDate_is_valid(const temporal_rs::capi::PlainDate* self);
@@ -220,21 +214,6 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_utf16(std::u16string_view s) {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_from_utf16({s.data(), s.size()});
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline int32_t temporal_rs::PlainDate::iso_year() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_iso_year(this->AsFFI());
-  return result;
-}
-
-inline uint8_t temporal_rs::PlainDate::iso_month() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_iso_month(this->AsFFI());
-  return result;
-}
-
-inline uint8_t temporal_rs::PlainDate::iso_day() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDate_iso_day(this->AsFFI());
-  return result;
 }
 
 inline const temporal_rs::Calendar& temporal_rs::PlainDate::calendar() const {

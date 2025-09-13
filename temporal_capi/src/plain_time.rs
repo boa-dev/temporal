@@ -7,7 +7,7 @@ pub mod ffi {
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::options::ffi::{
-        ArithmeticOverflow, DifferenceSettings, RoundingMode, ToStringRoundingOptions, Unit,
+        ArithmeticOverflow, DifferenceSettings, RoundingOptions, ToStringRoundingOptions,
     };
     use crate::provider::ffi::Provider;
     use alloc::string::String;
@@ -185,18 +185,9 @@ pub mod ffi {
 
             tuple1.cmp(&tuple2)
         }
-        pub fn round(
-            &self,
-            smallest_unit: Unit,
-            rounding_increment: Option<f64>,
-            rounding_mode: Option<RoundingMode>,
-        ) -> Result<Box<Self>, TemporalError> {
+        pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
             self.0
-                .round(
-                    smallest_unit.into(),
-                    rounding_increment,
-                    rounding_mode.map(Into::into),
-                )
+                .round(options.try_into()?)
                 .map(|x| Box::new(Self(x)))
                 .map_err(Into::into)
         }

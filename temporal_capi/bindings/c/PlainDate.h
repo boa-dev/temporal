@@ -63,12 +63,6 @@ temporal_rs_PlainDate_from_utf8_result temporal_rs_PlainDate_from_utf8(DiplomatS
 typedef struct temporal_rs_PlainDate_from_utf16_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf16_result;
 temporal_rs_PlainDate_from_utf16_result temporal_rs_PlainDate_from_utf16(DiplomatString16View s);
 
-int32_t temporal_rs_PlainDate_iso_year(const PlainDate* self);
-
-uint8_t temporal_rs_PlainDate_iso_month(const PlainDate* self);
-
-uint8_t temporal_rs_PlainDate_iso_day(const PlainDate* self);
-
 const Calendar* temporal_rs_PlainDate_calendar(const PlainDate* self);
 
 bool temporal_rs_PlainDate_is_valid(const PlainDate* self);

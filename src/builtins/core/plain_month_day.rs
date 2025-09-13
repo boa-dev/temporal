@@ -177,6 +177,22 @@ impl PlainMonthDay {
         Self { iso, calendar }
     }
 
+    /// Returns the ISO month value of `PlainMonthDay`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn iso_month(&self) -> u8 {
+        self.iso.month
+    }
+
+    /// Returns the ISO year value of `PlainMonthDay`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn iso_year(&self) -> i32 {
+        self.iso.year
+    }
+}
+
+impl PlainMonthDay {
     /// Creates a new valid `PlainMonthDay`.
     #[inline]
     pub fn new_with_overflow(
@@ -272,27 +288,6 @@ impl PlainMonthDay {
             .month_day_from_fields(merged, overflow.unwrap_or(Overflow::Constrain))
     }
 
-    /// Returns the ISO day value of `PlainMonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn iso_day(&self) -> u8 {
-        self.iso.day
-    }
-
-    // Returns the ISO month value of `PlainMonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn iso_month(&self) -> u8 {
-        self.iso.month
-    }
-
-    // Returns the ISO year value of `PlainMonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn iso_year(&self) -> i32 {
-        self.iso.year
-    }
-
     /// Returns the string identifier for the current `Calendar`.
     #[inline]
     #[must_use]
@@ -375,6 +370,7 @@ impl PlainMonthDay {
             .into()
     }
 
+    /// Creates a RFC9557 IXDTF [`Writeable`].
     pub fn to_ixdtf_writeable(&self, display_calendar: DisplayCalendar) -> impl Writeable + '_ {
         let ixdtf = FormattableMonthDay {
             date: FormattableDate(self.iso_year(), self.iso_month(), self.iso.day),
