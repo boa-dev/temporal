@@ -17,7 +17,6 @@ use crate::{
     provider::{NeverProvider, TimeZoneProvider},
     temporal_assert,
     unix_time::EpochNanoseconds,
-    utils::pad_iso_year,
     Calendar, MonthCode, TemporalError, TemporalResult, TemporalUnwrap, TimeZone,
 };
 
@@ -391,14 +390,14 @@ impl PlainYearMonth {
     /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, rejecting any date that may be invalid.
     #[inline]
     pub fn try_new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
-        Self::try_new(year, month, reference_day, Calendar::default())
+        Self::try_new(year, month, reference_day, Calendar::ISO)
     }
 
     /// Creates a new `PlainYearMonth` with an ISO 8601 calendar, constraining any arguments
     /// that are invalid into a valid range.
     #[inline]
     pub fn new_iso(year: i32, month: u8, reference_day: Option<u8>) -> TemporalResult<Self> {
-        Self::new(year, month, reference_day, Calendar::default())
+        Self::new(year, month, reference_day, Calendar::ISO)
     }
 
     /// Creates a new valid `YearMonth` with provided [`Overflow`] option.
@@ -460,13 +459,6 @@ impl PlainYearMonth {
         intermediate
             .calendar()
             .year_month_from_fields(fields, Overflow::Constrain)
-    }
-
-    /// Returns the padded ISO year string
-    #[inline]
-    #[must_use]
-    pub fn padded_iso_year_string(&self) -> String {
-        pad_iso_year(self.iso.year)
     }
 
     /// Returns the calendar era of the current `PlainYearMonth`
