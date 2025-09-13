@@ -1,4 +1,4 @@
-//! This module implements `Date` and any directly related algorithms.
+//! This module implements `PlainDate` and any directly related algorithms.
 
 use crate::parsed_intermediates::ParsedDate;
 use crate::{
@@ -175,7 +175,7 @@ impl core::fmt::Display for PlainDate {
 // ==== Private API ====
 
 impl PlainDate {
-    /// Create a new `Date` with the date values and calendar slot.
+    /// Create a new `PlainDate` with the date values and calendar slot.
     #[inline]
     #[must_use]
     pub(crate) fn new_unchecked(iso: IsoDate, calendar: Calendar) -> Self {
@@ -304,7 +304,7 @@ impl PlainDate {
 
     ///  Abstract operation `DaysUntil`
     ///
-    /// Calculates the epoch days between two `Date`s
+    /// Calculates the epoch days between two `PlainDate`s
     #[inline]
     #[must_use]
     fn days_until(&self, other: &Self) -> i32 {
@@ -393,13 +393,14 @@ impl PlainDate {
             .date_from_fields(partial.calendar_fields, overflow)
     }
 
-    // Converts a UTF-8 encoded string into a `PlainDate`.
+    /// Converts a UTF-8 encoded string into a `PlainDate`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parsed = ParsedDate::from_utf8(s)?;
 
         Self::from_parsed(parsed)
     }
 
+    /// Creates a `PlainDate` from a [`ParsedDate`].
     pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
         Self::try_new(
             parsed.record.year,
@@ -409,7 +410,7 @@ impl PlainDate {
         )
     }
 
-    /// Creates a date time with values from a `PartialDate`.
+    /// Creates a `PlainDate` with values from a [`PartialDate`].
     pub fn with(&self, fields: CalendarFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         if fields.is_empty() {
             return Err(TemporalError::r#type().with_message("CalendarFields must have a field."));
@@ -426,35 +427,35 @@ impl PlainDate {
         )
     }
 
-    /// Creates a new `Date` from the current `Date` and the provided calendar.
-    pub fn with_calendar(&self, calendar: Calendar) -> TemporalResult<Self> {
-        Self::try_new(self.iso_year(), self.iso_month(), self.iso_day(), calendar)
+    /// Creates a new `PlainDate` from the current `PlainDate` and the provided calendar.
+    pub fn with_calendar(&self, calendar: Calendar) -> Self {
+        Self::new_unchecked(self.iso, calendar)
     }
 
     #[inline]
     #[must_use]
-    /// Returns this `Date`'s ISO year value.
+    /// Returns this `PlainDate`'s ISO year value.
     pub const fn iso_year(&self) -> i32 {
         self.iso.year
     }
 
     #[inline]
     #[must_use]
-    /// Returns this `Date`'s ISO month value.
+    /// Returns this `PlainDate`'s ISO month value.
     pub const fn iso_month(&self) -> u8 {
         self.iso.month
     }
 
     #[inline]
     #[must_use]
-    /// Returns this `Date`'s ISO day value.
+    /// Returns this `PlainDate`'s ISO day value.
     pub const fn iso_day(&self) -> u8 {
         self.iso.day
     }
 
     #[inline]
     #[must_use]
-    /// Returns a reference to this `Date`'s calendar slot.
+    /// Returns a reference to this `PlainDate`'s calendar slot.
     pub fn calendar(&self) -> &Calendar {
         &self.calendar
     }
@@ -482,13 +483,13 @@ impl PlainDate {
     }
 
     #[inline]
-    /// Adds a `Duration` to the current `Date`
+    /// Adds a [`Duration`] to the current `PlainDate`.
     pub fn add(&self, duration: &Duration, overflow: Option<Overflow>) -> TemporalResult<Self> {
         self.add_duration_to_date(duration, overflow)
     }
 
     #[inline]
-    /// Subtracts a `Duration` to the current `Date`
+    /// Subtracts a [`Duration`] from the current `PlainDate`.
     pub fn subtract(
         &self,
         duration: &Duration,
@@ -498,13 +499,13 @@ impl PlainDate {
     }
 
     #[inline]
-    /// Returns a `Duration` representing the time from this `Date` until the other `Date`.
+    /// Returns a [`Duration`] representing the time from this `PlainDate` until the other `PlainDate`.
     pub fn until(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_date(DifferenceOperation::Until, other, settings)
     }
 
     #[inline]
-    /// Returns a `Duration` representing the time passed from this `Date` since the other `Date`.
+    /// Returns a [`Duration`] representing the time passed from this `PlainDate` since the other `PlainDate`.
     pub fn since(&self, other: &Self, settings: DifferenceSettings) -> TemporalResult<Duration> {
         self.diff_date(DifferenceOperation::Since, other, settings)
     }
@@ -573,15 +574,17 @@ impl PlainDate {
         self.calendar.months_in_year(&self.iso)
     }
 
-    /// Returns returns whether the date in a leap year for the given calendar.
+    /// Returns whether the `PlainDate` is in a leap year for the given calendar.
     pub fn in_leap_year(&self) -> bool {
         self.calendar.in_leap_year(&self.iso)
     }
 
+    /// Returns the era current `PlainDate`.
     pub fn era(&self) -> Option<TinyAsciiStr<16>> {
         self.calendar.era(&self.iso)
     }
 
+    /// Returns the era year for the current `PlainDate`.
     pub fn era_year(&self) -> Option<i32> {
         self.calendar.era_year(&self.iso)
     }
@@ -590,7 +593,7 @@ impl PlainDate {
 // ==== ToX Methods ====
 
 impl PlainDate {
-    /// Converts the current `Date` into a `DateTime`
+    /// Converts the current `PlainDate` into a [`PlainDateTime`].
     ///
     /// # Notes
     ///
@@ -602,7 +605,7 @@ impl PlainDate {
         Ok(PlainDateTime::new_unchecked(iso, self.calendar().clone()))
     }
 
-    /// Converts the current `Date` into a `PlainYearMonth`
+    /// Converts the current `PlainDate` into a [`PlainYearMonth`].
     #[inline]
     pub fn to_plain_year_month(&self) -> TemporalResult<PlainYearMonth> {
         let era = self
@@ -622,7 +625,7 @@ impl PlainDate {
             .year_month_from_fields(fields, Overflow::Constrain)
     }
 
-    /// Converts the current `Date` into a `PlainMonthDay`
+    /// Converts the current `PlainDate` into a [`PlainMonthDay`].
     #[inline]
     pub fn to_plain_month_day(&self) -> TemporalResult<PlainMonthDay> {
         let overflow = Overflow::Constrain;
@@ -673,21 +676,20 @@ impl PlainDate {
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
         ZonedDateTime::try_new_with_cached_offset(
             epoch_ns.ns.0,
-            self.calendar.clone(),
             tz,
+            self.calendar.clone(),
             epoch_ns.offset,
         )
     }
 }
+
 // ==== Trait impls ====
 
 impl From<PlainDateTime> for PlainDate {
-    fn from(value: PlainDateTime) -> Self {
-        PlainDate::new_unchecked(value.iso.date, value.calendar().clone())
+    fn from(pdt: PlainDateTime) -> Self {
+        pdt.to_plain_date()
     }
 }
-
-// TODO: impl From<ZonedDateTime> for PlainDate
 
 impl FromStr for PlainDate {
     type Err = TemporalError;

@@ -55,8 +55,7 @@ temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result temporal_rs_P
 typedef struct temporal_rs_PlainDate_with_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_result;
 temporal_rs_PlainDate_with_result temporal_rs_PlainDate_with(const PlainDate* self, PartialDate partial, ArithmeticOverflow_option overflow);
 
-typedef struct temporal_rs_PlainDate_with_calendar_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_calendar_result;
-temporal_rs_PlainDate_with_calendar_result temporal_rs_PlainDate_with_calendar(const PlainDate* self, AnyCalendarKind calendar);
+PlainDate* temporal_rs_PlainDate_with_calendar(const PlainDate* self, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDate_from_utf8_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_utf8_result;
 temporal_rs_PlainDate_from_utf8_result temporal_rs_PlainDate_from_utf8(DiplomatStringView s);

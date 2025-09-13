@@ -56,8 +56,7 @@ temporal_rs_PlainDateTime_with_result temporal_rs_PlainDateTime_with(const Plain
 typedef struct temporal_rs_PlainDateTime_with_time_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_time_result;
 temporal_rs_PlainDateTime_with_time_result temporal_rs_PlainDateTime_with_time(const PlainDateTime* self, const PlainTime* time);
 
-typedef struct temporal_rs_PlainDateTime_with_calendar_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_calendar_result;
-temporal_rs_PlainDateTime_with_calendar_result temporal_rs_PlainDateTime_with_calendar(const PlainDateTime* self, AnyCalendarKind calendar);
+PlainDateTime* temporal_rs_PlainDateTime_with_calendar(const PlainDateTime* self, AnyCalendarKind calendar);
 
 typedef struct temporal_rs_PlainDateTime_from_utf8_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_utf8_result;
 temporal_rs_PlainDateTime_from_utf8_result temporal_rs_PlainDateTime_from_utf8(DiplomatStringView s);
@@ -137,11 +136,9 @@ int8_t temporal_rs_PlainDateTime_compare(const PlainDateTime* one, const PlainDa
 typedef struct temporal_rs_PlainDateTime_round_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_round_result;
 temporal_rs_PlainDateTime_round_result temporal_rs_PlainDateTime_round(const PlainDateTime* self, RoundingOptions options);
 
-typedef struct temporal_rs_PlainDateTime_to_plain_date_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_plain_date_result;
-temporal_rs_PlainDateTime_to_plain_date_result temporal_rs_PlainDateTime_to_plain_date(const PlainDateTime* self);
+PlainDate* temporal_rs_PlainDateTime_to_plain_date(const PlainDateTime* self);
 
-typedef struct temporal_rs_PlainDateTime_to_plain_time_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_plain_time_result;
-temporal_rs_PlainDateTime_to_plain_time_result temporal_rs_PlainDateTime_to_plain_time(const PlainDateTime* self);
+PlainTime* temporal_rs_PlainDateTime_to_plain_time(const PlainDateTime* self);
 
 typedef struct temporal_rs_PlainDateTime_to_zoned_date_time_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_zoned_date_time_result;
 temporal_rs_PlainDateTime_to_zoned_date_time_result temporal_rs_PlainDateTime_to_zoned_date_time(const PlainDateTime* self, const TimeZone* time_zone, Disambiguation disambiguation);
