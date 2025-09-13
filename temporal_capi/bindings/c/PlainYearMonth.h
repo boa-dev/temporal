@@ -47,8 +47,6 @@ temporal_rs_PlainYearMonth_from_utf16_result temporal_rs_PlainYearMonth_from_utf
 
 int32_t temporal_rs_PlainYearMonth_iso_year(const PlainYearMonth* self);
 
-void temporal_rs_PlainYearMonth_padded_iso_year_string(const PlainYearMonth* self, DiplomatWrite* write);
-
 uint8_t temporal_rs_PlainYearMonth_iso_month(const PlainYearMonth* self);
 
 uint8_t temporal_rs_PlainYearMonth_iso_day(const PlainYearMonth* self);
