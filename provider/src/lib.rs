@@ -1,4 +1,4 @@
-//! Providers for time zone data 
+//! Providers for time zone data
 //!
 //! Let's talk about time zone data everyone!
 //!
