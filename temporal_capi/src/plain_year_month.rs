@@ -87,13 +87,6 @@ pub mod ffi {
             self.0.iso_year()
         }
 
-        pub fn padded_iso_year_string(&self, write: &mut DiplomatWrite) {
-            // TODO this double-allocates, an API returning a Writeable or impl Write would be better
-            let string = self.0.padded_iso_year_string();
-            // throw away the error, the write itself should always succeed
-            let _ = write.write_str(&string);
-        }
-
         pub fn iso_month(&self) -> u8 {
             self.0.iso_month()
         }
