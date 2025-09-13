@@ -64,12 +64,6 @@ temporal_rs_PlainDateTime_from_utf8_result temporal_rs_PlainDateTime_from_utf8(D
 typedef struct temporal_rs_PlainDateTime_from_utf16_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_utf16_result;
 temporal_rs_PlainDateTime_from_utf16_result temporal_rs_PlainDateTime_from_utf16(DiplomatString16View s);
 
-int32_t temporal_rs_PlainDateTime_iso_year(const PlainDateTime* self);
-
-uint8_t temporal_rs_PlainDateTime_iso_month(const PlainDateTime* self);
-
-uint8_t temporal_rs_PlainDateTime_iso_day(const PlainDateTime* self);
-
 uint8_t temporal_rs_PlainDateTime_hour(const PlainDateTime* self);
 
 uint8_t temporal_rs_PlainDateTime_minute(const PlainDateTime* self);

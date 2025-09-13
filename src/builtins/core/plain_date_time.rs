@@ -345,6 +345,27 @@ impl PlainDateTime {
             unit,
         )
     }
+
+    /// Returns this `PlainDateTime`'s ISO year value.
+    #[inline]
+    #[must_use]
+    pub const fn iso_year(&self) -> i32 {
+        self.iso.date.year
+    }
+
+    /// Returns this `PlainDateTime`'s ISO month value.
+    #[inline]
+    #[must_use]
+    pub const fn iso_month(&self) -> u8 {
+        self.iso.date.month
+    }
+
+    /// Returns this `PlainDateTime`'s ISO day value.
+    #[inline]
+    #[must_use]
+    pub const fn iso_day(&self) -> u8 {
+        self.iso.date.day
+    }
 }
 
 // ==== Public PlainDateTime API ====
@@ -662,27 +683,6 @@ impl PlainDateTime {
     #[inline]
     pub fn with_calendar(&self, calendar: Calendar) -> Self {
         Self::new_unchecked(self.iso, calendar)
-    }
-
-    /// Returns this `PlainDateTime`'s ISO year value.
-    #[inline]
-    #[must_use]
-    pub const fn iso_year(&self) -> i32 {
-        self.iso.date.year
-    }
-
-    /// Returns this `PlainDateTime`'s ISO month value.
-    #[inline]
-    #[must_use]
-    pub const fn iso_month(&self) -> u8 {
-        self.iso.date.month
-    }
-
-    /// Returns this `PlainDateTime`'s ISO day value.
-    #[inline]
-    #[must_use]
-    pub const fn iso_day(&self) -> u8 {
-        self.iso.date.day
     }
 
     /// Returns the hour value

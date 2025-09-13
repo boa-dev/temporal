@@ -52,17 +52,9 @@ public:
 
   inline bool equals(const temporal_rs::PlainMonthDay& other) const;
 
-  inline static int8_t compare(const temporal_rs::PlainMonthDay& one, const temporal_rs::PlainMonthDay& two);
-
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> from_utf8(std::string_view s);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainMonthDay>, temporal_rs::TemporalError> from_utf16(std::u16string_view s);
-
-  inline int32_t iso_year() const;
-
-  inline uint8_t iso_month() const;
-
-  inline uint8_t iso_day() const;
 
   inline uint8_t day() const;
 

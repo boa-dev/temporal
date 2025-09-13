@@ -178,16 +178,6 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn iso_year(&self) -> i32 {
-            self.0.iso_year()
-        }
-        pub fn iso_month(&self) -> u8 {
-            self.0.iso_month()
-        }
-        pub fn iso_day(&self) -> u8 {
-            self.0.iso_day()
-        }
-
         pub fn hour(&self) -> u8 {
             self.0.hour()
         }
@@ -311,30 +301,7 @@ pub mod ffi {
         }
 
         pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
-            let tuple1 = (
-                one.iso_year(),
-                one.iso_month(),
-                one.iso_day(),
-                one.hour(),
-                one.minute(),
-                one.second(),
-                one.millisecond(),
-                one.microsecond(),
-                one.nanosecond(),
-            );
-            let tuple2 = (
-                two.iso_year(),
-                two.iso_month(),
-                two.iso_day(),
-                two.hour(),
-                two.minute(),
-                two.second(),
-                two.millisecond(),
-                two.microsecond(),
-                two.nanosecond(),
-            );
-
-            tuple1.cmp(&tuple2)
+            one.0.compare_iso(&two.0)
         }
 
         pub fn round(&self, options: RoundingOptions) -> Result<Box<Self>, TemporalError> {
