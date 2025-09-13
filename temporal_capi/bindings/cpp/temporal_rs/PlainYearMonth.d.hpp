@@ -59,10 +59,6 @@ public:
 
   inline int32_t iso_year() const;
 
-  inline std::string padded_iso_year_string() const;
-  template<typename W>
-  inline void padded_iso_year_string_write(W& writeable_output) const;
-
   inline uint8_t iso_month() const;
 
   inline uint8_t iso_day() const;
