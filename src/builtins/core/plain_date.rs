@@ -676,8 +676,8 @@ impl PlainDate {
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
         ZonedDateTime::try_new_with_cached_offset(
             epoch_ns.ns.0,
-            self.calendar.clone(),
             tz,
+            self.calendar.clone(),
             epoch_ns.offset,
         )
     }

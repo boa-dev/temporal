@@ -120,8 +120,8 @@ impl RelativeTo {
 
         Ok(ZonedDateTime::try_new_with_cached_offset(
             epoch_ns.ns.0,
-            calendar,
             timezone,
+            calendar,
             epoch_ns.offset,
         )?
         .into())

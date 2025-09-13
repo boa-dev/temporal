@@ -2,7 +2,6 @@ use crate::builtins::zoned_date_time::ZonedDateTimeFields;
 use crate::builtins::TZ_PROVIDER;
 use crate::partial::PartialZonedDateTime;
 use crate::provider::TransitionDirection;
-use crate::ZonedDateTime;
 use crate::{
     options::{
         DifferenceSettings, Disambiguation, DisplayCalendar, DisplayOffset, DisplayTimeZone,
@@ -10,6 +9,7 @@ use crate::{
     },
     Calendar, Duration, PlainTime, TemporalResult, TimeZone,
 };
+use crate::{Instant, ZonedDateTime};
 use alloc::string::String;
 
 impl core::fmt::Display for ZonedDateTime {
@@ -63,9 +63,32 @@ impl ZonedDateTime {
 impl ZonedDateTime {
     /// Creates a new valid `ZonedDateTime`.
     #[inline]
-    pub fn try_new(nanos: i128, calendar: Calendar, time_zone: TimeZone) -> TemporalResult<Self> {
-        Self::try_new_with_provider(nanos, calendar, time_zone, &*TZ_PROVIDER)
+    pub fn try_new(nanos: i128, time_zone: TimeZone, calendar: Calendar) -> TemporalResult<Self> {
+        Self::try_new_with_provider(nanos, time_zone, calendar, &*TZ_PROVIDER)
     }
+
+    /// Creates a new valid `ZonedDateTime` with an ISO 8601 calendar.
+    #[inline]
+    pub fn try_new_iso(nanos: i128, time_zone: TimeZone) -> TemporalResult<Self> {
+        Self::try_new_iso_with_provider(nanos, time_zone, &*TZ_PROVIDER)
+    }
+
+    /// Creates a new valid `ZonedDateTime` from an [`Instant`].
+    #[inline]
+    pub fn try_new_from_instant(
+        instant: Instant,
+        time_zone: TimeZone,
+        calendar: Calendar,
+    ) -> TemporalResult<Self> {
+        Self::try_new_from_instant_with_provider(instant, time_zone, calendar, &*TZ_PROVIDER)
+    }
+
+    /// Creates a new valid `ZonedDateTime` from an [`Instant`] with an ISO 8601 calendar.
+    #[inline]
+    pub fn try_new_iso_from_instant(instant: Instant, time_zone: TimeZone) -> TemporalResult<Self> {
+        Self::try_new_iso_from_instant_with_provider(instant, time_zone, &*TZ_PROVIDER)
+    }
+
     #[inline]
     pub fn from_partial(
         partial: PartialZonedDateTime,
