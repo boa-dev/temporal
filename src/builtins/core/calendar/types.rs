@@ -481,6 +481,15 @@ impl MonthCode {
 
     /// Returns the `MonthCode` as an integer
     pub fn to_month_integer(&self) -> u8 {
+        // Sometimes icu_calendar returns "und"
+        // when the month is calculated to be out of range (usually for
+        // out-of-astronomic range Islamic and Chinese calendars)
+        //
+        // Normalize to something sensible, since ascii_four_to_integer
+        // will assert for non-digits.
+        if self.0 == tinystr!(4, "und") {
+            return 13;
+        }
         ascii_four_to_integer(self.0)
     }
 
@@ -555,7 +564,7 @@ fn are_month_and_month_code_resolvable(_month: u8, _mc: &MonthCode) -> TemporalR
 // the month code integer aligns with the month integer, which
 // may require calendar info
 #[inline]
-pub(crate) fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> u8 {
+fn ascii_four_to_integer(mc: TinyAsciiStr<4>) -> u8 {
     let bytes = mc.all_bytes();
     // Invariant: second and third character (index 1 and 2) are ascii digits.
     debug_assert!(bytes[1].is_ascii_digit());
