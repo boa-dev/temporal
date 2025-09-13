@@ -11,7 +11,6 @@ use crate::{
     Calendar, Duration, MonthCode, TemporalResult, TimeZone, UtcOffset,
 };
 use alloc::string::ToString;
-use core::str::FromStr;
 use timezone_provider::zoneinfo64::ZONEINFO64_RES_FOR_TESTING;
 use tinystr::tinystr;
 
@@ -52,8 +51,8 @@ fn basic_zdt_test() {
 
         let zdt = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
-            Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
+            Calendar::ISO,
             provider,
         )
         .unwrap();
@@ -67,8 +66,8 @@ fn basic_zdt_test() {
 
         let zdt_minus_five = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
-            Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
+            Calendar::ISO,
             provider,
         )
         .unwrap();
@@ -82,8 +81,8 @@ fn basic_zdt_test() {
 
         let zdt_plus_eleven = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
-            Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
+            Calendar::ISO,
             provider,
         )
         .unwrap();
@@ -325,8 +324,8 @@ fn overflow_reject_throws() {
     test_all_providers!(provider: {
         let zdt = ZonedDateTime::try_new_with_provider(
             217178610123456789,
-            Calendar::default(),
             TimeZone::utc_with_provider(provider),
+            Calendar::default(),
             provider,
         )
         .unwrap();
@@ -404,8 +403,8 @@ fn static_tzdb_zdt_test() {
 
         let zdt = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
-            Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("UTC", provider).unwrap(),
+            Calendar::from_str("iso8601").unwrap(),
             provider,
         )
         .unwrap();
@@ -419,8 +418,8 @@ fn static_tzdb_zdt_test() {
 
         let zdt_minus_five = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
-            Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap(),
+            Calendar::from_str("iso8601").unwrap(),
             provider,
         )
         .unwrap();
@@ -434,8 +433,8 @@ fn static_tzdb_zdt_test() {
 
         let zdt_plus_eleven = ZonedDateTime::try_new_with_provider(
             nov_30_2023_utc,
-            Calendar::from_str("iso8601").unwrap(),
             TimeZone::try_from_str_with_provider("Australia/Sydney", provider).unwrap(),
+            Calendar::from_str("iso8601").unwrap(),
             provider,
         )
         .unwrap();
@@ -455,8 +454,8 @@ fn basic_zdt_add() {
     test_all_providers!(#[cfg_for_fs(not(target_os = "windows"))] provider: {
         let zdt = ZonedDateTime::try_new_with_provider(
             -560174321098766,
-            Calendar::default(),
             TimeZone::utc_with_provider(provider),
+            Calendar::default(),
             provider,
         )
         .unwrap();
@@ -476,8 +475,8 @@ fn basic_zdt_add() {
         // "1970-01-04T12:23:45.678902034+00:00[UTC]"
         let expected = ZonedDateTime::try_new_with_provider(
             303825678902034,
-            Calendar::default(),
             TimeZone::utc_with_provider(provider),
+            Calendar::default(),
             provider,
         )
         .unwrap();
@@ -991,8 +990,9 @@ fn test_london() {
         // Test that they correctly compute from nanoseconds
         let zdt = ZonedDateTime::try_new_with_provider(
             1_553_993_999_999_999_999,
+            TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap(),
             Calendar::ISO,
-            TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap(), provider,
+            provider,
         )
         .unwrap();
         assert_eq!(
@@ -1001,8 +1001,9 @@ fn test_london() {
         );
         let zdt = ZonedDateTime::try_new_with_provider(
             1_553_994_000_000_000_000,
+            TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap(),
             Calendar::ISO,
-            TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap(), provider,
+            provider,
         )
         .unwrap();
         assert_eq!(zdt.to_string_with_provider(provider).unwrap(), LONDON_POSIX_TRANSITION_2019_03_31,);
@@ -1052,8 +1053,8 @@ fn test_troll() {
         // Antarctica/Troll started DST in 2005, but had no other transitions before that
         let zdt = ZonedDateTime::try_new_with_provider(
             0,
-            Calendar::ISO,
             TimeZone::try_from_str_with_provider("Antarctica/Troll", provider).unwrap(),
+            Calendar::ISO,
             provider,
         )
         .unwrap();

@@ -55,7 +55,7 @@ impl<H: HostHooks> Now<H> {
         let system_nanoseconds = self.host_hooks.get_system_epoch_nanoseconds()?;
         let time_zone = time_zone.unwrap_or(self.host_hooks.get_system_time_zone(provider)?);
         let instant = Instant::from(system_nanoseconds);
-        ZonedDateTime::new_unchecked_with_provider(instant, Calendar::ISO, time_zone, provider)
+        ZonedDateTime::new_unchecked_with_provider(instant, time_zone, Calendar::ISO, provider)
     }
 }
 

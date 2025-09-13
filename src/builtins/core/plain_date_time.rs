@@ -899,8 +899,8 @@ impl PlainDateTime {
         // 7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, dateTime.[[Calendar]]).
         Ok(ZonedDateTime::new_unchecked(
             Instant::from(epoch_ns.ns),
-            self.calendar.clone(),
             time_zone,
+            self.calendar.clone(),
             epoch_ns.offset,
         ))
     }

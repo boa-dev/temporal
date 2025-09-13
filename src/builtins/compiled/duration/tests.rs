@@ -488,8 +488,8 @@ fn round_relative_to_zoned_datetime() {
     let duration = Duration::from_hours(25);
     let zdt = ZonedDateTime::try_new(
         1_000_000_000_000_000_000,
-        Calendar::default(),
         TimeZone::try_from_str("+04:30").unwrap(),
+        Calendar::default(),
     )
     .unwrap();
     let options = RoundingOptions {
@@ -803,8 +803,8 @@ fn nudge_past_end() {
     let duration = Duration::default();
     let relative_to = ZonedDateTime::try_new(
         86_40000_00000_00000_00000,
-        Default::default(),
         TimeZone::try_from_str("UTC").unwrap(),
+        Default::default(),
     )
     .unwrap();
     let options = RoundingOptions {
