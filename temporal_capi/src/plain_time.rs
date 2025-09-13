@@ -80,7 +80,7 @@ pub mod ffi {
             tz: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, tz.0, p)?;
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, tz.into(), p)?;
             Ok(Box::new(Self(zdt.to_plain_time())))
         }
 

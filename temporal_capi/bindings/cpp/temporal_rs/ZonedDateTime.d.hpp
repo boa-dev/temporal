@@ -28,8 +28,6 @@ namespace capi { struct PlainTime; }
 class PlainTime;
 namespace capi { struct Provider; }
 class Provider;
-namespace capi { struct TimeZone; }
-class TimeZone;
 namespace capi { struct ZonedDateTime; }
 class ZonedDateTime;
 struct DifferenceSettings;
@@ -37,6 +35,7 @@ struct I128Nanoseconds;
 struct PartialZonedDateTime;
 struct RoundingOptions;
 struct TemporalError;
+struct TimeZone;
 struct ToStringRoundingOptions;
 class AnyCalendarKind;
 class ArithmeticOverflow;
@@ -59,9 +58,9 @@ namespace temporal_rs {
 class ZonedDateTime {
 public:
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> try_new(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, const temporal_rs::TimeZone& time_zone);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> try_new(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, temporal_rs::TimeZone time_zone);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> try_new_with_provider(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, const temporal_rs::TimeZone& time_zone, const temporal_rs::Provider& p);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> try_new_with_provider(temporal_rs::I128Nanoseconds nanosecond, temporal_rs::AnyCalendarKind calendar, temporal_rs::TimeZone time_zone, const temporal_rs::Provider& p);
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_partial(temporal_rs::PartialZonedDateTime partial, std::optional<temporal_rs::ArithmeticOverflow> overflow, std::optional<temporal_rs::Disambiguation> disambiguation, std::optional<temporal_rs::OffsetDisambiguation> offset_option);
 
@@ -81,9 +80,9 @@ public:
 
   inline int64_t epoch_milliseconds() const;
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, temporal_rs::TimeZone tz);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::TimeZone& tz, const temporal_rs::Provider& p);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> from_epoch_milliseconds_with_provider(int64_t ms, temporal_rs::TimeZone tz, const temporal_rs::Provider& p);
 
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
 
@@ -95,11 +94,11 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_with_provider(temporal_rs::PartialZonedDateTime partial, std::optional<temporal_rs::Disambiguation> disambiguation, std::optional<temporal_rs::OffsetDisambiguation> offset_option, std::optional<temporal_rs::ArithmeticOverflow> overflow, const temporal_rs::Provider& p) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_timezone(const temporal_rs::TimeZone& zone) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_timezone(temporal_rs::TimeZone zone) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_timezone_with_provider(const temporal_rs::TimeZone& zone, const temporal_rs::Provider& p) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> with_timezone_with_provider(temporal_rs::TimeZone zone, const temporal_rs::Provider& p) const;
 
-  inline const temporal_rs::TimeZone& timezone() const;
+  inline temporal_rs::TimeZone timezone() const;
 
   inline int8_t compare_instant(const temporal_rs::ZonedDateTime& other) const;
 

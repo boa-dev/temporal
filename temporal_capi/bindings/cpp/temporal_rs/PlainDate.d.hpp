@@ -30,13 +30,12 @@ namespace capi { struct PlainYearMonth; }
 class PlainYearMonth;
 namespace capi { struct Provider; }
 class Provider;
-namespace capi { struct TimeZone; }
-class TimeZone;
 namespace capi { struct ZonedDateTime; }
 class ZonedDateTime;
 struct DifferenceSettings;
 struct PartialDate;
 struct TemporalError;
+struct TimeZone;
 class AnyCalendarKind;
 class ArithmeticOverflow;
 class DisplayCalendar;
@@ -63,9 +62,9 @@ public:
 
   inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_parsed(const temporal_rs::ParsedDate& parsed);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_epoch_milliseconds(int64_t ms, temporal_rs::TimeZone tz);
 
-  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::TimeZone& tz, const temporal_rs::Provider& p);
+  inline static diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> from_epoch_milliseconds_with_provider(int64_t ms, temporal_rs::TimeZone tz, const temporal_rs::Provider& p);
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> with(temporal_rs::PartialDate partial, std::optional<temporal_rs::ArithmeticOverflow> overflow) const;
 
@@ -131,9 +130,9 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> to_plain_year_month() const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time(temporal_rs::TimeZone time_zone, const temporal_rs::PlainTime* time) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time_with_provider(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time, const temporal_rs::Provider& p) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time_with_provider(temporal_rs::TimeZone time_zone, const temporal_rs::PlainTime* time, const temporal_rs::Provider& p) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
   template<typename W>

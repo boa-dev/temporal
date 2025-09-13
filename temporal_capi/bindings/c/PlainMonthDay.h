@@ -55,10 +55,10 @@ typedef struct temporal_rs_PlainMonthDay_to_plain_date_result {union {PlainDate*
 temporal_rs_PlainMonthDay_to_plain_date_result temporal_rs_PlainMonthDay_to_plain_date(const PlainMonthDay* self, PartialDate_option year);
 
 typedef struct temporal_rs_PlainMonthDay_epoch_ms_for_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_epoch_ms_for_result;
-temporal_rs_PlainMonthDay_epoch_ms_for_result temporal_rs_PlainMonthDay_epoch_ms_for(const PlainMonthDay* self, const TimeZone* time_zone);
+temporal_rs_PlainMonthDay_epoch_ms_for_result temporal_rs_PlainMonthDay_epoch_ms_for(const PlainMonthDay* self, TimeZone time_zone);
 
 typedef struct temporal_rs_PlainMonthDay_epoch_ms_for_with_provider_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_epoch_ms_for_with_provider_result;
-temporal_rs_PlainMonthDay_epoch_ms_for_with_provider_result temporal_rs_PlainMonthDay_epoch_ms_for_with_provider(const PlainMonthDay* self, const TimeZone* time_zone, const Provider* p);
+temporal_rs_PlainMonthDay_epoch_ms_for_with_provider_result temporal_rs_PlainMonthDay_epoch_ms_for_with_provider(const PlainMonthDay* self, TimeZone time_zone, const Provider* p);
 
 void temporal_rs_PlainMonthDay_to_ixdtf_string(const PlainMonthDay* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 

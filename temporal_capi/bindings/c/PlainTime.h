@@ -34,10 +34,10 @@ typedef struct temporal_rs_PlainTime_from_partial_result {union {PlainTime* ok; 
 temporal_rs_PlainTime_from_partial_result temporal_rs_PlainTime_from_partial(PartialTime partial, ArithmeticOverflow_option overflow);
 
 typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_result;
-temporal_rs_PlainTime_from_epoch_milliseconds_result temporal_rs_PlainTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+temporal_rs_PlainTime_from_epoch_milliseconds_result temporal_rs_PlainTime_from_epoch_milliseconds(int64_t ms, TimeZone tz);
 
 typedef struct temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result;
-temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainTime_from_epoch_milliseconds_with_provider(int64_t ms, const TimeZone* tz, const Provider* p);
+temporal_rs_PlainTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainTime_from_epoch_milliseconds_with_provider(int64_t ms, TimeZone tz, const Provider* p);
 
 typedef struct temporal_rs_PlainTime_with_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_with_result;
 temporal_rs_PlainTime_with_result temporal_rs_PlainTime_with(const PlainTime* self, PartialTime partial, ArithmeticOverflow_option overflow);

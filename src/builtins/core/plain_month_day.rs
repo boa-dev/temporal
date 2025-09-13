@@ -352,7 +352,7 @@ impl PlainMonthDay {
     // Useful for implementing HandleDateTimeTemporalYearMonth
     pub fn epoch_ns_for_with_provider(
         &self,
-        time_zone: &TimeZone,
+        time_zone: TimeZone,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<EpochNanoseconds> {
         // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalYearMonth.[[ISODate]], NoonTimeRecord()).

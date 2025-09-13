@@ -38,7 +38,7 @@ pub mod ffi {
         pub date: PartialDate<'a>,
         pub time: PartialTime,
         pub offset: DiplomatOption<DiplomatStrSlice<'a>>,
-        pub timezone: Option<&'a TimeZone>,
+        pub timezone: DiplomatOption<TimeZone>,
     }
 
     pub struct RelativeTo<'a> {
@@ -366,8 +366,8 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn timezone<'a>(&'a self) -> &'a TimeZone {
-            TimeZone::transparent_convert(self.0.time_zone())
+        pub fn timezone(&self) -> TimeZone {
+            TimeZone::from(*self.0.time_zone())
         }
 
         pub fn compare_instant(&self, other: &Self) -> core::cmp::Ordering {
@@ -725,7 +725,7 @@ pub(crate) fn zdt_from_epoch_ms_with_provider<'p>(
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZonedDateTime {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
-        let timezone = other.timezone.map(|x| x.0);
+        let timezone = other.timezone.clone().into_option().map(|x| x.tz());
         let calendar = temporal_rs::Calendar::new(other.date.calendar.into());
         Ok(Self {
             fields: other.try_into()?,
