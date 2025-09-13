@@ -45,8 +45,6 @@ temporal_rs_PlainYearMonth_from_utf8_result temporal_rs_PlainYearMonth_from_utf8
 typedef struct temporal_rs_PlainYearMonth_from_utf16_result {union {PlainYearMonth* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_from_utf16_result;
 temporal_rs_PlainYearMonth_from_utf16_result temporal_rs_PlainYearMonth_from_utf16(DiplomatString16View s);
 
-void temporal_rs_PlainYearMonth_padded_iso_year_string(const PlainYearMonth* self, DiplomatWrite* write);
-
 int32_t temporal_rs_PlainYearMonth_year(const PlainYearMonth* self);
 
 uint8_t temporal_rs_PlainYearMonth_month(const PlainYearMonth* self);
