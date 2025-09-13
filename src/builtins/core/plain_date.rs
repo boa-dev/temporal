@@ -310,6 +310,27 @@ impl PlainDate {
     fn days_until(&self, other: &Self) -> i32 {
         other.iso.to_epoch_days() - self.iso.to_epoch_days()
     }
+
+    /// Returns this `PlainDate`'s ISO year value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn iso_year(&self) -> i32 {
+        self.iso.year
+    }
+
+    /// Returns this `PlainDate`'s ISO month value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn iso_month(&self) -> u8 {
+        self.iso.month
+    }
+
+    /// Returns this `PlainDate`'s ISO day value.
+    #[inline]
+    #[must_use]
+    pub(crate) const fn iso_day(&self) -> u8 {
+        self.iso.day
+    }
 }
 
 // ==== Public API ====
@@ -430,27 +451,6 @@ impl PlainDate {
     /// Creates a new `PlainDate` from the current `PlainDate` and the provided calendar.
     pub fn with_calendar(&self, calendar: Calendar) -> Self {
         Self::new_unchecked(self.iso, calendar)
-    }
-
-    #[inline]
-    #[must_use]
-    /// Returns this `PlainDate`'s ISO year value.
-    pub const fn iso_year(&self) -> i32 {
-        self.iso.year
-    }
-
-    #[inline]
-    #[must_use]
-    /// Returns this `PlainDate`'s ISO month value.
-    pub const fn iso_month(&self) -> u8 {
-        self.iso.month
-    }
-
-    #[inline]
-    #[must_use]
-    /// Returns this `PlainDate`'s ISO day value.
-    pub const fn iso_day(&self) -> u8 {
-        self.iso.day
     }
 
     #[inline]

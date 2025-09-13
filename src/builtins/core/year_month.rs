@@ -347,6 +347,20 @@ impl PlainYearMonth {
             DifferenceOperation::Until => Ok(result),
         }
     }
+
+    /// Returns the iso month value for this `YearMonth`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn iso_month(&self) -> u8 {
+        self.iso.month
+    }
+
+    /// Returns the iso year value for this `YearMonth`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn iso_year(&self) -> i32 {
+        self.iso.year
+    }
 }
 
 // ==== Public method implementations ====
@@ -448,32 +462,11 @@ impl PlainYearMonth {
             .year_month_from_fields(fields, Overflow::Constrain)
     }
 
-    /// Returns the iso year value for this `YearMonth`.
-    #[inline]
-    #[must_use]
-    pub fn iso_year(&self) -> i32 {
-        self.iso.year
-    }
-
     /// Returns the padded ISO year string
     #[inline]
     #[must_use]
     pub fn padded_iso_year_string(&self) -> String {
         pad_iso_year(self.iso.year)
-    }
-
-    /// Returns the iso month value for this `YearMonth`.
-    #[inline]
-    #[must_use]
-    pub fn iso_month(&self) -> u8 {
-        self.iso.month
-    }
-
-    /// Returns the internal ISO day for this `YearMonth`.
-    #[inline]
-    #[must_use]
-    pub fn iso_reference_day(&self) -> u8 {
-        self.iso.day
     }
 
     /// Returns the calendar era of the current `PlainYearMonth`
