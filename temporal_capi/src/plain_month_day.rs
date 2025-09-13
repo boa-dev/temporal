@@ -70,10 +70,6 @@ pub mod ffi {
             self.0 == other.0
         }
 
-        pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
-            (one.iso_year(), one.iso_month()).cmp(&(two.iso_year(), two.iso_month()))
-        }
-
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
             temporal_rs::PlainMonthDay::from_utf8(s)
                 .map(|c| Box::new(Self(c)))
@@ -86,16 +82,6 @@ pub mod ffi {
             temporal_rs::PlainMonthDay::from_str(&s)
                 .map(|c| Box::new(Self(c)))
                 .map_err(Into::into)
-        }
-
-        pub fn iso_year(&self) -> i32 {
-            self.0.iso_year()
-        }
-        pub fn iso_month(&self) -> u8 {
-            self.0.iso_month()
-        }
-        pub fn iso_day(&self) -> u8 {
-            self.0.iso_day()
         }
 
         pub fn day(&self) -> u8 {
