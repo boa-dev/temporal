@@ -189,6 +189,7 @@
 //! but this time without the feature flag.
 //!
 //! ```rust
+//! # #[cfg(feature = "tzdb")] {
 //! use temporal_rs::{Instant, now::Now, host::EmptyHostSystem};
 //! use timezone_provider::tzif::CompiledTzdbProvider;
 //!
@@ -202,6 +203,7 @@
 //!
 //! let now = Now::new(EmptyHostSystem);
 //! assert_eq!(now.instant(), Instant::try_new(0));
+//! # }
 //! ```
 //!
 //! Now -- pun only partially intended -- we've successfully written a no-default-features
