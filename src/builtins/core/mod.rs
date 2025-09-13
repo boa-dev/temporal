@@ -13,8 +13,8 @@ pub mod timezone;
 mod instant;
 mod plain_date;
 mod plain_date_time;
-mod plain_time;
 mod plain_month_day;
+mod plain_time;
 mod plain_year_month;
 pub(crate) mod zoned_date_time;
 
@@ -32,9 +32,9 @@ pub use plain_date::{PartialDate, PlainDate};
 #[doc(inline)]
 pub use plain_date_time::{DateTimeFields, PartialDateTime, PlainDateTime};
 #[doc(inline)]
-pub use plain_time::{PartialTime, PlainTime};
-#[doc(inline)]
 pub use plain_month_day::PlainMonthDay;
+#[doc(inline)]
+pub use plain_time::{PartialTime, PlainTime};
 #[doc(inline)]
 pub use plain_year_month::{PartialYearMonth, PlainYearMonth};
 #[doc(inline)]
