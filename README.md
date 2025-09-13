@@ -137,10 +137,6 @@ assert_eq!(current_zoned_date_time.hour(), zoned_date_time_from_instant.hour());
 assert_eq!(current_zoned_date_time.minute(), zoned_date_time_from_instant.minute());
 assert_eq!(current_zoned_date_time.second(), zoned_date_time_from_instant.second());
 
-// At least the nanosecond value will be different as they
-// are different system time readings.
-assert_ne!(current_zoned_date_time.nanosecond(), zoned_date_time_from_instant.nanosecond());
-
 // The `Instant` reading that occurred first will be less than the ZonedDateTime
 // reading
 assert_eq!(

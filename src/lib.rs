@@ -129,10 +129,6 @@
 //! assert_eq!(current_zoned_date_time.minute(), zoned_date_time_from_instant.minute());
 //! assert_eq!(current_zoned_date_time.second(), zoned_date_time_from_instant.second());
 //!
-//! // At least the nanosecond value will be different as they
-//! // are different system time readings.
-//! assert_ne!(current_zoned_date_time.nanosecond(), zoned_date_time_from_instant.nanosecond());
-//!
 //! // The `Instant` reading that occurred first will be less than the ZonedDateTime
 //! // reading
 //! assert_eq!(
@@ -164,7 +160,7 @@
 //! users who may need a custom host system or time zone data implementation.
 //!
 //! A default host system and time zone provider have been implemented and are automatically
-//! active as default features. 
+//! active as default features.
 //!
 //! ### A quick walkthrough
 //!
@@ -230,7 +226,7 @@
 //!
 //! temporal_rs adheres to Temporal grammar, which is a strict version of
 //! [RFC9557's IXDTF][ixdtf]. RFC9557 is an update to RFC3339 that adds
-//! extensions to the format. 
+//! extensions to the format.
 //!
 //! ## More information
 //!
