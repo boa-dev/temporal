@@ -14,7 +14,7 @@ mod instant;
 mod month_day;
 mod plain_date;
 mod plain_date_time;
-mod time;
+mod plain_time;
 mod year_month;
 pub(crate) mod zoned_date_time;
 
@@ -34,7 +34,7 @@ pub use plain_date::{PartialDate, PlainDate};
 #[doc(inline)]
 pub use plain_date_time::{DateTimeFields, PartialDateTime, PlainDateTime};
 #[doc(inline)]
-pub use time::{PartialTime, PlainTime};
+pub use plain_time::{PartialTime, PlainTime};
 #[doc(inline)]
 pub use year_month::{PartialYearMonth, PlainYearMonth};
 #[doc(inline)]
