@@ -177,6 +177,22 @@ impl PlainMonthDay {
         Self { iso, calendar }
     }
 
+    /// Returns the ISO month value of `PlainMonthDay`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn iso_month(&self) -> u8 {
+        self.iso.month
+    }
+
+    /// Returns the ISO year value of `PlainMonthDay`.
+    #[inline]
+    #[must_use]
+    pub(crate) fn iso_year(&self) -> i32 {
+        self.iso.year
+    }
+}
+
+impl PlainMonthDay {
     /// Creates a new valid `PlainMonthDay`.
     #[inline]
     pub fn new_with_overflow(
@@ -270,27 +286,6 @@ impl PlainMonthDay {
         // 11. Return ! CreateTemporalMonthDay(isoDate, calendar).
         self.calendar
             .month_day_from_fields(merged, overflow.unwrap_or(Overflow::Constrain))
-    }
-
-    /// Returns the ISO day value of `PlainMonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn iso_day(&self) -> u8 {
-        self.iso.day
-    }
-
-    // Returns the ISO month value of `PlainMonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn iso_month(&self) -> u8 {
-        self.iso.month
-    }
-
-    // Returns the ISO year value of `PlainMonthDay`.
-    #[inline]
-    #[must_use]
-    pub fn iso_year(&self) -> i32 {
-        self.iso.year
     }
 
     /// Returns the string identifier for the current `Calendar`.

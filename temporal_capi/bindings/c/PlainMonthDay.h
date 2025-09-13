@@ -39,19 +39,11 @@ temporal_rs_PlainMonthDay_with_result temporal_rs_PlainMonthDay_with(const Plain
 
 bool temporal_rs_PlainMonthDay_equals(const PlainMonthDay* self, const PlainMonthDay* other);
 
-int8_t temporal_rs_PlainMonthDay_compare(const PlainMonthDay* one, const PlainMonthDay* two);
-
 typedef struct temporal_rs_PlainMonthDay_from_utf8_result {union {PlainMonthDay* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_utf8_result;
 temporal_rs_PlainMonthDay_from_utf8_result temporal_rs_PlainMonthDay_from_utf8(DiplomatStringView s);
 
 typedef struct temporal_rs_PlainMonthDay_from_utf16_result {union {PlainMonthDay* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainMonthDay_from_utf16_result;
 temporal_rs_PlainMonthDay_from_utf16_result temporal_rs_PlainMonthDay_from_utf16(DiplomatString16View s);
-
-int32_t temporal_rs_PlainMonthDay_iso_year(const PlainMonthDay* self);
-
-uint8_t temporal_rs_PlainMonthDay_iso_month(const PlainMonthDay* self);
-
-uint8_t temporal_rs_PlainMonthDay_iso_day(const PlainMonthDay* self);
 
 uint8_t temporal_rs_PlainMonthDay_day(const PlainMonthDay* self);
 
