@@ -845,23 +845,6 @@ impl IsoTime {
         }
     }
 
-    /// Checks if the time is a valid `IsoTime`
-    pub(crate) fn is_valid(&self) -> bool {
-        if !(0..=23).contains(&self.hour) {
-            return false;
-        }
-
-        let min_sec = 0..=59;
-        if !min_sec.contains(&self.minute) || !min_sec.contains(&self.second) {
-            return false;
-        }
-
-        let sub_second = 0..=999;
-        sub_second.contains(&self.millisecond)
-            && sub_second.contains(&self.microsecond)
-            && sub_second.contains(&self.nanosecond)
-    }
-
     pub(crate) fn add(&self, norm: TimeDuration) -> (i64, Self) {
         // 1. Set second to second + TimeDurationSeconds(norm).
         let seconds = i64::from(self.second) + norm.seconds();

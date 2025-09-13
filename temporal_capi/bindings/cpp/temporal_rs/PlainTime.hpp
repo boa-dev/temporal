@@ -17,11 +17,10 @@
 #include "Duration.hpp"
 #include "PartialTime.hpp"
 #include "Provider.hpp"
-#include "RoundingMode.hpp"
+#include "RoundingOptions.hpp"
 #include "TemporalError.hpp"
 #include "TimeZone.hpp"
 #include "ToStringRoundingOptions.hpp"
-#include "Unit.hpp"
 
 
 namespace temporal_rs {
@@ -81,7 +80,7 @@ namespace capi {
     int8_t temporal_rs_PlainTime_compare(const temporal_rs::capi::PlainTime* one, const temporal_rs::capi::PlainTime* two);
 
     typedef struct temporal_rs_PlainTime_round_result {union {temporal_rs::capi::PlainTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_round_result;
-    temporal_rs_PlainTime_round_result temporal_rs_PlainTime_round(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::Unit smallest_unit, diplomat::capi::OptionF64 rounding_increment, temporal_rs::capi::RoundingMode_option rounding_mode);
+    temporal_rs_PlainTime_round_result temporal_rs_PlainTime_round(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::RoundingOptions options);
 
     typedef struct temporal_rs_PlainTime_to_ixdtf_string_result {union { temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_to_ixdtf_string_result;
     temporal_rs_PlainTime_to_ixdtf_string_result temporal_rs_PlainTime_to_ixdtf_string(const temporal_rs::capi::PlainTime* self, temporal_rs::capi::ToStringRoundingOptions options, diplomat::capi::DiplomatWrite* write);
@@ -218,11 +217,9 @@ inline int8_t temporal_rs::PlainTime::compare(const temporal_rs::PlainTime& one,
   return result;
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::round(temporal_rs::Unit smallest_unit, std::optional<double> rounding_increment, std::optional<temporal_rs::RoundingMode> rounding_mode) const {
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> temporal_rs::PlainTime::round(temporal_rs::RoundingOptions options) const {
   auto result = temporal_rs::capi::temporal_rs_PlainTime_round(this->AsFFI(),
-    smallest_unit.AsFFI(),
-    rounding_increment.has_value() ? (diplomat::capi::OptionF64{ { rounding_increment.value() }, true }) : (diplomat::capi::OptionF64{ {}, false }),
-    rounding_mode.has_value() ? (temporal_rs::capi::RoundingMode_option{ { rounding_mode.value().AsFFI() }, true }) : (temporal_rs::capi::RoundingMode_option{ {}, false }));
+    options.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainTime>>(std::unique_ptr<temporal_rs::PlainTime>(temporal_rs::PlainTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 

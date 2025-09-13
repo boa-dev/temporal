@@ -258,6 +258,30 @@ impl ResolvedRoundingOptions {
         })
     }
 
+    pub(crate) fn from_time_options(options: RoundingOptions) -> TemporalResult<Self> {
+        let Some(smallest_unit) = options.smallest_unit else {
+            return Err(TemporalError::range().with_enum(ErrorMessage::SmallestUnitIsRequired));
+        };
+        let increment = options.increment.unwrap_or(RoundingIncrement::ONE);
+        let rounding_mode = options.rounding_mode.unwrap_or(RoundingMode::HalfExpand);
+
+        let max = smallest_unit
+            .to_maximum_rounding_increment()
+            .ok_or_else(|| {
+                TemporalError::range().with_enum(ErrorMessage::SmallestUnitNotTimeUnit)
+            })?;
+
+        // Safety (nekevss): to_rounding_increment returns a value in the range of a u32.
+        increment.validate(u64::from(max), false)?;
+
+        Ok(ResolvedRoundingOptions {
+            largest_unit: Unit::Auto,
+            increment,
+            smallest_unit,
+            rounding_mode,
+        })
+    }
+
     pub(crate) fn from_instant_options(options: RoundingOptions) -> TemporalResult<Self> {
         let increment = options.increment.unwrap_or_default();
         let rounding_mode = options.rounding_mode.unwrap_or_default();
