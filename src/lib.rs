@@ -110,15 +110,6 @@
     clippy::missing_errors_doc,
     clippy::let_unit_value,
     clippy::option_if_let_else,
-
-    // It may be worth to look if we can fix the issues highlighted by these lints.
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-    clippy::cast_precision_loss,
-    clippy::cast_possible_wrap,
-
-    // Add temporarily - Needs addressing
-    clippy::missing_panics_doc,
 )]
 #![forbid(unsafe_code)]
 
