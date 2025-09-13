@@ -402,7 +402,7 @@ impl Instant {
 impl Instant {
     pub fn to_ixdtf_string_with_provider(
         &self,
-        timezone: Option<&TimeZone>,
+        timezone: Option<TimeZone>,
         options: ToStringRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<String> {
@@ -412,7 +412,7 @@ impl Instant {
 
     pub fn to_ixdtf_writeable_with_provider(
         &self,
-        timezone: Option<&TimeZone>,
+        timezone: Option<TimeZone>,
         options: ToStringRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<impl Writeable + '_> {

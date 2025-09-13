@@ -11,7 +11,7 @@ impl Instant {
     /// Enable with the `compiled_data` feature flag.
     pub fn to_ixdtf_string(
         &self,
-        timezone: Option<&TimeZone>,
+        timezone: Option<TimeZone>,
         options: ToStringRoundingOptions,
     ) -> TemporalResult<String> {
         self.to_ixdtf_string_with_provider(timezone, options, &*TZ_PROVIDER)
@@ -23,7 +23,7 @@ impl Instant {
     /// Enable with the `compiled_data` feature flag.
     pub fn to_ixdtf_writeable(
         &self,
-        timezone: Option<&TimeZone>,
+        timezone: Option<TimeZone>,
         options: ToStringRoundingOptions,
     ) -> TemporalResult<impl writeable::Writeable + '_> {
         self.to_ixdtf_writeable_with_provider(timezone, options, &*TZ_PROVIDER)

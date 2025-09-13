@@ -112,3 +112,9 @@ pub mod ffi {
         }
     }
 }
+
+impl From<ffi::TimeZone> for temporal_rs::TimeZone {
+    fn from(other: ffi::TimeZone) -> Self {
+        unimplemented!()
+    }
+}

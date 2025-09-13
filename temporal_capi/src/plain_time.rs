@@ -10,6 +10,7 @@ pub mod ffi {
         ArithmeticOverflow, DifferenceSettings, RoundingOptions, ToStringRoundingOptions,
     };
     use crate::provider::ffi::Provider;
+    use crate::time_zone::ffi::TimeZone;
     use alloc::string::String;
     use core::str::FromStr;
     use diplomat_runtime::{DiplomatOption, DiplomatWrite};
@@ -71,18 +72,15 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn from_epoch_milliseconds(
-            ms: i64,
-            tz: &crate::time_zone::ffi::TimeZone,
-        ) -> Result<Box<Self>, TemporalError> {
+        pub fn from_epoch_milliseconds(ms: i64, tz: TimeZone) -> Result<Box<Self>, TemporalError> {
             Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
         }
         pub fn from_epoch_milliseconds_with_provider<'p>(
             ms: i64,
-            tz: &crate::time_zone::ffi::TimeZone,
+            tz: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, tz.0, p)?;
             Ok(Box::new(Self(zdt.to_plain_time())))
         }
 
