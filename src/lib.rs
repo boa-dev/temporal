@@ -1,17 +1,25 @@
-//! A native Rust implementation of ECMAScript's Temporal built-ins.
+//! A native Rust implementation of ECMAScript's Temporal API.
 //!
-//! Temporal is a library for working with date and time in a calendar
+//! Temporal is an API for working with date and time in a calendar
 //! and time zone aware manner.
 //!
-//! This crate is designed with ECMAScript implementations and general
-//! purpose in mind.
+//! temporal_rs is designed with ECMAScript implementations and general
+//! purpose Rust usage in mind, meaning that temporal_rs can be used to implement
+//! the Temporal built-ins in an ECMAScript implementation or generally
+//! used as a date and time library in a Rust project.
 //!
-//! ## Examples
+//! temporal_rs is the primary library for the Temporal API implementation in Boa, Kiesel,
+//! and V8. Each of these engines pass the large ECMAScript conformance test suite for
+//! the specification.
 //!
-//! Below are a few examples to give an overview of `temporal_rs`'s current
-//! API.
+//! ## Why use temporal_rs?
 //!
-//! ### Convert from an ISO `PlainDate` into a Japanese `PlainDate`
+//! As previously mentioned, Temporal is an API for working with date and time in
+//! a calendar and time zone aware manner. This means that calendar and time zone support
+//! are first class in Temporal as well as in temporal_rs.
+//!
+//! For instance, converting between calendars is as simple as providing the calendar as
+//! shown below.
 //!
 //! ```rust
 //! use temporal_rs::{PlainDate, Calendar};
@@ -28,27 +36,8 @@
 //! assert_eq!(japanese_date.month(), 3)
 //! ```
 //!
-//! ### Create a `PlainDateTime` from a RFC9557 IXDTF string.
-//!
-//! For more information on the Internet Extended DateTime Format (IXDTF),
-//! see [RFC9557](https://www.rfc-editor.org/rfc/rfc9557.txt).
-//!
-//! ```rust
-//! use temporal_rs::PlainDateTime;
-//! use core::str::FromStr;
-//!
-//! let pdt = PlainDateTime::from_str("2025-03-01T11:16:10[u-ca=gregory]").unwrap();
-//! assert_eq!(pdt.calendar().identifier(), "gregory");
-//! assert_eq!(pdt.year(), 2025);
-//! assert_eq!(pdt.month(), 3);
-//! assert_eq!(pdt.day(), 1);
-//! assert_eq!(pdt.hour(), 11);
-//! assert_eq!(pdt.minute(), 16);
-//! assert_eq!(pdt.second(), 10);
-//!
-//! ```
-//!
-//! ### Create a `ZonedDateTime` for a RFC9557 IXDTF string.
+//! Beyond the general calendar use case, temporal_rs has robust support for
+//! time zones which can generally by applied to a `PlainDate` via [`ZonedDateTime`].
 //!
 //! **Important Note:** The below API is enabled with the
 //! `compiled_data` feature flag.
@@ -58,7 +47,11 @@
 //! use temporal_rs::{ZonedDateTime, TimeZone};
 //! use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
 //!
-//! let zdt = ZonedDateTime::from_utf8(b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]", Disambiguation::Compatible, OffsetDisambiguation::Reject).unwrap();
+//! let zdt = ZonedDateTime::from_utf8(
+//!     b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]",
+//!     Disambiguation::Compatible,
+//!     OffsetDisambiguation::Reject
+//! ).unwrap();
 //! assert_eq!(zdt.year(), 2025);
 //! assert_eq!(zdt.month(), 3);
 //! assert_eq!(zdt.day(), 1);
@@ -67,6 +60,7 @@
 //! assert_eq!(zdt.minute(), 16);
 //! assert_eq!(zdt.second(), 10);
 //!
+//! // You can also update a time zone easily.
 //! let zurich_zone = TimeZone::try_from_str("Europe/Zurich").unwrap();
 //! let zdt_zurich = zdt.with_timezone(zurich_zone).unwrap();
 //! assert_eq!(zdt_zurich.year(), 2025);
@@ -78,6 +72,163 @@
 //!
 //! # }
 //! ```
+//!
+//! ## Overview
+//!
+//! temporal_rs provides 8 core types for working with date and time. The core types are:
+//!
+//! - [PlainDate]
+//! - [PlainTime]
+//! - [PlainDateTime]
+//! - [ZonedDateTime]
+//! - [Instant]
+//! - [Duration]
+//! - [PlainYearMonth]
+//! - [PlainMonthDay]
+//!
+//! In addition to these types, there are the [`Calendar`] and [`TimeZone`] type that
+//! support the calendars or time zones. The specific support for calendars and time
+//! zones per type are as follows.
+//!
+//! | Temporal type  | Category                             | Calendar support   | Time zone support  |
+//! |----------------|--------------------------------------|--------------------|--------------------|
+//! | PlainDate      | Calendar date                        |        yes         |         no         |
+//! | PlainTime      | Wall-clock time                      |        no          |         no         |
+//! | PlainDateTime  | Calendar date and wall-clock time    |        yes         |         no         |
+//! | ZonedDateTime  | Calendar date and exact time         |        yes         |        yes         |
+//! | Instant        | Exact time                           |        no          |         no         |
+//! | Duration       | None                                 |        no          |         no         |
+//! | PlainYearMonth | Calendar date                        |        yes         |         no         |
+//! | PlainMonthDay  | Calendar date                        |        yes         |         no         |
+//!
+//! There is also the [`Now`][now::Now], which provides access to the current host system
+//! time. This can then be used to map to any of the above Temporal types.
+//!
+//! **Important Note:** the below example is only available with the `sys` and
+//! `compiled_data` feature flag enabled.
+//!
+//! ```rust
+//! # #[cfg(all(feature = "sys", feature = "compiled_data"))] {
+//! use core::cmp::Ordering;
+//! use temporal_rs::{Temporal, Calendar, ZonedDateTime};
+//! let current_instant = Temporal::now().instant().unwrap();
+//! let current_zoned_date_time = Temporal::now().zoned_date_time_iso(None).unwrap();
+//!
+//! /// Create a `ZonedDateTime` from the requested instant.
+//! let zoned_date_time_from_instant = ZonedDateTime::try_new(
+//!     current_instant.as_i128(),
+//!     *current_zoned_date_time.time_zone(),
+//!     Calendar::ISO,
+//! ).unwrap();
+//!
+//! // The two `ZonedDateTime` will be equal down to the second.
+//! assert_eq!(current_zoned_date_time.year(), zoned_date_time_from_instant.year());
+//! assert_eq!(current_zoned_date_time.month(), zoned_date_time_from_instant.month());
+//! assert_eq!(current_zoned_date_time.day(), zoned_date_time_from_instant.day());
+//! assert_eq!(current_zoned_date_time.hour(), zoned_date_time_from_instant.hour());
+//! assert_eq!(current_zoned_date_time.minute(), zoned_date_time_from_instant.minute());
+//! assert_eq!(current_zoned_date_time.second(), zoned_date_time_from_instant.second());
+//!
+//! // The `Instant` reading that occurred first will be less than the ZonedDateTime
+//! // reading
+//! assert_eq!(
+//!     zoned_date_time_from_instant.compare_instant(&current_zoned_date_time),
+//!     Ordering::Less
+//! );
+//! # }
+//! ```
+//!
+//! ## General design
+//!
+//! While temporal_rs can be used in native Rust programs, the library is -- first and
+//! foremost -- designed for use in ECMAScript implementations. This is not to detract
+//! from temporal_rs's use in a native Rust program, but it is important information to
+//! understand in order to understand the library's architecture and general API design.
+//!
+//! Without default feature flags, temporal_rs does not have with access to the host
+//! environment and it does not embed any time zone data. This is important from an
+//! interpreter perspective, because access to the host environment and time zone data
+//! comes from the interpreter's agent, not from a dependency.
+//!
+//! Instead, temporal_rs provides the [`HostHooks`][host::HostHooks] and [`TimeZoneProvider`][provider::TimeZoneProvider]
+//! traits that can be implemented and provided as function arguments that temporal_rs will
+//! use to access the host system or time zone data. temporal_rs also provides some baseline
+//! implementations of the traits that can be selected from depending on application needs.
+//!
+//! That being said, this does not mean that everyone must implement their own trait
+//! implementations for that functionality to exist, but the APIs are there for power
+//! users who may need a custom host system or time zone data implementation.
+//!
+//! A default host system and time zone provider have been implemented and are automatically
+//! active as default features.
+//!
+//! ### A quick walkthrough
+//!
+//! For instance, the examples thus far have been using the general usage Rust API with
+//! the `sys` and `compiled_data` feature.
+//!
+//! For instance, let's manually write our [`Now`][now::Now] implementation instead of using
+//! [`Temporal::now()`] with an empty host system implementation.
+//!
+//! ```rust
+//! # #[cfg(feature = "compiled_data")] {
+//! use temporal_rs::{Instant, now::Now, host::EmptyHostSystem};
+//!
+//! // The empty host system is a system implementation HostHooks that always
+//! // returns the UNIX_EPOCH and the "+00:00" time zone.
+//! let now = Now::new(EmptyHostSystem);
+//! let time_zone = now.time_zone().unwrap();
+//! assert_eq!(time_zone.identifier().unwrap(), "+00:00");
+//! let now = Now::new(EmptyHostSystem);
+//! assert_eq!(now.instant(), Instant::try_new(0));
+//! # }
+//! ```
+//!
+//! However, even in our above example, we cheated a bit. We were still relying on the
+//! `compiled_data` feature flag that provided time zone data for us. Let's try again,
+//! but this time without the feature flag.
+//!
+//! ```rust
+//! # #[cfg(feature = "tzdb")] {
+//! use temporal_rs::{Instant, now::Now, host::EmptyHostSystem};
+//! use timezone_provider::tzif::CompiledTzdbProvider;
+//!
+//! let provider = CompiledTzdbProvider::default();
+//!
+//! // The empty host system is a system implementation HostHooks that always
+//! // returns the UNIX_EPOCH and the "+00:00" time zone.
+//! let now = Now::new(EmptyHostSystem);
+//! let time_zone = now.time_zone_with_provider(&provider).unwrap();
+//! assert_eq!(time_zone.identifier_with_provider(&provider).unwrap(), "+00:00");
+//!
+//! let now = Now::new(EmptyHostSystem);
+//! assert_eq!(now.instant(), Instant::try_new(0));
+//! # }
+//! ```
+//!
+//! Now -- pun only partially intended -- we've successfully written a no-default-features
+//! example with temporal_rs!
+//!
+//! ### What have we learned going over this all this?
+//!
+//! First, any API that has the suffix `_with_provider` is a power user API for supplying
+//! a custom or specific time zone data provider. Furthermore, any API that has a
+//! `_with_provider` suffix will also have a version without the suffix that automagically
+//! provides time zone data for you.
+//!
+//! Finally, sourcing time zone data is a very scary (but fun!) business. If you're interested
+//! in learning more, feel free to check out the `timezone_provider` crate!
+//!
+//! With any luck, this also highlights the general design of temporal_rs. It provides a
+//! general usage API that aligns with the Temporal specification while also being
+//! flexible enough to provide an power user to take control of their host system access
+//! and time zone data sourcing as needed.
+//!
+//! ## Formatting
+//!
+//! temporal_rs adheres to Temporal grammar, which is a strict version of
+//! [RFC9557's IXDTF][ixdtf]. RFC9557 is an update to RFC3339 that adds
+//! extensions to the format.
 //!
 //! ## More information
 //!
