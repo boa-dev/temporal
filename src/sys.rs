@@ -21,16 +21,21 @@ use web_time::{SystemTime, UNIX_EPOCH};
 // pub struct Temporal(SystemTime<DefaultSystemClock, DefaultSystemTimeZone>)
 //
 
+/// The Temporal object for accessing current system time
 #[cfg(feature = "sys")]
 pub struct Temporal;
 
 #[cfg(feature = "sys")]
 impl Temporal {
+    /// Get a `Now` object for the default host system.
     pub fn now() -> Now<DefaultHostSystem> {
         Now::new(DefaultHostSystem)
     }
 }
 
+/// A default host system implementation
+///
+/// This implementation is backed by [`SystemTime`] and [`iana_time_zone`]
 #[cfg(feature = "sys")]
 pub struct DefaultHostSystem;
 

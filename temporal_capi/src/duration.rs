@@ -21,7 +21,7 @@ pub mod ffi {
 
     #[diplomat::opaque]
     #[diplomat::transparent_convert]
-    pub struct DateDuration(pub(crate) temporal_rs::DateDuration);
+    pub struct DateDuration(pub(crate) temporal_rs::duration::DateDuration);
 
     pub struct PartialDuration {
         pub years: DiplomatOption<i64>,
@@ -58,7 +58,7 @@ pub mod ffi {
             weeks: i64,
             days: i64,
         ) -> Result<Box<Self>, TemporalError> {
-            temporal_rs::DateDuration::new(years, months, weeks, days)
+            temporal_rs::duration::DateDuration::new(years, months, weeks, days)
                 .map(|x| Box::new(DateDuration(x)))
                 .map_err(Into::into)
         }
