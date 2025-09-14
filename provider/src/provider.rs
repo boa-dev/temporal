@@ -1,4 +1,7 @@
-//! The `TimeZoneProvider` trait.
+//! Traits and struct for creating time zone data providers.
+//!
+//! This module contains the traits needed to implement a time zone data
+//! provider along with relevant structs.
 
 use core::str::FromStr;
 
