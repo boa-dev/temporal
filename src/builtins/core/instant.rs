@@ -157,7 +157,6 @@ impl From<EpochNanoseconds> for Instant {
 // ==== Private API ====
 
 impl Instant {
-    // TODO: Update to `i128`?
     /// Adds a `TimeDuration` to the current `Instant`.
     ///
     /// Temporal-Proposal equivalent: `AddInstant`.
@@ -272,7 +271,7 @@ impl Instant {
 
     // Utility for converting `Instant` to `i128`.
     pub fn as_i128(&self) -> i128 {
-        self.0 .0
+        self.epoch_nanoseconds().0
     }
 }
 
@@ -369,6 +368,7 @@ impl Instant {
     }
 
     /// Returns an `Instant` by rounding the current `Instant` according to the provided settings.
+    #[inline]
     pub fn round(&self, options: RoundingOptions) -> TemporalResult<Self> {
         let resolved_options = ResolvedRoundingOptions::from_instant_options(options)?;
 
@@ -377,17 +377,21 @@ impl Instant {
     }
 
     /// Returns the `epochMilliseconds` value for this `Instant`.
+    #[inline]
     #[must_use]
     pub fn epoch_milliseconds(&self) -> i64 {
         self.as_i128().div_euclid(1_000_000) as i64
     }
 
-    /// Returns the `epochNanoseconds` value for this `Instant`.
+    /// Returns the [`EpochNanoseconds`] value for this `Instant`.
+    #[inline]
     #[must_use]
     pub fn epoch_nanoseconds(&self) -> &EpochNanoseconds {
         &self.0
     }
 
+    /// Returns a [`ZonedDateTime`] for the current `Instant`.
+    #[inline]
     pub fn to_zoned_date_time_iso_with_provider(
         &self,
         time_zone: TimeZone,
@@ -400,6 +404,7 @@ impl Instant {
 // ==== Instant Provider API ====
 
 impl Instant {
+    /// Returns an RFC9557 IXDTF string representing the current `Instant`.
     pub fn to_ixdtf_string_with_provider(
         &self,
         timezone: Option<TimeZone>,
@@ -410,6 +415,7 @@ impl Instant {
             .map(|x| x.write_to_string().into())
     }
 
+    /// Returns a [`Writeable`] for formatting the current `Instant` in RFC9557's IXDTF.
     pub fn to_ixdtf_writeable_with_provider(
         &self,
         timezone: Option<TimeZone>,
