@@ -5,7 +5,7 @@ use crate::TemporalResult;
 use crate::{host::HostHooks, provider::TimeZoneProvider};
 
 use super::{
-    calendar::Calendar, timezone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
+    calendar::Calendar, time_zone::TimeZone, Instant, PlainDate, PlainDateTime, PlainTime,
     ZonedDateTime,
 };
 

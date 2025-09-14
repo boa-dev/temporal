@@ -12,9 +12,9 @@ use ixdtf::{
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
-mod timezone;
+mod time_zone;
 
-pub(crate) use timezone::{parse_allowed_timezone_formats, parse_identifier};
+pub(crate) use time_zone::{parse_allowed_timezone_formats, parse_identifier};
 
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 

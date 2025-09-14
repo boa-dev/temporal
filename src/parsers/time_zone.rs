@@ -5,7 +5,7 @@ use ixdtf::{
 };
 
 use crate::provider::TimeZoneProvider;
-use crate::{builtins::timezone::UtcOffset, TemporalError, TemporalResult, TimeZone};
+use crate::{builtins::time_zone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
 use super::{parse_ixdtf, ParseVariant};
 

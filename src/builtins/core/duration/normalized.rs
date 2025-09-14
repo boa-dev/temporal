@@ -5,7 +5,7 @@ use core::{cmp, num::NonZeroU128, ops::Add};
 use num_traits::AsPrimitive;
 
 use crate::{
-    builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
+    builtins::core::{time_zone::TimeZone, PlainDate, PlainDateTime},
     iso::{IsoDate, IsoDateTime},
     options::{
         Disambiguation, Overflow, ResolvedRoundingOptions, RoundingIncrement, RoundingMode, Unit,
