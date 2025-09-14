@@ -39,10 +39,10 @@
 
 
 typedef struct temporal_rs_ZonedDateTime_try_new_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_try_new_result;
-temporal_rs_ZonedDateTime_try_new_result temporal_rs_ZonedDateTime_try_new(I128Nanoseconds nanosecond, AnyCalendarKind calendar, const TimeZone* time_zone);
+temporal_rs_ZonedDateTime_try_new_result temporal_rs_ZonedDateTime_try_new(I128Nanoseconds nanosecond, AnyCalendarKind calendar, TimeZone time_zone);
 
 typedef struct temporal_rs_ZonedDateTime_try_new_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_try_new_with_provider_result;
-temporal_rs_ZonedDateTime_try_new_with_provider_result temporal_rs_ZonedDateTime_try_new_with_provider(I128Nanoseconds nanosecond, AnyCalendarKind calendar, const TimeZone* time_zone, const Provider* p);
+temporal_rs_ZonedDateTime_try_new_with_provider_result temporal_rs_ZonedDateTime_try_new_with_provider(I128Nanoseconds nanosecond, AnyCalendarKind calendar, TimeZone time_zone, const Provider* p);
 
 typedef struct temporal_rs_ZonedDateTime_from_partial_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_partial_result;
 temporal_rs_ZonedDateTime_from_partial_result temporal_rs_ZonedDateTime_from_partial(PartialZonedDateTime partial, ArithmeticOverflow_option overflow, Disambiguation_option disambiguation, OffsetDisambiguation_option offset_option);
@@ -71,10 +71,10 @@ temporal_rs_ZonedDateTime_from_utf16_with_provider_result temporal_rs_ZonedDateT
 int64_t temporal_rs_ZonedDateTime_epoch_milliseconds(const ZonedDateTime* self);
 
 typedef struct temporal_rs_ZonedDateTime_from_epoch_milliseconds_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_epoch_milliseconds_result;
-temporal_rs_ZonedDateTime_from_epoch_milliseconds_result temporal_rs_ZonedDateTime_from_epoch_milliseconds(int64_t ms, const TimeZone* tz);
+temporal_rs_ZonedDateTime_from_epoch_milliseconds_result temporal_rs_ZonedDateTime_from_epoch_milliseconds(int64_t ms, TimeZone tz);
 
 typedef struct temporal_rs_ZonedDateTime_from_epoch_milliseconds_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_from_epoch_milliseconds_with_provider_result;
-temporal_rs_ZonedDateTime_from_epoch_milliseconds_with_provider_result temporal_rs_ZonedDateTime_from_epoch_milliseconds_with_provider(int64_t ms, const TimeZone* tz, const Provider* p);
+temporal_rs_ZonedDateTime_from_epoch_milliseconds_with_provider_result temporal_rs_ZonedDateTime_from_epoch_milliseconds_with_provider(int64_t ms, TimeZone tz, const Provider* p);
 
 I128Nanoseconds temporal_rs_ZonedDateTime_epoch_nanoseconds(const ZonedDateTime* self);
 
@@ -89,12 +89,12 @@ typedef struct temporal_rs_ZonedDateTime_with_with_provider_result {union {Zoned
 temporal_rs_ZonedDateTime_with_with_provider_result temporal_rs_ZonedDateTime_with_with_provider(const ZonedDateTime* self, PartialZonedDateTime partial, Disambiguation_option disambiguation, OffsetDisambiguation_option offset_option, ArithmeticOverflow_option overflow, const Provider* p);
 
 typedef struct temporal_rs_ZonedDateTime_with_timezone_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_with_timezone_result;
-temporal_rs_ZonedDateTime_with_timezone_result temporal_rs_ZonedDateTime_with_timezone(const ZonedDateTime* self, const TimeZone* zone);
+temporal_rs_ZonedDateTime_with_timezone_result temporal_rs_ZonedDateTime_with_timezone(const ZonedDateTime* self, TimeZone zone);
 
 typedef struct temporal_rs_ZonedDateTime_with_timezone_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_ZonedDateTime_with_timezone_with_provider_result;
-temporal_rs_ZonedDateTime_with_timezone_with_provider_result temporal_rs_ZonedDateTime_with_timezone_with_provider(const ZonedDateTime* self, const TimeZone* zone, const Provider* p);
+temporal_rs_ZonedDateTime_with_timezone_with_provider_result temporal_rs_ZonedDateTime_with_timezone_with_provider(const ZonedDateTime* self, TimeZone zone, const Provider* p);
 
-const TimeZone* temporal_rs_ZonedDateTime_timezone(const ZonedDateTime* self);
+TimeZone temporal_rs_ZonedDateTime_timezone(const ZonedDateTime* self);
 
 int8_t temporal_rs_ZonedDateTime_compare_instant(const ZonedDateTime* self, const ZonedDateTime* other);
 

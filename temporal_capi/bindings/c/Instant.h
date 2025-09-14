@@ -60,16 +60,16 @@ int64_t temporal_rs_Instant_epoch_milliseconds(const Instant* self);
 I128Nanoseconds temporal_rs_Instant_epoch_nanoseconds(const Instant* self);
 
 typedef struct temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result {union { TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result;
-temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instant_to_ixdtf_string_with_compiled_data(const Instant* self, const TimeZone* zone, ToStringRoundingOptions options, DiplomatWrite* write);
+temporal_rs_Instant_to_ixdtf_string_with_compiled_data_result temporal_rs_Instant_to_ixdtf_string_with_compiled_data(const Instant* self, TimeZone_option zone, ToStringRoundingOptions options, DiplomatWrite* write);
 
 typedef struct temporal_rs_Instant_to_ixdtf_string_with_provider_result {union { TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_ixdtf_string_with_provider_result;
-temporal_rs_Instant_to_ixdtf_string_with_provider_result temporal_rs_Instant_to_ixdtf_string_with_provider(const Instant* self, const TimeZone* zone, ToStringRoundingOptions options, const Provider* p, DiplomatWrite* write);
+temporal_rs_Instant_to_ixdtf_string_with_provider_result temporal_rs_Instant_to_ixdtf_string_with_provider(const Instant* self, TimeZone_option zone, ToStringRoundingOptions options, const Provider* p, DiplomatWrite* write);
 
 typedef struct temporal_rs_Instant_to_zoned_date_time_iso_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_zoned_date_time_iso_result;
-temporal_rs_Instant_to_zoned_date_time_iso_result temporal_rs_Instant_to_zoned_date_time_iso(const Instant* self, const TimeZone* zone);
+temporal_rs_Instant_to_zoned_date_time_iso_result temporal_rs_Instant_to_zoned_date_time_iso(const Instant* self, TimeZone zone);
 
 typedef struct temporal_rs_Instant_to_zoned_date_time_iso_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_Instant_to_zoned_date_time_iso_with_provider_result;
-temporal_rs_Instant_to_zoned_date_time_iso_with_provider_result temporal_rs_Instant_to_zoned_date_time_iso_with_provider(const Instant* self, const TimeZone* zone, const Provider* p);
+temporal_rs_Instant_to_zoned_date_time_iso_with_provider_result temporal_rs_Instant_to_zoned_date_time_iso_with_provider(const Instant* self, TimeZone zone, const Provider* p);
 
 Instant* temporal_rs_Instant_clone(const Instant* self);
 
