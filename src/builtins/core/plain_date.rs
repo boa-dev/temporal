@@ -655,7 +655,7 @@ impl PlainDate {
     #[inline]
     pub fn to_zoned_date_time_with_provider(
         &self,
-        tz: TimeZone,
+        time_zone: TimeZone,
         plain_time: Option<PlainTime>,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<ZonedDateTime> {
@@ -667,16 +667,16 @@ impl PlainDate {
             // c. If ISODateTimeWithinLimits(isoDateTime) is false, throw a RangeError exception.
             let result_iso = IsoDateTime::new(self.iso, time.iso)?;
             // d. Let epochNs be ? GetEpochNanosecondsFor(timeZone, isoDateTime, compatible).
-            tz.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
+            time_zone.get_epoch_nanoseconds_for(result_iso, Disambiguation::Compatible, provider)?
         //  5. If temporalTime is undefined, then
         } else {
             // a. Let epochNs be ? GetStartOfDay(timeZone, temporalDate.[[ISODate]]).
-            tz.get_start_of_day(&self.iso, provider)?
+            time_zone.get_start_of_day(&self.iso, provider)?
         };
         //  7. Return ! CreateTemporalZonedDateTime(epochNs, timeZone, temporalDate.[[Calendar]]).
         ZonedDateTime::try_new_with_cached_offset(
             epoch_ns.ns.0,
-            tz,
+            time_zone,
             self.calendar.clone(),
             epoch_ns.offset,
         )
@@ -947,9 +947,9 @@ mod tests {
         use timezone_provider::tzif::FsTzdbProvider;
         let provider = &FsTzdbProvider::default();
         let date = PlainDate::from_str("2020-01-01").unwrap();
-        let tz = TimeZone::try_from_str_with_provider("UTC", provider).unwrap();
+        let time_zone = TimeZone::try_from_str_with_provider("UTC", provider).unwrap();
         let zdt = date
-            .to_zoned_date_time_with_provider(tz, None, provider)
+            .to_zoned_date_time_with_provider(time_zone, None, provider)
             .unwrap();
         assert_eq!(zdt.year(), 2020);
         assert_eq!(zdt.month(), 1);
