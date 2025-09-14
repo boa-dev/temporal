@@ -392,7 +392,7 @@ const MONTH_THIRTEEN: TinyAsciiStr<4> = tinystr!(4, "M13");
 // TODO: Handle instances where month values may be outside of valid
 // bounds. In other words, it is totally possible for a value to be
 // passed in that is { month: 300 } with overflow::constrain.
-/// MonthCode struct v2
+/// A MonthCode identifier
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MonthCode(pub(crate) TinyAsciiStr<4>);
 

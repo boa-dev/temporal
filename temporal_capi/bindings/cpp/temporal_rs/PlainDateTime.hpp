@@ -67,12 +67,6 @@ namespace capi {
     typedef struct temporal_rs_PlainDateTime_from_utf16_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_utf16_result;
     temporal_rs_PlainDateTime_from_utf16_result temporal_rs_PlainDateTime_from_utf16(diplomat::capi::DiplomatString16View s);
 
-    int32_t temporal_rs_PlainDateTime_iso_year(const temporal_rs::capi::PlainDateTime* self);
-
-    uint8_t temporal_rs_PlainDateTime_iso_month(const temporal_rs::capi::PlainDateTime* self);
-
-    uint8_t temporal_rs_PlainDateTime_iso_day(const temporal_rs::capi::PlainDateTime* self);
-
     uint8_t temporal_rs_PlainDateTime_hour(const temporal_rs::capi::PlainDateTime* self);
 
     uint8_t temporal_rs_PlainDateTime_minute(const temporal_rs::capi::PlainDateTime* self);
@@ -239,21 +233,6 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::from_utf16(std::u16string_view s) {
   auto result = temporal_rs::capi::temporal_rs_PlainDateTime_from_utf16({s.data(), s.size()});
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline int32_t temporal_rs::PlainDateTime::iso_year() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_iso_year(this->AsFFI());
-  return result;
-}
-
-inline uint8_t temporal_rs::PlainDateTime::iso_month() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_iso_month(this->AsFFI());
-  return result;
-}
-
-inline uint8_t temporal_rs::PlainDateTime::iso_day() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainDateTime_iso_day(this->AsFFI());
-  return result;
 }
 
 inline uint8_t temporal_rs::PlainDateTime::hour() const {

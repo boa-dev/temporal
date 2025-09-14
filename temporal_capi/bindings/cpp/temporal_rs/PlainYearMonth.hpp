@@ -48,14 +48,6 @@ namespace capi {
     typedef struct temporal_rs_PlainYearMonth_from_utf16_result {union {temporal_rs::capi::PlainYearMonth* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainYearMonth_from_utf16_result;
     temporal_rs_PlainYearMonth_from_utf16_result temporal_rs_PlainYearMonth_from_utf16(diplomat::capi::DiplomatString16View s);
 
-    int32_t temporal_rs_PlainYearMonth_iso_year(const temporal_rs::capi::PlainYearMonth* self);
-
-    void temporal_rs_PlainYearMonth_padded_iso_year_string(const temporal_rs::capi::PlainYearMonth* self, diplomat::capi::DiplomatWrite* write);
-
-    uint8_t temporal_rs_PlainYearMonth_iso_month(const temporal_rs::capi::PlainYearMonth* self);
-
-    uint8_t temporal_rs_PlainYearMonth_iso_day(const temporal_rs::capi::PlainYearMonth* self);
-
     int32_t temporal_rs_PlainYearMonth_year(const temporal_rs::capi::PlainYearMonth* self);
 
     uint8_t temporal_rs_PlainYearMonth_month(const temporal_rs::capi::PlainYearMonth* self);
@@ -147,35 +139,6 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_r
 inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError> temporal_rs::PlainYearMonth::from_utf16(std::u16string_view s) {
   auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_from_utf16({s.data(), s.size()});
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
-}
-
-inline int32_t temporal_rs::PlainYearMonth::iso_year() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_year(this->AsFFI());
-  return result;
-}
-
-inline std::string temporal_rs::PlainYearMonth::padded_iso_year_string() const {
-  std::string output;
-  diplomat::capi::DiplomatWrite write = diplomat::WriteFromString(output);
-  temporal_rs::capi::temporal_rs_PlainYearMonth_padded_iso_year_string(this->AsFFI(),
-    &write);
-  return output;
-}
-template<typename W>
-inline void temporal_rs::PlainYearMonth::padded_iso_year_string_write(W& writeable) const {
-  diplomat::capi::DiplomatWrite write = diplomat::WriteTrait<W>::Construct(writeable);
-  temporal_rs::capi::temporal_rs_PlainYearMonth_padded_iso_year_string(this->AsFFI(),
-    &write);
-}
-
-inline uint8_t temporal_rs::PlainYearMonth::iso_month() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_month(this->AsFFI());
-  return result;
-}
-
-inline uint8_t temporal_rs::PlainYearMonth::iso_day() const {
-  auto result = temporal_rs::capi::temporal_rs_PlainYearMonth_iso_day(this->AsFFI());
-  return result;
 }
 
 inline int32_t temporal_rs::PlainYearMonth::year() const {

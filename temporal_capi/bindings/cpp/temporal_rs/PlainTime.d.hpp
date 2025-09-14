@@ -22,11 +22,10 @@ namespace capi { struct TimeZone; }
 class TimeZone;
 struct DifferenceSettings;
 struct PartialTime;
+struct RoundingOptions;
 struct TemporalError;
 struct ToStringRoundingOptions;
 class ArithmeticOverflow;
-class RoundingMode;
-class Unit;
 }
 
 
@@ -80,7 +79,7 @@ public:
 
   inline static int8_t compare(const temporal_rs::PlainTime& one, const temporal_rs::PlainTime& two);
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> round(temporal_rs::Unit smallest_unit, std::optional<double> rounding_increment, std::optional<temporal_rs::RoundingMode> rounding_mode) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::PlainTime>, temporal_rs::TemporalError> round(temporal_rs::RoundingOptions options) const;
 
   inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string(temporal_rs::ToStringRoundingOptions options) const;
   template<typename W>

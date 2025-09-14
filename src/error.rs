@@ -177,6 +177,7 @@ pub(crate) enum ErrorMessage {
     FractionalDigitsPrecisionInvalid,
 
     // Options validity
+    SmallestUnitIsRequired,
     SmallestUnitNotTimeUnit,
     SmallestUnitLargerThanLargestUnit,
     UnitNotDate,
@@ -222,6 +223,7 @@ impl ErrorMessage {
             Self::NumberNotPositive => "integer must be positive.",
             Self::NumberOutOfRange => "number exceeded a valid range.",
             Self::FractionalDigitsPrecisionInvalid => "Invalid fractionalDigits precision value",
+            Self::SmallestUnitIsRequired => "smallestUnit is required",
             Self::SmallestUnitNotTimeUnit => "smallestUnit must be a valid time unit.",
             Self::SmallestUnitLargerThanLargestUnit => {
                 "smallestUnit was larger than largestunit in DifferenceeSettings"

@@ -198,16 +198,6 @@ pub mod ffi {
                 .map_err(Into::into)
         }
 
-        pub fn iso_year(&self) -> i32 {
-            self.0.iso_year()
-        }
-        pub fn iso_month(&self) -> u8 {
-            self.0.iso_month()
-        }
-        pub fn iso_day(&self) -> u8 {
-            self.0.iso_day()
-        }
-
         pub fn calendar<'a>(&'a self) -> &'a Calendar {
             Calendar::transparent_convert(self.0.calendar())
         }
@@ -262,10 +252,7 @@ pub mod ffi {
         }
 
         pub fn compare(one: &Self, two: &Self) -> core::cmp::Ordering {
-            let tuple1 = (one.iso_year(), one.iso_month(), one.iso_day());
-            let tuple2 = (two.iso_year(), two.iso_month(), two.iso_day());
-
-            tuple1.cmp(&tuple2)
+            one.0.compare_iso(&two.0)
         }
         pub fn year(&self) -> i32 {
             self.0.year()

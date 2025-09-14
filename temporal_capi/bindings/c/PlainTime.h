@@ -12,11 +12,10 @@
 #include "Duration.d.h"
 #include "PartialTime.d.h"
 #include "Provider.d.h"
-#include "RoundingMode.d.h"
+#include "RoundingOptions.d.h"
 #include "TemporalError.d.h"
 #include "TimeZone.d.h"
 #include "ToStringRoundingOptions.d.h"
-#include "Unit.d.h"
 
 #include "PlainTime.d.h"
 
@@ -78,7 +77,7 @@ bool temporal_rs_PlainTime_equals(const PlainTime* self, const PlainTime* other)
 int8_t temporal_rs_PlainTime_compare(const PlainTime* one, const PlainTime* two);
 
 typedef struct temporal_rs_PlainTime_round_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_round_result;
-temporal_rs_PlainTime_round_result temporal_rs_PlainTime_round(const PlainTime* self, Unit smallest_unit, OptionF64 rounding_increment, RoundingMode_option rounding_mode);
+temporal_rs_PlainTime_round_result temporal_rs_PlainTime_round(const PlainTime* self, RoundingOptions options);
 
 typedef struct temporal_rs_PlainTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_to_ixdtf_string_result;
 temporal_rs_PlainTime_to_ixdtf_string_result temporal_rs_PlainTime_to_ixdtf_string(const PlainTime* self, ToStringRoundingOptions options, DiplomatWrite* write);
