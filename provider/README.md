@@ -2,7 +2,7 @@
 
 <!-- cargo-rdme start -->
 
-Providers for time zone data 
+Providers for time zone data
 
 Let's talk about time zone data everyone!
 
@@ -18,29 +18,30 @@ is going on.
 
 ### Available providers
 
-Below are a list of currently avaiable time zone providers.
+Below is a list of currently available time zone providers.
 
-- [`ZoneInfo64TzdbProvider`][zoneinfo64::ZoneInfo64TzdbProvider] (enable with `zoneinfo64`
-features flag)
-- [`FsTzdbProvider`][tzif::FsTzdbProvider] (enable with `tzif` feature flag)
-- [`CompiledTzdbProvider`][tzif::CompiledTzdbProvider] (enable with `tzif` feature flag)
+- `ZoneInfo64TzdbProvider`: a provider using ICU4C's zoneinfo64 resource bundle (enable with `zoneinfo64` features flag)
+- `FsTzdbProvider`: a provider that reads and parses tzdata at runtime from the host file system's
+TZif files (enable with `tzif` feature flag)
+- `CompiledTzdbProvider`: a provider that reads and parses tzdata at runtime from TZif's compiled
+into the application (enable with `tzif` feature flag)
 
-Coming soon (hopefully), a zero copy compiled tzdb provider (see [experimental_tzif] for more).
+Coming soon (hopefully), a zero copy compiled tzdb provider (see `experimental_tzif` for more).
 
 ### Time zone provider traits
 
 This crate provides three primary traits for working with time zone data.
 
-- [`TimeZoneProvider`][provider::TimeZoneProvider]
-- [`TimeZoneNormalizer`][provider::TimeZoneNormalizer]
-- [`TimeZoneResolver`][provider::TimeZoneResolver]
+- [`TimeZoneProvider`][crate::provider::TimeZoneProvider]
+- [`TimeZoneNormalizer`][crate::provider::TimeZoneNormalizer]
+- [`TimeZoneResolver`][crate::provider::TimeZoneResolver]
 
-The first trait `TimeZoneProvider` is the primary interface for a time zone provider.
+The first trait `TimeZoneProvider` is the primary interface for a time zone provider used by `temporal_rs`.
 
 Meanwhile, the two other traits, `TimeZoneNormalizer` and `TimeZoneResolver`, are secondary
 traits that can be used to implement the core `TimeZoneProvider`. Once implemented, this
-crate providers a default type for creating a `TimeZoneProvider` from the secondary
-traits, [`NormalizerAndResolver`][provider::NormalizerAndResolver].
+crate providers a default type for creating a `TimeZoneProvider` by mixing and matching objects that implement the secondary
+traits, `NormalizerAndResolver`.
 
 #### Why two secondary traits?
 

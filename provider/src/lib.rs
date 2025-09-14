@@ -14,11 +14,13 @@
 //!
 //! ## Available providers
 //!
-//! Below are a list of currently avaiable time zone providers.
+//! Below is a list of currently available time zone providers.
 //!
-//! - `ZoneInfo64TzdbProvider` (enable with `zoneinfo64` features flag)
-//! - `FsTzdbProvider` (enable with `tzif` feature flag)
-//! - `CompiledTzdbProvider` (enable with `tzif` feature flag)
+//! - `ZoneInfo64TzdbProvider`: a provider using ICU4C's zoneinfo64 resource bundle (enable with `zoneinfo64` features flag)
+//! - `FsTzdbProvider`: a provider that reads and parses tzdata at runtime from the host file system's
+//! TZif files (enable with `tzif` feature flag)
+//! - `CompiledTzdbProvider`: a provider that reads and parses tzdata at runtime from TZif's compiled
+//! into the application (enable with `tzif` feature flag)
 //!
 //! Coming soon (hopefully), a zero copy compiled tzdb provider (see `experimental_tzif` for more).
 //!
