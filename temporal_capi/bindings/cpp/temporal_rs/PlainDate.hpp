@@ -50,10 +50,10 @@ namespace capi {
     temporal_rs_PlainDate_from_parsed_result temporal_rs_PlainDate_from_parsed(const temporal_rs::capi::ParsedDate* parsed);
 
     typedef struct temporal_rs_PlainDate_from_epoch_milliseconds_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_milliseconds_result;
-    temporal_rs_PlainDate_from_epoch_milliseconds_result temporal_rs_PlainDate_from_epoch_milliseconds(int64_t ms, const temporal_rs::capi::TimeZone* tz);
+    temporal_rs_PlainDate_from_epoch_milliseconds_result temporal_rs_PlainDate_from_epoch_milliseconds(int64_t ms, temporal_rs::capi::TimeZone tz);
 
     typedef struct temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result;
-    temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDate_from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::capi::TimeZone* tz, const temporal_rs::capi::Provider* p);
+    temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDate_from_epoch_milliseconds_with_provider(int64_t ms, temporal_rs::capi::TimeZone tz, const temporal_rs::capi::Provider* p);
 
     typedef struct temporal_rs_PlainDate_with_result {union {temporal_rs::capi::PlainDate* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_result;
     temporal_rs_PlainDate_with_result temporal_rs_PlainDate_with(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::PartialDate partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -129,10 +129,10 @@ namespace capi {
     temporal_rs_PlainDate_to_plain_year_month_result temporal_rs_PlainDate_to_plain_year_month(const temporal_rs::capi::PlainDate* self);
 
     typedef struct temporal_rs_PlainDate_to_zoned_date_time_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_result;
-    temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::TimeZone* time_zone, const temporal_rs::capi::PlainTime* time);
+    temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_date_time(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::TimeZone time_zone, const temporal_rs::capi::PlainTime* time);
 
     typedef struct temporal_rs_PlainDate_to_zoned_date_time_with_provider_result {union {temporal_rs::capi::ZonedDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_with_provider_result;
-    temporal_rs_PlainDate_to_zoned_date_time_with_provider_result temporal_rs_PlainDate_to_zoned_date_time_with_provider(const temporal_rs::capi::PlainDate* self, const temporal_rs::capi::TimeZone* time_zone, const temporal_rs::capi::PlainTime* time, const temporal_rs::capi::Provider* p);
+    temporal_rs_PlainDate_to_zoned_date_time_with_provider_result temporal_rs_PlainDate_to_zoned_date_time_with_provider(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::TimeZone time_zone, const temporal_rs::capi::PlainTime* time, const temporal_rs::capi::Provider* p);
 
     void temporal_rs_PlainDate_to_ixdtf_string(const temporal_rs::capi::PlainDate* self, temporal_rs::capi::DisplayCalendar display_calendar, diplomat::capi::DiplomatWrite* write);
 
@@ -180,13 +180,13 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::Te
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_epoch_milliseconds(int64_t ms, const temporal_rs::TimeZone& tz) {
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_epoch_milliseconds(int64_t ms, temporal_rs::TimeZone tz) {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_from_epoch_milliseconds(ms,
     tz.AsFFI());
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainDate>>(std::unique_ptr<temporal_rs::PlainDate>(temporal_rs::PlainDate::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_epoch_milliseconds_with_provider(int64_t ms, const temporal_rs::TimeZone& tz, const temporal_rs::Provider& p) {
+inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> temporal_rs::PlainDate::from_epoch_milliseconds_with_provider(int64_t ms, temporal_rs::TimeZone tz, const temporal_rs::Provider& p) {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_from_epoch_milliseconds_with_provider(ms,
     tz.AsFFI(),
     p.AsFFI());
@@ -375,14 +375,14 @@ inline diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_r
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::PlainYearMonth>>(std::unique_ptr<temporal_rs::PlainYearMonth>(temporal_rs::PlainYearMonth::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::PlainYearMonth>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_zoned_date_time(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time) const {
+inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_zoned_date_time(temporal_rs::TimeZone time_zone, const temporal_rs::PlainTime* time) const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_to_zoned_date_time(this->AsFFI(),
     time_zone.AsFFI(),
     time ? time->AsFFI() : nullptr);
   return result.is_ok ? diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Ok<std::unique_ptr<temporal_rs::ZonedDateTime>>(std::unique_ptr<temporal_rs::ZonedDateTime>(temporal_rs::ZonedDateTime::FromFFI(result.ok)))) : diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError>(diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
 }
 
-inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_zoned_date_time_with_provider(const temporal_rs::TimeZone& time_zone, const temporal_rs::PlainTime* time, const temporal_rs::Provider& p) const {
+inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDate::to_zoned_date_time_with_provider(temporal_rs::TimeZone time_zone, const temporal_rs::PlainTime* time, const temporal_rs::Provider& p) const {
   auto result = temporal_rs::capi::temporal_rs_PlainDate_to_zoned_date_time_with_provider(this->AsFFI(),
     time_zone.AsFFI(),
     time ? time->AsFFI() : nullptr,

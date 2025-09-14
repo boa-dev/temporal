@@ -407,7 +407,7 @@ impl Instant {
     /// Returns an RFC9557 IXDTF string representing the current `Instant`.
     pub fn to_ixdtf_string_with_provider(
         &self,
-        timezone: Option<&TimeZone>,
+        timezone: Option<TimeZone>,
         options: ToStringRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<String> {
@@ -418,7 +418,7 @@ impl Instant {
     /// Returns a [`Writeable`] for formatting the current `Instant` in RFC9557's IXDTF.
     pub fn to_ixdtf_writeable_with_provider(
         &self,
-        timezone: Option<&TimeZone>,
+        timezone: Option<TimeZone>,
         options: ToStringRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<impl Writeable + '_> {

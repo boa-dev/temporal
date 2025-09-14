@@ -38,7 +38,7 @@ pub mod ffi {
         pub date: PartialDate<'a>,
         pub time: PartialTime,
         pub offset: DiplomatOption<DiplomatStrSlice<'a>>,
-        pub timezone: Option<&'a TimeZone>,
+        pub timezone: DiplomatOption<TimeZone>,
     }
 
     pub struct RelativeTo<'a> {
@@ -145,19 +145,19 @@ pub mod ffi {
         pub fn try_new(
             nanosecond: I128Nanoseconds,
             calendar: AnyCalendarKind,
-            time_zone: &TimeZone,
+            time_zone: TimeZone,
         ) -> Result<Box<Self>, TemporalError> {
             Self::try_new_with_provider(nanosecond, calendar, time_zone, &Provider::compiled())
         }
         pub fn try_new_with_provider<'p>(
             nanosecond: I128Nanoseconds,
             calendar: AnyCalendarKind,
-            time_zone: &TimeZone,
+            time_zone: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| temporal_rs::ZonedDateTime::try_new_with_provider(
                 nanosecond.into(),
-                time_zone.0,
+                time_zone.into(),
                 temporal_rs::Calendar::new(calendar.into()),
                 p
             ))
@@ -294,15 +294,15 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn from_epoch_milliseconds(ms: i64, tz: &TimeZone) -> Result<Box<Self>, TemporalError> {
+        pub fn from_epoch_milliseconds(ms: i64, tz: TimeZone) -> Result<Box<Self>, TemporalError> {
             Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
         }
         pub fn from_epoch_milliseconds_with_provider<'p>(
             ms: i64,
-            tz: &TimeZone,
+            tz: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
-            super::zdt_from_epoch_ms_with_provider(ms, &tz.0, p).map(|c| Box::new(Self(c)))
+            super::zdt_from_epoch_ms_with_provider(ms, tz.into(), p).map(|c| Box::new(Self(c)))
         }
 
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
@@ -353,21 +353,21 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn with_timezone(&self, zone: &TimeZone) -> Result<Box<Self>, TemporalError> {
+        pub fn with_timezone(&self, zone: TimeZone) -> Result<Box<Self>, TemporalError> {
             self.with_timezone_with_provider(zone, &Provider::compiled())
         }
         pub fn with_timezone_with_provider<'p>(
             &self,
-            zone: &TimeZone,
+            zone: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
-            with_provider!(p, |p| self.0.with_time_zone_with_provider(zone.0, p))
+            with_provider!(p, |p| self.0.with_time_zone_with_provider(zone.into(), p))
                 .map(|x| Box::new(ZonedDateTime(x)))
                 .map_err(Into::into)
         }
 
-        pub fn timezone<'a>(&'a self) -> &'a TimeZone {
-            TimeZone::transparent_convert(self.0.time_zone())
+        pub fn timezone(&self) -> TimeZone {
+            TimeZone::from(*self.0.time_zone())
         }
 
         pub fn compare_instant(&self, other: &Self) -> core::cmp::Ordering {
@@ -713,19 +713,19 @@ pub mod ffi {
 
 pub(crate) fn zdt_from_epoch_ms_with_provider<'p>(
     ms: i64,
-    time_zone: &temporal_rs::TimeZone,
+    time_zone: temporal_rs::TimeZone,
     p: &Provider<'p>,
 ) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
     let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
     with_provider!(p, |p| instant
-        .to_zoned_date_time_iso_with_provider(*time_zone, p))
+        .to_zoned_date_time_iso_with_provider(time_zone, p))
     .map_err(Into::into)
 }
 
 impl TryFrom<ffi::PartialZonedDateTime<'_>> for temporal_rs::partial::PartialZonedDateTime {
     type Error = TemporalError;
     fn try_from(other: ffi::PartialZonedDateTime<'_>) -> Result<Self, TemporalError> {
-        let timezone = other.timezone.map(|x| x.0);
+        let timezone = other.timezone.clone().into_option().map(|x| x.tz());
         let calendar = temporal_rs::Calendar::new(other.date.calendar.into());
         Ok(Self {
             fields: other.try_into()?,

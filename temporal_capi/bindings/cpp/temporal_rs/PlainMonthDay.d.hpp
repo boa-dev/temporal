@@ -22,10 +22,9 @@ namespace capi { struct PlainMonthDay; }
 class PlainMonthDay;
 namespace capi { struct Provider; }
 class Provider;
-namespace capi { struct TimeZone; }
-class TimeZone;
 struct PartialDate;
 struct TemporalError;
+struct TimeZone;
 class AnyCalendarKind;
 class ArithmeticOverflow;
 class DisplayCalendar;
@@ -66,9 +65,9 @@ public:
 
   inline diplomat::result<std::unique_ptr<temporal_rs::PlainDate>, temporal_rs::TemporalError> to_plain_date(std::optional<temporal_rs::PartialDate> year) const;
 
-  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ms_for(const temporal_rs::TimeZone& time_zone) const;
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ms_for(temporal_rs::TimeZone time_zone) const;
 
-  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ms_for_with_provider(const temporal_rs::TimeZone& time_zone, const temporal_rs::Provider& p) const;
+  inline diplomat::result<int64_t, temporal_rs::TemporalError> epoch_ms_for_with_provider(temporal_rs::TimeZone time_zone, const temporal_rs::Provider& p) const;
 
   inline std::string to_ixdtf_string(temporal_rs::DisplayCalendar display_calendar) const;
   template<typename W>

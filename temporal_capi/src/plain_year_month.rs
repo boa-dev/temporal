@@ -6,6 +6,7 @@ pub mod ffi {
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
     use crate::provider::ffi::Provider;
+    use crate::time_zone::ffi::TimeZone;
     use alloc::boxed::Box;
 
     use crate::options::ffi::{ArithmeticOverflow, DifferenceSettings, DisplayCalendar};
@@ -180,19 +181,18 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn epoch_ms_for(
-            &self,
-            time_zone: &crate::time_zone::ffi::TimeZone,
-        ) -> Result<i64, TemporalError> {
+        pub fn epoch_ms_for(&self, time_zone: TimeZone) -> Result<i64, TemporalError> {
             self.epoch_ms_for_with_provider(time_zone, &Provider::compiled())
         }
         pub fn epoch_ms_for_with_provider<'p>(
             &self,
-            time_zone: &crate::time_zone::ffi::TimeZone,
+            time_zone: TimeZone,
             p: &Provider<'p>,
         ) -> Result<i64, TemporalError> {
-            let ns = with_provider!(p, |p| self.0.epoch_ns_for_with_provider(&time_zone.0, p))
-                .map_err(TemporalError::from)?;
+            let ns = with_provider!(p, |p| self
+                .0
+                .epoch_ns_for_with_provider(time_zone.into(), p))
+            .map_err(TemporalError::from)?;
 
             let ns_i128 = ns.as_i128();
             let ms = ns_i128 / 1_000_000;
