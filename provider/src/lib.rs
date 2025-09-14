@@ -30,7 +30,7 @@
 //! - [`TimeZoneNormalizer`][crate::provider::TimeZoneNormalizer]
 //! - [`TimeZoneResolver`][crate::provider::TimeZoneResolver]
 //!
-//! The first trait `TimeZoneProvider` is the primary interface for a time zone provider.
+//! The first trait `TimeZoneProvider` is the primary interface for a time zone provider used by `temporal_rs`.
 //!
 //! Meanwhile, the two other traits, `TimeZoneNormalizer` and `TimeZoneResolver`, are secondary
 //! traits that can be used to implement the core `TimeZoneProvider`. Once implemented, this
