@@ -34,7 +34,7 @@
 //!
 //! Meanwhile, the two other traits, `TimeZoneNormalizer` and `TimeZoneResolver`, are secondary
 //! traits that can be used to implement the core `TimeZoneProvider`. Once implemented, this
-//! crate providers a default type for creating a `TimeZoneProvider` from the secondary
+//! crate providers a default type for creating a `TimeZoneProvider` by mixing and matching objects that implement the secondary
 //! traits, `NormalizerAndResolver`.
 //!
 //! ### Why two secondary traits?
