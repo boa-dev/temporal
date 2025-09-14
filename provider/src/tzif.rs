@@ -1254,7 +1254,7 @@ fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range<i64> {
 /// This provider includes raw tzdata in the application binary and parses that data into
 /// a TZif format, which incurs a runtime cost; however, parsed TZifs are cached, which
 /// offsets the runtime cost on repeated requests.
-/// 
+///
 /// This will eventually use pure compiled data (<https://github.com/boa-dev/temporal/pull/264>)
 pub type CompiledTzdbProvider =
     NormalizerAndResolver<CompiledNormalizer, TzdbResolver<CompiledTzdbResolver>>;
