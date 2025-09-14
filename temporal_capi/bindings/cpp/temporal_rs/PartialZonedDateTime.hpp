@@ -31,7 +31,7 @@ inline temporal_rs::capi::PartialZonedDateTime temporal_rs::PartialZonedDateTime
     /* .date = */ date.AsFFI(),
     /* .time = */ time.AsFFI(),
     /* .offset = */ offset.has_value() ? (diplomat::capi::OptionStringView{ { {offset.value().data(), offset.value().size()} }, true }) : (diplomat::capi::OptionStringView{ {}, false }),
-    /* .timezone = */ timezone ? timezone->AsFFI() : nullptr,
+    /* .timezone = */ timezone.has_value() ? (temporal_rs::capi::TimeZone_option{ { timezone.value().AsFFI() }, true }) : (temporal_rs::capi::TimeZone_option{ {}, false }),
   };
 }
 
@@ -40,7 +40,7 @@ inline temporal_rs::PartialZonedDateTime temporal_rs::PartialZonedDateTime::From
     /* .date = */ temporal_rs::PartialDate::FromFFI(c_struct.date),
     /* .time = */ temporal_rs::PartialTime::FromFFI(c_struct.time),
     /* .offset = */ c_struct.offset.is_ok ? std::optional(std::string_view(c_struct.offset.ok.data, c_struct.offset.ok.len)) : std::nullopt,
-    /* .timezone = */ temporal_rs::TimeZone::FromFFI(c_struct.timezone),
+    /* .timezone = */ c_struct.timezone.is_ok ? std::optional(temporal_rs::TimeZone::FromFFI(c_struct.timezone.ok)) : std::nullopt,
   };
 }
 

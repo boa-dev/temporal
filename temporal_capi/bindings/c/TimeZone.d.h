@@ -11,8 +11,14 @@
 
 
 
-typedef struct TimeZone TimeZone;
+typedef struct TimeZone {
+  int16_t offset_minutes;
+  size_t resolved_id;
+  size_t normalized_id;
+  bool is_iana_id;
+} TimeZone;
 
+typedef struct TimeZone_option {union { TimeZone ok; }; bool is_ok; } TimeZone_option;
 
 
 

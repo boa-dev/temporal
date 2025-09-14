@@ -125,18 +125,15 @@ pub mod ffi {
         }
 
         #[cfg(feature = "compiled_data")]
-        pub fn from_epoch_milliseconds(
-            ms: i64,
-            tz: &crate::time_zone::ffi::TimeZone,
-        ) -> Result<Box<Self>, TemporalError> {
+        pub fn from_epoch_milliseconds(ms: i64, tz: TimeZone) -> Result<Box<Self>, TemporalError> {
             Self::from_epoch_milliseconds_with_provider(ms, tz, &Provider::compiled())
         }
         pub fn from_epoch_milliseconds_with_provider<'p>(
             ms: i64,
-            tz: &crate::time_zone::ffi::TimeZone,
+            tz: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
-            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, &tz.0, p)?;
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, tz.into(), p)?;
             Ok(Box::new(Self(zdt.to_plain_date_time())))
         }
         pub fn with(
@@ -322,7 +319,7 @@ pub mod ffi {
         #[cfg(feature = "compiled_data")]
         pub fn to_zoned_date_time(
             &self,
-            time_zone: &TimeZone,
+            time_zone: TimeZone,
             disambiguation: Disambiguation,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.to_zoned_date_time_with_provider(time_zone, disambiguation, &Provider::compiled())
@@ -330,12 +327,12 @@ pub mod ffi {
 
         pub fn to_zoned_date_time_with_provider<'p>(
             &self,
-            time_zone: &TimeZone,
+            time_zone: TimeZone,
             disambiguation: Disambiguation,
             p: &Provider<'p>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             with_provider!(p, |p| self.0.to_zoned_date_time_with_provider(
-                time_zone.0,
+                time_zone.into(),
                 disambiguation.into(),
                 p
             ))

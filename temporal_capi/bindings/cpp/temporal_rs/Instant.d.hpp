@@ -18,14 +18,13 @@ namespace capi { struct Instant; }
 class Instant;
 namespace capi { struct Provider; }
 class Provider;
-namespace capi { struct TimeZone; }
-class TimeZone;
 namespace capi { struct ZonedDateTime; }
 class ZonedDateTime;
 struct DifferenceSettings;
 struct I128Nanoseconds;
 struct RoundingOptions;
 struct TemporalError;
+struct TimeZone;
 struct ToStringRoundingOptions;
 }
 
@@ -66,17 +65,17 @@ public:
 
   inline temporal_rs::I128Nanoseconds epoch_nanoseconds() const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options) const;
+  inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data(std::optional<temporal_rs::TimeZone> zone, temporal_rs::ToStringRoundingOptions options) const;
   template<typename W>
-  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data_write(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_with_compiled_data_write(std::optional<temporal_rs::TimeZone> zone, temporal_rs::ToStringRoundingOptions options, W& writeable_output) const;
 
-  inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string_with_provider(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options, const temporal_rs::Provider& p) const;
+  inline diplomat::result<std::string, temporal_rs::TemporalError> to_ixdtf_string_with_provider(std::optional<temporal_rs::TimeZone> zone, temporal_rs::ToStringRoundingOptions options, const temporal_rs::Provider& p) const;
   template<typename W>
-  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_with_provider_write(const temporal_rs::TimeZone* zone, temporal_rs::ToStringRoundingOptions options, const temporal_rs::Provider& p, W& writeable_output) const;
+  inline diplomat::result<std::monostate, temporal_rs::TemporalError> to_ixdtf_string_with_provider_write(std::optional<temporal_rs::TimeZone> zone, temporal_rs::ToStringRoundingOptions options, const temporal_rs::Provider& p, W& writeable_output) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time_iso(const temporal_rs::TimeZone& zone) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time_iso(temporal_rs::TimeZone zone) const;
 
-  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time_iso_with_provider(const temporal_rs::TimeZone& zone, const temporal_rs::Provider& p) const;
+  inline diplomat::result<std::unique_ptr<temporal_rs::ZonedDateTime>, temporal_rs::TemporalError> to_zoned_date_time_iso_with_provider(temporal_rs::TimeZone zone, const temporal_rs::Provider& p) const;
 
   inline std::unique_ptr<temporal_rs::Instant> clone() const;
 
