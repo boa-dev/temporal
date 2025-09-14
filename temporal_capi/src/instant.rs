@@ -128,7 +128,7 @@ pub mod ffi {
         #[cfg(feature = "compiled_data")]
         pub fn to_ixdtf_string_with_compiled_data(
             &self,
-            zone: Option<&TimeZone>,
+            zone: Option<TimeZone>,
             options: ToStringRoundingOptions,
             write: &mut DiplomatWrite,
         ) -> Result<(), TemporalError> {
@@ -136,7 +136,7 @@ pub mod ffi {
         }
         pub fn to_ixdtf_string_with_provider<'p>(
             &self,
-            zone: Option<&TimeZone>,
+            zone: Option<TimeZone>,
             options: ToStringRoundingOptions,
             p: &Provider<'p>,
             write: &mut DiplomatWrite,
@@ -144,7 +144,7 @@ pub mod ffi {
             use writeable::Writeable;
             with_provider!(p, |p| {
                 let writeable = self.0.to_ixdtf_writeable_with_provider(
-                    zone.map(|x| &x.0),
+                    zone.map(Into::into),
                     options.into(),
                     p,
                 )?;
@@ -158,18 +158,18 @@ pub mod ffi {
         #[cfg(feature = "compiled_data")]
         pub fn to_zoned_date_time_iso(
             &self,
-            zone: &TimeZone,
+            zone: TimeZone,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             self.to_zoned_date_time_iso_with_provider(zone, &Provider::compiled())
         }
         pub fn to_zoned_date_time_iso_with_provider<'p>(
             &self,
-            zone: &TimeZone,
+            zone: TimeZone,
             p: &Provider<'p>,
         ) -> Result<Box<ZonedDateTime>, TemporalError> {
             with_provider!(p, |p| self
                 .0
-                .to_zoned_date_time_iso_with_provider(zone.0, p))
+                .to_zoned_date_time_iso_with_provider(zone.into(), p))
             .map(|c| Box::new(ZonedDateTime(c)))
             .map_err(Into::into)
         }

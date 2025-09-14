@@ -12,12 +12,12 @@
 #include "../diplomat_runtime.hpp"
 #include "PartialDate.d.hpp"
 #include "PartialTime.d.hpp"
+#include "TimeZone.d.hpp"
 
 namespace temporal_rs {
-namespace capi { struct TimeZone; }
-class TimeZone;
 struct PartialDate;
 struct PartialTime;
+struct TimeZone;
 }
 
 
@@ -27,7 +27,7 @@ namespace capi {
       temporal_rs::capi::PartialDate date;
       temporal_rs::capi::PartialTime time;
       diplomat::capi::OptionStringView offset;
-      const temporal_rs::capi::TimeZone* timezone;
+      temporal_rs::capi::TimeZone_option timezone;
     };
 
     typedef struct PartialZonedDateTime_option {union { PartialZonedDateTime ok; }; bool is_ok; } PartialZonedDateTime_option;
@@ -40,7 +40,7 @@ struct PartialZonedDateTime {
   temporal_rs::PartialDate date;
   temporal_rs::PartialTime time;
   std::optional<std::string_view> offset;
-  const temporal_rs::TimeZone* timezone;
+  std::optional<temporal_rs::TimeZone> timezone;
 
   inline temporal_rs::capi::PartialZonedDateTime AsFFI() const;
   inline static temporal_rs::PartialZonedDateTime FromFFI(temporal_rs::capi::PartialZonedDateTime c_struct);
