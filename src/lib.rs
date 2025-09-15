@@ -309,7 +309,7 @@ pub use error::TemporalError;
 pub use sys::Temporal;
 
 pub mod partial {
-    //! Partial Date/Time component records.
+    //! Partial date and time component records
     //!
     //! The partial records are `temporal_rs`'s method of addressing
     //! `TemporalFields` in the specification.
@@ -322,16 +322,22 @@ pub mod partial {
 pub mod parsed_intermediates;
 
 // TODO: Potentially bikeshed how `EpochNanoseconds` should be exported.
+/// A module for structs related to the UNIX epoch
 pub mod unix_time {
     pub use timezone_provider::epoch_nanoseconds::EpochNanoseconds;
 }
 
-/// The `Now` module includes type for building a Now.
+/// The `Now` module includes type for building a Now
 pub mod now {
     pub use crate::builtins::Now;
 }
 
-/// This module exports all of the field types.
+/// Duration related types
+pub mod duration {
+    pub use crate::builtins::DateDuration;
+}
+
+/// Calendar field records
 pub mod fields {
     pub use crate::builtins::{
         calendar::{CalendarFields, YearMonthCalendarFields},
@@ -339,10 +345,10 @@ pub mod fields {
     };
 }
 
+// TODO: Should we be exporting MonthCode and UtcOffset here.
 pub use crate::builtins::{
     calendar::{Calendar, MonthCode},
     core::time_zone::{TimeZone, UtcOffset},
-    core::DateDuration,
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
     ZonedDateTime,
 };
@@ -428,8 +434,11 @@ impl Sign {
 }
 
 // Relevant numeric constants
+
 /// Nanoseconds per day constant: 8.64e+13
+#[doc(hidden)]
 pub const NS_PER_DAY: u64 = MS_PER_DAY as u64 * 1_000_000;
+#[doc(hidden)]
 pub const NS_PER_DAY_NONZERO: core::num::NonZeroU128 =
     if let Some(nz) = core::num::NonZeroU128::new(NS_PER_DAY as u128) {
         nz
@@ -437,6 +446,7 @@ pub const NS_PER_DAY_NONZERO: core::num::NonZeroU128 =
         unreachable!()
     };
 /// Milliseconds per day constant: 8.64e+7
+#[doc(hidden)]
 pub const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
 /// Max Instant nanosecond constant
 #[doc(hidden)]

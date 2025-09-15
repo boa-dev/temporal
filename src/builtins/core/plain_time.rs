@@ -1,14 +1,17 @@
 //! This module implements `Time` and any directly related algorithms.
 
 use crate::{
-    builtins::{core::Duration, duration::normalized::InternalDurationRecord},
+    builtins::{
+        core::{DateDuration, Duration},
+        duration::normalized::InternalDurationRecord,
+    },
     iso::IsoTime,
     options::{
         DifferenceOperation, DifferenceSettings, Overflow, ResolvedRoundingOptions,
         RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
-    DateDuration, TemporalError, TemporalResult,
+    TemporalError, TemporalResult,
 };
 use alloc::string::String;
 use core::str::FromStr;
