@@ -1,7 +1,7 @@
 //! RelativeTo rounding option
 
 use crate::builtins::core::zoned_date_time::interpret_isodatetime_offset;
-use crate::builtins::core::{calendar::Calendar, timezone::TimeZone, PlainDate, ZonedDateTime};
+use crate::builtins::core::{calendar::Calendar, time_zone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{Disambiguation, OffsetDisambiguation, Overflow};
 use crate::parsers::{parse_date_time, parse_zoned_date_time};
@@ -65,7 +65,7 @@ impl RelativeTo {
         // iv. Set matchBehaviour to match-minutes.
         let mut match_minutes = true;
 
-        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
+        let time_zone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         let (offset_nanos, is_exact) = result
             .offset
@@ -111,7 +111,7 @@ impl RelativeTo {
             time,
             is_exact,
             offset_nanos,
-            &timezone,
+            &time_zone,
             Disambiguation::Compatible,
             OffsetDisambiguation::Reject,
             match_minutes,
@@ -120,7 +120,7 @@ impl RelativeTo {
 
         Ok(ZonedDateTime::try_new_with_cached_offset(
             epoch_ns.ns.0,
-            timezone,
+            time_zone,
             calendar,
             epoch_ns.offset,
         )?

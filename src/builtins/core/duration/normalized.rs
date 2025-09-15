@@ -5,7 +5,7 @@ use core::{cmp, num::NonZeroU128, ops::Add};
 use num_traits::AsPrimitive;
 
 use crate::{
-    builtins::core::{timezone::TimeZone, PlainDate, PlainDateTime},
+    builtins::core::{time_zone::TimeZone, PlainDate, PlainDateTime},
     iso::{IsoDate, IsoDateTime},
     options::{
         Disambiguation, Overflow, ResolvedRoundingOptions, RoundingIncrement, RoundingMode, Unit,
@@ -372,7 +372,7 @@ impl InternalDurationRecord {
         sign: Sign,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TimeZoneProvider)>, // ???
+        time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
         // NOTE: r2 may never be used...need to test.
@@ -584,13 +584,13 @@ impl InternalDurationRecord {
         let end = IsoDateTime::new_unchecked(end.iso, dt.iso.time);
 
         // 12. Else,
-        let (start_epoch_ns, end_epoch_ns) = if let Some((tz, provider)) = tz {
+        let (start_epoch_ns, end_epoch_ns) = if let Some((time_zone, provider)) = time_zone {
             // a. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
             // b. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
             let start_epoch_ns =
-                tz.get_epoch_nanoseconds_for(start, Disambiguation::Compatible, provider)?;
+                time_zone.get_epoch_nanoseconds_for(start, Disambiguation::Compatible, provider)?;
             let end_epoch_ns =
-                tz.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
+                time_zone.get_epoch_nanoseconds_for(end, Disambiguation::Compatible, provider)?;
             (start_epoch_ns.ns, end_epoch_ns.ns)
         // 11. If timeZoneRec is unset, then
         } else {
@@ -658,7 +658,7 @@ impl InternalDurationRecord {
         &self,
         sign: Sign,
         dt: &PlainDateTime,
-        tz: &TimeZone,
+        time_zone: &TimeZone,
         options: ResolvedRoundingOptions,
         provider: &impl TimeZoneProvider,
     ) -> TemporalResult<NudgeRecord> {
@@ -681,9 +681,11 @@ impl InternalDurationRecord {
         // 4. Let endDateTime be CombineISODateAndTimeRecord(endDate, isoDateTime.[[Time]]).
         let end_dt = IsoDateTime::new_unchecked(end_date, dt.iso.time);
         // 5. Let startEpochNs be ? GetEpochNanosecondsFor(timeZone, startDateTime, compatible).
-        let start = tz.get_epoch_nanoseconds_for(start_dt, Disambiguation::Compatible, provider)?;
+        let start =
+            time_zone.get_epoch_nanoseconds_for(start_dt, Disambiguation::Compatible, provider)?;
         // 6. Let endEpochNs be ? GetEpochNanosecondsFor(timeZone, endDateTime, compatible).
-        let end = tz.get_epoch_nanoseconds_for(end_dt, Disambiguation::Compatible, provider)?;
+        let end =
+            time_zone.get_epoch_nanoseconds_for(end_dt, Disambiguation::Compatible, provider)?;
         // 7. Let daySpan be TimeDurationFromEpochNanosecondsDifference(endEpochNs, startEpochNs).
         let day_span = TimeDuration::from_nanosecond_difference(end.ns.0, start.ns.0)?;
         // 8. Assert: TimeDurationSign(daySpan) = sign.
@@ -1012,11 +1014,11 @@ impl InternalDurationRecord {
         &self,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
-        tz: Option<(&TimeZone, &impl TimeZoneProvider)>,
+        time_zone: Option<(&TimeZone, &impl TimeZoneProvider)>,
         unit: Unit,
     ) -> TemporalResult<FiniteF64> {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
-        if unit.is_calendar_unit() || (tz.is_some() && unit == Unit::Day) {
+        if unit.is_calendar_unit() || (time_zone.is_some() && unit == Unit::Day) {
             // a. Let sign be InternalDurationSign(duration).
             let sign = self.sign();
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
@@ -1024,7 +1026,7 @@ impl InternalDurationRecord {
                 sign,
                 dest_epoch_ns,
                 dt,
-                tz,
+                time_zone,
                 ResolvedRoundingOptions {
                     largest_unit: unit,
                     smallest_unit: unit,

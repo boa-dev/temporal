@@ -145,7 +145,7 @@ impl ParsedZonedDateTime {
         let annotation = parse_result.tz.temporal_unwrap()?;
 
         // e. Let timeZone be ? ToTemporalTimeZoneIdentifier(annotation).
-        let timezone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
+        let time_zone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
 
         // f. Let offsetString be result.[[TimeZone]].[[OffsetString]].
         let (offset, has_utc_designator) = match parse_result.offset {
@@ -185,7 +185,7 @@ impl ParsedZonedDateTime {
             has_utc_designator,
             match_minutes,
             offset,
-            timezone,
+            timezone: time_zone,
         })
     }
 }

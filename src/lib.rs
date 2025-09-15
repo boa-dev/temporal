@@ -348,7 +348,7 @@ pub mod fields {
 // TODO: Should we be exporting MonthCode and UtcOffset here.
 pub use crate::builtins::{
     calendar::{Calendar, MonthCode},
-    core::timezone::{TimeZone, UtcOffset},
+    core::time_zone::{TimeZone, UtcOffset},
     Duration, Instant, PlainDate, PlainDateTime, PlainMonthDay, PlainTime, PlainYearMonth,
     ZonedDateTime,
 };

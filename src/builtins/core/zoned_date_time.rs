@@ -12,7 +12,7 @@ use crate::{
         core::{
             calendar::Calendar,
             duration::normalized::{InternalDurationRecord, TimeDuration},
-            timezone::{TimeZone, UtcOffset},
+            time_zone::{TimeZone, UtcOffset},
             Duration, Instant, PlainDate, PlainDateTime, PlainTime,
         },
     },
