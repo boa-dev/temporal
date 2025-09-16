@@ -78,7 +78,7 @@ impl From<LocalTimeTypeRecord> for UtcOffsetSeconds {
 }
 
 /// An EpochNanoseconds and a UTC offset
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct EpochNanosecondsAndOffset {
     /// The resolved nanoseconds value
     pub ns: EpochNanoseconds,
@@ -135,7 +135,7 @@ pub struct GapEntryOffsets {
 }
 
 /// The potential candidates for a given local datetime
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum CandidateEpochNanoseconds {
     Zero(GapEntryOffsets),
     One(EpochNanosecondsAndOffset),
