@@ -362,9 +362,8 @@ impl IsoDate {
     ///
     /// Equivalent to `IsoDateToEpochDays`
     #[inline]
-    pub(crate) fn to_epoch_days(self) -> i32 {
-        // NOTE: cast to i32 is safe as IsoDate is in a valid range.
-        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day) as i32
+    pub(crate) fn to_epoch_days(self) -> i64 {
+        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day)
     }
 
     /// Returns if the current `IsoDate` is valid.
@@ -903,7 +902,7 @@ fn utc_epoch_nanos(date: IsoDate, time: &IsoTime) -> EpochNanoseconds {
 #[inline]
 fn to_unchecked_epoch_nanoseconds(date: IsoDate, time: &IsoTime) -> i128 {
     let ms = time.to_epoch_ms();
-    let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days() as i64, ms);
+    let epoch_ms = utils::epoch_days_to_epoch_ms(date.to_epoch_days(), ms);
     epoch_ms as i128 * 1_000_000 + time.microsecond as i128 * 1_000 + time.nanosecond as i128
 }
 

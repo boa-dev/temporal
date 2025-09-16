@@ -30,9 +30,8 @@ pub struct IsoDateTime {
 }
 
 impl IsoDateTime {
-    fn to_epoch_days(self) -> i32 {
-        // NOTE: cast to i32 is safe as IsoDate is in a valid range.
-        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day) as i32
+    fn to_epoch_days(self) -> i64 {
+        utils::epoch_days_from_gregorian_date(self.year, self.month, self.day)
     }
     /// `IsoTimeToEpochMs`
     ///
@@ -49,7 +48,7 @@ impl IsoDateTime {
     /// Convert this datetime to nanoseconds since the Unix epoch
     pub fn as_nanoseconds(&self) -> EpochNanoseconds {
         let time_ms = self.time_to_epoch_ms();
-        let epoch_ms = utils::epoch_days_to_epoch_ms(self.to_epoch_days() as i64, time_ms);
+        let epoch_ms = utils::epoch_days_to_epoch_ms(self.to_epoch_days(), time_ms);
         EpochNanoseconds(
             epoch_ms as i128 * 1_000_000
                 + self.microsecond as i128 * 1_000
