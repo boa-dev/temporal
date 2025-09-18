@@ -1,5 +1,5 @@
-#ifndef temporal_rs_Sign_D_HPP
-#define temporal_rs_Sign_D_HPP
+#ifndef TEMPORAL_RS_Sign_D_HPP
+#define TEMPORAL_RS_Sign_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -27,25 +27,25 @@ namespace capi {
 namespace temporal_rs {
 class Sign {
 public:
-  enum Value {
-    Positive = 1,
-    Zero = 0,
-    Negative = -1,
-  };
+    enum Value {
+        Positive = 1,
+        Zero = 0,
+        Negative = -1,
+    };
 
-  Sign(): value(Value::Zero) {}
+    Sign(): value(Value::Zero) {}
 
-  // Implicit conversions between enum and ::Value
-  constexpr Sign(Value v) : value(v) {}
-  constexpr operator Value() const { return value; }
-  // Prevent usage as boolean value
-  explicit operator bool() const = delete;
+    // Implicit conversions between enum and ::Value
+    constexpr Sign(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    // Prevent usage as boolean value
+    explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::Sign AsFFI() const;
-  inline static temporal_rs::Sign FromFFI(temporal_rs::capi::Sign c_enum);
+    inline temporal_rs::capi::Sign AsFFI() const;
+    inline static temporal_rs::Sign FromFFI(temporal_rs::capi::Sign c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_Sign_D_HPP
+#endif // TEMPORAL_RS_Sign_D_HPP

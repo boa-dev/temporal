@@ -1,5 +1,5 @@
-#ifndef temporal_rs_DisplayOffset_HPP
-#define temporal_rs_DisplayOffset_HPP
+#ifndef TEMPORAL_RS_DisplayOffset_HPP
+#define TEMPORAL_RS_DisplayOffset_HPP
 
 #include "DisplayOffset.d.hpp"
 
@@ -11,7 +11,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -23,16 +23,16 @@ namespace capi {
 } // namespace
 
 inline temporal_rs::capi::DisplayOffset temporal_rs::DisplayOffset::AsFFI() const {
-  return static_cast<temporal_rs::capi::DisplayOffset>(value);
+    return static_cast<temporal_rs::capi::DisplayOffset>(value);
 }
 
 inline temporal_rs::DisplayOffset temporal_rs::DisplayOffset::FromFFI(temporal_rs::capi::DisplayOffset c_enum) {
-  switch (c_enum) {
-    case temporal_rs::capi::DisplayOffset_Auto:
-    case temporal_rs::capi::DisplayOffset_Never:
-      return static_cast<temporal_rs::DisplayOffset::Value>(c_enum);
-    default:
-      std::abort();
-  }
+    switch (c_enum) {
+        case temporal_rs::capi::DisplayOffset_Auto:
+        case temporal_rs::capi::DisplayOffset_Never:
+            return static_cast<temporal_rs::DisplayOffset::Value>(c_enum);
+        default:
+            std::abort();
+    }
 }
-#endif // temporal_rs_DisplayOffset_HPP
+#endif // TEMPORAL_RS_DisplayOffset_HPP
