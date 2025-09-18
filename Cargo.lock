@@ -69,9 +69,9 @@ dependencies = [
 
 [[package]]
 name = "askama"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d4744ed2eef2645831b441d8f5459689ade2ab27c854488fbab1fbe94fce1a7"
+checksum = "f75363874b771be265f4ffe307ca705ef6f3baa19011c149da8674a87f1b75c4"
 dependencies = [
  "askama_derive",
  "itoa",
@@ -82,9 +82,9 @@ dependencies = [
 
 [[package]]
 name = "askama_derive"
-version = "0.13.1"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d661e0f57be36a5c14c48f78d09011e67e0cb618f269cca9f2fd8d15b68c46ac"
+checksum = "129397200fe83088e8a68407a8e2b1f826cf0086b21ccdb866a722c8bcd3a94f"
 dependencies = [
  "askama_parser",
  "basic-toml",
@@ -99,9 +99,9 @@ dependencies = [
 
 [[package]]
 name = "askama_parser"
-version = "0.13.0"
+version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf315ce6524c857bb129ff794935cf6d42c82a6cff60526fe2a63593de4d0d4f"
+checksum = "d6ab5630b3d5eaf232620167977f95eb51f3432fc76852328774afbd242d4358"
 dependencies = [
  "memchr",
  "serde",
@@ -290,8 +290,7 @@ version = "0.0.16"
 [[package]]
 name = "diplomat"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ced081520ee8cf2b8c5b64a1a901eccd7030ece670dac274afe64607d6499b71"
+source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
 dependencies = [
  "diplomat_core",
  "proc-macro2",
@@ -309,14 +308,12 @@ dependencies = [
 [[package]]
 name = "diplomat-runtime"
 version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "098f9520ec5c190943b083bca3ea4cc4e67dc5f85a37062e528ecf1d25f04eb4"
+source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
 
 [[package]]
 name = "diplomat-tool"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d288eb6055935a8afa84caf60975a075163c9f3778365ff08b11cfc91ad4398e"
+source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
 dependencies = [
  "askama",
  "clap",
@@ -337,8 +334,7 @@ dependencies = [
 [[package]]
 name = "diplomat_core"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad619d9fdee0e731bb6f8f7d797b6ecfdc2395e363f554d2f6377155955171eb"
+source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
 dependencies = [
  "displaydoc",
  "either",

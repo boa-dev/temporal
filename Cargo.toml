@@ -49,6 +49,12 @@ web-time = "1.1.0"
 zerovec = "0.11.4"
 zoneinfo64 = "0.2.0"
 
+# Diplomat
+diplomat-tool = { git = "https://github.com/Manishearth/diplomat", branch = "cpp-lib-name", default-features = false }
+diplomat-runtime = { git = "https://github.com/Manishearth/diplomat", branch = "cpp-lib-name", default-features = false }
+diplomat = { git = "https://github.com/Manishearth/diplomat", branch = "cpp-lib-name", default-features = false }
+
+
 [package]
 name = "temporal_rs"
 keywords = ["date", "time", "calendar", "timezone", "duration"]
