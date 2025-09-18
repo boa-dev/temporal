@@ -1,5 +1,5 @@
-#ifndef temporal_rs_RelativeTo_D_HPP
-#define temporal_rs_RelativeTo_D_HPP
+#ifndef TEMPORAL_RS_RelativeTo_D_HPP
+#define TEMPORAL_RS_RelativeTo_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,14 +9,14 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
-
+#include "diplomat_runtime.hpp"
 namespace temporal_rs {
 namespace capi { struct PlainDate; }
 class PlainDate;
 namespace capi { struct ZonedDateTime; }
 class ZonedDateTime;
-}
+} // namespace temporal_rs
+
 
 
 namespace temporal_rs {
@@ -33,12 +33,12 @@ namespace capi {
 
 namespace temporal_rs {
 struct RelativeTo {
-  const temporal_rs::PlainDate* date;
-  const temporal_rs::ZonedDateTime* zoned;
+    const temporal_rs::PlainDate* date;
+    const temporal_rs::ZonedDateTime* zoned;
 
-  inline temporal_rs::capi::RelativeTo AsFFI() const;
-  inline static temporal_rs::RelativeTo FromFFI(temporal_rs::capi::RelativeTo c_struct);
+    inline temporal_rs::capi::RelativeTo AsFFI() const;
+    inline static temporal_rs::RelativeTo FromFFI(temporal_rs::capi::RelativeTo c_struct);
 };
 
 } // namespace
-#endif // temporal_rs_RelativeTo_D_HPP
+#endif // TEMPORAL_RS_RelativeTo_D_HPP

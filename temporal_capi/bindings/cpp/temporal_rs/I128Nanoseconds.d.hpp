@@ -1,5 +1,5 @@
-#ifndef temporal_rs_I128Nanoseconds_D_HPP
-#define temporal_rs_I128Nanoseconds_D_HPP
+#ifndef TEMPORAL_RS_I128Nanoseconds_D_HPP
+#define TEMPORAL_RS_I128Nanoseconds_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -34,14 +34,14 @@ namespace temporal_rs {
  * This could potentially instead be a bit-by-bit split, or something else
  */
 struct I128Nanoseconds {
-  uint64_t high;
-  uint64_t low;
+    uint64_t high;
+    uint64_t low;
 
   inline bool is_valid() const;
 
-  inline temporal_rs::capi::I128Nanoseconds AsFFI() const;
-  inline static temporal_rs::I128Nanoseconds FromFFI(temporal_rs::capi::I128Nanoseconds c_struct);
+    inline temporal_rs::capi::I128Nanoseconds AsFFI() const;
+    inline static temporal_rs::I128Nanoseconds FromFFI(temporal_rs::capi::I128Nanoseconds c_struct);
 };
 
 } // namespace
-#endif // temporal_rs_I128Nanoseconds_D_HPP
+#endif // TEMPORAL_RS_I128Nanoseconds_D_HPP

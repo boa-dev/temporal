@@ -1,5 +1,5 @@
-#ifndef temporal_rs_UnsignedRoundingMode_HPP
-#define temporal_rs_UnsignedRoundingMode_HPP
+#ifndef TEMPORAL_RS_UnsignedRoundingMode_HPP
+#define TEMPORAL_RS_UnsignedRoundingMode_HPP
 
 #include "UnsignedRoundingMode.d.hpp"
 
@@ -11,7 +11,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -23,19 +23,19 @@ namespace capi {
 } // namespace
 
 inline temporal_rs::capi::UnsignedRoundingMode temporal_rs::UnsignedRoundingMode::AsFFI() const {
-  return static_cast<temporal_rs::capi::UnsignedRoundingMode>(value);
+    return static_cast<temporal_rs::capi::UnsignedRoundingMode>(value);
 }
 
 inline temporal_rs::UnsignedRoundingMode temporal_rs::UnsignedRoundingMode::FromFFI(temporal_rs::capi::UnsignedRoundingMode c_enum) {
-  switch (c_enum) {
-    case temporal_rs::capi::UnsignedRoundingMode_Infinity:
-    case temporal_rs::capi::UnsignedRoundingMode_Zero:
-    case temporal_rs::capi::UnsignedRoundingMode_HalfInfinity:
-    case temporal_rs::capi::UnsignedRoundingMode_HalfZero:
-    case temporal_rs::capi::UnsignedRoundingMode_HalfEven:
-      return static_cast<temporal_rs::UnsignedRoundingMode::Value>(c_enum);
-    default:
-      std::abort();
-  }
+    switch (c_enum) {
+        case temporal_rs::capi::UnsignedRoundingMode_Infinity:
+        case temporal_rs::capi::UnsignedRoundingMode_Zero:
+        case temporal_rs::capi::UnsignedRoundingMode_HalfInfinity:
+        case temporal_rs::capi::UnsignedRoundingMode_HalfZero:
+        case temporal_rs::capi::UnsignedRoundingMode_HalfEven:
+            return static_cast<temporal_rs::UnsignedRoundingMode::Value>(c_enum);
+        default:
+            std::abort();
+    }
 }
-#endif // temporal_rs_UnsignedRoundingMode_HPP
+#endif // TEMPORAL_RS_UnsignedRoundingMode_HPP

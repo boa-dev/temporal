@@ -1,5 +1,5 @@
-#ifndef temporal_rs_Sign_HPP
-#define temporal_rs_Sign_HPP
+#ifndef TEMPORAL_RS_Sign_HPP
+#define TEMPORAL_RS_Sign_HPP
 
 #include "Sign.d.hpp"
 
@@ -11,7 +11,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -23,17 +23,17 @@ namespace capi {
 } // namespace
 
 inline temporal_rs::capi::Sign temporal_rs::Sign::AsFFI() const {
-  return static_cast<temporal_rs::capi::Sign>(value);
+    return static_cast<temporal_rs::capi::Sign>(value);
 }
 
 inline temporal_rs::Sign temporal_rs::Sign::FromFFI(temporal_rs::capi::Sign c_enum) {
-  switch (c_enum) {
-    case temporal_rs::capi::Sign_Positive:
-    case temporal_rs::capi::Sign_Zero:
-    case temporal_rs::capi::Sign_Negative:
-      return static_cast<temporal_rs::Sign::Value>(c_enum);
-    default:
-      std::abort();
-  }
+    switch (c_enum) {
+        case temporal_rs::capi::Sign_Positive:
+        case temporal_rs::capi::Sign_Zero:
+        case temporal_rs::capi::Sign_Negative:
+            return static_cast<temporal_rs::Sign::Value>(c_enum);
+        default:
+            std::abort();
+    }
 }
-#endif // temporal_rs_Sign_HPP
+#endif // TEMPORAL_RS_Sign_HPP

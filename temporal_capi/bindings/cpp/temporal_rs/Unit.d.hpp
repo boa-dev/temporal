@@ -1,5 +1,5 @@
-#ifndef temporal_rs_Unit_D_HPP
-#define temporal_rs_Unit_D_HPP
+#ifndef TEMPORAL_RS_Unit_D_HPP
+#define TEMPORAL_RS_Unit_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -35,33 +35,33 @@ namespace capi {
 namespace temporal_rs {
 class Unit {
 public:
-  enum Value {
-    Auto = 0,
-    Nanosecond = 1,
-    Microsecond = 2,
-    Millisecond = 3,
-    Second = 4,
-    Minute = 5,
-    Hour = 6,
-    Day = 7,
-    Week = 8,
-    Month = 9,
-    Year = 10,
-  };
+    enum Value {
+        Auto = 0,
+        Nanosecond = 1,
+        Microsecond = 2,
+        Millisecond = 3,
+        Second = 4,
+        Minute = 5,
+        Hour = 6,
+        Day = 7,
+        Week = 8,
+        Month = 9,
+        Year = 10,
+    };
 
-  Unit(): value(Value::Auto) {}
+    Unit(): value(Value::Auto) {}
 
-  // Implicit conversions between enum and ::Value
-  constexpr Unit(Value v) : value(v) {}
-  constexpr operator Value() const { return value; }
-  // Prevent usage as boolean value
-  explicit operator bool() const = delete;
+    // Implicit conversions between enum and ::Value
+    constexpr Unit(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    // Prevent usage as boolean value
+    explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::Unit AsFFI() const;
-  inline static temporal_rs::Unit FromFFI(temporal_rs::capi::Unit c_enum);
+    inline temporal_rs::capi::Unit AsFFI() const;
+    inline static temporal_rs::Unit FromFFI(temporal_rs::capi::Unit c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_Unit_D_HPP
+#endif // TEMPORAL_RS_Unit_D_HPP

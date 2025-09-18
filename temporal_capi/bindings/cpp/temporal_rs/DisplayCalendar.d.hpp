@@ -1,5 +1,5 @@
-#ifndef temporal_rs_DisplayCalendar_D_HPP
-#define temporal_rs_DisplayCalendar_D_HPP
+#ifndef TEMPORAL_RS_DisplayCalendar_D_HPP
+#define TEMPORAL_RS_DisplayCalendar_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -28,26 +28,26 @@ namespace capi {
 namespace temporal_rs {
 class DisplayCalendar {
 public:
-  enum Value {
-    Auto = 0,
-    Always = 1,
-    Never = 2,
-    Critical = 3,
-  };
+    enum Value {
+        Auto = 0,
+        Always = 1,
+        Never = 2,
+        Critical = 3,
+    };
 
-  DisplayCalendar(): value(Value::Auto) {}
+    DisplayCalendar(): value(Value::Auto) {}
 
-  // Implicit conversions between enum and ::Value
-  constexpr DisplayCalendar(Value v) : value(v) {}
-  constexpr operator Value() const { return value; }
-  // Prevent usage as boolean value
-  explicit operator bool() const = delete;
+    // Implicit conversions between enum and ::Value
+    constexpr DisplayCalendar(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    // Prevent usage as boolean value
+    explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::DisplayCalendar AsFFI() const;
-  inline static temporal_rs::DisplayCalendar FromFFI(temporal_rs::capi::DisplayCalendar c_enum);
+    inline temporal_rs::capi::DisplayCalendar AsFFI() const;
+    inline static temporal_rs::DisplayCalendar FromFFI(temporal_rs::capi::DisplayCalendar c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_DisplayCalendar_D_HPP
+#endif // TEMPORAL_RS_DisplayCalendar_D_HPP

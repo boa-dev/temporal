@@ -1,5 +1,5 @@
-#ifndef temporal_rs_TransitionDirection_D_HPP
-#define temporal_rs_TransitionDirection_D_HPP
+#ifndef TEMPORAL_RS_TransitionDirection_D_HPP
+#define TEMPORAL_RS_TransitionDirection_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -26,24 +26,24 @@ namespace capi {
 namespace temporal_rs {
 class TransitionDirection {
 public:
-  enum Value {
-    Next = 0,
-    Previous = 1,
-  };
+    enum Value {
+        Next = 0,
+        Previous = 1,
+    };
 
-  TransitionDirection(): value(Value::Next) {}
+    TransitionDirection(): value(Value::Next) {}
 
-  // Implicit conversions between enum and ::Value
-  constexpr TransitionDirection(Value v) : value(v) {}
-  constexpr operator Value() const { return value; }
-  // Prevent usage as boolean value
-  explicit operator bool() const = delete;
+    // Implicit conversions between enum and ::Value
+    constexpr TransitionDirection(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    // Prevent usage as boolean value
+    explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::TransitionDirection AsFFI() const;
-  inline static temporal_rs::TransitionDirection FromFFI(temporal_rs::capi::TransitionDirection c_enum);
+    inline temporal_rs::capi::TransitionDirection AsFFI() const;
+    inline static temporal_rs::TransitionDirection FromFFI(temporal_rs::capi::TransitionDirection c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_TransitionDirection_D_HPP
+#endif // TEMPORAL_RS_TransitionDirection_D_HPP
