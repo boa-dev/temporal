@@ -290,7 +290,7 @@ version = "0.0.16"
 [[package]]
 name = "diplomat"
 version = "0.12.0"
-source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=6d7c8746b126ea09230948a9c2f7c2de087624cc#6d7c8746b126ea09230948a9c2f7c2de087624cc"
 dependencies = [
  "diplomat_core",
  "proc-macro2",
@@ -308,12 +308,12 @@ dependencies = [
 [[package]]
 name = "diplomat-runtime"
 version = "0.12.0"
-source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=6d7c8746b126ea09230948a9c2f7c2de087624cc#6d7c8746b126ea09230948a9c2f7c2de087624cc"
 
 [[package]]
 name = "diplomat-tool"
 version = "0.12.1"
-source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=6d7c8746b126ea09230948a9c2f7c2de087624cc#6d7c8746b126ea09230948a9c2f7c2de087624cc"
 dependencies = [
  "askama",
  "clap",
@@ -334,7 +334,7 @@ dependencies = [
 [[package]]
 name = "diplomat_core"
 version = "0.12.1"
-source = "git+https://github.com/Manishearth/diplomat?branch=cpp-lib-name#9b8ae6ecfb5a67cf65808cd46a35203f5c98b24b"
+source = "git+https://github.com/rust-diplomat/diplomat?rev=6d7c8746b126ea09230948a9c2f7c2de087624cc#6d7c8746b126ea09230948a9c2f7c2de087624cc"
 dependencies = [
  "displaydoc",
  "either",
