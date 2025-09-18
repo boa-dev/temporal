@@ -14,14 +14,18 @@ fn main() -> std::io::Result<()> {
         .unwrap()
         .join("temporal_capi");
 
-    let library_config = Config::default();
+    let mut library_config = Config::default();
+    library_config.shared_config.lib_name = Some("temporal_rs".into());
 
     for lang in LANGUAGES {
         diplomat_tool::gen(
             &capi.join("src/lib.rs"),
             lang,
             &{
-                let include = capi.join("bindings").join(lang);
+                let mut include = capi.join("bindings").join(lang);
+                if lang == "cpp" {
+                    include = include.join("temporal_rs");
+                }
                 if let Err(err) = std::fs::remove_dir_all(&include) {
                     if err.kind() != io::ErrorKind::NotFound {
                         return Err(err);

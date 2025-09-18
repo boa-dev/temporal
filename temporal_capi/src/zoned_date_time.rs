@@ -4,7 +4,6 @@ use temporal_rs::options::RelativeTo;
 
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
-#[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use crate::calendar::ffi::AnyCalendarKind;
     use crate::calendar::ffi::Calendar;
