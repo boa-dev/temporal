@@ -14,6 +14,7 @@ use crate::{
 };
 use core::str::FromStr;
 
+use core::num::NonZero;
 use icu_calendar::{
     cal::{
         Buddhist, Coptic, Ethiopian, EthiopianEraStyle, Hebrew, Hijri, Indian, Japanese,
@@ -23,7 +24,9 @@ use icu_calendar::{
 };
 use icu_calendar::{
     cal::{HijriTabularEpoch, HijriTabularLeapYears},
+    options::{DateFromFieldsOptions, MissingFieldsStrategy, Overflow as IcuOverflow},
     preferences::CalendarAlgorithm,
+    types::DateFields,
     types::MonthCode as IcuMonthCode,
     Gregorian,
 };
@@ -209,6 +212,43 @@ impl FromStr for Calendar {
     }
 }
 
+impl From<Overflow> for IcuOverflow {
+    fn from(other: Overflow) -> Self {
+        match other {
+            Overflow::Reject => Self::Reject,
+            Overflow::Constrain => Self::Constrain,
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a CalendarFields> for DateFields<'a> {
+    type Error = TemporalError;
+    fn try_from(other: &'a CalendarFields) -> TemporalResult<Self> {
+        let ordinal_month = other
+            .month
+            .map(|o| {
+                NonZero::new(o).ok_or(
+                    TemporalError::range().with_message("Ordinal month must be positive integer"),
+                )
+            })
+            .transpose()?;
+        let day = other
+            .day
+            .map(|o| {
+                NonZero::new(o)
+                    .ok_or(TemporalError::range().with_message("Day must be positive integer"))
+            })
+            .transpose()?;
+        let mut this = DateFields::default();
+        this.era = other.era.as_deref();
+        this.era_year = other.era_year;
+        this.extended_year = other.year;
+        this.month_code = other.month_code.map(|c| IcuMonthCode(c.0));
+        this.ordinal_month = ordinal_month;
+        this.day = day;
+        Ok(this)
+    }
+}
 // ==== Public `CalendarSlot` methods ====
 
 impl Calendar {
@@ -230,10 +270,14 @@ impl Calendar {
         fields: CalendarFields,
         overflow: Overflow,
     ) -> TemporalResult<PlainDate> {
-        let resolved_fields =
-            ResolvedCalendarFields::try_from_fields(self, &fields, overflow, ResolutionType::Date)?;
-
         if self.is_iso() {
+            let resolved_fields = ResolvedCalendarFields::try_from_fields(
+                self,
+                &fields,
+                overflow,
+                ResolutionType::Date,
+            )?;
+
             // Resolve month and monthCode;
             return PlainDate::new_with_overflow(
                 resolved_fields.era_year.arithmetic_year,
@@ -244,12 +288,12 @@ impl Calendar {
             );
         }
 
-        let calendar_date = self.0.from_codes(
-            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-            resolved_fields.era_year.year,
-            IcuMonthCode(resolved_fields.month_code.0),
-            resolved_fields.day,
-        )?;
+        let fields = DateFields::try_from(&fields)?;
+        let mut options = DateFromFieldsOptions::default();
+        options.overflow = Some(overflow.into());
+        options.missing_fields_strategy = Some(MissingFieldsStrategy::Reject);
+
+        let calendar_date = self.0.from_fields(fields, options)?;
         let iso = self.0.to_iso(&calendar_date);
         PlainDate::new_with_overflow(
             Iso.extended_year(&iso),
@@ -283,13 +327,13 @@ impl Calendar {
             let date = self.date_from_fields(fields, overflow)?;
             fields = CalendarFields::from_date(&date);
         }
-        let resolved_fields = ResolvedCalendarFields::try_from_fields(
-            self,
-            &fields,
-            overflow,
-            ResolutionType::MonthDay,
-        )?;
         if self.is_iso() {
+            let resolved_fields = ResolvedCalendarFields::try_from_fields(
+                self,
+                &fields,
+                overflow,
+                ResolutionType::MonthDay,
+            )?;
             return PlainMonthDay::new_with_overflow(
                 resolved_fields.month_code.to_month_integer(),
                 resolved_fields.day,
@@ -299,13 +343,16 @@ impl Calendar {
             );
         }
 
-        // We trust ResolvedCalendarFields to have calculated an appropriate reference year for us
-        let calendar_date = self.0.from_codes(
-            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-            resolved_fields.era_year.year,
-            IcuMonthCode(resolved_fields.month_code.0),
-            resolved_fields.day,
-        )?;
+        let fields = DateFields::try_from(&fields)?;
+        let mut options = DateFromFieldsOptions::default();
+        options.overflow = Some(overflow.into());
+        if fields.day.is_none() {
+            // Otherwise we're liable to hit the YearMonth resolution
+            return Err(TemporalError::r#type().with_message("Must specify day for MonthDay"));
+        }
+        options.missing_fields_strategy = Some(MissingFieldsStrategy::Ecma);
+
+        let calendar_date = self.0.from_fields(fields, options)?;
         let iso = self.0.to_iso(&calendar_date);
         PlainMonthDay::new_with_overflow(
             Iso.month(&iso).ordinal,
@@ -322,14 +369,14 @@ impl Calendar {
         fields: YearMonthCalendarFields,
         overflow: Overflow,
     ) -> TemporalResult<PlainYearMonth> {
-        // TODO: add a from_partial_year_month method on ResolvedCalendarFields
-        let resolved_fields = ResolvedCalendarFields::try_from_fields(
-            self,
-            &CalendarFields::from(fields),
-            overflow,
-            ResolutionType::YearMonth,
-        )?;
         if self.is_iso() {
+            // TODO: add a from_partial_year_month method on ResolvedCalendarFields
+            let resolved_fields = ResolvedCalendarFields::try_from_fields(
+                self,
+                &CalendarFields::from(fields),
+                overflow,
+                ResolutionType::YearMonth,
+            )?;
             return PlainYearMonth::new_with_overflow(
                 resolved_fields.era_year.arithmetic_year,
                 resolved_fields.month_code.to_month_integer(),
@@ -339,13 +386,16 @@ impl Calendar {
             );
         }
 
-        // NOTE: This might preemptively throw as `ICU4X` does not support regulating.
-        let calendar_date = self.0.from_codes(
-            resolved_fields.era_year.era.as_ref().map(|e| e.0.as_str()),
-            resolved_fields.era_year.year,
-            IcuMonthCode(resolved_fields.month_code.0),
-            resolved_fields.day,
-        )?;
+        let fields = CalendarFields::from(fields);
+        let fields = DateFields::try_from(&fields)?;
+        let mut options = DateFromFieldsOptions::default();
+        options.overflow = Some(overflow.into());
+        if fields.extended_year.is_none() && fields.era_year.is_none() {
+            // Otherwise we're liable to hit the MonthDay resolution
+            return Err(TemporalError::r#type().with_message("Must specify year for YearMonth"));
+        }
+        options.missing_fields_strategy = Some(MissingFieldsStrategy::Ecma);
+        let calendar_date = self.0.from_fields(fields, options)?;
         let iso = self.0.to_iso(&calendar_date);
         PlainYearMonth::new_with_overflow(
             Iso.year_info(&iso).year,
