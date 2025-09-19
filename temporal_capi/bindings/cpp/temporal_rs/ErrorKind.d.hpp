@@ -1,5 +1,5 @@
-#ifndef temporal_rs_ErrorKind_D_HPP
-#define temporal_rs_ErrorKind_D_HPP
+#ifndef TEMPORAL_RS_ErrorKind_D_HPP
+#define TEMPORAL_RS_ErrorKind_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -29,27 +29,27 @@ namespace capi {
 namespace temporal_rs {
 class ErrorKind {
 public:
-  enum Value {
-    Generic = 0,
-    Type = 1,
-    Range = 2,
-    Syntax = 3,
-    Assert = 4,
-  };
+    enum Value {
+        Generic = 0,
+        Type = 1,
+        Range = 2,
+        Syntax = 3,
+        Assert = 4,
+    };
 
-  ErrorKind(): value(Value::Generic) {}
+    ErrorKind(): value(Value::Generic) {}
 
-  // Implicit conversions between enum and ::Value
-  constexpr ErrorKind(Value v) : value(v) {}
-  constexpr operator Value() const { return value; }
-  // Prevent usage as boolean value
-  explicit operator bool() const = delete;
+    // Implicit conversions between enum and ::Value
+    constexpr ErrorKind(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    // Prevent usage as boolean value
+    explicit operator bool() const = delete;
 
-  inline temporal_rs::capi::ErrorKind AsFFI() const;
-  inline static temporal_rs::ErrorKind FromFFI(temporal_rs::capi::ErrorKind c_enum);
+    inline temporal_rs::capi::ErrorKind AsFFI() const;
+    inline static temporal_rs::ErrorKind FromFFI(temporal_rs::capi::ErrorKind c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_ErrorKind_D_HPP
+#endif // TEMPORAL_RS_ErrorKind_D_HPP

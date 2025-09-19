@@ -68,8 +68,8 @@ combine = { workspace = true, optional = true }
 zoneinfo64 = { workspace = true, optional = true }
 
 # Databake dependencies
-serde = { version = "1.0.219", features = ["derive"], optional = true }
+serde = { version = "1.0.225", features = ["derive"], optional = true }
 databake = { version = "0.2.0", features = ["derive"], optional = true }
 yoke = { version = "0.8.0", features = ["derive"], optional = true }
-serde_json = { version = "1.0.143", optional = true }
+serde_json = { version = "1.0.145", optional = true }
 

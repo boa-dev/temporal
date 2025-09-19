@@ -31,7 +31,6 @@ macro_rules! with_provider(
 
 #[diplomat::bridge]
 #[diplomat::abi_rename = "temporal_rs_{0}"]
-#[diplomat::attr(auto, namespace = "temporal_rs")]
 pub mod ffi {
     use super::ProviderInner;
     use alloc::boxed::Box;

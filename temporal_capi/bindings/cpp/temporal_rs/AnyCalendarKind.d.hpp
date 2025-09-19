@@ -1,5 +1,5 @@
-#ifndef temporal_rs_AnyCalendarKind_D_HPP
-#define temporal_rs_AnyCalendarKind_D_HPP
+#ifndef TEMPORAL_RS_AnyCalendarKind_D_HPP
+#define TEMPORAL_RS_AnyCalendarKind_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,11 +9,11 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
-
+#include "diplomat_runtime.hpp"
 namespace temporal_rs {
 class AnyCalendarKind;
-}
+} // namespace temporal_rs
+
 
 
 namespace temporal_rs {
@@ -46,44 +46,44 @@ namespace capi {
 namespace temporal_rs {
 class AnyCalendarKind {
 public:
-  enum Value {
-    Buddhist = 0,
-    Chinese = 1,
-    Coptic = 2,
-    Dangi = 3,
-    Ethiopian = 4,
-    EthiopianAmeteAlem = 5,
-    Gregorian = 6,
-    Hebrew = 7,
-    Indian = 8,
-    HijriTabularTypeIIFriday = 9,
-    HijriSimulatedMecca = 10,
-    HijriTabularTypeIIThursday = 11,
-    HijriUmmAlQura = 12,
-    Iso = 13,
-    Japanese = 14,
-    JapaneseExtended = 15,
-    Persian = 16,
-    Roc = 17,
-  };
+    enum Value {
+        Buddhist = 0,
+        Chinese = 1,
+        Coptic = 2,
+        Dangi = 3,
+        Ethiopian = 4,
+        EthiopianAmeteAlem = 5,
+        Gregorian = 6,
+        Hebrew = 7,
+        Indian = 8,
+        HijriTabularTypeIIFriday = 9,
+        HijriSimulatedMecca = 10,
+        HijriTabularTypeIIThursday = 11,
+        HijriUmmAlQura = 12,
+        Iso = 13,
+        Japanese = 14,
+        JapaneseExtended = 15,
+        Persian = 16,
+        Roc = 17,
+    };
 
-  AnyCalendarKind(): value(Value::Buddhist) {}
+    AnyCalendarKind(): value(Value::Buddhist) {}
 
-  // Implicit conversions between enum and ::Value
-  constexpr AnyCalendarKind(Value v) : value(v) {}
-  constexpr operator Value() const { return value; }
-  // Prevent usage as boolean value
-  explicit operator bool() const = delete;
+    // Implicit conversions between enum and ::Value
+    constexpr AnyCalendarKind(Value v) : value(v) {}
+    constexpr operator Value() const { return value; }
+    // Prevent usage as boolean value
+    explicit operator bool() const = delete;
 
   inline static std::optional<temporal_rs::AnyCalendarKind> get_for_str(std::string_view s);
 
   inline static std::optional<temporal_rs::AnyCalendarKind> parse_temporal_calendar_string(std::string_view s);
 
-  inline temporal_rs::capi::AnyCalendarKind AsFFI() const;
-  inline static temporal_rs::AnyCalendarKind FromFFI(temporal_rs::capi::AnyCalendarKind c_enum);
+    inline temporal_rs::capi::AnyCalendarKind AsFFI() const;
+    inline static temporal_rs::AnyCalendarKind FromFFI(temporal_rs::capi::AnyCalendarKind c_enum);
 private:
     Value value;
 };
 
 } // namespace
-#endif // temporal_rs_AnyCalendarKind_D_HPP
+#endif // TEMPORAL_RS_AnyCalendarKind_D_HPP

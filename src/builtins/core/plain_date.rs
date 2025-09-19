@@ -308,7 +308,10 @@ impl PlainDate {
     #[inline]
     #[must_use]
     fn days_until(&self, other: &Self) -> i32 {
-        other.iso.to_epoch_days() - self.iso.to_epoch_days()
+        // NOTE: cast to i32 is safe as both IsoDates must be in valid range.
+        debug_assert!(self.iso.check_within_limits().is_ok());
+        debug_assert!(other.iso.check_within_limits().is_ok());
+        (other.iso.to_epoch_days() - self.iso.to_epoch_days()) as i32
     }
 
     /// Returns this `PlainDate`'s ISO year value.

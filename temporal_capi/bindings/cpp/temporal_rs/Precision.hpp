@@ -1,5 +1,5 @@
-#ifndef temporal_rs_Precision_HPP
-#define temporal_rs_Precision_HPP
+#ifndef TEMPORAL_RS_Precision_HPP
+#define TEMPORAL_RS_Precision_HPP
 
 #include "Precision.d.hpp"
 
@@ -11,7 +11,7 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
+#include "diplomat_runtime.hpp"
 
 
 namespace temporal_rs {
@@ -24,18 +24,18 @@ namespace capi {
 
 
 inline temporal_rs::capi::Precision temporal_rs::Precision::AsFFI() const {
-  return temporal_rs::capi::Precision {
-    /* .is_minute = */ is_minute,
-    /* .precision = */ precision.has_value() ? (diplomat::capi::OptionU8{ { precision.value() }, true }) : (diplomat::capi::OptionU8{ {}, false }),
-  };
+    return temporal_rs::capi::Precision {
+        /* .is_minute = */ is_minute,
+        /* .precision = */ precision.has_value() ? (temporal_rs::diplomat::capi::OptionU8{ { precision.value() }, true }) : (temporal_rs::diplomat::capi::OptionU8{ {}, false }),
+    };
 }
 
 inline temporal_rs::Precision temporal_rs::Precision::FromFFI(temporal_rs::capi::Precision c_struct) {
-  return temporal_rs::Precision {
-    /* .is_minute = */ c_struct.is_minute,
-    /* .precision = */ c_struct.precision.is_ok ? std::optional(c_struct.precision.ok) : std::nullopt,
-  };
+    return temporal_rs::Precision {
+        /* .is_minute = */ c_struct.is_minute,
+        /* .precision = */ c_struct.precision.is_ok ? std::optional(c_struct.precision.ok) : std::nullopt,
+    };
 }
 
 
-#endif // temporal_rs_Precision_HPP
+#endif // TEMPORAL_RS_Precision_HPP

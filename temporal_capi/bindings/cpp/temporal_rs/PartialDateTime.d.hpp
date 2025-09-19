@@ -1,5 +1,5 @@
-#ifndef temporal_rs_PartialDateTime_D_HPP
-#define temporal_rs_PartialDateTime_D_HPP
+#ifndef TEMPORAL_RS_PartialDateTime_D_HPP
+#define TEMPORAL_RS_PartialDateTime_D_HPP
 
 #include <stdio.h>
 #include <stdint.h>
@@ -9,14 +9,14 @@
 #include <functional>
 #include <optional>
 #include <cstdlib>
-#include "../diplomat_runtime.hpp"
 #include "PartialDate.d.hpp"
 #include "PartialTime.d.hpp"
-
+#include "diplomat_runtime.hpp"
 namespace temporal_rs {
 struct PartialDate;
 struct PartialTime;
-}
+} // namespace temporal_rs
+
 
 
 namespace temporal_rs {
@@ -33,12 +33,12 @@ namespace capi {
 
 namespace temporal_rs {
 struct PartialDateTime {
-  temporal_rs::PartialDate date;
-  temporal_rs::PartialTime time;
+    temporal_rs::PartialDate date;
+    temporal_rs::PartialTime time;
 
-  inline temporal_rs::capi::PartialDateTime AsFFI() const;
-  inline static temporal_rs::PartialDateTime FromFFI(temporal_rs::capi::PartialDateTime c_struct);
+    inline temporal_rs::capi::PartialDateTime AsFFI() const;
+    inline static temporal_rs::PartialDateTime FromFFI(temporal_rs::capi::PartialDateTime c_struct);
 };
 
 } // namespace
-#endif // temporal_rs_PartialDateTime_D_HPP
+#endif // TEMPORAL_RS_PartialDateTime_D_HPP

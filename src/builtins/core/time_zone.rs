@@ -416,9 +416,7 @@ impl TimeZone {
             }
             // 3. Else,
             Self::IanaIdentifier(identifier) => {
-                // a. Perform ? CheckISODaysRange(isoDateTime.[[ISODate]]).
-                local_iso.date.is_valid_day_range()?;
-                // b. Let possibleEpochNanoseconds be
+                // a. Let possibleEpochNanoseconds be
                 // GetNamedTimeZoneEpochNanoseconds(parseResult.[[Name]],
                 // isoDateTime).
                 provider.candidate_nanoseconds_for_local_epoch_nanoseconds(
@@ -624,5 +622,64 @@ mod tests {
         assert!(calcutta
             .time_zone_equals_with_provider(&kolkata, &*crate::builtins::TZ_PROVIDER)
             .unwrap());
+    }
+
+    #[cfg(feature = "compiled_data")]
+    fn test_possible_epoch_ns_at_limits_helper(
+        time_zone_identifier: &str,
+        offset_sec_at_min: i64,
+        offset_sec_at_max: i64,
+    ) {
+        use crate::iso::IsoDateTime;
+        use crate::provider::{
+            CandidateEpochNanoseconds, EpochNanosecondsAndOffset, UtcOffsetSeconds,
+        };
+        use crate::unix_time::EpochNanoseconds;
+        use crate::{NS_MAX_INSTANT, NS_MIN_INSTANT};
+
+        let provider = &*crate::builtins::TZ_PROVIDER;
+
+        let time_zone = TimeZone::try_from_identifier_str(time_zone_identifier).unwrap();
+
+        let min = IsoDateTime::balance(-271821, 4, 20, 0, 0, offset_sec_at_min, 0, 0, 0);
+        let min_result = time_zone.get_possible_epoch_ns_for(min, provider).unwrap();
+        assert_eq!(
+            min_result,
+            CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
+                ns: EpochNanoseconds(NS_MIN_INSTANT),
+                offset: UtcOffsetSeconds(offset_sec_at_min)
+            })
+        );
+
+        let max = IsoDateTime::balance(275760, 9, 13, 0, 0, offset_sec_at_max, 0, 0, 0);
+        let max_result = time_zone.get_possible_epoch_ns_for(max, provider).unwrap();
+        assert_eq!(
+            max_result,
+            CandidateEpochNanoseconds::One(EpochNanosecondsAndOffset {
+                ns: EpochNanoseconds(NS_MAX_INSTANT),
+                offset: UtcOffsetSeconds(offset_sec_at_max)
+            })
+        );
+
+        let too_early = IsoDateTime::balance(-271821, 4, 20, 0, 0, offset_sec_at_min, 0, 0, -1);
+        assert!(time_zone
+            .get_possible_epoch_ns_for(too_early, provider)
+            .is_err());
+
+        let too_late = IsoDateTime::balance(275760, 9, 13, 0, 0, offset_sec_at_max, 0, 0, 1);
+        assert!(time_zone
+            .get_possible_epoch_ns_for(too_late, provider)
+            .is_err());
+    }
+
+    #[test]
+    #[cfg(feature = "compiled_data")]
+    fn test_possible_epoch_ns_at_limits() {
+        test_possible_epoch_ns_at_limits_helper("UTC", 0, 0);
+        test_possible_epoch_ns_at_limits_helper("+02:00", 7200, 7200);
+        test_possible_epoch_ns_at_limits_helper("-07:00", -25200, -25200);
+        test_possible_epoch_ns_at_limits_helper("Europe/Amsterdam", 1050, 7200);
+        test_possible_epoch_ns_at_limits_helper("America/Vancouver", -29548, -25200);
+        test_possible_epoch_ns_at_limits_helper("Australia/Sydney", 36292, 36000);
     }
 }

@@ -40,7 +40,7 @@ icu_locale = "2.0.0"
 rustc-hash = "2.1.0"
 num-traits = { version = "0.2.19", default-features = false }
 ixdtf = "0.6.0"
-iana-time-zone = "0.1.63"
+iana-time-zone = "0.1.64"
 log = "0.4.28"
 tzif = "0.4.0"
 jiff-tzdb = "0.1.4"
@@ -48,6 +48,12 @@ combine = "4.6.7"
 web-time = "1.1.0"
 zerovec = "0.11.4"
 zoneinfo64 = "0.2.0"
+
+# Diplomat
+diplomat-tool = { git = "https://github.com/rust-diplomat/diplomat", rev = "6d7c8746b126ea09230948a9c2f7c2de087624cc", default-features = false }
+diplomat-runtime = { git = "https://github.com/rust-diplomat/diplomat", rev = "6d7c8746b126ea09230948a9c2f7c2de087624cc", default-features = false }
+diplomat = { git = "https://github.com/rust-diplomat/diplomat", rev = "6d7c8746b126ea09230948a9c2f7c2de087624cc", default-features = false }
+
 
 [package]
 name = "temporal_rs"
