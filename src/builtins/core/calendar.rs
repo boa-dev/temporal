@@ -16,8 +16,8 @@ use core::str::FromStr;
 
 use icu_calendar::{
     cal::{
-        Buddhist, Chinese, Coptic, Dangi, Ethiopian, EthiopianEraStyle, Hebrew, HijriSimulated,
-        HijriTabular, HijriUmmAlQura, Indian, Japanese, JapaneseExtended, Persian, Roc,
+        Buddhist, Coptic, Ethiopian, EthiopianEraStyle, Hebrew, Hijri, Indian, Japanese,
+        JapaneseExtended, LunarChinese, Persian, Roc,
     },
     AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, Iso, Ref,
 };
@@ -106,9 +106,9 @@ impl Calendar {
     pub const fn new(kind: AnyCalendarKind) -> Self {
         let cal = match kind {
             AnyCalendarKind::Buddhist => &AnyCalendar::Buddhist(Buddhist),
-            AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(Chinese::new()) },
+            AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(LunarChinese::new_china()) },
             AnyCalendarKind::Coptic => &AnyCalendar::Coptic(Coptic),
-            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(Dangi::new()) },
+            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(LunarChinese::new_dangi()) },
             AnyCalendarKind::Ethiopian => {
                 const {
                     &AnyCalendar::Ethiopian(Ethiopian::new_with_era_style(
@@ -128,25 +128,25 @@ impl Calendar {
             AnyCalendarKind::Indian => &AnyCalendar::Indian(Indian),
             AnyCalendarKind::HijriTabularTypeIIFriday => {
                 const {
-                    &AnyCalendar::HijriTabular(HijriTabular::new(
+                    &AnyCalendar::HijriTabular(Hijri::new_tabular(
                         HijriTabularLeapYears::TypeII,
                         HijriTabularEpoch::Friday,
                     ))
                 }
             }
             AnyCalendarKind::HijriSimulatedMecca => {
-                const { &AnyCalendar::HijriSimulated(HijriSimulated::new_mecca()) }
+                const { &AnyCalendar::HijriSimulated(Hijri::new_simulated_mecca()) }
             }
             AnyCalendarKind::HijriTabularTypeIIThursday => {
                 const {
-                    &AnyCalendar::HijriTabular(HijriTabular::new(
+                    &AnyCalendar::HijriTabular(Hijri::new_tabular(
                         HijriTabularLeapYears::TypeII,
                         HijriTabularEpoch::Thursday,
                     ))
                 }
             }
             AnyCalendarKind::HijriUmmAlQura => {
-                const { &AnyCalendar::HijriUmmAlQura(HijriUmmAlQura::new()) }
+                const { &AnyCalendar::HijriUmmAlQura(Hijri::new_umm_al_qura()) }
             }
             AnyCalendarKind::Iso => &AnyCalendar::Iso(Iso),
             AnyCalendarKind::Japanese => const { &AnyCalendar::Japanese(Japanese::new()) },
