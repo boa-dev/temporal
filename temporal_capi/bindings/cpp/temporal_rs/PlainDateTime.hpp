@@ -18,6 +18,7 @@
 #include "Disambiguation.hpp"
 #include "DisplayCalendar.hpp"
 #include "Duration.hpp"
+#include "I128Nanoseconds.hpp"
 #include "ParsedDateTime.hpp"
 #include "PartialDateTime.hpp"
 #include "PlainDate.hpp"
@@ -52,6 +53,12 @@ namespace capi {
 
     typedef struct temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result;
     temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider(int64_t ms, temporal_rs::capi::TimeZone tz, const temporal_rs::capi::Provider* p);
+
+    typedef struct temporal_rs_PlainDateTime_from_epoch_nanoseconds_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_nanoseconds_result;
+    temporal_rs_PlainDateTime_from_epoch_nanoseconds_result temporal_rs_PlainDateTime_from_epoch_nanoseconds(temporal_rs::capi::I128Nanoseconds ns, temporal_rs::capi::TimeZone tz, const temporal_rs::capi::Provider* p);
+
+    typedef struct temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider_result;
+    temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider_result temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider(temporal_rs::capi::I128Nanoseconds ns, temporal_rs::capi::TimeZone tz, const temporal_rs::capi::Provider* p);
 
     typedef struct temporal_rs_PlainDateTime_with_result {union {temporal_rs::capi::PlainDateTime* ok; temporal_rs::capi::TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_with_result;
     temporal_rs_PlainDateTime_with_result temporal_rs_PlainDateTime_with(const temporal_rs::capi::PlainDateTime* self, temporal_rs::capi::PartialDateTime partial, temporal_rs::capi::ArithmeticOverflow_option overflow);
@@ -201,6 +208,20 @@ inline temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>
 
 inline temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::from_epoch_milliseconds_with_provider(int64_t ms, temporal_rs::TimeZone tz, const temporal_rs::Provider& p) {
     auto result = temporal_rs::capi::temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider(ms,
+        tz.AsFFI(),
+        p.AsFFI());
+    return result.is_ok ? temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(temporal_rs::diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(temporal_rs::diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::from_epoch_nanoseconds(temporal_rs::I128Nanoseconds ns, temporal_rs::TimeZone tz, const temporal_rs::Provider& p) {
+    auto result = temporal_rs::capi::temporal_rs_PlainDateTime_from_epoch_nanoseconds(ns.AsFFI(),
+        tz.AsFFI(),
+        p.AsFFI());
+    return result.is_ok ? temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(temporal_rs::diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(temporal_rs::diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
+}
+
+inline temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError> temporal_rs::PlainDateTime::from_epoch_nanoseconds_with_provider(temporal_rs::I128Nanoseconds ns, temporal_rs::TimeZone tz, const temporal_rs::Provider& p) {
+    auto result = temporal_rs::capi::temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider(ns.AsFFI(),
         tz.AsFFI(),
         p.AsFFI());
     return result.is_ok ? temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(temporal_rs::diplomat::Ok<std::unique_ptr<temporal_rs::PlainDateTime>>(std::unique_ptr<temporal_rs::PlainDateTime>(temporal_rs::PlainDateTime::FromFFI(result.ok)))) : temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::PlainDateTime>, temporal_rs::TemporalError>(temporal_rs::diplomat::Err<temporal_rs::TemporalError>(temporal_rs::TemporalError::FromFFI(result.err)));
