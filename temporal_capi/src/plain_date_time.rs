@@ -6,6 +6,7 @@ pub mod ffi {
     use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::duration::ffi::Duration;
     use crate::error::ffi::TemporalError;
+    use crate::instant::ffi::I128Nanoseconds;
     use crate::options::ffi::{
         ArithmeticOverflow, DifferenceSettings, DisplayCalendar, RoundingOptions,
         ToStringRoundingOptions,
@@ -133,6 +134,22 @@ pub mod ffi {
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             let zdt = crate::zoned_date_time::zdt_from_epoch_ms_with_provider(ms, tz.into(), p)?;
+            Ok(Box::new(Self(zdt.to_plain_date_time())))
+        }
+        #[cfg(feature = "compiled_data")]
+        pub fn from_epoch_nanoseconds<'p>(
+            ns: I128Nanoseconds,
+            tz: TimeZone,
+            p: &Provider<'p>,
+        ) -> Result<Box<Self>, TemporalError> {
+            Self::from_epoch_nanoseconds_with_provider(ns, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_nanoseconds_with_provider<'p>(
+            ns: I128Nanoseconds,
+            tz: TimeZone,
+            p: &Provider<'p>,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ns_with_provider(ns, tz.into(), p)?;
             Ok(Box::new(Self(zdt.to_plain_date_time())))
         }
         pub fn with(

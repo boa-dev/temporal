@@ -1,4 +1,5 @@
 use crate::error::ffi::TemporalError;
+use crate::instant::ffi::I128Nanoseconds;
 use crate::provider::ffi::Provider;
 use temporal_rs::options::RelativeTo;
 
@@ -716,6 +717,17 @@ pub(crate) fn zdt_from_epoch_ms_with_provider<'p>(
     p: &Provider<'p>,
 ) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
     let instant = temporal_rs::Instant::from_epoch_milliseconds(ms)?;
+    with_provider!(p, |p| instant
+        .to_zoned_date_time_iso_with_provider(time_zone, p))
+    .map_err(Into::into)
+}
+
+pub(crate) fn zdt_from_epoch_ns_with_provider<'p>(
+    ns: I128Nanoseconds,
+    time_zone: temporal_rs::TimeZone,
+    p: &Provider<'p>,
+) -> Result<temporal_rs::ZonedDateTime, TemporalError> {
+    let instant = temporal_rs::Instant::try_new(ns.into())?;
     with_provider!(p, |p| instant
         .to_zoned_date_time_iso_with_provider(time_zone, p))
     .map_err(Into::into)
