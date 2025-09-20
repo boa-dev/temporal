@@ -1079,18 +1079,20 @@ mod tests {
 
     #[test]
     fn test_reference_day() {
+        // Note: Japanese reference days are also day 1 even at era boundaries
+        // https://github.com/tc39/proposal-temporal/issues/3150
         assert_eq!(
             PlainYearMonth::from_str("1868-10-30[u-ca=japanese]")
                 .unwrap()
                 .reference_day(),
-            23
+            1
         );
         // Still happens for dates that are in the previous era but same month
         assert_eq!(
             PlainYearMonth::from_str("1868-10-20[u-ca=japanese]")
                 .unwrap()
                 .reference_day(),
-            23
+            1
         );
         // Won't happen for dates in other months
         assert_eq!(
