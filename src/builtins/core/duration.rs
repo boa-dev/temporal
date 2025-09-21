@@ -139,7 +139,6 @@ impl PartialDuration {
     }
 }
 
-
 /// The native Rust implementation of `Temporal.Duration`.
 ///
 /// Represents a span of time such as "2 hours and 30 minutes" or "3 years, 2 months".
