@@ -305,6 +305,22 @@ pub mod ffi {
             super::zdt_from_epoch_ms_with_provider(ms, tz.into(), p).map(|c| Box::new(Self(c)))
         }
 
+        #[cfg(feature = "compiled_data")]
+        pub fn from_epoch_nanoseconds(
+            ns: I128Nanoseconds,
+            tz: TimeZone,
+        ) -> Result<Box<Self>, TemporalError> {
+            Self::from_epoch_nanoseconds_with_provider(ns, tz, &Provider::compiled())
+        }
+        pub fn from_epoch_nanoseconds_with_provider<'p>(
+            ns: I128Nanoseconds,
+            tz: TimeZone,
+            p: &Provider<'p>,
+        ) -> Result<Box<Self>, TemporalError> {
+            let zdt = crate::zoned_date_time::zdt_from_epoch_ns_with_provider(ns, tz.into(), p)?;
+            Ok(Box::new(Self(zdt)))
+        }
+
         pub fn epoch_nanoseconds(&self) -> I128Nanoseconds {
             self.0.epoch_nanoseconds().as_i128().into()
         }

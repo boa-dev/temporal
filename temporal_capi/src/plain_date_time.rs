@@ -137,10 +137,9 @@ pub mod ffi {
             Ok(Box::new(Self(zdt.to_plain_date_time())))
         }
         #[cfg(feature = "compiled_data")]
-        pub fn from_epoch_nanoseconds<'p>(
+        pub fn from_epoch_nanoseconds(
             ns: I128Nanoseconds,
             tz: TimeZone,
-            p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             Self::from_epoch_nanoseconds_with_provider(ns, tz, &Provider::compiled())
         }
