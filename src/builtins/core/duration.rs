@@ -139,6 +139,7 @@ impl PartialDuration {
     }
 }
 
+
 /// The native Rust implementation of `Temporal.Duration`.
 ///
 /// Represents a span of time such as "2 hours and 30 minutes" or "3 years, 2 months".
@@ -330,6 +331,13 @@ impl core::fmt::Display for Duration {
             "Duration must return a valid string with default options."
         );
         f.write_str(&string.map_err(|_| Default::default())?)
+    }
+}
+
+impl TryFrom<PartialDuration> for Duration {
+    type Error = TemporalError;
+    fn try_from(partial: PartialDuration) -> Result<Self, Self::Error> {
+        Duration::from_partial_duration(partial)
     }
 }
 
