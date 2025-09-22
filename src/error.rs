@@ -258,6 +258,9 @@ impl ErrorMessage {
             },
             Self::Icu4xDate(DateError::UnknownEra) => "Unknown era.",
             Self::Icu4xDate(DateError::UnknownMonthCode(..)) => "Unknown month code.",
+            Self::Icu4xDate(DateError::InconsistentYear) => "Inconsistent year.",
+            Self::Icu4xDate(DateError::InconsistentMonthCode) => "Inconsistent month/monthCode.",
+            Self::Icu4xDate(DateError::NotEnoughFields) => "Insufficient fields.",
             Self::Icu4xDate(_) => "Date error.",
         }
     }
