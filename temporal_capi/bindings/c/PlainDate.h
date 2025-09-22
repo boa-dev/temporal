@@ -13,6 +13,7 @@
 #include "DifferenceSettings.d.h"
 #include "DisplayCalendar.d.h"
 #include "Duration.d.h"
+#include "I128Nanoseconds.d.h"
 #include "ParsedDate.d.h"
 #include "PartialDate.d.h"
 #include "PlainDateTime.d.h"
@@ -51,6 +52,12 @@ temporal_rs_PlainDate_from_epoch_milliseconds_result temporal_rs_PlainDate_from_
 
 typedef struct temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result;
 temporal_rs_PlainDate_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDate_from_epoch_milliseconds_with_provider(int64_t ms, TimeZone tz, const Provider* p);
+
+typedef struct temporal_rs_PlainDate_from_epoch_nanoseconds_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_nanoseconds_result;
+temporal_rs_PlainDate_from_epoch_nanoseconds_result temporal_rs_PlainDate_from_epoch_nanoseconds(I128Nanoseconds ns, TimeZone tz);
+
+typedef struct temporal_rs_PlainDate_from_epoch_nanoseconds_with_provider_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_from_epoch_nanoseconds_with_provider_result;
+temporal_rs_PlainDate_from_epoch_nanoseconds_with_provider_result temporal_rs_PlainDate_from_epoch_nanoseconds_with_provider(I128Nanoseconds ns, TimeZone tz, const Provider* p);
 
 typedef struct temporal_rs_PlainDate_with_result {union {PlainDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_with_result;
 temporal_rs_PlainDate_with_result temporal_rs_PlainDate_with(const PlainDate* self, PartialDate partial, ArithmeticOverflow_option overflow);

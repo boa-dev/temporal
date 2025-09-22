@@ -333,6 +333,13 @@ impl core::fmt::Display for Duration {
     }
 }
 
+impl TryFrom<PartialDuration> for Duration {
+    type Error = TemporalError;
+    fn try_from(partial: PartialDuration) -> Result<Self, Self::Error> {
+        Duration::from_partial_duration(partial)
+    }
+}
+
 // NOTE(nekevss): Structure of the below is going to be a little convoluted,
 // but intended to section everything based on the below
 //

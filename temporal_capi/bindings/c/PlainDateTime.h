@@ -52,7 +52,7 @@ typedef struct temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_r
 temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider_result temporal_rs_PlainDateTime_from_epoch_milliseconds_with_provider(int64_t ms, TimeZone tz, const Provider* p);
 
 typedef struct temporal_rs_PlainDateTime_from_epoch_nanoseconds_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_nanoseconds_result;
-temporal_rs_PlainDateTime_from_epoch_nanoseconds_result temporal_rs_PlainDateTime_from_epoch_nanoseconds(I128Nanoseconds ns, TimeZone tz, const Provider* p);
+temporal_rs_PlainDateTime_from_epoch_nanoseconds_result temporal_rs_PlainDateTime_from_epoch_nanoseconds(I128Nanoseconds ns, TimeZone tz);
 
 typedef struct temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider_result {union {PlainDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider_result;
 temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider_result temporal_rs_PlainDateTime_from_epoch_nanoseconds_with_provider(I128Nanoseconds ns, TimeZone tz, const Provider* p);
