@@ -341,7 +341,19 @@ impl Calendar {
         }
         options.missing_fields_strategy = Some(MissingFieldsStrategy::Ecma);
 
-        let calendar_date = self.0.from_fields(fields, options)?;
+        let mut calendar_date = self.0.from_fields(fields, options)?;
+
+        // The MonthDay algorithm wants us to resolve a date *with* the provided year,
+        // if one was provided, but then use a reference year afterwards.
+        // So if a year was provided, we reresolve.
+        if fields.era_year.is_some() || fields.extended_year.is_some() {
+            let mut fields2 = DateFields::default();
+            fields2.day = NonZero::new(self.0.day_of_month(&calendar_date).0);
+            fields2.month_code = Some(self.0.month(&calendar_date).standard_code);
+
+            calendar_date = self.0.from_fields(fields2, options)?;
+        }
+
         let iso = self.0.to_iso(&calendar_date);
         PlainMonthDay::new_with_overflow(
             Iso.month(&iso).ordinal,
