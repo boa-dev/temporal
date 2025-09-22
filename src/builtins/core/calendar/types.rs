@@ -256,6 +256,7 @@ impl core::str::FromStr for MonthCode {
 
 // NOTE: This is a greedy function, should handle differently for all calendars.
 #[inline]
+#[cfg(test)]
 pub(crate) fn month_to_month_code(month: u8) -> TemporalResult<MonthCode> {
     if !(1..=13).contains(&month) {
         return Err(TemporalError::range().with_message("Month not in a valid range."));
@@ -299,7 +300,7 @@ mod tests {
         options::Overflow,
     };
 
-    use super::{month_to_month_code, MonthCode, ResolvedIsoFields};
+    use super::{MonthCode, ResolvedIsoFields};
 
     #[test]
     fn valid_month_code() {
@@ -323,18 +324,6 @@ mod tests {
         let _ = MonthCode::from_str("M01R").unwrap_err();
         let _ = MonthCode::from_str("M1").unwrap_err();
         let _ = MonthCode::from_str("M1L").unwrap_err();
-    }
-
-    #[test]
-    fn month_to_mc() {
-        let mc = month_to_month_code(1).unwrap();
-        assert_eq!(mc.as_str(), "M01");
-
-        let mc = month_to_month_code(13).unwrap();
-        assert_eq!(mc.as_str(), "M13");
-
-        let _ = month_to_month_code(0).unwrap_err();
-        let _ = month_to_month_code(14).unwrap_err();
     }
 
     #[test]

@@ -548,7 +548,7 @@ impl PlainYearMonth {
         // 11. Return ! CreateTemporalYearMonth(isoDate, calendar).
         let overflow = overflow.unwrap_or(Overflow::Constrain);
         self.calendar.year_month_from_fields(
-            fields.with_fallback_year_month(self, self.calendar.kind(), overflow)?,
+            fields.with_fallback_year_month(self, self.calendar.kind())?,
             overflow,
         )
     }
