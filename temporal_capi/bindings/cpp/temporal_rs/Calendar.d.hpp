@@ -41,9 +41,9 @@ public:
 
   inline std::string_view identifier() const;
 
-    /**
-     * Returns the kind of this calendar
-     */
+  /**
+   * Returns the kind of this calendar
+   */
   inline temporal_rs::AnyCalendarKind kind() const;
 
     inline const temporal_rs::capi::Calendar* AsFFI() const;

@@ -30,18 +30,18 @@ namespace temporal_rs {
 class Provider {
 public:
 
-    /**
-     * Construct a provider backed by a zoneinfo64.res file
-     *
-     * This failing to construct is not a Temporal error, so it just returns ()
-     */
+  /**
+   * Construct a provider backed by a zoneinfo64.res file
+   *
+   * This failing to construct is not a Temporal error, so it just returns ()
+   */
   inline static temporal_rs::diplomat::result<std::unique_ptr<temporal_rs::Provider>, std::monostate> new_zoneinfo64(temporal_rs::diplomat::span<const uint32_t> data);
 
   inline static std::unique_ptr<temporal_rs::Provider> new_compiled();
 
-    /**
-     * Fallback type in case construction does not work.
-     */
+  /**
+   * Fallback type in case construction does not work.
+   */
   inline static std::unique_ptr<temporal_rs::Provider> empty();
 
     inline const temporal_rs::capi::Provider* AsFFI() const;
