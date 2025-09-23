@@ -1,3 +1,34 @@
+## What's Changed in v0.1.0
+* Update Diplomat to 0.13.0 by @Manishearth in [#588](https://github.com/boa-dev/temporal/pull/588)
+* Add TryFrom for PartialDuration to Duration by @nekevss in [#585](https://github.com/boa-dev/temporal/pull/585)
+* Add missing from_epoch_nanoseconds() FFI by @linusg in [#584](https://github.com/boa-dev/temporal/pull/584)
+* Add from_nanoseconds to FFI PlainDateTime by @nekevss in [#583](https://github.com/boa-dev/temporal/pull/583)
+* Update diplomat to using cpp lib name by @Manishearth in [#581](https://github.com/boa-dev/temporal/pull/581)
+* Fix TimeZone::get_possible_epoch_ns at date-time limits by @ptomato in [#580](https://github.com/boa-dev/temporal/pull/580)
+* Rename timezone.rs to time_zone.rs by @nekevss in [#574](https://github.com/boa-dev/temporal/pull/574)
+* General updates to temporal_rs's exports and docs by @nekevss in [#575](https://github.com/boa-dev/temporal/pull/575)
+* Review Instant API + Duration by @nekevss in [#573](https://github.com/boa-dev/temporal/pull/573)
+* Make TimeZone no longer allocate over FFI by @Manishearth in [#572](https://github.com/boa-dev/temporal/pull/572)
+* Update the library introduction and README for timezone_provider by @nekevss in [#570](https://github.com/boa-dev/temporal/pull/570)
+* Add a minimal README for zoneinfo_rs by @nekevss in [#569](https://github.com/boa-dev/temporal/pull/569)
+* Remove passing lint allows by @Manishearth in [#571](https://github.com/boa-dev/temporal/pull/571)
+* Updates to PlainYearMonth and PlainMonthDay based on review by @nekevss in [#567](https://github.com/boa-dev/temporal/pull/567)
+* Update library introduction documentation and the project README.md by @nekevss in [#564](https://github.com/boa-dev/temporal/pull/564)
+* Updates to PlainTime API based on review by @nekevss in [#565](https://github.com/boa-dev/temporal/pull/565)
+* Make ISO getters crate private by @nekevss in [#568](https://github.com/boa-dev/temporal/pull/568)
+* Handle und month codes by @Manishearth in [#563](https://github.com/boa-dev/temporal/pull/563)
+* Update `ZonedDateTime` constructors by @nekevss in [#562](https://github.com/boa-dev/temporal/pull/562)
+* Review and update PlainDate and PlainDateTime API by @nekevss in [#561](https://github.com/boa-dev/temporal/pull/561)
+* Refactor Now to be trait based for lazy host getters by @nekevss in [#560](https://github.com/boa-dev/temporal/pull/560)
+* Fix comment and organization of TimeZone::zero by @Manishearth in [#559](https://github.com/boa-dev/temporal/pull/559)
+* Update ZonedDateTime module and API by @nekevss in [#557](https://github.com/boa-dev/temporal/pull/557)
+* Remove yoke dep from temporal_capi by @Manishearth in [#556](https://github.com/boa-dev/temporal/pull/556)
+
+## New Contributors
+* @ptomato made their first contribution in [#580](https://github.com/boa-dev/temporal/pull/580)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.0.16...v0.1.0
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
