@@ -2,7 +2,7 @@
 name = "timezone_provider"
 description = "Time zone data providers"
 edition.workspace = true
-version = "0.0.17"
+version.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true

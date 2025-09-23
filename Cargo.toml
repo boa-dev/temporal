@@ -30,7 +30,7 @@ exclude = [
 [workspace.dependencies]
 # Self
 temporal_rs = { version = "~0.1.0", path = ".", default-features = false }
-timezone_provider = { version = "~0.0.17", path = "./provider" }
+timezone_provider = { version = "~0.1.0", path = "./provider" }
 zoneinfo_rs = { version = "~0.0.17", path = "./zoneinfo" }
 
 # Dependencies
