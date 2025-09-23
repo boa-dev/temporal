@@ -67,17 +67,17 @@ struct TimeZone {
 
   inline static temporal_rs::diplomat::result<temporal_rs::TimeZone, temporal_rs::TemporalError> utc_with_provider(const temporal_rs::Provider& p);
 
-    /**
-     * Create a TimeZone that represents +00:00
-     *
-     * This is the only way to infallibly make a TimeZone without compiled_data,
-     * and can be used as a fallback.
-     */
+  /**
+   * Create a TimeZone that represents +00:00
+   *
+   * This is the only way to infallibly make a TimeZone without compiled_data,
+   * and can be used as a fallback.
+   */
   inline static temporal_rs::TimeZone zero();
 
-    /**
-     * Get the primary time zone identifier corresponding to this time zone
-     */
+  /**
+   * Get the primary time zone identifier corresponding to this time zone
+   */
   inline temporal_rs::diplomat::result<temporal_rs::TimeZone, temporal_rs::TemporalError> primary_identifier() const;
 
   inline temporal_rs::diplomat::result<temporal_rs::TimeZone, temporal_rs::TemporalError> primary_identifier_with_provider(const temporal_rs::Provider& p) const;
