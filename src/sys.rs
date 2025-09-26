@@ -70,10 +70,7 @@ impl HostClock for UtcHostSystem {
 
 #[cfg(feature = "sys")]
 impl HostTimeZone for UtcHostSystem {
-    fn get_host_time_zone(
-        &self,
-        provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<TimeZone> {
+    fn get_host_time_zone(&self, provider: &impl TimeZoneProvider) -> TemporalResult<TimeZone> {
         Ok(TimeZone::utc_with_provider(provider))
     }
 }
@@ -97,10 +94,7 @@ impl HostClock for LocalHostSystem {
 
 #[cfg(feature = "sys-local")]
 impl HostTimeZone for LocalHostSystem {
-    fn get_host_time_zone(
-        &self,
-        provider: &impl TimeZoneProvider,
-    ) -> TemporalResult<TimeZone> {
+    fn get_host_time_zone(&self, provider: &impl TimeZoneProvider) -> TemporalResult<TimeZone> {
         get_system_timezone(provider)
     }
 }
