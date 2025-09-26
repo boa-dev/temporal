@@ -740,11 +740,9 @@ impl ZonedDateTime {
 
         // 23. Let dateTimeResult be ? InterpretTemporalDateTimeFields(calendar, fields, overflow).
         let result_date = self.calendar.date_from_fields(
-            fields.calendar_fields.with_fallback_datetime(
-                &plain_date_time,
-                self.calendar.kind(),
-                overflow,
-            )?,
+            fields
+                .calendar_fields
+                .with_fallback_datetime(&plain_date_time, self.calendar.kind())?,
             overflow,
         )?;
 

@@ -149,7 +149,12 @@ impl fmt::Display for TemporalError {
 
 impl From<DateError> for TemporalError {
     fn from(error: DateError) -> Self {
-        TemporalError::range().with_enum(ErrorMessage::Icu4xDate(error))
+        let kind = if error == DateError::NotEnoughFields {
+            ErrorKind::Type
+        } else {
+            ErrorKind::Range
+        };
+        TemporalError::new(kind).with_enum(ErrorMessage::Icu4xDate(error))
     }
 }
 
@@ -258,6 +263,9 @@ impl ErrorMessage {
             },
             Self::Icu4xDate(DateError::UnknownEra) => "Unknown era.",
             Self::Icu4xDate(DateError::UnknownMonthCode(..)) => "Unknown month code.",
+            Self::Icu4xDate(DateError::InconsistentYear) => "Inconsistent year.",
+            Self::Icu4xDate(DateError::InconsistentMonth) => "Inconsistent month/monthCode.",
+            Self::Icu4xDate(DateError::NotEnoughFields) => "Insufficient fields.",
             Self::Icu4xDate(_) => "Date error.",
         }
     }

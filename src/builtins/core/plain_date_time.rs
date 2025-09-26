@@ -649,7 +649,7 @@ impl PlainDateTime {
         let result_date = self.calendar.date_from_fields(
             fields
                 .calendar_fields
-                .with_fallback_datetime(self, self.calendar.kind(), overflow)?,
+                .with_fallback_datetime(self, self.calendar.kind())?,
             overflow,
         )?;
 
