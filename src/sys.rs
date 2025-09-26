@@ -74,7 +74,7 @@ impl HostTimeZone for UtcHostSystem {
         &self,
         provider: &impl timezone_provider::provider::TimeZoneProvider,
     ) -> TemporalResult<TimeZone> {
-        get_system_timezone(provider)
+        Ok(TimeZone::utc_with_provider(provider))
     }
 }
 

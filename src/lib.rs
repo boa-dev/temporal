@@ -279,7 +279,7 @@ pub mod primitive;
 pub mod provider;
 
 #[cfg(feature = "sys")]
-pub(crate) mod sys;
+pub mod sys;
 
 mod builtins;
 
@@ -306,7 +306,7 @@ pub use error::TemporalError;
 
 #[cfg(feature = "sys")]
 #[doc(inline)]
-pub use sys::{DefaultHostSystem, Temporal};
+pub use sys::Temporal;
 
 pub mod partial {
     //! Partial date and time component records
