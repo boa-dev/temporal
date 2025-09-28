@@ -302,7 +302,7 @@ pub fn ixdtf_error_to_static_string(error: ParseError) -> &'static str {
 
         ParseError::InvalidDayRange => "Parsed day value not in a valid range.",
 
-        ParseError::DateYear => "Invalid chracter while parsing year value.",
+        ParseError::DateYear => "Invalid character while parsing year value.",
 
         ParseError::DateExtendedYear => "Invalid character while parsing extended year value.",
 
