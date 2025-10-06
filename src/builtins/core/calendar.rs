@@ -106,7 +106,7 @@ impl Calendar {
             AnyCalendarKind::Buddhist => &AnyCalendar::Buddhist(Buddhist),
             AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(LunarChinese::new_china()) },
             AnyCalendarKind::Coptic => &AnyCalendar::Coptic(Coptic),
-            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(LunarChinese::new_dangi()) },
+            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(LunarChinese::new_korea()) },
             AnyCalendarKind::Ethiopian => {
                 const {
                     &AnyCalendar::Ethiopian(Ethiopian::new_with_era_style(
