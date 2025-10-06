@@ -24,6 +24,9 @@ use ixdtf::records::UtcOffsetRecordOrZ;
 fn extract_kind(calendar: Option<&[u8]>) -> TemporalResult<AnyCalendarKind> {
     Ok(calendar
         .map(Calendar::try_kind_from_utf8)
+        // Note that this will successfully parse AnyCalendarKind::HijriSimulatedMecca
+        // However, Calendar::new will immediately turn it into an ISO calendar,
+        // so we don't need to do anything here.
         .transpose()?
         .unwrap_or(AnyCalendarKind::Iso))
 }
