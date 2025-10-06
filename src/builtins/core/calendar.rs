@@ -7,6 +7,7 @@ use crate::{
     builtins::core::{
         duration::DateDuration, Duration, PlainDate, PlainDateTime, PlainMonthDay, PlainYearMonth,
     },
+    error::ErrorMessage,
     iso::IsoDate,
     options::{Overflow, Unit},
     parsers::parse_allowed_calendar_formats,
@@ -24,8 +25,13 @@ use icu_calendar::{
 };
 use icu_calendar::{
     cal::{HijriTabularEpoch, HijriTabularLeapYears},
-    options::{DateFromFieldsOptions, MissingFieldsStrategy, Overflow as IcuOverflow},
+    options::{
+        DateAddOptions, DateDifferenceOptions, DateFromFieldsOptions, MissingFieldsStrategy,
+        Overflow as IcuOverflow,
+    },
     preferences::CalendarAlgorithm,
+    types::DateDuration as IcuDateDuration,
+    types::DateDurationUnit as IcuUnit,
     types::DateFields,
     types::MonthCode as IcuMonthCode,
     Gregorian,
@@ -214,6 +220,22 @@ impl From<Overflow> for IcuOverflow {
             Overflow::Reject => Self::Reject,
             Overflow::Constrain => Self::Constrain,
         }
+    }
+}
+
+impl TryFrom<Unit> for IcuUnit {
+    type Error = TemporalError;
+    fn try_from(other: Unit) -> TemporalResult<Self> {
+        Ok(match other {
+            Unit::Day => IcuUnit::Days,
+            Unit::Week => IcuUnit::Weeks,
+            Unit::Month => IcuUnit::Months,
+            Unit::Year => IcuUnit::Years,
+            _ => {
+                return Err(TemporalError::r#type()
+                    .with_message("Found time unit when computing CalendarDateUntil."))
+            }
+        })
     }
 }
 
@@ -419,7 +441,32 @@ impl Calendar {
             return PlainDate::try_new(result.year, result.month, result.day, self.clone());
         }
 
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        // This should be a valid duration at this point so we can just call .abs()
+        let invalid = TemporalError::range().with_enum(ErrorMessage::DurationNotValid);
+        let duration = IcuDateDuration {
+            is_negative: duration.years < 0
+                || duration.months < 0
+                || duration.weeks < 0
+                || duration.days < 0,
+            years: u32::try_from(duration.years.abs()).map_err(|_| invalid)?,
+            months: u32::try_from(duration.months.abs()).map_err(|_| invalid)?,
+            weeks: u32::try_from(duration.weeks.abs()).map_err(|_| invalid)?,
+            days: u64::try_from(duration.days.abs()).map_err(|_| invalid)?,
+        };
+        let mut options = DateAddOptions::default();
+        options.overflow = Some(overflow.into());
+        let calendar_date = self.0.from_iso(*date.to_icu4x().inner());
+
+        let added = self.0.add(&calendar_date, duration, options)?;
+
+        let iso = self.0.to_iso(&added);
+        PlainDate::new_with_overflow(
+            Iso.extended_year(&iso),
+            Iso.month(&iso).ordinal,
+            Iso.day_of_month(&iso).0,
+            self.clone(),
+            overflow,
+        )
     }
 
     /// `CalendarDateUntil`
@@ -433,7 +480,24 @@ impl Calendar {
             let date_duration = one.diff_iso_date(two, largest_unit)?;
             return Ok(Duration::from(date_duration));
         }
-        Err(TemporalError::range().with_message("Not yet implemented."))
+        let mut options = DateDifferenceOptions::default();
+        options.largest_unit = Some(largest_unit.try_into()?);
+        let calendar_date1 = self.0.from_iso(*one.to_icu4x().inner());
+        let calendar_date2 = self.0.from_iso(*two.to_icu4x().inner());
+
+        let added = self.0.until(&calendar_date1, &calendar_date2, options)?;
+
+        let days = added
+            .days
+            .try_into()
+            .map_err(|_| TemporalError::range().with_enum(ErrorMessage::DurationNotValid))?;
+        let duration = DateDuration::new(
+            added.years.into(),
+            added.months.into(),
+            added.weeks.into(),
+            days,
+        )?;
+        Ok(Duration::from(duration))
     }
 
     /// `CalendarEra`

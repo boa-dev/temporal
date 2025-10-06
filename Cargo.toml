@@ -34,22 +34,22 @@ timezone_provider = { version = "~0.1.0", path = "./provider" }
 zoneinfo_rs = { version = "~0.0.17", path = "./zoneinfo" }
 
 # Dependencies
-tinystr = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
-icu_calendar = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558", default-features = false }
-icu_locale = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
+tinystr = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
+icu_calendar = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf", default-features = false }
+icu_locale = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
 rustc-hash = "2.1.0"
 num-traits = { version = "0.2.19", default-features = false }
-ixdtf = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
+ixdtf = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
 iana-time-zone = "0.1.64"
 log = "0.4.28"
 tzif = "0.4.0"
 jiff-tzdb = "0.1.4"
 combine = "4.6.7"
 web-time = "1.1.0"
-zerovec = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
-databake = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
-zerotrie = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
-writeable = { git = "https://github.com/unicode-org/icu4x", rev = "5a56323558" }
+zerovec = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
+databake = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
+zerotrie = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
+writeable = { git = "https://github.com/unicode-org/icu4x", rev = "0a2a4cdf" }
 zoneinfo64 = "0.2.0"
 
 # Diplomat
