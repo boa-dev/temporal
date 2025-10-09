@@ -90,8 +90,6 @@ impl Calendar {
     pub const HIJRI_TABULAR_THURSDAY: Self = Self::new(AnyCalendarKind::HijriTabularTypeIIThursday);
     /// The Hijri Umm al-Qura calendar
     pub const HIJRI_UMM_AL_QURA: Self = Self::new(AnyCalendarKind::HijriUmmAlQura);
-    /// The Hijri simulated calendar
-    pub const HIJRI_SIMULATED: Self = Self::new(AnyCalendarKind::HijriSimulatedMecca);
     /// The ISO 8601 calendar
     pub const ISO: Self = Self::new(AnyCalendarKind::Iso);
     /// The Japanese calendar
@@ -135,7 +133,8 @@ impl Calendar {
                 }
             }
             AnyCalendarKind::HijriSimulatedMecca => {
-                const { &AnyCalendar::HijriSimulated(Hijri::new_simulated_mecca()) }
+                // This calendar is currently unsupported by Temporal
+                &AnyCalendar::Iso(Iso)
             }
             AnyCalendarKind::HijriTabularTypeIIThursday => {
                 const {
