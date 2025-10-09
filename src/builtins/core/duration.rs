@@ -636,7 +636,7 @@ impl Duration {
             microseconds,
             nanoseconds,
         ) {
-            return Err(TemporalError::range().with_message("Duration was not valid."));
+            return Err(TemporalError::range().with_enum(ErrorMessage::DurationNotValid));
         }
         let sign = duration_sign(&[
             years,

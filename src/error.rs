@@ -4,7 +4,7 @@ use core::fmt;
 use ixdtf::ParseError;
 use timezone_provider::TimeZoneProviderError;
 
-use icu_calendar::DateError;
+use icu_calendar::{cal::AnyCalendarDifferenceError, DateError};
 
 /// `TemporalError`'s error type.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -158,6 +158,12 @@ impl From<DateError> for TemporalError {
     }
 }
 
+impl From<AnyCalendarDifferenceError> for TemporalError {
+    fn from(error: AnyCalendarDifferenceError) -> Self {
+        TemporalError::range().with_enum(ErrorMessage::Icu4xUntil(error))
+    }
+}
+
 impl From<ParseError> for TemporalError {
     fn from(error: ParseError) -> Self {
         TemporalError::range().with_enum(ErrorMessage::Ixdtf(error))
@@ -173,6 +179,7 @@ pub(crate) enum ErrorMessage {
     ZDTOutOfDayBounds,
     LargestUnitCannotBeDateUnit,
     DateOutOfRange,
+    DurationNotValid,
 
     // Numerical errors
     NumberNotFinite,
@@ -211,6 +218,7 @@ pub(crate) enum ErrorMessage {
     String(&'static str),
     Ixdtf(ParseError),
     Icu4xDate(DateError),
+    Icu4xUntil(AnyCalendarDifferenceError),
 }
 
 impl ErrorMessage {
@@ -223,6 +231,7 @@ impl ErrorMessage {
             Self::ZDTOutOfDayBounds => "ZonedDateTime is outside the expected day bounds",
             Self::LargestUnitCannotBeDateUnit => "Largest unit cannot be a date unit",
             Self::DateOutOfRange => "Date is not within ISO date time limits.",
+            Self::DurationNotValid => "Duration was not valid.",
             Self::NumberNotFinite => "number value is not a finite value.",
             Self::NumberNotIntegral => "value must be integral.",
             Self::NumberNotPositive => "integer must be positive.",
@@ -267,6 +276,10 @@ impl ErrorMessage {
             Self::Icu4xDate(DateError::InconsistentMonth) => "Inconsistent month/monthCode.",
             Self::Icu4xDate(DateError::NotEnoughFields) => "Insufficient fields.",
             Self::Icu4xDate(_) => "Date error.",
+            Self::Icu4xUntil(AnyCalendarDifferenceError::MismatchedCalendars) => {
+                "Mismatched calendars."
+            }
+            Self::Icu4xUntil(_) => "Arithmetic error.",
         }
     }
 }
