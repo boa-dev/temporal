@@ -132,7 +132,7 @@ impl ParsedZonedDateTime {
     /// Converts a UTF-8 encoded string into a `ParsedZonedDateTime`.
     pub fn from_utf8_with_provider(
         source: &[u8],
-        provider: &impl TimeZoneProvider,
+        provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
         // Steps from the parse bits of of ToZonedDateTime
 
