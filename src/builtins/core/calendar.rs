@@ -15,7 +15,6 @@ use crate::{
 };
 use core::str::FromStr;
 
-use core::num::NonZero;
 use icu_calendar::{
     cal::{
         Buddhist, Coptic, Ethiopian, EthiopianEraStyle, Hebrew, Hijri, Indian, Japanese,
@@ -33,7 +32,6 @@ use icu_calendar::{
     types::DateDuration as IcuDateDuration,
     types::DateDurationUnit as IcuUnit,
     types::DateFields,
-    types::MonthCode as IcuMonthCode,
     Gregorian,
 };
 use icu_locale::extensions::unicode::Value;
@@ -242,28 +240,13 @@ impl TryFrom<Unit> for IcuUnit {
 impl<'a> TryFrom<&'a CalendarFields> for DateFields<'a> {
     type Error = TemporalError;
     fn try_from(other: &'a CalendarFields) -> TemporalResult<Self> {
-        let ordinal_month = other
-            .month
-            .map(|o| {
-                NonZero::new(o).ok_or(
-                    TemporalError::range().with_message("Ordinal month must be positive integer"),
-                )
-            })
-            .transpose()?;
-        let day = other
-            .day
-            .map(|o| {
-                NonZero::new(o)
-                    .ok_or(TemporalError::range().with_message("Day must be positive integer"))
-            })
-            .transpose()?;
         let mut this = DateFields::default();
-        this.era = other.era.as_deref();
+        this.era = other.era.as_ref().map(|o| o.as_bytes());
         this.era_year = other.era_year;
         this.extended_year = other.year;
-        this.month_code = other.month_code.map(|c| IcuMonthCode(c.0));
-        this.ordinal_month = ordinal_month;
-        this.day = day;
+        this.month_code = other.month_code.as_ref().map(|o| o.0.as_bytes());
+        this.ordinal_month = other.month;
+        this.day = other.day;
         Ok(this)
     }
 }
@@ -369,8 +352,9 @@ impl Calendar {
         // So if a year was provided, we reresolve.
         if fields.era_year.is_some() || fields.extended_year.is_some() {
             let mut fields2 = DateFields::default();
-            fields2.day = NonZero::new(self.0.day_of_month(&calendar_date).0);
-            fields2.month_code = Some(self.0.month(&calendar_date).standard_code);
+            fields2.day = Some(self.0.day_of_month(&calendar_date).0);
+            let code = self.0.month(&calendar_date).standard_code;
+            fields2.month_code = Some(code.0.as_bytes());
 
             calendar_date = self.0.from_fields(fields2, options)?;
         }
