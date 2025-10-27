@@ -53,9 +53,9 @@ writeable = { git = "https://github.com/unicode-org/icu4x", rev = "eee59643" }
 zoneinfo64 = "0.2.0"
 
 # Diplomat
-diplomat-tool = { version = "0.13.0", default-features = false }
-diplomat-runtime = { version = "0.13.0", default-features = false }
-diplomat = { version = "0.13.0", default-features = false }
+diplomat-tool = { version = "0.14.0", default-features = false }
+diplomat-runtime = { version = "0.14.0", default-features = false }
+diplomat = { version = "0.14.0", default-features = false }
 
 
 [package]
