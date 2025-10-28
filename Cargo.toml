@@ -36,7 +36,6 @@ zoneinfo_rs = { version = "~0.0.17", path = "./zoneinfo" }
 # Dependencies
 rustc-hash = "2.1.0"
 num-traits = { version = "0.2.19", default-features = false }
-ixdtf = { git = "https://github.com/unicode-org/icu4x", rev = "eee59643" }
 iana-time-zone = "0.1.64"
 log = "0.4.28"
 tzif = "0.4.0"
@@ -53,6 +52,7 @@ databake = "0.2.0"
 zerotrie = "0.2.0"
 writeable = "0.6.0"
 zoneinfo64 = "0.2.0"
+ixdtf = "0.6.4"
 
 # Diplomat
 diplomat-tool = { version = "0.14.0", default-features = false }
