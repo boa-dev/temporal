@@ -660,7 +660,7 @@ impl PlainDate {
         &self,
         time_zone: TimeZone,
         plain_time: Option<PlainTime>,
-        provider: &impl TimeZoneProvider,
+        provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<ZonedDateTime> {
         // NOTE (nekevss): Steps 1-4 are engine specific
         let epoch_ns = if let Some(time) = plain_time {
