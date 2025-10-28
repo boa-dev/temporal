@@ -555,8 +555,9 @@ checksum = "4a5f13b858c8d314ee3e8f639011f7ccefe71f97f96e50151fb991f267928e2c"
 
 [[package]]
 name = "ixdtf"
-version = "0.6.3"
-source = "git+https://github.com/unicode-org/icu4x?rev=eee59643#eee596432397461a55d4c19844b67d927d45bfaa"
+version = "0.6.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84de9d95a6d2547d9b77ee3f25fa0ee32e3c3a6484d47a55adebc0439c077992"
 
 [[package]]
 name = "jiff-tzdb"
