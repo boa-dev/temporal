@@ -17,8 +17,8 @@ use core::str::FromStr;
 
 use icu_calendar::{
     cal::{
-        Buddhist, Coptic, Ethiopian, EthiopianEraStyle, Hebrew, Hijri, Indian, Japanese,
-        JapaneseExtended, LunarChinese, Persian, Roc,
+        Buddhist, ChineseTraditional, Coptic, Ethiopian, EthiopianEraStyle, Hebrew, Hijri, Indian,
+        Japanese, JapaneseExtended, KoreanTraditional, Persian, Roc,
     },
     AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, Iso, Ref,
 };
@@ -108,9 +108,9 @@ impl Calendar {
     pub const fn new(kind: AnyCalendarKind) -> Self {
         let cal = match kind {
             AnyCalendarKind::Buddhist => &AnyCalendar::Buddhist(Buddhist),
-            AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(LunarChinese::new_china()) },
+            AnyCalendarKind::Chinese => const { &AnyCalendar::Chinese(ChineseTraditional::new()) },
             AnyCalendarKind::Coptic => &AnyCalendar::Coptic(Coptic),
-            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(LunarChinese::new_korea()) },
+            AnyCalendarKind::Dangi => const { &AnyCalendar::Dangi(KoreanTraditional::new()) },
             AnyCalendarKind::Ethiopian => {
                 const {
                     &AnyCalendar::Ethiopian(Ethiopian::new_with_era_style(
