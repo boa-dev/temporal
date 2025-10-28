@@ -11,7 +11,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
-version = "0.1.0"
+version = "0.1.1"
 rust-version = "1.83.0"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
