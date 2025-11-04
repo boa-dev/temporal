@@ -1310,6 +1310,24 @@ mod tests {
     }
 
     #[test]
+    fn dt_since_conflicting_signs() {
+        // From intl402/Temporal/PlainDateTime/prototype/since/wrapping-at-end-of-month-gregorian
+        // Tests that date arithmetic with conflicting signs works
+        let a = PlainDateTime::try_new(2023, 3, 1, 2, 0, 0, 0, 0, 0, Calendar::GREGORIAN).unwrap();
+        let b = PlainDateTime::try_new(2023, 1, 1, 3, 0, 0, 0, 0, 0, Calendar::GREGORIAN).unwrap();
+
+        let settings = DifferenceSettings {
+            largest_unit: Some(Unit::Year),
+            ..Default::default()
+        };
+        let result = a.since(&b, settings).unwrap();
+
+        assert_eq!(result.months(), 1);
+        assert_eq!(result.days(), 30);
+        assert_eq!(result.hours(), 23);
+    }
+
+    #[test]
     fn dt_round_basic() {
         let assert_datetime =
             |dt: PlainDateTime, expected: (i32, u8, u8, u8, u8, u8, u16, u16, u16)| {
