@@ -109,6 +109,10 @@ tzdb = [
     "timezone_provider/tzif",
 ]
 std = []
+# https://github.com/boa-dev/temporal/issues/613
+# ECMA-conformant implementations must store durations as float64-representable numbers
+# Rust users probably should not enable this, unless they wish to match the quirks of JavaScript
+float64_representable_durations = []
 
 [package.metadata.cargo-all-features]
 denylist = ["default"]
