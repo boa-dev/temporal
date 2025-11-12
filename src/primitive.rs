@@ -238,14 +238,14 @@ impl Ord for FiniteF64 {
 /// An intermediate primitive type for calculating
 /// double64 results.
 #[derive(Debug, Clone, Copy)]
-pub struct DoubleDouble {
+pub(crate) struct DoubleDouble {
     pub(crate) hi: f64,
     pub(crate) lo: f64,
 }
 
 impl DoubleDouble {
     /// Creates a `DoubleDouble` from the product of two `f64` values.
-    pub fn mul(a: f64, b: f64) -> Self {
+    pub(crate) fn mul(a: f64, b: f64) -> Self {
         // Mul
         let product = a * b;
         let error = a.mul_add(b, -product);
@@ -256,7 +256,7 @@ impl DoubleDouble {
     }
 
     /// Creates a `DoubleDouble` from the sum of two `f64` values.
-    pub fn sum(one: f64, two: f64) -> Self {
+    pub(crate) fn sum(one: f64, two: f64) -> Self {
         // Sum
         let sum = one + two;
 
