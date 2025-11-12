@@ -248,7 +248,7 @@ impl DoubleDouble {
     pub(crate) fn mul(a: f64, b: f64) -> Self {
         // Mul
         let product = a * b;
-        let error = a.mul_add(b, -product);
+        let error = core_maths::CoreFloat::mul_add(a, b, -product);
         Self {
             hi: product,
             lo: error,
