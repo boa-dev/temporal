@@ -6,13 +6,13 @@ use num_traits::AsPrimitive;
 use timezone_provider::epoch_nanoseconds::EpochNanoseconds;
 
 use crate::{
-    builtins::core::{time_zone::TimeZone, PlainDate, PlainDateTime},
+    builtins::{core::{time_zone::TimeZone, PlainDate, PlainDateTime}, duration::TWO_POWER_FIFTY_THREE},
     iso::{IsoDate, IsoDateTime},
     options::{
         Disambiguation, Overflow, ResolvedRoundingOptions, RoundingIncrement, RoundingMode, Unit,
         UNIT_VALUE_TABLE,
     },
-    primitive::FiniteF64,
+    primitive::{DoubleDouble, FiniteF64},
     provider::TimeZoneProvider,
     rounding::IncrementRounder,
     Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY, NS_PER_DAY_NONZERO,
@@ -21,6 +21,7 @@ use crate::{
 use super::{DateDuration, Duration, Sign};
 
 const MAX_TIME_DURATION: i128 = 9_007_199_254_740_991_999_999_999;
+const MAX_SAFE_INTEGER: i128 = TWO_POWER_FIFTY_THREE - 1;
 
 // Nanoseconds constants
 
@@ -231,27 +232,43 @@ impl Add<Self> for TimeDuration {
 
 // Struct to handle division steps in `TotalTimeDuration`
 struct DurationTotal {
-    quotient: i128,
-    remainder: i128,
-    unit_nanoseconds: u64,
+    numerator: i128,
+    denominator: f64,
 }
 
 impl DurationTotal {
     pub fn new(time_duration: i128, unit_nanoseconds: u64) -> Self {
-        let quotient = time_duration.div_euclid(unit_nanoseconds as i128);
-        let remainder = time_duration.rem_euclid(unit_nanoseconds as i128);
-
         Self {
-            quotient,
-            remainder,
-            unit_nanoseconds,
+            numerator: time_duration,
+            denominator: unit_nanoseconds as f64,
         }
     }
 
-    pub(crate) fn to_fractional_total(&self) -> TemporalResult<FiniteF64> {
-        let fractional = FiniteF64::try_from(self.remainder)?
-            .checked_div(&FiniteF64::try_from(self.unit_nanoseconds)?)?;
-        FiniteF64::try_from(self.quotient)?.checked_add(&fractional)
+    // NOTE: Functionally similar to SM and JSC's `fractionToDouble`
+    pub(crate) fn to_finite_f64(&self) -> FiniteF64 {
+        if self.denominator == 1. {
+            return FiniteF64(self.numerator as f64) // This operation is lossy.
+        }
+        if self.numerator.abs() < MAX_SAFE_INTEGER {
+            return FiniteF64(self.numerator as f64 / self.denominator)
+        }
+        self.to_finite_f64_slow()
+    }
+
+    #[cold]
+    pub(crate) fn to_finite_f64_slow(&self) -> FiniteF64 {
+        let dd_numerator = DoubleDouble::from(self.numerator);
+        // First approx quotient
+        let q0 = dd_numerator.hi / self.denominator;
+        // Find remainder
+        let product = DoubleDouble::mul(q0, self.denominator);
+        let remainder = DoubleDouble::sum(dd_numerator.hi, -product.hi);
+
+        // Find second approx. quotient
+        let error = remainder.lo + dd_numerator.lo - product.lo;
+        let q1 = (remainder.hi + error) / self.denominator;
+
+        FiniteF64(q0 + q1)
     }
 }
 

@@ -1,6 +1,7 @@
 //! Implementation of the FiniteF64 primitive
 
 use core::cmp::Ordering;
+use core::ops::Mul;
 
 use crate::{error::ErrorMessage, TemporalError, TemporalResult};
 use num_traits::float::FloatCore;
@@ -232,6 +233,47 @@ impl Ord for FiniteF64 {
                 Ordering::Equal
             }
         }
+    }
+}
+
+/// An intermediate primitive type.
+///
+///
+#[derive(Debug, Clone, Copy)]
+pub struct DoubleDouble {
+    pub(crate) hi: f64,
+    pub(crate) lo: f64,
+}
+
+impl DoubleDouble {
+    pub fn mul(a: f64, b: f64) -> Self {
+        // Mul
+        let product = a * b;
+        let error = a.mul_add(b, -product);
+        Self { hi: product, lo: error }
+    }
+
+    pub fn sum(one: f64, two: f64) -> Self {
+        // Sum
+        let sum = one + two;
+        
+        // Calculate error
+        let calc_one = sum - one;
+        let calc_two = sum - two;
+        let two_roundoff = two - calc_one;
+        let one_roundoff = one - calc_two;
+        let error = one_roundoff + two_roundoff;
+
+        Self { hi: sum, lo: error }
+    }
+}
+
+
+impl From<i128> for DoubleDouble {
+    fn from(value: i128) -> Self {
+        let hi = value as f64;
+        let lo = (value - hi as i128) as f64;
+        Self { hi, lo }
     }
 }
 
