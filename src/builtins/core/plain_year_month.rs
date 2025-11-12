@@ -542,6 +542,11 @@ impl PlainYearMonth {
         // 4. Let calendar be yearMonth.[[Calendar]].
         // 5. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
         // 6. Let partialYearMonth be ? PrepareCalendarFields(calendar, temporalYearMonthLike, « year, month, month-code », « », partial).
+        if fields.is_empty() {
+            return Err(
+                TemporalError::r#type().with_message("plainYearMonth fields cannot be empty")
+            );
+        }
         // 7. Set fields to CalendarMergeFields(calendar, fields, partialYearMonth).
         // 8. Let resolvedOptions be ? GetOptionsObject(options).
         // 9. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
