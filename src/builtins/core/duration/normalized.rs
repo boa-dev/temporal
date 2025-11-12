@@ -175,7 +175,7 @@ impl TimeDuration {
         // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer.
         // The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
         // 3. Return timeDuration / divisor.
-        Ok(DurationTotal::new(time_duration, unit_nanoseconds.get() as u64).to_finite_f64())
+        Ok(Fraction::new(time_duration, unit_nanoseconds.get() as f64).to_finite_f64())
     }
 
     pub(crate) fn round_to_fractional_days(
@@ -233,21 +233,30 @@ impl Add<Self> for TimeDuration {
     }
 }
 
-// Struct to handle division steps in `TotalTimeDuration`
-struct DurationTotal {
+// Struct to fractional division steps in `TotalTimeDuration`
+struct Fraction {
     numerator: i128,
     denominator: f64,
 }
 
-impl DurationTotal {
-    pub fn new(time_duration: i128, unit_nanoseconds: u64) -> Self {
+impl Fraction {
+    pub fn new(numerator: i128, denominator: f64) -> Self {
         Self {
-            numerator: time_duration,
-            denominator: unit_nanoseconds as f64,
+            numerator,
+            denominator,
         }
     }
 
     // NOTE: Functionally similar to SM and JSC's `fractionToDouble`
+    //
+    // For more information on this implementation, see the
+    // JavaScriptCore's [fractionToDouble.cpp](https://github.com/WebKit/WebKit/blob/main/Source/JavaScriptCore/runtime/FractionToDouble.cpp)
+    // or SpiderMonkey's [FractionToDouble](https://github.com/mozilla-firefox/firefox/blob/main/js/src/builtin/temporal/Temporal.cpp#L683)
+    //
+    // The JavaScriptCore implementation is recommended as it has fairly robust documentation
+    // on the underlying papers that have informed this approach.
+    /// Calculate an `f64` from a numerator and denominator that may
+    /// be beyond the max safe integer range.
     pub(crate) fn to_finite_f64(&self) -> FiniteF64 {
         if self.denominator == 1. {
             return FiniteF64(self.numerator as f64); // This operation is lossy.
@@ -258,6 +267,7 @@ impl DurationTotal {
         self.to_finite_f64_slow()
     }
 
+    /// The slow path for calculating a `f64` beyond the max safe integer range.
     #[cold]
     pub(crate) fn to_finite_f64_slow(&self) -> FiniteF64 {
         let dd_numerator = DoubleDouble::from(self.numerator);
