@@ -6,7 +6,10 @@ use num_traits::AsPrimitive;
 use timezone_provider::epoch_nanoseconds::EpochNanoseconds;
 
 use crate::{
-    builtins::{core::{time_zone::TimeZone, PlainDate, PlainDateTime}, duration::TWO_POWER_FIFTY_THREE},
+    builtins::{
+        core::{time_zone::TimeZone, PlainDate, PlainDateTime},
+        duration::TWO_POWER_FIFTY_THREE,
+    },
     iso::{IsoDate, IsoDateTime},
     options::{
         Disambiguation, Overflow, ResolvedRoundingOptions, RoundingIncrement, RoundingMode, Unit,
@@ -172,7 +175,7 @@ impl TimeDuration {
         // 2. NOTE: The following step cannot be implemented directly using floating-point arithmetic when 𝔽(timeDuration) is not a safe integer.
         // The division can be implemented in C++ with the __float128 type if the compiler supports it, or with software emulation such as in the SoftFP library.
         // 3. Return timeDuration / divisor.
-        DurationTotal::new(time_duration, unit_nanoseconds.get() as u64).to_fractional_total()
+        Ok(DurationTotal::new(time_duration, unit_nanoseconds.get() as u64).to_finite_f64())
     }
 
     pub(crate) fn round_to_fractional_days(
@@ -247,10 +250,10 @@ impl DurationTotal {
     // NOTE: Functionally similar to SM and JSC's `fractionToDouble`
     pub(crate) fn to_finite_f64(&self) -> FiniteF64 {
         if self.denominator == 1. {
-            return FiniteF64(self.numerator as f64) // This operation is lossy.
+            return FiniteF64(self.numerator as f64); // This operation is lossy.
         }
         if self.numerator.abs() < MAX_SAFE_INTEGER {
-            return FiniteF64(self.numerator as f64 / self.denominator)
+            return FiniteF64(self.numerator as f64 / self.denominator);
         }
         self.to_finite_f64_slow()
     }

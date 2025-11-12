@@ -1,7 +1,6 @@
 //! Implementation of the FiniteF64 primitive
 
 use core::cmp::Ordering;
-use core::ops::Mul;
 
 use crate::{error::ErrorMessage, TemporalError, TemporalResult};
 use num_traits::float::FloatCore;
@@ -237,8 +236,6 @@ impl Ord for FiniteF64 {
 }
 
 /// An intermediate primitive type.
-///
-///
 #[derive(Debug, Clone, Copy)]
 pub struct DoubleDouble {
     pub(crate) hi: f64,
@@ -250,13 +247,16 @@ impl DoubleDouble {
         // Mul
         let product = a * b;
         let error = a.mul_add(b, -product);
-        Self { hi: product, lo: error }
+        Self {
+            hi: product,
+            lo: error,
+        }
     }
 
     pub fn sum(one: f64, two: f64) -> Self {
         // Sum
         let sum = one + two;
-        
+
         // Calculate error
         let calc_one = sum - one;
         let calc_two = sum - two;
@@ -267,7 +267,6 @@ impl DoubleDouble {
         Self { hi: sum, lo: error }
     }
 }
-
 
 impl From<i128> for DoubleDouble {
     fn from(value: i128) -> Self {
