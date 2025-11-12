@@ -947,19 +947,17 @@ mod tests {
         ); // assert month code has changed
         assert_eq!(with_month_code.iso_month(), 5); // month is changed as well
 
-        // Day
-        let fields = YearMonthCalendarFields::new();
-        let with_day = base.with(fields, None).unwrap();
-        assert_eq!(with_day.iso_year(), 2025); // year is not changed
-        assert_eq!(with_day.iso_month(), 3); // month is not changed
-        assert_eq!(with_day.iso.day, 1); // day is ignored
-
         // All
         let fields = YearMonthCalendarFields::new().with_year(2001).with_month(2);
         let with_all = base.with(fields, None).unwrap();
         assert_eq!(with_all.iso_year(), 2001); // year is changed
         assert_eq!(with_all.iso_month(), 2); // month is changed
         assert_eq!(with_all.iso.day, 1); // day is ignored
+
+        // Empty fields -> throws error
+        let fields = YearMonthCalendarFields::new();
+        let empty = base.with(fields, None);
+        assert!(empty.is_err());
     }
 
     #[test]
