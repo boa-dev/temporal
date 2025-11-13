@@ -2,6 +2,7 @@ use databake::{quote, Bake};
 use rustc_hash::FxHasher;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
+    fmt::Write as _,
     fs::{self, File},
     hash::{Hash, Hasher},
     io::{self, BufWriter, Write},
@@ -124,7 +125,20 @@ impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
         fs::create_dir_all(debug_path)?;
         let debug_filename = debug_path.join("iana_normalizer.json");
         let json = serde_json::to_string_pretty(self).unwrap();
-        fs::write(debug_filename, json)
+        fs::write(debug_filename, json)?;
+
+        let mut human_readable = String::new();
+        writeln!(human_readable, "Normalized\n=========").unwrap();
+        for ident in self.normalized_identifiers.iter() {
+            writeln!(human_readable, "{}", ident).unwrap();
+        }
+        writeln!(human_readable, "\nNon canonical identifiers\n=========").unwrap();
+        for (from, to) in self.non_canonical_identifiers.iter() {
+            let from = &self.normalized_identifiers[from as usize];
+            let to = &self.normalized_identifiers[to as usize];
+            writeln!(human_readable, "{from} => {to}").unwrap();
+        }
+        fs::write(debug_path.join("iana_normalizer.txt"), human_readable)
     }
 }
 
