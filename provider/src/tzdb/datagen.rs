@@ -32,6 +32,25 @@ pub struct TzdbDataSource {
     pub data: ZoneInfoData,
 }
 
+/// <https://tc39.es/ecma402/#sec-use-of-iana-time-zone-database>
+///
+/// This spec text wants us to ensure that all zones fully contained
+/// in a region must canonicalize to an entry that is under zone.tab for
+/// that region.
+///
+/// These timezones are mentioned in the packrat entries, HOWEVER the packrat
+/// entries map to tzdb's canonical timezones, which doesn't include the fact that
+/// we treat all zone.tab entries as canonical. There's no easy way to recover this
+/// information. Instead, since there are only three of them, we assert that we have the
+/// same three, and hardcode overrides.
+///
+/// The hardcoded values are taken from <https://github.com/unicode-org/cldr/blob/main/common/bcp47/timezone.xml>
+const PACKRAT_OVERRIDES: &[(&str, &str)] = &[
+    ("Atlantic/Jan_Mayen", "Arctic/Longyearbyen"),
+    ("America/Coral_Harbour", "America/Atikokan"),
+    ("Africa/Timbuktu", "Africa/Bamako"),
+];
+
 impl TzdbDataSource {
     /// Try to create a tzdb source from a tzdata directory.
     pub fn try_from_zoneinfo_directory(tzdata_path: &Path) -> Result<Self, TzdbDataSourceError> {
@@ -69,6 +88,16 @@ impl IanaIdentifierNormalizer<'_> {
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
         let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
+
+        let packrat_overrides: BTreeMap<_, _> = PACKRAT_OVERRIDES.iter().copied().collect();
+
+        for pack in provider.data.pack_rat {
+            assert!(
+                packrat_overrides.contains_key(&*pack.0),
+                "Found missing packrat entry {}",
+                pack.0
+            );
+        }
 
         let zonetab_tzs: BTreeSet<_> = provider
             .data
@@ -108,7 +137,11 @@ impl IanaIdentifierNormalizer<'_> {
         to_primary_id_map.insert(norm_vec.binary_search(&"Etc/GMT").unwrap(), utc_index);
 
         for (link_from, link_to) in &provider.data.links {
-            if zonetab_tzs.contains(link_from) {
+            let mut link_to = &**link_to;
+            if let Some(overrided) = packrat_overrides.get(&**link_from) {
+                // See comment on PACKRAT_OVERRIDES
+                link_to = overrided;
+            } else if zonetab_tzs.contains(link_from) {
                 // https://tc39.es/ecma402/#sec-use-of-iana-time-zone-database
                 // > Any Link name that is present in the “TZ” column of file zone.tab
                 // > must be a primary time zone identifier.
@@ -124,7 +157,7 @@ impl IanaIdentifierNormalizer<'_> {
             let index = if link_to == "Etc/UTC" || link_to == "Etc/GMT" {
                 utc_index
             } else {
-                norm_vec.binary_search(&&**link_to).unwrap()
+                norm_vec.binary_search(&link_to).unwrap()
             };
             to_primary_id_map.insert(link_from, index);
         }

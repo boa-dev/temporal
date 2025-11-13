@@ -602,12 +602,12 @@ Zulu
 Non canonical identifiers
 =========
 Africa/Asmera => Africa/Asmara
-Africa/Timbuktu => Africa/Abidjan
+Africa/Timbuktu => Africa/Bamako
 America/Argentina/ComodRivadavia => America/Argentina/Catamarca
 America/Atka => America/Adak
 America/Buenos_Aires => America/Argentina/Buenos_Aires
 America/Catamarca => America/Argentina/Catamarca
-America/Coral_Harbour => America/Panama
+America/Coral_Harbour => America/Atikokan
 America/Cordoba => America/Argentina/Cordoba
 America/Ensenada => America/Tijuana
 America/Fort_Wayne => America/Indiana/Indianapolis
@@ -647,7 +647,7 @@ Asia/Thimbu => Asia/Thimphu
 Asia/Ujung_Pandang => Asia/Makassar
 Asia/Ulan_Bator => Asia/Ulaanbaatar
 Atlantic/Faeroe => Atlantic/Faroe
-Atlantic/Jan_Mayen => Europe/Berlin
+Atlantic/Jan_Mayen => Arctic/Longyearbyen
 Australia/ACT => Australia/Sydney
 Australia/Canberra => Australia/Sydney
 Australia/Currie => Australia/Hobart
