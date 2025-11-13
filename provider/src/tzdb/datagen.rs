@@ -99,12 +99,6 @@ impl IanaIdentifierNormalizer<'_> {
             );
         }
 
-        let zonetab_tzs: BTreeSet<_> = provider
-            .data
-            .zone_tab
-            .iter()
-            .map(|zt| zt.tz.clone())
-            .collect();
         let mut all_identifiers = BTreeSet::default();
         for zone_id in provider.data.zones.keys() {
             // Add canonical identifiers.
@@ -136,28 +130,40 @@ impl IanaIdentifierNormalizer<'_> {
         to_primary_id_map.insert(norm_vec.binary_search(&"Etc/UTC").unwrap(), utc_index);
         to_primary_id_map.insert(norm_vec.binary_search(&"Etc/GMT").unwrap(), utc_index);
 
-        for (link_from, link_to) in &provider.data.links {
-            let mut link_to = &**link_to;
-            if let Some(overrided) = packrat_overrides.get(&**link_from) {
+        let mut all_links: BTreeMap<&str, &str> = provider
+            .data
+            .links
+            .iter()
+            .map(|x| (&**x.0, &**x.1))
+            .collect();
+
+        // https://tc39.es/ecma402/#sec-use-of-iana-time-zone-database
+        // > Any Link name that is present in the “TZ” column of file zone.tab
+        // > must be a primary time zone identifier.
+        //
+        // So we ignore links entries that link from these timezones
+        // which results in those timezones considered as primary.
+        for tz in provider.data.zone_tab {
+            all_links.remove(&*tz.tz);
+        }
+
+        // UTC should not map to anything
+        all_links.remove("UTC");
+
+        for (link_from, mut link_to) in &all_links {
+            // Sometimes links have multiple steps. This happens for Chungking => Chongqing => Shanghai
+            while let Some(new_link_to) = all_links.get(link_to) {
+                link_to = new_link_to;
+            }
+            if let Some(overrided) = packrat_overrides.get(link_from) {
                 // See comment on PACKRAT_OVERRIDES
                 link_to = overrided;
-            } else if zonetab_tzs.contains(link_from) {
-                // https://tc39.es/ecma402/#sec-use-of-iana-time-zone-database
-                // > Any Link name that is present in the “TZ” column of file zone.tab
-                // > must be a primary time zone identifier.
-                //
-                // So we ignore links entries that link from these timezones
-                // which results in those timezones considered as primary.
-                continue;
             }
-            if link_from == "UTC" {
-                continue;
-            }
-            let link_from = norm_vec.binary_search(&&**link_from).unwrap();
-            let index = if link_to == "Etc/UTC" || link_to == "Etc/GMT" {
+            let link_from = norm_vec.binary_search(link_from).unwrap();
+            let index = if *link_to == "Etc/UTC" || *link_to == "Etc/GMT" {
                 utc_index
             } else {
-                norm_vec.binary_search(&link_to).unwrap()
+                norm_vec.binary_search(link_to).unwrap()
             };
             to_primary_id_map.insert(link_from, index);
         }
