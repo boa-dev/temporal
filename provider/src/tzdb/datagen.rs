@@ -86,8 +86,13 @@ pub enum IanaDataError {
 #[allow(clippy::expect_used, clippy::unwrap_used, reason = "Datagen only")]
 impl IanaIdentifierNormalizer<'_> {
     pub fn build(tzdata_path: &Path) -> Result<Self, IanaDataError> {
-        let provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
+        let mut provider = TzdbDataSource::try_from_zoneinfo_directory(tzdata_path)
             .map_err(IanaDataError::Provider)?;
+
+        // This data includes things like Truk/Chuuk which Temporal requires in its tests
+        // It also includes the packrat data
+        let backzone = ZoneInfoData::from_filepath(tzdata_path.join("backzone")).unwrap();
+        provider.data.extend(backzone);
 
         let packrat_overrides: BTreeMap<_, _> = PACKRAT_OVERRIDES.iter().copied().collect();
 

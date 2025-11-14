@@ -67,7 +67,7 @@ use rule::Rules;
 use zone::ZoneRecord;
 
 /// Well-known zone info file
-pub const ZONEINFO_FILES: [&str; 10] = [
+pub const ZONEINFO_FILES: &[&str] = &[
     "africa",
     "antarctica",
     "asia",
@@ -77,7 +77,6 @@ pub const ZONEINFO_FILES: [&str; 10] = [
     "europe",
     "northamerica",
     "southamerica",
-    "backzone",
 ];
 
 /// The general error type for `ZoneInfo` operations
