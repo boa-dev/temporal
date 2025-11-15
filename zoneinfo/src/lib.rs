@@ -67,7 +67,7 @@ use rule::Rules;
 use zone::ZoneRecord;
 
 /// Well-known zone info file
-pub const ZONEINFO_FILES: [&str; 9] = [
+pub const ZONEINFO_FILES: &[&str] = &[
     "africa",
     "antarctica",
     "asia",

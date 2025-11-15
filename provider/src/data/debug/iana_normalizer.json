@@ -268,345 +268,346 @@
     "asia/dushanbe": 264,
     "asia/famagusta": 265,
     "asia/gaza": 266,
-    "asia/harbin": 267,
-    "asia/hebron": 268,
-    "asia/ho_chi_minh": 269,
-    "asia/hong_kong": 270,
-    "asia/hovd": 271,
-    "asia/irkutsk": 272,
-    "asia/istanbul": 273,
-    "asia/jakarta": 274,
-    "asia/jayapura": 275,
-    "asia/jerusalem": 276,
-    "asia/kabul": 277,
-    "asia/kamchatka": 278,
-    "asia/karachi": 279,
-    "asia/kashgar": 280,
-    "asia/kathmandu": 281,
-    "asia/katmandu": 282,
-    "asia/khandyga": 283,
-    "asia/kolkata": 284,
-    "asia/krasnoyarsk": 285,
-    "asia/kuala_lumpur": 286,
-    "asia/kuching": 287,
-    "asia/kuwait": 288,
-    "asia/macao": 289,
-    "asia/macau": 290,
-    "asia/magadan": 291,
-    "asia/makassar": 292,
-    "asia/manila": 293,
-    "asia/muscat": 294,
-    "asia/nicosia": 295,
-    "asia/novokuznetsk": 296,
-    "asia/novosibirsk": 297,
-    "asia/omsk": 298,
-    "asia/oral": 299,
-    "asia/phnom_penh": 300,
-    "asia/pontianak": 301,
-    "asia/pyongyang": 302,
-    "asia/qatar": 303,
-    "asia/qostanay": 304,
-    "asia/qyzylorda": 305,
-    "asia/rangoon": 306,
-    "asia/riyadh": 307,
-    "asia/saigon": 308,
-    "asia/sakhalin": 309,
-    "asia/samarkand": 310,
-    "asia/seoul": 311,
-    "asia/shanghai": 312,
-    "asia/singapore": 313,
-    "asia/srednekolymsk": 314,
-    "asia/taipei": 315,
-    "asia/tashkent": 316,
-    "asia/tbilisi": 317,
-    "asia/tehran": 318,
-    "asia/tel_aviv": 319,
-    "asia/thimbu": 320,
-    "asia/thimphu": 321,
-    "asia/tokyo": 322,
-    "asia/tomsk": 323,
-    "asia/ujung_pandang": 324,
-    "asia/ulaanbaatar": 325,
-    "asia/ulan_bator": 326,
-    "asia/urumqi": 327,
-    "asia/ust-nera": 328,
-    "asia/vientiane": 329,
-    "asia/vladivostok": 330,
-    "asia/yakutsk": 331,
-    "asia/yangon": 332,
-    "asia/yekaterinburg": 333,
-    "asia/yerevan": 334,
-    "atlantic/azores": 335,
-    "atlantic/bermuda": 336,
-    "atlantic/canary": 337,
-    "atlantic/cape_verde": 338,
-    "atlantic/faeroe": 339,
-    "atlantic/faroe": 340,
-    "atlantic/jan_mayen": 341,
-    "atlantic/madeira": 342,
-    "atlantic/reykjavik": 343,
-    "atlantic/south_georgia": 344,
-    "atlantic/st_helena": 345,
-    "atlantic/stanley": 346,
-    "australia/act": 347,
-    "australia/adelaide": 348,
-    "australia/brisbane": 349,
-    "australia/broken_hill": 350,
-    "australia/canberra": 351,
-    "australia/currie": 352,
-    "australia/darwin": 353,
-    "australia/eucla": 354,
-    "australia/hobart": 355,
-    "australia/lhi": 356,
-    "australia/lindeman": 357,
-    "australia/lord_howe": 358,
-    "australia/melbourne": 359,
-    "australia/north": 361,
-    "australia/nsw": 360,
-    "australia/perth": 362,
-    "australia/queensland": 363,
-    "australia/south": 364,
-    "australia/sydney": 365,
-    "australia/tasmania": 366,
-    "australia/victoria": 367,
-    "australia/west": 368,
-    "australia/yancowinna": 369,
-    "brazil/acre": 370,
-    "brazil/denoronha": 371,
-    "brazil/east": 372,
-    "brazil/west": 373,
-    "canada/atlantic": 376,
-    "canada/central": 377,
-    "canada/eastern": 378,
-    "canada/mountain": 379,
-    "canada/newfoundland": 380,
-    "canada/pacific": 381,
-    "canada/saskatchewan": 382,
-    "canada/yukon": 383,
-    "cet": 374,
-    "chile/continental": 384,
-    "chile/easterisland": 385,
-    "cst6cdt": 375,
-    "cuba": 386,
-    "eet": 387,
-    "egypt": 390,
-    "eire": 391,
-    "est": 388,
-    "est5edt": 389,
-    "etc/gmt": 392,
-    "etc/gmt+0": 393,
-    "etc/gmt+1": 394,
-    "etc/gmt+10": 395,
-    "etc/gmt+11": 396,
-    "etc/gmt+12": 397,
-    "etc/gmt+2": 398,
-    "etc/gmt+3": 399,
-    "etc/gmt+4": 400,
-    "etc/gmt+5": 401,
-    "etc/gmt+6": 402,
-    "etc/gmt+7": 403,
-    "etc/gmt+8": 404,
-    "etc/gmt+9": 405,
-    "etc/gmt-0": 406,
-    "etc/gmt-1": 407,
-    "etc/gmt-10": 408,
-    "etc/gmt-11": 409,
-    "etc/gmt-12": 410,
-    "etc/gmt-13": 411,
-    "etc/gmt-14": 412,
-    "etc/gmt-2": 413,
-    "etc/gmt-3": 414,
-    "etc/gmt-4": 415,
-    "etc/gmt-5": 416,
-    "etc/gmt-6": 417,
-    "etc/gmt-7": 418,
-    "etc/gmt-8": 419,
-    "etc/gmt-9": 420,
-    "etc/gmt0": 421,
-    "etc/greenwich": 422,
-    "etc/uct": 423,
-    "etc/universal": 425,
-    "etc/utc": 424,
-    "etc/zulu": 426,
-    "europe/amsterdam": 427,
-    "europe/andorra": 428,
-    "europe/astrakhan": 429,
-    "europe/athens": 430,
-    "europe/belfast": 431,
-    "europe/belgrade": 432,
-    "europe/berlin": 433,
-    "europe/bratislava": 434,
-    "europe/brussels": 435,
-    "europe/bucharest": 436,
-    "europe/budapest": 437,
-    "europe/busingen": 438,
-    "europe/chisinau": 439,
-    "europe/copenhagen": 440,
-    "europe/dublin": 441,
-    "europe/gibraltar": 442,
-    "europe/guernsey": 443,
-    "europe/helsinki": 444,
-    "europe/isle_of_man": 445,
-    "europe/istanbul": 446,
-    "europe/jersey": 447,
-    "europe/kaliningrad": 448,
-    "europe/kiev": 449,
-    "europe/kirov": 450,
-    "europe/kyiv": 451,
-    "europe/lisbon": 452,
-    "europe/ljubljana": 453,
-    "europe/london": 454,
-    "europe/luxembourg": 455,
-    "europe/madrid": 456,
-    "europe/malta": 457,
-    "europe/mariehamn": 458,
-    "europe/minsk": 459,
-    "europe/monaco": 460,
-    "europe/moscow": 461,
-    "europe/nicosia": 462,
-    "europe/oslo": 463,
-    "europe/paris": 464,
-    "europe/podgorica": 465,
-    "europe/prague": 466,
-    "europe/riga": 467,
-    "europe/rome": 468,
-    "europe/samara": 469,
-    "europe/san_marino": 470,
-    "europe/sarajevo": 471,
-    "europe/saratov": 472,
-    "europe/simferopol": 473,
-    "europe/skopje": 474,
-    "europe/sofia": 475,
-    "europe/stockholm": 476,
-    "europe/tallinn": 477,
-    "europe/tirane": 478,
-    "europe/tiraspol": 479,
-    "europe/ulyanovsk": 480,
-    "europe/uzhgorod": 481,
-    "europe/vaduz": 482,
-    "europe/vatican": 483,
-    "europe/vienna": 484,
-    "europe/vilnius": 485,
-    "europe/volgograd": 486,
-    "europe/warsaw": 487,
-    "europe/zagreb": 488,
-    "europe/zaporozhye": 489,
-    "europe/zurich": 490,
-    "gb": 491,
-    "gb-eire": 492,
-    "gmt": 493,
-    "gmt+0": 494,
-    "gmt-0": 495,
-    "gmt0": 496,
-    "greenwich": 497,
-    "hongkong": 499,
-    "hst": 498,
-    "iceland": 500,
-    "indian/antananarivo": 501,
-    "indian/chagos": 502,
-    "indian/christmas": 503,
-    "indian/cocos": 504,
-    "indian/comoro": 505,
-    "indian/kerguelen": 506,
-    "indian/mahe": 507,
-    "indian/maldives": 508,
-    "indian/mauritius": 509,
-    "indian/mayotte": 510,
-    "indian/reunion": 511,
-    "iran": 512,
-    "israel": 513,
-    "jamaica": 514,
-    "japan": 515,
-    "kwajalein": 516,
-    "libya": 517,
-    "met": 518,
-    "mexico/bajanorte": 521,
-    "mexico/bajasur": 522,
-    "mexico/general": 523,
-    "mst": 519,
-    "mst7mdt": 520,
-    "navajo": 526,
-    "nz": 524,
-    "nz-chat": 525,
-    "pacific/apia": 529,
-    "pacific/auckland": 530,
-    "pacific/bougainville": 531,
-    "pacific/chatham": 532,
-    "pacific/chuuk": 533,
-    "pacific/easter": 534,
-    "pacific/efate": 535,
-    "pacific/enderbury": 536,
-    "pacific/fakaofo": 537,
-    "pacific/fiji": 538,
-    "pacific/funafuti": 539,
-    "pacific/galapagos": 540,
-    "pacific/gambier": 541,
-    "pacific/guadalcanal": 542,
-    "pacific/guam": 543,
-    "pacific/honolulu": 544,
-    "pacific/johnston": 545,
-    "pacific/kanton": 546,
-    "pacific/kiritimati": 547,
-    "pacific/kosrae": 548,
-    "pacific/kwajalein": 549,
-    "pacific/majuro": 550,
-    "pacific/marquesas": 551,
-    "pacific/midway": 552,
-    "pacific/nauru": 553,
-    "pacific/niue": 554,
-    "pacific/norfolk": 555,
-    "pacific/noumea": 556,
-    "pacific/pago_pago": 557,
-    "pacific/palau": 558,
-    "pacific/pitcairn": 559,
-    "pacific/pohnpei": 560,
-    "pacific/ponape": 561,
-    "pacific/port_moresby": 562,
-    "pacific/rarotonga": 563,
-    "pacific/saipan": 564,
-    "pacific/samoa": 565,
-    "pacific/tahiti": 566,
-    "pacific/tarawa": 567,
-    "pacific/tongatapu": 568,
-    "pacific/truk": 569,
-    "pacific/wake": 570,
-    "pacific/wallis": 571,
-    "pacific/yap": 572,
-    "poland": 573,
-    "portugal": 574,
-    "prc": 527,
-    "pst8pdt": 528,
-    "roc": 575,
-    "rok": 576,
-    "singapore": 577,
-    "turkey": 578,
-    "uct": 579,
-    "universal": 593,
-    "us/alaska": 580,
-    "us/aleutian": 581,
-    "us/arizona": 582,
-    "us/central": 583,
-    "us/east-indiana": 584,
-    "us/eastern": 585,
-    "us/hawaii": 586,
-    "us/indiana-starke": 587,
-    "us/michigan": 588,
-    "us/mountain": 589,
-    "us/pacific": 590,
-    "us/samoa": 591,
-    "utc": 592,
-    "w-su": 594,
-    "wet": 595,
-    "zulu": 596
+    "asia/hanoi": 267,
+    "asia/harbin": 268,
+    "asia/hebron": 269,
+    "asia/ho_chi_minh": 270,
+    "asia/hong_kong": 271,
+    "asia/hovd": 272,
+    "asia/irkutsk": 273,
+    "asia/istanbul": 274,
+    "asia/jakarta": 275,
+    "asia/jayapura": 276,
+    "asia/jerusalem": 277,
+    "asia/kabul": 278,
+    "asia/kamchatka": 279,
+    "asia/karachi": 280,
+    "asia/kashgar": 281,
+    "asia/kathmandu": 282,
+    "asia/katmandu": 283,
+    "asia/khandyga": 284,
+    "asia/kolkata": 285,
+    "asia/krasnoyarsk": 286,
+    "asia/kuala_lumpur": 287,
+    "asia/kuching": 288,
+    "asia/kuwait": 289,
+    "asia/macao": 290,
+    "asia/macau": 291,
+    "asia/magadan": 292,
+    "asia/makassar": 293,
+    "asia/manila": 294,
+    "asia/muscat": 295,
+    "asia/nicosia": 296,
+    "asia/novokuznetsk": 297,
+    "asia/novosibirsk": 298,
+    "asia/omsk": 299,
+    "asia/oral": 300,
+    "asia/phnom_penh": 301,
+    "asia/pontianak": 302,
+    "asia/pyongyang": 303,
+    "asia/qatar": 304,
+    "asia/qostanay": 305,
+    "asia/qyzylorda": 306,
+    "asia/rangoon": 307,
+    "asia/riyadh": 308,
+    "asia/saigon": 309,
+    "asia/sakhalin": 310,
+    "asia/samarkand": 311,
+    "asia/seoul": 312,
+    "asia/shanghai": 313,
+    "asia/singapore": 314,
+    "asia/srednekolymsk": 315,
+    "asia/taipei": 316,
+    "asia/tashkent": 317,
+    "asia/tbilisi": 318,
+    "asia/tehran": 319,
+    "asia/tel_aviv": 320,
+    "asia/thimbu": 321,
+    "asia/thimphu": 322,
+    "asia/tokyo": 323,
+    "asia/tomsk": 324,
+    "asia/ujung_pandang": 325,
+    "asia/ulaanbaatar": 326,
+    "asia/ulan_bator": 327,
+    "asia/urumqi": 328,
+    "asia/ust-nera": 329,
+    "asia/vientiane": 330,
+    "asia/vladivostok": 331,
+    "asia/yakutsk": 332,
+    "asia/yangon": 333,
+    "asia/yekaterinburg": 334,
+    "asia/yerevan": 335,
+    "atlantic/azores": 336,
+    "atlantic/bermuda": 337,
+    "atlantic/canary": 338,
+    "atlantic/cape_verde": 339,
+    "atlantic/faeroe": 340,
+    "atlantic/faroe": 341,
+    "atlantic/jan_mayen": 342,
+    "atlantic/madeira": 343,
+    "atlantic/reykjavik": 344,
+    "atlantic/south_georgia": 345,
+    "atlantic/st_helena": 346,
+    "atlantic/stanley": 347,
+    "australia/act": 348,
+    "australia/adelaide": 349,
+    "australia/brisbane": 350,
+    "australia/broken_hill": 351,
+    "australia/canberra": 352,
+    "australia/currie": 353,
+    "australia/darwin": 354,
+    "australia/eucla": 355,
+    "australia/hobart": 356,
+    "australia/lhi": 357,
+    "australia/lindeman": 358,
+    "australia/lord_howe": 359,
+    "australia/melbourne": 360,
+    "australia/north": 362,
+    "australia/nsw": 361,
+    "australia/perth": 363,
+    "australia/queensland": 364,
+    "australia/south": 365,
+    "australia/sydney": 366,
+    "australia/tasmania": 367,
+    "australia/victoria": 368,
+    "australia/west": 369,
+    "australia/yancowinna": 370,
+    "brazil/acre": 371,
+    "brazil/denoronha": 372,
+    "brazil/east": 373,
+    "brazil/west": 374,
+    "canada/atlantic": 377,
+    "canada/central": 378,
+    "canada/eastern": 379,
+    "canada/mountain": 380,
+    "canada/newfoundland": 381,
+    "canada/pacific": 382,
+    "canada/saskatchewan": 383,
+    "canada/yukon": 384,
+    "cet": 375,
+    "chile/continental": 385,
+    "chile/easterisland": 386,
+    "cst6cdt": 376,
+    "cuba": 387,
+    "eet": 388,
+    "egypt": 391,
+    "eire": 392,
+    "est": 389,
+    "est5edt": 390,
+    "etc/gmt": 393,
+    "etc/gmt+0": 394,
+    "etc/gmt+1": 395,
+    "etc/gmt+10": 396,
+    "etc/gmt+11": 397,
+    "etc/gmt+12": 398,
+    "etc/gmt+2": 399,
+    "etc/gmt+3": 400,
+    "etc/gmt+4": 401,
+    "etc/gmt+5": 402,
+    "etc/gmt+6": 403,
+    "etc/gmt+7": 404,
+    "etc/gmt+8": 405,
+    "etc/gmt+9": 406,
+    "etc/gmt-0": 407,
+    "etc/gmt-1": 408,
+    "etc/gmt-10": 409,
+    "etc/gmt-11": 410,
+    "etc/gmt-12": 411,
+    "etc/gmt-13": 412,
+    "etc/gmt-14": 413,
+    "etc/gmt-2": 414,
+    "etc/gmt-3": 415,
+    "etc/gmt-4": 416,
+    "etc/gmt-5": 417,
+    "etc/gmt-6": 418,
+    "etc/gmt-7": 419,
+    "etc/gmt-8": 420,
+    "etc/gmt-9": 421,
+    "etc/gmt0": 422,
+    "etc/greenwich": 423,
+    "etc/uct": 424,
+    "etc/universal": 426,
+    "etc/utc": 425,
+    "etc/zulu": 427,
+    "europe/amsterdam": 428,
+    "europe/andorra": 429,
+    "europe/astrakhan": 430,
+    "europe/athens": 431,
+    "europe/belfast": 432,
+    "europe/belgrade": 433,
+    "europe/berlin": 434,
+    "europe/bratislava": 435,
+    "europe/brussels": 436,
+    "europe/bucharest": 437,
+    "europe/budapest": 438,
+    "europe/busingen": 439,
+    "europe/chisinau": 440,
+    "europe/copenhagen": 441,
+    "europe/dublin": 442,
+    "europe/gibraltar": 443,
+    "europe/guernsey": 444,
+    "europe/helsinki": 445,
+    "europe/isle_of_man": 446,
+    "europe/istanbul": 447,
+    "europe/jersey": 448,
+    "europe/kaliningrad": 449,
+    "europe/kiev": 450,
+    "europe/kirov": 451,
+    "europe/kyiv": 452,
+    "europe/lisbon": 453,
+    "europe/ljubljana": 454,
+    "europe/london": 455,
+    "europe/luxembourg": 456,
+    "europe/madrid": 457,
+    "europe/malta": 458,
+    "europe/mariehamn": 459,
+    "europe/minsk": 460,
+    "europe/monaco": 461,
+    "europe/moscow": 462,
+    "europe/nicosia": 463,
+    "europe/oslo": 464,
+    "europe/paris": 465,
+    "europe/podgorica": 466,
+    "europe/prague": 467,
+    "europe/riga": 468,
+    "europe/rome": 469,
+    "europe/samara": 470,
+    "europe/san_marino": 471,
+    "europe/sarajevo": 472,
+    "europe/saratov": 473,
+    "europe/simferopol": 474,
+    "europe/skopje": 475,
+    "europe/sofia": 476,
+    "europe/stockholm": 477,
+    "europe/tallinn": 478,
+    "europe/tirane": 479,
+    "europe/tiraspol": 480,
+    "europe/ulyanovsk": 481,
+    "europe/uzhgorod": 482,
+    "europe/vaduz": 483,
+    "europe/vatican": 484,
+    "europe/vienna": 485,
+    "europe/vilnius": 486,
+    "europe/volgograd": 487,
+    "europe/warsaw": 488,
+    "europe/zagreb": 489,
+    "europe/zaporozhye": 490,
+    "europe/zurich": 491,
+    "gb": 492,
+    "gb-eire": 493,
+    "gmt": 494,
+    "gmt+0": 495,
+    "gmt-0": 496,
+    "gmt0": 497,
+    "greenwich": 498,
+    "hongkong": 500,
+    "hst": 499,
+    "iceland": 501,
+    "indian/antananarivo": 502,
+    "indian/chagos": 503,
+    "indian/christmas": 504,
+    "indian/cocos": 505,
+    "indian/comoro": 506,
+    "indian/kerguelen": 507,
+    "indian/mahe": 508,
+    "indian/maldives": 509,
+    "indian/mauritius": 510,
+    "indian/mayotte": 511,
+    "indian/reunion": 512,
+    "iran": 513,
+    "israel": 514,
+    "jamaica": 515,
+    "japan": 516,
+    "kwajalein": 517,
+    "libya": 518,
+    "met": 519,
+    "mexico/bajanorte": 522,
+    "mexico/bajasur": 523,
+    "mexico/general": 524,
+    "mst": 520,
+    "mst7mdt": 521,
+    "navajo": 527,
+    "nz": 525,
+    "nz-chat": 526,
+    "pacific/apia": 530,
+    "pacific/auckland": 531,
+    "pacific/bougainville": 532,
+    "pacific/chatham": 533,
+    "pacific/chuuk": 534,
+    "pacific/easter": 535,
+    "pacific/efate": 536,
+    "pacific/enderbury": 537,
+    "pacific/fakaofo": 538,
+    "pacific/fiji": 539,
+    "pacific/funafuti": 540,
+    "pacific/galapagos": 541,
+    "pacific/gambier": 542,
+    "pacific/guadalcanal": 543,
+    "pacific/guam": 544,
+    "pacific/honolulu": 545,
+    "pacific/johnston": 546,
+    "pacific/kanton": 547,
+    "pacific/kiritimati": 548,
+    "pacific/kosrae": 549,
+    "pacific/kwajalein": 550,
+    "pacific/majuro": 551,
+    "pacific/marquesas": 552,
+    "pacific/midway": 553,
+    "pacific/nauru": 554,
+    "pacific/niue": 555,
+    "pacific/norfolk": 556,
+    "pacific/noumea": 557,
+    "pacific/pago_pago": 558,
+    "pacific/palau": 559,
+    "pacific/pitcairn": 560,
+    "pacific/pohnpei": 561,
+    "pacific/ponape": 562,
+    "pacific/port_moresby": 563,
+    "pacific/rarotonga": 564,
+    "pacific/saipan": 565,
+    "pacific/samoa": 566,
+    "pacific/tahiti": 567,
+    "pacific/tarawa": 568,
+    "pacific/tongatapu": 569,
+    "pacific/truk": 570,
+    "pacific/wake": 571,
+    "pacific/wallis": 572,
+    "pacific/yap": 573,
+    "poland": 574,
+    "portugal": 575,
+    "prc": 528,
+    "pst8pdt": 529,
+    "roc": 576,
+    "rok": 577,
+    "singapore": 578,
+    "turkey": 579,
+    "uct": 580,
+    "universal": 594,
+    "us/alaska": 581,
+    "us/aleutian": 582,
+    "us/arizona": 583,
+    "us/central": 584,
+    "us/east-indiana": 585,
+    "us/eastern": 586,
+    "us/hawaii": 587,
+    "us/indiana-starke": 588,
+    "us/michigan": 589,
+    "us/mountain": 590,
+    "us/pacific": 591,
+    "us/samoa": 592,
+    "utc": 593,
+    "w-su": 595,
+    "wet": 596,
+    "zulu": 597
   },
   "non_canonical_identifiers": [
     [
       5,
-      43
+      4
     ],
     [
       50,
-      0
+      6
     ],
     [
       61,
@@ -626,7 +627,7 @@
     ],
     [
       96,
-      179
+      74
     ],
     [
       97,
@@ -702,7 +703,7 @@
     ],
     [
       218,
-      187
+      208
     ],
     [
       222,
@@ -710,7 +711,7 @@
     ],
     [
       231,
-      530
+      228
     ],
     [
       243,
@@ -718,495 +719,495 @@
     ],
     [
       253,
-      284
+      285
     ],
     [
       255,
-      325
+      326
     ],
     [
       256,
-      312
+      313
     ],
     [
       257,
-      312
+      313
     ],
     [
       259,
       261
     ],
     [
-      267,
-      312
-    ],
-    [
-      273,
-      446
-    ],
-    [
-      280,
-      327
-    ],
-    [
-      282,
-      281
-    ],
-    [
-      289,
-      290
-    ],
-    [
-      306,
-      332
-    ],
-    [
-      308,
-      269
-    ],
-    [
-      319,
-      276
-    ],
-    [
-      320,
-      321
-    ],
-    [
-      324,
-      292
-    ],
-    [
-      326,
-      325
-    ],
-    [
-      339,
-      340
-    ],
-    [
-      341,
-      433
-    ],
-    [
-      347,
-      365
-    ],
-    [
-      351,
-      365
-    ],
-    [
-      352,
-      355
-    ],
-    [
-      356,
-      358
-    ],
-    [
-      360,
-      365
-    ],
-    [
-      361,
-      353
-    ],
-    [
-      363,
-      349
-    ],
-    [
-      364,
-      348
-    ],
-    [
-      366,
-      355
-    ],
-    [
-      367,
-      359
-    ],
-    [
-      368,
-      362
-    ],
-    [
-      369,
-      350
-    ],
-    [
-      370,
-      194
-    ],
-    [
-      371,
-      173
-    ],
-    [
-      372,
-      200
-    ],
-    [
-      373,
-      153
-    ],
-    [
-      374,
-      435
-    ],
-    [
-      375,
-      93
-    ],
-    [
-      376,
-      125
-    ],
-    [
-      377,
-      220
-    ],
-    [
-      378,
-      215
-    ],
-    [
-      379,
-      109
-    ],
-    [
-      380,
-      205
-    ],
-    [
-      381,
-      217
-    ],
-    [
-      382,
-      192
-    ],
-    [
-      383,
-      219
-    ],
-    [
-      384,
-      198
-    ],
-    [
-      385,
-      534
-    ],
-    [
-      386,
-      126
-    ],
-    [
-      387,
-      430
-    ],
-    [
-      388,
-      179
-    ],
-    [
-      389,
-      170
-    ],
-    [
-      390,
-      13
-    ],
-    [
-      391,
-      441
-    ],
-    [
-      392,
-      592
-    ],
-    [
-      393,
-      592
-    ],
-    [
-      406,
-      592
-    ],
-    [
-      421,
-      592
-    ],
-    [
-      422,
-      592
-    ],
-    [
-      423,
-      592
-    ],
-    [
-      424,
-      592
-    ],
-    [
-      425,
-      592
-    ],
-    [
-      426,
-      592
-    ],
-    [
-      431,
-      454
-    ],
-    [
-      449,
-      451
-    ],
-    [
-      462,
-      295
-    ],
-    [
-      479,
-      439
-    ],
-    [
-      481,
-      451
-    ],
-    [
-      489,
-      451
-    ],
-    [
-      491,
-      454
-    ],
-    [
-      492,
-      454
-    ],
-    [
-      493,
-      592
-    ],
-    [
-      494,
-      592
-    ],
-    [
-      495,
-      592
-    ],
-    [
-      496,
-      592
-    ],
-    [
-      497,
-      592
-    ],
-    [
-      498,
-      544
-    ],
-    [
-      499,
-      270
-    ],
-    [
-      500,
-      0
-    ],
-    [
-      512,
-      318
-    ],
-    [
-      513,
-      276
-    ],
-    [
-      514,
-      139
-    ],
-    [
-      515,
-      322
-    ],
-    [
-      516,
-      549
-    ],
-    [
-      517,
-      51
-    ],
-    [
-      518,
-      435
-    ],
-    [
-      519,
-      182
-    ],
-    [
-      520,
-      106
-    ],
-    [
-      521,
-      214
-    ],
-    [
-      522,
-      157
-    ],
-    [
-      523,
-      162
-    ],
-    [
-      524,
-      530
-    ],
-    [
-      525,
-      532
-    ],
-    [
-      526,
-      106
-    ],
-    [
-      527,
-      312
-    ],
-    [
-      528,
-      148
-    ],
-    [
-      536,
-      546
-    ],
-    [
-      545,
-      544
-    ],
-    [
-      561,
-      542
-    ],
-    [
-      565,
-      557
-    ],
-    [
-      569,
-      562
-    ],
-    [
-      572,
-      562
-    ],
-    [
-      573,
-      487
-    ],
-    [
-      574,
-      452
-    ],
-    [
-      575,
-      315
-    ],
-    [
-      576,
-      311
-    ],
-    [
-      577,
+      268,
       313
     ],
     [
-      578,
-      446
+      274,
+      447
     ],
     [
-      579,
-      592
+      281,
+      328
     ],
     [
-      580,
-      55
+      283,
+      282
     ],
     [
-      581,
-      54
+      290,
+      291
     ],
     [
-      582,
-      182
+      307,
+      333
     ],
     [
-      583,
+      309,
+      270
+    ],
+    [
+      320,
+      277
+    ],
+    [
+      321,
+      322
+    ],
+    [
+      325,
+      293
+    ],
+    [
+      327,
+      326
+    ],
+    [
+      340,
+      341
+    ],
+    [
+      342,
+      235
+    ],
+    [
+      348,
+      366
+    ],
+    [
+      352,
+      366
+    ],
+    [
+      353,
+      356
+    ],
+    [
+      357,
+      359
+    ],
+    [
+      361,
+      366
+    ],
+    [
+      362,
+      354
+    ],
+    [
+      364,
+      350
+    ],
+    [
+      365,
+      349
+    ],
+    [
+      367,
+      356
+    ],
+    [
+      368,
+      360
+    ],
+    [
+      369,
+      363
+    ],
+    [
+      370,
+      351
+    ],
+    [
+      371,
+      194
+    ],
+    [
+      372,
+      173
+    ],
+    [
+      373,
+      200
+    ],
+    [
+      374,
+      153
+    ],
+    [
+      375,
+      436
+    ],
+    [
+      376,
       93
     ],
     [
-      584,
-      128
+      377,
+      125
     ],
     [
-      585,
+      378,
+      220
+    ],
+    [
+      379,
+      215
+    ],
+    [
+      380,
+      109
+    ],
+    [
+      381,
+      205
+    ],
+    [
+      382,
+      217
+    ],
+    [
+      383,
+      192
+    ],
+    [
+      384,
+      219
+    ],
+    [
+      385,
+      198
+    ],
+    [
+      386,
+      535
+    ],
+    [
+      387,
+      126
+    ],
+    [
+      388,
+      431
+    ],
+    [
+      389,
+      179
+    ],
+    [
+      390,
       170
     ],
     [
-      586,
-      544
+      391,
+      13
     ],
     [
-      587,
-      129
+      392,
+      442
     ],
     [
-      588,
-      107
+      393,
+      593
     ],
     [
-      589,
-      106
+      394,
+      593
     ],
     [
-      590,
-      148
+      407,
+      593
     ],
     [
-      591,
-      557
+      422,
+      593
     ],
     [
-      593,
-      592
+      423,
+      593
     ],
     [
-      594,
-      461
+      424,
+      593
     ],
     [
-      595,
+      425,
+      593
+    ],
+    [
+      426,
+      593
+    ],
+    [
+      427,
+      593
+    ],
+    [
+      432,
+      455
+    ],
+    [
+      450,
       452
     ],
     [
+      463,
+      296
+    ],
+    [
+      480,
+      440
+    ],
+    [
+      482,
+      452
+    ],
+    [
+      490,
+      452
+    ],
+    [
+      492,
+      455
+    ],
+    [
+      493,
+      455
+    ],
+    [
+      494,
+      593
+    ],
+    [
+      495,
+      593
+    ],
+    [
+      496,
+      593
+    ],
+    [
+      497,
+      593
+    ],
+    [
+      498,
+      593
+    ],
+    [
+      499,
+      545
+    ],
+    [
+      500,
+      271
+    ],
+    [
+      501,
+      344
+    ],
+    [
+      513,
+      319
+    ],
+    [
+      514,
+      277
+    ],
+    [
+      515,
+      139
+    ],
+    [
+      516,
+      323
+    ],
+    [
+      517,
+      550
+    ],
+    [
+      518,
+      51
+    ],
+    [
+      519,
+      436
+    ],
+    [
+      520,
+      182
+    ],
+    [
+      521,
+      106
+    ],
+    [
+      522,
+      214
+    ],
+    [
+      523,
+      157
+    ],
+    [
+      524,
+      162
+    ],
+    [
+      525,
+      531
+    ],
+    [
+      526,
+      533
+    ],
+    [
+      527,
+      106
+    ],
+    [
+      528,
+      313
+    ],
+    [
+      529,
+      148
+    ],
+    [
+      537,
+      547
+    ],
+    [
+      546,
+      545
+    ],
+    [
+      562,
+      561
+    ],
+    [
+      566,
+      558
+    ],
+    [
+      570,
+      534
+    ],
+    [
+      573,
+      534
+    ],
+    [
+      574,
+      488
+    ],
+    [
+      575,
+      453
+    ],
+    [
+      576,
+      316
+    ],
+    [
+      577,
+      312
+    ],
+    [
+      578,
+      314
+    ],
+    [
+      579,
+      447
+    ],
+    [
+      580,
+      593
+    ],
+    [
+      581,
+      55
+    ],
+    [
+      582,
+      54
+    ],
+    [
+      583,
+      182
+    ],
+    [
+      584,
+      93
+    ],
+    [
+      585,
+      128
+    ],
+    [
+      586,
+      170
+    ],
+    [
+      587,
+      545
+    ],
+    [
+      588,
+      129
+    ],
+    [
+      589,
+      107
+    ],
+    [
+      590,
+      106
+    ],
+    [
+      591,
+      148
+    ],
+    [
+      592,
+      558
+    ],
+    [
+      594,
+      593
+    ],
+    [
+      595,
+      462
+    ],
+    [
       596,
-      592
+      453
+    ],
+    [
+      597,
+      593
     ]
   ],
   "normalized_identifiers": [
@@ -1477,6 +1478,7 @@
     "Asia/Dushanbe",
     "Asia/Famagusta",
     "Asia/Gaza",
+    "Asia/Hanoi",
     "Asia/Harbin",
     "Asia/Hebron",
     "Asia/Ho_Chi_Minh",

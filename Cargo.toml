@@ -25,6 +25,8 @@ exclude = [
     "CONTRIBUTING.md",
     "cliff.toml",
     "tests/data/zoneinfo64.res",
+    # Under a different license
+    "provider/src/tzdb/cldr-timezone.xml",
 ]
 
 [workspace.dependencies]
