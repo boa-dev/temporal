@@ -76,3 +76,6 @@ serde_json = { version = "1.0.145", optional = true }
 [dev-dependencies]
 serde-xml-rs = "0.8.1"
 serde = { version = "1.0.225" , features = ["derive"] }
+
+[package.metadata.docs.rs]
+all-features = true
