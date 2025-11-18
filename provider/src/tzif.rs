@@ -39,7 +39,7 @@ use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::ops::Range;
 use core::str;
-use std::sync::RwLock;
+use std::sync::{RwLock, RwLockReadGuard};
 
 use combine::Parser;
 
@@ -1385,16 +1385,20 @@ impl TzdbResolverBackend for FsTzdbResolver {
 }
 
 impl<Kind> TzdbResolver<Kind> {
-    /// Get timezone data for a single identifier
-    fn get(&self, id: ResolvedId) -> TimeZoneProviderResult<Tzif> {
+    /// Read access to the internal cache
+    pub fn read_cache(&self) -> TimeZoneProviderResult<RwLockReadGuard<'_, Vec<Tzif>>> {
         self.cache
             .read()
-            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))?
-            .get(id.0)
-            .cloned()
-            .ok_or(TimeZoneProviderError::Assert(
-                "Time zone identifier does not exist.",
-            ))
+            .map_err(|_| TimeZoneProviderError::Assert("poisoned RWLock"))
+    }
+
+    /// Get timezone data for a single identifier
+    pub fn get(cache: &[Tzif], id: ResolvedId) -> TimeZoneProviderResult<&Tzif> {
+        // TODO(shark): ideally this should get an read lock of the cache and use `RwLockReadGuard::map`, so we don't need to rely on an external lock
+        // see: https://github.com/rust-lang/rust/issues/117108
+        cache.get(id.0).ok_or(TimeZoneProviderError::Assert(
+            "Time zone identifier does not exist.",
+        ))
     }
 }
 
@@ -1430,7 +1434,9 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
         identifier: ResolvedId,
         local_datetime: IsoDateTime,
     ) -> TimeZoneProviderResult<CandidateEpochNanoseconds> {
-        self.get(identifier)?
+        let cache = self.read_cache()?;
+
+        Self::get(&cache, identifier)?
             .candidate_nanoseconds_for_local_epoch_nanoseconds(local_datetime)
     }
 
@@ -1439,17 +1445,23 @@ impl<Kind: TzdbResolverBackend> TimeZoneResolver for TzdbResolver<Kind> {
         identifier: ResolvedId,
         epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<UtcOffsetSeconds> {
-        self.get(identifier)?
+        let cache = self.read_cache()?;
+
+        Self::get(&cache, identifier)?
             .transition_nanoseconds_for_utc_epoch_nanoseconds(epoch_nanoseconds)
     }
 
+    #[inline(always)]
     fn get_time_zone_transition(
         &self,
         identifier: ResolvedId,
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<EpochNanoseconds>> {
-        let tzif = self.get(identifier)?;
+        let cache = self.read_cache()?;
+
+        let tzif = Self::get(&cache, identifier)?;
+
         tzif.get_time_zone_transition(epoch_nanoseconds, direction)
     }
 }
