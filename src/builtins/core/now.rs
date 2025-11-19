@@ -90,7 +90,21 @@ impl<H: HostHooks> Now<H> {
     ///
     /// When `TimeZone` is `None`, the value will default to the
     /// system time zone or UTC if the system zone is unavailable.
+    /// Deprecated: Use `plain_time_iso_with_provider` instead.
+    #[deprecated(since = "0.1.2", note = "Use `plain_time_iso_with_provider` instead")]
     pub fn plain_time_with_provider(
+        self,
+        time_zone: Option<TimeZone>,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<PlainTime> {
+        self.plain_time_iso_with_provider(time_zone, provider)
+    }
+
+    /// Converts `Now` into the current system [`PlainTime`].
+    ///
+    /// When `TimeZone` is `None`, the value will default to the
+    /// system time zone or UTC if the system zone is unavailable.
+    pub fn plain_time_iso_with_provider(
         self,
         time_zone: Option<TimeZone>,
         provider: &(impl TimeZoneProvider + ?Sized),
