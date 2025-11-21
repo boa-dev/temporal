@@ -30,7 +30,9 @@ impl<H: HostHooks> Now<H> {
         let time_zone = time_zone.unwrap_or(self.host_hooks.get_system_time_zone(provider)?);
         time_zone.get_iso_datetime_for(&Instant::from(system_nanoseconds), provider)
     }
+}
 
+impl<H: HostHooks> Now<H> {
     /// Converts the current [`Now`] into a [`TimeZone`].
     pub fn time_zone_with_provider(
         self,
@@ -57,9 +59,7 @@ impl<H: HostHooks> Now<H> {
         let instant = Instant::from(system_nanoseconds);
         ZonedDateTime::new_unchecked_with_provider(instant, time_zone, Calendar::ISO, provider)
     }
-}
 
-impl<H: HostHooks> Now<H> {
     /// Converts `Now` into the current system [`PlainDateTime`] with an ISO8601 calendar.
     ///
     /// When `TimeZone` is `None`, the value will default to the

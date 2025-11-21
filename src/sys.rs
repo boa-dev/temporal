@@ -25,7 +25,7 @@ pub struct Temporal;
 
 impl Temporal {
     /// Get a `Now` object for the default host system.
-    pub fn now() -> Now<DefaultHostSystem> {
+    pub const fn now() -> Now<DefaultHostSystem> {
         Now::new(DefaultHostSystem)
     }
 }
