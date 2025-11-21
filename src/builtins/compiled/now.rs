@@ -38,6 +38,6 @@ impl<H: HostHooks> Now<H> {
     ///
     /// Enable with the `compiled_data` and `sys` feature flags.
     pub fn plain_time_iso(self, time_zone: Option<TimeZone>) -> TemporalResult<PlainTime> {
-        self.plain_time_with_provider(time_zone, &*TZ_PROVIDER)
+        self.plain_time_iso_with_provider(time_zone, &*TZ_PROVIDER)
     }
 }
