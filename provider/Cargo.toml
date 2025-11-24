@@ -68,14 +68,14 @@ combine = { workspace = true, optional = true }
 zoneinfo64 = { workspace = true, optional = true }
 
 # Databake dependencies
-serde = { version = "1.0.225", features = ["derive"], optional = true }
+serde = { version = "1.0.228", features = ["derive"], optional = true }
 databake = { workspace = true, optional = true, features = ["derive"]}
-yoke = { version = "0.8.0", features = ["derive"], optional = true }
+yoke = { version = "0.8.1", features = ["derive"], optional = true }
 serde_json = { version = "1.0.145", optional = true }
 
 [dev-dependencies]
-serde-xml-rs = "0.8.1"
-serde = { version = "1.0.225" , features = ["derive"] }
+serde-xml-rs = "0.8.2"
+serde = { version = "1.0.228" , features = ["derive"] }
 
 [package.metadata.docs.rs]
 all-features = true
