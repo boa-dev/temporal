@@ -452,3 +452,26 @@ fn total_full_numeric_precision() {
     let d = Duration::new(0, 0, 0, 0, 0, 0, 0, MAX_SAFE_INTEGER + 1, 1999, 0).unwrap();
     assert_eq!(d.total(Unit::Millisecond, None).unwrap(), 9007199254740994.);
 }
+
+/// Test for https://github.com/tc39/proposal-temporal/pull/3172/
+///
+/// test262: built-ins/Temporal/Duration/prototype/total/rounding-window
+#[test]
+#[cfg(feature = "compiled_data")]
+fn test_nudge_relative_date_total() {
+    use crate::Calendar;
+    use crate::PlainDate;
+    let d = Duration::new(1, 0, 0, 0, 1, 0, 0, 0, 0, 0).unwrap();
+    let relative = PlainDate::new(2020, 2, 29, Calendar::ISO).unwrap();
+    assert_eq!(
+        d.total(Unit::Year, Some(relative.into())).unwrap(),
+        1.0001141552511414
+    );
+
+    let d = Duration::new(0, 1, 0, 0, 10, 0, 0, 0, 0, 0).unwrap();
+    let relative = PlainDate::new(2020, 1, 31, Calendar::ISO).unwrap();
+    assert_eq!(
+        d.total(Unit::Month, Some(relative.into())).unwrap(),
+        1.0134408602150538
+    );
+}
