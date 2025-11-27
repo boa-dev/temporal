@@ -250,7 +250,7 @@ impl PlainMonthDay {
             .month_day_from_fields(fields, Overflow::Constrain)
     }
 
-    /// Create a `PlainYearMonth` from a `PartialDate`
+    /// Create a `PlainMonthDay` from a `PartialDate`
     pub fn from_partial(partial: PartialDate, overflow: Option<Overflow>) -> TemporalResult<Self> {
         partial
             .calendar
