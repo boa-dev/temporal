@@ -847,6 +847,47 @@ impl RoundingMode {
     }
 }
 
+impl UnsignedRoundingMode {
+    /// <https://tc39.es/proposal-temporal/#sec-applyunsignedroundingmode>
+    pub(crate) fn apply(self, x: f64, r1: i128, r2: i128) -> i128 {
+        // 1. If x = r1, return r1.
+        if r1 as f64 == x {
+            return r1;
+        }
+        // 4. If unsignedRoundingMode is zero, return r1.
+        if self == UnsignedRoundingMode::Zero {
+            return r1;
+        } else if self == UnsignedRoundingMode::Infinity {
+            return r2;
+        }
+        // 6. Let d1 be x – r1.
+        // 7. Let d2 be r2 – x.
+        let d1 = x - r1 as f64;
+        let d2 = r2 as f64 - x;
+        if d1 < d2 {
+            return r1;
+        } else if d1 > d2 {
+            return r2;
+        }
+        match self {
+            UnsignedRoundingMode::HalfZero => r1,
+            UnsignedRoundingMode::HalfInfinity => r2,
+            // HalfEven
+            _ => {
+                // 14. Let cardinality be (r1 / (r2 – r1)) modulo 2.
+                let diff = r2 - r1;
+                let cardinality = (r1 as f64 / diff as f64) % 2.;
+                // 15. If cardinality = 0, return r1.
+                if cardinality == 0. {
+                    r1
+                } else {
+                    r2
+                }
+            }
+        }
+    }
+}
+
 impl FromStr for RoundingMode {
     type Err = TemporalError;
 
