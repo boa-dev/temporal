@@ -871,10 +871,12 @@ fn round_zero_duration() {
     rounding_options.largest_unit = Some(Unit::Day);
     rounding_options.smallest_unit = Some(Unit::Hour);
     let relative_to = ZonedDateTime::try_new(0, TimeZone::utc(), Calendar::default()).unwrap();
-    let rounded_duration = d0.round(
-        rounding_options,
-        Some(RelativeTo::ZonedDateTime(relative_to)),
-    ).unwrap();
+    let rounded_duration = d0
+        .round(
+            rounding_options,
+            Some(RelativeTo::ZonedDateTime(relative_to)),
+        )
+        .unwrap();
 
     assert_eq!(rounded_duration, d0);
 }
