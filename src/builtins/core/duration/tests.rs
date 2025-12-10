@@ -5,6 +5,7 @@ use crate::{
     parsers::Precision,
     partial::PartialDuration,
     provider::NeverProvider,
+    ZonedDateTime,
 };
 
 use super::Duration;
@@ -474,4 +475,91 @@ fn test_nudge_relative_date_total() {
         d.total(Unit::Month, Some(relative.into())).unwrap(),
         1.0134408602150538
     );
+}
+
+// Adapted from roundingincrement-addition-out-of-range.js
+#[test]
+#[cfg(feature = "compiled_data")]
+fn rounding_out_of_range() {
+    use crate::options::{DifferenceSettings, RoundingMode};
+    use crate::TimeZone;
+    let earlier = ZonedDateTime::try_new_iso(0, TimeZone::utc()).unwrap();
+    let later = ZonedDateTime::try_new_iso(5, TimeZone::utc()).unwrap();
+
+    let options = DifferenceSettings { 
+        smallest_unit: Some(Unit::Day),
+        increment: Some(RoundingIncrement::try_new(100_000_001).unwrap()),
+        ..Default::default()
+    };
+    let error = later.since(&earlier, options);
+    assert!(
+        error.is_err(),
+        "Ending bound 100_000_001 is out of range and should fail."
+    );
+
+    let error = earlier.since(&later, options);
+    assert!(
+        error.is_err(),
+        "Ending bound -100_000_001 is out of range and should fail."
+    );
+
+    let options = DifferenceSettings { 
+        smallest_unit: Some(Unit::Day),
+        increment: Some(RoundingIncrement::try_new(100_000_000).unwrap()),
+        rounding_mode: Some(RoundingMode::Expand),
+        ..Default::default()
+    };
+    let duration = later.since(&earlier, options).unwrap();
+    assert_eq!(duration.days(), 100_000_000);
+
+    let duration = earlier.since(&later, options).unwrap();
+    assert_eq!(duration.days(), -100_000_000);
+}
+
+#[test]
+#[cfg(feature = "compiled_data")]
+fn rounding_window() {
+    use crate::PlainDate;
+
+    fn duration(years: i64, months: i64, weeks: i64, days: i64, hours: i64) -> Duration {
+        Duration::new(years, months, weeks, days, hours, 0, 0, 0, 0, 0).unwrap()
+    }
+
+    let d = duration(1, 0, 0, 0, 1);
+    let relative_to = PlainDate::try_new_iso(2020, 2, 29).unwrap();
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Year),
+        ..Default::default()
+    };
+    let result = d.round(options, Some(relative_to.into())).unwrap();
+    assert_eq!(result.years(), 1, "years must round down to 1");
+
+    let d = duration(0, 1, 0, 0, 10);
+    let relative_to = PlainDate::try_new_iso(2020, 1, 31).unwrap();
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Month),
+        rounding_mode: Some(crate::options::RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = d.round(options, Some(relative_to.into())).unwrap();
+    assert_eq!(result.months(), 2, "months rounding should expand to 2");
+
+    let d = duration(2345, 0, 0, 0, 12);
+    let relative_to = PlainDate::try_new_iso(2020, 2, 29).unwrap();
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Year),
+        rounding_mode: Some(crate::options::RoundingMode::Expand),
+        ..Default::default()
+    };
+    let result = d.round(options, Some(relative_to.into())).unwrap();
+    assert_eq!(result.years(), 2346, "years rounding should expand to 2346");
+
+    let d = duration(1, 0, 0, 0, 0);
+    let relative_to = PlainDate::try_new_iso(2020, 2, 29).unwrap();
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Month),
+        ..Default::default()
+    };
+    let result = d.round(options, Some(relative_to.into())).unwrap();
+    assert_eq!(result.years(), 1, "months rounding should no-op");
 }
