@@ -1,10 +1,13 @@
 use core::str::FromStr;
 
 use crate::{
-    options::{RoundingIncrement, RoundingOptions, ToStringRoundingOptions, Unit},
+    Calendar,
+    options::{RelativeTo, RoundingIncrement, RoundingOptions, ToStringRoundingOptions, Unit},
     parsers::Precision,
     partial::PartialDuration,
     provider::NeverProvider,
+    TimeZone,
+    ZonedDateTime,
 };
 
 use super::Duration;
@@ -451,4 +454,18 @@ fn total_full_numeric_precision() {
     // built-ins/Temporal/Duration/prototype/total/precision-exact-mathematical-values-7
     let d = Duration::new(0, 0, 0, 0, 0, 0, 0, MAX_SAFE_INTEGER + 1, 1999, 0).unwrap();
     assert_eq!(d.total(Unit::Millisecond, None).unwrap(), 9007199254740994.);
+}
+
+
+#[test]
+fn round_zero_duration() {
+    // Tests that totalling the zero duration returns zero
+    let d0 = Duration::new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).unwrap();
+    let mut rounding_options = RoundingOptions::default();
+    rounding_options.largest_unit = Some(Unit::Day);
+    rounding_options.smallest_unit = Some(Unit::Hour);
+    let relative_to = ZonedDateTime::try_new(0, TimeZone::utc(), Calendar::default()).unwrap();
+    let rounded_duration = d0.round(rounding_options, Some(RelativeTo::ZonedDateTime(relative_to))).unwrap();
+
+    assert_eq!(rounded_duration, d0);
 }
