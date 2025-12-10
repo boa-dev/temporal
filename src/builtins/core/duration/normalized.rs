@@ -749,7 +749,7 @@ impl InternalDurationRecord {
         let beyond_day_span = rounded_time.checked_add(day_span.negate().0)?;
         // 12. If TimeDurationSign(beyondDaySpan) ≠ -sign, then
         let (expanded, day_delta, rounded_time, nudge_ns) =
-            if beyond_day_span.sign() != sign.negate() {
+            if (beyond_day_span.sign() != sign.negate()) && sign != Sign::Zero {
                 // a. Let didRoundBeyondDay be true.
                 // b. Let dayDelta be sign.
                 // c. Set roundedTimeDuration to ? RoundTimeDurationToIncrement(beyondDaySpan, increment × unitLength, roundingMode).
