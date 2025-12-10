@@ -867,9 +867,11 @@ fn bubble_smallest_becomes_day() {
 fn round_zero_duration() {
     // Tests that totalling the zero duration returns zero
     let d0 = Duration::new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).unwrap();
-    let mut rounding_options = RoundingOptions::default();
-    rounding_options.largest_unit = Some(Unit::Day);
-    rounding_options.smallest_unit = Some(Unit::Hour);
+    let rounding_options = RoundingOptions {
+        largest_unit: Some(Unit::Day),
+        smallest_unit: Some(Unit::Hour),
+        ..Default::default()
+    };
     let relative_to = ZonedDateTime::try_new(0, TimeZone::utc(), Calendar::default()).unwrap();
     let rounded_duration = d0
         .round(
