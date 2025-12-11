@@ -423,14 +423,8 @@ impl InternalDurationRecord {
         let mut did_expand_calendar_unit = false;
 
         // 2. Let nudgeWindow be ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, false).
-        let mut nudge_window = self.compute_nudge_window(
-            sign,
-            origin_epoch_ns,
-            dt,
-            time_zone,
-            options,
-            false,
-        )?;
+        let mut nudge_window =
+            self.compute_nudge_window(sign, origin_epoch_ns, dt, time_zone, options, false)?;
 
         // 3. Let startEpochNs be nudgeWindow.[[StartEpochNs]].
         // 4. Let endEpochNs be nudgeWindow.[[EndEpochNs]].
@@ -443,14 +437,8 @@ impl InternalDurationRecord {
                 && dest_epoch_ns <= nudge_window.end_epoch_ns)
             {
                 // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
-                nudge_window = self.compute_nudge_window(
-                    sign,
-                    origin_epoch_ns,
-                    dt,
-                    time_zone,
-                    options,
-                    true,
-                )?;
+                nudge_window =
+                    self.compute_nudge_window(sign, origin_epoch_ns, dt, time_zone, options, true)?;
                 // ii. Assert: nudgeWindow.[[StartEpochNs]] ≤ destEpochNs ≤ nudgeWindow.[[EndEpochNs]].
                 temporal_assert!(
                     nudge_window.start_epoch_ns <= dest_epoch_ns
@@ -465,14 +453,8 @@ impl InternalDurationRecord {
                 && dest_epoch_ns <= nudge_window.start_epoch_ns)
             {
                 // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
-                nudge_window = self.compute_nudge_window(
-                    sign,
-                    origin_epoch_ns,
-                    dt,
-                    time_zone,
-                    options,
-                    true,
-                )?;
+                nudge_window =
+                    self.compute_nudge_window(sign, origin_epoch_ns, dt, time_zone, options, true)?;
                 // ii. Assert: nudgeWindow.[[EndEpochNs]] ≤ destEpochNs ≤ nudgeWindow.[[StartEpochNs]].
                 temporal_assert!(
                     nudge_window.end_epoch_ns <= dest_epoch_ns

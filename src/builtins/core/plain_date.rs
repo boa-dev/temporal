@@ -1076,7 +1076,6 @@ mod tests {
         let result = later.since(&earlier, settings).unwrap();
         assert_eq!(result.weeks(), 144);
 
-
         let settings = DifferenceSettings {
             smallest_unit: Some(Unit::Day),
             rounding_mode: Some(RoundingMode::HalfExpand),
