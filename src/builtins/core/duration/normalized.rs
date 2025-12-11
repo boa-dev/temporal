@@ -853,10 +853,35 @@ impl InternalDurationRecord {
         // 13. Assert: startEpochNs ≠ endEpochNs.
         temporal_assert!(start_epoch_ns != end_epoch_ns);
 
-        // NOTE(nekevss): Step 14..15 could be problematic...need tests
-        // and verify, or completely change the approach involved.
+        // NOTE (nekevss):
         //
         // We change our calculations to remove any f64 usage.
+        //
+        // So let's go over what we do to handle this ... well, basically,
+        // just math.
+        //
+        // We take `r1 + progress * increment * sign` and plug in the progress calculation
+        //
+        // So, in other words, stepping through the calculations
+        //
+        // NOTE: For shorthand,
+        //
+        // dividend = (destEpochNS - startEpochNS)
+        // divisor = (endEpochNS - startEpochNS)
+        //
+        // progress = dividend / divisor
+        //
+        // 1. r1 + progress * increment * sign
+        // 2. r1 + (dividend / divisor) * increment * sign
+        //
+        // Bring in increment and sign
+        //
+        // 3. r1 + (dividend * increment * sign) / divisor
+        //
+        // Now also move the r1 into the progress fraction.
+        //
+        // 4. ((r1 * divisor) + dividend * increment * sign) / divisor
+        //
         // 14. Let progress be (destEpochNs - startEpochNs) / (endEpochNs - startEpochNs).
         // 15. Let total be r1 + progress × increment × sign.
         let dividend = dest_epoch_ns - start_epoch_ns.0;
@@ -881,6 +906,14 @@ impl InternalDurationRecord {
             .rounding_mode
             .get_unsigned_round_mode(sign != Sign::Negative);
 
+        // NOTE (nekevss):
+        //
+        // Now we need to eliminate whether our "total" would be the value of r2
+        // exactly, AKA `progress = 1`.
+        //
+        // To do this, we check if the quotient of dividend and divisor is r2 and
+        // that there is no remainder caused by the calculation.
+        //
         // 20. If progress = 1, then
         let total_is_r2 =
             total_dividend.div_euclid(divisor) == r2 && total_dividend.rem_euclid(divisor) == 0;
