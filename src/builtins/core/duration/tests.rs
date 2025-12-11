@@ -515,7 +515,6 @@ fn rounding_out_of_range() {
     assert_eq!(duration.days(), -100_000_000);
 }
 
-/* TODO: Make adjustments so this passes.
 #[test]
 #[cfg(feature = "compiled_data")]
 fn total_precision() {
@@ -526,9 +525,11 @@ fn total_precision() {
     let relative_to = PlainDate::try_new_iso(1972, 1, 31).unwrap();
     let result = d.total(Unit::Month, Some(relative_to.into())).unwrap();
 
-    assert_eq!(result.0, 1.3548387096774193, "Loss of precision on Duration::total");
+    assert_eq!(
+        result.0, 1.3548387096774193,
+        "Loss of precision on Duration::total"
+    );
 }
-*/
 
 #[test]
 #[cfg(feature = "compiled_data")]

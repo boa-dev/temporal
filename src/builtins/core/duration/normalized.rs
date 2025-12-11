@@ -395,6 +395,7 @@ struct NudgeRecord {
     expanded: bool,
 }
 
+#[derive(Debug)]
 struct NudgeWindow {
     r1: i128,
     r2: i128,
@@ -780,18 +781,46 @@ impl InternalDurationRecord {
         // 13. Assert: startEpochNs ≠ endEpochNs.
         temporal_assert!(start_epoch_ns != end_epoch_ns);
 
-        // TODO: Don't use f64 below ...
-        // NOTE(nekevss): Step 12..13 could be problematic...need tests
-        // and verify, or completely change the approach involved.
-        // TODO(nekevss): Validate that the `f64` casts here are valid in all scenarios
+        // NOTE (nekevss): re: nudge_calendar_unit
+        //
+        // We change our calculations here to limit f64 usage, but also to preserve
+        // precision on the calculation.
+        //
+        // So let's go over what we do to handle this ... well, basically,
+        // just math.
+        //
+        // We take `r1 + progress * increment * sign` and plug in the progress calculation
+        //
+        // So, in other words, stepping through the calculations
+        //
+        // NOTE: For shorthand,
+        //
+        // dividend = (destEpochNS - startEpochNS)
+        // divisor = (endEpochNS - startEpochNS)
+        //
+        // progress = dividend / divisor
+        //
+        // 1. r1 + progress * increment * sign
+        // 2. r1 + (dividend / divisor) * increment * sign
+        //
+        // Bring in increment and sign
+        //
+        // 3. r1 + (dividend * increment * sign) / divisor
+        //
+        // Now also move the r1 into the progress fraction.
+        //
+        // 4. ((r1 * divisor) + dividend * increment * sign) / divisor
+        //
         // 14. Let progress be (destEpochNs - startEpochNs) / (endEpochNs - startEpochNs).
         // 15. Let total be r1 + progress × increment × sign.
-        let progress =
-            (dest_epoch_ns - start_epoch_ns.0) as f64 / (end_epoch_ns.0 - start_epoch_ns.0) as f64;
-        let total = r1 as f64
-            + progress * options.increment.get() as f64 * f64::from(sign.as_sign_multiplier());
+        let progress_numerator = dest_epoch_ns - start_epoch_ns.0;
+        let denominator = end_epoch_ns.0 - start_epoch_ns.0;
+        let total_numerator = (r1 * denominator)
+            + progress_numerator
+                * options.increment.get() as i128
+                * i128::from(sign.as_sign_multiplier());
 
-        FiniteF64::try_from(total)
+        FiniteF64::try_from(total_numerator as f64 / denominator as f64)
     }
 
     // TODO: Add assertion into impl.
