@@ -111,8 +111,8 @@
 //! # #[cfg(all(feature = "sys", feature = "compiled_data"))] {
 //! use core::cmp::Ordering;
 //! use temporal_rs::{Temporal, Calendar, ZonedDateTime};
-//! let current_instant = Temporal::now().instant().unwrap();
-//! let current_zoned_date_time = Temporal::now().zoned_date_time_iso(None).unwrap();
+//! let current_instant = Temporal::utc_now().instant().unwrap();
+//! let current_zoned_date_time = Temporal::utc_now().zoned_date_time_iso(None).unwrap();
 //!
 //! /// Create a `ZonedDateTime` from the requested instant.
 //! let zoned_date_time_from_instant = ZonedDateTime::try_new(
@@ -306,7 +306,7 @@ pub use error::TemporalError;
 
 #[cfg(feature = "sys")]
 #[doc(inline)]
-pub use sys::{DefaultHostSystem, Temporal};
+pub use sys::Temporal;
 
 pub mod partial {
     //! Partial date and time component records

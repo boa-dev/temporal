@@ -213,7 +213,7 @@ mod tests {
         assert_eq!(duration.milliseconds(), 0);
     }
 
-    #[cfg(all(feature = "tzdb", feature = "sys", feature = "compiled_data"))]
+    #[cfg(all(feature = "tzdb", feature = "sys-local", feature = "compiled_data"))]
     #[test]
     fn now_datetime_test() {
         use crate::Temporal;
@@ -222,9 +222,9 @@ mod tests {
 
         let sleep = 2;
 
-        let before = Temporal::now().plain_date_time_iso(None).unwrap();
+        let before = Temporal::local_now().plain_date_time_iso(None).unwrap();
         thread::sleep(StdDuration::from_secs(sleep));
-        let after = Temporal::now().plain_date_time_iso(None).unwrap();
+        let after = Temporal::local_now().plain_date_time_iso(None).unwrap();
 
         let diff = after.since(&before, DifferenceSettings::default()).unwrap();
 
