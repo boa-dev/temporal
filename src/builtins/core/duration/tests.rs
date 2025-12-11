@@ -5,7 +5,6 @@ use crate::{
     parsers::Precision,
     partial::PartialDuration,
     provider::NeverProvider,
-    ZonedDateTime,
 };
 
 use super::Duration;
@@ -482,7 +481,7 @@ fn test_nudge_relative_date_total() {
 #[cfg(feature = "compiled_data")]
 fn rounding_out_of_range() {
     use crate::options::{DifferenceSettings, RoundingMode};
-    use crate::TimeZone;
+    use crate::{TimeZone, ZonedDateTime};
     let earlier = ZonedDateTime::try_new_iso(0, TimeZone::utc()).unwrap();
     let later = ZonedDateTime::try_new_iso(5, TimeZone::utc()).unwrap();
 
