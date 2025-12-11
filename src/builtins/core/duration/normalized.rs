@@ -405,9 +405,7 @@ struct NudgeWindow {
 }
 
 impl InternalDurationRecord {
-    /// `compute_nudge_window` in `temporal_rs` refers to step 1-12 of `NudgeToCalendarUnit`.
-    ///
-    /// For A.O. `ComputeNudgeWinodw`, see `compute_nudge_window_with_shift`
+    /// `compute_and_adjust_nudge_window` in `temporal_rs` refers to step 1-12 of `NudgeToCalendarUnit`.
     fn compute_and_adjust_nudge_window(
         &self,
         sign: Sign,
