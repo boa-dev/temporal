@@ -486,7 +486,7 @@ fn rounding_out_of_range() {
     let earlier = ZonedDateTime::try_new_iso(0, TimeZone::utc()).unwrap();
     let later = ZonedDateTime::try_new_iso(5, TimeZone::utc()).unwrap();
 
-    let options = DifferenceSettings { 
+    let options = DifferenceSettings {
         smallest_unit: Some(Unit::Day),
         increment: Some(RoundingIncrement::try_new(100_000_001).unwrap()),
         ..Default::default()
@@ -503,7 +503,7 @@ fn rounding_out_of_range() {
         "Ending bound -100_000_001 is out of range and should fail."
     );
 
-    let options = DifferenceSettings { 
+    let options = DifferenceSettings {
         smallest_unit: Some(Unit::Day),
         increment: Some(RoundingIncrement::try_new(100_000_000).unwrap()),
         rounding_mode: Some(RoundingMode::Expand),
@@ -515,6 +515,21 @@ fn rounding_out_of_range() {
     let duration = earlier.since(&later, options).unwrap();
     assert_eq!(duration.days(), -100_000_000);
 }
+
+/* TODO: Make adjustments so this passes.
+#[test]
+#[cfg(feature = "compiled_data")]
+fn total_precision() {
+    use crate::PlainDate;
+
+    let d = Duration::new(0, 0, 5, 5, 0, 0, 0, 0, 0, 0).unwrap();
+
+    let relative_to = PlainDate::try_new_iso(1972, 1, 31).unwrap();
+    let result = d.total(Unit::Month, Some(relative_to.into())).unwrap();
+
+    assert_eq!(result.0, 1.3548387096774193, "Loss of precision on Duration::total");
+}
+*/
 
 #[test]
 #[cfg(feature = "compiled_data")]

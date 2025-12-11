@@ -862,13 +862,11 @@ impl InternalDurationRecord {
         let dividend = dest_epoch_ns - start_epoch_ns.0;
         let divisor = end_epoch_ns.0 - start_epoch_ns.0;
 
-        let progress_dividend =
-            dividend * options.increment.get() as i128 * (sign.as_sign_multiplier() as i128);
-
-        let progress = progress_dividend.rem_euclid(divisor) / divisor;
-
         // We add r1 to the dividend
-        let total_dividend = dividend + (r1 * divisor);
+        let total_dividend = dividend
+            + (r1 * divisor)
+                * options.increment.get() as i128
+                * i128::from(sign.as_sign_multiplier());
 
         // 16. NOTE: The above two steps cannot be implemented directly using floating-point arithmetic.
         // This division can be implemented as if constructing Normalized Time Duration Records for the denominator
@@ -884,7 +882,9 @@ impl InternalDurationRecord {
             .get_unsigned_round_mode(sign != Sign::Negative);
 
         // 20. If progress = 1, then
-        let rounded_unit = if progress == 1 {
+        let total_is_r2 =
+            total_dividend.div_euclid(divisor) == r2 && total_dividend.rem_euclid(divisor) == 0;
+        let rounded_unit = if total_is_r2 {
             // a. Let roundedUnit be abs(r2).
             r2.abs()
         } else {
