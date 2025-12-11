@@ -863,8 +863,7 @@ impl UnsignedRoundingMode {
         }
         // 6. Let d1 be x – r1.
         // 7. Let d2 be r2 – x.
-        let midway = (r2.unsigned_abs() * divisor - r1.unsigned_abs() * divisor).div_euclid(2);
-        match compare_remainder(dividend, divisor, midway) {
+        match compare_remainder(dividend, divisor) {
             Ordering::Less => r1,
             Ordering::Greater => r2,
             Ordering::Equal => {
@@ -893,7 +892,8 @@ fn is_exact(dividend: u128, divisor: u128) -> bool {
     dividend.rem_euclid(divisor) == 0
 }
 
-fn compare_remainder(dividend: u128, divisor: u128, midway: u128) -> Ordering {
+fn compare_remainder(dividend: u128, divisor: u128) -> Ordering {
+    let midway = divisor.div_euclid(2);
     let cmp = dividend.rem_euclid(divisor).cmp(&midway);
     if cmp == Ordering::Equal && divisor.rem_euclid(2) != 0 {
         Ordering::Less
