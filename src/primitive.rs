@@ -6,7 +6,7 @@ use crate::{error::ErrorMessage, TemporalError, TemporalResult};
 use num_traits::float::FloatCore;
 use num_traits::{AsPrimitive, FromPrimitive, PrimInt};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct FiniteF64(pub(crate) f64);
 
 impl core::fmt::Display for FiniteF64 {
@@ -222,7 +222,6 @@ impl PartialOrd<f64> for FiniteF64 {
 
 impl Eq for FiniteF64 {}
 
-#[allow(clippy::derive_ord_xor_partial_ord)]
 impl Ord for FiniteF64 {
     fn cmp(&self, other: &Self) -> Ordering {
         match self.0.partial_cmp(&other.0) {
@@ -232,6 +231,12 @@ impl Ord for FiniteF64 {
                 Ordering::Equal
             }
         }
+    }
+}
+
+impl PartialOrd for FiniteF64 {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
