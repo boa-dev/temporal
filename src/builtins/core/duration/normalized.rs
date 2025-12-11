@@ -408,7 +408,7 @@ impl InternalDurationRecord {
     /// `compute_nudge_window` in `temporal_rs` refers to step 1-12 of `NudgeToCalendarUnit`.
     ///
     /// For A.O. `ComputeNudgeWinodw`, see `compute_nudge_window_with_shift`
-    fn compute_nudge_window(
+    fn compute_and_adjust_nudge_window(
         &self,
         sign: Sign,
         origin_epoch_ns: EpochNanoseconds,
@@ -423,7 +423,7 @@ impl InternalDurationRecord {
         let mut did_expand_calendar_unit = false;
 
         // 2. Let nudgeWindow be ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, false).
-        let mut nudge_window = self.compute_nudge_window_with_shift(
+        let mut nudge_window = self.compute_nudge_window(
             sign,
             origin_epoch_ns,
             dt,
@@ -443,7 +443,7 @@ impl InternalDurationRecord {
                 && dest_epoch_ns <= nudge_window.end_epoch_ns)
             {
                 // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
-                nudge_window = self.compute_nudge_window_with_shift(
+                nudge_window = self.compute_nudge_window(
                     sign,
                     origin_epoch_ns,
                     dt,
@@ -465,7 +465,7 @@ impl InternalDurationRecord {
                 && dest_epoch_ns <= nudge_window.start_epoch_ns)
             {
                 // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
-                nudge_window = self.compute_nudge_window_with_shift(
+                nudge_window = self.compute_nudge_window(
                     sign,
                     origin_epoch_ns,
                     dt,
@@ -486,9 +486,8 @@ impl InternalDurationRecord {
         Ok((nudge_window, did_expand_calendar_unit))
     }
 
-    // NOTE: this is the same as 7.5.33 `ComputeNudgeWindow` in
     /// <https://tc39.es/proposal-temporal/#sec-temporal-computenudgewindow>
-    fn compute_nudge_window_with_shift(
+    fn compute_nudge_window(
         &self,
         sign: Sign,
         origin_epoch_ns: EpochNanoseconds,
@@ -776,7 +775,7 @@ impl InternalDurationRecord {
         time_zone: Option<(&TimeZone, &(impl TimeZoneProvider + ?Sized))>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<FiniteF64> {
-        let (nudge_window, _) = self.compute_nudge_window(
+        let (nudge_window, _) = self.compute_and_adjust_nudge_window(
             sign,
             origin_epoch_ns,
             dest_epoch_ns,
@@ -826,7 +825,7 @@ impl InternalDurationRecord {
         time_zone: Option<(&TimeZone, &(impl TimeZoneProvider + ?Sized))>, // ???
         options: ResolvedRoundingOptions,
     ) -> TemporalResult<NudgeRecord> {
-        let (nudge_window, did_expand_calendar_unit) = self.compute_nudge_window(
+        let (nudge_window, did_expand_calendar_unit) = self.compute_and_adjust_nudge_window(
             sign,
             origin_epoch_ns,
             dest_epoch_ns,
