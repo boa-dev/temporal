@@ -744,6 +744,9 @@ impl ZonedDateTime {
         overflow: Option<Overflow>,
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
+        if fields.is_empty() {
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
+        }
         let overflow = overflow.unwrap_or_default();
         let disambiguation = disambiguation.unwrap_or_default();
         let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);

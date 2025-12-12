@@ -1,5 +1,6 @@
 //! This module implements `PlainDate` and any directly related algorithms.
 
+use crate::error::ErrorMessage;
 use crate::parsed_intermediates::ParsedDate;
 use crate::{
     builtins::{
@@ -437,7 +438,7 @@ impl PlainDate {
     /// Creates a `PlainDate` with values from a [`PartialDate`].
     pub fn with(&self, fields: CalendarFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         if fields.is_empty() {
-            return Err(TemporalError::r#type().with_message("CalendarFields must have a field."));
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
         }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
         // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
