@@ -4,6 +4,7 @@ use super::{
     duration::normalized::InternalDurationRecord, Duration, PartialTime, PlainDate, PlainTime,
     ZonedDateTime,
 };
+use crate::error::ErrorMessage;
 use crate::parsed_intermediates::ParsedDateTime;
 use crate::{
     builtins::{
@@ -643,9 +644,7 @@ impl PlainDateTime {
     #[inline]
     pub fn with(&self, fields: DateTimeFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         if fields.is_empty() {
-            return Err(
-                TemporalError::r#type().with_message("A PartialDateTime must have a valid field.")
-            );
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
         }
         let overflow = overflow.unwrap_or(Overflow::Constrain);
 

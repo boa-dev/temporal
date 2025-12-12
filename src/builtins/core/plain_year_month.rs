@@ -7,6 +7,7 @@ use tinystr::TinyAsciiStr;
 
 use crate::{
     builtins::calendar::{CalendarFields, YearMonthCalendarFields},
+    error::ErrorMessage,
     iso::{year_month_within_limits, IsoDate, IsoDateTime, IsoTime},
     options::{
         DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, Overflow,
@@ -549,9 +550,7 @@ impl PlainYearMonth {
         // 5. Let fields be ISODateToFields(calendar, yearMonth.[[ISODate]], year-month).
         // 6. Let partialYearMonth be ? PrepareCalendarFields(calendar, temporalYearMonthLike, « year, month, month-code », « », partial).
         if fields.is_empty() {
-            return Err(
-                TemporalError::r#type().with_message("plainYearMonth fields cannot be empty")
-            );
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
         }
         // 7. Set fields to CalendarMergeFields(calendar, fields, partialYearMonth).
         // 8. Let resolvedOptions be ? GetOptionsObject(options).

@@ -5,6 +5,7 @@ use crate::{
         core::{DateDuration, Duration},
         duration::normalized::InternalDurationRecord,
     },
+    error::ErrorMessage,
     iso::IsoTime,
     options::{
         DifferenceOperation, DifferenceSettings, Overflow, ResolvedRoundingOptions,
@@ -437,7 +438,7 @@ impl PlainTime {
     pub fn with(&self, partial: PartialTime, overflow: Option<Overflow>) -> TemporalResult<Self> {
         // NOTE: 4.5.12 ToTemporalTimeRecord requires one field to be set.
         if partial.is_empty() {
-            return Err(TemporalError::r#type().with_message("PartialTime cannot be empty."));
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
         }
 
         let iso = self
