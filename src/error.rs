@@ -212,6 +212,7 @@ pub(crate) enum ErrorMessage {
     // Field mismatches
     CalendarMismatch,
     TzMismatch,
+    EmptyFieldsIsInvalid,
 
     // Parsing
     ParserNeedsDate,
@@ -263,6 +264,7 @@ impl ErrorMessage {
                 "Calendar must be the same for operations involving two calendared types."
             }
             Self::TzMismatch => "Timezones must be the same if unit is a day unit.",
+            Self::EmptyFieldsIsInvalid => "fields cannot be empty",
 
             Self::ParserNeedsDate => "Could not find a valid DateRecord node during parsing.",
             Self::FractionalTimeMoreThanNineDigits => "Fractional time exceeds nine digits.",
