@@ -5,6 +5,7 @@ use core::str::FromStr;
 
 use crate::{
     builtins::calendar::CalendarFields,
+    error::ErrorMessage,
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{Disambiguation, DisplayCalendar, Overflow},
     parsed_intermediates::ParsedDate,
@@ -265,7 +266,7 @@ impl PlainMonthDay {
         //
         // NOTE:  We assert that partial is not empty per step 6
         if fields.is_empty() {
-            return Err(TemporalError::r#type().with_message("partial object must have a field."));
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
         }
 
         // NOTE: We only need to set month / month_code and day, per spec.
