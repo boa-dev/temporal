@@ -820,7 +820,7 @@ impl InternalDurationRecord {
                 * options.increment.get() as i128
                 * i128::from(sign.as_sign_multiplier());
 
-        FiniteF64::try_from(total_numerator as f64 / denominator as f64)
+        Ok(Fraction::new(total_numerator, denominator as f64).to_finite_f64())
     }
 
     // TODO: Add assertion into impl.
