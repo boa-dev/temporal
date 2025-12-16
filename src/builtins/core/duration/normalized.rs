@@ -18,8 +18,8 @@ use crate::{
     primitive::{DoubleDouble, FiniteF64},
     provider::TimeZoneProvider,
     rounding::IncrementRounder,
-    temporal_assert, Calendar, TemporalError, TemporalResult, TemporalUnwrap, NS_PER_DAY,
-    NS_PER_DAY_NONZERO,
+    temporal_assert, Calendar, NonZeroSign, TemporalError, TemporalResult, TemporalUnwrap,
+    NS_PER_DAY, NS_PER_DAY_NONZERO,
 };
 
 use super::{DateDuration, Duration, Sign};
@@ -409,7 +409,7 @@ impl InternalDurationRecord {
     /// `compute_and_adjust_nudge_window` in `temporal_rs` refers to step 1-12 of `NudgeToCalendarUnit`.
     fn compute_and_adjust_nudge_window(
         &self,
-        sign: Sign,
+        sign: NonZeroSign,
         origin_epoch_ns: EpochNanoseconds,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
@@ -430,47 +430,61 @@ impl InternalDurationRecord {
         // (implicitly used)
 
         // 5. If sign is 1, then
-        if sign != Sign::Negative {
-            // a. If startEpochNs ≤ destEpochNs ≤ endEpochNs is false, then
-            if !(nudge_window.start_epoch_ns <= dest_epoch_ns
-                && dest_epoch_ns <= nudge_window.end_epoch_ns)
-            {
-                // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
-                nudge_window =
-                    self.compute_nudge_window(sign, origin_epoch_ns, dt, time_zone, options, true)?;
-                // ii. Assert: nudgeWindow.[[StartEpochNs]] ≤ destEpochNs ≤ nudgeWindow.[[EndEpochNs]].
-                temporal_assert!(
-                    nudge_window.start_epoch_ns <= dest_epoch_ns
-                        && dest_epoch_ns <= nudge_window.end_epoch_ns
-                );
-                // iii. Set didExpandCalendarUnit to true.
-                did_expand_calendar_unit = true;
+        match sign {
+            NonZeroSign::Positive => {
+                // a. If startEpochNs ≤ destEpochNs ≤ endEpochNs is false, then
+                if !(nudge_window.start_epoch_ns <= dest_epoch_ns
+                    && dest_epoch_ns <= nudge_window.end_epoch_ns)
+                {
+                    // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
+                    nudge_window = self.compute_nudge_window(
+                        sign,
+                        origin_epoch_ns,
+                        dt,
+                        time_zone,
+                        options,
+                        true,
+                    )?;
+                    // ii. Assert: nudgeWindow.[[StartEpochNs]] ≤ destEpochNs ≤ nudgeWindow.[[EndEpochNs]].
+                    temporal_assert!(
+                        nudge_window.start_epoch_ns <= dest_epoch_ns
+                            && dest_epoch_ns <= nudge_window.end_epoch_ns
+                    );
+                    // iii. Set didExpandCalendarUnit to true.
+                    did_expand_calendar_unit = true;
+                }
             }
-        } else {
-            // a. If endEpochNs ≤ destEpochNs ≤ startEpochNs is false, then
-            if !(nudge_window.end_epoch_ns <= dest_epoch_ns
-                && dest_epoch_ns <= nudge_window.start_epoch_ns)
-            {
-                // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
-                nudge_window =
-                    self.compute_nudge_window(sign, origin_epoch_ns, dt, time_zone, options, true)?;
-                // ii. Assert: nudgeWindow.[[EndEpochNs]] ≤ destEpochNs ≤ nudgeWindow.[[StartEpochNs]].
-                temporal_assert!(
-                    nudge_window.end_epoch_ns <= dest_epoch_ns
-                        && dest_epoch_ns <= nudge_window.start_epoch_ns
-                );
-                // iii. Set didExpandCalendarUnit to true.
-                did_expand_calendar_unit = true;
+            NonZeroSign::Negative => {
+                // a. If endEpochNs ≤ destEpochNs ≤ startEpochNs is false, then
+                if !(nudge_window.end_epoch_ns <= dest_epoch_ns
+                    && dest_epoch_ns <= nudge_window.start_epoch_ns)
+                {
+                    // i. Set nudgeWindow to ? ComputeNudgeWindow(sign, duration, originEpochNs, isoDateTime, timeZone, calendar, increment, unit, true).
+                    nudge_window = self.compute_nudge_window(
+                        sign,
+                        origin_epoch_ns,
+                        dt,
+                        time_zone,
+                        options,
+                        true,
+                    )?;
+                    // ii. Assert: nudgeWindow.[[EndEpochNs]] ≤ destEpochNs ≤ nudgeWindow.[[StartEpochNs]].
+                    temporal_assert!(
+                        nudge_window.end_epoch_ns <= dest_epoch_ns
+                            && dest_epoch_ns <= nudge_window.start_epoch_ns
+                    );
+                    // iii. Set didExpandCalendarUnit to true.
+                    did_expand_calendar_unit = true;
+                }
             }
         }
-
         Ok((nudge_window, did_expand_calendar_unit))
     }
 
     /// <https://tc39.es/proposal-temporal/#sec-temporal-computenudgewindow>
     fn compute_nudge_window(
         &self,
-        sign: Sign,
+        sign: NonZeroSign,
         origin_epoch_ns: EpochNanoseconds,
         dt: &PlainDateTime,
         time_zone: Option<(&TimeZone, &(impl TimeZoneProvider + ?Sized))>, // ???
@@ -689,8 +703,8 @@ impl InternalDurationRecord {
         // 6. Assert: If sign is -1, r1 ≤ 0 and r1 > r2.
         // n.b. sign == 1 means nonnegative
         crate::temporal_assert!(
-            (sign != Sign::Negative && r1 >= 0 && r1 < r2)
-                || (sign == Sign::Negative && r1 <= 0 && r1 > r2)
+            (sign != NonZeroSign::Negative && r1 >= 0 && r1 < r2)
+                || (sign == NonZeroSign::Negative && r1 <= 0 && r1 > r2)
         );
 
         let start_epoch_ns = if r1 == 0 {
@@ -749,7 +763,7 @@ impl InternalDurationRecord {
 
     fn nudge_calendar_unit_total(
         &self,
-        sign: Sign,
+        sign: NonZeroSign,
         origin_epoch_ns: EpochNanoseconds,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
@@ -827,7 +841,7 @@ impl InternalDurationRecord {
     // TODO: Add unit tests specifically for nudge_calendar_unit if possible.
     fn nudge_calendar_unit(
         &self,
-        sign: Sign,
+        sign: NonZeroSign,
         origin_epoch_ns: EpochNanoseconds,
         dest_epoch_ns: i128,
         dt: &PlainDateTime,
@@ -912,7 +926,7 @@ impl InternalDurationRecord {
         // n.b. get_unsigned_round_mode takes is_positive, but it actually cares about nonnegative
         let unsigned_rounding_mode = options
             .rounding_mode
-            .get_unsigned_round_mode(sign != Sign::Negative);
+            .get_unsigned_round_mode(sign != NonZeroSign::Negative);
 
         // NOTE (nekevss):
         //
@@ -966,7 +980,7 @@ impl InternalDurationRecord {
     #[inline]
     fn nudge_to_zoned_time(
         &self,
-        sign: Sign,
+        sign: NonZeroSign,
         dt: &PlainDateTime,
         time_zone: &TimeZone,
         options: ResolvedRoundingOptions,
@@ -1012,7 +1026,7 @@ impl InternalDurationRecord {
         let beyond_day_span = rounded_time.checked_add(day_span.negate().0)?;
         // 12. If TimeDurationSign(beyondDaySpan) ≠ -sign, then
         let (expanded, day_delta, rounded_time, nudge_ns) =
-            if (beyond_day_span.sign() != sign.negate()) && sign != Sign::Zero {
+            if beyond_day_span.sign() != sign.negate() {
                 // a. Let didRoundBeyondDay be true.
                 // b. Let dayDelta be sign.
                 // c. Set roundedTimeDuration to ? RoundTimeDurationToIncrement(beyondDaySpan, increment × unitLength, roundingMode).
@@ -1127,7 +1141,7 @@ impl InternalDurationRecord {
     #[allow(clippy::too_many_arguments)]
     fn bubble_relative_duration(
         &self,
-        sign: Sign,
+        sign: NonZeroSign,
         nudged_epoch_ns: i128,
         iso_date_time: &IsoDateTime,
         time_zone: Option<(&TimeZone, &(impl TimeZoneProvider + ?Sized))>,
@@ -1277,7 +1291,7 @@ impl InternalDurationRecord {
             || (time_zone.is_some() && options.smallest_unit == Unit::Day);
 
         // 4. If InternalDurationSign(duration) < 0, let sign be -1; else let sign be 1.
-        let sign = duration.sign();
+        let sign = duration.sign().to_nonzero_sign();
 
         // 5. If irregularLengthUnit is true, then
         let nudge_result = if irregular_length_unit {
@@ -1336,8 +1350,8 @@ impl InternalDurationRecord {
     ) -> TemporalResult<FiniteF64> {
         // 1. If IsCalendarUnit(unit) is true, or timeZone is not unset and unit is day, then
         if unit.is_calendar_unit() || (time_zone.is_some() && unit == Unit::Day) {
-            // a. Let sign be InternalDurationSign(duration).
-            let sign = self.sign();
+            // a. If InternalDurationSign(duration) < 0, let sign be -1; else let sign be 1
+            let sign = self.sign().to_nonzero_sign();
             // b. Let record be ? NudgeToCalendarUnit(sign, duration, destEpochNs, isoDateTime, timeZone, calendar, 1, unit, trunc).
             // c. Return record.[[Total]].
             return self.nudge_calendar_unit_total(
