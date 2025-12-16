@@ -431,9 +431,57 @@ impl Sign {
     pub(crate) fn negate(&self) -> Sign {
         Sign::from(-(*self as i8))
     }
+
+    pub(crate) fn to_nonzero_sign(self) -> NonZeroSign {
+        self.into()
+    }
 }
 
-// Relevant numeric constants
+impl PartialEq<NonZeroSign> for Sign {
+    fn eq(&self, other: &NonZeroSign) -> bool {
+        *self as i8 == *other as i8
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) enum NonZeroSign {
+    Positive = 1,
+    Negative = -1,
+}
+
+impl NonZeroSign {
+    pub(crate) const fn as_sign_multiplier(&self) -> i8 {
+        *self as i8
+    }
+
+    /// Negate the current sign
+    pub(crate) fn negate(&self) -> NonZeroSign {
+        Sign::from(-(*self as i8)).into()
+    }
+}
+
+impl From<Sign> for NonZeroSign {
+    fn from(sign: Sign) -> Self {
+        match sign {
+            Sign::Positive | Sign::Zero => NonZeroSign::Positive,
+            Sign::Negative => NonZeroSign::Negative,
+        }
+    }
+}
+
+impl From<i8> for NonZeroSign {
+    fn from(value: i8) -> Self {
+        Sign::from(value).to_nonzero_sign()
+    }
+}
+
+impl PartialEq<Sign> for NonZeroSign {
+    fn eq(&self, other: &Sign) -> bool {
+        *self as i8 == *other as i8
+    }
+}
+
+// ==== Relevant numeric constants ====
 
 /// Nanoseconds per day constant: 8.64e+13
 #[doc(hidden)]

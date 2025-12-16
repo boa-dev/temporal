@@ -578,3 +578,21 @@ fn rounding_window() {
     let result = d.round(options, Some(relative_to.into())).unwrap();
     assert_eq!(result.years(), 1, "months rounding should no-op");
 }
+
+#[test]
+#[cfg(feature = "compiled_data")]
+fn zero_duration() {
+    use crate::{TimeZone, ZonedDateTime};
+
+    let zero = Duration::new(0, 0, 0, 0, 0, 0, 0, 0, 0, 0).unwrap();
+    let relative_to = ZonedDateTime::try_new_iso(0, TimeZone::utc()).unwrap();
+
+    let options = RoundingOptions {
+        smallest_unit: Some(Unit::Hour),
+        largest_unit: Some(Unit::Day),
+        ..Default::default()
+    };
+    let result = zero.round(options, Some(relative_to.into())).unwrap();
+
+    assert_eq!(result, Duration::default(), "Duration's must be zero");
+}
