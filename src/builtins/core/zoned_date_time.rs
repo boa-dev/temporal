@@ -1,7 +1,7 @@
 //! This module contains the core implementation of the `ZonedDateTime`
 //! builtin type.
 
-use crate::provider::EpochNanosecondsAndOffset;
+use crate::{provider::EpochNanosecondsAndOffset, NonZeroSign};
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
 use tinystr::TinyAsciiStr;
@@ -459,13 +459,16 @@ impl ZonedDateTime {
             return InternalDurationRecord::new(Default::default(), time_duration);
         }
         // 5. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
-        let sign = if other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128() < 0 {
-            Sign::Negative
-        } else {
-            Sign::Positive
-        };
+        let sign = Sign::from(
+            (other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128()).signum()
+                as i8,
+        )
+        .to_nonzero_sign();
         // 6. If sign = 1, let maxDayCorrection be 2; else let maxDayCorrection be 1.
-        let max_correction = if sign == Sign::Positive { 2 } else { 1 };
+        let max_correction = match sign {
+            NonZeroSign::Positive => 2,
+            NonZeroSign::Negative => 1,
+        };
         // 7. Let dayCorrection be 0.
         // 8. Let timeDuration be DifferenceTime(startDateTime.[[Time]], endDateTime.[[Time]]).
         let time = start.time.diff(&end.time);
