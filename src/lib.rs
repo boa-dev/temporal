@@ -437,8 +437,14 @@ impl Sign {
     }
 }
 
+impl PartialEq<NonZeroSign> for Sign {
+    fn eq(&self, other: &NonZeroSign) -> bool {
+        *self as i8 == *other as i8
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum NonZeroSign {
+pub(crate) enum NonZeroSign {
     Positive = 1,
     Negative = -1,
 }
@@ -449,8 +455,8 @@ impl NonZeroSign {
     }
 
     /// Negate the current sign
-    pub(crate) fn negate(&self) -> Sign {
-        Sign::from(-(*self as i8))
+    pub(crate) fn negate(&self) -> NonZeroSign {
+        Sign::from(-(*self as i8)).into()
     }
 }
 
@@ -460,6 +466,12 @@ impl From<Sign> for NonZeroSign {
             Sign::Positive | Sign::Zero => NonZeroSign::Positive,
             Sign::Negative => NonZeroSign::Negative,
         }
+    }
+}
+
+impl PartialEq<Sign> for NonZeroSign {
+    fn eq(&self, other: &Sign) -> bool {
+        *self as i8 == *other as i8
     }
 }
 

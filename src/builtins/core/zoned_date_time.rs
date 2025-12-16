@@ -471,9 +471,9 @@ impl ZonedDateTime {
         };
         // 7. Let dayCorrection be 0.
         // 8. Let timeDuration be DifferenceTime(startDateTime.[[Time]], endDateTime.[[Time]]).
-        let time = start.time.diff(&end.time);
+        let time_duration = start.time.diff(&end.time);
         // 9. If TimeDurationSign(timeDuration) = -sign, set dayCorrection to dayCorrection + 1.
-        let mut day_correction = if time.sign() as i8 == -(sign as i8) {
+        let mut day_correction = if time_duration.sign() == sign.negate() {
             1
         } else {
             0
