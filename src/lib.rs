@@ -469,6 +469,12 @@ impl From<Sign> for NonZeroSign {
     }
 }
 
+impl From<i8> for NonZeroSign {
+    fn from(value: i8) -> Self {
+        Sign::from(value).to_nonzero_sign()
+    }
+}
+
 impl PartialEq<Sign> for NonZeroSign {
     fn eq(&self, other: &Sign) -> bool {
         *self as i8 == *other as i8

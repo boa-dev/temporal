@@ -459,11 +459,8 @@ impl ZonedDateTime {
             return InternalDurationRecord::new(Default::default(), time_duration);
         }
         // 5. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
-        let sign = Sign::from(
-            (other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128()).signum()
-                as i8,
-        )
-        .to_nonzero_sign();
+        let diff = other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128();
+        let sign = NonZeroSign::from(diff.signum() as i8);
         // 6. If sign = 1, let maxDayCorrection be 2; else let maxDayCorrection be 1.
         let max_correction = match sign {
             NonZeroSign::Positive => 2,
