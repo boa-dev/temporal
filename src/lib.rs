@@ -279,7 +279,7 @@ pub mod primitive;
 pub mod provider;
 
 #[cfg(feature = "sys")]
-pub(crate) mod sys;
+pub mod sys;
 
 mod builtins;
 
