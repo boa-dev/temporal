@@ -1,7 +1,7 @@
 //! This module contains the core implementation of the `ZonedDateTime`
 //! builtin type.
 
-use crate::provider::EpochNanosecondsAndOffset;
+use crate::{provider::EpochNanosecondsAndOffset, NonZeroSign};
 use alloc::string::String;
 use core::{cmp::Ordering, num::NonZeroU128};
 use tinystr::TinyAsciiStr;
@@ -459,18 +459,18 @@ impl ZonedDateTime {
             return InternalDurationRecord::new(Default::default(), time_duration);
         }
         // 5. If ns2 - ns1 < 0, let sign be -1; else let sign be 1.
-        let sign = if other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128() < 0 {
-            Sign::Negative
-        } else {
-            Sign::Positive
-        };
+        let diff = other.epoch_nanoseconds().as_i128() - self.epoch_nanoseconds().as_i128();
+        let sign = NonZeroSign::from(diff.signum() as i8);
         // 6. If sign = 1, let maxDayCorrection be 2; else let maxDayCorrection be 1.
-        let max_correction = if sign == Sign::Positive { 2 } else { 1 };
+        let max_correction = match sign {
+            NonZeroSign::Positive => 2,
+            NonZeroSign::Negative => 1,
+        };
         // 7. Let dayCorrection be 0.
         // 8. Let timeDuration be DifferenceTime(startDateTime.[[Time]], endDateTime.[[Time]]).
-        let time = start.time.diff(&end.time);
+        let time_duration = start.time.diff(&end.time);
         // 9. If TimeDurationSign(timeDuration) = -sign, set dayCorrection to dayCorrection + 1.
-        let mut day_correction = if time.sign() as i8 == -(sign as i8) {
+        let mut day_correction = if time_duration.sign() == sign.negate() {
             1
         } else {
             0
@@ -744,6 +744,9 @@ impl ZonedDateTime {
         overflow: Option<Overflow>,
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
+        if fields.is_empty() {
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
+        }
         let overflow = overflow.unwrap_or_default();
         let disambiguation = disambiguation.unwrap_or_default();
         let offset_option = offset_option.unwrap_or(OffsetDisambiguation::Reject);

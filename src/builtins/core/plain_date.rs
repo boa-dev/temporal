@@ -1,5 +1,6 @@
 //! This module implements `PlainDate` and any directly related algorithms.
 
+use crate::error::ErrorMessage;
 use crate::parsed_intermediates::ParsedDate;
 use crate::{
     builtins::{
@@ -437,7 +438,7 @@ impl PlainDate {
     /// Creates a `PlainDate` with values from a [`PartialDate`].
     pub fn with(&self, fields: CalendarFields, overflow: Option<Overflow>) -> TemporalResult<Self> {
         if fields.is_empty() {
-            return Err(TemporalError::r#type().with_message("CalendarFields must have a field."));
+            return Err(TemporalError::r#type().with_enum(ErrorMessage::EmptyFieldsIsInvalid));
         }
         // 6. Let fieldsResult be ? PrepareCalendarFieldsAndFieldNames(calendarRec, temporalDate, « "day", "month", "monthCode", "year" »).
         // 7. Let partialDate be ? PrepareTemporalFields(temporalDateLike, fieldsResult.[[FieldNames]], partial).
@@ -705,6 +706,8 @@ impl FromStr for PlainDate {
 #[cfg(test)]
 mod tests {
     use tinystr::tinystr;
+
+    use crate::options::{RoundingIncrement, RoundingMode};
 
     use super::*;
 
@@ -1040,5 +1043,47 @@ mod tests {
         for s in INVALID_STRINGS {
             assert!(PlainDate::from_str(s).is_err())
         }
+    }
+
+    #[test]
+    fn rounding_increment_observed() {
+        let earlier = PlainDate::try_new_iso(2019, 1, 8).unwrap();
+        let later = PlainDate::try_new_iso(2021, 9, 7).unwrap();
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(Unit::Year),
+            rounding_mode: Some(RoundingMode::HalfExpand),
+            increment: Some(RoundingIncrement::try_new(4).unwrap()),
+            ..Default::default()
+        };
+        let result = later.since(&earlier, settings).unwrap();
+        assert_eq!(result.years(), 4);
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(Unit::Month),
+            rounding_mode: Some(RoundingMode::HalfExpand),
+            increment: Some(RoundingIncrement::try_new(10).unwrap()),
+            ..Default::default()
+        };
+        let result = later.since(&earlier, settings).unwrap();
+        assert_eq!(result.months(), 30);
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(Unit::Week),
+            rounding_mode: Some(RoundingMode::HalfExpand),
+            increment: Some(RoundingIncrement::try_new(12).unwrap()),
+            ..Default::default()
+        };
+        let result = later.since(&earlier, settings).unwrap();
+        assert_eq!(result.weeks(), 144);
+
+        let settings = DifferenceSettings {
+            smallest_unit: Some(Unit::Day),
+            rounding_mode: Some(RoundingMode::HalfExpand),
+            increment: Some(RoundingIncrement::try_new(100).unwrap()),
+            ..Default::default()
+        };
+        let result = later.since(&earlier, settings).unwrap();
+        assert_eq!(result.days(), 1000);
     }
 }
