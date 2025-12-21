@@ -30,6 +30,7 @@ zoneinfo64 = { workspace = true, optional = true }
 
 [features]
 compiled_data = ["temporal_rs/compiled_data"]
+float64_representable_durations = ["temporal_rs/float64_representable_durations"]
 zoneinfo64 = ["dep:zoneinfo64", "timezone_provider/zoneinfo64"]
 
 [package.metadata.docs.rs]
