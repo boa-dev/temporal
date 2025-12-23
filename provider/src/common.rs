@@ -186,6 +186,7 @@ pub(crate) struct Mwd {
 }
 
 impl Mwd {
+    #[cfg(feature = "tzif")]
     pub(crate) fn from_u16(month: u16, week: u16, day: u16) -> Self {
         Self::from_u8(
             u8::try_from(month).unwrap_or(0),
