@@ -1,0 +1,53 @@
+{
+  "ids": [
+    "asia/makassar",
+    "asia/ujung_pandang"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000MMT\u0000+08\u0000+09\u0000WITA\u0000",
+    "posix": {
+      "abbr": "WITA",
+      "offset": 28800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "transitions": [
+      -1577951856,
+      -1172908656,
+      -880272000,
+      -766054800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 28656
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 28656
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 28800
+      },
+      {
+        "index": 12,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 16,
+        "is_dst": false,
+        "offset": 28800
+      }
+    ]
+  }
+}

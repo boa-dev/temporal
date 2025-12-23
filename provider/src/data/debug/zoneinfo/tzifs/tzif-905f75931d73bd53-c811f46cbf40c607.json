@@ -1,0 +1,47 @@
+{
+  "ids": [
+    "pacific/galapagos"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000-05\u0000-06\u0000",
+    "posix": {
+      "abbr": "-06",
+      "offset": -21600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2
+    ],
+    "transitions": [
+      -1230746496,
+      504939600,
+      722930400,
+      728888400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -21504
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -18000
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -21600
+      },
+      {
+        "index": 4,
+        "is_dst": true,
+        "offset": -18000
+      }
+    ]
+  }
+}

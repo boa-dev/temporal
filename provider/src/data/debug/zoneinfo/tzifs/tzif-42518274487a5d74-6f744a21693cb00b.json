@@ -1,0 +1,31 @@
+{
+  "ids": [
+    "etc/gmt",
+    "etc/gmt+0",
+    "etc/gmt-0",
+    "etc/gmt0",
+    "etc/greenwich",
+    "gmt",
+    "gmt+0",
+    "gmt-0",
+    "gmt0",
+    "greenwich"
+  ],
+  "tzif": {
+    "designations": "GMT\u0000",
+    "posix": {
+      "abbr": "GMT",
+      "offset": 0,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 0
+      }
+    ]
+  }
+}

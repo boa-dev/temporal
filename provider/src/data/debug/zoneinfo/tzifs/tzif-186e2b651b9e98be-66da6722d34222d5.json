@@ -1,0 +1,22 @@
+{
+  "ids": [
+    "etc/gmt-13"
+  ],
+  "tzif": {
+    "designations": "+13\u0000",
+    "posix": {
+      "abbr": "+13",
+      "offset": 46800,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 46800
+      }
+    ]
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "ids": [
+    "asia/jakarta"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000BMT\u0000+0720\u0000+0730\u0000+09\u0000+08\u0000WIB\u0000",
+    "posix": {
+      "abbr": "WIB",
+      "offset": 25200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      4,
+      3,
+      5,
+      3,
+      6
+    ],
+    "transitions": [
+      -3231299232,
+      -1451719200,
+      -1172906400,
+      -876641400,
+      -766054800,
+      -683883000,
+      -620812800,
+      -189415800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 25632
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 25632
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 26400
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 27000
+      },
+      {
+        "index": 20,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 24,
+        "is_dst": false,
+        "offset": 28800
+      },
+      {
+        "index": 28,
+        "is_dst": false,
+        "offset": 25200
+      }
+    ]
+  }
+}

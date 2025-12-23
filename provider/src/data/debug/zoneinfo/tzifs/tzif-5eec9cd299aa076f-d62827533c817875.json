@@ -1,0 +1,29 @@
+{
+  "ids": [
+    "etc/uct",
+    "etc/universal",
+    "etc/utc",
+    "etc/zulu",
+    "uct",
+    "universal",
+    "utc",
+    "zulu"
+  ],
+  "tzif": {
+    "designations": "UTC\u0000",
+    "posix": {
+      "abbr": "UTC",
+      "offset": 0,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 0
+      }
+    ]
+  }
+}

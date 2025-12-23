@@ -1,0 +1,39 @@
+{
+  "ids": [
+    "asia/bahrain",
+    "asia/qatar"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000+04\u0000+03\u0000",
+    "posix": {
+      "abbr": "+03",
+      "offset": 10800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -1577935568,
+      76190400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 12368
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 14400
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 10800
+      }
+    ]
+  }
+}

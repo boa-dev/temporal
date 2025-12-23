@@ -1,0 +1,45 @@
+{
+  "ids": [
+    "pacific/kiritimati"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000-1040\u0000-10\u0000+14\u0000",
+    "posix": {
+      "abbr": "+14",
+      "offset": 50400,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3
+    ],
+    "transitions": [
+      -2177415040,
+      307622400,
+      788868000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -37760
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -38400
+      },
+      {
+        "index": 10,
+        "is_dst": false,
+        "offset": -36000
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 50400
+      }
+    ]
+  }
+}

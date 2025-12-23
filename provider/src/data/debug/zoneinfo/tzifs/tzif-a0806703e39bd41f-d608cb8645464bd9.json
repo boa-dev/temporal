@@ -1,0 +1,22 @@
+{
+  "ids": [
+    "etc/gmt+5"
+  ],
+  "tzif": {
+    "designations": "-05\u0000",
+    "posix": {
+      "abbr": "-05",
+      "offset": -18000,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -18000
+      }
+    ]
+  }
+}

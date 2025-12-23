@@ -1,0 +1,39 @@
+{
+  "ids": [
+    "indian/kerguelen",
+    "indian/maldives"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000MMT\u0000+05\u0000",
+    "posix": {
+      "abbr": "+05",
+      "offset": 18000,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2840158440,
+      -315636840
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 17640
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 17640
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 18000
+      }
+    ]
+  }
+}

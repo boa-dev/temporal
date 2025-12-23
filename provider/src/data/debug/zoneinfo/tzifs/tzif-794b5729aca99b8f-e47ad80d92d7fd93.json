@@ -1,0 +1,58 @@
+{
+  "ids": [
+    "australia/darwin",
+    "australia/north"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000ACST\u0000ACDT\u0000",
+    "posix": {
+      "abbr": "ACST",
+      "offset": 34200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      3,
+      2,
+      3,
+      2,
+      3
+    ],
+    "transitions": [
+      -2364108200,
+      -2230189200,
+      -1672558200,
+      -1665387000,
+      -883639800,
+      -876123000,
+      -860398200,
+      -844673400,
+      -828343800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 31400
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 34200
+      },
+      {
+        "index": 9,
+        "is_dst": true,
+        "offset": 37800
+      }
+    ]
+  }
+}

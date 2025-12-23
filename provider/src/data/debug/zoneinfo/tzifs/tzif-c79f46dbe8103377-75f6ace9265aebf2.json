@@ -1,0 +1,63 @@
+{
+  "ids": [
+    "asia/ho_chi_minh",
+    "asia/saigon"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000PLMT\u0000+07\u0000+08\u0000+09\u0000",
+    "posix": {
+      "abbr": "+07",
+      "offset": 25200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      4,
+      2,
+      3,
+      2,
+      3,
+      2
+    ],
+    "transitions": [
+      -2004073590,
+      -1851577590,
+      -852105600,
+      -782643600,
+      -767869200,
+      -718095600,
+      -457772400,
+      -315648000,
+      171820800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 25590
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 25590
+      },
+      {
+        "index": 9,
+        "is_dst": false,
+        "offset": 25200
+      },
+      {
+        "index": 13,
+        "is_dst": false,
+        "offset": 28800
+      },
+      {
+        "index": 17,
+        "is_dst": false,
+        "offset": 32400
+      }
+    ]
+  }
+}

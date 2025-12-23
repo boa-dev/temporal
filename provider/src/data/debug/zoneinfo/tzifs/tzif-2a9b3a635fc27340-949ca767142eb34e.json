@@ -1,0 +1,52 @@
+{
+  "ids": [
+    "america/paramaribo"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000PMT\u0000-0330\u0000-03\u0000",
+    "posix": {
+      "abbr": "-03",
+      "offset": -10800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "transitions": [
+      -1861906760,
+      -1104524348,
+      -765317964,
+      465449400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -13240
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -13252
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -13236
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -12600
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": -10800
+      }
+    ]
+  }
+}

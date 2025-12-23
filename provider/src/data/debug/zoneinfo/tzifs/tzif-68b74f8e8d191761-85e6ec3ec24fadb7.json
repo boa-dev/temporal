@@ -1,0 +1,41 @@
+{
+  "ids": [
+    "pacific/midway",
+    "pacific/pago_pago",
+    "pacific/samoa",
+    "us/samoa"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000SST\u0000",
+    "posix": {
+      "abbr": "SST",
+      "offset": -39600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2445424632,
+      -1861879032
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 45432
+      },
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -40968
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -39600
+      }
+    ]
+  }
+}

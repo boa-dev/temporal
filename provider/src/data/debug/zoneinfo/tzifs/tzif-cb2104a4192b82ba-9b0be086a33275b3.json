@@ -1,0 +1,38 @@
+{
+  "ids": [
+    "asia/kabul"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000+04\u0000+0430\u0000",
+    "posix": {
+      "abbr": "+0430",
+      "offset": 16200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2524538208,
+      -788932800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 16608
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 14400
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 16200
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "ids": [
+    "africa/ndjamena"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000WAT\u0000WAST\u0000",
+    "posix": {
+      "abbr": "WAT",
+      "offset": 3600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -1830387612,
+      308703600,
+      321314400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 3612
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 3600
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": 7200
+      }
+    ]
+  }
+}

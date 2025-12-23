@@ -1,0 +1,38 @@
+{
+  "ids": [
+    "africa/bissau"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000-01\u0000GMT\u0000",
+    "posix": {
+      "abbr": "GMT",
+      "offset": 0,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -1830380400,
+      157770000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -3740
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -3600
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 0
+      }
+    ]
+  }
+}

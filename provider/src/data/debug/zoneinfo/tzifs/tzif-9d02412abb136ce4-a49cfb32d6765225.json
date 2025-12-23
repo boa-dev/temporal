@@ -1,0 +1,31 @@
+{
+  "ids": [
+    "atlantic/south_georgia"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000-02\u0000",
+    "posix": {
+      "abbr": "-02",
+      "offset": -7200,
+      "transition": null
+    },
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -2524512832
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -8768
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -7200
+      }
+    ]
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "ids": [
+    "asia/pontianak"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000PMT\u0000+0730\u0000+09\u0000+08\u0000WITA\u0000WIB\u0000",
+    "posix": {
+      "abbr": "WIB",
+      "offset": 25200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      4,
+      2,
+      5,
+      6
+    ],
+    "transitions": [
+      -1946186240,
+      -1172906240,
+      -881220600,
+      -766054800,
+      -683883000,
+      -620812800,
+      -189415800,
+      567964800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 26240
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 26240
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 27000
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 18,
+        "is_dst": false,
+        "offset": 28800
+      },
+      {
+        "index": 22,
+        "is_dst": false,
+        "offset": 28800
+      },
+      {
+        "index": 27,
+        "is_dst": false,
+        "offset": 25200
+      }
+    ]
+  }
+}

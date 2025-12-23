@@ -1,0 +1,22 @@
+{
+  "ids": [
+    "etc/gmt-4"
+  ],
+  "tzif": {
+    "designations": "+04\u0000",
+    "posix": {
+      "abbr": "+04",
+      "offset": 14400,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 14400
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "ids": [
+    "indian/chagos"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000+05\u0000+06\u0000",
+    "posix": {
+      "abbr": "+06",
+      "offset": 21600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -1988167780,
+      820436400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 17380
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 18000
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 21600
+      }
+    ]
+  }
+}

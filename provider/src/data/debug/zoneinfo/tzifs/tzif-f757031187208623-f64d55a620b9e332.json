@@ -1,0 +1,47 @@
+{
+  "ids": [
+    "america/martinique"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000FFMT\u0000AST\u0000ADT\u0000",
+    "posix": {
+      "abbr": "AST",
+      "offset": -14400,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2
+    ],
+    "transitions": [
+      -2524506940,
+      -1851537340,
+      323841600,
+      338958000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -14660
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -14660
+      },
+      {
+        "index": 9,
+        "is_dst": false,
+        "offset": -14400
+      },
+      {
+        "index": 13,
+        "is_dst": true,
+        "offset": -10800
+      }
+    ]
+  }
+}

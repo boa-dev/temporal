@@ -1,0 +1,32 @@
+{
+  "ids": [
+    "asia/kashgar",
+    "asia/urumqi"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000+06\u0000",
+    "posix": {
+      "abbr": "+06",
+      "offset": 21600,
+      "transition": null
+    },
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -1325483420
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 21020
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 21600
+      }
+    ]
+  }
+}

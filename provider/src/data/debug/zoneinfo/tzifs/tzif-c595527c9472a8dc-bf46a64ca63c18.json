@@ -1,0 +1,67 @@
+{
+  "ids": [
+    "australia/perth",
+    "australia/west"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000AWST\u0000AWDT\u0000",
+    "posix": {
+      "abbr": "AWST",
+      "offset": 28800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1,
+      2
+    ],
+    "transitions": [
+      -2337925404,
+      -1672552800,
+      -1665381600,
+      -883634400,
+      -876117600,
+      -860392800,
+      -844668000,
+      152042400,
+      162928800,
+      436298400,
+      447184800,
+      690314400,
+      699386400,
+      1165082400,
+      1174759200,
+      1193508000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 27804
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 28800
+      },
+      {
+        "index": 9,
+        "is_dst": true,
+        "offset": 32400
+      }
+    ]
+  }
+}

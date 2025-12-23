@@ -1,0 +1,62 @@
+{
+  "ids": [
+    "kwajalein",
+    "pacific/kwajalein"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000+11\u0000+10\u0000+09\u0000-12\u0000+12\u0000",
+    "posix": {
+      "abbr": "+12",
+      "offset": 43200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      1,
+      4,
+      5
+    ],
+    "transitions": [
+      -2177492960,
+      -1041418800,
+      -907408800,
+      -817462800,
+      -7988400,
+      745934400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 40160
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 39600
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 36000
+      },
+      {
+        "index": 12,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 16,
+        "is_dst": false,
+        "offset": -43200
+      },
+      {
+        "index": 20,
+        "is_dst": false,
+        "offset": 43200
+      }
+    ]
+  }
+}

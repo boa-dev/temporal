@@ -1,0 +1,64 @@
+{
+  "ids": [
+    "america/creston",
+    "america/phoenix",
+    "mst",
+    "us/arizona"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000MST\u0000MDT\u0000MWT\u0000",
+    "posix": {
+      "abbr": "MST",
+      "offset": -25200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1,
+      2,
+      1,
+      3,
+      1,
+      3,
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -2717643600,
+      -1633273200,
+      -1615132800,
+      -1601823600,
+      -1583683200,
+      -880210800,
+      -820519140,
+      -812653140,
+      -796845540,
+      -84380400,
+      -68659200
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -26898
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -25200
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": -21600
+      },
+      {
+        "index": 12,
+        "is_dst": true,
+        "offset": -21600
+      }
+    ]
+  }
+}

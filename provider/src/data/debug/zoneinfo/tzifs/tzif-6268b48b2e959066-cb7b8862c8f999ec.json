@@ -1,0 +1,49 @@
+{
+  "ids": [
+    "asia/pyongyang"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000KST\u0000JST\u0000",
+    "posix": {
+      "abbr": "KST",
+      "offset": 32400,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      1,
+      3
+    ],
+    "transitions": [
+      -1948782180,
+      -1830414600,
+      -768646800,
+      1439564400,
+      1525446000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 30180
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 30600
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 32400
+      }
+    ]
+  }
+}

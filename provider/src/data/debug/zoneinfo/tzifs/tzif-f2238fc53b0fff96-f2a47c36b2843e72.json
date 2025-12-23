@@ -1,0 +1,48 @@
+{
+  "ids": [
+    "antarctica/davis"
+  ],
+  "tzif": {
+    "designations": "-00\u0000+07\u0000+05\u0000",
+    "posix": {
+      "abbr": "+07",
+      "offset": 25200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      0,
+      1,
+      2,
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -409190400,
+      -163062000,
+      -28857600,
+      1255806000,
+      1268251200,
+      1319742000,
+      1329854400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 25200
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 18000
+      }
+    ]
+  }
+}

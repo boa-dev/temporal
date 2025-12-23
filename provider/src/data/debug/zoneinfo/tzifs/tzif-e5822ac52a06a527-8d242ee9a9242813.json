@@ -1,0 +1,48 @@
+{
+  "ids": [
+    "america/tegucigalpa"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000CST\u0000CDT\u0000",
+    "posix": {
+      "abbr": "CST",
+      "offset": -21600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -1538503868,
+      547020000,
+      559717200,
+      578469600,
+      591166800,
+      1146981600,
+      1154926800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -20932
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -21600
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": -18000
+      }
+    ]
+  }
+}

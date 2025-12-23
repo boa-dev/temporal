@@ -1,0 +1,76 @@
+{
+  "ids": [
+    "america/managua"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000MMT\u0000CST\u0000EST\u0000CDT\u0000",
+    "posix": {
+      "abbr": "CST",
+      "offset": -21600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      4,
+      2,
+      4,
+      2,
+      3,
+      2,
+      3,
+      2,
+      4,
+      2,
+      4,
+      2
+    ],
+    "transitions": [
+      -2524500892,
+      -1121105688,
+      105084000,
+      161758800,
+      290584800,
+      299134800,
+      322034400,
+      330584400,
+      694260000,
+      717310800,
+      725868000,
+      852094800,
+      1113112800,
+      1128229200,
+      1146384000,
+      1159682400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -20708
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -20712
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -21600
+      },
+      {
+        "index": 12,
+        "is_dst": false,
+        "offset": -18000
+      },
+      {
+        "index": 16,
+        "is_dst": true,
+        "offset": -18000
+      }
+    ]
+  }
+}

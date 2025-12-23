@@ -1,0 +1,54 @@
+{
+  "ids": [
+    "pacific/bougainville"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000PMMT\u0000+10\u0000+09\u0000+11\u0000",
+    "posix": {
+      "abbr": "+11",
+      "offset": 39600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      4
+    ],
+    "transitions": [
+      -2840178136,
+      -2366790512,
+      -868010400,
+      -768906000,
+      1419696000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 37336
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 35312
+      },
+      {
+        "index": 9,
+        "is_dst": false,
+        "offset": 36000
+      },
+      {
+        "index": 13,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 17,
+        "is_dst": false,
+        "offset": 39600
+      }
+    ]
+  }
+}

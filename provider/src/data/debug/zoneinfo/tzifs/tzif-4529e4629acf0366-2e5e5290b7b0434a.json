@@ -1,0 +1,49 @@
+{
+  "ids": [
+    "america/caracas"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000CMT\u0000-0430\u0000-04\u0000",
+    "posix": {
+      "abbr": "-04",
+      "offset": -14400,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      3
+    ],
+    "transitions": [
+      -2524505536,
+      -1826739140,
+      -157750200,
+      1197183600,
+      1462086000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -16064
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -16060
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -16200
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": -14400
+      }
+    ]
+  }
+}

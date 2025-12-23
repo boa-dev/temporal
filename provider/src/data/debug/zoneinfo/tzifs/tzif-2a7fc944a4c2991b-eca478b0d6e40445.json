@@ -1,0 +1,41 @@
+{
+  "ids": [
+    "asia/bangkok",
+    "asia/phnom_penh",
+    "asia/vientiane",
+    "indian/christmas"
+  ],
+  "tzif": {
+    "designations": "LMT\u0000BMT\u0000+07\u0000",
+    "posix": {
+      "abbr": "+07",
+      "offset": 25200,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2840164924,
+      -1570084924
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 24124
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 24124
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 25200
+      }
+    ]
+  }
+}

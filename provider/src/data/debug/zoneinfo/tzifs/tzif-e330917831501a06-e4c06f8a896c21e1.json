@@ -1,0 +1,67 @@
+{
+  "ids": [
+    "antarctica/troll"
+  ],
+  "tzif": {
+    "designations": "-00\u0000+00\u0000+02\u0000",
+    "posix": {
+      "abbr": "+00",
+      "offset": 0,
+      "transition": {
+        "abbr": "+02",
+        "end": {
+          "date": {
+            "day": null,
+            "kind": "MonthWeekDay",
+            "mwd": [
+              10,
+              5,
+              0
+            ]
+          },
+          "time": 10800
+        },
+        "savings": 7200,
+        "start": {
+          "date": {
+            "day": null,
+            "kind": "MonthWeekDay",
+            "mwd": [
+              3,
+              5,
+              0
+            ]
+          },
+          "time": 3600
+        }
+      }
+    },
+    "transition_types": [
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      1108166400,
+      1111885200,
+      1130634000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": 7200
+      }
+    ]
+  }
+}
