@@ -25,12 +25,10 @@ macro_rules! format_line(
 fn main() {
     let tz = env::args().nth(1).expect("Needs one argument");
     let provider = ZeroZoneInfoProvider::default();
-    // Create zoneinfo
-    let zoneinfo = ZeroZoneInfo::default();
 
     // Get tzif data
-    let resolved_id = zoneinfo.get_id(tz.as_bytes()).unwrap();
-    let tzif = zoneinfo.zero_tzif(resolved_id).unwrap();
+    let resolved_id = ZeroZoneInfo.get_id(tz.as_bytes()).unwrap();
+    let tzif = ZeroZoneInfo.zero_tzif(resolved_id).unwrap();
 
     format_line!("Index", "Transition", "Local type", "Datetime");
     for (index, transition) in tzif.transitions.iter().enumerate() {
@@ -52,10 +50,10 @@ fn main() {
         )
     }
 
-    println!("");
+    println!();
 
     let mut index = 0;
-    for designation in tzif.designations.into_owned().split('\0') {
+    for designation in tzif.designations.split('\0') {
         // Ignore the hanging nul terminator
         if !designation.is_empty() {
             println!("designations[{index}]: {designation}");
@@ -63,7 +61,7 @@ fn main() {
         }
     }
 
-    println!("");
+    println!();
 
     for (index, local_type) in tzif.types.iter().enumerate() {
         println!("local_type[{index}]");
