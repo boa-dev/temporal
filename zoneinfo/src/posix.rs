@@ -244,7 +244,6 @@ fn write_time(time: &Time, output: &mut String) -> core::fmt::Result {
 }
 
 fn write_date_time(datetime: &PosixDateTime, output: &mut String) -> core::fmt::Result {
-    std::println!("{datetime:?}");
     write!(output, ",")?;
     match datetime.date {
         PosixDate::JulianLeap(d) => write!(output, "{d}")?,

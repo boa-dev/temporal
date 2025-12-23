@@ -55,7 +55,7 @@ impl TzifBlockV2 {
 
         let local_time_types = local_time_set.into_iter().collect::<Vec<LocalTimeRecord>>();
 
-        let designations = designation_set.to_string();
+        let designations = designation_set.to_designations_string();
 
         Self {
             transition_times,
@@ -89,14 +89,14 @@ impl DesignationSet {
             self.indices.push(designation_index);
 
             // Calculate the next index to give out.
-            self.next_index = self.next_index + designation_len;
+            self.next_index += designation_len;
 
             return designation_index;
         };
         self.indices[index]
     }
 
-    pub fn to_string(self) -> String {
+    pub fn to_designations_string(self) -> String {
         let mut output = String::new();
         for designation in self.designations {
             let nul_terminated_designation = designation + "\0";
