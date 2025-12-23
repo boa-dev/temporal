@@ -222,6 +222,7 @@ pub(crate) struct MwdForTime {
 }
 
 impl MwdForTime {
+    #[cfg(any(feature = "tzif", feature = "experimental_tzif"))]
     pub(crate) fn from_seconds(seconds: i64) -> Self {
         let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
         let week_of_month = day_of_month / 7 + 1;

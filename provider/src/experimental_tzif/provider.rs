@@ -29,7 +29,7 @@ impl ZeroZoneInfo {
     }
 }
 
-impl<'data> TimeZoneResolver for ZeroZoneInfo {
+impl TimeZoneResolver for ZeroZoneInfo {
     fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolvedId> {
         COMPILED_ZONEINFO_PROVIDER
             .ids

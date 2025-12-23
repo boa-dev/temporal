@@ -90,6 +90,7 @@ pub mod epoch_nanoseconds;
 #[doc(hidden)]
 pub mod utils;
 
+#[cfg(any(feature = "tzif", feature = "experimental_tzif"))]
 pub(crate) mod common;
 
 mod error;

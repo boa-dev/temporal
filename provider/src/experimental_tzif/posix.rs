@@ -228,8 +228,8 @@ fn calculate_transition_seconds_for_year(
             mwd: Some((month, week, day)),
             ..
         } => {
-            let days_to_month = utils::month_to_day((month - 1) as u8, is_leap);
-            let days_in_month = utils::iso_days_in_month(year, month as u8);
+            let days_to_month = utils::month_to_day(month - 1, is_leap);
+            let days_in_month = utils::iso_days_in_month(year, month);
 
             // Month starts in the day...
             let day_offset = (u16::from(utils::epoch_seconds_to_day_of_week(year_epoch_seconds))
@@ -461,23 +461,23 @@ pub(crate) enum TransitionDate {
 }
 
 impl ZeroTransitionDate {
-    pub(crate) fn to_enum(&self) -> TransitionDate {
+    pub(crate) fn to_enum(self) -> TransitionDate {
         match self {
             ZeroTransitionDate {
                 kind: DateKind::JulianNoLeap,
                 day: Some(day),
                 ..
-            } => TransitionDate::JulianNoLeap(*day),
+            } => TransitionDate::JulianNoLeap(day),
             ZeroTransitionDate {
                 kind: DateKind::Julian,
                 day: Some(day),
                 ..
-            } => TransitionDate::Julian(*day),
+            } => TransitionDate::Julian(day),
             ZeroTransitionDate {
                 kind: DateKind::MonthWeekDay,
                 mwd: Some(mwd),
                 ..
-            } => TransitionDate::Mwd(*mwd),
+            } => TransitionDate::Mwd(mwd),
             _ => panic!("Invalid ZeroTransitionDate"),
         }
     }
