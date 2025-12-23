@@ -444,6 +444,21 @@ pub enum WeekDay {
     Sat,
 }
 
+impl From<u8> for WeekDay {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Sun,
+            1 => Self::Mon,
+            2 => Self::Tues,
+            3 => Self::Wed,
+            4 => Self::Thurs,
+            5 => Self::Fri,
+            6 => Self::Sat,
+            _ => panic!("invalid week day value"),
+        }
+    }
+}
+
 impl TryFromStr<LineParseContext> for WeekDay {
     type Error = ZoneInfoParseError;
     fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
