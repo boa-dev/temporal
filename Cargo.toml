@@ -102,10 +102,11 @@ zoneinfo64 = { workspace = true }
 resb = "0.1.0"
 
 [features]
-default = ["sys"]
+default = ["sys-local"]
 log = ["dep:log"]
 compiled_data = ["tzdb"]
-sys = ["std", "compiled_data", "dep:web-time", "dep:iana-time-zone"]
+sys = ["std", "compiled_data", "dep:web-time"]
+sys-local = ["sys", "dep:iana-time-zone"]
 tzdb = [
     "std",
     "timezone_provider/tzif",

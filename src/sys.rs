@@ -25,25 +25,76 @@ pub struct Temporal;
 
 impl Temporal {
     /// Get a `Now` object for the default host system.
-    pub const fn now() -> Now<DefaultHostSystem> {
-        Now::new(DefaultHostSystem)
+    #[cfg(feature = "sys-local")]
+    #[deprecated(
+        since = "0.1.0",
+        note = "`now` deprecated was not clear about the host system implementation, please use `local_now`"
+    )]
+    pub fn now() -> Now<LocalHostSystem> {
+        Now::new(LocalHostSystem)
+    }
+
+    /// Get a `Now` object with a [`LocalHostSystem`], which
+    /// will use the host system's time zone as a fallback.
+    #[cfg(feature = "sys-local")]
+    pub fn local_now() -> Now<LocalHostSystem> {
+        Now::new(LocalHostSystem)
+    }
+
+    /// Get a `Now` object with a [`UtcHostSystem`], which
+    /// will use a UTC time zone as a fallback.
+    #[cfg(feature = "sys")]
+    pub fn utc_now() -> Now<UtcHostSystem> {
+        Now::new(UtcHostSystem)
     }
 }
 
-/// A default host system implementation
+/// A UTC host system implementation that will return the current time
+/// with the a UTC time zone as fallback.
 ///
-/// This implementation is backed by [`SystemTime`] and [`iana_time_zone`]
-pub struct DefaultHostSystem;
+/// This implementation is backed by [`std::time::SystemTime`].
+#[cfg(feature = "sys")]
+pub struct UtcHostSystem;
 
-impl HostHooks for DefaultHostSystem {}
+#[cfg(feature = "sys")]
+impl HostHooks for UtcHostSystem {}
 
-impl HostClock for DefaultHostSystem {
+#[cfg(feature = "sys")]
+impl HostClock for UtcHostSystem {
     fn get_host_epoch_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
         get_system_nanoseconds()
     }
 }
 
-impl HostTimeZone for DefaultHostSystem {
+#[cfg(feature = "sys")]
+impl HostTimeZone for UtcHostSystem {
+    fn get_host_time_zone(
+        &self,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<TimeZone> {
+        Ok(TimeZone::utc_with_provider(provider))
+    }
+}
+
+/// A local host system implementation that will return the current time
+/// with the system time zone as a fallback.
+///
+/// This implementation is backed by [`std::time::SystemTime`] and [`iana_time_zone`]
+#[cfg(feature = "sys-local")]
+pub struct LocalHostSystem;
+
+#[cfg(feature = "sys-local")]
+impl HostHooks for LocalHostSystem {}
+
+#[cfg(feature = "sys-local")]
+impl HostClock for LocalHostSystem {
+    fn get_host_epoch_nanoseconds(&self) -> TemporalResult<EpochNanoseconds> {
+        get_system_nanoseconds()
+    }
+}
+
+#[cfg(feature = "sys-local")]
+impl HostTimeZone for LocalHostSystem {
     fn get_host_time_zone(
         &self,
         provider: &(impl TimeZoneProvider + ?Sized),
@@ -52,6 +103,7 @@ impl HostTimeZone for DefaultHostSystem {
     }
 }
 
+#[cfg(feature = "sys-local")]
 #[inline]
 pub(crate) fn get_system_timezone(
     provider: &(impl TimeZoneProvider + ?Sized),
