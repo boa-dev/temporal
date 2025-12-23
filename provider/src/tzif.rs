@@ -369,6 +369,7 @@ impl Tzif {
         let transition_info = DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year);
 
         let range = transition_info.transition_range();
+        let epoch_seconds = epoch_seconds.0;
 
         let mut seconds = match direction {
             TransitionDirection::Next => {
@@ -424,16 +425,16 @@ impl Tzif {
 
         if let Some(last_tzif_transition) = last_tzif_transition {
             // When going Previous, we went back into the area of tzif transition
-            if seconds < last_tzif_transition {
+            if seconds < last_tzif_transition.0 {
                 if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
-                    seconds = last_real_tzif_transition;
+                    seconds = last_real_tzif_transition.0;
                 } else {
                     return Ok(None);
                 }
             }
         }
 
-        Ok(Some(seconds.into()))
+        Ok(Some(EpochNanoseconds::from_seconds(seconds)))
     }
 
     // For more information, see /docs/TZDB.md
