@@ -4,6 +4,7 @@
 //! to full detail, but instead attempts to compress TZif data into
 //! a functional, data driven equivalent.
 
+use alloc::borrow::Cow;
 use core::{cmp::Ordering, ops::Range};
 
 use zerofrom::ZeroFrom;
@@ -65,6 +66,7 @@ pub struct ZeroTzif<'data> {
     pub transition_types: ZeroVec<'data, u8>,
     // NOTE: zoneinfo64 does a fun little bitmap str
     pub types: ZeroVec<'data, LocalTimeRecord>,
+    pub designations: Cow<'data, str>,
     pub posix: PosixZone,
 }
 
@@ -77,6 +79,8 @@ pub struct ZeroTzif<'data> {
 #[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif))]
 pub struct LocalTimeRecord {
     pub offset: i64,
+    pub is_dst: bool,
+    pub index: u8,
 }
 
 impl LocalTimeRecord {
@@ -394,7 +398,7 @@ impl<'data> ZeroTzif<'data> {
 
         let mut seconds = match direction {
             TransitionDirection::Next => {
-                // Inexact seconds in the negative case means that (seconds == foo) is actually
+                // In exact seconds in the negative case means that (seconds == foo) is actually
                 // seconds < foo
                 //
                 // This code will likely not actually be hit: the current Tzif database has no
