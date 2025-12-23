@@ -6,7 +6,7 @@ use crate::{
         CandidateEpochNanoseconds, EpochNanosecondsAndOffset, NormalizerAndResolver, ResolvedId,
         TimeZoneProviderResult, TimeZoneResolver, TransitionDirection,
     },
-    tzif::LocalTimeRecordResult,
+    common::LocalTimeRecordResult,
     CompiledNormalizer, TimeZoneProviderError,
 };
 use zerofrom::ZeroFrom;

@@ -2,14 +2,13 @@
 //!
 
 use tinystr::TinyAsciiStr;
-use tzif::data::time::Seconds;
 #[cfg(feature = "datagen")]
 use zoneinfo_rs::posix::{MonthWeekDay, PosixDate, PosixDateTime, PosixTimeZone, PosixTransition};
 
 use crate::{
     epoch_nanoseconds::EpochNanoseconds,
     provider::{GapEntryOffsets, TimeZoneProviderResult, UtcOffsetSeconds},
-    tzif::{
+    common::{
         offset_range, DstTransitionInfoForYear, LocalTimeRecordResult, Mwd, MwdForTime,
         TimeZoneTransitionInfo,
     },
@@ -123,8 +122,8 @@ impl PosixZone {
             dst_transition_info,
             year,
         );
-        let dst_start_seconds = transition_info.dst_start_seconds.0;
-        let dst_end_seconds = transition_info.dst_end_seconds.0;
+        let dst_start_seconds = transition_info.dst_start_seconds;
+        let dst_end_seconds = transition_info.dst_end_seconds;
 
         // Need to determine if the range being tested is standard or savings time.
         let dst_is_inversed = dst_end_seconds < dst_start_seconds;
@@ -189,16 +188,16 @@ impl DstTransitionInfoForYear {
     ) -> Self {
         let std_offset = UtcOffsetSeconds(std_offset_seconds);
         let dst_offset = UtcOffsetSeconds(std_offset_seconds + dst_transition.savings);
-        let dst_start_seconds = Seconds(calculate_transition_seconds_for_year(
+        let dst_start_seconds = calculate_transition_seconds_for_year(
             year,
             dst_transition.start,
             std_offset,
-        ));
-        let dst_end_seconds = Seconds(calculate_transition_seconds_for_year(
+        );
+        let dst_end_seconds = calculate_transition_seconds_for_year(
             year,
             dst_transition.end,
             dst_offset,
-        ));
+        );
         Self {
             dst_start_seconds,
             dst_end_seconds,

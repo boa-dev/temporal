@@ -6,7 +6,6 @@
 
 use core::{cmp::Ordering, ops::Range};
 
-use tzif::data::time::Seconds;
 use zerofrom::ZeroFrom;
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
@@ -15,12 +14,11 @@ use posix::PosixZone;
 
 use crate::epoch_nanoseconds::NS_IN_S;
 use crate::provider::TransitionDirection;
-use crate::tzif::{DstTransitionInfoForYear, TimeZoneTransitionInfo};
+use crate::common::{DstTransitionInfoForYear, TimeZoneTransitionInfo, LocalTimeRecordResult};
 use crate::{self as timezone_provider, utils, TimeZoneProviderError};
 use crate::{
     epoch_nanoseconds::EpochNanoseconds,
     provider::{GapEntryOffsets, TimeZoneProviderResult, UtcOffsetSeconds},
-    tzif::LocalTimeRecordResult,
 };
 
 compiled_zoneinfo_provider!(COMPILED_ZONEINFO_PROVIDER);
@@ -404,12 +402,12 @@ impl<'data> ZeroTzif<'data> {
                 // before the unix epoch.
                 let seconds_is_inexact_for_negative = seconds_is_negative && !seconds_is_exact;
                 // We're before the first transition
-                if epoch_seconds < range.start.0
-                    || (epoch_seconds == range.start.0 && seconds_is_inexact_for_negative)
+                if epoch_seconds < range.start
+                    || (epoch_seconds == range.start && seconds_is_inexact_for_negative)
                 {
                     range.start
-                } else if epoch_seconds < range.end.0
-                    || (epoch_seconds == range.end.0 && seconds_is_inexact_for_negative)
+                } else if epoch_seconds < range.end
+                    || (epoch_seconds == range.end && seconds_is_inexact_for_negative)
                 {
                     // We're between the first and second transition
                     range.end
@@ -430,12 +428,12 @@ impl<'data> ZeroTzif<'data> {
                 let seconds_is_ineexact_for_positive = !seconds_is_negative && !seconds_is_exact;
                 // We're after the second transition
                 // (note that seconds_is_exact means that epoch_seconds == range.end actually means equality)
-                if epoch_seconds > range.end.0
-                    || (epoch_seconds == range.end.0 && seconds_is_ineexact_for_positive)
+                if epoch_seconds > range.end
+                    || (epoch_seconds == range.end && seconds_is_ineexact_for_positive)
                 {
                     range.end
-                } else if epoch_seconds > range.start.0
-                    || (epoch_seconds == range.start.0 && seconds_is_ineexact_for_positive)
+                } else if epoch_seconds > range.start
+                    || (epoch_seconds == range.start && seconds_is_ineexact_for_positive)
                 {
                     // We're after the first transition
                     range.start
@@ -454,16 +452,16 @@ impl<'data> ZeroTzif<'data> {
 
         if let Some(last_tzif_transition) = last_tzif_transition {
             // When going Previous, we went back into the area of tzif transition
-            if seconds.0 < last_tzif_transition {
+            if seconds < last_tzif_transition {
                 if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
-                    seconds = Seconds(last_real_tzif_transition);
+                    seconds = last_real_tzif_transition;
                 } else {
                     return Ok(None);
                 }
             }
         }
 
-        Ok(Some(seconds.into()))
+        Ok(Some(EpochNanoseconds::from_seconds(seconds)))
     }
 
     fn get_transition_info(&self, idx: usize) -> TransitionInfo {
