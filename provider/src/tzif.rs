@@ -31,9 +31,12 @@ use std::path::Path;
 #[cfg(target_family = "unix")]
 use std::path::PathBuf;
 
-use crate::common::{calculate_transition_seconds_for_year, offset_range, LocalTimeRecordResult, Mwd, MwdForTime, TimeZoneTransitionInfo};
-use crate::{common::DstTransitionInfoForYear, provider::EpochNanosecondsAndOffset};
+use crate::common::{
+    calculate_transition_seconds_for_year, offset_range, LocalTimeRecordResult, Mwd, MwdForTime,
+    TimeZoneTransitionInfo,
+};
 use crate::CompiledNormalizer;
+use crate::{common::DstTransitionInfoForYear, provider::EpochNanosecondsAndOffset};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -53,11 +56,11 @@ use tzif::{
     },
 };
 
-use crate::utils;
 use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, NormalizerAndResolver, ResolvedId,
     TimeZoneProviderResult, TimeZoneResolver, TransitionDirection, UtcOffsetSeconds,
 };
+use crate::utils;
 use crate::{
     epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
     TimeZoneProviderError,
@@ -736,8 +739,6 @@ enum TransitionKind {
     // The offsets changed in a way that produces overlapping time.
     Overlap,
 }
-
-
 
 // NOTE: seconds here are epoch, so they are exact, not wall time.
 #[inline]

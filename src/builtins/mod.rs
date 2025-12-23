@@ -19,4 +19,3 @@ pub static TZ_PROVIDER: LazyLock<CompiledTzdbProvider> =
 
 #[cfg(all(test, feature = "compiled_data"))]
 pub(crate) static FS_TZ_PROVIDER: LazyLock<FsTzdbProvider> = LazyLock::new(FsTzdbProvider::default);
-

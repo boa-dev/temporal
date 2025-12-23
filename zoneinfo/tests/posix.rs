@@ -42,5 +42,8 @@ fn posix_string_test() {
     assert_eq!(moscow_posix.to_string(), Ok("MSK-3".into()));
 
     let santiago_posix = zic.get_posix_time_zone("America/Santiago").unwrap();
-    assert_eq!(santiago_posix.to_string(), Ok("<-04>4<-03>,M9.1.6/24,M4.1.6/24".into()))
+    assert_eq!(
+        santiago_posix.to_string(),
+        Ok("<-04>4<-03>,M9.1.6/24,M4.1.6/24".into())
+    )
 }

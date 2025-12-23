@@ -1,12 +1,12 @@
 use super::COMPILED_ZONEINFO_PROVIDER;
 use crate::{
+    common::LocalTimeRecordResult,
     epoch_nanoseconds::{seconds_to_nanoseconds, EpochNanoseconds, NS_IN_S},
     experimental_tzif::ZeroTzif,
     provider::{
         CandidateEpochNanoseconds, EpochNanosecondsAndOffset, NormalizerAndResolver, ResolvedId,
         TimeZoneProviderResult, TimeZoneResolver, TransitionDirection,
     },
-    common::LocalTimeRecordResult,
     CompiledNormalizer, TimeZoneProviderError,
 };
 use zerofrom::ZeroFrom;
@@ -119,4 +119,3 @@ impl<'data> TimeZoneResolver for ZeroZoneInfo {
         tzif.get_time_zone_transition(epoch_nanoseconds, direction)
     }
 }
-

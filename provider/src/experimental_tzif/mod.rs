@@ -13,9 +13,9 @@ use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 
 use posix::PosixZone;
 
+use crate::common::{DstTransitionInfoForYear, LocalTimeRecordResult, TimeZoneTransitionInfo};
 use crate::epoch_nanoseconds::NS_IN_S;
 use crate::provider::TransitionDirection;
-use crate::common::{DstTransitionInfoForYear, TimeZoneTransitionInfo, LocalTimeRecordResult};
 use crate::{self as timezone_provider, utils, TimeZoneProviderError};
 use crate::{
     epoch_nanoseconds::EpochNanoseconds,
@@ -29,7 +29,7 @@ mod datagen;
 pub mod posix;
 mod provider;
 
-pub use provider::{ZeroZoneInfoProvider, ZeroZoneInfo};
+pub use provider::{ZeroZoneInfo, ZeroZoneInfoProvider};
 
 #[derive(Debug, Clone)]
 #[cfg_attr(

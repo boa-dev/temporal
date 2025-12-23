@@ -1,7 +1,9 @@
-
 use std::env;
 use temporal_rs::{TimeZone, ZonedDateTime};
-use timezone_provider::{experimental_tzif::{ZeroZoneInfo, ZeroZoneInfoProvider}, provider::TimeZoneResolver};
+use timezone_provider::{
+    experimental_tzif::{ZeroZoneInfo, ZeroZoneInfoProvider},
+    provider::TimeZoneResolver,
+};
 
 macro_rules! format_line(
     ($arr:ident[$i:expr], $($args:expr),*) => {
@@ -33,11 +35,21 @@ fn main() {
     format_line!("Index", "Transition", "Local type", "Datetime");
     for (index, transition) in tzif.transitions.iter().enumerate() {
         let type_index = tzif.transition_types.get(index).expect("must exist");
-        
-        let time_zone = TimeZone::try_from_identifier_str_with_provider(&tz, &provider).unwrap();
-        let zdt = ZonedDateTime::try_new_iso_with_provider(transition as i128 * 1_000_000_000, time_zone, &provider).unwrap();
 
-        format_line!(format!("transition[{index}]"), transition, type_index, zdt.to_string_with_provider(&provider).unwrap())
+        let time_zone = TimeZone::try_from_identifier_str_with_provider(&tz, &provider).unwrap();
+        let zdt = ZonedDateTime::try_new_iso_with_provider(
+            transition as i128 * 1_000_000_000,
+            time_zone,
+            &provider,
+        )
+        .unwrap();
+
+        format_line!(
+            format!("transition[{index}]"),
+            transition,
+            type_index,
+            zdt.to_string_with_provider(&provider).unwrap()
+        )
     }
 
     println!("");
@@ -58,4 +70,3 @@ fn main() {
         println!("{local_type:#?}\n");
     }
 }
-

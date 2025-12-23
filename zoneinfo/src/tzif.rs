@@ -6,7 +6,7 @@
 // TODO: Look into upstreaming to `tzif`.
 // TODO: Potentially add some serialization scheme?
 
-use alloc::{vec::Vec, string::String};
+use alloc::{string::String, vec::Vec};
 use indexmap::IndexSet;
 
 use crate::compiler::CompiledTransitions;
@@ -26,11 +26,12 @@ impl TzifBlockV2 {
     pub fn from_transition_data(data: &CompiledTransitions) -> Self {
         let mut local_time_set = IndexSet::new();
         let mut designation_set = DesignationSet::default();
-        let index = designation_set.insert_and_retrieve_index(data.initial_record.designation.clone());
+        let index =
+            designation_set.insert_and_retrieve_index(data.initial_record.designation.clone());
         local_time_set.insert(LocalTimeRecord {
             offset: data.initial_record.offset,
             is_dst: data.initial_record.saving.as_secs() != 0,
-            index: index as u8
+            index: index as u8,
         });
         let mut transition_times = Vec::default();
         let mut transition_types = Vec::default();
@@ -90,11 +91,11 @@ impl DesignationSet {
             // Calculate the next index to give out.
             self.next_index = self.next_index + designation_len;
 
-            return designation_index
+            return designation_index;
         };
         self.indices[index]
     }
-    
+
     pub fn to_string(self) -> String {
         let mut output = String::new();
         for designation in self.designations {
@@ -112,4 +113,3 @@ pub struct LocalTimeRecord {
     pub is_dst: bool,
     pub index: u8,
 }
-

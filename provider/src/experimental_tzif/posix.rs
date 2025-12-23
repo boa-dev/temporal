@@ -6,12 +6,12 @@ use tinystr::TinyAsciiStr;
 use zoneinfo_rs::posix::{MonthWeekDay, PosixDate, PosixDateTime, PosixTimeZone, PosixTransition};
 
 use crate::{
-    epoch_nanoseconds::EpochNanoseconds,
-    provider::{GapEntryOffsets, TimeZoneProviderResult, UtcOffsetSeconds},
     common::{
         offset_range, DstTransitionInfoForYear, LocalTimeRecordResult, Mwd, MwdForTime,
         TimeZoneTransitionInfo,
     },
+    epoch_nanoseconds::EpochNanoseconds,
+    provider::{GapEntryOffsets, TimeZoneProviderResult, UtcOffsetSeconds},
     utils, TimeZoneProviderError,
 };
 
@@ -188,16 +188,10 @@ impl DstTransitionInfoForYear {
     ) -> Self {
         let std_offset = UtcOffsetSeconds(std_offset_seconds);
         let dst_offset = UtcOffsetSeconds(std_offset_seconds + dst_transition.savings);
-        let dst_start_seconds = calculate_transition_seconds_for_year(
-            year,
-            dst_transition.start,
-            std_offset,
-        );
-        let dst_end_seconds = calculate_transition_seconds_for_year(
-            year,
-            dst_transition.end,
-            dst_offset,
-        );
+        let dst_start_seconds =
+            calculate_transition_seconds_for_year(year, dst_transition.start, std_offset);
+        let dst_end_seconds =
+            calculate_transition_seconds_for_year(year, dst_transition.end, dst_offset);
         Self {
             dst_start_seconds,
             dst_end_seconds,

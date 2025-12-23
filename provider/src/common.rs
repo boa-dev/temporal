@@ -1,11 +1,17 @@
 //! Common transition based logic found across multiple providers
 
-use crate::{provider::{GapEntryOffsets, UtcOffsetSeconds}, utils};
+use crate::{
+    provider::{GapEntryOffsets, UtcOffsetSeconds},
+    utils,
+};
 
 use core::ops::Range;
 
 #[cfg(feature = "tzif")]
-use tzif::data::{posix::{DstTransitionInfo, PosixTzString, TransitionDate, TransitionDay}, tzif::LocalTimeTypeRecord};
+use tzif::data::{
+    posix::{DstTransitionInfo, PosixTzString, TransitionDate, TransitionDay},
+    tzif::LocalTimeTypeRecord,
+};
 
 // TODO: Workshop record name?
 /// The `LocalTimeRecord` result represents the result of searching for a
@@ -74,16 +80,10 @@ impl DstTransitionInfoForYear {
     ) -> Self {
         let std_offset = UtcOffsetSeconds::from(&posix_tz_string.std_info);
         let dst_offset = UtcOffsetSeconds::from(&dst_variant.variant_info);
-        let dst_start_seconds = calculate_transition_seconds_for_year(
-            year,
-            dst_variant.start_date,
-            std_offset,
-        );
-        let dst_end_seconds = calculate_transition_seconds_for_year(
-            year,
-            dst_variant.end_date,
-            dst_offset,
-        );
+        let dst_start_seconds =
+            calculate_transition_seconds_for_year(year, dst_variant.start_date, std_offset);
+        let dst_end_seconds =
+            calculate_transition_seconds_for_year(year, dst_variant.end_date, dst_offset);
         Self {
             dst_start_seconds,
             dst_end_seconds,
@@ -294,4 +294,3 @@ pub(crate) fn offset_range(offset_one: i64, offset_two: i64) -> core::ops::Range
     }
     offset_two..offset_one
 }
-
