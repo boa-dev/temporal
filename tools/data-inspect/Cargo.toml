@@ -1,0 +1,15 @@
+[package]
+name = "data-inspect"
+edition.workspace = true
+version.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+readme.workspace = true
+exclude.workspace = true
+
+[dependencies]
+timezone_provider = { workspace = true, features = ["experimental_tzif"] }
+temporal_rs = { workspace = true, features = ["tzdb", "compiled_data"]}
+

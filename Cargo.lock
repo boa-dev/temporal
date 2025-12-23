@@ -261,6 +261,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-inspect"
+version = "0.1.2"
+dependencies = [
+ "temporal_rs",
+ "timezone_provider",
+]
+
+[[package]]
 name = "databake"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

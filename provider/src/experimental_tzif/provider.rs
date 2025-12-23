@@ -17,6 +17,18 @@ pub type ZeroZoneInfoProvider<'a> = NormalizerAndResolver<CompiledNormalizer, Ze
 #[derive(Debug, Default)]
 pub struct ZeroZoneInfo;
 
+impl ZeroZoneInfo {
+    pub fn zero_tzif(&self, resolved_id: ResolvedId) -> TimeZoneProviderResult<ZeroTzif<'_>> {
+        COMPILED_ZONEINFO_PROVIDER
+            .tzifs
+            .get(resolved_id.0)
+            .map(ZeroTzif::zero_from)
+            .ok_or(TimeZoneProviderError::Range(
+                "tzif data not found for resolved id",
+            ))
+    }
+}
+
 impl<'data> TimeZoneResolver for ZeroZoneInfo {
     fn get_id(&self, normalized_identifier: &[u8]) -> TimeZoneProviderResult<ResolvedId> {
         COMPILED_ZONEINFO_PROVIDER
@@ -31,13 +43,7 @@ impl<'data> TimeZoneResolver for ZeroZoneInfo {
         identifier: ResolvedId,
         local_datetime: crate::provider::IsoDateTime,
     ) -> TimeZoneProviderResult<crate::provider::CandidateEpochNanoseconds> {
-        let tzif = COMPILED_ZONEINFO_PROVIDER
-            .tzifs
-            .get(identifier.0)
-            .map(ZeroTzif::zero_from)
-            .ok_or(TimeZoneProviderError::Range(
-                "tzif data not found for resolved id",
-            ))?;
+        let tzif = self.zero_tzif(identifier)?;
 
         let epoch_nanos = (local_datetime).as_nanoseconds();
         let mut seconds = (epoch_nanos.0 / NS_IN_S) as i64;
@@ -90,13 +96,7 @@ impl<'data> TimeZoneResolver for ZeroZoneInfo {
         identifier: ResolvedId,
         epoch_nanoseconds: i128,
     ) -> TimeZoneProviderResult<crate::provider::UtcOffsetSeconds> {
-        let tzif = COMPILED_ZONEINFO_PROVIDER
-            .tzifs
-            .get(identifier.0)
-            .map(ZeroTzif::zero_from)
-            .ok_or(TimeZoneProviderError::Range(
-                "tzif data not found for resolved id",
-            ))?;
+        let tzif = self.zero_tzif(identifier)?;
 
         let mut seconds = (epoch_nanoseconds / NS_IN_S) as i64;
         // The rounding is inexact. Transitions are only at second
@@ -115,13 +115,7 @@ impl<'data> TimeZoneResolver for ZeroZoneInfo {
         epoch_nanoseconds: i128,
         direction: TransitionDirection,
     ) -> TimeZoneProviderResult<Option<crate::epoch_nanoseconds::EpochNanoseconds>> {
-        let tzif = COMPILED_ZONEINFO_PROVIDER
-            .tzifs
-            .get(identifier.0)
-            .map(ZeroTzif::zero_from)
-            .ok_or(TimeZoneProviderError::Range(
-                "tzif data not found for resolved id",
-            ))?;
+        let tzif = self.zero_tzif(identifier)?;
         tzif.get_time_zone_transition(epoch_nanoseconds, direction)
     }
 }
