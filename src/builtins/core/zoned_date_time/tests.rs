@@ -41,6 +41,14 @@ macro_rules! test_all_providers {
 
             $b
         }
+
+        $(#[cfg($cfg_fs)])? #[cfg(feature = "zerocopy_compiled_data")] {
+            std::println!("Testing ZeroZoneInfoProvider:");
+            let fs = timezone_provider::experimental_tzif::ZeroZoneInfoProvider::default();
+            let $provider = &fs;
+
+            $b
+        }
     }};
 }
 

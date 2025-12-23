@@ -14,12 +14,7 @@ use zerofrom::ZeroFrom;
 /// A zerocopy compiled zone info provider
 pub type ZeroZoneInfoProvider<'a> = NormalizerAndResolver<CompiledNormalizer, ZeroZoneInfo>;
 
-impl<'a> ZeroZoneInfoProvider<'a> {
-    pub fn compiled() -> Self {
-        ZeroZoneInfoProvider::new(ZeroZoneInfo)
-    }
-}
-
+#[derive(Debug, Default)]
 pub struct ZeroZoneInfo;
 
 impl<'data> TimeZoneResolver for ZeroZoneInfo {
