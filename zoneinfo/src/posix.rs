@@ -136,22 +136,51 @@ pub enum PosixDate {
 }
 
 impl PosixDate {
-    pub(crate) fn from_rule(rule: &Rule) -> Self {
+    pub(crate) fn from_rule(rule: &Rule) -> (Self, i64) {
         match rule.on_date {
-            DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => {
-                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
-            }
-            DayOfMonth::Day(day) => {
-                PosixDate::JulianLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16)
-            }
-            DayOfMonth::Last(wd) => PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, 5, wd)),
+            DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => (
+                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16),
+                0,
+            ),
+            DayOfMonth::Day(day) => (
+                PosixDate::JulianLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16),
+                0,
+            ),
+            DayOfMonth::Last(wd) => (
+                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, 5, wd)),
+                0,
+            ),
             DayOfMonth::WeekDayGEThanMonthDay(week_day, day_of_month) => {
-                let week = 1 + (day_of_month - 1) / 7;
-                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day))
+                // Handle overflow day correctly (See America/Santiago)
+                let zero_based_day_of_month = day_of_month - 1;
+                let days_overflow = zero_based_day_of_month % 7;
+                let mut intermediate_week_day = week_day as i8 - days_overflow as i8;
+                let week = 1 + zero_based_day_of_month / 7;
+                if intermediate_week_day < 0 {
+                    intermediate_week_day += 7;
+                }
+                let week_day = WeekDay::from_u8(intermediate_week_day as u8);
+                (
+                    PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day)),
+                    days_overflow as i64 * 86_400,
+                )
             }
             DayOfMonth::WeekDayLEThanMonthDay(week_day, day_of_month) => {
+                // Handle overflow day correctly (See America/Santiago)
+                let days_overflow = day_of_month as i8 % 7;
+                let mut intermediate_week_day = week_day as i8 - days_overflow;
                 let week = day_of_month / 7;
-                PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day))
+                if intermediate_week_day < 0 {
+                    intermediate_week_day += 7;
+                }
+                (
+                    PosixDate::MonthWeekDay(MonthWeekDay(
+                        rule.in_month,
+                        week,
+                        WeekDay::from_u8(intermediate_week_day as u8),
+                    )),
+                    days_overflow as i64 * 86_400,
+                )
             }
         }
     }
@@ -165,11 +194,16 @@ pub struct PosixDateTime {
 
 impl PosixDateTime {
     pub(crate) fn from_rule_and_transition_info(rule: &Rule, offset: Time, savings: Time) -> Self {
-        let date = PosixDate::from_rule(rule);
+        let (date, time_overflow) = PosixDate::from_rule(rule);
         let time = match rule.at {
-            QualifiedTime::Local(time) => time,
-            QualifiedTime::Standard(standard_time) => standard_time.add(rule.save),
-            QualifiedTime::Universal(universal_time) => universal_time.add(offset).add(savings),
+            QualifiedTime::Local(time) => time.add(Time::from_seconds(time_overflow)),
+            QualifiedTime::Standard(standard_time) => standard_time
+                .add(rule.save)
+                .add(Time::from_seconds(time_overflow)),
+            QualifiedTime::Universal(universal_time) => universal_time
+                .add(offset)
+                .add(savings)
+                .add(Time::from_seconds(time_overflow)),
         };
         Self { date, time }
     }

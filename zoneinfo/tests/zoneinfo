@@ -435,4 +435,61 @@ Zone	Europe/Riga	1:36:34	-	LMT	1880
 			2:00	-	EET	2001 Jan  2
 			2:00	EU	EE%sT
 
+# America/Santiago test case
 
+# Rule	NAME	FROM	TO	-	IN	ON	AT	SAVE	LETTER/S
+Rule	Chile	1927	1931	-	Sep	 1	0:00	1:00	-
+Rule	Chile	1928	1932	-	Apr	 1	0:00	0	-
+Rule	Chile	1968	only	-	Nov	 3	4:00u	1:00	-
+Rule	Chile	1969	only	-	Mar	30	3:00u	0	-
+Rule	Chile	1969	only	-	Nov	23	4:00u	1:00	-
+Rule	Chile	1970	only	-	Mar	29	3:00u	0	-
+Rule	Chile	1971	only	-	Mar	14	3:00u	0	-
+Rule	Chile	1970	1972	-	Oct	Sun>=9	4:00u	1:00	-
+Rule	Chile	1972	1986	-	Mar	Sun>=9	3:00u	0	-
+Rule	Chile	1973	only	-	Sep	30	4:00u	1:00	-
+Rule	Chile	1974	1987	-	Oct	Sun>=9	4:00u	1:00	-
+Rule	Chile	1987	only	-	Apr	12	3:00u	0	-
+Rule	Chile	1988	1990	-	Mar	Sun>=9	3:00u	0	-
+Rule	Chile	1988	1989	-	Oct	Sun>=9	4:00u	1:00	-
+Rule	Chile	1990	only	-	Sep	16	4:00u	1:00	-
+Rule	Chile	1991	1996	-	Mar	Sun>=9	3:00u	0	-
+Rule	Chile	1991	1997	-	Oct	Sun>=9	4:00u	1:00	-
+Rule	Chile	1997	only	-	Mar	30	3:00u	0	-
+Rule	Chile	1998	only	-	Mar	Sun>=9	3:00u	0	-
+Rule	Chile	1998	only	-	Sep	27	4:00u	1:00	-
+Rule	Chile	1999	only	-	Apr	 4	3:00u	0	-
+Rule	Chile	1999	2010	-	Oct	Sun>=9	4:00u	1:00	-
+Rule	Chile	2000	2007	-	Mar	Sun>=9	3:00u	0	-
+# N.B.: the end of March 29 in Chile is March 30 in Universal time,
+# which is used below in specifying the transition.
+Rule	Chile	2008	only	-	Mar	30	3:00u	0	-
+Rule	Chile	2009	only	-	Mar	Sun>=9	3:00u	0	-
+Rule	Chile	2010	only	-	Apr	Sun>=1	3:00u	0	-
+Rule	Chile	2011	only	-	May	Sun>=2	3:00u	0	-
+Rule	Chile	2011	only	-	Aug	Sun>=16	4:00u	1:00	-
+Rule	Chile	2012	2014	-	Apr	Sun>=23	3:00u	0	-
+Rule	Chile	2012	2014	-	Sep	Sun>=2	4:00u	1:00	-
+Rule	Chile	2016	2018	-	May	Sun>=9	3:00u	0	-
+Rule	Chile	2016	2018	-	Aug	Sun>=9	4:00u	1:00	-
+Rule	Chile	2019	max	-	Apr	Sun>=2	3:00u	0	-
+Rule	Chile	2019	2021	-	Sep	Sun>=2	4:00u	1:00	-
+Rule	Chile	2022	only	-	Sep	Sun>=9	4:00u	1:00	-
+Rule	Chile	2023	max	-	Sep	Sun>=2	4:00u	1:00	-
+# IATA SSIM anomalies: (1992-02) says 1992-03-14;
+# (1996-09) says 1998-03-08.  Ignore these.
+# Zone	NAME		STDOFF	RULES	FORMAT	[UNTIL]
+Zone America/Santiago	-4:42:45 -	LMT	1890
+			-4:42:45 -	SMT	1910 Jan 10 # Santiago Mean Time
+			-5:00	-	%z	1916 Jul  1
+			-4:42:45 -	SMT	1918 Sep 10
+			-4:00	-	%z	1919 Jul  1
+			-4:42:45 -	SMT	1927 Sep  1
+			-5:00	Chile	%z	1932 Sep  1
+			-4:00	-	%z	1942 Jun  1
+			-5:00	-	%z	1942 Aug  1
+			-4:00	-	%z	1946 Jul 14 24:00
+			-4:00	1:00	%z	1946 Aug 28 24:00 # central CL
+			-5:00	1:00	%z	1947 Mar 31 24:00
+			-5:00	-	%z	1947 May 21 23:00
+			-4:00	Chile	%z
