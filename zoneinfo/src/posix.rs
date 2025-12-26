@@ -136,6 +136,8 @@ pub enum PosixDate {
 }
 
 impl PosixDate {
+    /// Creates a [`PosixDate`] from a provided rule. This method returns both a posix date and an
+    /// integer, representing the days off the target weekday in seconds.
     pub(crate) fn from_rule(rule: &Rule) -> (Self, i64) {
         match rule.on_date {
             DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => (
@@ -211,7 +213,11 @@ impl PosixDate {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PosixDateTime {
+    /// The designated [`PosixDate`] 
     pub date: PosixDate,
+    /// The local time for a [`PosixDateTime`] at which a transition occurs.
+    ///
+    /// N.B., this can be in the range of -167..=167
     pub time: Time,
 }
 
