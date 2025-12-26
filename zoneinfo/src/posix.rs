@@ -151,35 +151,58 @@ impl PosixDate {
                 0,
             ),
             DayOfMonth::WeekDayGEThanMonthDay(week_day, day_of_month) => {
-                // Handle overflow day correctly (See America/Santiago)
+                // Handle week day offset correctly (See America/Santiago; i.e. Sun>=2)
+                //
+                // To do this for the GE case, we work with a zero based day of month,
+                // This ensures that day_of_month being 1 aligns with Sun = 0, for 
+                // Sun>=1 purposes.
+                //
+                // The primary purpose for this approach as noted in zic.c is to support
+                // America/Santiago timestamps beyond 2038.
+
+                // Calculate the days off the target weekday.
                 let zero_based_day_of_month = day_of_month - 1;
-                let days_overflow = zero_based_day_of_month % 7;
-                let mut intermediate_week_day = week_day as i8 - days_overflow as i8;
+                let days_off_week_day = zero_based_day_of_month % 7;
+                // N.B., this could be a negative. If we look at Sun>=2, then this becomes
+                // 0 - 1.
+                let mut adjusted_week_day = week_day as i8 - days_off_week_day as i8;
+
+                // Calculate what week we are in.
+                //
+                // Since we are operating with a zero based day of month, we add 
                 let week = 1 + zero_based_day_of_month / 7;
-                if intermediate_week_day < 0 {
-                    intermediate_week_day += 7;
+
+                // If we have shifted beyond the month, add 7 to shift back into the first
+                // week.
+                if adjusted_week_day < 0 {
+                    adjusted_week_day += 7;
                 }
-                let week_day = WeekDay::from_u8(intermediate_week_day as u8);
+                let week_day = WeekDay::from_u8(adjusted_week_day as u8);
+                // N.B. The left of time the target weekday becomes a time overflow added
+                // to the minutes.
                 (
                     PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day)),
-                    days_overflow as i64 * 86_400,
+                    days_off_week_day as i64 * 86_400,
                 )
             }
             DayOfMonth::WeekDayLEThanMonthDay(week_day, day_of_month) => {
-                // Handle overflow day correctly (See America/Santiago)
-                let days_overflow = day_of_month as i8 % 7;
-                let mut intermediate_week_day = week_day as i8 - days_overflow;
+                // Handle week day offset correctly
+                //
+                // We don't worry about the last day of the month in this scenario, which
+                // is the upper bound as that is handled by DayOfMonth::Last
+                let days_off_week_day = day_of_month as i8 % 7;
+                let mut adjusted_week_day = week_day as i8 - days_off_week_day;
                 let week = day_of_month / 7;
-                if intermediate_week_day < 0 {
-                    intermediate_week_day += 7;
+                if adjusted_week_day < 0 {
+                    adjusted_week_day += 7;
                 }
                 (
                     PosixDate::MonthWeekDay(MonthWeekDay(
                         rule.in_month,
                         week,
-                        WeekDay::from_u8(intermediate_week_day as u8),
+                        WeekDay::from_u8(adjusted_week_day as u8),
                     )),
-                    days_overflow as i64 * 86_400,
+                    days_off_week_day as i64 * 86_400,
                 )
             }
         }
