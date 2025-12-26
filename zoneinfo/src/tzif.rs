@@ -27,8 +27,8 @@ impl TzifBlockV2 {
         let mut local_time_set = IndexSet::new();
         let mut designation_set = DesignationSet::default();
 
-        let index =
-            designation_set.insert_and_retrieve_index(data.initial_record.designation.chars().collect());
+        let index = designation_set
+            .insert_and_retrieve_index(data.initial_record.designation.chars().collect());
         local_time_set.insert(LocalTimeRecord {
             offset: data.initial_record.offset,
             is_dst: data.initial_record.saving.as_secs() != 0,
@@ -37,7 +37,8 @@ impl TzifBlockV2 {
         let mut transition_times = Vec::default();
         let mut transition_types = Vec::default();
         for transition in &data.transitions {
-            let index = designation_set.insert_and_retrieve_index(transition.format.chars().collect());
+            let index =
+                designation_set.insert_and_retrieve_index(transition.format.chars().collect());
             let local_time_record = LocalTimeRecord {
                 offset: transition.offset,
                 is_dst: transition.dst,
@@ -51,7 +52,6 @@ impl TzifBlockV2 {
                     let _ = local_time_set.insert(local_time_record);
                     transition_types.push(local_time_set.len() as u8 - 1);
                 }
-
             }
         }
 
@@ -64,7 +64,6 @@ impl TzifBlockV2 {
             transition_types,
             local_time_types,
             designations,
-
         }
     }
 }
@@ -109,8 +108,7 @@ impl DesignationSet {
     }
 
     pub fn to_vec(self) -> Vec<char> {
-        self
-            .designations
+        self.designations
             .into_iter()
             .collect::<Vec<Vec<char>>>()
             .concat()

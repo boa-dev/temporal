@@ -76,4 +76,3 @@ pub struct LocalTimeRecord {
     /// The index into the designations array.
     pub index: u8,
 }
-
