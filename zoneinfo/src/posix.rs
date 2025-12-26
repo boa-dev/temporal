@@ -156,7 +156,7 @@ impl PosixDate {
                 // Handle week day offset correctly (See America/Santiago; i.e. Sun>=2)
                 //
                 // To do this for the GE case, we work with a zero based day of month,
-                // This ensures that day_of_month being 1 aligns with Sun = 0, for 
+                // This ensures that day_of_month being 1 aligns with Sun = 0, for
                 // Sun>=1 purposes.
                 //
                 // The primary purpose for this approach as noted in zic.c is to support
@@ -171,7 +171,7 @@ impl PosixDate {
 
                 // Calculate what week we are in.
                 //
-                // Since we are operating with a zero based day of month, we add 
+                // Since we are operating with a zero based day of month, we add
                 let week = 1 + zero_based_day_of_month / 7;
 
                 // If we have shifted beyond the month, add 7 to shift back into the first
@@ -213,7 +213,7 @@ impl PosixDate {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PosixDateTime {
-    /// The designated [`PosixDate`] 
+    /// The designated [`PosixDate`]
     pub date: PosixDate,
     /// The local time for a [`PosixDateTime`] at which a transition occurs.
     ///
