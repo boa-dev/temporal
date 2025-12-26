@@ -230,11 +230,8 @@ impl PosixDateTime {
         let (date, time_overflow) = PosixDate::from_rule(rule);
         let time = match rule.at {
             QualifiedTime::Local(time) => time,
-            QualifiedTime::Standard(standard_time) => standard_time
-                .add(rule.save),
-            QualifiedTime::Universal(universal_time) => universal_time
-                .add(offset)
-                .add(savings)
+            QualifiedTime::Standard(standard_time) => standard_time.add(rule.save),
+            QualifiedTime::Universal(universal_time) => universal_time.add(offset).add(savings),
         };
         let time = time.add(Time::from_seconds(time_overflow));
         Self { date, time }
