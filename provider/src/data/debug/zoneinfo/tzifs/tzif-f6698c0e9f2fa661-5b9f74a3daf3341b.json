@@ -1,0 +1,27 @@
+{
+  "ids": [
+    "etc/gmt-14"
+  ],
+  "tzif": {
+    "designations": [
+      "+",
+      "1",
+      "4",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+14",
+      "offset": 50400,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 50400
+      }
+    ]
+  }
+}

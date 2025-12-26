@@ -1,0 +1,47 @@
+{
+  "ids": [
+    "africa/blantyre",
+    "africa/bujumbura",
+    "africa/gaborone",
+    "africa/harare",
+    "africa/kigali",
+    "africa/lubumbashi",
+    "africa/lusaka",
+    "africa/maputo"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "C",
+      "A",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "CAT",
+      "offset": 7200,
+      "transition": null
+    },
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -1924999818
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 7818
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 7200
+      }
+    ]
+  }
+}

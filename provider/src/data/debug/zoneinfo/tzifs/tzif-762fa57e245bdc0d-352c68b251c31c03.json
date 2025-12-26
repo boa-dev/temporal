@@ -1,0 +1,54 @@
+{
+  "ids": [
+    "asia/thimbu",
+    "asia/thimphu"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "0",
+      "5",
+      "3",
+      "0",
+      "\u0000",
+      "+",
+      "0",
+      "6",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+06",
+      "offset": 21600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -706341516,
+      560025000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 21516
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 19800
+      },
+      {
+        "index": 10,
+        "is_dst": false,
+        "offset": 21600
+      }
+    ]
+  }
+}

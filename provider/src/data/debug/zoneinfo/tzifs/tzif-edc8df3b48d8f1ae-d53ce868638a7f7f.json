@@ -1,0 +1,63 @@
+{
+  "ids": [
+    "pacific/enderbury",
+    "pacific/kanton"
+  ],
+  "tzif": {
+    "designations": [
+      "-",
+      "0",
+      "0",
+      "\u0000",
+      "-",
+      "1",
+      "2",
+      "\u0000",
+      "-",
+      "1",
+      "1",
+      "\u0000",
+      "+",
+      "1",
+      "3",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+13",
+      "offset": 46800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3
+    ],
+    "transitions": [
+      -1020470400,
+      307627200,
+      788871600
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -43200
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -39600
+      },
+      {
+        "index": 12,
+        "is_dst": false,
+        "offset": 46800
+      }
+    ]
+  }
+}

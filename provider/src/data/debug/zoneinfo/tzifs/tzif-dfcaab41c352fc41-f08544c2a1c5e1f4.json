@@ -1,0 +1,40 @@
+{
+  "ids": [
+    "antarctica/rothera"
+  ],
+  "tzif": {
+    "designations": [
+      "-",
+      "0",
+      "0",
+      "\u0000",
+      "-",
+      "0",
+      "3",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "-03",
+      "offset": -10800,
+      "transition": null
+    },
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      218246400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -10800
+      }
+    ]
+  }
+}

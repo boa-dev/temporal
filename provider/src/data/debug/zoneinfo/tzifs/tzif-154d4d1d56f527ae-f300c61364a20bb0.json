@@ -1,0 +1,44 @@
+{
+  "ids": [
+    "pacific/funafuti",
+    "pacific/majuro",
+    "pacific/tarawa",
+    "pacific/wake",
+    "pacific/wallis"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "1",
+      "2",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+12",
+      "offset": 43200,
+      "transition": null
+    },
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -2177494324
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 41524
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 43200
+      }
+    ]
+  }
+}

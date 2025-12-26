@@ -1,0 +1,87 @@
+{
+  "ids": [
+    "hst",
+    "pacific/honolulu",
+    "pacific/johnston",
+    "us/hawaii"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "H",
+      "S",
+      "T",
+      "\u0000",
+      "H",
+      "D",
+      "T",
+      "\u0000",
+      "H",
+      "W",
+      "T",
+      "\u0000",
+      "H",
+      "P",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "HST",
+      "offset": -36000,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1,
+      3,
+      4,
+      1,
+      5
+    ],
+    "transitions": [
+      -2334101314,
+      -1157283000,
+      -1155436200,
+      -880198200,
+      -769395600,
+      -765376200,
+      -712150200
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -37886
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -37800
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": -34200
+      },
+      {
+        "index": 12,
+        "is_dst": true,
+        "offset": -34200
+      },
+      {
+        "index": 16,
+        "is_dst": true,
+        "offset": -34200
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -36000
+      }
+    ]
+  }
+}

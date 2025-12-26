@@ -1,0 +1,75 @@
+{
+  "ids": [
+    "africa/bangui",
+    "africa/brazzaville",
+    "africa/douala",
+    "africa/kinshasa",
+    "africa/lagos",
+    "africa/libreville",
+    "africa/luanda",
+    "africa/malabo",
+    "africa/niamey",
+    "africa/porto-novo"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "G",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "0",
+      "0",
+      "3",
+      "0",
+      "\u0000",
+      "W",
+      "A",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "WAT",
+      "offset": 3600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      0,
+      2,
+      3
+    ],
+    "transitions": [
+      -2035584815,
+      -1940889600,
+      -1767226415,
+      -1588465800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 815
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 1800
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 3600
+      }
+    ]
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "ids": [
+    "pacific/rarotonga"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "-",
+      "1",
+      "0",
+      "3",
+      "0",
+      "\u0000",
+      "-",
+      "0",
+      "9",
+      "3",
+      "0",
+      "\u0000",
+      "-",
+      "1",
+      "0",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "-10",
+      "offset": -36000,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      4,
+      3
+    ],
+    "transitions": [
+      -2209555256,
+      -543072056,
+      279714600,
+      289387800,
+      309952800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 48056
+      },
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -38344
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -37800
+      },
+      {
+        "index": 10,
+        "is_dst": true,
+        "offset": -34200
+      },
+      {
+        "index": 16,
+        "is_dst": false,
+        "offset": -36000
+      }
+    ]
+  }
+}

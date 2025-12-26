@@ -1,0 +1,68 @@
+{
+  "ids": [
+    "asia/rangoon",
+    "asia/yangon",
+    "indian/cocos"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "R",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "0",
+      "6",
+      "3",
+      "0",
+      "\u0000",
+      "+",
+      "0",
+      "9",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+0630",
+      "offset": 23400,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2
+    ],
+    "transitions": [
+      -2840163887,
+      -1577946287,
+      -873268200,
+      -778410000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 23087
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 23087
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 23400
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 32400
+      }
+    ]
+  }
+}
