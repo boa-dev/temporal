@@ -161,13 +161,17 @@ impl PosixDate {
                 //
                 // The primary purpose for this approach as noted in zic.c is to support
                 // America/Santiago timestamps beyond 2038.
+                //
+                // See the below link for more info.
+                //
+                // https://github.com/eggert/tz/commit/07351e0248b5a42151e49e4506bca0363c846f8c
 
-                // Calculate the days off the target weekday.
+                // Calculate the difference between the day of month and the week day.
                 let zero_based_day_of_month = day_of_month - 1;
-                let days_off_week_day = zero_based_day_of_month % 7;
+                let week_day_from_dom = zero_based_day_of_month % 7;
                 // N.B., this could be a negative. If we look at Sun>=2, then this becomes
                 // 0 - 1.
-                let mut adjusted_week_day = week_day as i8 - days_off_week_day as i8;
+                let mut adjusted_week_day = week_day as i8 - week_day_from_dom as i8;
 
                 // Calculate what week we are in.
                 //
@@ -184,7 +188,7 @@ impl PosixDate {
                 // to the minutes.
                 (
                     PosixDate::MonthWeekDay(MonthWeekDay(rule.in_month, week, week_day)),
-                    days_off_week_day as i64 * 86_400,
+                    week_day_from_dom as i64 * 86_400,
                 )
             }
             DayOfMonth::WeekDayLEThanMonthDay(week_day, day_of_month) => {
@@ -192,8 +196,8 @@ impl PosixDate {
                 //
                 // We don't worry about the last day of the month in this scenario, which
                 // is the upper bound as that is handled by DayOfMonth::Last
-                let days_off_week_day = day_of_month as i8 % 7;
-                let mut adjusted_week_day = week_day as i8 - days_off_week_day;
+                let week_day_from_dom = day_of_month as i8 % 7;
+                let mut adjusted_week_day = week_day as i8 - week_day_from_dom;
                 let week = day_of_month / 7;
                 if adjusted_week_day < 0 {
                     adjusted_week_day += 7;
@@ -204,7 +208,7 @@ impl PosixDate {
                         week,
                         WeekDay::from_u8(adjusted_week_day as u8),
                     )),
-                    days_off_week_day as i64 * 86_400,
+                    week_day_from_dom as i64 * 86_400,
                 )
             }
         }
@@ -225,15 +229,14 @@ impl PosixDateTime {
     pub(crate) fn from_rule_and_transition_info(rule: &Rule, offset: Time, savings: Time) -> Self {
         let (date, time_overflow) = PosixDate::from_rule(rule);
         let time = match rule.at {
-            QualifiedTime::Local(time) => time.add(Time::from_seconds(time_overflow)),
+            QualifiedTime::Local(time) => time,
             QualifiedTime::Standard(standard_time) => standard_time
-                .add(rule.save)
-                .add(Time::from_seconds(time_overflow)),
+                .add(rule.save),
             QualifiedTime::Universal(universal_time) => universal_time
                 .add(offset)
                 .add(savings)
-                .add(Time::from_seconds(time_overflow)),
         };
+        let time = time.add(Time::from_seconds(time_overflow));
         Self { date, time }
     }
 }
