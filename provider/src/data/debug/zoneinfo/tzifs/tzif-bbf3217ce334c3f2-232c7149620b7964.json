@@ -1,0 +1,27 @@
+{
+  "ids": [
+    "etc/gmt+11"
+  ],
+  "tzif": {
+    "designations": [
+      "-",
+      "1",
+      "1",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "-11",
+      "offset": -39600,
+      "transition": null
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -39600
+      }
+    ]
+  }
+}

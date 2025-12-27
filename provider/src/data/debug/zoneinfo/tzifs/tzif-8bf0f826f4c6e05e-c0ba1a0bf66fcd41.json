@@ -1,0 +1,93 @@
+{
+  "ids": [
+    "asia/dacca",
+    "asia/dhaka"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "H",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "0",
+      "6",
+      "3",
+      "0",
+      "\u0000",
+      "+",
+      "0",
+      "5",
+      "3",
+      "0",
+      "\u0000",
+      "+",
+      "0",
+      "6",
+      "\u0000",
+      "+",
+      "0",
+      "7",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+06",
+      "offset": 21600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      4,
+      5,
+      4
+    ],
+    "transitions": [
+      -2524543300,
+      -891582800,
+      -872058600,
+      -862637400,
+      -576138600,
+      1245430800,
+      1262278800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 21700
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 21200
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 23400
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 19800
+      },
+      {
+        "index": 20,
+        "is_dst": false,
+        "offset": 21600
+      },
+      {
+        "index": 24,
+        "is_dst": true,
+        "offset": 25200
+      }
+    ]
+  }
+}

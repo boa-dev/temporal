@@ -1,0 +1,60 @@
+{
+  "ids": [
+    "atlantic/cape_verde"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "-",
+      "0",
+      "2",
+      "\u0000",
+      "-",
+      "0",
+      "1",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "-01",
+      "offset": -3600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1,
+      3
+    ],
+    "transitions": [
+      -1830376800,
+      -862610400,
+      -764118000,
+      186120000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -5644
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -7200
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": -3600
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -3600
+      }
+    ]
+  }
+}

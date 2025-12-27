@@ -1,0 +1,51 @@
+{
+  "ids": [
+    "pacific/fakaofo"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "-",
+      "1",
+      "1",
+      "\u0000",
+      "+",
+      "1",
+      "3",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+13",
+      "offset": 46800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2177411704,
+      1325242800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -41096
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -39600
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 46800
+      }
+    ]
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "ids": [
+    "pacific/noumea"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "1",
+      "1",
+      "\u0000",
+      "+",
+      "1",
+      "2",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+11",
+      "offset": 39600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      1,
+      2,
+      1,
+      2,
+      1
+    ],
+    "transitions": [
+      -1829387148,
+      250002000,
+      257342400,
+      281451600,
+      288878400,
+      849366000,
+      857228400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 39948
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 39600
+      },
+      {
+        "index": 8,
+        "is_dst": true,
+        "offset": 43200
+      }
+    ]
+  }
+}
