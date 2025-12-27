@@ -36,6 +36,8 @@ impl ZoneInfoProvider<'_> {
     }
 }
 
+/// A zero-copy TZif data struct for time zone data provided by IANA's tzdb (also known
+/// as the Olsen database).
 #[zerovec::make_varule(ZeroTzifULE)]
 #[derive(PartialEq, Debug, Clone)]
 #[zerovec::skip_derive(Ord)]
@@ -47,11 +49,16 @@ impl ZoneInfoProvider<'_> {
 #[cfg_attr(feature = "datagen", zerovec::derive(Serialize))]
 #[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif))]
 pub struct ZeroTzif<'data> {
+    /// The time in UTC epoch seconds where a transition occurs.
     pub transitions: ZeroVec<'data, i64>,
+    /// An index identify the local time type for the corresponding transition.
     pub transition_types: ZeroVec<'data, u8>,
-    // NOTE: zoneinfo64 does a fun little bitmap str
+    /// The available local time types
     pub types: ZeroVec<'data, LocalTimeRecord>,
+    /// The POSIX time zone data for this TZif
     pub posix: PosixZone,
+    /// The available time zone designations.
+    pub designations: ZeroVec<'data, char>,
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
@@ -62,5 +69,10 @@ pub struct ZeroTzif<'data> {
 )]
 #[cfg_attr(feature = "datagen", databake(path = timezone_provider::experimental_tzif))]
 pub struct LocalTimeRecord {
+    /// The offset from UTC in seconds
     pub offset: i64,
+    /// Whether the current local time type is considered DST or not
+    pub(crate) is_dst: bool,
+    /// The index into the designations array.
+    pub index: u8,
 }
