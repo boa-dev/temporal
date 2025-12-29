@@ -1,0 +1,42 @@
+{
+  "ids": [
+    "pacific/guadalcanal",
+    "pacific/pohnpei",
+    "pacific/ponape"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "1",
+      "1",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+11",
+      "offset": 39600,
+      "transition": null
+    },
+    "transition_types": [
+      1
+    ],
+    "transitions": [
+      -1806748788
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 38388
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 39600
+      }
+    ]
+  }
+}

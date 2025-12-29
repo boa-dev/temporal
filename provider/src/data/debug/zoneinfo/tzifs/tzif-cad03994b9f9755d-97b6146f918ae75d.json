@@ -1,0 +1,88 @@
+{
+  "ids": [
+    "pacific/kosrae"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "1",
+      "1",
+      "\u0000",
+      "+",
+      "0",
+      "9",
+      "\u0000",
+      "+",
+      "1",
+      "0",
+      "\u0000",
+      "+",
+      "1",
+      "2",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "+11",
+      "offset": 39600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2,
+      4,
+      3,
+      2,
+      5,
+      2
+    ],
+    "transitions": [
+      -3944631116,
+      -2177491916,
+      -1743678000,
+      -1606813200,
+      -1041418800,
+      -907408800,
+      -770634000,
+      -7988400,
+      915105600
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -47284
+      },
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 39116
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 39600
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 12,
+        "is_dst": false,
+        "offset": 36000
+      },
+      {
+        "index": 16,
+        "is_dst": false,
+        "offset": 43200
+      }
+    ]
+  }
+}
