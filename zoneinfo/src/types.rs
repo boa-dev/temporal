@@ -322,6 +322,13 @@ impl ToYear {
             Self::Year(y) => y as i32,
         }
     }
+
+    pub(crate) fn to_optional_u16(self) -> Option<u16> {
+        match self {
+            Self::Max => None,
+            Self::Year(y) => Some(y),
+        }
+    }
 }
 
 impl TryFromStr<LineParseContext> for ToYear {
