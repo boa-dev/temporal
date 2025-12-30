@@ -916,6 +916,7 @@ dependencies = [
  "tinystr",
  "tzif",
  "yoke",
+ "zerofrom",
  "zerotrie",
  "zerovec",
  "zoneinfo64",
