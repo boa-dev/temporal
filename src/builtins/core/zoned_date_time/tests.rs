@@ -1215,3 +1215,39 @@ fn test_canonical_equals() {
         assert!(one.equals_with_provider(&two, provider).unwrap());
     })
 }
+
+#[test]
+fn hours_in_day_dst_changes() {
+    // Testing Sao Paolo's midnight time zone change.
+    // intl402/Temporal/ZonedDateTime/prototype/hoursInDay/dst-midnight
+   
+    test_all_providers!(provider: {
+        let time_zone = TimeZone::try_from_str_with_provider("America/Sao_Paulo", provider).unwrap();
+        let partial = PartialZonedDateTime::new()
+            .with_calendar_fields(CalendarFields::new()
+                .with_year(2018)
+                .with_month(2)
+                .with_day(17)
+            )
+            .with_time(PartialTime::new().with_hour(Some(12)))
+            .with_timezone(Some(time_zone));
+
+        let fall = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider).unwrap();
+
+        assert_eq!(fall.hours_in_day_with_provider(provider), Ok(25.0));
+
+        let partial = PartialZonedDateTime::new()
+            .with_calendar_fields(CalendarFields::new()
+                .with_year(2018)
+                .with_month(11)
+                .with_day(4)
+            )
+            .with_time(PartialTime::new().with_hour(Some(12)))
+            .with_timezone(Some(time_zone));
+
+        let spring = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider).unwrap();
+
+        assert_eq!(spring.hours_in_day_with_provider(provider), Ok(23.0));
+    })
+}
+
