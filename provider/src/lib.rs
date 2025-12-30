@@ -87,6 +87,7 @@ pub mod zoneinfo64;
 
 pub mod epoch_nanoseconds;
 
+#[cfg(any(feature = "tzif", feature = "experimental_tzif"))]
 pub(crate) mod common;
 
 #[doc(hidden)]
