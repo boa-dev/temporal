@@ -28,7 +28,7 @@ struct LocalRecord {
 }
 
 #[cfg(feature = "std")]
-fn test_data_for_id(identifier: &str) {
+fn test_data_for_id(identifier: &str, strict: bool) {
     let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
     let test_dir = manifest_dir.join("tests");
     let test_data_dir = test_dir.join("data");
@@ -52,6 +52,9 @@ fn test_data_for_id(identifier: &str) {
         computed_zoneinfo.initial_record.designation,
         test_data.first_record.abbr
     );
+    if strict {
+        assert_eq!(computed_zoneinfo.transitions.len(), test_data.transitions.len());
+    }
 
     for (computed, test_data) in computed_zoneinfo
         .transitions
@@ -61,7 +64,7 @@ fn test_data_for_id(identifier: &str) {
         assert_eq!(
             computed.at_time, test_data.transition_time,
             "Transition time are not aligned for {}",
-            test_data.transition_time
+            test_data.transition_time,
         );
         assert_eq!(
             computed.offset, test_data.record.offset,
@@ -88,66 +91,73 @@ fn test_data_for_id(identifier: &str) {
 #[test]
 #[cfg(feature = "std")]
 fn test_chicago() {
-    test_data_for_id("America/Chicago");
+    test_data_for_id("America/Chicago", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_new_york() {
-    test_data_for_id("America/New_York");
+    test_data_for_id("America/New_York", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_anchorage() {
-    test_data_for_id("America/Anchorage");
+    test_data_for_id("America/Anchorage", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_sydney() {
-    test_data_for_id("Australia/Sydney");
+    test_data_for_id("Australia/Sydney", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_lord_howe() {
-    test_data_for_id("Australia/Lord_Howe");
+    test_data_for_id("Australia/Lord_Howe", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_troll() {
-    test_data_for_id("Antarctica/Troll");
+    test_data_for_id("Antarctica/Troll", false);
 }
 
 // TODO: test_dublin_rearguard
 #[test]
 #[cfg(feature = "std")]
 fn test_dublin() {
-    test_data_for_id("Europe/Dublin");
+    test_data_for_id("Europe/Dublin", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_berlin() {
-    test_data_for_id("Europe/Berlin");
+    test_data_for_id("Europe/Berlin", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_paris() {
-    test_data_for_id("Europe/Paris");
+    test_data_for_id("Europe/Paris", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_london() {
-    test_data_for_id("Europe/London");
+    test_data_for_id("Europe/London", false);
 }
 
 #[test]
 #[cfg(feature = "std")]
 fn test_riga() {
-    test_data_for_id("Europe/Riga");
+    test_data_for_id("Europe/Riga", false);
 }
+
+#[test]
+#[cfg(feature = "std")]
+fn test_sao_paulo() {
+    test_data_for_id("America/Sao_Paulo", true);
+}
+
