@@ -19,10 +19,10 @@
 //! - `ZoneInfo64TzdbProvider`: a provider using ICU4C's zoneinfo64 resource bundle (enable with `zoneinfo64` features flag)
 //! - `FsTzdbProvider`: a provider that reads and parses tzdata at runtime from the host file system's
 //!   TZif files (enable with `tzif` feature flag)
-//! - `CompiledTzdbProvider`: a provider that reads and parses tzdata at runtime from TZif's compiled
+//! - `CompiledTzdbProvider`: a provider that reads and parses tzdata at runtime from TZifs compiled
 //!   into the application (enable with `tzif` feature flag)
-//!
-//! Coming soon (hopefully), a zero copy compiled tzdb provider (see `experimental_tzif` for more).
+//! - `ZeroCompiledTzdbProvider`: a provider that deserializes time zone data from TZifs compiled
+//!   into the application (enable with `experimental_tzif` feature flag)
 //!
 //! ## Time zone provider traits
 //!
