@@ -37,7 +37,7 @@ datagen = [
 ]
 std = []
 # Experimental tzif/tzdb compiled data
-experimental_tzif = []
+experimental_tzif = ["dep:zerofrom", "zerofrom/derive"]
 
 # Performing timezone resolution with the `tzif` crate
 tzif = ["dep:tzif", 
@@ -63,6 +63,7 @@ zoneinfo_rs = { workspace = true, features = ["std"], optional = true }
 tzif = { workspace = true, optional = true }
 jiff-tzdb = { workspace = true, optional = true }
 combine = { workspace = true, optional = true }
+zerofrom = { version = "0.1.6", optional = true }
 
 # zoneinfo64 dependency
 zoneinfo64 = { workspace = true, optional = true }
