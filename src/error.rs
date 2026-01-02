@@ -135,7 +135,7 @@ impl TemporalError {
     }
 }
 
-impl std::error::Error for TemporalError {}
+impl core::error::Error for TemporalError {}
 
 impl fmt::Display for TemporalError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
