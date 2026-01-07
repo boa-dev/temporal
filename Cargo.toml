@@ -39,25 +39,25 @@ zoneinfo_rs = { version = "0.0.18", path = "./zoneinfo" }
 rustc-hash = "2.1.0"
 num-traits = { version = "0.2.19", default-features = false }
 iana-time-zone = "0.1.64"
-log = "0.4.28"
-tzif = "0.4.0"
-jiff-tzdb = "0.1.4"
+log = "0.4.29"
+tzif = "0.4.1"
+jiff-tzdb = "0.1.5"
 combine = "4.6.7"
 web-time = "1.1.0"
 
 # ICU4X
-tinystr = "0.8.0"
+tinystr = "0.8.2"
 icu_calendar = { version = "2.1.0", default-features = false, features = ["unstable"] }
-icu_locale = "2.1.0"
-zerovec = "0.11.0"
+icu_locale = "2.1.1"
+zerovec = "0.11.5"
 databake = "0.2.0"
 zerotrie = "0.2.0"
 writeable = "0.6.0"
-zoneinfo64 = "0.2.0"
+zoneinfo64 = "0.2.1"
 ixdtf = "0.6.4"
 
 # Diplomat
-diplomat-tool = { version = "0.14.0", default-features = false }
+diplomat-tool = { version = "0.14.1", default-features = false }
 diplomat-runtime = { version = "0.14.0", default-features = false }
 diplomat = { version = "0.14.0", default-features = false }
 
