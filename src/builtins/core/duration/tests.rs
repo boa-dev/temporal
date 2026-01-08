@@ -596,3 +596,12 @@ fn zero_duration() {
 
     assert_eq!(result, Duration::default(), "Duration's must be zero");
 }
+
+// https://issues.chromium.org/issues/474201847
+#[test]
+fn out_of_bounds_duration_no_crash() {
+    let large = 9223372036854775807 * 9223372036854775807;
+    let duration = Duration::new(0, 0, 0, 0, 0, 0, 0, 0, large, large);
+
+    assert!(duration.is_err());
+}
