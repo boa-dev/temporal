@@ -85,7 +85,7 @@ impl ZoneBuildContext {
                 (
                     transition.savings,
                     zone.format.format(
-                        zone.std_offset.as_secs(),
+                        zone.std_offset.as_secs() + transition.savings.as_secs(),
                         transition.letter.as_deref(),
                         transition.savings != Time::default(),
                     ),
@@ -98,7 +98,7 @@ impl ZoneBuildContext {
                 None,
             ));
         self.saving = savings;
-        self.previous_offset = zone.std_offset.as_secs();
+        self.previous_offset = zone.std_offset.as_secs() + savings.as_secs();
         self.previous_rule = zone.rule.clone();
         self.previous_letter = letter;
         self.previous_format = format;
@@ -451,15 +451,16 @@ impl ZoneRecord {
                 // Find the last applicable rules. That represents the final POSIX time zone
                 let last_rules = rules.get_last_rules();
 
-                // Try to find the largest maximum FROM year. This will be the base for
-                // which transitions should be precomputed.
-                let final_year = last_rules
-                    .standard
-                    .from
-                    .max(last_rules.saving.map(|r| r.from).unwrap_or(0))
-                    as i32;
-                let zone_line_year_range = context.use_start_year..=final_year;
+                // Get the final year of the last rules.
+                //
+                // The final year first determines the highest based off the TO field
+                // value. However, this value could be MAX or undefined, so it is set
+                // using the maximum FROM value.
+                let final_year = last_rules.final_year();
 
+                // Try to find the largest maximum TO year. This will be the base for
+                // which transitions should be precomputed.
+                let zone_line_year_range = context.use_start_year..=final_year;
                 for year in zone_line_year_range {
                     // Assumption: Rules are returned in historical order, i.e. oldest
                     // to youngest. With this assumption, we assume that processing the
