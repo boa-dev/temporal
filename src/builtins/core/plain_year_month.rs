@@ -194,7 +194,11 @@ impl PlainYearMonth {
         // 4. Let durationToAdd be internalDuration.[[Date]].
         let duration_to_add = internal_duration.date();
 
-        // 5. If durationToAdd.[[Weeks]] ≠ 0, or durationToAdd.[[Days]] ≠ 0, or internalDuration.[[Time]] ≠ 0,
+        // NOTE: The following are engine specific:
+        //    SKIP: 5. Let resolvedOptions be ? GetOptionsObject(options).
+        //    SKIP: 6. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
+
+        // 7. If durationToAdd.[[Weeks]] ≠ 0, or durationToAdd.[[Days]] ≠ 0, or internalDuration.[[Time]] ≠ 0,
         // throw a RangeError exception.
 
         if duration_to_add.weeks != 0
@@ -204,10 +208,6 @@ impl PlainYearMonth {
             return Err(TemporalError::range()
                 .with_message("Can only add years or months to PlainYearMonth."));
         }
-
-        // NOTE: The following are engine specific:
-        //    SKIP: 6. Let resolvedOptions be ? GetOptionsObject(options).
-        //    SKIP: 7. Let overflow be ? GetTemporalOverflowOption(resolvedOptions).
 
         // 8. Let calendar be yearMonth.[[Calendar]].
         let calendar = self.calendar();
