@@ -751,8 +751,7 @@ mod tests {
     use crate::{
         parser::{LineParseContext, TryFromStr},
         types::{
-            AbbreviationFormat, Date, DayOfMonth, Month, QualifiedTime, RuleIdentifier, Sign, Time,
-            UntilDateTime,
+            zone::{AbbreviationFormat, Date, RuleIdentifier, UntilDateTime}, rule::DayOfMonth, Month, QualifiedTime, Sign, Time,
         },
     };
 
