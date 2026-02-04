@@ -12,7 +12,10 @@ use crate::{
     },
     posix::PosixTimeZone,
     rule::Rules,
-    types::{AbbreviationFormat, QualifiedTimeKind, RuleIdentifier, Time, UntilDateTime},
+    types::{
+        zone::{AbbreviationFormat, RuleIdentifier, UntilDateTime},
+        QualifiedTimeKind, Time,
+    },
 };
 
 /// The zone build context.
