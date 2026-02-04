@@ -2,179 +2,79 @@
 //!
 //! This module contains general types that are present in a zone info
 //! file.
+//!
+//! For more information, see [How to Read tz Database Source Files][tz-how-to].
+//!
+//! [tz-how-to]: https://data.iana.org/time-zones/tz-how-to.html
 
-use core::fmt::Write;
-
-use alloc::{borrow::ToOwned, string::String};
+use alloc::borrow::ToOwned;
 
 use crate::{
-    parser::{next_split, ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError},
-    rule::epoch_days_for_rule_date,
+    parser::{ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError},
     utils,
 };
 
-// ==== Zone Table specific types ====
+pub mod rule;
+pub mod zone;
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum RuleIdentifier {
-    None,
-    Numeric(Time),
-    Named(String),
+// General shared types between the two lines
+
+/// An enum representing a three letter abbreviated month (e.g. `Jan`, `Sep`).
+///
+/// The month value is present in the `IN` column of a rule line or the date
+/// month portion in the [UNTIL] column of a zone line.
+///
+/// Note: month is 1 based (1-12).
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[repr(u8)]
+pub enum Month {
+    Jan = 1,
+    Feb,
+    Mar,
+    Apr,
+    May,
+    Jun,
+    Jul,
+    Aug,
+    Sep,
+    Oct,
+    Nov,
+    Dec,
 }
 
-impl TryFromStr<LineParseContext> for RuleIdentifier {
+impl Month {
+    /// Calculates the day of year for the start of the month
+    pub(crate) fn month_start_to_day_of_year(self, year: i32) -> i32 {
+        utils::month_to_day(self as u8, utils::num_leap_days(year))
+    }
+
+    /// Calculates the day of year for the end of the month
+    pub(crate) fn month_end_to_day_of_year(self, year: i32) -> i32 {
+        utils::month_to_day(self as u8 + 1, utils::num_leap_days(year)) - 1
+    }
+}
+
+impl TryFromStr<LineParseContext> for Month {
     type Error = ZoneInfoParseError;
     fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        ctx.enter("RuleIdentifier");
-        if s == "-" {
-            ctx.exit();
-            return Ok(Self::None);
-        }
-        if s.contains(":") {
-            ctx.exit();
-            return Time::try_from_str(s, ctx).map(Self::Numeric);
-        }
-        ctx.exit();
-        Ok(Self::Named(s.to_owned()))
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum AbbreviationFormat {
-    String(String),
-    Numeric,
-    Pair(String, String),
-    Formattable(FormattableAbbr),
-}
-
-impl AbbreviationFormat {
-    pub fn format(&self, offset: i64, letter: Option<&str>, is_dst: bool) -> String {
-        match self {
-            Self::String(s) => s.clone(),
-            Self::Formattable(s) => s.to_formatted_string(letter.unwrap_or("")),
-            Self::Pair(std, dst) => {
-                if is_dst {
-                    dst.clone()
-                } else {
-                    std.clone()
-                }
-            }
-            Self::Numeric => offset_to_str(offset),
-        }
-    }
-}
-
-fn offset_to_str(n: i64) -> String {
-    let mut output = String::new();
-    if n.is_positive() {
-        write!(&mut output, "+").expect("failed to write");
-    } else {
-        write!(&mut output, "-").expect("failed to write");
-    }
-    let hour = n.abs().div_euclid(3600);
-    write!(&mut output, "{hour:02}").expect("failed to write");
-    let minute = n.abs().rem_euclid(3600).div_euclid(60);
-    if minute > 0 {
-        write!(&mut output, "{minute:02}").expect("failed to write");
-    }
-    output
-}
-
-impl TryFromStr<LineParseContext> for AbbreviationFormat {
-    type Error = ZoneInfoParseError;
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        ctx.enter("Abbr. Format");
-        let value = if s.contains("%s") {
-            Ok(Self::Formattable(FormattableAbbr(s.to_owned())))
-        } else if s.contains("%z") {
-            Ok(Self::Numeric)
-        } else if s.contains("/") {
-            let (std, dst) = s
-                .split_once('/')
-                .ok_or(ZoneInfoParseError::unknown(s, ctx))?;
-            Ok(Self::Pair(std.to_owned(), dst.to_owned()))
-        } else {
-            Ok(AbbreviationFormat::String(s.to_owned()))
+        ctx.enter("Month");
+        let result = match s {
+            "Jan" => Ok(Self::Jan),
+            "Feb" => Ok(Self::Feb),
+            "Mar" => Ok(Self::Mar),
+            "Apr" => Ok(Self::Apr),
+            "May" => Ok(Self::May),
+            "Jun" => Ok(Self::Jun),
+            "Jul" => Ok(Self::Jul),
+            "Aug" => Ok(Self::Aug),
+            "Sep" => Ok(Self::Sep),
+            "Oct" => Ok(Self::Oct),
+            "Nov" => Ok(Self::Nov),
+            "Dec" => Ok(Self::Dec),
+            _ => Err(ZoneInfoParseError::unknown(s, ctx)),
         };
         ctx.exit();
-        value
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct FormattableAbbr(String);
-
-impl FormattableAbbr {
-    pub fn to_formatted_string(&self, letter: &str) -> String {
-        self.0.replace("%s", letter)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct UntilDateTime {
-    pub date: Date,
-    pub time: QualifiedTime,
-}
-
-impl UntilDateTime {
-    pub fn as_date_secs(self) -> i64 {
-        self.date.as_secs()
-    }
-
-    pub fn as_precise_ut_time(self, std_offset: i64, save: i64) -> i64 {
-        self.as_date_secs() + self.time.to_universal_seconds(std_offset, save)
-    }
-}
-
-impl TryFromStr<LineParseContext> for UntilDateTime {
-    type Error = ZoneInfoParseError;
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        ctx.enter("UntilDateTime");
-        let mut splits = s.split_whitespace();
-        let year = next_split(&mut splits, ctx)?.context_parse::<i32>(ctx)?;
-        let date_or_end = splits.next();
-        let date = if let Some(month) = date_or_end {
-            let month = month.context_parse::<Month>(ctx)?;
-            let day = next_split(&mut splits, ctx)
-                .ok()
-                .map(|s| s.context_parse::<DayOfMonth>(ctx))
-                .transpose()?
-                .unwrap_or(DayOfMonth::Day(1));
-            Date { year, month, day }
-        } else {
-            ctx.exit();
-            return Ok(UntilDateTime {
-                date: Date {
-                    year,
-                    month: Month::Jan,
-                    day: DayOfMonth::Day(1),
-                },
-                time: QualifiedTime::Local(Time::default()),
-            });
-        };
-
-        let time = next_split(&mut splits, ctx)
-            .ok()
-            .map(|t| t.context_parse::<QualifiedTime>(ctx))
-            .transpose()?
-            .unwrap_or(QualifiedTime::Local(Time::default()));
-
-        ctx.exit();
-        Ok(Self { date, time })
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct Date {
-    pub year: i32,
-    pub month: Month,
-    pub day: DayOfMonth,
-}
-
-impl Date {
-    pub fn as_secs(&self) -> i64 {
-        let epoch_days = epoch_days_for_rule_date(self.year, self.month, self.day);
-        utils::epoch_seconds_for_epoch_days(epoch_days)
+        result
     }
 }
 
@@ -187,6 +87,7 @@ pub struct Time {
     pub second: u8,
 }
 
+/// A non zero sign type that represents whether a value is positive or negative.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 #[repr(i8)]
 pub enum Sign {
@@ -296,195 +197,7 @@ impl TryFromStr<LineParseContext> for Time {
     }
 }
 
-// ==== Rule types ====
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ToYear {
-    Max,
-    Year(u16),
-}
-
-impl ToYear {
-    pub(crate) fn parse_optional_to_year(
-        s: &str,
-        ctx: &mut LineParseContext,
-    ) -> Result<Option<ToYear>, ZoneInfoParseError> {
-        if s == "only" {
-            Ok(None)
-        } else {
-            s.context_parse::<ToYear>(ctx).map(Some)
-        }
-    }
-
-    pub(crate) fn to_i32(self) -> i32 {
-        match self {
-            Self::Max => 275_760,
-            Self::Year(y) => y as i32,
-        }
-    }
-
-    pub(crate) fn to_optional_u16(self) -> Option<u16> {
-        match self {
-            Self::Max => None,
-            Self::Year(y) => Some(y),
-        }
-    }
-}
-
-impl TryFromStr<LineParseContext> for ToYear {
-    type Error = ZoneInfoParseError;
-
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        if s == "max" {
-            return Ok(ToYear::Max);
-        }
-        s.context_parse::<u16>(ctx).map(ToYear::Year)
-    }
-}
-
-// The default implementation
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[repr(u8)]
-pub enum Month {
-    Jan = 1,
-    Feb,
-    Mar,
-    Apr,
-    May,
-    Jun,
-    Jul,
-    Aug,
-    Sep,
-    Oct,
-    Nov,
-    Dec,
-}
-
-impl Month {
-    /// Calculates the day of year for the start of the month
-    pub(crate) fn month_start_to_day_of_year(self, year: i32) -> i32 {
-        utils::month_to_day(self as u8, utils::num_leap_days(year))
-    }
-
-    /// Calculates the day of year for the end of the month
-    pub(crate) fn month_end_to_day_of_year(self, year: i32) -> i32 {
-        utils::month_to_day(self as u8 + 1, utils::num_leap_days(year)) - 1
-    }
-}
-
-impl TryFromStr<LineParseContext> for Month {
-    type Error = ZoneInfoParseError;
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        ctx.enter("Month");
-        let result = match s {
-            "Jan" => Ok(Self::Jan),
-            "Feb" => Ok(Self::Feb),
-            "Mar" => Ok(Self::Mar),
-            "Apr" => Ok(Self::Apr),
-            "May" => Ok(Self::May),
-            "Jun" => Ok(Self::Jun),
-            "Jul" => Ok(Self::Jul),
-            "Aug" => Ok(Self::Aug),
-            "Sep" => Ok(Self::Sep),
-            "Oct" => Ok(Self::Oct),
-            "Nov" => Ok(Self::Nov),
-            "Dec" => Ok(Self::Dec),
-            _ => Err(ZoneInfoParseError::unknown(s, ctx)),
-        };
-        ctx.exit();
-        result
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum DayOfMonth {
-    // Again, hacky default. Not a fan
-    Last(WeekDay),
-    WeekDayGEThanMonthDay(WeekDay, u8),
-    // Potentially, depracated
-    WeekDayLEThanMonthDay(WeekDay, u8),
-    Day(u8),
-}
-
-impl TryFromStr<LineParseContext> for DayOfMonth {
-    type Error = ZoneInfoParseError;
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        ctx.enter("DayOfMonth");
-        let result = if let Some(weekday) = s.strip_prefix("last") {
-            Ok(DayOfMonth::Last(weekday.context_parse(ctx)?))
-        } else if s.contains(">=") {
-            let (week_day, day) = parse_date_split(s, ">=", ctx)?;
-            Ok(DayOfMonth::WeekDayGEThanMonthDay(week_day, day))
-        } else if s.contains("<=") {
-            let (week_day, day) = parse_date_split(s, "<=", ctx)?;
-            Ok(DayOfMonth::WeekDayLEThanMonthDay(week_day, day))
-        } else {
-            s.context_parse(ctx).map(DayOfMonth::Day)
-        };
-        ctx.exit();
-        result
-    }
-}
-
-fn parse_date_split(
-    s: &str,
-    pat: &str,
-    ctx: &mut LineParseContext,
-) -> Result<(WeekDay, u8), ZoneInfoParseError> {
-    let (week_day, num) = s
-        .split_once(pat)
-        .ok_or(ZoneInfoParseError::unknown(s, ctx))?;
-    let w = week_day.context_parse::<WeekDay>(ctx)?;
-    let d = num.context_parse(ctx)?;
-    Ok((w, d))
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-#[repr(u8)]
-pub enum WeekDay {
-    Sun = 0,
-    Mon,
-    Tues,
-    Wed,
-    Thurs,
-    Fri,
-    Sat,
-}
-
-impl WeekDay {
-    pub(crate) fn from_u8(value: u8) -> Self {
-        match value {
-            0 => Self::Sun,
-            1 => Self::Mon,
-            2 => Self::Tues,
-            3 => Self::Wed,
-            4 => Self::Thurs,
-            5 => Self::Fri,
-            6 => Self::Sat,
-            _ => unreachable!("invalid week day value"),
-        }
-    }
-}
-
-impl TryFromStr<LineParseContext> for WeekDay {
-    type Error = ZoneInfoParseError;
-    fn try_from_str(s: &str, ctx: &mut LineParseContext) -> Result<Self, Self::Error> {
-        match s {
-            "Mon" => Ok(Self::Mon),
-            "Tues" => Ok(Self::Tues),
-            "Wed" => Ok(Self::Wed),
-            "Thu" => Ok(Self::Thurs),
-            "Fri" => Ok(Self::Fri),
-            "Sat" => Ok(Self::Sat),
-            "Sun" => Ok(Self::Sun),
-            _ => Err(ZoneInfoParseError::UnknownValue(
-                ctx.line_number,
-                s.to_owned(),
-            )),
-        }
-    }
-}
-
+/// This enum represents whether a time is local, standard, or universal.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QualifiedTimeKind {
     Local,
@@ -558,9 +271,10 @@ where
 mod tests {
     use alloc::borrow::ToOwned;
 
-    use crate::types::FormattableAbbr;
-
-    use super::{AbbreviationFormat, Sign, Time};
+    use super::{
+        zone::{AbbreviationFormat, FormattableAbbr},
+        Sign, Time,
+    };
 
     #[test]
     fn abbr_formatting() {

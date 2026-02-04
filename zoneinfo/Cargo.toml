@@ -7,7 +7,6 @@ rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-readme.workspace = true
 exclude.workspace = true
 include = [
     "src/**/*",
@@ -19,6 +18,7 @@ include = [
 
 [features]
 std = []
+unstable = []
 
 [dependencies]
 hashbrown = "0.16.0"
