@@ -1220,7 +1220,7 @@ fn test_canonical_equals() {
 fn hours_in_day_dst_changes() {
     // Testing Sao Paolo's midnight time zone change.
     // intl402/Temporal/ZonedDateTime/prototype/hoursInDay/dst-midnight
-   
+
     test_all_providers!(provider: {
         let time_zone = TimeZone::try_from_str_with_provider("America/Sao_Paulo", provider).unwrap();
         let partial = PartialZonedDateTime::new()
@@ -1250,4 +1250,3 @@ fn hours_in_day_dst_changes() {
         assert_eq!(spring.hours_in_day_with_provider(provider), Ok(23.0));
     })
 }
-

@@ -18,16 +18,16 @@ pub struct LastRules {
     pub saving: Option<Rule>,
 }
 
-impl LastRules{
-    /// Determines the final year from the rules in `LastRules`, returning `None` if 
+impl LastRules {
+    /// Determines the final year from the rules in `LastRules`, returning `None` if
     /// the year is MAX (a.k.a., undefined).
     pub(crate) fn final_year(&self) -> i32 {
-        let std_final_year = self
-            .standard
-            .to_year_to_u16()
-            .map(i32::from);
+        let std_final_year = self.standard.to_year_to_u16().map(i32::from);
 
-        let dst_final_year = self.saving.as_ref().map(|r| r.to_year_to_u16().map(i32::from));
+        let dst_final_year = self
+            .saving
+            .as_ref()
+            .map(|r| r.to_year_to_u16().map(i32::from));
         let to_year_final = if let Some(dst_year) = dst_final_year {
             std_final_year.max(dst_year)
         } else {
@@ -197,10 +197,9 @@ impl Rule {
                 .to_universal_seconds(std_offset.as_secs(), saving.as_secs())
     }
 
-    /// Converts this Rule's `To` value into an integer. 
+    /// Converts this Rule's `To` value into an integer.
     pub(crate) fn to_year_to_u16(&self) -> Option<u16> {
-        self
-            .to
+        self.to
             .map(ToYear::to_optional_u16)
             .unwrap_or(Some(self.from))
     }

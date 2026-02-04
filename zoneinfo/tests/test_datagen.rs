@@ -53,7 +53,10 @@ fn test_data_for_id(identifier: &str, strict: bool) {
         test_data.first_record.abbr
     );
     if strict {
-        assert_eq!(computed_zoneinfo.transitions.len(), test_data.transitions.len());
+        assert_eq!(
+            computed_zoneinfo.transitions.len(),
+            test_data.transitions.len()
+        );
     }
 
     for (computed, test_data) in computed_zoneinfo
@@ -160,4 +163,3 @@ fn test_riga() {
 fn test_sao_paulo() {
     test_data_for_id("America/Sao_Paulo", true);
 }
-
