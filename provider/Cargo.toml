@@ -75,8 +75,7 @@ yoke = { version = "0.8.0", features = ["derive"], optional = true }
 serde_json = { version = "1.0.145", optional = true }
 
 [dev-dependencies]
-serde-xml-rs = "0.8.1"
-serde = { version = "1.0.225" , features = ["derive"] }
+icu_time = { version = "2", features = ["compiled_data"] }
 
 [package.metadata.docs.rs]
 all-features = true
