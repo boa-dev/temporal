@@ -9,8 +9,9 @@ zoneinfo files.
 ```rust
 use std::path::Path;
 use zoneinfo_rs::{ZoneInfoData, ZoneInfoCompiler};
-// Below assumes we are in the parent directory of `tzdata`
+// Below assumes we are in the parent directory of `tzdata`.
 let zoneinfo_filepath = Path::new("./tzdata/");
+// Parse and then compile the files from the directory.
 let parsed_data = ZoneInfoData::from_zoneinfo_directory(zoneinfo_filepath)?;
 let _compiled_data = ZoneInfoCompiler::new(parsed_data).build();
 ```
