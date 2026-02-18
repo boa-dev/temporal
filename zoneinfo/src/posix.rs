@@ -1,15 +1,22 @@
+//! POSIX time zone types and implementation
+//!
+//! For more information on POSIX time zones, see the [GNU docs][gnu-docs].
+//!
+//! [gnu-docs]: https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
+
 use crate::{
     rule::{LastRules, Rule},
-    types::{DayOfMonth, Month, QualifiedTime, Sign, Time, WeekDay},
+    types::{
+        rule::{DayOfMonth, WeekDay},
+        Month, QualifiedTime, Sign, Time,
+    },
     utils::month_to_day,
     zone::ZoneEntry,
 };
 use alloc::string::String;
 use core::fmt::Write;
 
-/// The POSIX time zone designated by the [GNU documentation][gnu-docs]
-///
-/// [gnu-docs]: https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
+/// A parsed POSIX time zone
 #[derive(Debug, PartialEq)]
 pub struct PosixTimeZone {
     pub abbr: PosixAbbreviation,
