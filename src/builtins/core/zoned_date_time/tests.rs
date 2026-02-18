@@ -1176,6 +1176,34 @@ fn test_same_date_reverse_wallclock() {
 }
 
 #[test]
+fn test_invalid_fractional_offset_digits() {
+    test_all_providers!(provider: {
+        let test = "2020-01-01T00:00:00.123456789+02:30:00.1234567890[UTC]";
+        let result = ZonedDateTime::from_utf8_with_provider(
+            test.as_bytes(),
+            crate::options::Disambiguation::Compatible,
+            crate::options::OffsetDisambiguation::Use,
+            &provider,
+        );
+        assert!(result.is_err(), "ZonedDateTime should be invalid");
+    })
+}
+
+#[test]
+fn test_valid_fractional_offset_digits() {
+    test_all_providers!(provider: {
+        let test = "2020-01-01T00:00:00.123456789+02:30:00.123456789[UTC]";
+        let result = ZonedDateTime::from_utf8_with_provider(
+            test.as_bytes(),
+            crate::options::Disambiguation::Compatible,
+            crate::options::OffsetDisambiguation::Use,
+            &provider,
+        );
+        assert!(result.is_ok(), "ZonedDateTime should be valid");
+    })
+}
+
+#[test]
 fn test_relativeto_back_transition() {
     // intl402/Temporal/Duration/prototype/round/relativeto-dst-back-transition
     test_all_providers!(provider: {

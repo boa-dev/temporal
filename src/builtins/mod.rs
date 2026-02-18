@@ -22,10 +22,6 @@ pub(crate) static FS_TZ_PROVIDER: LazyLock<FsTzdbProvider> = LazyLock::new(FsTzd
 
 #[cfg(test)]
 mod tests {
-    use timezone_provider::tzif::CompiledTzdbProvider;
-
-    use crate::ZonedDateTime;
-
     use super::{Instant, PlainDate, PlainDateTime};
     #[test]
     fn builtins_from_str_10_digit_fractions() {
@@ -41,33 +37,16 @@ mod tests {
 
     #[test]
     fn instant_based_10_digit_offset() {
-        let provider = CompiledTzdbProvider::default();
         let test = "2020-01-01T00:00:00.123456789+02:30:00.1234567890[UTC]";
         let result = Instant::from_utf8(test.as_bytes());
         assert!(result.is_err(), "Instant should be invalid");
-        let result = ZonedDateTime::from_utf8_with_provider(
-            test.as_bytes(),
-            crate::options::Disambiguation::Compatible,
-            crate::options::OffsetDisambiguation::Use,
-            &provider,
-        );
-        assert!(result.is_err(), "ZonedDateTime should be invalid");
     }
 
     #[test]
     fn instant_based_9_digit_offset() {
-        let provider = CompiledTzdbProvider::default();
         let test = "2020-01-01T00:00:00.123456789+02:30:00.123456789[UTC]";
         let result = Instant::from_utf8(test.as_bytes());
         assert!(result.is_ok(), "Instant should be valid");
-        let result = ZonedDateTime::from_utf8_with_provider(
-            test.as_bytes(),
-            crate::options::Disambiguation::Compatible,
-            crate::options::OffsetDisambiguation::Use,
-            &provider,
-        );
-        std::println!("{result:?}");
-        assert!(result.is_ok(), "ZonedDateTime should be valid");
     }
 
     #[test]
