@@ -9,6 +9,7 @@ date/time API.
 
 `temporal_rs` may fit your use case if any of the below are true:
 
+- You need some level of web compatibility for your date/time libraries.
 - You are implementing the Temporal API in a JavaScript engine or any
   other language.
 - You have internationalization date/time needs for different calendars
