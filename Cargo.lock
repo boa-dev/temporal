@@ -151,9 +151,9 @@ checksum = "1628fb46dfa0b37568d12e5edd512553eccf6a22a78e8bde00bb4aed84d5bdbf"
 
 [[package]]
 name = "bytes"
-version = "1.10.1"
+version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d71b6127be86fdcfddb610f7182ac57211d4b18a3e9c82eb2d17662f2227ad6a"
+checksum = "1e748733b7cbc798e1434b6ac524f0c1ff2ab456fe201501e6497c8417a4fc33"
 
 [[package]]
 name = "calendrical_calculations"
@@ -441,6 +441,7 @@ dependencies = [
  "icu_locale",
  "icu_locale_core",
  "icu_provider",
+ "ixdtf",
  "tinystr",
  "zerovec",
 ]
@@ -515,6 +516,29 @@ dependencies = [
  "zerotrie",
  "zerovec",
 ]
+
+[[package]]
+name = "icu_time"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5ed0e4cff0e300a0eb97a2962c03425de34a1aba9857ac283794104c46790856"
+dependencies = [
+ "calendrical_calculations",
+ "displaydoc",
+ "icu_calendar",
+ "icu_locale_core",
+ "icu_provider",
+ "icu_time_data",
+ "ixdtf",
+ "zerotrie",
+ "zerovec",
+]
+
+[[package]]
+name = "icu_time_data"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e10b0e5e87a2c84bd5fa407705732052edebe69291d347d0c3033785470edbf"
 
 [[package]]
 name = "indenter"
@@ -731,18 +755,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-xml-rs"
-version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53630160a98edebde0123eb4dfd0fce6adff091b2305db3154a9e920206eb510"
-dependencies = [
- "log",
- "serde",
- "thiserror",
- "xml-rs",
-]
-
-[[package]]
 name = "serde_core"
 version = "1.0.225"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -884,34 +896,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "thiserror"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
-dependencies = [
- "thiserror-impl",
-]
-
-[[package]]
-name = "thiserror-impl"
-version = "1.0.69"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "timezone_provider"
 version = "0.1.2"
 dependencies = [
  "combine",
  "databake",
+ "icu_time",
  "jiff-tzdb",
  "serde",
- "serde-xml-rs",
  "serde_json",
  "tinystr",
  "tzif",
@@ -1235,12 +1227,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9edde0db4769d2dc68579893f2306b26c6ecfbe0ef499b013d731b7b9247e0b9"
 
 [[package]]
-name = "xml-rs"
-version = "0.8.28"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ae8337f8a065cfc972643663ea4279e04e7256de865aa66fe25cec5fb912d3f"
-
-[[package]]
 name = "yoke"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1295,6 +1281,8 @@ dependencies = [
  "displaydoc",
  "litemap",
  "serde_core",
+ "yoke",
+ "zerofrom",
  "zerovec",
 ]
 
