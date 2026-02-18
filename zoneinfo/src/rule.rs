@@ -8,7 +8,10 @@ use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 
 use crate::{
     parser::{next_split, ContextParse, LineParseContext, ZoneInfoParseError},
-    types::{DayOfMonth, Month, QualifiedTime, Time, ToYear},
+    types::{
+        rule::{DayOfMonth, ToYear},
+        Month, QualifiedTime, Time,
+    },
     utils::{self, epoch_seconds_for_epoch_days},
 };
 
@@ -301,7 +304,7 @@ impl Rule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Sign, WeekDay};
+    use crate::types::{rule::WeekDay, Sign};
 
     const TEST_DATA: [&str; 22] = [
         "Rule	Algeria	1916	only	-	Jun	14	23:00s	1:00	S",
