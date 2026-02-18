@@ -48,6 +48,16 @@ impl ParsedDate {
         // Assertion: PlainDate must exist on a DateTime parse.
         let record = parse_record.date.temporal_unwrap()?;
 
+        // TODO: Potentially, remove this check in favor of type guarantee of a
+        // Temporal parser.
+        // NOTE: The check here is to confirm that the time component is
+        // valid.
+        let _time = parse_record
+            .time
+            .map(IsoTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
+
         Ok(Self { record, calendar })
     }
     /// Converts a UTF-8 encoded YearMonth string into a `ParsedDate`.
@@ -59,8 +69,19 @@ impl ParsedDate {
         // Assertion: PlainDate must exist on a DateTime parse.
         let record = parse_record.date.temporal_unwrap()?;
 
+        // TODO: Potentially, remove this check in favor of type guarantee of a
+        // Temporal parser.
+        // NOTE: The check here is to confirm that the time component is
+        // valid.
+        let _time = parse_record
+            .time
+            .map(IsoTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
+
         Ok(Self { record, calendar })
     }
+
     /// Converts a UTF-8 encoded MonthDay string into a `ParsedDate`.
     pub fn month_day_from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parse_record = parsers::parse_month_day(s)?;
@@ -69,6 +90,16 @@ impl ParsedDate {
 
         // Assertion: PlainDate must exist on a DateTime parse.
         let record = parse_record.date.temporal_unwrap()?;
+
+        // TODO: Potentially, remove this check in favor of type guarantee of a
+        // Temporal parser.
+        // NOTE: The check here is to confirm that the time component is
+        // valid.
+        let _time = parse_record
+            .time
+            .map(IsoTime::from_time_record)
+            .transpose()?
+            .unwrap_or_default();
 
         Ok(Self { record, calendar })
     }
