@@ -1,12 +1,12 @@
-//! A native Rust implementation of ECMAScript's Temporal API.
+//! The Rust implementation of ECMAScript's Temporal
 //!
-//! Temporal is an API for working with date and time in a calendar
-//! and time zone aware manner.
+//! Temporal is date and time library that provides support for calendrical calculations
+//! and time zones based on the ECMAScript Temporal specification.
 //!
-//! temporal_rs is designed with ECMAScript implementations and general
-//! purpose Rust usage in mind, meaning that temporal_rs can be used to implement
-//! the Temporal built-ins in an ECMAScript implementation or generally
-//! used as a date and time library in a Rust project.
+//! temporal_rs is designed with general purpose Rust usage and ECMAScript implementations
+//! in mind, meaning that temporal_rs can be used to implement the Temporal built-ins
+//! in an ECMAScript implementation or generally used as a date and time library in a
+//! Rust project.
 //!
 //! temporal_rs is the primary library for the Temporal API implementation in Boa, Kiesel,
 //! and V8. Each of these engines pass the large ECMAScript conformance test suite for
