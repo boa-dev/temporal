@@ -303,7 +303,13 @@ impl Instant {
             UtcOffsetRecordOrZ::Offset(offset) => {
                 let ns = offset
                     .fraction()
-                    .and_then(|x| x.to_nanoseconds())
+                    .map(|x| {
+                        x.to_nanoseconds().ok_or(
+                            TemporalError::range()
+                                .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
+                        )
+                    })
+                    .transpose()?
                     .unwrap_or(0);
                 (offset.hour() as i64 * NANOSECONDS_PER_HOUR
                     + i64::from(offset.minute()) * NANOSECONDS_PER_MINUTE
@@ -317,7 +323,13 @@ impl Instant {
         let time_nanoseconds = ixdtf_record
             .time
             .fraction
-            .and_then(|x| x.to_nanoseconds())
+            .map(|x| {
+                x.to_nanoseconds().ok_or(
+                    TemporalError::range()
+                        .with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits),
+                )
+            })
+            .transpose()?
             .unwrap_or(0);
         let (millisecond, rem) = time_nanoseconds.div_rem_euclid(&1_000_000);
         let (microsecond, nanosecond) = rem.div_rem_euclid(&1_000);
