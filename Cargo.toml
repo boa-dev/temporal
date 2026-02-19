@@ -31,7 +31,7 @@ exclude = [
 # Self
 temporal_rs = { version = "0.2.0", path = ".", default-features = false }
 timezone_provider = { version = "0.2.0", path = "./provider", default-features = false }
-zoneinfo_rs = { version = "0.1.0", path = "./zoneinfo" }
+zoneinfo_rs = { version = "0.1.0", path = "./zoneinfo", default-features = false }
 
 # Dependencies
 rustc-hash = "2.1.0"
