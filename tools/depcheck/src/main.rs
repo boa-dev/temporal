@@ -148,8 +148,10 @@ fn main() {
     );
 }
 
+// NOTE: Please update .github/dependabot.yml if the below are 
+// altered in any way.
+
 /// Dependencies that are always allowed as runtime dependencies
-///
 pub const BASIC_RUNTIME_DEPS: &[&str] = &[
     // temporal_rs crates
     "temporal_rs",
