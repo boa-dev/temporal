@@ -28,32 +28,32 @@ updates:
       # V8 / Chrome
       - dependency-name: "calendrical_calculations"
       - dependency-name: "core_maths"
-      - dependency-name: "diplomat-runtime",
-      - dependency-name: "icu_calendar",
-      - dependency-name: "icu_calendar_data",
-      - dependency-name: "icu_collections",
-      - dependency-name: "icu_locale",
-      - dependency-name: "icu_locale_core",
-      - dependency-name: "icu_locale_data",
-      - dependency-name: "icu_provider",
-      - dependency-name: "ixdtf",
-      - dependency-name: "litemap",
-      - dependency-name: "potential_utf",
-      - dependency-name: "tinystr",
-      - dependency-name: "writeable",
-      - dependency-name: "yoke",
-      - dependency-name: "zerofrom",
-      - dependency-name: "zerotrie",
-      - dependency-name: "zerovec",
-      - dependency-name: "libm",
-      - dependency-name: "num-traits",
-      - dependency-name: "stable_deref_trait",
+      - dependency-name: "diplomat-runtime"
+      - dependency-name: "icu_calendar"
+      - dependency-name: "icu_calendar_data"
+      - dependency-name: "icu_collections"
+      - dependency-name: "icu_locale"
+      - dependency-name: "icu_locale_core"
+      - dependency-name: "icu_locale_data"
+      - dependency-name: "icu_provider"
+      - dependency-name: "ixdtf"
+      - dependency-name: "litemap"
+      - dependency-name: "potential_utf"
+      - dependency-name: "tinystr"
+      - dependency-name: "writeable"
+      - dependency-name: "yoke"
+      - dependency-name: "zerofrom"
+      - dependency-name: "zerotrie"
+      - dependency-name: "zerovec"
+      - dependency-name: "libm"
+      - dependency-name: "num-traits"
+      - dependency-name: "stable_deref_trait"
       # Do not bump the compiled_deps either
-      - dependency-name: "bytes",
-      - dependency-name: "combine",
-      - dependency-name: "jiff-tzdb",
-      - dependency-name: "memchr",
-      - dependency-name: "tzif",
+      - dependency-name: "bytes"
+      - dependency-name: "combine"
+      - dependency-name: "jiff-tzdb"
+      - dependency-name: "memchr"
+      - dependency-name: "tzif"
 
     # Any of the dependencies listed above can be updated as need as they are Rust
     # specific or dev-dependencies
