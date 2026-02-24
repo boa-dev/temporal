@@ -1,3 +1,39 @@
+## What's Changed in v0.2.0
+* Fix incorrect decimal digits bug by @nekevss in [#679](https://github.com/boa-dev/temporal/pull/679)
+* Update the documentation by @nekevss in [#680](https://github.com/boa-dev/temporal/pull/680)
+* chore: cleanup zoneinfo_rs crate by @nekevss in [#674](https://github.com/boa-dev/temporal/pull/674)
+* Test time zone canonicalization against ICU4X by @robertbastian in [#676](https://github.com/boa-dev/temporal/pull/676)
+* Fix Sao Paulo bug in zoneinfo_rs by @nekevss in [#663](https://github.com/boa-dev/temporal/pull/663)
+* Implement a zero copy tzdb provider by @nekevss in [#662](https://github.com/boa-dev/temporal/pull/662)
+* Restrict the units that can be added to PlainYearMonth by @Manishearth in [#671](https://github.com/boa-dev/temporal/pull/671)
+* Fix Duration out of bounds crash by @Manishearth in [#667](https://github.com/boa-dev/temporal/pull/667)
+* Implement std::error::Error for TemporalError by @LeandroVandari in [#664](https://github.com/boa-dev/temporal/pull/664)
+* Rebuild time zone data with 2025c by @nekevss in [#660](https://github.com/boa-dev/temporal/pull/660)
+* Add support for time zone designations by @nekevss in [#659](https://github.com/boa-dev/temporal/pull/659)
+* Fix bug in POSIX time zone calculations by @nekevss in [#658](https://github.com/boa-dev/temporal/pull/658)
+* Add two different HostHook impls by @nekevss in [#591](https://github.com/boa-dev/temporal/pull/591)
+* Add NonZeroSign type to ensure proper sign handling by @nekevss in [#652](https://github.com/boa-dev/temporal/pull/652)
+* Update to new ComputeNudgeWindow spec text by @Manishearth in [#636](https://github.com/boa-dev/temporal/pull/636)
+* Fix ZonedDateTime::with bug when empty fields is provided by @nekevss in [#650](https://github.com/boa-dev/temporal/pull/650)
+* Add manual PartialOrd impl for FiniteF64 by @nekevss in [#649](https://github.com/boa-dev/temporal/pull/649)
+* Correct sign in nudge_to_zoned_time by @catamorphism in [#647](https://github.com/boa-dev/temporal/pull/647)
+* YearMonth addition: Use ISO parameters, not calendared parameters, when subtracting by @Manishearth in [#645](https://github.com/boa-dev/temporal/pull/645)
+* Fix typo in doc string by @catamorphism in [#639](https://github.com/boa-dev/temporal/pull/639)
+* Set YearMonth's day to 1 in calendar space when diffing by @Manishearth in [#640](https://github.com/boa-dev/temporal/pull/640)
+* unify iso naming in `Now` by @Sharktheone in [#631](https://github.com/boa-dev/temporal/pull/631)
+* Style updates by @Sharktheone in [#632](https://github.com/boa-dev/temporal/pull/632)
+* Use all-features for timezone_provider on docs.rs by @Manishearth in [#630](https://github.com/boa-dev/temporal/pull/630)
+* remove unneeded clone in TzdbResolver::get by @Sharktheone in [#628](https://github.com/boa-dev/temporal/pull/628)
+* Attempt to handle the "completely contained within" timezone rule by @Manishearth in [#629](https://github.com/boa-dev/temporal/pull/629)
+* Reject on empty fields object in PlainYearMonth::with by @nekevss in [#626](https://github.com/boa-dev/temporal/pull/626)
+
+## New Contributors
+* @robertbastian made their first contribution in [#676](https://github.com/boa-dev/temporal/pull/676)
+* @LeandroVandari made their first contribution in [#664](https://github.com/boa-dev/temporal/pull/664)
+* @catamorphism made their first contribution in [#647](https://github.com/boa-dev/temporal/pull/647)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.1.2...v0.2.0
+
 # Changelog
 
 All notable changes to this project will be documented in this file.

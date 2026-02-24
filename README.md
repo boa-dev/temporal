@@ -151,7 +151,7 @@ foremost -- designed for use in ECMAScript implementations. This is not to detra
 from temporal_rs's use in a native Rust program, but it is important information to
 understand in order to understand the library's architecture and general API design.
 
-Without default feature flags, temporal_rs does not have with access to the host
+Without default feature flags, temporal_rs is not released with access to the host
 environment and it does not embed any time zone data. This is important from an
 interpreter perspective, because access to the host environment and time zone data
 comes from the interpreter's agent, not from a dependency.
