@@ -57,6 +57,10 @@ public:
 
   inline uint8_t day() const;
 
+  inline uint8_t month() const;
+
+  inline int32_t reference_year() const;
+
   inline const temporal_rs::Calendar& calendar() const;
 
   inline std::string month_code() const;

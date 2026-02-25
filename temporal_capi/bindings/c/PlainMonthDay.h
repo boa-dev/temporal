@@ -47,6 +47,10 @@ temporal_rs_PlainMonthDay_from_utf16_result temporal_rs_PlainMonthDay_from_utf16
 
 uint8_t temporal_rs_PlainMonthDay_day(const PlainMonthDay* self);
 
+uint8_t temporal_rs_PlainMonthDay_month(const PlainMonthDay* self);
+
+int32_t temporal_rs_PlainMonthDay_reference_year(const PlainMonthDay* self);
+
 const Calendar* temporal_rs_PlainMonthDay_calendar(const PlainMonthDay* self);
 
 void temporal_rs_PlainMonthDay_month_code(const PlainMonthDay* self, DiplomatWrite* write);
