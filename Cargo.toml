@@ -48,7 +48,7 @@ web-time = "1.1.0"
 # ICU4X
 tinystr = "0.8.0"
 icu_calendar = { version = "2.1.0", default-features = false, features = ["unstable"] }
-icu_locale = "2.1.0"
+icu_locale_core = "2.1.0"
 zerovec = "0.11.0"
 databake = "0.2.0"
 zerotrie = "0.2.0"
@@ -80,7 +80,7 @@ exclude.workspace = true
 
 core_maths = "0.1.1"
 icu_calendar = { workspace = true, features = ["compiled_data"] }
-icu_locale.workspace = true
+icu_locale_core.workspace = true
 ixdtf = { workspace = true, features = ["duration"] }
 num-traits.workspace = true
 tinystr.workspace = true

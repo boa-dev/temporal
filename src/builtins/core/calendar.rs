@@ -34,7 +34,7 @@ use icu_calendar::{
     types::DateFields,
     Gregorian,
 };
-use icu_locale::extensions::unicode::Value;
+use icu_locale_core::extensions::unicode::Value;
 use tinystr::TinyAsciiStr;
 
 use super::ZonedDateTime;
