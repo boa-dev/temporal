@@ -41,6 +41,14 @@ macro_rules! test_all_providers {
 
             $b
         }
+
+        $(#[cfg($cfg_fs)])? {
+            std::println!("Testing ZeroCompiledZoneInfoProvider:");
+            let fs = timezone_provider::experimental_tzif::ZeroCompiledTzdbProvider::default();
+            let $provider = &fs;
+
+            $b
+        }
     }};
 }
 
@@ -1168,6 +1176,34 @@ fn test_same_date_reverse_wallclock() {
 }
 
 #[test]
+fn test_invalid_fractional_offset_digits() {
+    test_all_providers!(provider: {
+        let test = "2020-01-01T00:00:00.123456789+02:30:00.1234567890[UTC]";
+        let result = ZonedDateTime::from_utf8_with_provider(
+            test.as_bytes(),
+            crate::options::Disambiguation::Compatible,
+            crate::options::OffsetDisambiguation::Use,
+            &provider,
+        );
+        assert!(result.is_err(), "ZonedDateTime should be invalid");
+    })
+}
+
+#[test]
+fn test_valid_fractional_offset_digits() {
+    test_all_providers!(provider: {
+        let test = "2020-01-01T00:00:00.123456789+02:30:00.123456789[UTC]";
+        let result = ZonedDateTime::from_utf8_with_provider(
+            test.as_bytes(),
+            crate::options::Disambiguation::Compatible,
+            crate::options::OffsetDisambiguation::Use,
+            &provider,
+        );
+        assert!(result.is_ok(), "ZonedDateTime should be valid");
+    })
+}
+
+#[test]
 fn test_relativeto_back_transition() {
     // intl402/Temporal/Duration/prototype/round/relativeto-dst-back-transition
     test_all_providers!(provider: {
@@ -1205,5 +1241,40 @@ fn test_canonical_equals() {
         let one = parse_zdt_with_compatible("2025-01-01T01:00:00[Asia/Kolkata]", provider).unwrap();
         let two = parse_zdt_with_compatible("2025-01-01T01:00:00[Asia/Calcutta]", provider).unwrap();
         assert!(one.equals_with_provider(&two, provider).unwrap());
+    })
+}
+
+#[test]
+fn hours_in_day_dst_changes() {
+    // Testing Sao Paolo's midnight time zone change.
+    // intl402/Temporal/ZonedDateTime/prototype/hoursInDay/dst-midnight
+
+    test_all_providers!(provider: {
+        let time_zone = TimeZone::try_from_str_with_provider("America/Sao_Paulo", provider).unwrap();
+        let partial = PartialZonedDateTime::new()
+            .with_calendar_fields(CalendarFields::new()
+                .with_year(2018)
+                .with_month(2)
+                .with_day(17)
+            )
+            .with_time(PartialTime::new().with_hour(Some(12)))
+            .with_timezone(Some(time_zone));
+
+        let fall = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider).unwrap();
+
+        assert_eq!(fall.hours_in_day_with_provider(provider), Ok(25.0));
+
+        let partial = PartialZonedDateTime::new()
+            .with_calendar_fields(CalendarFields::new()
+                .with_year(2018)
+                .with_month(11)
+                .with_day(4)
+            )
+            .with_time(PartialTime::new().with_hour(Some(12)))
+            .with_timezone(Some(time_zone));
+
+        let spring = ZonedDateTime::from_partial_with_provider(partial, None, None, None, provider).unwrap();
+
+        assert_eq!(spring.hours_in_day_with_provider(provider), Ok(23.0));
     })
 }

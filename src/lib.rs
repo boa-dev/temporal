@@ -1,12 +1,12 @@
-//! A native Rust implementation of ECMAScript's Temporal API.
+//! The Rust implementation of ECMAScript's Temporal
 //!
-//! Temporal is an API for working with date and time in a calendar
-//! and time zone aware manner.
+//! Temporal is date and time library that provides support for calendrical calculations
+//! and time zones based on the ECMAScript Temporal specification.
 //!
-//! temporal_rs is designed with ECMAScript implementations and general
-//! purpose Rust usage in mind, meaning that temporal_rs can be used to implement
-//! the Temporal built-ins in an ECMAScript implementation or generally
-//! used as a date and time library in a Rust project.
+//! temporal_rs is designed with general purpose Rust usage and ECMAScript implementations
+//! in mind, meaning that temporal_rs can be used to implement the Temporal built-ins
+//! in an ECMAScript implementation or generally used as a date and time library in a
+//! Rust project.
 //!
 //! temporal_rs is the primary library for the Temporal API implementation in Boa, Kiesel,
 //! and V8. Each of these engines pass the large ECMAScript conformance test suite for
@@ -145,7 +145,7 @@
 //! from temporal_rs's use in a native Rust program, but it is important information to
 //! understand in order to understand the library's architecture and general API design.
 //!
-//! Without default feature flags, temporal_rs does not have with access to the host
+//! Without default feature flags, temporal_rs is not released with access to the host
 //! environment and it does not embed any time zone data. This is important from an
 //! interpreter perspective, because access to the host environment and time zone data
 //! comes from the interpreter's agent, not from a dependency.
@@ -232,7 +232,7 @@
 //!
 //! ## More information
 //!
-//! [`Temporal`][proposal] is the Stage 3 proposal for ECMAScript that
+//! [`Temporal`][proposal] is the Stage 4 proposal for ECMAScript that
 //! provides new JS objects and functions for working with dates and
 //! times that fully supports time zones and non-gregorian calendars.
 //!

@@ -54,8 +54,10 @@ pub mod parser;
 pub mod posix;
 pub mod rule;
 pub mod types;
-pub mod tzif;
 pub mod zone;
+
+#[cfg(feature = "unstable")]
+pub mod tzif;
 
 #[doc(inline)]
 pub use compiler::ZoneInfoCompiler;
@@ -67,6 +69,7 @@ use rule::Rules;
 use zone::ZoneRecord;
 
 /// Well-known zone info file
+#[doc(hidden)]
 pub const ZONEINFO_FILES: &[&str] = &[
     "africa",
     "antarctica",

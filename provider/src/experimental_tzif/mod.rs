@@ -7,14 +7,20 @@
 #[cfg(feature = "datagen")]
 mod datagen;
 pub mod posix;
+pub mod provider;
 
 use zerotrie::ZeroAsciiIgnoreCaseTrie;
 use zerovec::{vecs::Index32, VarZeroVec, ZeroVec};
 
 use posix::PosixZone;
+use provider::ZeroCompiledZoneInfo;
 
-use crate as timezone_provider;
+use crate::{self as timezone_provider, provider::NormalizerAndResolver, CompiledNormalizer};
 compiled_zoneinfo_provider!(COMPILED_ZONEINFO_PROVIDER);
+
+/// `ZeroCompiledTzdbProvider` is zero-copy compiled time zone database provider.
+pub type ZeroCompiledTzdbProvider<'a> =
+    NormalizerAndResolver<CompiledNormalizer, ZeroCompiledZoneInfo>;
 
 #[derive(Debug, Clone)]
 #[cfg_attr(
@@ -62,7 +68,7 @@ pub struct ZeroTzif<'data> {
 }
 
 #[zerovec::make_ule(LocalTimeRecordULE)]
-#[derive(PartialEq, Eq, Debug, Clone, Copy, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, Default, Debug, Clone, Copy, PartialOrd, Ord)]
 #[cfg_attr(
     feature = "datagen",
     derive(yoke::Yokeable, serde::Serialize, databake::Bake)

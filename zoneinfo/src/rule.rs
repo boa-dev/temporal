@@ -8,7 +8,10 @@ use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 
 use crate::{
     parser::{next_split, ContextParse, LineParseContext, ZoneInfoParseError},
-    types::{DayOfMonth, Month, QualifiedTime, Time, ToYear},
+    types::{
+        rule::{DayOfMonth, ToYear},
+        Month, QualifiedTime, Time,
+    },
     utils::{self, epoch_seconds_for_epoch_days},
 };
 
@@ -16,6 +19,35 @@ use crate::{
 pub struct LastRules {
     pub standard: Rule,
     pub saving: Option<Rule>,
+}
+
+impl LastRules {
+    /// Determines the final year from the rules in `LastRules`, returning `None` if
+    /// the year is MAX (a.k.a., undefined).
+    pub(crate) fn final_year(&self) -> i32 {
+        let std_final_year = self.standard.to_year_to_u16().map(i32::from);
+
+        let dst_final_year = self
+            .saving
+            .as_ref()
+            .map(|r| r.to_year_to_u16().map(i32::from));
+        let to_year_final = if let Some(dst_year) = dst_final_year {
+            std_final_year.max(dst_year)
+        } else {
+            std_final_year
+        };
+
+        // If we have a MAX result, then we need to use the from year as final year.
+        to_year_final.unwrap_or(self.final_from_year())
+    }
+
+    fn final_from_year(&self) -> i32 {
+        if let Some(dst) = self.saving.as_ref() {
+            dst.from.max(self.standard.from) as i32
+        } else {
+            self.standard.from as i32
+        }
+    }
 }
 
 /// The `Rule` is a collection of zone info rules under the same
@@ -100,16 +132,8 @@ impl Rules {
         let mut savings_max = None;
 
         for rule in &self.rules {
-            let calc_to_year = rule
-                .to
-                .map(|y| {
-                    if let ToYear::Year(y) = y {
-                        Some(y)
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or(Some(rule.from));
+            let calc_to_year = rule.to_year_to_u16();
+
             if let Some(year) = calc_to_year {
                 let epoch_days = epoch_days_for_rule_date(year as i32, rule.in_month, rule.on_date);
                 if final_epoch_days < epoch_days {
@@ -174,6 +198,13 @@ impl Rule {
             + self
                 .at
                 .to_universal_seconds(std_offset.as_secs(), saving.as_secs())
+    }
+
+    /// Converts this Rule's `To` value into an integer.
+    pub(crate) fn to_year_to_u16(&self) -> Option<u16> {
+        self.to
+            .map(ToYear::to_optional_u16)
+            .unwrap_or(Some(self.from))
     }
 }
 
@@ -273,7 +304,7 @@ impl Rule {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::{Sign, WeekDay};
+    use crate::types::{rule::WeekDay, Sign};
 
     const TEST_DATA: [&str; 22] = [
         "Rule	Algeria	1916	only	-	Jun	14	23:00s	1:00	S",

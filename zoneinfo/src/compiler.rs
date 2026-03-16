@@ -6,6 +6,16 @@
 
 use alloc::collections::BTreeSet;
 use alloc::string::String;
+
+#[cfg(feature = "unstable")]
+use crate::tzif::TzifBlockV2;
+use crate::{
+    posix::PosixTimeZone,
+    types::{QualifiedTimeKind, Time},
+    zone::ZoneRecord,
+    ZoneInfoData,
+};
+
 use hashbrown::HashMap;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -108,6 +118,7 @@ pub struct CompiledTransitions {
 //
 // I think I would prefer all of that live in the `tzif` crate, but that will
 // be a process to update. So implement it here, and then upstream it?
+#[cfg(feature = "unstable")]
 impl CompiledTransitions {
     pub fn to_v2_data_block(&self) -> TzifBlockV2 {
         TzifBlockV2::from_transition_data(self)
@@ -122,14 +133,6 @@ pub struct CompiledTransitionsMap {
 }
 
 // ==== ZoneInfoCompiler build / compile methods ====
-
-use crate::{
-    posix::PosixTimeZone,
-    types::{QualifiedTimeKind, Time},
-    tzif::TzifBlockV2,
-    zone::ZoneRecord,
-    ZoneInfoData,
-};
 
 /// The compiler for turning `ZoneInfoData` into `CompiledTransitionsData`
 pub struct ZoneInfoCompiler {
