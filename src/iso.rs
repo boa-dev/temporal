@@ -264,6 +264,8 @@ pub struct IsoDate {
 }
 
 impl IsoDate {
+    pub(crate) const UNIX_EPOCH: Self = Self::new_unchecked(1970, 1, 1);
+
     /// Creates a new `IsoDate` without determining the validity.
     pub(crate) const fn new_unchecked(year: i32, month: u8, day: u8) -> Self {
         Self { year, month, day }

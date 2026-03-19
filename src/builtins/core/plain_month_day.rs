@@ -364,6 +364,18 @@ impl PlainMonthDay {
             .ns)
     }
 
+    /// Gets the EpochNanoseconds represented by this MonthDay
+    /// (using the reference year, noon time, and UTC timezone)
+    ///
+    // Useful for implementing HandleDateTimeTemporalYearMonth
+    pub fn epoch_ns_for_utc(&self) -> EpochNanoseconds {
+        // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalMonthDay.[[ISODate]], NoonTimeRecord()).
+        let iso = IsoDateTime::new(self.iso, IsoTime::noon());
+        debug_assert!(iso.is_ok());
+        // 3. Let epochNs be ? GetUTCEpochNanoseconds(isoDateTime).
+        iso.unwrap_or_default().as_nanoseconds()
+    }
+
     /// Creates a RFC9557 IXDTF string from the current `PlainMonthDay`.
     pub fn to_ixdtf_string(&self, display_calendar: DisplayCalendar) -> String {
         self.to_ixdtf_writeable(display_calendar)

@@ -598,9 +598,7 @@ impl PlainYearMonth {
     }
 
     /// Gets the epochMilliseconds represented by this YearMonth in the given timezone
-    /// (using the reference year, and noon time)
-    ///
-    // Useful for implementing HandleDateTimeTemporalYearMonth
+    /// (using the reference day, and noon time)
     pub fn epoch_ns_for_with_provider(
         &self,
         time_zone: TimeZone,
@@ -612,6 +610,18 @@ impl PlainYearMonth {
         Ok(time_zone
             .get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)?
             .ns)
+    }
+
+    /// Gets the EpochNanoseconds represented by this YearMonth
+    /// (using the reference day, noon time, and UTC timezone)
+    ///
+    // Useful for implementing HandleDateTimeTemporalYearMonth
+    pub fn epoch_ns_for_utc(&self) -> EpochNanoseconds {
+        // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalYearMonth.[[ISODate]], NoonTimeRecord()).
+        let iso = IsoDateTime::new(self.iso, IsoTime::noon());
+        debug_assert!(iso.is_ok());
+        // 3. Let epochNs be ? GetUTCEpochNanoseconds(isoDateTime).
+        iso.unwrap_or_default().as_nanoseconds()
     }
 
     /// Returns a RFC9557 IXDTF string for the current `PlainYearMonth`
