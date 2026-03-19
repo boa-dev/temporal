@@ -987,6 +987,11 @@ mod tests {
             "+275760-10-01",
             "+275760-10-01T00:00",
             "1976-11[u-ca=hebrew]",
+            // built-ins/Temporal/PlainYearMonth/from/argument-string-too-many-decimals
+            "1970-01-01T00:00:00.1234567891",
+            "1970-01-01T00:00:00.1234567890",
+            "1970-01-01T00+00:00:00.1234567891",
+            "1970-01-01T00+00:00:00.1234567890",
         ];
 
         for invalid_case in invalid_strings {

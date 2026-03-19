@@ -982,7 +982,7 @@ mod tests {
     // test262/test/built-ins/Temporal/Calendar/prototype/month/argument-string-invalid.js
     #[test]
     fn invalid_strings() {
-        const INVALID_STRINGS: [&str; 35] = [
+        const INVALID_STRINGS: &[&str] = &[
             // invalid ISO strings:
             "",
             "invalid iso8601",
@@ -1023,9 +1023,14 @@ mod tests {
             // valid, but outside the supported range:
             "-999999-01-01",
             "+999999-01-01",
+            // built-ins/Temporal/PlainDate/from/argument-string-too-many-decimals
+            "1970-01-01T00:00:00.1234567891",
+            "1970-01-01T00:00:00.1234567890",
+            "1970-01-01T00+00:00:00.1234567891",
+            "1970-01-01T00+00:00:00.1234567890",
         ];
         for s in INVALID_STRINGS {
-            assert!(PlainDate::from_str(s).is_err())
+            assert!(PlainDate::from_str(s).is_err(), "{} should not parse", s)
         }
     }
 
