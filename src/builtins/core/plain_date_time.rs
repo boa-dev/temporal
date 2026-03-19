@@ -19,6 +19,7 @@ use crate::{
     parsers::IxdtfStringBuilder,
     primitive::FiniteF64,
     provider::{NeverProvider, TimeZoneProvider},
+    unix_time::EpochNanoseconds,
     MonthCode, TemporalError, TemporalResult, TimeZone,
 };
 use alloc::string::String;
@@ -905,6 +906,21 @@ impl PlainDateTime {
             self.calendar.clone(),
             epoch_ns.offset,
         ))
+    }
+
+    /// Gets the epochMilliseconds represented by this PlainDateTime in the given timezone
+    ///
+    // Useful for implementing HandleDateTimeTemporalDateTime
+    pub fn epoch_ns_for_with_provider(
+        &self,
+        time_zone: TimeZone,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<EpochNanoseconds> {
+        //  Let epochNs be ? GetEpochNanosecondsFor(dateTimeFormat.[[TimeZone]],
+        //  isoDateTime, compatible).
+        Ok(time_zone
+            .get_epoch_nanoseconds_for(self.iso, Disambiguation::Compatible, provider)?
+            .ns)
     }
 
     /// Create a [`PlainDate`] from the current `PlainDateTime`.

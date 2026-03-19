@@ -147,6 +147,12 @@ temporal_rs_PlainDateTime_to_zoned_date_time_result temporal_rs_PlainDateTime_to
 typedef struct temporal_rs_PlainDateTime_to_zoned_date_time_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_zoned_date_time_with_provider_result;
 temporal_rs_PlainDateTime_to_zoned_date_time_with_provider_result temporal_rs_PlainDateTime_to_zoned_date_time_with_provider(const PlainDateTime* self, TimeZone time_zone, Disambiguation disambiguation, const Provider* p);
 
+typedef struct temporal_rs_PlainDateTime_epoch_ms_for_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_epoch_ms_for_result;
+temporal_rs_PlainDateTime_epoch_ms_for_result temporal_rs_PlainDateTime_epoch_ms_for(const PlainDateTime* self, TimeZone time_zone);
+
+typedef struct temporal_rs_PlainDateTime_epoch_ms_for_with_provider_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_epoch_ms_for_with_provider_result;
+temporal_rs_PlainDateTime_epoch_ms_for_with_provider_result temporal_rs_PlainDateTime_epoch_ms_for_with_provider(const PlainDateTime* self, TimeZone time_zone, const Provider* p);
+
 typedef struct temporal_rs_PlainDateTime_to_ixdtf_string_result {union { TemporalError err;}; bool is_ok;} temporal_rs_PlainDateTime_to_ixdtf_string_result;
 temporal_rs_PlainDateTime_to_ixdtf_string_result temporal_rs_PlainDateTime_to_ixdtf_string(const PlainDateTime* self, ToStringRoundingOptions options, DisplayCalendar display_calendar, DiplomatWrite* write);
 

@@ -354,7 +354,28 @@ pub mod ffi {
             .map(|x| Box::new(ZonedDateTime(x)))
             .map_err(Into::into)
         }
+        #[cfg(feature = "compiled_data")]
+        pub fn epoch_ms_for(&self, time_zone: TimeZone) -> Result<i64, TemporalError> {
+            self.epoch_ms_for_with_provider(time_zone, &Provider::compiled())
+        }
+        pub fn epoch_ms_for_with_provider<'p>(
+            &self,
+            time_zone: TimeZone,
+            p: &Provider<'p>,
+        ) -> Result<i64, TemporalError> {
+            let ns = with_provider!(p, |p| self
+                .0
+                .epoch_ns_for_with_provider(time_zone.into(), p))
+            .map_err(TemporalError::from)?;
 
+            let ns_i128 = ns.as_i128();
+            let ms = ns_i128 / 1_000_000;
+            if let Ok(ms) = i64::try_from(ms) {
+                Ok(ms)
+            } else {
+                Err(TemporalError::assert("Found an out-of-range PlainDateTime"))
+            }
+        }
         pub fn to_ixdtf_string(
             &self,
             options: ToStringRoundingOptions,

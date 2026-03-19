@@ -138,6 +138,12 @@ temporal_rs_PlainDate_to_zoned_date_time_result temporal_rs_PlainDate_to_zoned_d
 typedef struct temporal_rs_PlainDate_to_zoned_date_time_with_provider_result {union {ZonedDateTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_to_zoned_date_time_with_provider_result;
 temporal_rs_PlainDate_to_zoned_date_time_with_provider_result temporal_rs_PlainDate_to_zoned_date_time_with_provider(const PlainDate* self, TimeZone time_zone, const PlainTime* time, const Provider* p);
 
+typedef struct temporal_rs_PlainDate_epoch_ms_for_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_epoch_ms_for_result;
+temporal_rs_PlainDate_epoch_ms_for_result temporal_rs_PlainDate_epoch_ms_for(const PlainDate* self, TimeZone time_zone);
+
+typedef struct temporal_rs_PlainDate_epoch_ms_for_with_provider_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainDate_epoch_ms_for_with_provider_result;
+temporal_rs_PlainDate_epoch_ms_for_with_provider_result temporal_rs_PlainDate_epoch_ms_for_with_provider(const PlainDate* self, TimeZone time_zone, const Provider* p);
+
 void temporal_rs_PlainDate_to_ixdtf_string(const PlainDate* self, DisplayCalendar display_calendar, DiplomatWrite* write);
 
 PlainDate* temporal_rs_PlainDate_clone(const PlainDate* self);
