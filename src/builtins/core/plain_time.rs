@@ -7,12 +7,15 @@ use crate::{
     },
     error::ErrorMessage,
     iso::IsoTime,
+    iso::{IsoDate, IsoDateTime},
     options::{
-        DifferenceOperation, DifferenceSettings, Overflow, ResolvedRoundingOptions,
+        DifferenceOperation, DifferenceSettings, Disambiguation, Overflow, ResolvedRoundingOptions,
         RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
     parsers::{parse_time, IxdtfStringBuilder},
-    TemporalError, TemporalResult,
+    provider::TimeZoneProvider,
+    unix_time::EpochNanoseconds,
+    TemporalError, TemporalResult, TimeZone,
 };
 use alloc::string::String;
 use core::str::FromStr;
@@ -540,6 +543,22 @@ impl PlainTime {
             .round(ResolvedRoundingOptions::from_to_string_options(&resolved))?;
         let builder = IxdtfStringBuilder::default().with_time(result, resolved.precision);
         Ok(builder)
+    }
+    /// Gets the epochMilliseconds represented by this PlainTime in the given timezone
+    /// (on Jan 1 1970)
+    ///
+    // Useful for implementing HandleDateTimeTemporalTime
+    pub fn epoch_ns_for_with_provider(
+        &self,
+        time_zone: TimeZone,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<EpochNanoseconds> {
+        // 2. Let isoDateTime be CombineISODateAndTimeRecord(temporalDate.[[ISODate]], NoonTimeRecord()).
+        let iso = IsoDateTime::new(IsoDate::UNIX_EPOCH, self.iso)?;
+        // 3. Let epochNs be ? GetEpochNanosecondsFor(dateTimeFormat.[[TimeZone]], isoDateTime, compatible).
+        Ok(time_zone
+            .get_epoch_nanoseconds_for(iso, Disambiguation::Compatible, provider)?
+            .ns)
     }
 }
 

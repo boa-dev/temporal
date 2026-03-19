@@ -46,6 +46,12 @@ temporal_rs_PlainTime_from_epoch_nanoseconds_result temporal_rs_PlainTime_from_e
 typedef struct temporal_rs_PlainTime_from_epoch_nanoseconds_with_provider_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_from_epoch_nanoseconds_with_provider_result;
 temporal_rs_PlainTime_from_epoch_nanoseconds_with_provider_result temporal_rs_PlainTime_from_epoch_nanoseconds_with_provider(I128Nanoseconds ns, TimeZone tz, const Provider* p);
 
+typedef struct temporal_rs_PlainTime_epoch_ms_for_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_epoch_ms_for_result;
+temporal_rs_PlainTime_epoch_ms_for_result temporal_rs_PlainTime_epoch_ms_for(const PlainTime* self, TimeZone time_zone);
+
+typedef struct temporal_rs_PlainTime_epoch_ms_for_with_provider_result {union {int64_t ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_epoch_ms_for_with_provider_result;
+temporal_rs_PlainTime_epoch_ms_for_with_provider_result temporal_rs_PlainTime_epoch_ms_for_with_provider(const PlainTime* self, TimeZone time_zone, const Provider* p);
+
 typedef struct temporal_rs_PlainTime_with_result {union {PlainTime* ok; TemporalError err;}; bool is_ok;} temporal_rs_PlainTime_with_result;
 temporal_rs_PlainTime_with_result temporal_rs_PlainTime_with(const PlainTime* self, PartialTime partial, ArithmeticOverflow_option overflow);
 
