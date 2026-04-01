@@ -507,9 +507,10 @@ impl IsoDate {
 impl IsoDate {
     /// Creates `[[ISOYear]]`, `[[isoMonth]]`, `[[isoDay]]` fields from `ICU4X`'s `Date<Iso>` struct.
     pub(crate) fn to_icu4x(self) -> IcuDate<Iso> {
-        let d = IcuDate::try_new_iso(self.year, self.month, self.day);
-        debug_assert!(d.is_ok(), "ICU4X ISODate conversion must not fail");
-        d.unwrap_or_else(|_| IcuDate::from_rata_die(icu_calendar::types::RataDie::new(0), Iso))
+        let rd = calendrical_calculations::gregorian::fixed_from_gregorian(
+            self.year, self.month, self.day,
+        );
+        IcuDate::from_rata_die(rd, Iso)
     }
 
     pub(crate) fn from_icu4x(date: <Iso as IcuCalendar>::DateInner) -> Self {

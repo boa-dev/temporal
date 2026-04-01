@@ -4,7 +4,7 @@ use core::fmt;
 use ixdtf::ParseError;
 use timezone_provider::TimeZoneProviderError;
 
-use icu_calendar::error::{DateFromFieldsError, DateAddError};
+use icu_calendar::error::{DateAddError, DateFromFieldsError};
 
 /// `TemporalError`'s error type.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
@@ -166,7 +166,6 @@ impl From<DateAddError> for TemporalError {
     }
 }
 
-
 impl From<ParseError> for TemporalError {
     fn from(error: ParseError) -> Self {
         TemporalError::range().with_enum(ErrorMessage::Ixdtf(error))
@@ -271,17 +270,19 @@ impl ErrorMessage {
             Self::Ixdtf(s) => ixdtf_error_to_static_string(s),
 
             Self::Icu4xDateFromFields(DateFromFieldsError::InvalidEra) => "Unknown era.",
-            Self::Icu4xDateFromFields(DateFromFieldsError::InvalidDay {..}) | Self::Icu4xDateAdd(DateAddError::InvalidDay {..}) => "Day out of range",
-            Self::Icu4xDateFromFields(DateFromFieldsError::InvalidOrdinalMonth {..})  => "Month out of range",
+            Self::Icu4xDateFromFields(DateFromFieldsError::InvalidDay { .. })
+            | Self::Icu4xDateAdd(DateAddError::InvalidDay { .. }) => "Day out of range",
+            Self::Icu4xDateFromFields(DateFromFieldsError::InvalidOrdinalMonth { .. }) => {
+                "Month out of range"
+            }
             Self::Icu4xDateFromFields(DateFromFieldsError::MonthCodeInvalidSyntax) => {
                 "Invalid month code."
             }
             Self::Icu4xDateFromFields(DateFromFieldsError::MonthNotInCalendar) => {
                 "Month code not in calendar."
             }
-            Self::Icu4xDateFromFields(DateFromFieldsError::MonthNotInYear) | Self::Icu4xDateAdd(DateAddError::MonthNotInYear) => {
-                "Month code not in year."
-            }
+            Self::Icu4xDateFromFields(DateFromFieldsError::MonthNotInYear)
+            | Self::Icu4xDateAdd(DateAddError::MonthNotInYear) => "Month code not in year.",
             Self::Icu4xDateFromFields(DateFromFieldsError::InconsistentYear) => {
                 "Inconsistent year."
             }

@@ -24,13 +24,13 @@ use icu_calendar::{
 };
 use icu_calendar::{
     cal::{HijriTabularEpoch, HijriTabularLeapYears},
+    options::DateDurationUnit as IcuUnit,
     options::{
         DateAddOptions, DateDifferenceOptions, DateFromFieldsOptions, MissingFieldsStrategy,
         Overflow as IcuOverflow,
     },
     preferences::CalendarAlgorithm,
     types::DateDuration as IcuDateDuration,
-    options::DateDurationUnit as IcuUnit,
     types::DateFields,
     Gregorian,
 };
@@ -152,8 +152,13 @@ impl Calendar {
                 const { &AnyCalendar::HijriUmmAlQura(Hijri::new_umm_al_qura()) }
             }
             AnyCalendarKind::Iso => &AnyCalendar::Iso(Iso),
-            #[allow(deprecated, reason = "need to match on JapaneseExtended for exhaustiveness")]
-            AnyCalendarKind::Japanese | AnyCalendarKind::JapaneseExtended => const { &AnyCalendar::Japanese(Japanese::new()) },
+            #[allow(
+                deprecated,
+                reason = "need to match on JapaneseExtended for exhaustiveness"
+            )]
+            AnyCalendarKind::Japanese | AnyCalendarKind::JapaneseExtended => {
+                const { &AnyCalendar::Japanese(Japanese::new()) }
+            }
             AnyCalendarKind::Persian => &AnyCalendar::Persian(Persian),
             AnyCalendarKind::Roc => &AnyCalendar::Roc(Roc),
             _ => {
