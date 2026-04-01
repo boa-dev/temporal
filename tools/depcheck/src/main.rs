@@ -180,6 +180,7 @@ pub const BASIC_RUNTIME_DEPS: &[&str] = &[
     "libm",
     "num-traits",
     "stable_deref_trait",
+    "utf8_iter",
 ];
 
 // Most of these should be removed
