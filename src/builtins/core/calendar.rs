@@ -283,7 +283,7 @@ fn early_constrain_date_duration(duration: &IcuDateDuration) -> Result<(), Tempo
     if duration.weeks > WEEK_DURATION {
         return err;
     }
-    if duration.days > DAY_DURATION.into() {
+    if duration.days > DAY_DURATION {
         return err;
     }
 
@@ -568,10 +568,7 @@ impl Calendar {
 
         let added = self.0.until(&calendar_date1, &calendar_date2, options);
 
-        let days = added
-            .days
-            .try_into()
-            .map_err(|_| TemporalError::range().with_enum(ErrorMessage::DurationNotValid))?;
+        let days = added.days.into();
         let mut duration = DateDuration::new(
             added.years.into(),
             added.months.into(),
