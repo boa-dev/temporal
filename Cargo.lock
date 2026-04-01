@@ -117,7 +117,7 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 
 [[package]]
 name = "bakeddata"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "databake",
  "prettyplease",
@@ -285,7 +285,7 @@ dependencies = [
 
 [[package]]
 name = "depcheck"
-version = "0.2.1"
+version = "0.2.2"
 
 [[package]]
 name = "diplomat"
@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "diplomat-gen"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "diplomat-tool",
 ]
@@ -864,7 +864,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_capi"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "diplomat",
  "diplomat-runtime",
@@ -879,7 +879,7 @@ dependencies = [
 
 [[package]]
 name = "temporal_rs"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "calendrical_calculations",
  "core_maths",
@@ -899,7 +899,7 @@ dependencies = [
 
 [[package]]
 name = "timezone_provider"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "combine",
  "databake",
@@ -981,7 +981,7 @@ dependencies = [
 
 [[package]]
 name = "tzif-inspect"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "jiff-tzdb",
  "temporal_rs",
@@ -1319,7 +1319,7 @@ dependencies = [
 
 [[package]]
 name = "zoneinfo-test-gen"
-version = "0.2.1"
+version = "0.2.2"
 dependencies = [
  "clap",
  "serde",
