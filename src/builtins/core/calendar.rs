@@ -18,7 +18,7 @@ use core::str::FromStr;
 use icu_calendar::{
     cal::{
         Buddhist, ChineseTraditional, Coptic, Ethiopian, EthiopianEraStyle, Hebrew, Hijri, Indian,
-        Japanese, JapaneseExtended, KoreanTraditional, Persian, Roc,
+        Japanese, KoreanTraditional, Persian, Roc,
     },
     AnyCalendar, AnyCalendarKind, Calendar as IcuCalendar, Iso, Ref,
 };
@@ -30,7 +30,7 @@ use icu_calendar::{
     },
     preferences::CalendarAlgorithm,
     types::DateDuration as IcuDateDuration,
-    types::DateDurationUnit as IcuUnit,
+    options::DateDurationUnit as IcuUnit,
     types::DateFields,
     Gregorian,
 };
@@ -152,10 +152,8 @@ impl Calendar {
                 const { &AnyCalendar::HijriUmmAlQura(Hijri::new_umm_al_qura()) }
             }
             AnyCalendarKind::Iso => &AnyCalendar::Iso(Iso),
-            AnyCalendarKind::Japanese => const { &AnyCalendar::Japanese(Japanese::new()) },
-            AnyCalendarKind::JapaneseExtended => {
-                const { &AnyCalendar::JapaneseExtended(JapaneseExtended::new()) }
-            }
+            #[allow(deprecated, reason = "need to match on JapaneseExtended for exhaustiveness")]
+            AnyCalendarKind::Japanese | AnyCalendarKind::JapaneseExtended => const { &AnyCalendar::Japanese(Japanese::new()) },
             AnyCalendarKind::Persian => &AnyCalendar::Persian(Persian),
             AnyCalendarKind::Roc => &AnyCalendar::Roc(Roc),
             _ => {
@@ -410,7 +408,7 @@ impl Calendar {
                 let calendar_date = self.0.from_fields(date_fields, options)?;
 
                 fields = CalendarFields {
-                    month_code: Some(MonthCode(self.0.month(&calendar_date).standard_code.0)),
+                    month_code: Some(MonthCode(self.0.month(&calendar_date).to_input().code().0)),
                     day: Some(self.0.day_of_month(&calendar_date).0),
                     ..Default::default()
                 };
@@ -445,7 +443,7 @@ impl Calendar {
         if fields.era_year.is_some() || fields.extended_year.is_some() {
             let mut fields2 = DateFields::default();
             fields2.day = Some(self.0.day_of_month(&calendar_date).0);
-            let code = self.0.month(&calendar_date).standard_code;
+            let code = self.0.month(&calendar_date).to_input().code();
             fields2.month_code = Some(code.0.as_bytes());
 
             calendar_date = self.0.from_fields(fields2, options)?;
@@ -527,7 +525,7 @@ impl Calendar {
             years: u32::try_from(duration.years.abs()).map_err(|_| invalid)?,
             months: u32::try_from(duration.months.abs()).map_err(|_| invalid)?,
             weeks: u32::try_from(duration.weeks.abs()).map_err(|_| invalid)?,
-            days: u64::try_from(duration.days.abs()).map_err(|_| invalid)?,
+            days: u32::try_from(duration.days.abs()).map_err(|_| invalid)?,
         };
 
         early_constrain_date_duration(&duration)?;
@@ -563,7 +561,7 @@ impl Calendar {
         let calendar_date1 = self.0.from_iso(*one.to_icu4x().inner());
         let calendar_date2 = self.0.from_iso(*two.to_icu4x().inner());
 
-        let added = self.0.until(&calendar_date1, &calendar_date2, options)?;
+        let added = self.0.until(&calendar_date1, &calendar_date2, options);
 
         let days = added
             .days
@@ -627,11 +625,11 @@ impl Calendar {
     /// `CalendarMonthCode`
     pub fn month_code(&self, iso_date: &IsoDate) -> MonthCode {
         if self.is_iso() {
-            let mc = iso_date.to_icu4x().month().standard_code.0;
+            let mc = iso_date.to_icu4x().month().to_input().code().0;
             return MonthCode(mc);
         }
         let calendar_date = self.0.from_iso(*iso_date.to_icu4x().inner());
-        MonthCode(self.0.month(&calendar_date).standard_code.0)
+        MonthCode(self.0.month(&calendar_date).to_input().code().0)
     }
 
     /// `CalendarDay`
@@ -645,7 +643,7 @@ impl Calendar {
 
     /// `CalendarDayOfWeek`
     pub fn day_of_week(&self, iso_date: &IsoDate) -> u16 {
-        iso_date.to_icu4x().day_of_week() as u16
+        iso_date.to_icu4x().weekday() as u16
     }
 
     /// `CalendarDayOfYear`
