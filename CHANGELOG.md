@@ -1,3 +1,8 @@
+## What's Changed in v0.2.2
+* Update ICU4X to 2.2 by @Manishearth in [#705](https://github.com/boa-dev/temporal/pull/705)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.2.1...v0.2.2
+
 ## What's Changed in v0.2.1
 * Pin icu_calendar to v2.1 by @jedel1043 in [#704](https://github.com/boa-dev/temporal/pull/704)
 * Remove unwrap in PYM::epoch_ns_for_utc by @Manishearth in [#701](https://github.com/boa-dev/temporal/pull/701)
