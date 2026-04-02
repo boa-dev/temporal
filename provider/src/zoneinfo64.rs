@@ -104,6 +104,7 @@ impl TimeZoneResolver for ZoneInfo64<'_> {
                     },
                 ])
             }
+            _ => return Err(TimeZoneProviderError::Assert("Found unknown PossibleOffset value")),
         };
         Ok(result)
     }
