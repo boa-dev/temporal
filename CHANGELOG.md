@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## What's Changed in v0.2.3
 * Update zoneinfo64 and Diplomat by @Manishearth in [#713](https://github.com/boa-dev/temporal/pull/713)
+* Update icu_calendar to fix `with()` regression by @Manishearth in [#716](https://github.com/boa-dev/temporal/pull/716)
 
 **Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.2.2...v0.2.3
 
