@@ -1,6 +1,5 @@
 # Temporal in Rust
 
-[![Discord](https://img.shields.io/discord/595323158140158003?logo=discord)](https://discord.gg/tUFFk9Y)
 [![Matrix](https://img.shields.io/matrix/boa:matrix.org?logo=matrix)](https://matrix.to/#/#boa:matrix.org)
 
 `temporal_rs` is a Rust date/time library that provides support for calendrical
