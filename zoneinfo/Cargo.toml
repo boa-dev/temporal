@@ -21,7 +21,7 @@ std = []
 unstable = []
 
 [dependencies]
-hashbrown = "0.16.0"
+hashbrown = "0.17.1"
 indexmap = "2.11.4"
 
 [dev-dependencies]
