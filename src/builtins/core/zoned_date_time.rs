@@ -1312,7 +1312,8 @@ impl ZonedDateTime {
             // h. Let dayLengthNs be ℝ(endNs - startNs).
             // i. Let dayProgressNs be TimeDurationFromEpochNanosecondsDifference(thisNs, startNs).
             let day_len_ns = TimeDuration::from_nanosecond_difference(end.ns.0, start.ns.0)?;
-            let day_progress_ns = TimeDuration::from_nanosecond_difference(this_ns_val, start.ns.0)?;
+            let day_progress_ns =
+                TimeDuration::from_nanosecond_difference(this_ns_val, start.ns.0)?;
             // j. Let roundedDayNs be ! RoundTimeDurationToIncrement(dayProgressNs, dayLengthNs, roundingMode).
             let rounded = if let Some(increment) = NonZeroU128::new(day_len_ns.0.unsigned_abs()) {
                 IncrementRounder::<i128>::from_signed_num(day_progress_ns.0, increment)?
