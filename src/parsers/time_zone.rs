@@ -8,32 +8,32 @@ use crate::provider::TimeZoneProvider;
 use crate::{builtins::time_zone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
 use super::{parse_ixdtf, ParseVariant};
+use crate::parsers::parse_zoned_date_time;
 
 #[inline]
 pub(crate) fn parse_allowed_timezone_formats(
     s: &str,
     provider: &(impl TimeZoneProvider + ?Sized),
 ) -> Option<TimeZone> {
-    let (offset, annotation) = if let Ok((offset, annotation)) =
-        parse_ixdtf(s.as_bytes(), ParseVariant::DateTime).map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else if let Ok((offset, annotation)) = IxdtfParser::from_str(s)
-        .parse_time()
-        .map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else if let Ok((offset, annotation)) =
-        parse_ixdtf(s.as_bytes(), ParseVariant::YearMonth).map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else if let Ok((offset, annotation)) =
-        parse_ixdtf(s.as_bytes(), ParseVariant::MonthDay).map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else {
-        return None;
-    };
+    let (offset, annotation) =
+        if let Ok(r) = parse_zoned_date_time(s.as_bytes()) {
+            (r.offset, r.tz)
+        } else if let Some(r) = parse_ixdtf(s.as_bytes(), ParseVariant::DateTime)
+            .ok()
+            .filter(|r| r.date.is_some() && r.time.is_some() && r.offset.is_some())
+        {
+            (r.offset, r.tz)
+        } else if let Ok(r) = parse_ixdtf(s.as_bytes(), ParseVariant::DateTime) {
+            (r.offset, r.tz)
+        } else if let Ok(r) = IxdtfParser::from_str(s).parse_time() {
+            (r.offset, r.tz)
+        } else if let Ok(r) = parse_ixdtf(s.as_bytes(), ParseVariant::MonthDay) {
+            (r.offset, r.tz)
+        } else if let Ok(r) = parse_ixdtf(s.as_bytes(), ParseVariant::YearMonth) {
+            (r.offset, r.tz)
+        } else {
+            return None;
+        };
 
     if let Some(annotation) = annotation {
         return TimeZone::from_time_zone_record(annotation.tz, provider).ok();
