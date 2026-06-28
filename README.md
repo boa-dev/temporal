@@ -1,5 +1,7 @@
 # Temporal in Rust
 
+[![Matrix](https://img.shields.io/matrix/boa:matrix.org?logo=matrix)](https://matrix.to/#/#boa:matrix.org)
+
 `temporal_rs` is a Rust date/time library that provides support for calendrical
 calculations and time zones that is based on the Temporal specification.
 
