@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## What's Changed in v0.2.5
+* Update to Diplomat 0.16 by @Manishearth in [#738](https://github.com/boa-dev/temporal/pull/738)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.2.4...v0.2.5
+
 ## What's Changed in v0.2.4
 * ZonedDateTime backward shift spec change by @Manishearth in [#725](https://github.com/boa-dev/temporal/pull/725)
 * Fix ComputeNudgeWindow startEpochNs computation to check full startDateDuration sign by @Manishearth in [#723](https://github.com/boa-dev/temporal/pull/723)
