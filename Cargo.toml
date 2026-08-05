@@ -56,7 +56,7 @@ ixdtf = "0.6.4"
 
 # Diplomat
 diplomat-tool = { version = "0.16.0", default-features = false }
-diplomat-runtime = { version = "0.16.0", default-features = false }
+diplomat-runtime = { version = ">= 0.15.2, < 0.17.0", default-features = false }
 diplomat = { version = "0.16.0", default-features = false }
 
 
