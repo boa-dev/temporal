@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## What's Changed in v0.2.6
+* Allow more flexible diplomat-runtime versions by @Manishearth in [#740](https://github.com/boa-dev/temporal/pull/740)
+
+**Full Changelog**: https://github.com/boa-dev/temporal/compare/v0.2.5...v0.2.6
+
 ## What's Changed in v0.2.5
 * Update to Diplomat 0.16 by @Manishearth in [#738](https://github.com/boa-dev/temporal/pull/738)
 
