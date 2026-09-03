@@ -17,14 +17,14 @@ updates:
   - package-ecosystem: cargo
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
     commit-message:
       prefix: "chore(dependabot)"
       prefix-development: "chore(dependabot)"
     ignore:
       # Ignore dependencies listed in the depcheck tool
       #
-      # We do this to ensure that the versions are stable or manually updated for 
+      # We do this to ensure that the versions are stable or manually updated for
       # V8 / Chrome
       - dependency-name: "calendrical_calculations"
       - dependency-name: "core_maths"
