@@ -1,0 +1,31 @@
+[tools]
+rust = "stable"
+
+# Cargo tools used in CI / development
+"cargo:cargo-workspaces" = "latest"   # cargo ws exec (lint job)
+"cargo:cargo-all-features" = "latest" # cargo test-all-features (feature-test job)
+"cargo:diplomat-tool" = "0.16.0"      # FFI bindings codegen (matches workspace dep)
+
+[env]
+# MSRV — informational; switch toolchain manually to verify: `rustup override set 1.86.0`
+TEMPORAL_RS_MSRV = "1.86.0"
+
+[tasks."tool:depcheck"]
+description = "Check that no unintentional dependencies have been added"
+run = "cargo run -p depcheck"
+
+[tasks."tool:diplomat-gen"]
+description = "Regenerate C and C++ FFI bindings via diplomat"
+run = "cargo run -p diplomat-gen"
+
+[tasks."tool:bakeddata"]
+description = "Regenerate baked data providers"
+run = "cargo run -p bakeddata"
+
+[tasks."tool:tzif-inspect"]
+description = "Dump TZif data for a given tzdb entry (e.g. mise run tool:tzif-inspect America/Los_Angeles)"
+run = "cargo run -p tzif-inspect -- {{arg(name='identifier')}}"
+
+[tasks."tool:zoneinfo-test-gen"]
+description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run tool:zoneinfo-test-gen America/New_York)"
+run = "cargo run -p zoneinfo-test-gen -- {{arg(name='identifier')}}"
