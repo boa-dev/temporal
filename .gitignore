@@ -3,6 +3,7 @@
 debug/
 target/
 tzdata/
+.tzdata/
 
 # Include the data debug view
 !/provider/src/data/debug

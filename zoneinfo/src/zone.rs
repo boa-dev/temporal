@@ -593,6 +593,14 @@ impl ZoneRecord {
                 // Determine whether start time is before or after any of the rule
                 // transitions to set a baseline.
                 let mut index = None;
+                // The previous zone's stdoff (without DST save), used to detect rules
+                // that fired at exactly the zone boundary in the old zone's context.
+                // When the stdoff changes at a zone boundary a rule can fire at UTC
+                // time T under the old stdoff while appearing to fire later under the
+                // new stdoff — we need to catch that case.
+                let prev_std_offset =
+                    Time::from_seconds(context.previous_offset - context.saving.as_secs());
+
                 for (i, rule) in rules_for_year.iter().enumerate() {
                     // We make a guess for the savings value.
                     //
@@ -610,7 +618,18 @@ impl ZoneRecord {
                         &zone_line.std_offset,
                         &savings,
                     );
-                    if imprecise_transition_time <= context.use_start {
+                    // Also probe with the previous zone's effective stdoff: a rule
+                    // that fires at the exact boundary in old-zone context will be
+                    // seen as firing *after* the boundary in new-zone context when
+                    // the stdoff decreases (old - new > 0).
+                    let prev_zone_transition_time = rule.transition_time_for_year(
+                        context.use_start_year,
+                        &prev_std_offset,
+                        &context.saving,
+                    );
+                    if imprecise_transition_time <= context.use_start
+                        || prev_zone_transition_time <= context.use_start
+                    {
                         index = Some(i);
                     }
                 }

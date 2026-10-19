@@ -38,21 +38,24 @@ fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str)
     let first_record = LocalRecord {
         offset: first_record_data.utoff.0,
         is_dst: first_record_data.is_dst,
-        abbr: tzif_block_v2.time_zone_designations[0].clone(),
+        abbr: tzif_block_v2
+            .time_zone_designation(first_record_data.idx)
+            .unwrap_or("unknown")
+            .to_owned(),
     };
 
-    // TODO: There may be a bug in `tzif` around handling of split abbr (EX: IST/GMT)
     let local_records = tzif_block_v2
         .local_time_type_records
         .iter()
         .map(|r| LocalRecord {
             offset: r.utoff.0,
             is_dst: r.is_dst,
+            // r.idx is a BYTE OFFSET into the concatenated designations string.
+            // Use the provided helper method rather than indexing the Vec directly.
             abbr: tzif_block_v2
-                .time_zone_designations
-                .get(r.idx / 4)
-                .cloned()
-                .unwrap_or(String::from("unknown")),
+                .time_zone_designation(r.idx)
+                .unwrap_or("unknown")
+                .to_owned(),
         })
         .collect::<Vec<_>>();
 
@@ -111,5 +114,5 @@ fn main() {
         manifest_dir.into()
     };
 
-    generate_test_data(zoneinfo_dir, out_dir, "Antarctica/Troll");
+    generate_test_data(zoneinfo_dir, out_dir, &args.identifier);
 }

@@ -106,23 +106,41 @@ impl Rules {
     }
 
     pub(crate) fn search_last_active_rule(&self, transition_point: i64) -> Option<&Rule> {
-        // Reasonable assumption: when searching for a last Rule,
-        // we are dealing with an orphan. This means we do not need to check years
-        // with an upper bound or inside them
-        let mut rule_savings = (i64::MIN, None);
+        let transition_year = utils::year_from_epoch_seconds(transition_point);
+        let mut best: (i64, Option<&Rule>) = (i64::MIN, None);
+
         for rule in &self.rules {
-            let year = rule.to.map(ToYear::to_i32).unwrap_or(i32::from(rule.from));
-            let epoch_days = epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
-            let rule_date_in_seconds = epoch_seconds_for_epoch_days(epoch_days);
-            // But we do want to keep track of the savings.
-            if rule_date_in_seconds < transition_point && rule_savings.0 < rule_date_in_seconds {
-                rule_savings = (rule_date_in_seconds, Some(rule))
-            } else if transition_point < rule_date_in_seconds {
-                break;
+            let from_year = i32::from(rule.from);
+            // "only" rules (to == None) apply only in from_year.
+            // Max/bounded rules are capped at transition_year so we only
+            // search years that could have fired before transition_point.
+            let to_year = match rule.to {
+                None => from_year,
+                Some(t) => t.to_i32().min(transition_year),
+            };
+
+            if from_year > transition_year {
+                // Rule only applies in the future; skip.
+                continue;
+            }
+
+            // Walk backward from the most recent applicable year to find the
+            // latest firing of this rule strictly before transition_point.
+            // In practice this loop runs 1-2 iterations.
+            for year in (from_year..=to_year).rev() {
+                let epoch_days =
+                    epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
+                let rule_secs = epoch_seconds_for_epoch_days(epoch_days);
+                if rule_secs < transition_point {
+                    if best.0 < rule_secs {
+                        best = (rule_secs, Some(rule));
+                    }
+                    break; // most-recent firing for this rule found
+                }
             }
         }
 
-        rule_savings.1
+        best.1
     }
 
     pub(crate) fn get_last_rules(&self) -> LastRules {

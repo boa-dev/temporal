@@ -29,3 +29,37 @@ run = "cargo run -p tzif-inspect -- {{arg(name='identifier')}}"
 [tasks."tool:zoneinfo-test-gen"]
 description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run tool:zoneinfo-test-gen America/New_York)"
 run = "cargo run -p zoneinfo-test-gen -- {{arg(name='identifier')}}"
+
+[tasks."tz:fetch"]
+description = "Download and extract the latest IANA tzdata source into .tzdata/src/"
+run = """
+mkdir -p .tzdata/src
+curl -sSL https://data.iana.org/time-zones/tzdata-latest.tar.gz | tar xz -C .tzdata/src
+"""
+
+[tasks."tz:compile"]
+description = "Compile IANA tzdata source into TZif binary files using zic (run tz:fetch first)"
+depends = ["tz:fetch"]
+run = """
+mkdir -p .tzdata/zoneinfo
+zic -d .tzdata/zoneinfo \
+  .tzdata/src/africa \
+  .tzdata/src/antarctica \
+  .tzdata/src/asia \
+  .tzdata/src/australasia \
+  .tzdata/src/backward \
+  .tzdata/src/etcetera \
+  .tzdata/src/europe \
+  .tzdata/src/northamerica \
+  .tzdata/src/southamerica
+"""
+
+[tasks."tz:gen-testdata"]
+description = "Generate JSON test data for an IANA zone (uses .tzdata/zoneinfo/ if compiled, else /usr/share/zoneinfo)"
+run = """
+if [ -d .tzdata/zoneinfo ]; then
+  cargo run -p zoneinfo-test-gen -- -i "$PWD/.tzdata/zoneinfo" -o ../../zoneinfo/tests/data {{arg(name='identifier')}}
+else
+  cargo run -p zoneinfo-test-gen -- -o ../../zoneinfo/tests/data {{arg(name='identifier')}}
+fi
+"""

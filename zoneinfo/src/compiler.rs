@@ -4,8 +4,7 @@
 //! with output types.
 //!
 
-use alloc::collections::BTreeSet;
-use alloc::string::String;
+use alloc::{borrow::ToOwned, collections::BTreeSet, string::String};
 
 #[cfg(feature = "unstable")]
 use crate::tzif::TzifBlockV2;
@@ -145,12 +144,28 @@ impl ZoneInfoCompiler {
         Self { data }
     }
 
-    /// Build transition data for a specific zone.
+    /// Build transition data for a specific zone, following Link records if
+    /// the identifier is a renamed/aliased zone (e.g. `America/Godthab` →
+    /// `America/Nuuk`).
     pub fn build_zone(&mut self, target: &str) -> CompiledTransitions {
-        if let Some(zone) = self.data.zones.get_mut(target) {
+        let resolved = self.resolve_link(target).to_owned();
+        if let Some(zone) = self.data.zones.get_mut(&resolved) {
             zone.associate_rules(&self.data.rules);
         }
-        self.build_zone_internal(target)
+        self.build_zone_internal(&resolved)
+    }
+
+    /// Resolve a zone identifier through `Link` records transitively.
+    /// Stops after 16 hops to guard against cycles.
+    fn resolve_link<'a>(&'a self, target: &'a str) -> &'a str {
+        let mut current = target;
+        for _ in 0..16 {
+            match self.data.links.get(current) {
+                Some(next) => current = next.as_str(),
+                None => return current,
+            }
+        }
+        current
     }
 
     pub fn build(&mut self) -> CompiledTransitionsMap {
