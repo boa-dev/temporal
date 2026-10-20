@@ -1,7 +1,7 @@
 //! Zone transition data and accumulation.
 //!
-//! [`TransitionAccumulator`] collects transitions during zone compilation and
-//! [`TransitionAccumulator::merge`] produces the final [`MergedTransitions`].
+//! `TransitionAccumulator` collects transitions during zone compilation and
+//! `TransitionAccumulator::merge` produces the final [`MergedTransitions`].
 
 use alloc::{
     collections::{BTreeMap, BTreeSet},
@@ -76,7 +76,7 @@ impl PartialOrd for Transition {
 /// Merged transitions: sorted by `at_time`, with no two consecutive entries
 /// sharing the same `(offset, dst, format)` unless pinned.
 ///
-/// Only constructible via [`TransitionAccumulator::merge`].
+/// Only constructible via `TransitionAccumulator::merge`.
 #[non_exhaustive]
 #[derive(Debug, Default, PartialEq)]
 pub struct MergedTransitions(BTreeSet<Transition>);
