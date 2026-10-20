@@ -1,18 +1,12 @@
 use databake::{quote, Bake};
-use rustc_hash::FxHasher;
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
     fmt::Write as _,
     fs::{self, File},
-    hash::{Hash, Hasher},
     io::{self, BufWriter, Write},
     path::Path,
 };
-use timezone_provider::{
-    experimental_tzif::{ZeroTzifULE, ZoneInfoProvider},
-    IanaIdentifierNormalizer,
-};
-use zerovec::ule::VarULE;
+use timezone_provider::{experimental_tzif::ZoneInfoProvider, IanaIdentifierNormalizer};
 
 trait BakedDataProvider {
     fn write_data(&self, data_path: &Path) -> io::Result<()>;
@@ -71,7 +65,7 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
             let id_set = tzif_ids.get(&id).unwrap();
             tzif_data.insert("ids".into(), serde_json::to_value(id_set)?);
             tzif_data.insert("tzif".into(), serde_json::to_value(tzif)?);
-            let filename = format!("tzif-{}-{}.json", hash_ids(id_set), hash_tzif(tzif));
+            let filename = format!("{}.json", tzif_slug(id_set));
             let filepath = tzif_dir_path.join(filename.clone());
             for id in id_set {
                 id_map.insert(id.clone(), filename.clone());
@@ -89,16 +83,16 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
     }
 }
 
-fn hash_ids(set: &BTreeSet<String>) -> String {
-    let mut hasher = FxHasher::default();
-    set.hash(&mut hasher);
-    format!("{:x}", hasher.finish())
-}
-
-fn hash_tzif(tzif: &ZeroTzifULE) -> String {
-    let mut hasher = FxHasher::default();
-    tzif.as_bytes().hash(&mut hasher);
-    format!("{:x}", hasher.finish())
+/// Names a tzif file after the first of the identifiers sharing it.
+///
+/// Every identifier maps to exactly one tzif, so the lowest one is a unique and
+/// stable name. Hashing the contents instead would rename the file on every data
+/// change, turning edits into deletes and adds in review.
+fn tzif_slug(set: &BTreeSet<String>) -> String {
+    set.first()
+        .expect("a tzif is only written for identifiers that reference it")
+        .replace('/', "-")
+        .to_ascii_lowercase()
 }
 
 impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
