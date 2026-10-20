@@ -1,0 +1,53 @@
+{
+  "ids": [
+    "cst6cdt"
+  ],
+  "tzif": {
+    "designations": [
+      "C",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "CST",
+      "offset": -21600,
+      "transition": {
+        "abbr": "CDT",
+        "end": {
+          "date": {
+            "day": null,
+            "kind": "MonthWeekDay",
+            "mwd": [
+              11,
+              1,
+              0
+            ]
+          },
+          "time": 7200
+        },
+        "savings": 3600,
+        "start": {
+          "date": {
+            "day": null,
+            "kind": "MonthWeekDay",
+            "mwd": [
+              3,
+              2,
+              0
+            ]
+          },
+          "time": 7200
+        }
+      }
+    },
+    "transition_types": [],
+    "transitions": [],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -21600
+      }
+    ]
+  }
+}
