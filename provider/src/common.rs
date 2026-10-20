@@ -101,6 +101,15 @@ impl DstTransitionInfoForYear {
             self.dst_start_seconds..self.dst_end_seconds
         }
     }
+
+    /// The offset in effect immediately after the transition at `seconds`.
+    pub(crate) fn offset_after(&self, seconds: i64) -> UtcOffsetSeconds {
+        if seconds == self.dst_start_seconds {
+            self.dst_offset
+        } else {
+            self.std_offset
+        }
+    }
 }
 
 #[cfg(feature = "tzif")]

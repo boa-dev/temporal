@@ -34,6 +34,13 @@ fn run_assertions(identifier: &str, zoneinfo_data: ZoneInfoData, test_data: Tzif
     assert_eq!(computed_zoneinfo.initial_record.offset, test_data.first_record.offset);
     assert_eq!(computed_zoneinfo.initial_record.designation, test_data.first_record.abbr);
 
+    // zip() stops at the shorter side, so compare counts first.
+    assert_eq!(
+        computed_zoneinfo.transitions.iter().count(),
+        test_data.transitions.len(),
+        "Transition counts are not aligned for {identifier}"
+    );
+
     for (computed, td) in computed_zoneinfo.transitions.iter().zip(test_data.transitions) {
         assert_eq!(
             computed.at_time, td.transition_time,
@@ -80,6 +87,16 @@ fn check_zone(
         errors.push(format!(
             "initial offset {} != {}",
             computed.initial_record.offset, test_data.first_record.offset
+        ));
+    }
+
+    // zip() stops at the shorter side, so compare counts first.
+    let computed_count = computed.transitions.iter().count();
+    if computed_count != test_data.transitions.len() {
+        errors.push(format!(
+            "transition count {} != {}",
+            computed_count,
+            test_data.transitions.len()
         ));
     }
 
@@ -195,6 +212,13 @@ fn test_regression_america_goose_bay() { test_data_for_id("America/Goose_Bay"); 
 
 #[test]
 fn test_regression_america_st_johns() { test_data_for_id("America/St_Johns"); }
+
+/// A zone-line boundary landing on the same instant as a rule transition is
+/// that rule's transition, so it must survive the merge even though its state
+/// matches the preceding transition. Here the `4:00 1:00` period ends exactly
+/// when `E-EurAsia`'s `Mar lastSun` rule fires, both sides being +05 DST.
+#[test]
+fn test_regression_asia_tbilisi() { test_data_for_id("Asia/Tbilisi"); }
 
 #[test]
 fn test_regression_america_indiana_petersburg() { test_data_for_id("America/Indiana/Petersburg"); }

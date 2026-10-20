@@ -96,6 +96,20 @@ impl Rules {
             .collect()
     }
 
+    /// The latest transition time produced by a rule that stops at a TO year.
+    ///
+    /// The POSIX string only encodes the rules running to max, so every
+    /// transition from a rule that ends has to stay explicit.
+    pub(crate) fn last_finite_rule_transition(&self, std_offset: &Time) -> Option<i64> {
+        self.rules
+            .iter()
+            .filter_map(|rule| {
+                let to_year = i32::from(rule.to_year_to_u16()?);
+                Some(rule.transition_time_for_year(to_year, std_offset, &Time::default()))
+            })
+            .max()
+    }
+
     pub(crate) fn find_initial_transition_letter(&self) -> Option<String> {
         let first_rule = self
             .rules
