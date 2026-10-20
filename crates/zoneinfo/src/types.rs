@@ -22,7 +22,7 @@ pub mod zone;
 /// An enum representing a three letter abbreviated month (e.g. `Jan`, `Sep`).
 ///
 /// The month value is present in the `IN` column of a rule line or the date
-/// month portion in the [UNTIL] column of a zone line.
+/// month portion in the `UNTIL` column of a zone line.
 ///
 /// Note: month is 1 based (1-12).
 #[derive(Debug, Clone, Copy, PartialEq)]

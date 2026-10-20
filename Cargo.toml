@@ -10,7 +10,7 @@ members = [
 [workspace.package]
 edition = "2021"
 version = "0.2.6"
-rust-version = "1.86.0"
+rust-version = "1.95.0"
 authors = ["boa-dev"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/boa-dev/temporal"
