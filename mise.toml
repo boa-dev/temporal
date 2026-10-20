@@ -19,7 +19,9 @@ description = "Regenerate C and C++ FFI bindings via diplomat"
 run = "cargo run -p diplomat-gen"
 
 [tasks."bakeddata"]
-description = "Regenerate baked data providers"
+description = "Regenerate baked data providers from the pinned IANA tzdata release"
+depends = ["tz:fetch"]
+env = { TZDATA_DIR = ".tzdata/src" }
 run = "cargo run -p bakeddata"
 
 [tasks."tzif-inspect"]
@@ -31,12 +33,8 @@ description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run
 run = "cargo run -p zoneinfo-test-gen -- {{arg(name='identifier')}}"
 
 [tasks."tz:fetch"]
-description = "Download and extract the latest IANA tzdata source into .tzdata/src/ (no-op if already present)"
-run = """
-mkdir -p .tzdata/src
-[ -f .tzdata/src/northamerica ] && exit 0
-curl -sSL https://data.iana.org/time-zones/tzdata-latest.tar.gz | tar xz -C .tzdata/src
-"""
+description = "Download the pinned IANA tzdata release, verify its checksum, extract it, and build rearguard.zi"
+run = "nu scripts/tzdata-fetch.nu"
 
 [tasks."tz:compile"]
 description = "Compile IANA tzdata source into TZif binary files using zic (no-op if already compiled)"

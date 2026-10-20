@@ -1,5 +1,10 @@
-# Timezone identifiers used by the zoneinfo integration test suite.
-# See scripts/zoneinfo-test.nu and zoneinfo/tests/test_datagen.rs.
+# IANA tzdata source and the timezone identifiers used by the test suite.
+# See scripts/ and zoneinfo/tests/test_datagen.rs.
+
+# Pinned IANA tzdata release. Bump the version and checksum together.
+[tzdata]
+version = "2026e"
+sha512 = "5be2f875f73b75e5783c474bf7a6c768e433cc90283f8fc6a75e3d05bd92aec97936e8a55ccca5e880b5dacc18ba65932bab0e783e1ed5d2af4a3a4df95512be"
 
 [zones]
 zones = [
