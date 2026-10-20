@@ -1,13 +1,13 @@
 # FAQ
 
-## Why should I use `temporal_rs`?
+## Why should I use `temporal`?
 
-`temporal_rs` implements the Temporal API in Rust.
+`temporal` implements the Temporal API in Rust.
 
 The Temporal API is designed to be a calendar and time zone aware
 date/time API.
 
-`temporal_rs` may fit your use case if any of the below are true:
+`temporal` may fit your use case if any of the below are true:
 
 - You need some level of web compatibility for your date/time libraries.
 - You are implementing the Temporal API in a JavaScript engine or any
@@ -25,11 +25,11 @@ implementation.
 
 Primary reasons:
 
-- `temporal_rs` is older than `jiff`; so, it was not an option when the
-  work on `temporal_rs` began
-- `jiff` is inspired by Temporal, while `temporal_rs` aims to be a 100%
+- `temporal` is older than `jiff`; so, it was not an option when the
+  work on `temporal` began
+- `jiff` is inspired by Temporal, while `temporal` aims to be a 100%
   compliant implementation. `jiff` can break from the specification if
-  it would like where `temporal_rs` is bound to the specification
+  it would like where `temporal` is bound to the specification
   behavior.
 
 Other concerns:
@@ -37,9 +37,9 @@ Other concerns:
 - Time zones are designed around the concept of BYOP (Bring your own
   provider). This is VERY important for engines to be able to define
   their own time zone providers.
-- Without feature flags, `temporal_rs`'s `Now` does not ship with a
+- Without feature flags, `temporal`'s `Now` does not ship with a
   clock as this is left to JavaScript engines.
-- Calendar support is first class in `temporal_rs`. The library aims to
+- Calendar support is first class in `temporal`. The library aims to
   support all ECMA402 defined calendars. `jiff` primarily implements the
   ISO calendar with some support for other calendars through `jiff_icu`.
 

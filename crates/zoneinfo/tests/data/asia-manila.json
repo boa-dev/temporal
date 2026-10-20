@@ -1,0 +1,121 @@
+{
+  "first_record": {
+    "offset": -57368,
+    "is_dst": false,
+    "abbr": "LMT"
+  },
+  "transitions": [
+    {
+      "transition_time": -3944621032,
+      "record": {
+        "offset": 29032,
+        "is_dst": false,
+        "abbr": "LMT"
+      }
+    },
+    {
+      "transition_time": -2219083200,
+      "record": {
+        "offset": 28800,
+        "is_dst": false,
+        "abbr": "PST"
+      }
+    },
+    {
+      "transition_time": -1046678400,
+      "record": {
+        "offset": 32400,
+        "is_dst": true,
+        "abbr": "PDT"
+      }
+    },
+    {
+      "transition_time": -1040115600,
+      "record": {
+        "offset": 28800,
+        "is_dst": false,
+        "abbr": "PST"
+      }
+    },
+    {
+      "transition_time": -885024000,
+      "record": {
+        "offset": 32400,
+        "is_dst": true,
+        "abbr": "PDT"
+      }
+    },
+    {
+      "transition_time": -880016400,
+      "record": {
+        "offset": 32400,
+        "is_dst": false,
+        "abbr": "JST"
+      }
+    },
+    {
+      "transition_time": -783594000,
+      "record": {
+        "offset": 32400,
+        "is_dst": true,
+        "abbr": "PDT"
+      }
+    },
+    {
+      "transition_time": -760093200,
+      "record": {
+        "offset": 28800,
+        "is_dst": false,
+        "abbr": "PST"
+      }
+    },
+    {
+      "transition_time": -496224000,
+      "record": {
+        "offset": 32400,
+        "is_dst": true,
+        "abbr": "PDT"
+      }
+    },
+    {
+      "transition_time": -491562000,
+      "record": {
+        "offset": 28800,
+        "is_dst": false,
+        "abbr": "PST"
+      }
+    },
+    {
+      "transition_time": 228326400,
+      "record": {
+        "offset": 32400,
+        "is_dst": true,
+        "abbr": "PDT"
+      }
+    },
+    {
+      "transition_time": 243702000,
+      "record": {
+        "offset": 28800,
+        "is_dst": false,
+        "abbr": "PST"
+      }
+    },
+    {
+      "transition_time": 643219200,
+      "record": {
+        "offset": 32400,
+        "is_dst": true,
+        "abbr": "PDT"
+      }
+    },
+    {
+      "transition_time": 649177200,
+      "record": {
+        "offset": 28800,
+        "is_dst": false,
+        "abbr": "PST"
+      }
+    }
+  ]
+}

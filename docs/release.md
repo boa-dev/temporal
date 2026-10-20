@@ -1,6 +1,6 @@
 # Release process
 
-The steps for preparing and making a new release for `temporal_rs` and
+The steps for preparing and making a new release for `temporal` and
 its crates are as follows.
 
 1. Fetch the remote refs and tags (`git fetch --tags`)

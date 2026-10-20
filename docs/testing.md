@@ -1,14 +1,14 @@
-## Testing `temporal_rs`
+## Testing `temporal`
 
 Temporal's primary test suite is the [Temporal `test262` test
 suite][test262-temporal]. There is an open issue / PR to extract
-the tests from test262 into a format that `temporal_rs` can run
+the tests from test262 into a format that `temporal` can run
 against in native Rust.
 
 In the meantime, there are two primary ways to test:
 
 1. Map the test into a Rust version in the `test` module in
-   `temporal_rs`. (Ex: [Duration's tests][duration-test-mod])
+   `temporal`. (Ex: [Duration's tests][duration-test-mod])
 
 2. Implement the feature in a relevant ECMAScript interpreter / engine,
    and run the engine through the test suite.
@@ -65,10 +65,10 @@ Uncaught RangeError: Instant nanoseconds are not within a valid epoch range.
 
 ### A note on testing with ECMAScript implementations
 
-Any ECMAScript implementation implementing `temporal_rs` will require
+Any ECMAScript implementation implementing `temporal` will require
 some level of glue code in order to move from the implementation to
-`temporal_rs`. So when debugging, it is important to determine that the
-error falls in `temporal_rs`.
+`temporal`. So when debugging, it is important to determine that the
+error falls in `temporal`.
 
 [test262-temporal]:
   https://github.com/tc39/test262/tree/main/test/built-ins/Temporal

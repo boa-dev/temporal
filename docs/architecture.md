@@ -2,20 +2,20 @@
 
 TODO: FFI docs
 
-This doc provides an overview of the layout of `temporal_rs`.
+This doc provides an overview of the layout of `temporal`.
 
 We will go over the Temporal Date/Time builtins, general primitives, and
 utiltity crates.
 
-## `temporal_rs` design considerations
+## `temporal` design considerations
 
-`temporal_rs` is first and foremost designed to be a fully spec
+`temporal` is first and foremost designed to be a fully spec
 compliant implementation of ECMAScript's Temporal date/time builtins.
 
-As such, the main design consideration of `temporal_rs` is that it needs
+As such, the main design consideration of `temporal` is that it needs
 to be able to service language interpreters / engines.
 
-Thus, `temporal_rs` aims to provide an API along with tools to implement
+Thus, `temporal` aims to provide an API along with tools to implement
 Temporal while minimizing issue with integrating Temporal into engines.
 
 ## Date/Time builtins
@@ -24,11 +24,11 @@ The primary date & time builtins/components are located in the
 `builtins` directory.
 
 These builtins are then reexported from `lib.rs` to be available from
-`temporal_rs`'s root module.
+`temporal`'s root module.
 
 ### Core vs. Compiled
 
-`temporal_rs`'s builtins are split in two distinct directories `core`
+`temporal`'s builtins are split in two distinct directories `core`
 and `compiled`. The core implementation contains the core implementation
 of the Temporal builtins; meanwhile, the `compiled` implementation provides
 method wrappers around the `core` methods that simplify some "lower" level
@@ -37,7 +37,7 @@ date/time APIs that may not be necessary for a general use case.
 ### Core implementation
 
 The core implementation is always publicly available, but may not be
-available to import from the `temporal_rs`'s root.
+available to import from the `temporal`'s root.
 
 The core implementation exposes the Provider API that allows the user to
 supply a "provider", or any type that implements the `TimeZoneProvider`
@@ -86,19 +86,19 @@ This greatly simplifies the API for general use cases.
 
 <!-- Should IsoDate, IsoTime, and IsoDateTime be considered primitives? -->
 
-`temporal_rs` has a primitive number implementation `FiniteF64` along
+`temporal` has a primitive number implementation `FiniteF64` along
 with a few date and time primitives: `IsoDate`, `IsoTime`,
 `IsoDateTime`, and `EpochNanoseconds`.
 
 `FiniteF64` allows an interface to translate between ECMAScript's number
-type vs. `temporal_rs`'s strictly typed API.
+type vs. `temporal`'s strictly typed API.
 
 Meanwhile the Date and Time primitives allow certain invariants to be
 enforced on their records.
 
 ## Utiltiies
 
-`temporal_rs` provides one implementation of the `TimeZoneProvider`
+`temporal` provides one implementation of the `TimeZoneProvider`
 trait: `FsTzdbProvider`.
 
 `FsTzdbProvider` reads from the file systems' tzdb and when not

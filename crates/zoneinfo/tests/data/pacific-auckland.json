@@ -1,0 +1,777 @@
+{
+  "first_record": {
+    "offset": 41944,
+    "is_dst": false,
+    "abbr": "LMT"
+  },
+  "transitions": [
+    {
+      "transition_time": -3192435544,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1330335000,
+      "record": {
+        "offset": 45000,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1320057000,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1300699800,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1287396000,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1269250200,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1255946400,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1237800600,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1224496800,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1206351000,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1192442400,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1174901400,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1160992800,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1143451800,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1125914400,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1112607000,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1094464800,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1081157400,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1063015200,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1049707800,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1031565600,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -1018258200,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -1000116000,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -986808600,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -968061600,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -955359000,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -936612000,
+      "record": {
+        "offset": 41400,
+        "is_dst": false,
+        "abbr": "NZMT"
+      }
+    },
+    {
+      "transition_time": -923304600,
+      "record": {
+        "offset": 43200,
+        "is_dst": true,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": -757425600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 152632800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 162309600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 183477600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 194968800,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 215532000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 226418400,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 246981600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 257868000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 278431200,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 289317600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 309880800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 320767200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 341330400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 352216800,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 372780000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 384271200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 404834400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 415720800,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 436284000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 447170400,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 467733600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 478620000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 499183200,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 510069600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 530632800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 541519200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 562082400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 573573600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 594136800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 605023200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 623772000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 637682400,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 655221600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 669132000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 686671200,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 700581600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 718120800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 732636000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 749570400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 764085600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 781020000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 795535200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 812469600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 826984800,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 844524000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 858434400,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 875973600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 889884000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 907423200,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 921938400,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 938872800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 953388000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 970322400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 984837600,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1002376800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 1016287200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1033826400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 1047736800,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1065276000,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 1079791200,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1096725600,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 1111240800,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1128175200,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 1142690400,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1159624800,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    },
+    {
+      "transition_time": 1174140000,
+      "record": {
+        "offset": 43200,
+        "is_dst": false,
+        "abbr": "NZST"
+      }
+    },
+    {
+      "transition_time": 1191074400,
+      "record": {
+        "offset": 46800,
+        "is_dst": true,
+        "abbr": "NZDT"
+      }
+    }
+  ]
+}
