@@ -3,7 +3,7 @@ use temporal::UtcOffset;
 use timezone_provider::provider::{NormalizedId, ResolvedId};
 
 #[diplomat::bridge]
-#[diplomat::abi_rename = "temporal_rs_{0}"]
+#[diplomat::abi_rename = "temporal_{0}"]
 pub mod ffi {
     use crate::error::ffi::TemporalError;
     use crate::provider::ffi::Provider;

@@ -15,14 +15,14 @@
 
 
 
-typedef struct temporal_rs_Provider_new_zoneinfo64_result {union {Provider* ok; }; bool is_ok;} temporal_rs_Provider_new_zoneinfo64_result;
-temporal_rs_Provider_new_zoneinfo64_result temporal_rs_Provider_new_zoneinfo64(DiplomatU32View data);
+typedef struct temporal_Provider_new_zoneinfo64_result {union {Provider* ok; }; bool is_ok;} temporal_Provider_new_zoneinfo64_result;
+temporal_Provider_new_zoneinfo64_result temporal_Provider_new_zoneinfo64(DiplomatU32View data);
 
-Provider* temporal_rs_Provider_new_compiled(void);
+Provider* temporal_Provider_new_compiled(void);
 
-Provider* temporal_rs_Provider_empty(void);
+Provider* temporal_Provider_empty(void);
 
-void temporal_rs_Provider_destroy(Provider* self);
+void temporal_Provider_destroy(Provider* self);
 
 
 
