@@ -11,7 +11,7 @@ use crate::{
         DifferenceOperation, DifferenceSettings, DisplayOffset, ResolvedRoundingOptions,
         RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
-    parsers::{parse_instant, IxdtfStringBuilder},
+    parsers::IxdtfStringBuilder,
     provider::TimeZoneProvider,
     rounding::IncrementRounder,
     unix_time::EpochNanoseconds,
@@ -296,8 +296,17 @@ impl Instant {
 
     // Converts a UTF-8 encoded string into a `Instant`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let ixdtf_record = parse_instant(s)?;
+        Self::from_parsed_record(crate::parsers::TemporalParser::from_utf8(s).parse_instant()?)
+    }
 
+    /// Converts a UTF-16 encoded string into a `Instant`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        Self::from_parsed_record(crate::parsers::TemporalParser::from_utf16(s).parse_instant()?)
+    }
+
+    fn from_parsed_record(
+        ixdtf_record: crate::parsers::IxdtfParseInstantRecord,
+    ) -> TemporalResult<Self> {
         // Find the offset
         let ns_offset = match ixdtf_record.offset {
             UtcOffsetRecordOrZ::Offset(offset) => {
@@ -503,6 +512,16 @@ mod tests {
 
         assert!(Instant::try_new(max_plus_one).is_err());
         assert!(Instant::try_new(min_minus_one).is_err());
+    }
+
+    #[test]
+    fn from_utf16_matches_from_utf8() {
+        let s = "2024-07-19T15:43:12.5Z";
+        let utf16: alloc::vec::Vec<u16> = s.encode_utf16().collect();
+        assert_eq!(
+            Instant::from_utf8(s.as_bytes()),
+            Instant::from_utf16(&utf16)
+        );
     }
 
     #[test]

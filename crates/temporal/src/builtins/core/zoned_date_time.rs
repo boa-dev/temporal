@@ -23,8 +23,10 @@ use crate::{
         DisplayTimeZone, OffsetDisambiguation, Overflow, ResolvedRoundingOptions,
         RoundingIncrement, RoundingMode, RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
-    parsed_intermediates::ParsedZonedDateTime,
-    parsers::{FormattableOffset, FormattableTime, IxdtfStringBuilder, Precision},
+    parsers::{
+        intermediates::ParsedZonedDateTime, FormattableOffset, FormattableTime, IxdtfStringBuilder,
+        Precision,
+    },
     partial::PartialTime,
     primitive::FiniteF64,
     provider::{TimeZoneProvider, TransitionDirection, UtcOffsetSeconds},
@@ -1417,6 +1419,18 @@ impl ZonedDateTime {
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
         let parsed = ParsedZonedDateTime::from_utf8_with_provider(source, provider)?;
+
+        Self::from_parsed_with_provider(parsed, disambiguation, offset_option, provider)
+    }
+
+    /// Attempts to parse and create a `ZonedDateTime` from a UTF-16 encoded IXDTF string.
+    pub fn from_utf16_with_provider(
+        source: &[u16],
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<Self> {
+        let parsed = ParsedZonedDateTime::from_utf16_with_provider(source, provider)?;
 
         Self::from_parsed_with_provider(parsed, disambiguation, offset_option, provider)
     }

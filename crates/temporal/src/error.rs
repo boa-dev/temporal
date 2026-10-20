@@ -210,7 +210,6 @@ pub(crate) enum ErrorMessage {
     EmptyFieldsIsInvalid,
 
     // Parsing
-    ParserNeedsDate,
     FractionalTimeMoreThanNineDigits,
 
     // Other
@@ -260,7 +259,6 @@ impl ErrorMessage {
             Self::TzMismatch => "Timezones must be the same if unit is a day unit.",
             Self::EmptyFieldsIsInvalid => "fields cannot be empty",
 
-            Self::ParserNeedsDate => "Could not find a valid DateRecord node during parsing.",
             Self::FractionalTimeMoreThanNineDigits => "Fractional time exceeds nine digits.",
             Self::OffsetNeedsDisambiguation => {
                 "Offsets could not be determined without disambiguation"

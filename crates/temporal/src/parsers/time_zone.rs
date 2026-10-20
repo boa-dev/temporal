@@ -1,42 +1,32 @@
 use ixdtf::{
-    encoding::Utf8,
-    parsers::{IxdtfParser, TimeZoneParser},
+    parsers::TimeZoneParser,
     records::{TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ},
 };
 
 use crate::provider::TimeZoneProvider;
 use crate::{builtins::time_zone::UtcOffset, TemporalError, TemporalResult, TimeZone};
 
-use super::{parse_ixdtf, ParseVariant};
+use super::{parse_ixdtf, ParseVariant, TemporalEncoding};
 
 #[inline]
-pub(crate) fn parse_allowed_timezone_formats(
-    s: &str,
+pub(crate) fn parse_allowed_timezone_formats<T: TemporalEncoding>(
+    s: &[T::CodeUnit],
     provider: &(impl TimeZoneProvider + ?Sized),
 ) -> Option<TimeZone> {
-    let (offset, annotation) = if let Ok((offset, annotation)) =
-        parse_ixdtf(s.as_bytes(), ParseVariant::DateTime).map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else if let Ok((offset, annotation)) = IxdtfParser::from_str(s)
-        .parse_time()
-        .map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else if let Ok((offset, annotation)) =
-        parse_ixdtf(s.as_bytes(), ParseVariant::YearMonth).map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
-    } else if let Ok((offset, annotation)) =
-        parse_ixdtf(s.as_bytes(), ParseVariant::MonthDay).map(|r| (r.offset, r.tz))
-    {
-        (offset, annotation)
+    let (offset, annotation) = if let Ok(r) = parse_ixdtf::<T>(s, ParseVariant::DateTime) {
+        (r.offset, r.tz)
+    } else if let Ok(r) = parse_ixdtf::<T>(s, ParseVariant::Time) {
+        (r.offset, r.tz)
+    } else if let Ok(r) = parse_ixdtf::<T>(s, ParseVariant::YearMonth) {
+        (r.offset, r.tz)
+    } else if let Ok(r) = parse_ixdtf::<T>(s, ParseVariant::MonthDay) {
+        (r.offset, r.tz)
     } else {
         return None;
     };
 
     if let Some(annotation) = annotation {
-        return TimeZone::from_time_zone_record(annotation.tz, provider).ok();
+        return TimeZone::from_time_zone_record::<T>(annotation.tz, provider).ok();
     };
 
     if let Some(offset) = offset {
@@ -58,8 +48,10 @@ pub(crate) fn parse_allowed_timezone_formats(
 }
 
 #[inline]
-pub(crate) fn parse_identifier(source: &str) -> TemporalResult<TimeZoneRecord<'_, Utf8>> {
-    let mut parser = TimeZoneParser::from_str(source);
+pub(crate) fn parse_identifier<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<TimeZoneRecord<'_, T>> {
+    let mut parser = TimeZoneParser::<T>::new(source);
     parser.parse_identifier().or(Err(
         TemporalError::range().with_message("Invalid TimeZone Identifier")
     ))

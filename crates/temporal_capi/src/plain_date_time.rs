@@ -35,11 +35,11 @@ pub mod ffi {
     }
 
     #[diplomat::opaque]
-    pub struct ParsedDateTime(temporal::parsed_intermediates::ParsedDateTime);
+    pub struct ParsedDateTime(temporal::parsers::intermediates::ParsedDateTime);
 
     impl ParsedDateTime {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal::parsed_intermediates::ParsedDateTime::from_utf8(s)
+            temporal::parsers::intermediates::ParsedDateTime::from_utf8(s)
                 .map(|x| Box::new(ParsedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }
@@ -47,7 +47,7 @@ pub mod ffi {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal::TemporalError::range())?;
 
-            temporal::parsed_intermediates::ParsedDateTime::from_utf8(s.as_bytes())
+            temporal::parsers::intermediates::ParsedDateTime::from_utf8(s.as_bytes())
                 .map(|x| Box::new(ParsedDateTime(x)))
                 .map_err(Into::<TemporalError>::into)
         }

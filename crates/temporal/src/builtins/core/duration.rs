@@ -16,7 +16,10 @@ use crate::{
 use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{
-    encoding::Utf8, parsers::IsoDurationParser, records::Fraction, records::TimeDurationRecord,
+    encoding::{Utf16, Utf8},
+    parsers::IsoDurationParser,
+    records::Fraction,
+    records::TimeDurationRecord,
 };
 use normalized::InternalDurationRecord;
 use num_traits::Euclid;
@@ -714,8 +717,17 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let parse_record = IsoDurationParser::<Utf8>::from_utf8(s).parse()?;
+        Self::from_duration_record(IsoDurationParser::<Utf8>::from_utf8(s).parse()?)
+    }
 
+    /// Converts a UTF-16 encoded string into a `Duration`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        Self::from_duration_record(IsoDurationParser::<Utf16>::new(s).parse()?)
+    }
+
+    fn from_duration_record(
+        parse_record: ixdtf::records::DurationParseRecord,
+    ) -> TemporalResult<Self> {
         fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {
             if let Some(fraction) = fraction {
                 fraction.to_nanoseconds().ok_or(
