@@ -110,12 +110,14 @@ fn main() {
     } else {
         PathBuf::from(UNIX_ZONEINFO)
     };
-    // Create output directory
+    // The generated data is gitignored, so a fresh clone has no output
+    // directory to write into.
     let out_dir = if let Some(dir) = args.output_dir {
         manifest_dir.join(dir)
     } else {
         manifest_dir.into()
     };
+    fs::create_dir_all(&out_dir).unwrap();
 
     for identifier in &args.identifiers {
         generate_test_data(&zoneinfo_dir, &out_dir, identifier);

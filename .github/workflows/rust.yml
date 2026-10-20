@@ -154,6 +154,10 @@ jobs:
       # Downloads the pinned tzdata, verifies its checksum, compiles it with
       # zic, regenerates the ground truth, and runs the zoneinfo tests.
       - name: Test zoneinfo against the full IANA database
+        env:
+          # The task needs only nushell and cargo. Without this, `mise run`
+          # builds the dev-only cargo tools from mise.toml, costing minutes.
+          MISE_TASK_RUN_AUTO_INSTALL: "false"
         run: mise run zoneinfo:test
 
   ffi:
