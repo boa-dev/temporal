@@ -15,11 +15,11 @@
 
 
 
-typedef struct temporal_rs_AnyCalendarKind_get_for_str_result {union {AnyCalendarKind ok; }; bool is_ok;} temporal_rs_AnyCalendarKind_get_for_str_result;
-temporal_rs_AnyCalendarKind_get_for_str_result temporal_rs_AnyCalendarKind_get_for_str(DiplomatStringView s);
+typedef struct temporal_AnyCalendarKind_get_for_str_result {union {AnyCalendarKind ok; }; bool is_ok;} temporal_AnyCalendarKind_get_for_str_result;
+temporal_AnyCalendarKind_get_for_str_result temporal_AnyCalendarKind_get_for_str(DiplomatStringView s);
 
-typedef struct temporal_rs_AnyCalendarKind_parse_temporal_calendar_string_result {union {AnyCalendarKind ok; }; bool is_ok;} temporal_rs_AnyCalendarKind_parse_temporal_calendar_string_result;
-temporal_rs_AnyCalendarKind_parse_temporal_calendar_string_result temporal_rs_AnyCalendarKind_parse_temporal_calendar_string(DiplomatStringView s);
+typedef struct temporal_AnyCalendarKind_parse_temporal_calendar_string_result {union {AnyCalendarKind ok; }; bool is_ok;} temporal_AnyCalendarKind_parse_temporal_calendar_string_result;
+temporal_AnyCalendarKind_parse_temporal_calendar_string_result temporal_AnyCalendarKind_parse_temporal_calendar_string(DiplomatStringView s);
 
 
 

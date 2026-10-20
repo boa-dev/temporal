@@ -15,7 +15,7 @@
 
 
 
-bool temporal_rs_PartialDuration_is_empty(PartialDuration self);
+bool temporal_PartialDuration_is_empty(PartialDuration self);
 
 
 
