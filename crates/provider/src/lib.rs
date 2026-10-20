@@ -90,9 +90,6 @@ pub mod epoch_nanoseconds;
 #[cfg(any(feature = "tzif", feature = "experimental_tzif"))]
 pub(crate) mod common;
 
-#[doc(hidden)]
-pub mod utils;
-
 mod error;
 pub mod provider;
 pub use error::TimeZoneProviderError;

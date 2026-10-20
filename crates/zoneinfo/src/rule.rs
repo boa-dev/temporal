@@ -12,7 +12,6 @@ use crate::{
         rule::{DayOfMonth, ToYear},
         Month, QualifiedTime, Time,
     },
-    utils::{self, epoch_seconds_for_epoch_days},
 };
 
 #[derive(Debug)]
@@ -113,7 +112,7 @@ impl Rules {
         for rule in &self.rules {
             let year = rule.to.map(ToYear::to_i32).unwrap_or(i32::from(rule.from));
             let epoch_days = epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
-            let rule_date_in_seconds = epoch_seconds_for_epoch_days(epoch_days);
+            let rule_date_in_seconds = calendar_equations::epoch_days_to_epoch_seconds(epoch_days);
             // But we do want to keep track of the savings.
             if rule_date_in_seconds < transition_point && rule_savings.0 < rule_date_in_seconds {
                 rule_savings = (rule_date_in_seconds, Some(rule))
@@ -193,7 +192,7 @@ impl Rule {
         saving: &Time,
     ) -> i64 {
         let epoch_days = epoch_days_for_rule_date(year, self.in_month, self.on_date);
-        let epoch_seconds = epoch_seconds_for_epoch_days(epoch_days);
+        let epoch_seconds = calendar_equations::epoch_days_to_epoch_seconds(epoch_days);
         epoch_seconds
             + self
                 .at
@@ -211,14 +210,14 @@ impl Rule {
 /// epoch_days_for_rule_date calculates the epoch days given values provided for a specific `Rule`
 pub(crate) fn epoch_days_for_rule_date(year: i32, month: Month, day_of_month: DayOfMonth) -> i32 {
     let day_of_year_for_month = month.month_start_to_day_of_year(year);
-    let epoch_days_for_year = utils::epoch_days_for_year(year);
+    let epoch_days_for_year = calendar_equations::epoch_days_for_year(year);
     let epoch_days = epoch_days_for_year + day_of_year_for_month;
     let day_of_month = match day_of_month {
         DayOfMonth::Last(weekday) => {
             let mut day_of_month = month.month_end_to_day_of_year(year) - day_of_year_for_month;
             loop {
                 let target_days = epoch_days + day_of_month;
-                let target_week_day = utils::epoch_days_to_week_day(target_days);
+                let target_week_day = calendar_equations::epoch_days_to_week_day(target_days);
                 if target_week_day == weekday as u8 {
                     break;
                 }
@@ -230,7 +229,7 @@ pub(crate) fn epoch_days_for_rule_date(year: i32, month: Month, day_of_month: Da
             let mut day_of_month = d as i32 - 1;
             loop {
                 let target_days = epoch_days + day_of_month;
-                let target_week_day = utils::epoch_days_to_week_day(target_days);
+                let target_week_day = calendar_equations::epoch_days_to_week_day(target_days);
                 if week_day as u8 == target_week_day {
                     break day_of_month;
                 }
@@ -241,7 +240,7 @@ pub(crate) fn epoch_days_for_rule_date(year: i32, month: Month, day_of_month: Da
             let mut day_of_month = d as i32 - 1;
             loop {
                 let target_days = epoch_days + day_of_month;
-                let target_week_day = utils::epoch_days_to_week_day(target_days);
+                let target_week_day = calendar_equations::epoch_days_to_week_day(target_days);
                 if week_day as u8 == target_week_day {
                     break day_of_month;
                 }

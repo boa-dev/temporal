@@ -1,13 +1,13 @@
 use crate::TimeZoneProviderError;
 
+pub(crate) use calendar_equations::MS_PER_DAY;
+
 /// Number of nanoseconds in a day
 #[doc(hidden)]
 pub const NS_PER_DAY: u64 = MS_PER_DAY as u64 * 1_000_000;
 
 pub(crate) const NS_IN_S: i128 = 1_000_000_000;
 
-/// Milliseconds per day constant: 8.64e+7
-pub(crate) const MS_PER_DAY: u32 = 24 * 60 * 60 * 1000;
 /// Max Instant nanosecond constant
 #[doc(hidden)]
 pub(crate) const NS_MAX_INSTANT: i128 = NS_PER_DAY as i128 * 100_000_000i128;

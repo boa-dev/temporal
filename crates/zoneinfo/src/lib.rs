@@ -47,8 +47,6 @@ extern crate std;
 #[cfg(feature = "std")]
 use std::{io, path::Path};
 
-pub(crate) mod utils;
-
 pub mod compiler;
 pub mod parser;
 pub mod posix;

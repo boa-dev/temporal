@@ -1,9 +1,7 @@
 //! Common logic shared across TZif providers
 
-use crate::{
-    provider::{GapEntryOffsets, UtcOffsetSeconds},
-    utils,
-};
+use crate::provider::{GapEntryOffsets, UtcOffsetSeconds};
+use calendar_equations as utils;
 
 use core::ops::Range;
 

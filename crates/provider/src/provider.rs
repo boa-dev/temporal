@@ -5,10 +5,10 @@
 
 use core::str::FromStr;
 
-use crate::utils;
 use crate::CompiledNormalizer;
 use crate::{epoch_nanoseconds::EpochNanoseconds, TimeZoneProviderError};
 use alloc::borrow::Cow;
+use calendar_equations as utils;
 
 pub(crate) type TimeZoneProviderResult<T> = Result<T, TimeZoneProviderError>;
 

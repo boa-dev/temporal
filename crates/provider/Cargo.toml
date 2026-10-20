@@ -52,6 +52,7 @@ zoneinfo64 = ["dep:zoneinfo64"]
 [dependencies]
 
 # Provider dependency
+calendar_equations = { workspace = true }
 zerotrie.workspace = true
 zerovec = { workspace = true, features = ["derive", "alloc"] }
 tinystr = { workspace = true, features = ["zerovec"] }
