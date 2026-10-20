@@ -31,7 +31,7 @@
 // this library is designed to aid with build time libraries, on
 // a limited dataset, NOT at runtime on extremely large datasets.
 
-#![no_std]
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
 
 extern crate alloc;
 
@@ -53,6 +53,7 @@ pub mod compiler;
 pub mod parser;
 pub mod posix;
 pub mod rule;
+pub mod transition;
 pub mod types;
 pub mod zone;
 

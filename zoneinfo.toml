@@ -1,0 +1,45 @@
+# Timezone identifiers used by the zoneinfo integration test suite.
+# See scripts/zoneinfo-test.nu and zoneinfo/tests/test_datagen.rs.
+
+[zones]
+zones = [
+    "America/Chicago",
+    "America/New_York",
+    "America/Anchorage",
+    "Australia/Sydney",
+    "Australia/Lord_Howe",
+    "Antarctica/Troll",
+    "Europe/Dublin",
+    "Europe/Berlin",
+    "Europe/Paris",
+    "Europe/London",
+    "Europe/Riga",
+    "America/Sao_Paulo",
+]
+
+# Regression zones for issue #602 — getTimeZoneTransition edge cases.
+# These zones expose historical transitions that were previously computed
+# incorrectly: same-offset boundaries, boundary-coincident DST rules,
+# zone renames (Links), and non-standard offset formats.
+[regression]
+zones = [
+    "America/Godthab",
+    "America/Grand_Turk",
+    "America/Resolute",
+    "America/Scoresbysund",
+    "Europe/Lisbon",
+    "America/Goose_Bay",
+    "America/St_Johns",
+    "America/Indiana/Petersburg",
+    "America/Indiana/Vincennes",
+    "America/North_Dakota/Beulah",
+    "America/Ojinaga",
+    "Antarctica/Macquarie",
+    "Asia/Nicosia",
+    "Europe/Bucharest",
+    "Europe/Chisinau",
+    "Europe/Kiev",
+    "Europe/Sofia",
+    "Europe/Vilnius",
+    "Pacific/Norfolk",
+]

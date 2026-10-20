@@ -1354,4 +1354,5 @@ dependencies = [
  "serde",
  "serde_json",
  "tzif",
+ "zoneinfo_rs",
 ]

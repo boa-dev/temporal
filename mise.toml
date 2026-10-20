@@ -10,39 +10,40 @@ rust = "stable"
 # MSRV — informational; switch toolchain manually to verify: `rustup override set 1.86.0`
 TEMPORAL_RS_MSRV = "1.86.0"
 
-[tasks."tool:depcheck"]
+[tasks."depcheck"]
 description = "Check that no unintentional dependencies have been added"
 run = "cargo run -p depcheck"
 
-[tasks."tool:diplomat-gen"]
+[tasks."diplomat-gen"]
 description = "Regenerate C and C++ FFI bindings via diplomat"
 run = "cargo run -p diplomat-gen"
 
-[tasks."tool:bakeddata"]
+[tasks."bakeddata"]
 description = "Regenerate baked data providers"
 run = "cargo run -p bakeddata"
 
-[tasks."tool:tzif-inspect"]
+[tasks."tzif-inspect"]
 description = "Dump TZif data for a given tzdb entry (e.g. mise run tool:tzif-inspect America/Los_Angeles)"
 run = "cargo run -p tzif-inspect -- {{arg(name='identifier')}}"
 
-[tasks."tool:zoneinfo-test-gen"]
+[tasks."zoneinfo-test-gen"]
 description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run tool:zoneinfo-test-gen America/New_York)"
 run = "cargo run -p zoneinfo-test-gen -- {{arg(name='identifier')}}"
 
 [tasks."tz:fetch"]
-description = "Download and extract the latest IANA tzdata source into .tzdata/src/"
+description = "Download and extract the latest IANA tzdata source into .tzdata/src/ (no-op if already present)"
 run = """
 mkdir -p .tzdata/src
+[ -f .tzdata/src/northamerica ] && exit 0
 curl -sSL https://data.iana.org/time-zones/tzdata-latest.tar.gz | tar xz -C .tzdata/src
 """
 
 [tasks."tz:compile"]
-description = "Compile IANA tzdata source into TZif binary files using zic (run tz:fetch first)"
+description = "Compile IANA tzdata source into TZif binary files using zic (no-op if already compiled)"
 depends = ["tz:fetch"]
 run = """
 mkdir -p .tzdata/zoneinfo
-zic -d .tzdata/zoneinfo \
+zic -b slim -d .tzdata/zoneinfo \
   .tzdata/src/africa \
   .tzdata/src/antarctica \
   .tzdata/src/asia \
@@ -63,3 +64,8 @@ else
   cargo run -p zoneinfo-test-gen -- -o ../../zoneinfo/tests/data {{arg(name='identifier')}}
 fi
 """
+
+[tasks."zoneinfo:test"]
+description = "Generate JSON ground truth and run the zoneinfo integration tests"
+depends = ["tz:compile"]
+run = "nu scripts/zoneinfo-test.nu"

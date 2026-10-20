@@ -22,3 +22,6 @@ tzdata/
 # Ignore clangd files
 .cache
 compile_commands.json
+
+# Generated zoneinfo test data — produced by `mise run test:zoneinfo`
+zoneinfo/tests/data/*.json
