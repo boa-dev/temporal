@@ -1,0 +1,17 @@
+[package]
+name = "temporal_rs"
+keywords = ["date", "time", "calendar", "timezone", "duration"]
+categories = ["date-and-time", "internationalization"]
+description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
+version = "0.2.7"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+exclude.workspace = true
+
+
+[dependencies]
+temporal = { workspace = true, default-features = false }

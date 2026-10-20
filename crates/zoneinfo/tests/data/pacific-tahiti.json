@@ -1,0 +1,17 @@
+{
+  "first_record": {
+    "offset": -35896,
+    "is_dst": false,
+    "abbr": "LMT"
+  },
+  "transitions": [
+    {
+      "transition_time": -1806674504,
+      "record": {
+        "offset": -36000,
+        "is_dst": false,
+        "abbr": "-10"
+      }
+    }
+  ]
+}

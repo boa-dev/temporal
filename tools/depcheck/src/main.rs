@@ -153,8 +153,8 @@ fn main() {
 
 /// Dependencies that are always allowed as runtime dependencies
 pub const BASIC_RUNTIME_DEPS: &[&str] = &[
-    // temporal_rs crates
-    "temporal_rs",
+    // temporal crates
+    "temporal",
     "timezone_provider",
     // ICU4X components and utils
     "calendrical_calculations",

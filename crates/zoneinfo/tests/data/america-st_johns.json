@@ -1,0 +1,1505 @@
+{
+  "first_record": {
+    "offset": -12652,
+    "is_dst": false,
+    "abbr": "LMT"
+  },
+  "transitions": [
+    {
+      "transition_time": -2713897748,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1664130548,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1650137348,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1632076148,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1615145348,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1598650148,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1590100148,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1567286948,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1551565748,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1535837348,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1520116148,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1503782948,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1488666548,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1472333348,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1457216948,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1440883748,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1425767348,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1409434148,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1394317748,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1377984548,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1362263348,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1346534948,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1330813748,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1314480548,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1299364148,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1283030948,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1267914548,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1251581348,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1236464948,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1220131748,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1205015348,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1188682148,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1172960948,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1156627748,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1141511348,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1125178148,
+      "record": {
+        "offset": -9052,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1110061748,
+      "record": {
+        "offset": -12652,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1096921748,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1093728600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1078612200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1061670600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1048973400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -1030221000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -1017523800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -998771400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -986074200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -966717000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -954624600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -935267400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -922570200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -903817800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -891120600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -872368200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NWT"
+      }
+    },
+    {
+      "transition_time": -769395600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NPT"
+      }
+    },
+    {
+      "transition_time": -765401400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -746044200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -733347000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -714594600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -701897400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -683145000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -670447800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -651695400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -638998200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -619641000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -606943800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -589401000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -576099000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -557951400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -544649400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -526501800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -513199800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -495052200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -481750200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -463602600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -450300600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -431548200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -418246200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -400098600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -386796600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -368649000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -355347000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -337199400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -323897400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -305749800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -289423800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -273695400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -257974200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -242245800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -226524600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -210796200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -195075000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -179346600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -163625400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -147897000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -131571000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -116447400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -100121400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -84393000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -68671800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -52943400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -37222200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": -21493800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": -5772600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 9955800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 25677000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 41405400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 57731400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 73459800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 89181000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 104909400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 120630600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 136359000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 152080200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 167808600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 183529800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 199258200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 215584200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 230707800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 247033800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 262762200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 278483400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 294211800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 309933000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 325661400,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 341382600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 357111000,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 372832200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 388560600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 404886600,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 420010200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 436336200,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 452064600,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 467785800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 483514200,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 499235400,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 514963800,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 530685000,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 544591860,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 562127460,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 576041460,
+      "record": {
+        "offset": -5400,
+        "is_dst": true,
+        "abbr": "NDDT"
+      }
+    },
+    {
+      "transition_time": 594178260,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 607491060,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 625631460,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 638940660,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 657081060,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 670995060,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 688530660,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 702444660,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 719980260,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 733894260,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 752034660,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 765343860,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 783484260,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 796793460,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 814933860,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 828847860,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 846383460,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 860297460,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 877833060,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 891747060,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 909282660,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 923196660,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 941337060,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 954646260,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 972786660,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 986095860,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1004236260,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1018150260,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1035685860,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1049599860,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1067135460,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1081049460,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1099189860,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1112499060,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1130639460,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1143948660,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1162089060,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1173583860,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1194143460,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1205033460,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1225593060,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1236483060,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1257042660,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1268537460,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1289097060,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    },
+    {
+      "transition_time": 1299987060,
+      "record": {
+        "offset": -9000,
+        "is_dst": true,
+        "abbr": "NDT"
+      }
+    },
+    {
+      "transition_time": 1320553800,
+      "record": {
+        "offset": -12600,
+        "is_dst": false,
+        "abbr": "NST"
+      }
+    }
+  ]
+}

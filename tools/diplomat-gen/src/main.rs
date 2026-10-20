@@ -12,6 +12,7 @@ fn main() -> std::io::Result<()> {
         .unwrap()
         .parent()
         .unwrap()
+        .join("crates")
         .join("temporal_capi");
 
     let mut library_config = Config::default();

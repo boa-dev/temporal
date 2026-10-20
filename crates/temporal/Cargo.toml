@@ -1,0 +1,62 @@
+[package]
+name = "temporal"
+keywords = ["date", "time", "calendar", "timezone", "duration"]
+categories = ["date-and-time", "internationalization"]
+description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+readme.workspace = true
+exclude.workspace = true
+
+[dependencies]
+
+core_maths = "0.1.1"
+icu_calendar = { workspace = true, features = ["compiled_data"] }
+icu_locale_core.workspace = true
+ixdtf = { workspace = true, features = ["duration"] }
+num-traits.workspace = true
+tinystr.workspace = true
+writeable.workspace = true
+
+# log feature
+log = { workspace = true, optional = true }
+
+# tzdb feature
+timezone_provider = { workspace = true }
+
+# System time feature
+web-time = { workspace = true, optional = true }
+iana-time-zone = { workspace = true, optional = true }
+calendrical_calculations = "0.2.4"
+
+[dev-dependencies]
+timezone_provider = { workspace = true, features = ["zoneinfo64", "experimental_tzif"] }
+zoneinfo64 = { workspace = true }
+resb = "0.1.0"
+
+[features]
+default = ["sys-local"]
+log = ["dep:log"]
+compiled_data = ["tzdb"]
+sys = ["std", "compiled_data", "dep:web-time"]
+sys-local = ["sys", "dep:iana-time-zone"]
+tzdb = [
+    "std",
+    "timezone_provider/tzif",
+]
+std = []
+# https://github.com/boa-dev/temporal/issues/613
+# ECMA-conformant implementations must store durations as float64-representable numbers
+# Rust users probably should not enable this, unless they wish to match the quirks of JavaScript
+float64_representable_durations = []
+
+[package.metadata.cargo-all-features]
+denylist = ["default"]
+max_combination_size = 4
+
+[package.metadata.docs.rs]
+all-features = true

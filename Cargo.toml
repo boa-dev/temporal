@@ -1,9 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
-    "provider",
-    "temporal_capi",
-    "zoneinfo",
+    "crates/*",
 
     # Tools
     "tools/*",
@@ -29,9 +27,9 @@ exclude = [
 
 [workspace.dependencies]
 # Self
-temporal_rs = { version = "0.2.6", path = ".", default-features = false }
-timezone_provider = { version = "0.2.6", path = "./provider", default-features = false }
-zoneinfo_rs = { version = "0.1.0", path = "./zoneinfo", default-features = false }
+temporal = { version = "0.2.6", path = "./crates/temporal", default-features = false }
+timezone_provider = { version = "0.2.6", path = "./crates/provider", default-features = false }
+zoneinfo_rs = { version = "0.1.0", path = "./crates/zoneinfo", default-features = false }
 
 # Dependencies
 rustc-hash = "2.1.0"
@@ -60,65 +58,3 @@ diplomat-runtime = { version = ">= 0.15.2, < 0.17.0", default-features = false }
 diplomat = { version = "0.16.0", default-features = false }
 
 
-[package]
-name = "temporal_rs"
-keywords = ["date", "time", "calendar", "timezone", "duration"]
-categories = ["date-and-time", "internationalization"]
-description = "Temporal in Rust is an implementation of the TC39 Temporal Builtin Proposal in Rust."
-version.workspace = true
-edition.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-rust-version.workspace = true
-readme.workspace = true
-exclude.workspace = true
-
-[dependencies]
-
-core_maths = "0.1.1"
-icu_calendar = { workspace = true, features = ["compiled_data"] }
-icu_locale_core.workspace = true
-ixdtf = { workspace = true, features = ["duration"] }
-num-traits.workspace = true
-tinystr.workspace = true
-writeable.workspace = true
-
-# log feature
-log = { workspace = true, optional = true }
-
-# tzdb feature
-timezone_provider = { workspace = true }
-
-# System time feature
-web-time = { workspace = true, optional = true }
-iana-time-zone = { workspace = true, optional = true }
-calendrical_calculations = "0.2.4"
-
-[dev-dependencies]
-timezone_provider = { workspace = true, features = ["zoneinfo64", "experimental_tzif"] }
-zoneinfo64 = { workspace = true }
-resb = "0.1.0"
-
-[features]
-default = ["sys-local"]
-log = ["dep:log"]
-compiled_data = ["tzdb"]
-sys = ["std", "compiled_data", "dep:web-time"]
-sys-local = ["sys", "dep:iana-time-zone"]
-tzdb = [
-    "std",
-    "timezone_provider/tzif",
-]
-std = []
-# https://github.com/boa-dev/temporal/issues/613
-# ECMA-conformant implementations must store durations as float64-representable numbers
-# Rust users probably should not enable this, unless they wish to match the quirks of JavaScript
-float64_representable_durations = []
-
-[package.metadata.cargo-all-features]
-denylist = ["default"]
-max_combination_size = 4
-
-[package.metadata.docs.rs]
-all-features = true
