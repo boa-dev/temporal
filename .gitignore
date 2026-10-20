@@ -23,5 +23,5 @@ tzdata/
 .cache
 compile_commands.json
 
-# Generated zoneinfo test data — produced by `mise run test:zoneinfo`
+# Generated zoneinfo test data — produced by `mise run zoneinfo:test`
 zoneinfo/tests/data/*.json

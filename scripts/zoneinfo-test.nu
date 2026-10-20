@@ -6,8 +6,8 @@ let repo = $env.PWD
 let iana_tzif = $"($repo)/.tzdata/zoneinfo"
 let data_out = "../../zoneinfo/tests/data"
 
-def gen [zone: string] {
-    cargo run -q -p zoneinfo-test-gen -- -i $iana_tzif -o $data_out $zone
+def gen [zones: list<string>] {
+    cargo run -q -p zoneinfo-test-gen -- -i $iana_tzif -o $data_out ...$zones
 }
 
 # All canonical zones from zone.tab
@@ -22,9 +22,8 @@ let all_zones = (
 let config = open zoneinfo.toml
 let all_zones = ($all_zones ++ $config.regression.zones | uniq)
 
-for zone in $all_zones {
-    gen $zone
-}
+# One invocation for every zone: process startup dominates otherwise.
+gen $all_zones
 with-env { TZDATA_DIR: $"($repo)/.tzdata/src" } {
     cargo test -p zoneinfo_rs
 }

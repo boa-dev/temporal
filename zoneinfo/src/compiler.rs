@@ -9,10 +9,7 @@ use alloc::{borrow::ToOwned, string::String};
 #[cfg(feature = "unstable")]
 use crate::tzif::TzifBlockV2;
 use crate::{
-    posix::PosixTimeZone,
-    transition::MergedTransitions,
-    types::Time,
-    zone::ZoneRecord,
+    posix::PosixTimeZone, transition::MergedTransitions, types::Time, zone::ZoneRecord,
     ZoneInfoData,
 };
 

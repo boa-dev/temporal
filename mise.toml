@@ -6,6 +6,9 @@ rust = "stable"
 "cargo:cargo-all-features" = "latest" # cargo test-all-features (feature-test job)
 "cargo:diplomat-tool" = "0.16.0"      # FFI bindings codegen (matches workspace dep)
 
+# Runs scripts/*.nu in the tz:fetch and zoneinfo:test tasks
+"aqua:nushell/nushell" = "0.116.1"
+
 [env]
 # MSRV — informational; switch toolchain manually to verify: `rustup override set 1.86.0`
 TEMPORAL_RS_MSRV = "1.86.0"
@@ -25,11 +28,11 @@ env = { TZDATA_DIR = ".tzdata/src" }
 run = "cargo run -p bakeddata"
 
 [tasks."tzif-inspect"]
-description = "Dump TZif data for a given tzdb entry (e.g. mise run tool:tzif-inspect America/Los_Angeles)"
+description = "Dump TZif data for a given tzdb entry (e.g. mise run tzif-inspect America/Los_Angeles)"
 run = "cargo run -p tzif-inspect -- {{arg(name='identifier')}}"
 
 [tasks."zoneinfo-test-gen"]
-description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run tool:zoneinfo-test-gen America/New_York)"
+description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run zoneinfo-test-gen America/New_York)"
 run = "cargo run -p zoneinfo-test-gen -- {{arg(name='identifier')}}"
 
 [tasks."tz:fetch"]

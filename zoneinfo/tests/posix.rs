@@ -5,7 +5,7 @@ fn posix_string_test() {
     let tzdata_dir = match std::env::var("TZDATA_DIR") {
         Ok(dir) => dir,
         Err(_) => {
-            eprintln!("SKIP posix_string_test: TZDATA_DIR not set (run `mise run test:zoneinfo`)");
+            eprintln!("SKIP posix_string_test: TZDATA_DIR not set (run `mise run zoneinfo:test`)");
             return;
         }
     };

@@ -76,8 +76,7 @@ pub(crate) fn year_from_epoch_seconds(secs: i64) -> i32 {
     let n1 = 4 * rata_die + 3;
     let century = n1.div_euclid(DAYS_IN_A_400Y_CYCLE);
     let n2 = n1.rem_euclid(DAYS_IN_A_400Y_CYCLE) | 3;
-    let century_year =
-        (376_287_347_u64 * n2 as u64).div_euclid(TWO_POWER_THIRTY_NINE) as u32;
+    let century_year = (376_287_347_u64 * n2 as u64).div_euclid(TWO_POWER_THIRTY_NINE) as u32;
     let comp_year = 100 * century + century_year;
     let day_of_year = (n2 - 1461 * century_year).div_euclid(4);
     let j = (day_of_year >= 306) as u32;

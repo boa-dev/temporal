@@ -506,8 +506,8 @@ impl ZoneRecord {
                             // POSIX string encodes. It only ends the explicit list
                             // once no rule that ends can still fire.
                             let runs_to_max = rule.to_year_to_u16().is_none();
-                            let after_finite_rules = last_finite_rule_time
-                                .is_none_or(|last| transition_time > last);
+                            let after_finite_rules =
+                                last_finite_rule_time.is_none_or(|last| transition_time > last);
                             let offset = zone_line.std_offset.as_secs() + rule.save.as_secs();
                             let format = zone_line.format.format(
                                 offset,

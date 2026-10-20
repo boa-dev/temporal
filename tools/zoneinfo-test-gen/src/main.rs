@@ -25,7 +25,7 @@ struct LocalRecord {
 }
 
 // Utility function for generating example files
-fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str) {
+fn generate_test_data(input_dir: &Path, output_dir: &Path, identifier: &str) {
     let filename = identifier.to_lowercase().replace("/", "-");
     let test_data_path = output_dir.join(format!("{filename}.json"));
 
@@ -94,7 +94,10 @@ struct Args {
     #[arg(short = 'i', long)]
     zoneinfo_dir: Option<PathBuf>,
 
-    identifier: String,
+    /// One or more IANA identifiers. Passing several avoids paying process
+    /// startup per zone when generating the whole database.
+    #[arg(required = true)]
+    identifiers: Vec<String>,
 }
 
 fn main() {
@@ -114,5 +117,7 @@ fn main() {
         manifest_dir.into()
     };
 
-    generate_test_data(zoneinfo_dir, out_dir, &args.identifier);
+    for identifier in &args.identifiers {
+        generate_test_data(&zoneinfo_dir, &out_dir, identifier);
+    }
 }

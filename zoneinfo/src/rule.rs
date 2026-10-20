@@ -142,8 +142,7 @@ impl Rules {
             // latest firing of this rule strictly before transition_point.
             // In practice this loop runs 1-2 iterations.
             for year in (from_year..=to_year).rev() {
-                let epoch_days =
-                    epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
+                let epoch_days = epoch_days_for_rule_date(year, rule.in_month, rule.on_date);
                 let rule_secs = epoch_seconds_for_epoch_days(epoch_days);
                 if rule_secs < transition_point {
                     if best.0 < rule_secs {
