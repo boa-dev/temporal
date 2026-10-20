@@ -36,7 +36,7 @@ calendrical_calculations = "0.2.4"
 [dev-dependencies]
 timezone_provider = { workspace = true, features = ["zoneinfo64", "experimental_tzif"] }
 zoneinfo64 = { workspace = true }
-resb = "0.1.0"
+resb = "0.2.0"
 
 [features]
 default = ["sys-local"]

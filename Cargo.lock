@@ -719,6 +719,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "resb"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2f7917f0f33da724259d953c49b5d751cb3bf6b58fbdaf59b217aebffde9673"
+dependencies = [
+ "potential_utf",
+ "serde_core",
+]
+
+[[package]]
 name = "rustc-hash"
 version = "2.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -870,7 +880,7 @@ dependencies = [
  "ixdtf",
  "log",
  "num-traits",
- "resb",
+ "resb 0.2.0",
  "timezone_provider",
  "tinystr",
  "web-time",
@@ -1348,7 +1358,7 @@ dependencies = [
  "calendrical_calculations",
  "icu_locale_core",
  "potential_utf",
- "resb",
+ "resb 0.1.2",
  "serde",
 ]
 
