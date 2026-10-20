@@ -190,8 +190,8 @@ jobs:
       # Todo: eventually we should check in bindings and test them
       - name: FFI tests
         run: |
-          pushd temporal_capi/tests/c && make && popd
-          pushd temporal_capi/tests/cpp && make && popd
+          pushd crates/temporal_capi/tests/c && make && popd
+          pushd crates/temporal_capi/tests/cpp && make && popd
 
       - name: temporal_capi tests
         run: cargo test -p temporal_capi --all-features

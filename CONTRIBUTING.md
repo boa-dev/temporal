@@ -20,7 +20,7 @@ Also, always feel free to reach out for any advice or feedback as needed.
 
 ## Testing and debugging
 
-For more information on testing and debugging `temporal_rs`. Please see
+For more information on testing and debugging `temporal`. Please see
 the [testing overview](./docs/testing.md).
 
 ## Diplomat and `temporal_capi`

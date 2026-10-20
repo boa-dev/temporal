@@ -4,7 +4,7 @@
 
 let repo = $env.PWD
 let iana_tzif = $"($repo)/.tzdata/zoneinfo"
-let data_out = "../../zoneinfo/tests/data"
+let data_out = "../../crates/zoneinfo/tests/data"
 
 def gen [zones: list<string>] {
     cargo run -q -p zoneinfo-test-gen -- -i $iana_tzif -o $data_out ...$zones

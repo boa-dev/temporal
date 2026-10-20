@@ -1,29 +1,29 @@
 # Temporal in Rust
 
-`temporal_rs` is a Rust date/time library that provides support for calendrical
+`temporal` is a Rust date/time library that provides support for calendrical
 calculations and time zones that is based on the Temporal specification.
 
 This implementation aims to be 100% test compliant. While initially developed
 for [Boa][boa-repo], the crate was split from the engine repository for general
 Rust usage and vendoring to other ECMAScript implementations.
 
-For more information on `temporal_rs`'s general position in the Rust date/time
+For more information on `temporal`'s general position in the Rust date/time
 library ecoystem or whether we may address your use case, see our
 [FAQ](./docs/FAQ.md).
 
-Currently, `temporal_rs` is used in Boa, [Kiesel](https://codeberg.org/kiesel-js/kiesel),
+Currently, `temporal` is used in Boa, [Kiesel](https://codeberg.org/kiesel-js/kiesel),
 and [V8](https://v8.dev) for the core functionality of their Temporal built-ins.
 
 ## Project overview
 
 This project publishes the following crates:
 
-- [`temporal_rs`](https://docs.rs/temporal_rs/latest/temporal_rs/), the core date/time library
+- [`temporal`](https://docs.rs/temporal/latest/temporal/), the core date/time library
 - [`temporal_capi`](https://docs.rs/temporal_capi/latest/temporal_capi/), a FFI crate for C and C++
 - [`timezone_provider`](https://docs.rs/timezone_provider/latest/timezone_provider/), a time zone data provider crate
 - [`zoneinfo_rs`](https://docs.rs/zoneinfo_rs/latest/zoneinfo_rs/), an experimental zoneinfo compiler crate
 
-## Why use temporal_rs?
+## Why use temporal?
 
 Temporal is a date and time library that is both calendar and time zone aware manner. This
 means that calendar and time zone support are first class in Temporal.
@@ -32,7 +32,7 @@ For instance, converting between calendars is as simple as providing the calenda
 shown below.
 
 ```rust
-use temporal_rs::{PlainDate, Calendar};
+use temporal::{PlainDate, Calendar};
 use tinystr::tinystr;
 use core::str::FromStr;
 
@@ -46,15 +46,15 @@ assert_eq!(japanese_date.era_year(), Some(7));
 assert_eq!(japanese_date.month(), 3)
 ```
 
-Beyond the general calendar use case, temporal_rs has robust support for
+Beyond the general calendar use case, `temporal` has robust support for
 time zones which can generally by applied to a `PlainDate` via [`ZonedDateTime`].
 
 **Important Note:** The below API is enabled with the
 `compiled_data` feature flag.
 
 ```rust
-use temporal_rs::{ZonedDateTime, TimeZone};
-use temporal_rs::options::{Disambiguation, OffsetDisambiguation};
+use temporal::{ZonedDateTime, TimeZone};
+use temporal::options::{Disambiguation, OffsetDisambiguation};
 
 let zdt = ZonedDateTime::from_utf8(
 b"2025-03-01T11:16:10Z[America/Chicago][u-ca=iso8601]",
@@ -83,7 +83,7 @@ assert_eq!(zdt_zurich.second(), 10);
 
 ## Library Overview
 
-temporal_rs provides 8 core types for working with date and time. The core types are:
+`temporal` provides 8 core types for working with date and time. The core types are:
 
 - [PlainDate]
 - [PlainTime]
@@ -117,7 +117,7 @@ time. This can then be used to map to any of the above Temporal types.
 
 ```rust
 use core::cmp::Ordering;
-use temporal_rs::{Temporal, Calendar, ZonedDateTime};
+use temporal::{Temporal, Calendar, ZonedDateTime};
 let current_instant = Temporal::now().instant().unwrap();
 let current_zoned_date_time = Temporal::now().zoned_date_time_iso(None).unwrap();
 
@@ -146,19 +146,19 @@ Ordering::Less
 
 ## General design
 
-While temporal_rs can be used in native Rust programs, the library is -- first and
+While `temporal` can be used in native Rust programs, the library is -- first and
 foremost -- designed for use in ECMAScript implementations. This is not to detract
-from temporal_rs's use in a native Rust program, but it is important information to
+from `temporal`'s use in a native Rust program, but it is important information to
 understand in order to understand the library's architecture and general API design.
 
-Without default feature flags, temporal_rs is not released with access to the host
+Without default feature flags, `temporal` is not released with access to the host
 environment and it does not embed any time zone data. This is important from an
 interpreter perspective, because access to the host environment and time zone data
 comes from the interpreter's agent, not from a dependency.
 
-Instead, temporal_rs provides the [`HostHooks`][host::HostHooks] and [`TimeZoneProvider`][provider::TimeZoneProvider]
-traits that can be implemented and provided as function arguments that temporal_rs will
-use to access the host system or time zone data. temporal_rs also provides some baseline
+Instead, `temporal` provides the [`HostHooks`][host::HostHooks] and [`TimeZoneProvider`][provider::TimeZoneProvider]
+traits that can be implemented and provided as function arguments that `temporal` will
+use to access the host system or time zone data. `temporal` also provides some baseline
 implementations of the traits that can be selected from depending on application needs.
 
 That being said, this does not mean that everyone must implement their own trait
@@ -177,7 +177,7 @@ For instance, let's manually write our [`Now`][now::Now] implementation instead 
 [`Temporal::now()`] with an empty host system implementation.
 
 ```rust
-use temporal_rs::{Instant, now::Now, host::EmptyHostSystem};
+use temporal::{Instant, now::Now, host::EmptyHostSystem};
 
 // The empty host system is a system implementation HostHooks that always
 // returns the UNIX_EPOCH and the "+00:00" time zone.
@@ -193,7 +193,7 @@ However, even in our above example, we cheated a bit. We were still relying on t
 but this time without the feature flag.
 
 ```rust
-use temporal_rs::{Instant, now::Now, host::EmptyHostSystem};
+use temporal::{Instant, now::Now, host::EmptyHostSystem};
 use timezone_provider::tzif::CompiledTzdbProvider;
 
 let provider = CompiledTzdbProvider::default();
@@ -209,7 +209,7 @@ assert_eq!(now.instant(), Instant::try_new(0));
 ```
 
 Now -- pun only partially intended -- we've successfully written a no-default-features
-example with temporal_rs!
+example with `temporal`!
 
 ### What have we learned going over this all this?
 
@@ -221,14 +221,14 @@ provides time zone data for you.
 Finally, sourcing time zone data is a very scary (but fun!) business. If you're interested
 in learning more, feel free to check out the `timezone_provider` crate!
 
-With any luck, this also highlights the general design of temporal_rs. It provides a
+With any luck, this also highlights the general design of `temporal`. It provides a
 general usage API that aligns with the Temporal specification while also being
 flexible enough to provide an power user to take control of their host system access
 and time zone data sourcing as needed.
 
 ## Formatting
 
-temporal_rs adheres to Temporal grammar, which is a strict version of
+`temporal` adheres to Temporal grammar, which is a strict version of
 [RFC9557's IXDTF][ixdtf]. RFC9557 is an update to RFC3339 that adds
 extensions to the format. 
 
@@ -269,12 +269,12 @@ information.
 
 <!-- TODO: Potentially update with tests if a runner can be implemented -->
 
-The `temporal_rs`'s current conformance results can be viewed on Boa's
+The `temporal`'s current conformance results can be viewed on Boa's
 [test262 conformance page](https://boajs.dev/conformance).
 
 ## FFI
 
-`temporal_rs` currently has bindings for C++, available via the
+`temporal` currently has bindings for C++, available via the
 `temporal_capi` crate.
 
 ## Communication

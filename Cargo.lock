@@ -857,22 +857,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "temporal_capi"
-version = "0.2.6"
-dependencies = [
- "diplomat",
- "diplomat-runtime",
- "icu_calendar",
- "icu_locale_core",
- "num-traits",
- "temporal_rs",
- "timezone_provider",
- "writeable",
- "zoneinfo64",
-]
-
-[[package]]
-name = "temporal_rs"
+name = "temporal"
 version = "0.2.6"
 dependencies = [
  "calendrical_calculations",
@@ -889,6 +874,28 @@ dependencies = [
  "web-time",
  "writeable",
  "zoneinfo64",
+]
+
+[[package]]
+name = "temporal_capi"
+version = "0.2.6"
+dependencies = [
+ "diplomat",
+ "diplomat-runtime",
+ "icu_calendar",
+ "icu_locale_core",
+ "num-traits",
+ "temporal",
+ "timezone_provider",
+ "writeable",
+ "zoneinfo64",
+]
+
+[[package]]
+name = "temporal_rs"
+version = "0.2.7"
+dependencies = [
+ "temporal",
 ]
 
 [[package]]
@@ -978,7 +985,7 @@ name = "tzif-inspect"
 version = "0.2.6"
 dependencies = [
  "jiff-tzdb",
- "temporal_rs",
+ "temporal",
  "timezone_provider",
  "tzif",
 ]

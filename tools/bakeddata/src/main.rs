@@ -31,7 +31,10 @@ impl BakedDataProvider for ZoneInfoProvider<'_> {
         let file = syn::parse_file(&baked_macro.to_string()).unwrap();
         let formatted = prettyplease::unparse(&file);
         let mut file = BufWriter::new(File::create(generated_file)?);
-        write!(file, "//@generated\n// (by `bakeddata` binary in temporal_rs, using `databake`)\n\n{formatted}")
+        write!(
+            file,
+            "//@generated\n// (by the `bakeddata` tool, using `databake`)\n\n{formatted}"
+        )
     }
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()> {
@@ -112,7 +115,10 @@ impl BakedDataProvider for IanaIdentifierNormalizer<'_> {
         let file = syn::parse_file(&baked_macro.to_string()).unwrap();
         let formatted = prettyplease::unparse(&file);
         let mut file = BufWriter::new(File::create(generated_file)?);
-        write!(file, "//@generated\n// (by `bakeddata` binary in temporal_rs, using `databake`)\n\n{formatted}")
+        write!(
+            file,
+            "//@generated\n// (by the `bakeddata` tool, using `databake`)\n\n{formatted}"
+        )
     }
 
     fn write_debug(&self, debug_path: &Path) -> io::Result<()> {
@@ -162,7 +168,7 @@ fn main() -> io::Result<()> {
         .unwrap()
         .parent()
         .unwrap()
-        .join("provider/src");
+        .join("crates/provider/src");
     println!("Using provider directory: {provider:?}");
 
     // Write identifiers

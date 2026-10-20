@@ -1,0 +1,41 @@
+{
+  "first_record": {
+    "offset": -21504,
+    "is_dst": false,
+    "abbr": "LMT"
+  },
+  "transitions": [
+    {
+      "transition_time": -1230746496,
+      "record": {
+        "offset": -18000,
+        "is_dst": false,
+        "abbr": "-05"
+      }
+    },
+    {
+      "transition_time": 504939600,
+      "record": {
+        "offset": -21600,
+        "is_dst": false,
+        "abbr": "-06"
+      }
+    },
+    {
+      "transition_time": 722930400,
+      "record": {
+        "offset": -18000,
+        "is_dst": true,
+        "abbr": "-05"
+      }
+    },
+    {
+      "transition_time": 728888400,
+      "record": {
+        "offset": -21600,
+        "is_dst": false,
+        "abbr": "-06"
+      }
+    }
+  ]
+}

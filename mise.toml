@@ -60,9 +60,9 @@ zic -b slim -d .tzdata/zoneinfo \
 description = "Generate JSON test data for an IANA zone (uses .tzdata/zoneinfo/ if compiled, else /usr/share/zoneinfo)"
 run = """
 if [ -d .tzdata/zoneinfo ]; then
-  cargo run -p zoneinfo-test-gen -- -i "$PWD/.tzdata/zoneinfo" -o ../../zoneinfo/tests/data {{arg(name='identifier')}}
+  cargo run -p zoneinfo-test-gen -- -i "$PWD/.tzdata/zoneinfo" -o ../../crates/zoneinfo/tests/data {{arg(name='identifier')}}
 else
-  cargo run -p zoneinfo-test-gen -- -o ../../zoneinfo/tests/data {{arg(name='identifier')}}
+  cargo run -p zoneinfo-test-gen -- -o ../../crates/zoneinfo/tests/data {{arg(name='identifier')}}
 fi
 """
 
