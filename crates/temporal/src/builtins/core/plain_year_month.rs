@@ -13,8 +13,9 @@ use crate::{
         DifferenceOperation, DifferenceSettings, Disambiguation, DisplayCalendar, Overflow,
         ResolvedRoundingOptions, RoundingIncrement, Unit, UnitGroup,
     },
-    parsed_intermediates::ParsedDate,
-    parsers::{FormattableCalendar, FormattableDate, FormattableYearMonth},
+    parsers::{
+        intermediates::ParsedDate, FormattableCalendar, FormattableDate, FormattableYearMonth,
+    },
     provider::{NeverProvider, TimeZoneProvider},
     unix_time::EpochNanoseconds,
     Calendar, MonthCode, TemporalError, TemporalResult, TimeZone,
@@ -416,6 +417,12 @@ impl PlainYearMonth {
     // Converts a UTF-8 encoded string into a `PlainYearMonth`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parsed = ParsedDate::year_month_from_utf8(s)?;
+        Self::from_parsed(parsed)
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainYearMonth`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parsed = ParsedDate::year_month_from_utf16(s)?;
         Self::from_parsed(parsed)
     }
 
