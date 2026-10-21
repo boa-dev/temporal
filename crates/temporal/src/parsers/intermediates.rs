@@ -262,8 +262,49 @@ fn test_parsed_intermediate_invalid_dates() {
     assert!(ParsedDate::month_day_from_utf8(b"1001").is_ok());
     assert!(ParsedDateTime::from_utf8(b"2025-02-28T25:69:69").is_err());
     assert!(ParsedDateTime::from_utf8(b"2025-02-28T23:59:59").is_ok());
-    #[cfg(feature = "compiled_data")]
+}
+
+#[test]
+#[cfg(feature = "compiled_data")]
+fn test_parsed_intermediate_invalid_zoned_dates() {
     assert!(ParsedZonedDateTime::from_utf8(b"2025-02-29T00:00:00Z[utc]").is_err());
-    #[cfg(feature = "compiled_data")]
     assert!(ParsedZonedDateTime::from_utf8(b"2025-02-28T00:00:00Z[utc]").is_ok());
+}
+
+// Pins the resolution order inside the parse step, which is observable:
+//
+// V8 runs the option getters (`GetTemporalDisambiguationOption` etc.) *between*
+// `ParsedFoo::from_*` and `Foo::from_parsed*`, so reordering these resolutions
+// changes which error a JS program sees.
+#[test]
+fn test_resolution_order_within_parse() {
+    use crate::TemporalError;
+
+    // Calendar is resolved before the time component is validated.
+    assert_eq!(
+        ParsedDateTime::from_utf8(b"2025-01-01T00:00:00.1234567891[u-ca=bogus]").unwrap_err(),
+        TemporalError::range().with_message("unknown calendar")
+    );
+}
+
+#[test]
+#[cfg(feature = "compiled_data")]
+fn test_zoned_resolution_order_within_parse() {
+    use crate::error::ErrorMessage;
+    use crate::TemporalError;
+
+    // Time zone is resolved before the calendar.
+    assert_eq!(
+        ParsedZonedDateTime::from_utf8(b"2025-01-01T00:00:00[Bogus/Zone][u-ca=bogus]").unwrap_err(),
+        TemporalError::range().with_message("Unknown time zone identifier")
+    );
+
+    // Per ParseDateTimeUTCOffset, a >9-digit offset fraction is a grammar error,
+    // so it is rejected while parsing (step b), ahead of time zone resolution
+    // (steps c-e).
+    assert_eq!(
+        ParsedZonedDateTime::from_utf8(b"2025-01-01T00:00:00+05:00:00.1234567891[Bogus/Zone]")
+            .unwrap_err(),
+        TemporalError::range().with_enum(ErrorMessage::FractionalTimeMoreThanNineDigits)
+    );
 }
