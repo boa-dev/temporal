@@ -1,5 +1,5 @@
 #[diplomat::bridge]
-#[diplomat::abi_rename = "temporal_rs_{0}"]
+#[diplomat::abi_rename = "temporal_{0}"]
 pub mod ffi {
     use crate::calendar::ffi::{AnyCalendarKind, Calendar};
     use crate::error::ffi::TemporalError;

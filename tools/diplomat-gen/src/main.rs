@@ -16,7 +16,7 @@ fn main() -> std::io::Result<()> {
         .join("temporal_capi");
 
     let mut library_config = Config::default();
-    library_config.shared_config.lib_name = Some("temporal_rs".into());
+    library_config.shared_config.lib_name = Some("temporal".into());
 
     for lang in LANGUAGES {
         diplomat_tool::gen(
@@ -25,7 +25,7 @@ fn main() -> std::io::Result<()> {
             &{
                 let mut include = capi.join("bindings").join(lang);
                 if lang == "cpp" {
-                    include = include.join("temporal_rs");
+                    include = include.join("temporal");
                 }
                 if let Err(err) = std::fs::remove_dir_all(&include) {
                     if err.kind() != io::ErrorKind::NotFound {
