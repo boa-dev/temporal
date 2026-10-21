@@ -41,10 +41,12 @@ pub mod ffi {
 
         // https://tc39.es/proposal-temporal/#sec-temporal-parsetemporalcalendarstring
         pub fn parse_temporal_calendar_string(s: &DiplomatStr) -> Option<Self> {
+            use temporal::parsers::CalendarAnnotation;
+
             match temporal::parsers::parse_allowed_calendar_formats::<temporal::parsers::Utf8>(s) {
-                Some(None) => Some(AnyCalendarKind::Iso),
-                Some(Some(result)) => Self::get_for_str(&result),
-                None => Self::get_for_str(s),
+                CalendarAnnotation::Implicit => Some(AnyCalendarKind::Iso),
+                CalendarAnnotation::Explicit(result) => Self::get_for_str(result),
+                CalendarAnnotation::NotFound => Self::get_for_str(s),
             }
         }
     }

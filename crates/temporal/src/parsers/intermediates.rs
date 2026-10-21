@@ -6,31 +6,14 @@
 //! steps (calendar canonicalization, time zone resolution, early time validity)
 //! in the order the specification requires.
 
-use super::{
-    parse_date_time, parse_month_day, parse_year_month, parse_zoned_date_time, TemporalEncoding,
-    TemporalParser, Utf16, Utf8,
-};
+use super::{TemporalParser, Utf16, Utf8};
 use crate::iso::IsoTime;
 use crate::provider::TimeZoneProvider;
-use crate::Calendar;
 use crate::TemporalResult;
 use crate::TimeZone;
 use crate::UtcOffset;
-use alloc::borrow::Cow;
 use icu_calendar::AnyCalendarKind;
 use ixdtf::records::DateRecord;
-use ixdtf::records::UtcOffsetRecordOrZ;
-
-fn extract_kind<T: TemporalEncoding>(
-    calendar: Option<Cow<'_, [T::CodeUnit]>>,
-) -> TemporalResult<AnyCalendarKind> {
-    let Some(calendar) = calendar else {
-        return Ok(AnyCalendarKind::Iso);
-    };
-    let ascii = T::ascii_identifier(&calendar)?;
-    // HijriSimulatedMecca parses fine here; Calendar::new turns it into ISO.
-    Calendar::try_kind_from_utf8(&ascii)
-}
 
 /// A parsed-but-not-validated date
 #[derive(Copy, Clone, Debug)]
@@ -138,115 +121,6 @@ impl ParsedZonedDateTime {
     ) -> TemporalResult<Self> {
         TemporalParser::<Utf16>::from_utf16(source).parse_zoned_date_time(provider)
     }
-}
-
-impl<T: TemporalEncoding> TemporalParser<'_, T> {
-    /// Parses a `TemporalDateTimeString` into a [`ParsedDate`].
-    pub(crate) fn parse_date(&self) -> TemporalResult<ParsedDate> {
-        let record = parse_date_time::<T>(self.source)?;
-        let calendar = extract_kind::<T>(record.calendar)?;
-        // Time is discarded, but must still be validated here (observable).
-        validate_time(record.time)?;
-
-        Ok(ParsedDate {
-            record: record.date,
-            calendar,
-        })
-    }
-
-    /// Parses a `TemporalYearMonthString` into a [`ParsedDate`].
-    pub(crate) fn parse_year_month(&self) -> TemporalResult<ParsedDate> {
-        let record = parse_year_month::<T>(self.source)?;
-        let calendar = extract_kind::<T>(record.calendar)?;
-        validate_time(record.time)?;
-
-        Ok(ParsedDate {
-            record: record.date,
-            calendar,
-        })
-    }
-
-    /// Parses a `TemporalMonthDayString` into a [`ParsedDate`].
-    pub(crate) fn parse_month_day(&self) -> TemporalResult<ParsedDate> {
-        let record = parse_month_day::<T>(self.source)?;
-        let calendar = extract_kind::<T>(record.calendar)?;
-        validate_time(record.time)?;
-
-        Ok(ParsedDate {
-            record: record.date,
-            calendar,
-        })
-    }
-
-    /// Parses a `TemporalDateTimeString` into a [`ParsedDateTime`].
-    pub(crate) fn parse_date_time(&self) -> TemporalResult<ParsedDateTime> {
-        let record = parse_date_time::<T>(self.source)?;
-        let calendar = extract_kind::<T>(record.calendar)?;
-        let time = validate_time(record.time)?;
-
-        Ok(ParsedDateTime {
-            date: ParsedDate {
-                record: record.date,
-                calendar,
-            },
-            time,
-        })
-    }
-
-    /// Parses a `TemporalZonedDateTimeString` into a [`ParsedZonedDateTime`].
-    pub(crate) fn parse_zoned_date_time(
-        &self,
-        provider: &(impl TimeZoneProvider + ?Sized),
-    ) -> TemporalResult<ParsedZonedDateTime> {
-        // Steps from the parse bits of ToZonedDateTime
-
-        // 3. Let matchBehaviour be match-minutes.
-        let mut match_minutes = true;
-
-        // b. Let result be ? ParseISODateTime(item, « TemporalDateTimeString[+Zoned] »).
-        let record = parse_zoned_date_time::<T>(self.source)?;
-
-        // c-e. Resolve the (guaranteed present) time zone annotation.
-        let time_zone = TimeZone::from_time_zone_record::<T>(record.tz.tz, provider)?;
-
-        // f-g. Resolve the offset, tracking whether `Z` was used.
-        let (offset, has_utc_designator) = match record.offset {
-            Some(UtcOffsetRecordOrZ::Z) => (None, true),
-            Some(UtcOffsetRecordOrZ::Offset(offset)) => {
-                // iii. More than one MinuteSecond node means match-exactly.
-                if offset.second().is_some() {
-                    match_minutes = false;
-                }
-                (Some(UtcOffset::from_ixdtf_record(offset)?), false)
-            }
-            None => (None, false),
-        };
-
-        // h-j. Resolve the calendar, defaulting to ISO.
-        let calendar = extract_kind::<T>(record.calendar)?;
-
-        let time = record.time.map(IsoTime::from_time_record).transpose()?;
-
-        Ok(ParsedZonedDateTime {
-            date: ParsedDate {
-                record: record.date,
-                calendar,
-            },
-            time,
-            has_utc_designator,
-            match_minutes,
-            offset,
-            timezone: time_zone,
-        })
-    }
-}
-
-/// Validates a parsed time component, defaulting to midnight when absent.
-fn validate_time(time: Option<ixdtf::records::TimeRecord>) -> TemporalResult<IsoTime> {
-    Ok(time
-        .map(IsoTime::from_time_record)
-        .transpose()?
-        .unwrap_or_default())
 }
 
 #[test]

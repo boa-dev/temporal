@@ -1,10 +1,7 @@
-use ixdtf::{
-    parsers::TimeZoneParser,
-    records::{TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ},
-};
+use ixdtf::records::{UtcOffsetRecord, UtcOffsetRecordOrZ};
 
 use crate::provider::TimeZoneProvider;
-use crate::{builtins::time_zone::UtcOffset, TemporalError, TemporalResult, TimeZone};
+use crate::{builtins::time_zone::UtcOffset, TimeZone};
 
 use super::{parse_ixdtf, ParseVariant, TemporalEncoding};
 
@@ -45,14 +42,4 @@ pub(crate) fn parse_allowed_timezone_formats<T: TemporalEncoding>(
     }
 
     None
-}
-
-#[inline]
-pub(crate) fn parse_identifier<T: TemporalEncoding>(
-    source: &[T::CodeUnit],
-) -> TemporalResult<TimeZoneRecord<'_, T>> {
-    let mut parser = TimeZoneParser::<T>::new(source);
-    parser.parse_identifier().or(Err(
-        TemporalError::range().with_message("Invalid TimeZone Identifier")
-    ))
 }

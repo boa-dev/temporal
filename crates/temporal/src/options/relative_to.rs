@@ -4,7 +4,7 @@ use crate::builtins::core::zoned_date_time::interpret_isodatetime_offset;
 use crate::builtins::core::{calendar::Calendar, time_zone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{Disambiguation, OffsetDisambiguation, Overflow};
-use crate::parsers::{parse_date_time, parse_zoned_date_time, Utf8};
+use crate::parsers::{parse_date_time_record, parse_zoned_date_time_record, Utf8};
 use crate::provider::TimeZoneProvider;
 use crate::TemporalResult;
 
@@ -42,7 +42,7 @@ impl RelativeTo {
     ) -> TemporalResult<Self> {
         // b. Let result be ? ParseISODateTime(value, « TemporalDateTimeString[+Zoned], TemporalDateTimeString[~Zoned] »).
         let bytes = source.as_bytes();
-        let (date, time, offset, tz, calendar) = match parse_date_time::<Utf8>(bytes) {
+        let (date, time, offset, tz, calendar) = match parse_date_time_record::<Utf8>(bytes) {
             Ok(record) => (
                 record.date,
                 record.time,
@@ -51,7 +51,7 @@ impl RelativeTo {
                 record.calendar,
             ),
             Err(_) => {
-                let record = parse_zoned_date_time::<Utf8>(bytes)?;
+                let record = parse_zoned_date_time_record::<Utf8>(bytes)?;
                 (
                     record.date,
                     record.time,
@@ -64,7 +64,7 @@ impl RelativeTo {
 
         let Some(annotation) = tz else {
             let parsed_calendar = calendar
-                .map(|c| Calendar::try_from_utf8(&c))
+                .map(Calendar::try_from_utf8)
                 .transpose()?
                 .unwrap_or_default();
 
@@ -106,7 +106,7 @@ impl RelativeTo {
             .unwrap_or((None, false));
 
         let calendar = calendar
-            .map(|c| Calendar::try_from_utf8(&c))
+            .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 

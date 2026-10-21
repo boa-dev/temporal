@@ -8,6 +8,7 @@ use crate::{
         Overflow, RelativeTo, ResolvedRoundingOptions, RoundingIncrement, RoundingOptions,
         ToStringRoundingOptions, Unit, UnitGroup,
     },
+    parsers::TemporalParser,
     parsers::{FormattableDateDuration, FormattableDuration, FormattableTimeDuration, Precision},
     primitive::FiniteF64,
     provider::TimeZoneProvider,
@@ -17,7 +18,6 @@ use alloc::string::String;
 use core::{cmp::Ordering, str::FromStr};
 use ixdtf::{
     encoding::{Utf16, Utf8},
-    parsers::IsoDurationParser,
     records::Fraction,
     records::TimeDurationRecord,
 };
@@ -717,12 +717,12 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        Self::from_duration_record(IsoDurationParser::<Utf8>::from_utf8(s).parse()?)
+        Self::from_duration_record(TemporalParser::<Utf8>::from_utf8(s).parse_duration()?)
     }
 
     /// Converts a UTF-16 encoded string into a `Duration`.
     pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
-        Self::from_duration_record(IsoDurationParser::<Utf16>::new(s).parse()?)
+        Self::from_duration_record(TemporalParser::<Utf16>::from_utf16(s).parse_duration()?)
     }
 
     fn from_duration_record(

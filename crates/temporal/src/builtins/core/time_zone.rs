@@ -2,16 +2,12 @@
 
 use alloc::string::String;
 
-use ixdtf::{
-    parsers::TimeZoneParser,
-    records::{MinutePrecisionOffset, TimeZoneRecord, UtcOffsetRecord},
-};
+use ixdtf::records::{MinutePrecisionOffset, TimeZoneRecord, UtcOffsetRecord};
 use num_traits::ToPrimitive;
 
 use crate::error::ErrorMessage;
 use crate::parsers::{
-    parse_allowed_timezone_formats, parse_identifier, FormattableOffset, FormattableTime,
-    Precision, TemporalEncoding, Utf16, Utf8,
+    FormattableOffset, FormattableTime, Precision, TemporalEncoding, TemporalParser, Utf16, Utf8,
 };
 use crate::provider::{CandidateEpochNanoseconds, TimeZoneId, TimeZoneProvider};
 use crate::Sign;
@@ -76,13 +72,13 @@ impl UtcOffset {
     }
 
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
-        let record = TimeZoneParser::<Utf8>::new(source).parse_offset()?;
+        let record = TemporalParser::<Utf8>::from_utf8(source).parse_utc_offset()?;
         Self::from_ixdtf_record(record)
     }
 
     /// Converts a UTF-16 encoded string into a `UtcOffset`.
     pub fn from_utf16(source: &[u16]) -> TemporalResult<Self> {
-        let record = TimeZoneParser::<Utf16>::new(source).parse_offset()?;
+        let record = TemporalParser::<Utf16>::from_utf16(source).parse_utc_offset()?;
         Self::from_ixdtf_record(record)
     }
 
@@ -216,16 +212,18 @@ impl TimeZone {
         identifier: &[T::CodeUnit],
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
-        parse_identifier::<T>(identifier).map(|tz| match tz {
-            TimeZoneRecord::Name(name) => {
-                let ascii = T::ascii_identifier(name)?;
-                Ok(TimeZone::IanaIdentifier(provider.get(&ascii)?))
-            }
-            TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
-                UtcOffset::from_ixdtf_minute_record(minute_precision_offset),
-            )),
-            _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
-        })?
+        TemporalParser::<T>::from_encoded(identifier)
+            .parse_time_zone_identifier()
+            .map(|tz| match tz {
+                TimeZoneRecord::Name(name) => {
+                    let ascii = T::ascii_identifier(name)?;
+                    Ok(TimeZone::IanaIdentifier(provider.get(&ascii)?))
+                }
+                TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
+                    UtcOffset::from_ixdtf_minute_record(minute_precision_offset),
+                )),
+                _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
+            })?
     }
 
     #[cfg(feature = "compiled_data")]
@@ -259,7 +257,8 @@ impl TimeZone {
         if let Ok(timezone) = Self::try_from_identifier_encoded::<T>(src, provider) {
             return Ok(timezone);
         }
-        parse_allowed_timezone_formats::<T>(src, provider)
+        TemporalParser::<T>::from_encoded(src)
+            .parse_time_zone(provider)
             .ok_or_else(|| TemporalError::range().with_message("Not a valid time zone string"))
     }
 
