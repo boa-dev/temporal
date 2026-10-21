@@ -1,9 +1,9 @@
-#include <temporal_rs/Calendar.hpp>
-#include <temporal_rs/PlainDate.hpp>
+#include <temporal/Calendar.hpp>
+#include <temporal/PlainDate.hpp>
 
 #include <iostream>
 
-using namespace temporal_rs;
+using namespace temporal;
 
 int main() {
     auto date = PlainDate::try_new_with_overflow(2025, 1, 33, AnyCalendarKind::Gregorian, ArithmeticOverflow::Constrain).ok().value();

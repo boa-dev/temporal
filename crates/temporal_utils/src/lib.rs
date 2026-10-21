@@ -65,6 +65,13 @@ pub fn epoch_time_to_iso_year(t: i64) -> i32 {
     neri_schneider::year(rata_die, shift_constant)
 }
 
+/// Returns the Gregorian year containing the given epoch second.
+pub fn epoch_seconds_to_iso_year(epoch_seconds: i64) -> i32 {
+    let epoch_days = epoch_seconds.div_euclid(SECONDS_PER_DAY) as i32;
+    let (rata_die, shift_constant) = neri_schneider::rata_die_for_epoch_days(epoch_days);
+    neri_schneider::year(rata_die, shift_constant)
+}
+
 /// Returns the epoch day number for a given year.
 pub fn epoch_days_for_year(y: i32) -> i32 {
     365 * (y - 1970) + (y - 1969).div_euclid(4) - (y - 1901).div_euclid(100)

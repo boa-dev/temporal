@@ -1,14 +1,16 @@
-#[cfg(feature = "std")]
-use std::path::Path;
-#[cfg(feature = "std")]
 use zoneinfo_rs::{ZoneInfoCompiler, ZoneInfoData};
 
 #[test]
-#[cfg(feature = "std")]
 fn posix_string_test() {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let zoneinfo = ZoneInfoData::from_filepath(manifest_dir.join("tests/zoneinfo")).unwrap();
+    let tzdata_dir = match std::env::var("TZDATA_DIR") {
+        Ok(dir) => dir,
+        Err(_) => {
+            eprintln!("SKIP posix_string_test: TZDATA_DIR not set (run `mise run zoneinfo:test`)");
+            return;
+        }
+    };
 
+    let zoneinfo = ZoneInfoData::from_zoneinfo_directory(&tzdata_dir).unwrap();
     let mut zic = ZoneInfoCompiler::new(zoneinfo);
 
     let chicago_posix = zic.get_posix_time_zone("America/Chicago").unwrap();
@@ -45,5 +47,5 @@ fn posix_string_test() {
     assert_eq!(
         santiago_posix.to_string(),
         Ok("<-04>4<-03>,M9.1.6/24,M4.1.6/24".into())
-    )
+    );
 }

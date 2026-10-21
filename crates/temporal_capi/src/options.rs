@@ -1,7 +1,7 @@
 use crate::error::ffi::TemporalError;
 
 #[diplomat::bridge]
-#[diplomat::abi_rename = "temporal_rs_{0}"]
+#[diplomat::abi_rename = "temporal_{0}"]
 pub mod ffi {
     use diplomat_runtime::DiplomatOption;
     use temporal::options;

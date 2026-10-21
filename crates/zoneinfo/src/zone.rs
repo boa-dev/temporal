@@ -2,16 +2,17 @@
 
 use core::{iter::Peekable, str::Lines};
 
-use alloc::{borrow::ToOwned, collections::BTreeSet, string::String, vec::Vec};
+use alloc::{borrow::ToOwned, string::String, vec::Vec};
 use hashbrown::HashMap;
 
 use crate::{
-    compiler::{CompiledTransitions, LocalTimeRecord, Transition},
+    compiler::{CompiledTransitions, LocalTimeRecord},
     parser::{
         next_split, remove_comments, ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError,
     },
     posix::PosixTimeZone,
     rule::Rules,
+    transition::{MergeEligibility, Transition, TransitionAccumulator},
     types::{
         zone::{AbbreviationFormat, RuleIdentifier, UntilDateTime},
         QualifiedTimeKind, Time,
@@ -278,7 +279,7 @@ impl ZoneRecord {
             .expect("A well formed zone table must contain one line");
         let initial_record = first.get_first_local_time_record();
         let mut context = ZoneBuildContext::new(first);
-        let mut transitions = BTreeSet::default();
+        let mut transitions = TransitionAccumulator::new();
         // We iterate through the zone lines.
         for zone_line in zone_line_iter {
             // We iterate through the continuation lines. The final continuation
@@ -304,18 +305,11 @@ impl ZoneRecord {
                 // >    assume standard time (SAVE zero), and use the LETTER data from
                 // >    the earliest transition with a SAVE of zero.
                 // Add the initial_transition for this line.
-                let transition = self.handle_zone_line_transition(zone_line, &mut context);
-
-                // Check whether the transition would be a true change from the previous
-                // transition.
-                let is_different_rule = transition.offset != context.previous_offset
-                    || transition.format != context.previous_format
-                    || transition.dst != (context.saving != Time::default());
-                if is_different_rule {
-                    // Add transition and update the running state.
-                    transitions.insert(transition);
-                    context.update_previous_transition(zone_line, transitions.last());
-                }
+                // Zone-line boundary: always emit; the merge step decides
+                // whether it survives.
+                let boundary = self.handle_zone_line_transition(zone_line, &mut context);
+                transitions.insert(boundary.transition, boundary.eligibility);
+                context.update_previous_transition(zone_line, transitions.last());
 
                 // If the zone line is a steady state, i.e. it has no named Rule, we can
                 // move on early.
@@ -402,7 +396,7 @@ impl ZoneRecord {
                                 time_type: rule.at.time_kind(),
                                 format,
                             };
-                            transitions.insert(transition);
+                            transitions.insert(transition, MergeEligibility::Pinned);
                             context.update_previous_transition(zone_line, transitions.last());
                         }
                     }
@@ -421,18 +415,10 @@ impl ZoneRecord {
                 // There are two primary tasks:
                 //
                 // 1. Compute the final transition from the previous UNTIL datetime.
-                // 2. Compute any transitions up until the last Rule change
-                let transition = self.handle_zone_line_transition(zone_line, &mut context);
-                // Check whether the transition would be a true change from the previous
-                // transition.
-                let is_different_rule = transition.offset != context.previous_offset
-                    || transition.format != context.previous_format
-                    || transition.dst != (context.saving != Time::default());
-
-                if is_different_rule {
-                    transitions.insert(transition);
-                    context.update_previous_transition(zone_line, transitions.last());
-                }
+                let boundary = self.handle_zone_line_transition(zone_line, &mut context);
+                let boundary_is_rule_firing = boundary.eligibility == MergeEligibility::Pinned;
+                transitions.insert(boundary.transition, boundary.eligibility);
+                context.update_previous_transition(zone_line, transitions.last());
 
                 // If the zone line is a steady state, i.e. it has no named Rule, we can
                 // move on early.
@@ -461,10 +447,24 @@ impl ZoneRecord {
                 // using the maximum FROM value.
                 let final_year = last_rules.final_year();
 
-                // Try to find the largest maximum TO year. This will be the base for
-                // which transitions should be precomputed.
-                let zone_line_year_range = context.use_start_year..=final_year;
-                for year in zone_line_year_range {
+                // Transitions from rules that end are not described by the POSIX
+                // string, so they all stay explicit. POSIX takes over after the first
+                // max-rule transition that follows the last of them.
+                let last_finite_rule_time =
+                    rules.last_finite_rule_transition(&zone_line.std_offset);
+
+                // The range has to reach use_start_year, which may be later than
+                // final_year when the zone line starts after the last rules began.
+                let stop_year = final_year.max(context.use_start_year);
+                // POSIX picks up at the end of the boundary's year, so a handover
+                // that would fall in a later year needs nothing explicit. A boundary
+                // that is itself a rule firing is already the handover.
+                let mut posix_covers_rest = boundary_is_rule_firing
+                    && last_finite_rule_time.is_none_or(|last| context.use_start > last);
+                for year in context.use_start_year..=stop_year {
+                    if posix_covers_rest {
+                        break;
+                    }
                     // Assumption: Rules are returned in historical order, i.e. oldest
                     // to youngest. With this assumption, we assume that processing the
                     // rules in order should return a valid set of transitions that do
@@ -502,6 +502,12 @@ impl ZoneRecord {
                         let is_different_rule =
                             offset != context.previous_offset || format != context.previous_format;
                         if within_range && is_different_rule {
+                            // A rule with no TO year runs to max, so it is one the
+                            // POSIX string encodes. It only ends the explicit list
+                            // once no rule that ends can still fire.
+                            let runs_to_max = rule.to_year_to_u16().is_none();
+                            let after_finite_rules =
+                                last_finite_rule_time.is_none_or(|last| transition_time > last);
                             let offset = zone_line.std_offset.as_secs() + rule.save.as_secs();
                             let format = zone_line.format.format(
                                 offset,
@@ -517,8 +523,12 @@ impl ZoneRecord {
                                 time_type: rule.at.time_kind(),
                                 format,
                             };
-                            transitions.insert(transition);
+                            transitions.insert(transition, MergeEligibility::Pinned);
                             context.update_previous_transition(zone_line, transitions.last());
+                            if runs_to_max && after_finite_rules {
+                                posix_covers_rest = true;
+                                break;
+                            }
                         }
                     }
                 }
@@ -527,22 +537,24 @@ impl ZoneRecord {
         let posix_time_zone = self.get_posix_time_zone();
         CompiledTransitions {
             initial_record,
-            transitions,
+            transitions: transitions.merge(),
             posix_time_zone,
         }
     }
 
+    /// Builds the transition a zone line's boundary produces, along with the
+    /// provenance the merge and POSIX-handover steps need.
     pub(crate) fn handle_zone_line_transition(
         &self,
         zone_line: &ZoneEntry,
         context: &mut ZoneBuildContext,
-    ) -> Transition {
+    ) -> ZoneLineBoundary {
         match &zone_line.rule {
             // If the zone line has no identifier, then it is a standard
             // transition. Return the transition value
             RuleIdentifier::None => {
                 let offset = zone_line.std_offset.as_secs();
-                Transition {
+                let transition = Transition {
                     at_time: context.use_start,
                     offset,
                     dst: false,
@@ -550,13 +562,14 @@ impl ZoneRecord {
                     letter: None,
                     time_type: context.start_kind,
                     format: zone_line.format.format(offset, None, false),
-                }
+                };
+                ZoneLineBoundary::collapsible(transition)
             }
             // If the zone line has a numeric identifier, then it is a savings
             // transition. Return the transition
             RuleIdentifier::Numeric(t) => {
                 let offset = zone_line.std_offset.as_secs() + t.as_secs();
-                Transition {
+                let transition = Transition {
                     at_time: context.use_start,
                     offset,
                     dst: true,
@@ -564,7 +577,8 @@ impl ZoneRecord {
                     letter: None,
                     time_type: context.start_kind,
                     format: zone_line.format.format(offset, None, true),
-                }
+                };
+                ZoneLineBoundary::collapsible(transition)
             }
             // The Rule is named, so we need to resolve the rule.
             RuleIdentifier::Named(identifier) => {
@@ -590,9 +604,13 @@ impl ZoneRecord {
                     );
                     r1_time.cmp(&r2_time)
                 });
-                // Determine whether start time is before or after any of the rule
-                // transitions to set a baseline.
                 let mut index = None;
+                let mut coincides_with_rule = false;
+                // Previous zone's stdoff, to catch rules firing at the boundary
+                // under the old stdoff when the stdoff changes.
+                let prev_std_offset =
+                    Time::from_seconds(context.previous_offset - context.saving.as_secs());
+
                 for (i, rule) in rules_for_year.iter().enumerate() {
                     // We make a guess for the savings value.
                     //
@@ -610,13 +628,33 @@ impl ZoneRecord {
                         &zone_line.std_offset,
                         &savings,
                     );
-                    if imprecise_transition_time <= context.use_start {
+                    // Also probe with the previous zone's effective stdoff: a rule
+                    // that fires at the exact boundary in old-zone context will be
+                    // seen as firing *after* the boundary in new-zone context when
+                    // the stdoff decreases (old - new > 0).
+                    let prev_zone_transition_time = rule.transition_time_for_year(
+                        context.use_start_year,
+                        &prev_std_offset,
+                        &context.saving,
+                    );
+                    if imprecise_transition_time <= context.use_start
+                        || prev_zone_transition_time <= context.use_start
+                    {
                         index = Some(i);
                     }
+                    // A rule transition landing exactly on `use_start` means this
+                    // boundary IS that rule's transition, so it must survive the
+                    // merge even if its state matches the previous transition.
+                    if imprecise_transition_time == context.use_start {
+                        coincides_with_rule = true;
+                    }
                 }
+                let eligibility = if coincides_with_rule {
+                    MergeEligibility::Pinned
+                } else {
+                    MergeEligibility::Eligible
+                };
 
-                // TODO: Can this be removed in favor of searching for the last rule?
-                // Set the transition based off whether there is an active zone or not.
                 if let Some(active_rule) = rules_for_year.get(index.unwrap_or(rules_for_year.len()))
                 {
                     let offset = zone_line.std_offset.as_secs() + active_rule.save.as_secs();
@@ -625,7 +663,7 @@ impl ZoneRecord {
                         active_rule.letter.as_deref(),
                         active_rule.is_dst(),
                     );
-                    Transition {
+                    let transition = Transition {
                         at_time: context.use_start,
                         offset,
                         dst: active_rule.is_dst(),
@@ -633,6 +671,10 @@ impl ZoneRecord {
                         savings: active_rule.save,
                         format,
                         time_type: context.start_kind,
+                    };
+                    ZoneLineBoundary {
+                        transition,
+                        eligibility,
                     }
                 } else {
                     // We have a transition that is occuring before any Rules have
@@ -662,7 +704,7 @@ impl ZoneRecord {
                         };
                     let offset = zone_line.std_offset.as_secs() + savings.as_secs();
                     let format = zone_line.format.format(offset, letter.as_deref(), false);
-                    Transition {
+                    let transition = Transition {
                         at_time: context.use_start,
                         offset,
                         dst,
@@ -670,9 +712,30 @@ impl ZoneRecord {
                         savings,
                         format,
                         time_type: context.start_kind,
+                    };
+                    ZoneLineBoundary {
+                        transition,
+                        eligibility,
                     }
                 }
             }
+        }
+    }
+}
+
+/// The transition a zone line's boundary produces, plus the provenance needed
+/// to merge it and to place the POSIX handover.
+pub(crate) struct ZoneLineBoundary {
+    pub(crate) transition: Transition,
+    pub(crate) eligibility: MergeEligibility,
+}
+
+impl ZoneLineBoundary {
+    /// A boundary with no rules behind it, so nothing pins it against the merge.
+    fn collapsible(transition: Transition) -> Self {
+        Self {
+            transition,
+            eligibility: MergeEligibility::Eligible,
         }
     }
 }

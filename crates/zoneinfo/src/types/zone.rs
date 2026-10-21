@@ -66,7 +66,7 @@ impl AbbreviationFormat {
 
 fn offset_to_str(n: i64) -> String {
     let mut output = String::new();
-    if n.is_positive() {
+    if n >= 0 {
         write!(&mut output, "+").expect("failed to write");
     } else {
         write!(&mut output, "-").expect("failed to write");

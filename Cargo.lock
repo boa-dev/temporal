@@ -142,11 +142,9 @@ version = "0.2.6"
 dependencies = [
  "databake",
  "prettyplease",
- "rustc-hash",
  "serde_json",
  "syn 3.0.3",
  "timezone_provider",
- "zerovec",
 ]
 
 [[package]]
@@ -1368,4 +1366,5 @@ dependencies = [
  "serde_json",
  "temporal_utils",
  "tzif",
+ "zoneinfo_rs",
 ]

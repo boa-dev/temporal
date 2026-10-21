@@ -348,13 +348,8 @@ impl Tzif {
             match direction {
                 TransitionDirection::Next => return Ok(None),
                 TransitionDirection::Previous => {
-                    // Go back to the last tzif transition
-                    if last_tzif_transition.is_some() {
-                        if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
-                            return Ok(Some(last_real_tzif_transition.into()));
-                        }
-                    }
-                    return Ok(None);
+                    // Go back to the last real tzif transition, if the table holds one.
+                    return Ok(last_real_tzif_transition().map(Into::into));
                 }
             }
         };
@@ -385,13 +380,21 @@ impl Tzif {
                 // entries with DST offset posix strings where the posix string starts
                 // before the unix epoch.
                 let seconds_is_inexact_for_negative = seconds_is_negative && !seconds_is_exact;
+                // The posix string only governs times after the final tzif transition. If we
+                // walked off the end of the table (every remaining transition was a no-op),
+                // epoch_seconds may still precede it, so search from the later of the two.
+                // Otherwise we would return a transition the tzif data already ruled out.
+                let (search_from, from_is_inexact_negative) = match last_tzif_transition {
+                    Some(last) if last.0 > epoch_seconds.0 => (last.0, false),
+                    _ => (epoch_seconds.0, seconds_is_inexact_for_negative),
+                };
                 // We're before the first transition
-                if epoch_seconds.0 < range.start
-                    || (epoch_seconds.0 == range.start && seconds_is_inexact_for_negative)
+                let next = if search_from < range.start
+                    || (search_from == range.start && from_is_inexact_negative)
                 {
                     range.start
-                } else if epoch_seconds.0 < range.end
-                    || (epoch_seconds.0 == range.end && seconds_is_inexact_for_negative)
+                } else if search_from < range.end
+                    || (search_from == range.end && from_is_inexact_negative)
                 {
                     // We're between the first and second transition
                     range.end
@@ -401,6 +404,37 @@ impl Tzif {
                         DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year + 1);
 
                     transition_info.transition_range().start
+                };
+                // The posix rules are only accurate after the final tzif transition, so
+                // the first one they predict can restate the offset already in effect.
+                // That is not a transition; take the one after it.
+                let posix_before_next = if next == range.start {
+                    DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year - 1)
+                        .transition_range()
+                        .end
+                } else {
+                    range.start
+                };
+                let is_first_posix_transition =
+                    last_tzif_transition.is_none_or(|last| posix_before_next <= last.0);
+                let offset_before = db
+                    .transition_times
+                    .len()
+                    .checked_sub(1)
+                    .and_then(|idx| maybe_get_transition_info(db, idx))
+                    .map(|t| UtcOffsetSeconds(t.next.utoff.0));
+                if is_first_posix_transition
+                    && offset_before == Some(transition_info.offset_after(next))
+                {
+                    if next == range.start {
+                        range.end
+                    } else {
+                        DstTransitionInfoForYear::compute(posix_tz_string, dst_variant, year + 1)
+                            .transition_range()
+                            .start
+                    }
+                } else {
+                    next
                 }
             }
             TransitionDirection::Previous => {
@@ -428,15 +462,16 @@ impl Tzif {
             }
         };
 
-        if let Some(last_tzif_transition) = last_tzif_transition {
-            // When going Previous, we went back into the area of tzif transition
-            if seconds < last_tzif_transition.0 {
-                if let Some(last_real_tzif_transition) = last_real_tzif_transition() {
-                    seconds = last_real_tzif_transition.0;
-                } else {
-                    return Ok(None);
-                }
-            }
+        // Walking Previous can land back inside the tzif range. Next never moves
+        // backwards, so this does not apply there.
+        let went_back_into_tzif = direction == TransitionDirection::Previous
+            && last_tzif_transition.is_some_and(|last| seconds < last.0);
+        if went_back_into_tzif {
+            // Clamp to the last real transition, if the table holds one.
+            let Some(last_real_tzif_transition) = last_real_tzif_transition() else {
+                return Ok(None);
+            };
+            seconds = last_real_tzif_transition.0;
         }
 
         Ok(Some(EpochNanoseconds::from_seconds(seconds)))

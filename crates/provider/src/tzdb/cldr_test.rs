@@ -20,6 +20,12 @@ fn test_cldr_timezones() {
             // These are present in CLDR but not tzdb. Special case as known exceptions.
             continue;
         }
+        if matches!(normalized, "CST6CDT" | "EST5EDT" | "MST7MDT" | "PST8PDT") {
+            // tzdb 2026e turned these from links into independent zones using US
+            // federal rules, so they are primary identifiers here. CLDR still
+            // lists them as aliases. Skip until CLDR catches up.
+            continue;
+        }
 
         let primary_id = CompiledNormalizer
             .normalized(canonical.as_bytes())
