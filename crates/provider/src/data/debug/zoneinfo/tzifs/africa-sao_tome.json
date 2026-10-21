@@ -1,0 +1,60 @@
+{
+  "ids": [
+    "africa/sao_tome"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "G",
+      "M",
+      "T",
+      "\u0000",
+      "W",
+      "A",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "GMT",
+      "offset": 0,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3,
+      2
+    ],
+    "transitions": [
+      -2713912016,
+      -1830384000,
+      1514768400,
+      1546304400
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 1616
+      },
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -2205
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 0
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 3600
+      }
+    ]
+  }
+}

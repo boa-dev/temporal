@@ -1,25 +1,19 @@
-#[cfg(feature = "std")]
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "std")]
 use std::{format, fs::read_to_string, path::Path, string::String, vec::Vec};
-#[cfg(feature = "std")]
 use zoneinfo_rs::{ZoneInfoCompiler, ZoneInfoData};
 
-#[cfg(feature = "std")]
 #[derive(Debug, Serialize, Deserialize)]
 struct TzifTestData {
     first_record: LocalRecord,
     transitions: Vec<TransitionRecord>,
 }
 
-#[cfg(feature = "std")]
 #[derive(Debug, Serialize, Deserialize)]
 struct TransitionRecord {
     transition_time: i64,
     record: LocalRecord,
 }
 
-#[cfg(feature = "std")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct LocalRecord {
     offset: i64,
@@ -27,20 +21,13 @@ struct LocalRecord {
     abbr: String,
 }
 
-#[cfg(feature = "std")]
-fn test_data_for_id(identifier: &str, strict: bool) {
-    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let test_dir = manifest_dir.join("tests");
-    let test_data_dir = test_dir.join("data");
-
-    // Get test data
+fn read_test_data(test_data_dir: &Path, identifier: &str) -> TzifTestData {
     let test_json = identifier.replace("/", "-").to_ascii_lowercase();
-    let test_data_path = test_data_dir.join(format!("{test_json}.json"));
-    let test_data: TzifTestData =
-        serde_json::from_str(&read_to_string(test_data_path).unwrap()).unwrap();
+    let path = test_data_dir.join(format!("{test_json}.json"));
+    serde_json::from_str(&read_to_string(path).unwrap()).unwrap()
+}
 
-    // Compile zoneinfo file.
-    let zoneinfo_data = ZoneInfoData::from_filepath(test_dir.join("zoneinfo")).unwrap();
+fn run_assertions(identifier: &str, zoneinfo_data: ZoneInfoData, test_data: TzifTestData) {
     let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
     let computed_zoneinfo = compiler.build_zone(identifier);
 
@@ -52,114 +39,329 @@ fn test_data_for_id(identifier: &str, strict: bool) {
         computed_zoneinfo.initial_record.designation,
         test_data.first_record.abbr
     );
-    if strict {
-        assert_eq!(
-            computed_zoneinfo.transitions.len(),
-            test_data.transitions.len()
-        );
-    }
 
-    for (computed, test_data) in computed_zoneinfo
+    // zip() stops at the shorter side, so compare counts first.
+    assert_eq!(
+        computed_zoneinfo.transitions.iter().count(),
+        test_data.transitions.len(),
+        "Transition counts are not aligned for {identifier}"
+    );
+
+    for (computed, td) in computed_zoneinfo
         .transitions
         .iter()
         .zip(test_data.transitions)
     {
         assert_eq!(
-            computed.at_time, test_data.transition_time,
-            "Transition time are not aligned for {}",
-            test_data.transition_time,
+            computed.at_time, td.transition_time,
+            "Transition times are not aligned for {}",
+            td.transition_time,
         );
         assert_eq!(
-            computed.offset, test_data.record.offset,
+            computed.offset, td.record.offset,
             "Offsets are not aligned for {}",
-            test_data.transition_time
+            td.transition_time
         );
-        // Test data is currently in rearguard, not vanguard. Would need to add
-        // support for rearguard and to test dst for Europe/Dublin
         assert_eq!(
-            computed.dst, test_data.record.is_dst,
+            computed.dst, td.record.is_dst,
             "DST flag is not aligned for {}",
-            test_data.transition_time
+            td.transition_time
         );
-        // When in named rule before any transition has happened,
-        // value is initialized to first letter of save == 0
         assert_eq!(
-            computed.format, test_data.record.abbr,
+            computed.format, td.record.abbr,
             "Designation is not aligned for {}",
-            test_data.transition_time
+            td.transition_time
         );
     }
 }
 
+/// Returns None on pass, Some(error) on failure; skips zones with no JSON.
+fn check_zone(
+    identifier: &str,
+    compiler: &mut ZoneInfoCompiler,
+    data_dir: &Path,
+) -> Option<String> {
+    let test_json = identifier.replace("/", "-").to_ascii_lowercase();
+    let path = data_dir.join(format!("{test_json}.json"));
+    let Ok(content) = std::fs::read_to_string(&path) else {
+        return None; // no JSON yet — skip
+    };
+    let Ok(test_data) = serde_json::from_str::<TzifTestData>(&content) else {
+        return Some(format!("{identifier}: malformed JSON"));
+    };
+
+    let computed = compiler.build_zone(identifier);
+    let mut errors: Vec<String> = Vec::new();
+
+    if computed.initial_record.offset != test_data.first_record.offset {
+        errors.push(format!(
+            "initial offset {} != {}",
+            computed.initial_record.offset, test_data.first_record.offset
+        ));
+    }
+
+    // zip() stops at the shorter side, so compare counts first.
+    let computed_count = computed.transitions.iter().count();
+    if computed_count != test_data.transitions.len() {
+        errors.push(format!(
+            "transition count {} != {}",
+            computed_count,
+            test_data.transitions.len()
+        ));
+    }
+
+    for (c, td) in computed.transitions.iter().zip(&test_data.transitions) {
+        if c.at_time != td.transition_time {
+            errors.push(format!(
+                "transition time {} != {} (at {})",
+                c.at_time, td.transition_time, td.transition_time
+            ));
+            break;
+        }
+        if c.offset != td.record.offset {
+            errors.push(format!(
+                "offset {} != {} (at {})",
+                c.offset, td.record.offset, td.transition_time
+            ));
+        }
+        if c.dst != td.record.is_dst {
+            errors.push(format!(
+                "dst {} != {} (at {})",
+                c.dst, td.record.is_dst, td.transition_time
+            ));
+        }
+        if c.format != td.record.abbr {
+            errors.push(format!(
+                "abbr {:?} != {:?} (at {})",
+                c.format, td.record.abbr, td.transition_time
+            ));
+        }
+    }
+
+    if errors.is_empty() {
+        None
+    } else {
+        Some(format!("{identifier}: {}", errors.join("; ")))
+    }
+}
+
+/// Skips when TZDATA_DIR is not set; run `mise run zoneinfo:test` for the full suite.
+fn test_data_for_id(identifier: &str) {
+    let tzdata_dir = match std::env::var("TZDATA_DIR") {
+        Ok(dir) => dir,
+        Err(_) => {
+            eprintln!("SKIP {identifier}: TZDATA_DIR not set (run `mise run zoneinfo:test`)");
+            return;
+        }
+    };
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let test_data = read_test_data(&manifest_dir.join("tests").join("data"), identifier);
+    let zoneinfo_data = ZoneInfoData::from_zoneinfo_directory(&tzdata_dir).unwrap();
+    run_assertions(identifier, zoneinfo_data, test_data);
+}
+
+// Zone tests
+
 #[test]
-#[cfg(feature = "std")]
 fn test_chicago() {
-    test_data_for_id("America/Chicago", false);
+    test_data_for_id("America/Chicago");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_new_york() {
-    test_data_for_id("America/New_York", false);
+    test_data_for_id("America/New_York");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_anchorage() {
-    test_data_for_id("America/Anchorage", false);
+    test_data_for_id("America/Anchorage");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_sydney() {
-    test_data_for_id("Australia/Sydney", false);
+    test_data_for_id("Australia/Sydney");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_lord_howe() {
-    test_data_for_id("Australia/Lord_Howe", false);
+    test_data_for_id("Australia/Lord_Howe");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_troll() {
-    test_data_for_id("Antarctica/Troll", false);
+    test_data_for_id("Antarctica/Troll");
 }
 
-// TODO: test_dublin_rearguard
 #[test]
-#[cfg(feature = "std")]
 fn test_dublin() {
-    test_data_for_id("Europe/Dublin", false);
+    test_data_for_id("Europe/Dublin");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_berlin() {
-    test_data_for_id("Europe/Berlin", false);
+    test_data_for_id("Europe/Berlin");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_paris() {
-    test_data_for_id("Europe/Paris", false);
+    test_data_for_id("Europe/Paris");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_london() {
-    test_data_for_id("Europe/London", false);
+    test_data_for_id("Europe/London");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_riga() {
-    test_data_for_id("Europe/Riga", false);
+    test_data_for_id("Europe/Riga");
 }
 
 #[test]
-#[cfg(feature = "std")]
 fn test_sao_paulo() {
-    test_data_for_id("America/Sao_Paulo", true);
+    test_data_for_id("America/Sao_Paulo");
+}
+
+// Regression tests — issue #602 (getTimeZoneTransition edge cases)
+
+#[test]
+fn test_regression_america_godthab() {
+    test_data_for_id("America/Godthab");
+}
+
+#[test]
+fn test_regression_america_grand_turk() {
+    test_data_for_id("America/Grand_Turk");
+}
+
+#[test]
+fn test_regression_america_resolute() {
+    test_data_for_id("America/Resolute");
+}
+
+#[test]
+fn test_regression_america_scoresbysund() {
+    test_data_for_id("America/Scoresbysund");
+}
+
+#[test]
+fn test_regression_europe_lisbon() {
+    test_data_for_id("Europe/Lisbon");
+}
+
+// --- Past-time / same-time transition bugs ---
+
+#[test]
+fn test_regression_america_goose_bay() {
+    test_data_for_id("America/Goose_Bay");
+}
+
+#[test]
+fn test_regression_america_st_johns() {
+    test_data_for_id("America/St_Johns");
+}
+
+/// A zone-line boundary landing on the same instant as a rule transition is
+/// that rule's transition, so it must survive the merge even though its state
+/// matches the preceding transition. Here the `4:00 1:00` period ends exactly
+/// when `E-EurAsia`'s `Mar lastSun` rule fires, both sides being +05 DST.
+#[test]
+fn test_regression_asia_tbilisi() {
+    test_data_for_id("Asia/Tbilisi");
+}
+
+#[test]
+fn test_regression_america_indiana_petersburg() {
+    test_data_for_id("America/Indiana/Petersburg");
+}
+
+#[test]
+fn test_regression_america_indiana_vincennes() {
+    test_data_for_id("America/Indiana/Vincennes");
+}
+
+#[test]
+fn test_regression_america_north_dakota_beulah() {
+    test_data_for_id("America/North_Dakota/Beulah");
+}
+
+#[test]
+fn test_regression_america_ojinaga() {
+    test_data_for_id("America/Ojinaga");
+}
+
+#[test]
+fn test_regression_antarctica_macquarie() {
+    test_data_for_id("Antarctica/Macquarie");
+}
+
+#[test]
+fn test_regression_asia_nicosia() {
+    test_data_for_id("Asia/Nicosia");
+}
+
+#[test]
+fn test_regression_europe_bucharest() {
+    test_data_for_id("Europe/Bucharest");
+}
+
+#[test]
+fn test_regression_europe_chisinau() {
+    test_data_for_id("Europe/Chisinau");
+}
+
+#[test]
+fn test_regression_europe_kiev() {
+    test_data_for_id("Europe/Kiev");
+}
+
+#[test]
+fn test_regression_europe_sofia() {
+    test_data_for_id("Europe/Sofia");
+}
+
+#[test]
+fn test_regression_europe_vilnius() {
+    test_data_for_id("Europe/Vilnius");
+}
+
+#[test]
+fn test_regression_pacific_norfolk() {
+    test_data_for_id("Pacific/Norfolk");
+}
+
+// Full IANA database coverage — failures collected and reported together.
+#[test]
+fn test_all_zones() {
+    let tzdata_dir = match std::env::var("TZDATA_DIR") {
+        Ok(dir) => dir,
+        Err(_) => {
+            eprintln!("SKIP test_all_zones: TZDATA_DIR not set (run `mise run zoneinfo:test`)");
+            return;
+        }
+    };
+
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let data_dir = manifest_dir.join("tests").join("data");
+
+    let zoneinfo_data = ZoneInfoData::from_zoneinfo_directory(&tzdata_dir).unwrap();
+    let mut zone_names: Vec<String> = zoneinfo_data.zones.keys().cloned().collect();
+    zone_names.sort();
+
+    let mut compiler = ZoneInfoCompiler::new(zoneinfo_data);
+    let mut failures: Vec<String> = Vec::new();
+
+    for identifier in &zone_names {
+        if let Some(error) = check_zone(identifier, &mut compiler, &data_dir) {
+            failures.push(error);
+        }
+    }
+
+    if !failures.is_empty() {
+        panic!(
+            "{} zone(s) failed:\n{}",
+            failures.len(),
+            failures.join("\n")
+        );
+    }
 }

@@ -4,15 +4,12 @@
 //! with output types.
 //!
 
-use alloc::collections::BTreeSet;
-use alloc::string::String;
+use alloc::{borrow::ToOwned, string::String};
 
 #[cfg(feature = "unstable")]
 use crate::tzif::TzifBlockV2;
 use crate::{
-    posix::PosixTimeZone,
-    types::{QualifiedTimeKind, Time},
-    zone::ZoneRecord,
+    posix::PosixTimeZone, transition::MergedTransitions, types::Time, zone::ZoneRecord,
     ZoneInfoData,
 };
 
@@ -26,91 +23,15 @@ pub struct LocalTimeRecord {
     pub designation: String, // AKA format / abbr
 }
 
-// TODO: improve `Transition` repr this type provides a lot of
-// information by design, but the local time record data
-// should be separated from the transition info with a clear
-// separation.
-//
-// EX:
-// pub struct Transition {
-//     /// The time to transition at
-//     pub at_time: i64,
-//     /// The transition time kind.
-//     pub time_type: QualifiedTimeKind,
-//     /// LocalTimeRecord transitioned into
-//     pub to_local: ZoneInfoLocalTimeRecord,
-// }
-//
-/// The primary transition data.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct Transition {
-    /// The time to transition at
-    ///
-    /// This represents the time in Unix Epoch seconds
-    /// at which a transition should occur.
-    pub at_time: i64,
-    /// The transition time kind.
-    ///
-    /// Whether the transition was specified in Local, Standard, or Universal time.
-    pub time_type: QualifiedTimeKind,
-
-    // TODO: Below are fields that should be split into a
-    // currently non-existent LocalTime record.
-    /// The offset of the transition.
-    pub offset: i64,
-    /// Whether the transition is a savings offset or not
-    ///
-    /// This flag corresponds to the `is_dst` flag
-    pub dst: bool,
-    /// The savings for the local time record
-    ///
-    /// This field represents the exact [`Time`] value
-    /// used for savings.
-    pub savings: Time,
-    /// The letter designation for the local time record
-    ///
-    /// The LETTER designation used in the fully formatted
-    /// abbreviation
-    pub letter: Option<String>,
-    /// The abbreviation format for the local time record.
-    pub format: String,
-}
-
-impl Ord for Transition {
-    fn cmp(&self, other: &Self) -> core::cmp::Ordering {
-        self.at_time.cmp(&other.at_time)
-    }
-}
-
-impl PartialOrd for Transition {
-    fn partial_cmp(&self, other: &Self) -> Option<core::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-/// `CompiledTransitions` is the complete compiled transition data
-/// for one zone.
-///
-/// The compiled transition data contains an initial local time record, an ordered
-/// set of transition data, and a POSIX time zone string.
-///
-/// In general, this struct offers the required data in a consummable format
-/// for anyone who compiled zoneinfo data.
+/// Compiled transition data for one zone.
 #[non_exhaustive]
 #[derive(Debug, PartialEq)]
 pub struct CompiledTransitions {
-    /// The initial local time record.
-    ///
-    /// This is used in the case where a time predates a transition time.
+    /// The initial local time record (used when a time predates all transitions).
     pub initial_record: LocalTimeRecord,
-
-    /// The full set of calculated time zone transitions
-    pub transitions: BTreeSet<Transition>,
-
-    /// The POSIX time zone string
-    ///
-    /// This string should be used to calculate the time zone beyond the last available transition.
+    /// Merged transitions satisfying the slim-format invariant.
+    pub transitions: MergedTransitions,
+    /// POSIX TZ string for times beyond the last explicit transition.
     pub posix_time_zone: PosixTimeZone,
 }
 
@@ -145,12 +66,28 @@ impl ZoneInfoCompiler {
         Self { data }
     }
 
-    /// Build transition data for a specific zone.
+    /// Build transition data for a specific zone, following Link records if
+    /// the identifier is a renamed/aliased zone (e.g. `America/Godthab` →
+    /// `America/Nuuk`).
     pub fn build_zone(&mut self, target: &str) -> CompiledTransitions {
-        if let Some(zone) = self.data.zones.get_mut(target) {
+        let resolved = self.resolve_link(target).to_owned();
+        if let Some(zone) = self.data.zones.get_mut(&resolved) {
             zone.associate_rules(&self.data.rules);
         }
-        self.build_zone_internal(target)
+        self.build_zone_internal(&resolved)
+    }
+
+    /// Resolve a zone identifier through `Link` records transitively.
+    /// Stops after 16 hops to guard against cycles.
+    fn resolve_link<'a>(&'a self, target: &'a str) -> &'a str {
+        let mut current = target;
+        for _ in 0..16 {
+            match self.data.links.get(current) {
+                Some(next) => current = next.as_str(),
+                None => return current,
+            }
+        }
+        current
     }
 
     pub fn build(&mut self) -> CompiledTransitionsMap {
