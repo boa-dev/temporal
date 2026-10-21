@@ -257,12 +257,8 @@ pub struct ZonedDateTime {
     calendar: Calendar,
     time_zone: TimeZone,
     cached_offset: UtcOffset,
-    /// The ISO date-time of `instant` as seen at `cached_offset`.
-    ///
-    /// A `ZonedDateTime` is immutable and `cached_offset` is by construction the
-    /// offset in effect at `instant`, so this is a pure function of two fields
-    /// that never change — there is nothing to invalidate. Computing it once here
-    /// makes every field getter a field read rather than an epoch conversion.
+    // We cache the IsoDateTime, because `ZonedDateTime` is immutable, and this will
+    // speed up getters.
     cached_iso: IsoDateTime,
 }
 
