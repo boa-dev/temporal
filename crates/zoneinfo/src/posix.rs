@@ -148,13 +148,13 @@ impl PosixDate {
         match rule.on_date {
             DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => (
                 PosixDate::JulianNoLeap(
-                    calendar_equations::month_to_day((rule.in_month as u8) - 1, true) + day as u16,
+                    temporal_utils::month_to_day((rule.in_month as u8) - 1, true) + day as u16,
                 ),
                 0,
             ),
             DayOfMonth::Day(day) => (
                 PosixDate::JulianLeap(
-                    calendar_equations::month_to_day((rule.in_month as u8) - 1, true) + day as u16,
+                    temporal_utils::month_to_day((rule.in_month as u8) - 1, true) + day as u16,
                 ),
                 0,
             ),

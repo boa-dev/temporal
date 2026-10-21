@@ -16,7 +16,7 @@ use crate::{
     },
     TimeZoneProviderError,
 };
-use calendar_equations as utils;
+use temporal_utils as utils;
 use zerofrom::ZeroFrom;
 
 #[derive(Debug, Default)]

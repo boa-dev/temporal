@@ -183,6 +183,6 @@ pub struct Date {
 impl Date {
     pub fn as_secs(&self) -> i64 {
         let epoch_days = epoch_days_for_rule_date(self.year, self.month, self.day);
-        calendar_equations::epoch_days_to_epoch_seconds(epoch_days)
+        temporal_utils::epoch_days_to_epoch_seconds(epoch_days)
     }
 }

@@ -42,12 +42,12 @@ pub enum Month {
 impl Month {
     /// Calculates the day of year for the start of the month
     pub(crate) fn month_start_to_day_of_year(self, year: i32) -> i32 {
-        calendar_equations::month_to_day((self as u8) - 1, calendar_equations::is_leap(year)) as i32
+        temporal_utils::month_to_day((self as u8) - 1, temporal_utils::is_leap(year)) as i32
     }
 
     /// Calculates the day of year for the end of the month
     pub(crate) fn month_end_to_day_of_year(self, year: i32) -> i32 {
-        calendar_equations::month_to_day(self as u8, calendar_equations::is_leap(year)) as i32 - 1
+        temporal_utils::month_to_day(self as u8, temporal_utils::is_leap(year)) as i32 - 1
     }
 }
 

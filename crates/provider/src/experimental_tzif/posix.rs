@@ -7,7 +7,7 @@ use crate::{
     provider::{GapEntryOffsets, TimeZoneProviderResult, UtcOffsetSeconds},
     TimeZoneProviderError,
 };
-use calendar_equations as utils;
+use temporal_utils as utils;
 
 use tinystr::TinyAsciiStr;
 #[cfg(feature = "datagen")]

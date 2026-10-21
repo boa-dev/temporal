@@ -1,6 +1,6 @@
 use crate::TimeZoneProviderError;
 
-pub(crate) use calendar_equations::MS_PER_DAY;
+pub(crate) use temporal_utils::MS_PER_DAY;
 
 /// Number of nanoseconds in a day
 #[doc(hidden)]

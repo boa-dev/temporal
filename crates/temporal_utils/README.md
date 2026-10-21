@@ -1,4 +1,4 @@
-# calendar_equations
+# temporal_utils
 
 Gregorian and ISO-calendar date equations shared across the `temporal`
 workspace (`temporal`, `timezone_provider`, `zoneinfo_rs`).

@@ -156,7 +156,7 @@ pub const BASIC_RUNTIME_DEPS: &[&str] = &[
     // temporal crates
     "temporal",
     "timezone_provider",
-    "calendar_equations",
+    "temporal_utils",
     // ICU4X components and utils
     "calendrical_calculations",
     "core_maths",

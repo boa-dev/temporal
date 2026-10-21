@@ -58,7 +58,7 @@ use tzif::{
     },
 };
 
-use calendar_equations as utils;
+use temporal_utils as utils;
 
 use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, NormalizerAndResolver, ResolvedId,

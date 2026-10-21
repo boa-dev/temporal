@@ -30,7 +30,7 @@ exclude = [
 temporal = { version = "0.2.6", path = "./crates/temporal", default-features = false }
 timezone_provider = { version = "0.2.6", path = "./crates/provider", default-features = false }
 zoneinfo_rs = { version = "0.1.0", path = "./crates/zoneinfo", default-features = false }
-calendar_equations = { version = "0.2.6", path = "./crates/calendar_equations" }
+temporal_utils = { version = "0.2.6", path = "./crates/temporal_utils" }
 
 # Dependencies
 rustc-hash = "2.1.0"

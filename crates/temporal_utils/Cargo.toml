@@ -1,5 +1,5 @@
 [package]
-name = "calendar_equations"
+name = "temporal_utils"
 description = "Gregorian and ISO-calendar date equations"
 edition.workspace = true
 version.workspace = true
