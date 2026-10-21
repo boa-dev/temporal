@@ -257,6 +257,13 @@ pub struct ZonedDateTime {
     calendar: Calendar,
     time_zone: TimeZone,
     cached_offset: UtcOffset,
+    /// The ISO date-time of `instant` as seen at `cached_offset`.
+    ///
+    /// A `ZonedDateTime` is immutable and `cached_offset` is by construction the
+    /// offset in effect at `instant`, so this is a pure function of two fields
+    /// that never change — there is nothing to invalidate. Computing it once here
+    /// makes every field getter a field read rather than an epoch conversion.
+    cached_iso: IsoDateTime,
 }
 
 // ==== Private API ====
@@ -271,11 +278,13 @@ impl ZonedDateTime {
         calendar: Calendar,
         cached_offset: UtcOffsetSeconds,
     ) -> Self {
+        let cached_offset: UtcOffset = cached_offset.into();
         Self {
-            instant,
             calendar,
             time_zone,
-            cached_offset: cached_offset.into(),
+            cached_iso: cached_offset.get_iso_datetime_for(&instant),
+            cached_offset,
+            instant,
         }
     }
 
@@ -285,14 +294,15 @@ impl ZonedDateTime {
         calendar: Calendar,
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
-        let offset = time_zone
+        let cached_offset = time_zone
             .get_utc_offset_for(instant.epoch_nanoseconds().0, provider)
             .temporal_unwrap()?;
         Ok(Self {
-            instant,
             calendar,
             time_zone,
-            cached_offset: offset,
+            cached_iso: cached_offset.get_iso_datetime_for(&instant),
+            cached_offset,
+            instant,
         })
     }
 
@@ -300,7 +310,7 @@ impl ZonedDateTime {
     ///
     /// (which is GetISODateTimeFor(self.[[TimeZone]], self.[[EpochNanoseconds]]).)
     pub(crate) fn get_iso_datetime(&self) -> IsoDateTime {
-        self.cached_offset.get_iso_datetime_for(&self.instant)
+        self.cached_iso
     }
 
     pub(crate) fn add_zoned_date_time(
