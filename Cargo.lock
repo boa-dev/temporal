@@ -869,6 +869,7 @@ dependencies = [
  "log",
  "num-traits",
  "resb",
+ "temporal_utils",
  "timezone_provider",
  "tinystr",
  "web-time",
@@ -899,6 +900,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "temporal_utils"
+version = "0.2.6"
+
+[[package]]
 name = "timezone_provider"
 version = "0.2.6"
 dependencies = [
@@ -908,6 +913,7 @@ dependencies = [
  "jiff-tzdb",
  "serde",
  "serde_json",
+ "temporal_utils",
  "tinystr",
  "tzif",
  "yoke",
@@ -1358,6 +1364,7 @@ dependencies = [
  "indexmap",
  "serde",
  "serde_json",
+ "temporal_utils",
  "tzif",
  "zoneinfo_rs",
 ]

@@ -58,7 +58,7 @@ use tzif::{
     },
 };
 
-use crate::utils;
+use temporal_utils as utils;
 
 use crate::provider::{
     CandidateEpochNanoseconds, GapEntryOffsets, IsoDateTime, NormalizerAndResolver, ResolvedId,
