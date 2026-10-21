@@ -717,15 +717,15 @@ impl Duration {
 
     // Converts a UTF-8 encoded string into a `Duration`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        Self::from_duration_record(TemporalParser::<Utf8>::from_utf8(s).parse_duration()?)
+        TemporalParser::<Utf8>::from_utf8(s).parse_duration()
     }
 
     /// Converts a UTF-16 encoded string into a `Duration`.
     pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
-        Self::from_duration_record(TemporalParser::<Utf16>::from_utf16(s).parse_duration()?)
+        TemporalParser::<Utf16>::from_utf16(s).parse_duration()
     }
 
-    fn from_duration_record(
+    pub(crate) fn from_duration_record(
         parse_record: ixdtf::records::DurationParseRecord,
     ) -> TemporalResult<Self> {
         fn fraction_to_unadjusted_ns(fraction: Option<Fraction>) -> Result<u32, TemporalError> {

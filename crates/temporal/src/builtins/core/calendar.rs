@@ -213,13 +213,7 @@ impl FromStr for Calendar {
 
     // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        use crate::parsers::CalendarAnnotation;
-
-        match crate::parsers::TemporalParser::from_str(s).parse_calendar() {
-            CalendarAnnotation::Implicit => Ok(Calendar::ISO),
-            CalendarAnnotation::Explicit(result) => Calendar::try_from_utf8(result),
-            CalendarAnnotation::NotFound => Calendar::try_from_utf8(s.as_bytes()),
-        }
+        crate::parsers::TemporalParser::from_utf8(s.as_bytes()).parse_calendar()
     }
 }
 

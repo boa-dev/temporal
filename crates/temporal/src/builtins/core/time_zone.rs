@@ -71,15 +71,14 @@ impl UtcOffset {
         }
     }
 
+    /// Converts a UTF-8 encoded string into a `UtcOffset`.
     pub fn from_utf8(source: &[u8]) -> TemporalResult<Self> {
-        let record = TemporalParser::<Utf8>::from_utf8(source).parse_utc_offset()?;
-        Self::from_ixdtf_record(record)
+        TemporalParser::<Utf8>::from_utf8(source).parse_utc_offset()
     }
 
     /// Converts a UTF-16 encoded string into a `UtcOffset`.
     pub fn from_utf16(source: &[u16]) -> TemporalResult<Self> {
-        let record = TemporalParser::<Utf16>::from_utf16(source).parse_utc_offset()?;
-        Self::from_ixdtf_record(record)
+        TemporalParser::<Utf16>::from_utf16(source).parse_utc_offset()
     }
 
     #[allow(clippy::inherent_to_string)]
@@ -213,17 +212,7 @@ impl TimeZone {
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
         TemporalParser::<T>::from_encoded(identifier)
-            .parse_time_zone_identifier()
-            .map(|tz| match tz {
-                TimeZoneRecord::Name(name) => {
-                    let ascii = T::ascii_identifier(name)?;
-                    Ok(TimeZone::IanaIdentifier(provider.get(&ascii)?))
-                }
-                TimeZoneRecord::Offset(minute_precision_offset) => Ok(TimeZone::UtcOffset(
-                    UtcOffset::from_ixdtf_minute_record(minute_precision_offset),
-                )),
-                _ => Err(TemporalError::range().with_message("Invalid TimeZone Identifier")),
-            })?
+            .parse_time_zone_identifier_with_provider(provider)
     }
 
     #[cfg(feature = "compiled_data")]
@@ -258,7 +247,7 @@ impl TimeZone {
             return Ok(timezone);
         }
         TemporalParser::<T>::from_encoded(src)
-            .parse_time_zone(provider)
+            .parse_time_zone_with_provider(provider)
             .ok_or_else(|| TemporalError::range().with_message("Not a valid time zone string"))
     }
 

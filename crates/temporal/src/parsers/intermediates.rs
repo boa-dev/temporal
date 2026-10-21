@@ -111,7 +111,7 @@ impl ParsedZonedDateTime {
         source: &[u8],
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
-        TemporalParser::<Utf8>::from_utf8(source).parse_zoned_date_time(provider)
+        TemporalParser::<Utf8>::from_utf8(source).parse_zoned_date_time_with_provider(provider)
     }
 
     /// Converts a UTF-16 encoded string into a `ParsedZonedDateTime`.
@@ -119,7 +119,7 @@ impl ParsedZonedDateTime {
         source: &[u16],
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
-        TemporalParser::<Utf16>::from_utf16(source).parse_zoned_date_time(provider)
+        TemporalParser::<Utf16>::from_utf16(source).parse_zoned_date_time_with_provider(provider)
     }
 }
 

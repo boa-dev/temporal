@@ -296,16 +296,16 @@ impl Instant {
 
     // Converts a UTF-8 encoded string into a `Instant`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        Self::from_parsed_record(crate::parsers::TemporalParser::from_utf8(s).parse_instant()?)
+        crate::parsers::TemporalParser::from_utf8(s).parse_instant()
     }
 
     /// Converts a UTF-16 encoded string into a `Instant`.
     pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
-        Self::from_parsed_record(crate::parsers::TemporalParser::from_utf16(s).parse_instant()?)
+        crate::parsers::TemporalParser::from_utf16(s).parse_instant()
     }
 
-    fn from_parsed_record(
-        ixdtf_record: crate::parsers::IxdtfParseInstantRecord,
+    pub(crate) fn from_parsed_record(
+        ixdtf_record: crate::parsers::ParsedInstantRecord,
     ) -> TemporalResult<Self> {
         // Find the offset
         let ns_offset = match ixdtf_record.offset {
