@@ -38,6 +38,12 @@ calendrical_calculations = "0.2.4"
 timezone_provider = { workspace = true, features = ["zoneinfo64", "experimental_tzif"] }
 zoneinfo64 = { workspace = true }
 resb = "0.1.0"
+criterion = { version = "0.5", default-features = false, features = ["cargo_bench_support"] }
+
+[[bench]]
+name = "zoned_date_time"
+harness = false
+required-features = ["compiled_data"]
 
 [features]
 default = ["sys-local"]
