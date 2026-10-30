@@ -1,0 +1,53 @@
+{
+  "ids": [
+    "pacific/pitcairn"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "-",
+      "0",
+      "8",
+      "3",
+      "0",
+      "\u0000",
+      "-",
+      "0",
+      "8",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "-08",
+      "offset": -28800,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2177421580,
+      893665800
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -31220
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -30600
+      },
+      {
+        "index": 10,
+        "is_dst": false,
+        "offset": -28800
+      }
+    ]
+  }
+}

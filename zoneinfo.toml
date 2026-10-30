@@ -1,0 +1,50 @@
+# IANA tzdata source and the timezone identifiers used by the test suite.
+# See scripts/ and zoneinfo/tests/test_datagen.rs.
+
+# Pinned IANA tzdata release. Bump the version and checksum together.
+[tzdata]
+version = "2026e"
+sha512 = "5be2f875f73b75e5783c474bf7a6c768e433cc90283f8fc6a75e3d05bd92aec97936e8a55ccca5e880b5dacc18ba65932bab0e783e1ed5d2af4a3a4df95512be"
+
+[zones]
+zones = [
+    "America/Chicago",
+    "America/New_York",
+    "America/Anchorage",
+    "Australia/Sydney",
+    "Australia/Lord_Howe",
+    "Antarctica/Troll",
+    "Europe/Dublin",
+    "Europe/Berlin",
+    "Europe/Paris",
+    "Europe/London",
+    "Europe/Riga",
+    "America/Sao_Paulo",
+]
+
+# Regression zones for issue #602 — getTimeZoneTransition edge cases.
+# These zones expose historical transitions that were previously computed
+# incorrectly: same-offset boundaries, boundary-coincident DST rules,
+# zone renames (Links), and non-standard offset formats.
+[regression]
+zones = [
+    "America/Godthab",
+    "America/Grand_Turk",
+    "America/Resolute",
+    "America/Scoresbysund",
+    "Europe/Lisbon",
+    "America/Goose_Bay",
+    "America/St_Johns",
+    "America/Indiana/Petersburg",
+    "America/Indiana/Vincennes",
+    "America/North_Dakota/Beulah",
+    "America/Ojinaga",
+    "Antarctica/Macquarie",
+    "Asia/Nicosia",
+    "Europe/Bucharest",
+    "Europe/Chisinau",
+    "Europe/Kiev",
+    "Europe/Sofia",
+    "Europe/Vilnius",
+    "Pacific/Norfolk",
+]

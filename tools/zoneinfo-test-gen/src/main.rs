@@ -25,7 +25,7 @@ struct LocalRecord {
 }
 
 // Utility function for generating example files
-fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str) {
+fn generate_test_data(input_dir: &Path, output_dir: &Path, identifier: &str) {
     let filename = identifier.to_lowercase().replace("/", "-");
     let test_data_path = output_dir.join(format!("{filename}.json"));
 
@@ -38,21 +38,24 @@ fn generate_test_data(input_dir: PathBuf, output_dir: PathBuf, identifier: &str)
     let first_record = LocalRecord {
         offset: first_record_data.utoff.0,
         is_dst: first_record_data.is_dst,
-        abbr: tzif_block_v2.time_zone_designations[0].clone(),
+        abbr: tzif_block_v2
+            .time_zone_designation(first_record_data.idx)
+            .unwrap_or("unknown")
+            .to_owned(),
     };
 
-    // TODO: There may be a bug in `tzif` around handling of split abbr (EX: IST/GMT)
     let local_records = tzif_block_v2
         .local_time_type_records
         .iter()
         .map(|r| LocalRecord {
             offset: r.utoff.0,
             is_dst: r.is_dst,
+            // r.idx is a BYTE OFFSET into the concatenated designations string.
+            // Use the provided helper method rather than indexing the Vec directly.
             abbr: tzif_block_v2
-                .time_zone_designations
-                .get(r.idx / 4)
-                .cloned()
-                .unwrap_or(String::from("unknown")),
+                .time_zone_designation(r.idx)
+                .unwrap_or("unknown")
+                .to_owned(),
         })
         .collect::<Vec<_>>();
 
@@ -91,7 +94,10 @@ struct Args {
     #[arg(short = 'i', long)]
     zoneinfo_dir: Option<PathBuf>,
 
-    identifier: String,
+    /// One or more IANA identifiers. Passing several avoids paying process
+    /// startup per zone when generating the whole database.
+    #[arg(required = true)]
+    identifiers: Vec<String>,
 }
 
 fn main() {
@@ -104,12 +110,16 @@ fn main() {
     } else {
         PathBuf::from(UNIX_ZONEINFO)
     };
-    // Create output directory
+    // The generated data is gitignored, so a fresh clone has no output
+    // directory to write into.
     let out_dir = if let Some(dir) = args.output_dir {
         manifest_dir.join(dir)
     } else {
         manifest_dir.into()
     };
+    fs::create_dir_all(&out_dir).unwrap();
 
-    generate_test_data(zoneinfo_dir, out_dir, "Antarctica/Troll");
+    for identifier in &args.identifiers {
+        generate_test_data(&zoneinfo_dir, &out_dir, identifier);
+    }
 }

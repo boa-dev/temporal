@@ -1,0 +1,53 @@
+{
+  "ids": [
+    "pacific/niue"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "-",
+      "1",
+      "1",
+      "2",
+      "0",
+      "\u0000",
+      "-",
+      "1",
+      "1",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "-11",
+      "offset": -39600,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -543069620,
+      -173623200
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -40780
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -40800
+      },
+      {
+        "index": 10,
+        "is_dst": false,
+        "offset": -39600
+      }
+    ]
+  }
+}

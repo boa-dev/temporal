@@ -117,12 +117,48 @@ jobs:
         with:
           key: features-test
       - name: Install cargo-all-features
-        uses: baptiste0928/cargo-install@v3.4.0
+        uses: baptiste0928/cargo-install@v3.5.0
         with:
           crate: cargo-all-features
 
       - name: Test all features
         run: cargo test-all-features
+
+  zoneinfo:
+    name: Zoneinfo (IANA database)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: zoneinfo
+
+      # zic compiles the IANA sources into the TZif files used as ground truth.
+      - name: Install zic
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tzdata
+          echo /usr/sbin >> "$GITHUB_PATH"
+
+      # Fail here rather than inside the task if the package ever stops shipping it.
+      - name: Verify zic
+        run: zic --version
+
+      # Only nushell: Rust comes from rust-toolchain above so that rust-cache
+      # keeps working, per the mise-action README.
+      - uses: jdx/mise-action@v4
+        with:
+          install_args: "aqua:nushell/nushell"
+
+      # Downloads the pinned tzdata, verifies its checksum, compiles it with
+      # zic, regenerates the ground truth, and runs the zoneinfo tests.
+      - name: Test zoneinfo against the full IANA database
+        env:
+          # The task needs only nushell and cargo. Without this, `mise run`
+          # builds the dev-only cargo tools from mise.toml, costing minutes.
+          MISE_TASK_RUN_AUTO_INSTALL: "false"
+        run: mise run zoneinfo:test
 
   ffi:
     name: Test FFI (${{ matrix.rust.name }}, ${{ matrix.os }})

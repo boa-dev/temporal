@@ -10,6 +10,7 @@ use crate::{
     unix_time::EpochNanoseconds,
     Calendar, Duration, MonthCode, TemporalResult, TimeZone, UtcOffset,
 };
+use alloc::format;
 use alloc::string::ToString;
 use timezone_provider::zoneinfo64::ZONEINFO64_RES_FOR_TESTING;
 use tinystr::tinystr;
@@ -931,6 +932,67 @@ fn get_time_zone_transition() {
             Previous,
             "1967-10-29T02:00:00+00:00[Europe/London]",
             provider,
+        );
+    })
+}
+
+/// Edge cases from <https://github.com/boa-dev/temporal/issues/602>.
+///
+/// `getTimeZoneTransition(Next)` must return a strictly later instant with a
+/// different offset. These zones previously returned the same instant, an
+/// earlier instant, or an instant with an identical offset.
+const ISSUE_602_NEXT_TRANSITION_CASES: &[&str] = &[
+    // Returned a transition with the same offset
+    "2023-03-25T23:00:00-02:00[America/Godthab]",
+    "2015-03-08T03:00:00-04:00[America/Grand_Turk]",
+    "2006-04-02T03:00:00-05:00[America/Resolute]",
+    "2023-10-29T00:00:00-01:00[America/Scoresbysund]",
+    "1996-01-01T02:00:00+01:00[Europe/Lisbon]",
+    // Returned the same or an earlier instant
+    "2011-03-13T01:01:00-03:00[America/Goose_Bay]",
+    "2011-03-13T02:59:59-03:00[America/Goose_Bay]",
+    "2011-03-13T01:01:00-02:30[America/St_Johns]",
+    "2007-03-11T03:00:00-05:00[America/Indiana/Petersburg]",
+    "2007-11-04T00:59:59-05:00[America/Indiana/Petersburg]",
+    "2007-03-11T03:00:00-05:00[America/Indiana/Vincennes]",
+    "2010-03-14T03:00:00-06:00[America/North_Dakota/Beulah]",
+    "2022-03-13T03:00:00-06:00[America/Ojinaga]",
+    "2009-10-04T03:00:00+11:00[Antarctica/Macquarie]",
+    "1998-03-29T01:00:00+03:00[Asia/Nicosia]",
+    "1996-10-26T23:00:00+02:00[Europe/Bucharest]",
+    "1996-10-26T23:00:00+02:00[Europe/Chisinau]",
+    "1996-03-31T03:00:00+03:00[Europe/Kiev]",
+    "1996-10-26T23:00:00+02:00[Europe/Sofia]",
+    "1999-03-28T03:00:00+02:00[Europe/Vilnius]",
+    "2015-10-04T01:30:00+11:00[Pacific/Norfolk]",
+];
+
+#[test]
+fn get_time_zone_transition_issue_602() {
+    test_all_providers!(#[cfg_for_fs(not(target_os = "windows"))] provider: {
+        let mut failures = alloc::vec::Vec::new();
+
+        for case in ISSUE_602_NEXT_TRANSITION_CASES {
+            let zdt = parse_zdt_with_compatible(case, provider).expect(case);
+            let next = zdt
+                .get_time_zone_transition_with_provider(TransitionDirection::Next, provider)
+                .expect(case)
+                .unwrap_or_else(|| panic!("{case}: expected a next transition"));
+            let got = next.to_string_with_provider(provider).unwrap();
+
+            if next.epoch_nanoseconds() <= zdt.epoch_nanoseconds() {
+                failures.push(format!("{case}: not strictly later (got {got})"));
+            } else if next.offset_nanoseconds() == zdt.offset_nanoseconds() {
+                failures.push(format!("{case}: offset unchanged (got {got})"));
+            }
+        }
+
+        assert!(
+            failures.is_empty(),
+            "{} of {} case(s) failed:\n{}",
+            failures.len(),
+            ISSUE_602_NEXT_TRANSITION_CASES.len(),
+            failures.join("\n")
         );
     })
 }

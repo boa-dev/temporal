@@ -1,0 +1,55 @@
+{
+  "ids": [
+    "america/atikokan",
+    "america/cayman",
+    "america/coral_harbour",
+    "america/panama",
+    "est"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "C",
+      "M",
+      "T",
+      "\u0000",
+      "E",
+      "S",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "EST",
+      "offset": -18000,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2
+    ],
+    "transitions": [
+      -2524502512,
+      -1946918424
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": -19088
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": -19176
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": -18000
+      }
+    ]
+  }
+}

@@ -17,18 +17,18 @@
 
 
 
-Calendar* temporal_rs_Calendar_try_new_constrain(AnyCalendarKind kind);
+Calendar* temporal_Calendar_try_new_constrain(AnyCalendarKind kind);
 
-typedef struct temporal_rs_Calendar_from_utf8_result {union {Calendar* ok; TemporalError err;}; bool is_ok;} temporal_rs_Calendar_from_utf8_result;
-temporal_rs_Calendar_from_utf8_result temporal_rs_Calendar_from_utf8(DiplomatStringView s);
+typedef struct temporal_Calendar_from_utf8_result {union {Calendar* ok; TemporalError err;}; bool is_ok;} temporal_Calendar_from_utf8_result;
+temporal_Calendar_from_utf8_result temporal_Calendar_from_utf8(DiplomatStringView s);
 
-bool temporal_rs_Calendar_is_iso(const Calendar* self);
+bool temporal_Calendar_is_iso(const Calendar* self);
 
-DiplomatStringView temporal_rs_Calendar_identifier(const Calendar* self);
+DiplomatStringView temporal_Calendar_identifier(const Calendar* self);
 
-AnyCalendarKind temporal_rs_Calendar_kind(const Calendar* self);
+AnyCalendarKind temporal_Calendar_kind(const Calendar* self);
 
-void temporal_rs_Calendar_destroy(Calendar* self);
+void temporal_Calendar_destroy(Calendar* self);
 
 
 

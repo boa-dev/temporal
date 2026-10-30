@@ -1,0 +1,64 @@
+{
+  "ids": [
+    "asia/jayapura"
+  ],
+  "tzif": {
+    "designations": [
+      "L",
+      "M",
+      "T",
+      "\u0000",
+      "+",
+      "0",
+      "9",
+      "\u0000",
+      "+",
+      "0",
+      "9",
+      "3",
+      "0",
+      "\u0000",
+      "W",
+      "I",
+      "T",
+      "\u0000"
+    ],
+    "posix": {
+      "abbr": "WIT",
+      "offset": 32400,
+      "transition": null
+    },
+    "transition_types": [
+      1,
+      2,
+      3
+    ],
+    "transitions": [
+      -1172913768,
+      -799491600,
+      -189423000
+    ],
+    "types": [
+      {
+        "index": 0,
+        "is_dst": false,
+        "offset": 33768
+      },
+      {
+        "index": 4,
+        "is_dst": false,
+        "offset": 32400
+      },
+      {
+        "index": 8,
+        "is_dst": false,
+        "offset": 34200
+      },
+      {
+        "index": 14,
+        "is_dst": false,
+        "offset": 32400
+      }
+    ]
+  }
+}

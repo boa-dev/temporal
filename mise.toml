@@ -1,0 +1,72 @@
+[tools]
+rust = "stable"
+
+# Cargo tools used in CI / development
+"cargo:cargo-workspaces" = "latest"   # cargo ws exec (lint job)
+"cargo:cargo-all-features" = "latest" # cargo test-all-features (feature-test job)
+"cargo:diplomat-tool" = "0.16.0"      # FFI bindings codegen (matches workspace dep)
+
+# Runs scripts/*.nu in the tz:fetch and zoneinfo:test tasks
+"aqua:nushell/nushell" = "0.116.1"
+
+[env]
+# MSRV — informational; switch toolchain manually to verify: `rustup override set 1.86.0`
+TEMPORAL_RS_MSRV = "1.86.0"
+
+[tasks."depcheck"]
+description = "Check that no unintentional dependencies have been added"
+run = "cargo run -p depcheck"
+
+[tasks."diplomat-gen"]
+description = "Regenerate C and C++ FFI bindings via diplomat"
+run = "cargo run -p diplomat-gen"
+
+[tasks."bakeddata"]
+description = "Regenerate baked data providers from the pinned IANA tzdata release"
+depends = ["tz:fetch"]
+env = { TZDATA_DIR = ".tzdata/src" }
+run = "cargo run -p bakeddata"
+
+[tasks."tzif-inspect"]
+description = "Dump TZif data for a given tzdb entry (e.g. mise run tzif-inspect America/Los_Angeles)"
+run = "cargo run -p tzif-inspect -- {{arg(name='identifier')}}"
+
+[tasks."zoneinfo-test-gen"]
+description = "Generate zoneinfo test data for an IANA identifier (e.g. mise run zoneinfo-test-gen America/New_York)"
+run = "cargo run -p zoneinfo-test-gen -- {{arg(name='identifier')}}"
+
+[tasks."tz:fetch"]
+description = "Download the pinned IANA tzdata release, verify its checksum, extract it, and build rearguard.zi"
+run = "nu scripts/tzdata-fetch.nu"
+
+[tasks."tz:compile"]
+description = "Compile IANA tzdata source into TZif binary files using zic (no-op if already compiled)"
+depends = ["tz:fetch"]
+run = """
+mkdir -p .tzdata/zoneinfo
+zic -b slim -d .tzdata/zoneinfo \
+  .tzdata/src/africa \
+  .tzdata/src/antarctica \
+  .tzdata/src/asia \
+  .tzdata/src/australasia \
+  .tzdata/src/backward \
+  .tzdata/src/etcetera \
+  .tzdata/src/europe \
+  .tzdata/src/northamerica \
+  .tzdata/src/southamerica
+"""
+
+[tasks."tz:gen-testdata"]
+description = "Generate JSON test data for an IANA zone (uses .tzdata/zoneinfo/ if compiled, else /usr/share/zoneinfo)"
+run = """
+if [ -d .tzdata/zoneinfo ]; then
+  cargo run -p zoneinfo-test-gen -- -i "$PWD/.tzdata/zoneinfo" -o ../../crates/zoneinfo/tests/data {{arg(name='identifier')}}
+else
+  cargo run -p zoneinfo-test-gen -- -o ../../crates/zoneinfo/tests/data {{arg(name='identifier')}}
+fi
+"""
+
+[tasks."zoneinfo:test"]
+description = "Generate JSON ground truth and run the zoneinfo integration tests"
+depends = ["tz:compile"]
+run = "nu scripts/zoneinfo-test.nu"

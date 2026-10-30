@@ -16,25 +16,25 @@
 
 
 
-typedef struct temporal_rs_ParsedDate_from_utf8_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ParsedDate_from_utf8_result;
-temporal_rs_ParsedDate_from_utf8_result temporal_rs_ParsedDate_from_utf8(DiplomatStringView s);
+typedef struct temporal_ParsedDate_from_utf8_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_ParsedDate_from_utf8_result;
+temporal_ParsedDate_from_utf8_result temporal_ParsedDate_from_utf8(DiplomatStringView s);
 
-typedef struct temporal_rs_ParsedDate_from_utf16_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ParsedDate_from_utf16_result;
-temporal_rs_ParsedDate_from_utf16_result temporal_rs_ParsedDate_from_utf16(DiplomatString16View s);
+typedef struct temporal_ParsedDate_from_utf16_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_ParsedDate_from_utf16_result;
+temporal_ParsedDate_from_utf16_result temporal_ParsedDate_from_utf16(DiplomatString16View s);
 
-typedef struct temporal_rs_ParsedDate_year_month_from_utf8_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ParsedDate_year_month_from_utf8_result;
-temporal_rs_ParsedDate_year_month_from_utf8_result temporal_rs_ParsedDate_year_month_from_utf8(DiplomatStringView s);
+typedef struct temporal_ParsedDate_year_month_from_utf8_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_ParsedDate_year_month_from_utf8_result;
+temporal_ParsedDate_year_month_from_utf8_result temporal_ParsedDate_year_month_from_utf8(DiplomatStringView s);
 
-typedef struct temporal_rs_ParsedDate_year_month_from_utf16_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ParsedDate_year_month_from_utf16_result;
-temporal_rs_ParsedDate_year_month_from_utf16_result temporal_rs_ParsedDate_year_month_from_utf16(DiplomatString16View s);
+typedef struct temporal_ParsedDate_year_month_from_utf16_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_ParsedDate_year_month_from_utf16_result;
+temporal_ParsedDate_year_month_from_utf16_result temporal_ParsedDate_year_month_from_utf16(DiplomatString16View s);
 
-typedef struct temporal_rs_ParsedDate_month_day_from_utf8_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ParsedDate_month_day_from_utf8_result;
-temporal_rs_ParsedDate_month_day_from_utf8_result temporal_rs_ParsedDate_month_day_from_utf8(DiplomatStringView s);
+typedef struct temporal_ParsedDate_month_day_from_utf8_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_ParsedDate_month_day_from_utf8_result;
+temporal_ParsedDate_month_day_from_utf8_result temporal_ParsedDate_month_day_from_utf8(DiplomatStringView s);
 
-typedef struct temporal_rs_ParsedDate_month_day_from_utf16_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_rs_ParsedDate_month_day_from_utf16_result;
-temporal_rs_ParsedDate_month_day_from_utf16_result temporal_rs_ParsedDate_month_day_from_utf16(DiplomatString16View s);
+typedef struct temporal_ParsedDate_month_day_from_utf16_result {union {ParsedDate* ok; TemporalError err;}; bool is_ok;} temporal_ParsedDate_month_day_from_utf16_result;
+temporal_ParsedDate_month_day_from_utf16_result temporal_ParsedDate_month_day_from_utf16(DiplomatString16View s);
 
-void temporal_rs_ParsedDate_destroy(ParsedDate* self);
+void temporal_ParsedDate_destroy(ParsedDate* self);
 
 
 
