@@ -214,11 +214,27 @@ impl ZonedDateTime {
     ) -> TemporalResult<Self> {
         ZonedDateTime::from_utf8_with_provider(source, disambiguation, offset_option, &*TZ_PROVIDER)
     }
+
+    /// Attempts to parse and create a `ZonedDateTime` from a UTF-16 encoded IXDTF string.
+    ///
+    /// Enable with the `compiled_data` feature flag.
+    pub fn from_utf16(
+        source: &[u16],
+        disambiguation: Disambiguation,
+        offset_option: OffsetDisambiguation,
+    ) -> TemporalResult<Self> {
+        ZonedDateTime::from_utf16_with_provider(
+            source,
+            disambiguation,
+            offset_option,
+            &*TZ_PROVIDER,
+        )
+    }
     /// Attempts to parse and create a `ZonedDateTime` from an IXDTF formatted [`&str`].
     ///
     /// Enable with the `compiled_data` feature flag.
     pub fn from_parsed(
-        parsed: crate::parsed_intermediates::ParsedZonedDateTime,
+        parsed: crate::parsers::intermediates::ParsedZonedDateTime,
         disambiguation: Disambiguation,
         offset_option: OffsetDisambiguation,
     ) -> TemporalResult<Self> {
