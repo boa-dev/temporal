@@ -95,6 +95,12 @@ jobs:
         with:
           key: build-test
 
+      # Ubuntu 26.04 split the backward links (America/Godthab, US/Pacific, ...)
+      # out of tzdata; FsTzdbProvider reads /usr/share/zoneinfo directly.
+      - name: Install tzdata-legacy
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y tzdata-legacy
+
       - name: Cargo build --all-features
         run: cargo build --quiet --all-features
       - name: Test --all-features
@@ -116,6 +122,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: features-test
+      # Backward links, as in build-test.
+      - name: Install tzdata-legacy
+        run: sudo apt-get update && sudo apt-get install -y tzdata-legacy
       - name: Install cargo-all-features
         uses: baptiste0928/cargo-install@v3.5.0
         with:
