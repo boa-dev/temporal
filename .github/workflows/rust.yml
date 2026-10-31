@@ -126,7 +126,7 @@ jobs:
       - name: Install tzdata-legacy
         run: sudo apt-get update && sudo apt-get install -y tzdata-legacy
       - name: Install cargo-all-features
-        uses: baptiste0928/cargo-install@v3.4.0
+        uses: baptiste0928/cargo-install@v3.5.0
         with:
           crate: cargo-all-features
 
