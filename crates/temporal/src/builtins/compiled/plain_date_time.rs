@@ -44,4 +44,25 @@ mod tests {
         // Should disambiguate to 2020-03-08T01:30:00-08:00[America/Los_Angeles]
         assert_eq!(zdt.hour(), 3);
     }
+
+    #[cfg(feature = "tzdb")]
+    #[test]
+    fn new_york_standard_time_before_dst_start() {
+        use crate::{options::Disambiguation, tzdb::CompiledTzdbProvider, PlainDateTime, TimeZone};
+        let provider = &CompiledTzdbProvider::default();
+
+        // DST starts on 2026-03-08, so 2026-03-07 is still standard time.
+        let pdt = PlainDateTime::try_new_iso(2026, 3, 7, 12, 0, 0, 0, 0, 0).unwrap();
+        let zdt = pdt
+            .to_zoned_date_time_with_provider(
+                TimeZone::try_from_identifier_str_with_provider("America/New_York", provider)
+                    .unwrap(),
+                Disambiguation::Compatible,
+                provider,
+            )
+            .unwrap();
+
+        assert_eq!(zdt.hour(), 12);
+        assert_eq!(zdt.offset(), "-05:00");
+    }
 }

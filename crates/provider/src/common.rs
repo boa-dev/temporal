@@ -250,7 +250,7 @@ impl MwdForTime {
     #[cfg(any(feature = "tzif", feature = "experimental_tzif"))]
     pub(crate) fn from_seconds(seconds: i64) -> Self {
         let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
-        let week_of_month = day_of_month / 7 + 1;
+        let week_of_month = (day_of_month - 1) / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
         let mut mwd = Mwd::from_u8(month, week_of_month, day_of_week);
         let days_in_month = utils::iso_days_in_month(year, month);
