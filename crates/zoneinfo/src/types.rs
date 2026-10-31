@@ -9,10 +9,7 @@
 
 use alloc::borrow::ToOwned;
 
-use crate::{
-    parser::{ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError},
-    utils,
-};
+use crate::parser::{ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError};
 
 pub mod rule;
 pub mod zone;
@@ -45,12 +42,12 @@ pub enum Month {
 impl Month {
     /// Calculates the day of year for the start of the month
     pub(crate) fn month_start_to_day_of_year(self, year: i32) -> i32 {
-        utils::month_to_day(self as u8, utils::num_leap_days(year))
+        temporal_utils::month_to_day((self as u8) - 1, temporal_utils::is_leap(year)) as i32
     }
 
     /// Calculates the day of year for the end of the month
     pub(crate) fn month_end_to_day_of_year(self, year: i32) -> i32 {
-        utils::month_to_day(self as u8 + 1, utils::num_leap_days(year)) - 1
+        temporal_utils::month_to_day(self as u8, temporal_utils::is_leap(year)) as i32 - 1
     }
 }
 
