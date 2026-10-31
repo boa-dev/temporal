@@ -42,11 +42,11 @@ pub mod ffi {
     }
 
     #[diplomat::opaque]
-    pub struct ParsedDate(pub(crate) temporal::parsed_intermediates::ParsedDate);
+    pub struct ParsedDate(pub(crate) temporal::parsers::intermediates::ParsedDate);
 
     impl ParsedDate {
         pub fn from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal::parsed_intermediates::ParsedDate::from_utf8(s)
+            temporal::parsers::intermediates::ParsedDate::from_utf8(s)
                 .map(|x| Box::new(ParsedDate(x)))
                 .map_err(Into::<TemporalError>::into)
         }
@@ -54,13 +54,13 @@ pub mod ffi {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal::TemporalError::range())?;
 
-            temporal::parsed_intermediates::ParsedDate::from_utf8(s.as_bytes())
+            temporal::parsers::intermediates::ParsedDate::from_utf8(s.as_bytes())
                 .map(|x| Box::new(ParsedDate(x)))
                 .map_err(Into::<TemporalError>::into)
         }
 
         pub fn year_month_from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal::parsed_intermediates::ParsedDate::year_month_from_utf8(s)
+            temporal::parsers::intermediates::ParsedDate::year_month_from_utf8(s)
                 .map(|x| Box::new(ParsedDate(x)))
                 .map_err(Into::<TemporalError>::into)
         }
@@ -68,13 +68,13 @@ pub mod ffi {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal::TemporalError::range())?;
 
-            temporal::parsed_intermediates::ParsedDate::year_month_from_utf8(s.as_bytes())
+            temporal::parsers::intermediates::ParsedDate::year_month_from_utf8(s.as_bytes())
                 .map(|x| Box::new(ParsedDate(x)))
                 .map_err(Into::<TemporalError>::into)
         }
 
         pub fn month_day_from_utf8(s: &DiplomatStr) -> Result<Box<Self>, TemporalError> {
-            temporal::parsed_intermediates::ParsedDate::month_day_from_utf8(s)
+            temporal::parsers::intermediates::ParsedDate::month_day_from_utf8(s)
                 .map(|x| Box::new(ParsedDate(x)))
                 .map_err(Into::<TemporalError>::into)
         }
@@ -82,7 +82,7 @@ pub mod ffi {
             // TODO(#275) This should not need to convert
             let s = String::from_utf16(s).map_err(|_| temporal::TemporalError::range())?;
 
-            temporal::parsed_intermediates::ParsedDate::month_day_from_utf8(s.as_bytes())
+            temporal::parsers::intermediates::ParsedDate::month_day_from_utf8(s.as_bytes())
                 .map(|x| Box::new(ParsedDate(x)))
                 .map_err(Into::<TemporalError>::into)
         }

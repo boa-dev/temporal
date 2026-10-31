@@ -10,7 +10,7 @@ use crate::{
     error::ErrorMessage,
     iso::IsoDate,
     options::{Overflow, Unit},
-    parsers::parse_allowed_calendar_formats,
+    parsers::TemporalEncoding,
     TemporalError, TemporalResult,
 };
 use core::str::FromStr;
@@ -179,6 +179,12 @@ impl Calendar {
         Ok(Self::new(kind))
     }
 
+    /// Returns a `Calendar` from a slice of UTF-16 encoded code units.
+    pub fn try_from_utf16(code_units: &[u16]) -> TemporalResult<Self> {
+        let ascii = crate::parsers::Utf16::ascii_identifier(code_units)?;
+        Self::try_from_utf8(&ascii)
+    }
+
     /// Returns a `Calendar` from the a slice of UTF-8 encoded bytes.
     pub(crate) fn try_kind_from_utf8(bytes: &[u8]) -> TemporalResult<AnyCalendarKind> {
         // TODO: Determine the best way to handle "julian" here.
@@ -207,11 +213,7 @@ impl FromStr for Calendar {
 
     // 13.34 ParseTemporalCalendarString ( string )
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match parse_allowed_calendar_formats(s.as_bytes()) {
-            Some([]) => Ok(Calendar::ISO),
-            Some(result) => Calendar::try_from_utf8(result),
-            None => Calendar::try_from_utf8(s.as_bytes()),
-        }
+        crate::parsers::TemporalParser::from_utf8(s.as_bytes()).parse_calendar()
     }
 }
 
@@ -793,6 +795,19 @@ mod tests {
         // Verify that an empty calendar is an error.
         let cal_str = "2025-02-07T01:24:00-06:00[u-ca=]";
         let _err = Calendar::from_str(cal_str).unwrap_err();
+    }
+
+    #[test]
+    fn try_from_utf16_multi_segment_id() {
+        // Regression test: `islamic-umalqura` is two dash-joined BCP-47 subtags
+        // and exceeds the 8-ASCII-char bound of a single subtag.
+        let cal_str = "islamic-umalqura";
+        let utf16: alloc::vec::Vec<u16> = cal_str.encode_utf16().collect();
+        assert_eq!(
+            Calendar::try_from_utf8(cal_str.as_bytes()),
+            Calendar::try_from_utf16(&utf16)
+        );
+        assert!(Calendar::try_from_utf16(&utf16).is_ok());
     }
 
     #[test]
