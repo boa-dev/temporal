@@ -390,11 +390,11 @@ version = "0.2.6"
 
 [[package]]
 name = "diplomat"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26fdfa02eb9a2e1ff82a375524be1ce9fd50ae63787f5737da6951b25d21e857"
+checksum = "61a80510e6103d35c5cd031c0e3f21165b32742c301ee3dafdbb5904c6dca46a"
 dependencies = [
- "diplomat_core",
+ "diplomat_core 0.17.0",
  "proc-macro2",
  "quote",
  "syn 3.0.3",
@@ -422,7 +422,7 @@ dependencies = [
  "askama",
  "clap",
  "colored",
- "diplomat_core",
+ "diplomat_core 0.16.0",
  "heck",
  "indenter",
  "itertools 0.14.0",
@@ -441,6 +441,20 @@ checksum = "f4ede23809e2fcc555d8b2e10ffa7a1c31331ebca8e5477f4f2b48ab8a0a9a6b"
 dependencies = [
  "annotate-snippets",
  "either",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "smallvec",
+ "strck",
+ "syn 3.0.3",
+]
+
+[[package]]
+name = "diplomat_core"
+version = "0.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfa5c594efd1d097105255fc325c430a517c97b7b7c69f8727f653593e1ce726"
+dependencies = [
  "proc-macro2",
  "quote",
  "serde",
