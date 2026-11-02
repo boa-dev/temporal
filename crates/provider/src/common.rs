@@ -250,14 +250,14 @@ impl MwdForTime {
     #[cfg(any(feature = "tzif", feature = "experimental_tzif"))]
     pub(crate) fn from_seconds(seconds: i64) -> Self {
         let (year, month, day_of_month) = utils::ymd_from_epoch_milliseconds(seconds * 1_000);
-        let week_of_month = day_of_month / 7 + 1;
+        let week_of_month = (day_of_month - 1) / 7 + 1;
         let day_of_week = utils::epoch_seconds_to_day_of_week(seconds);
         let mut mwd = Mwd::from_u8(month, week_of_month, day_of_week);
         let days_in_month = utils::iso_days_in_month(year, month);
         let day_of_week_zeroth_day =
             (i16::from(day_of_week) - i16::from(day_of_month)).rem_euclid(7) as u8;
         mwd.normalize_to_week_number(day_of_week_zeroth_day);
-        if day_of_month > 28 {
+        if days_in_month > 28 {
             let day_of_week_day_29 = (day_of_week_zeroth_day + 29).rem_euclid(7);
             let day_of_week_last_day = (day_of_week_zeroth_day + days_in_month).rem_euclid(7);
             Self {
@@ -291,7 +291,7 @@ impl MwdForTime {
             // the last $weekday in the month, we need special handling
             if other.week == 5 {
                 if let Some((day_29, last_day)) = self.extra_days {
-                    if day_29 < last_day {
+                    if day_29 <= last_day {
                         if other.day < day_29 || other.day > last_day {
                             // This day isn't found in the last week. Subtract one.
                             other.week = 4;
@@ -329,4 +329,48 @@ pub(crate) enum TransitionKind {
     Gap,
     // The offsets changed in a way that produces overlapping time.
     Overlap,
+}
+
+#[cfg(all(test, any(feature = "tzif", feature = "experimental_tzif")))]
+mod tests {
+    use super::{Mwd, MwdForTime};
+    use crate::utils;
+
+    #[test]
+    fn mwd_ordering_matches_calendar_days_across_solar_cycle() {
+        // A 28-year solar cycle (2000..=2027) covers all 7 starting weekdays for
+        // 28-, 29-, 30-, and 31-day months (including leap-year Februaries).
+        for year in 2000..=2027 {
+            for month in 1..=12u8 {
+                let days_in_month = utils::iso_days_in_month(year, month);
+                let first_day_secs = utils::epoch_days_from_gregorian_date(year, month, 1) * 86_400;
+                let first_dow = utils::epoch_seconds_to_day_of_week(first_day_secs);
+
+                for rule_week in 1..=5u8 {
+                    for rule_day in 0..=6u8 {
+                        let first_occurrence = 1 + (rule_day + 7 - first_dow) % 7;
+                        let mut transition_dom = first_occurrence + (rule_week - 1) * 7;
+                        if transition_dom > days_in_month {
+                            transition_dom -= 7;
+                        }
+
+                        for dom in 1..=days_in_month {
+                            let secs = utils::epoch_days_from_gregorian_date(year, month, dom)
+                                * 86_400
+                                + 43_200;
+                            let mwd = MwdForTime::from_seconds(secs);
+                            let mut rule = Mwd::from_u8(month, rule_week, rule_day);
+                            mwd.normalize_mwd(&mut rule);
+
+                            assert_eq!(
+                                mwd.mwd.cmp(&rule),
+                                dom.cmp(&transition_dom),
+                                "mismatch for {year}-{month:02}-{dom:02} vs M{month}.{rule_week}.{rule_day} (transition day {transition_dom})"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

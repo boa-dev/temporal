@@ -1441,3 +1441,59 @@ fn test_same_date_starts_twice() {
         }
     })
 }
+
+#[test]
+fn issue_759_posix_dst_near_transitions() {
+    use crate::PlainDateTime;
+
+    test_all_providers!(provider: {
+        // Repro 1: America/New_York on 2026-03-07 (7th of the month; DST starts March 8).
+        let ny = TimeZone::try_from_str_with_provider("America/New_York", provider).unwrap();
+        let dt_ny = PlainDateTime::try_new_iso(2026, 3, 7, 12, 0, 0, 0, 0, 0).unwrap();
+        let zdt_ny = dt_ny
+            .to_zoned_date_time_with_provider(ny, Disambiguation::Compatible, provider)
+            .unwrap();
+        assert_eq!(
+            zdt_ny.to_string_with_provider(provider).unwrap(),
+            "2026-03-07T12:00:00-05:00[America/New_York]"
+        );
+
+        let parsed_ny = parse_zdt_with_reject(
+            "2026-03-07T12:00:00-05:00[America/New_York]",
+            provider,
+        )
+        .unwrap();
+        assert_eq!(parsed_ny.epoch_nanoseconds(), zdt_ny.epoch_nanoseconds());
+
+        // Check another multiple of 7 (28th) in the week before fall-back (2025-11-02).
+        let dt_ny_fall = PlainDateTime::try_new_iso(2025, 10, 28, 12, 0, 0, 0, 0, 0).unwrap();
+        let zdt_ny_fall = dt_ny_fall
+            .to_zoned_date_time_with_provider(ny, Disambiguation::Compatible, provider)
+            .unwrap();
+        assert_eq!(
+            zdt_ny_fall.to_string_with_provider(provider).unwrap(),
+            "2025-10-28T12:00:00-04:00[America/New_York]"
+        );
+
+        // Repro 2: Europe/London in March 2026 (5 Sundays; BST starts March 29).
+        let london = TimeZone::try_from_str_with_provider("Europe/London", provider).unwrap();
+        for day in 22..=28 {
+            let dt = PlainDateTime::try_new_iso(2026, 3, day, 12, 0, 0, 0, 0, 0).unwrap();
+            let zdt = dt
+                .to_zoned_date_time_with_provider(london, Disambiguation::Compatible, provider)
+                .unwrap();
+            assert_eq!(
+                zdt.to_string_with_provider(provider).unwrap(),
+                format!("2026-03-{day:02}T12:00:00+00:00[Europe/London]")
+            );
+        }
+        let dt_bst = PlainDateTime::try_new_iso(2026, 3, 29, 12, 0, 0, 0, 0, 0).unwrap();
+        let zdt_bst = dt_bst
+            .to_zoned_date_time_with_provider(london, Disambiguation::Compatible, provider)
+            .unwrap();
+        assert_eq!(
+            zdt_bst.to_string_with_provider(provider).unwrap(),
+            "2026-03-29T12:00:00+01:00[Europe/London]"
+        );
+    })
+}
