@@ -1,7 +1,7 @@
 //! This module implements `PlainDate` and any directly related algorithms.
 
 use crate::error::ErrorMessage;
-use crate::parsed_intermediates::ParsedDate;
+use crate::parsers::intermediates::ParsedDate;
 use crate::{
     builtins::{
         calendar::{CalendarFields, YearMonthCalendarFields},
@@ -426,6 +426,13 @@ impl PlainDate {
         Self::from_parsed(parsed)
     }
 
+    /// Converts a UTF-16 encoded string into a `PlainDate`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parsed = ParsedDate::from_utf16(s)?;
+
+        Self::from_parsed(parsed)
+    }
+
     /// Creates a `PlainDate` from a [`ParsedDate`].
     pub fn from_parsed(parsed: ParsedDate) -> TemporalResult<Self> {
         Self::try_new(
@@ -754,6 +761,16 @@ mod tests {
                 },
                 calendar: Calendar::default(),
             })
+        );
+    }
+
+    #[test]
+    fn from_utf16_matches_from_utf8() {
+        let s = "2024-07-19[u-ca=hebrew]";
+        let utf16: alloc::vec::Vec<u16> = s.encode_utf16().collect();
+        assert_eq!(
+            PlainDate::from_utf8(s.as_bytes()),
+            PlainDate::from_utf16(&utf16)
         );
     }
 

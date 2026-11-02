@@ -4,9 +4,9 @@ use crate::builtins::core::zoned_date_time::interpret_isodatetime_offset;
 use crate::builtins::core::{calendar::Calendar, time_zone::TimeZone, PlainDate, ZonedDateTime};
 use crate::iso::{IsoDate, IsoTime};
 use crate::options::{Disambiguation, OffsetDisambiguation, Overflow};
-use crate::parsers::{parse_date_time, parse_zoned_date_time};
+use crate::parsers::{parse_date_time_record, parse_zoned_date_time_record, Utf8};
 use crate::provider::TimeZoneProvider;
-use crate::{TemporalResult, TemporalUnwrap};
+use crate::TemporalResult;
 
 use ixdtf::records::UtcOffsetRecordOrZ;
 
@@ -40,35 +40,45 @@ impl RelativeTo {
         source: &str,
         provider: &(impl TimeZoneProvider + ?Sized),
     ) -> TemporalResult<Self> {
-        // b. Let result be ? ParseISODateTime(value, « TemporalDateTimeString[+Zoned], TemporalDateTimeString[~Zoned] »).
+        // b. Let result be ? ParseISODateTime(value, « TemporalDateTimeString[+Zoned], TemporalDateTimeString[~Zoned] »).
         let bytes = source.as_bytes();
-        let result = parse_date_time(bytes).or_else(|_| parse_zoned_date_time(bytes))?;
+        let (date, time, offset, tz, calendar) = match parse_date_time_record::<Utf8>(bytes) {
+            Ok(record) => (
+                record.date,
+                record.time,
+                record.offset,
+                record.tz,
+                record.calendar,
+            ),
+            Err(_) => {
+                let record = parse_zoned_date_time_record::<Utf8>(bytes)?;
+                (
+                    record.date,
+                    record.time,
+                    record.offset,
+                    Some(record.tz),
+                    record.calendar,
+                )
+            }
+        };
 
-        let Some(annotation) = result.tz else {
-            let date_record = result.date.temporal_unwrap()?;
-
-            let calendar = result
-                .calendar
+        let Some(annotation) = tz else {
+            let parsed_calendar = calendar
                 .map(Calendar::try_from_utf8)
                 .transpose()?
                 .unwrap_or_default();
 
-            return Ok(PlainDate::try_new(
-                date_record.year,
-                date_record.month,
-                date_record.day,
-                calendar,
-            )?
-            .into());
+            return Ok(
+                PlainDate::try_new(date.year, date.month, date.day, parsed_calendar)?.into(),
+            );
         };
 
         // iv. Set matchBehaviour to match-minutes.
         let mut match_minutes = true;
 
-        let time_zone = TimeZone::from_time_zone_record(annotation.tz, provider)?;
+        let time_zone = TimeZone::from_time_zone_record::<Utf8>(annotation.tz, provider)?;
 
-        let (offset_nanos, is_exact) = result
-            .offset
+        let (offset_nanos, is_exact) = offset
             .map(|record| {
                 let UtcOffsetRecordOrZ::Offset(offset) = record else {
                     return (None, true);
@@ -95,17 +105,14 @@ impl RelativeTo {
             })
             .unwrap_or((None, false));
 
-        let calendar = result
-            .calendar
+        let calendar = calendar
             .map(Calendar::try_from_utf8)
             .transpose()?
             .unwrap_or_default();
 
-        let time = result.time.map(IsoTime::from_time_record).transpose()?;
+        let time = time.map(IsoTime::from_time_record).transpose()?;
 
-        let date = result.date.temporal_unwrap()?;
         let iso = IsoDate::new_with_overflow(date.year, date.month, date.day, Overflow::Constrain)?;
-
         let epoch_ns = interpret_isodatetime_offset(
             iso,
             time,

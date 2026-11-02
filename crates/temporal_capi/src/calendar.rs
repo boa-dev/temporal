@@ -41,10 +41,13 @@ pub mod ffi {
 
         // https://tc39.es/proposal-temporal/#sec-temporal-parsetemporalcalendarstring
         pub fn parse_temporal_calendar_string(s: &DiplomatStr) -> Option<Self> {
-            match temporal::parsers::parse_allowed_calendar_formats(s) {
-                Some([]) => Some(AnyCalendarKind::Iso),
-                Some(result) => Self::get_for_str(result),
-                None => Self::get_for_str(s),
+            use temporal::parsers::{TemporalParser, Utf8};
+
+            // Not `parse_calendar`: `Calendar` maps the calendars Temporal does not
+            // support onto ISO, which would hide them from `get_for_str`.
+            match TemporalParser::<Utf8>::from_utf8(s).parse_calendar_identifier() {
+                Some(identifier) => Self::get_for_str(identifier),
+                None => Some(AnyCalendarKind::Iso),
             }
         }
     }
