@@ -14,6 +14,7 @@ exclude.workspace = true
 
 [dependencies]
 
+temporal_utils = { workspace = true }
 core_maths = "0.1.1"
 icu_calendar = { workspace = true, features = ["compiled_data"] }
 icu_locale_core.workspace = true

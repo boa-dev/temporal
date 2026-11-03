@@ -10,7 +10,6 @@ use crate::{
         rule::{DayOfMonth, WeekDay},
         Month, QualifiedTime, Sign, Time,
     },
-    utils::month_to_day,
     zone::ZoneEntry,
 };
 use alloc::string::String;
@@ -148,11 +147,15 @@ impl PosixDate {
     pub(crate) fn from_rule(rule: &Rule) -> (Self, i64) {
         match rule.on_date {
             DayOfMonth::Day(day) if rule.in_month == Month::Jan || rule.in_month == Month::Feb => (
-                PosixDate::JulianNoLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16),
+                PosixDate::JulianNoLeap(
+                    temporal_utils::month_to_day((rule.in_month as u8) - 1, true) + day as u16,
+                ),
                 0,
             ),
             DayOfMonth::Day(day) => (
-                PosixDate::JulianLeap(month_to_day(rule.in_month as u8, 1) as u16 + day as u16),
+                PosixDate::JulianLeap(
+                    temporal_utils::month_to_day((rule.in_month as u8) - 1, true) + day as u16,
+                ),
                 0,
             ),
             DayOfMonth::Last(wd) => (
