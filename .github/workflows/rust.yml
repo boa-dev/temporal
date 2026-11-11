@@ -156,7 +156,7 @@ jobs:
 
       # Only nushell: Rust comes from rust-toolchain above so that rust-cache
       # keeps working, per the mise-action README.
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v5
         with:
           install_args: "aqua:nushell/nushell"
 
