@@ -331,8 +331,7 @@ pub(crate) enum TransitionKind {
 
 #[cfg(all(test, any(feature = "tzif", feature = "experimental_tzif")))]
 mod tests {
-    use super::{Mwd, MwdForTime};
-    use crate::utils;
+    use super::{utils, Mwd, MwdForTime};
 
     #[test]
     fn mwd_ordering_matches_calendar_days_across_solar_cycle() {
