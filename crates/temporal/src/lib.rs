@@ -319,6 +319,7 @@ pub mod partial {
     };
 }
 
+#[deprecated(since = "0.2.7", note = "Use `parsers::intermediates` instead")]
 pub mod parsed_intermediates;
 
 // TODO: Potentially bikeshed how `EpochNanoseconds` should be exported.

@@ -4,21 +4,25 @@ use crate::{
     error::ErrorMessage,
     iso::{IsoDate, IsoTime},
     options::{DisplayCalendar, DisplayOffset, DisplayTimeZone},
-    Sign, TemporalError, TemporalResult,
+    parsers::intermediates::{ParsedDate, ParsedDateTime, ParsedZonedDateTime},
+    provider::TimeZoneProvider,
+    Calendar, Duration, Instant, PlainTime, Sign, TemporalError, TemporalResult, TemporalUnwrap,
+    TimeZone,
 };
+use alloc::{borrow::Cow, vec::Vec};
+use icu_calendar::AnyCalendarKind;
+pub use ixdtf::encoding::{EncodingType, Utf16, Utf8};
 use ixdtf::{
-    encoding::Utf8,
-    parsers::IxdtfParser,
+    parsers::{IsoDurationParser, IxdtfParser, TimeZoneParser},
     records::{
-        Annotation, DateRecord, FullPrecisionOffset, IxdtfParseRecord, TimeRecord, UtcOffsetRecord,
-        UtcOffsetRecordOrZ,
+        Annotation, DateRecord, FullPrecisionOffset, TimeRecord, TimeZoneAnnotation,
+        TimeZoneRecord, UtcOffsetRecord, UtcOffsetRecordOrZ,
     },
 };
 use writeable::{impl_display_with_writeable, LengthHint, Writeable};
 
+pub mod intermediates;
 mod time_zone;
-
-pub(crate) use time_zone::{parse_allowed_timezone_formats, parse_identifier};
 
 // TODO: Move `Writeable` functionality to `ixdtf` crate
 
@@ -651,8 +655,101 @@ fn checked_write_u64_with_suffix<W: core::fmt::Write + ?Sized>(
     sink.write_char(suffix)
 }
 
-// TODO: Determine if these should be separate structs, i.e. TemporalDateTimeParser/TemporalInstantParser, or
-// maybe on global `TemporalParser` around `IxdtfParser` that handles the Temporal idiosyncracies.
+mod sealed {
+    /// Prevents outside implementations of [`super::TemporalEncoding`].
+    pub trait Sealed {}
+
+    impl Sealed for super::Utf8 {}
+    impl Sealed for super::Utf16 {}
+}
+
+/// Extends `ixdtf`'s [`EncodingType`] with ASCII normalization for calendar/time-zone
+/// identifiers. Sealed: implemented only for [`Utf8`] and [`Utf16`].
+///
+/// Normalization happens at the edge that needs UTF-8 bytes, not during parsing —
+/// parse records keep identifiers in the source encoding.
+pub trait TemporalEncoding: EncodingType + sealed::Sealed {
+    /// Normalizes an ASCII identifier slice (calendar id, IANA name) to UTF-8.
+    /// Zero-copy for [`Utf8`].
+    #[doc(hidden)]
+    fn ascii_identifier(source: &[Self::CodeUnit]) -> TemporalResult<Cow<'_, [u8]>>;
+
+    /// Case-insensitive ASCII comparison without allocating; used for calendar-id
+    /// literal checks (e.g. `"iso8601"`) during parsing.
+    #[doc(hidden)]
+    fn eq_ascii_ignore_case(source: &[Self::CodeUnit], ascii: &[u8]) -> bool {
+        source.len() == ascii.len()
+            && (0..source.len()).all(|i| {
+                let Some(expected) = ascii.get(i) else {
+                    return false;
+                };
+                Self::get_ascii(source, i)
+                    .ok()
+                    .flatten()
+                    .is_some_and(|byte| byte.eq_ignore_ascii_case(expected))
+            })
+    }
+}
+
+impl TemporalEncoding for Utf8 {
+    fn ascii_identifier(source: &[u8]) -> TemporalResult<Cow<'_, [u8]>> {
+        Ok(Cow::Borrowed(source))
+    }
+}
+
+impl TemporalEncoding for Utf16 {
+    fn ascii_identifier(source: &[u16]) -> TemporalResult<Cow<'_, [u8]>> {
+        let mut buf = Vec::with_capacity(source.len());
+        for i in 0..source.len() {
+            let byte = Utf16::get_ascii(source, i)?.ok_or_else(TemporalError::assert)?;
+            buf.push(byte);
+        }
+        Ok(Cow::Owned(buf))
+    }
+}
+
+/// A parsed-but-not-yet-normalized IXDTF record, generic over source encoding.
+///
+/// Calendar/time-zone identifiers stay in the source encoding; normalize via
+/// [`TemporalEncoding::ascii_identifier`] only where actually needed.
+///
+/// `date`/`tz` are `Option` since this is the shared shape for every
+/// [`ParseVariant`] (bare `Time` has no date). Use [`DateParseRecord`] or
+/// [`ZonedDateParseRecord`] where the guarantee is known instead of re-deriving it.
+#[derive(Debug, PartialEq)]
+pub(crate) struct TemporalParseRecord<'a, T: EncodingType> {
+    pub(crate) date: Option<DateRecord>,
+    pub(crate) time: Option<TimeRecord>,
+    pub(crate) offset: Option<UtcOffsetRecordOrZ>,
+    pub(crate) tz: Option<TimeZoneAnnotation<'a, T>>,
+    pub(crate) calendar: Option<&'a [T::CodeUnit]>,
+}
+
+/// A parsed IXDTF record for a grammar production that always carries a date
+/// (`TemporalDateTimeString`, `TemporalYearMonthString`, `TemporalMonthDayString`).
+///
+/// Unlike [`TemporalParseRecord`], `date` is guaranteed present.
+#[derive(Debug, PartialEq)]
+pub(crate) struct DateParseRecord<'a, T: EncodingType> {
+    pub(crate) date: DateRecord,
+    pub(crate) time: Option<TimeRecord>,
+    pub(crate) offset: Option<UtcOffsetRecordOrZ>,
+    pub(crate) tz: Option<TimeZoneAnnotation<'a, T>>,
+    pub(crate) calendar: Option<&'a [T::CodeUnit]>,
+}
+
+/// A parsed IXDTF record for `TemporalZonedDateTimeString`, which additionally
+/// guarantees a time zone annotation is present (`parse_zoned_date_time_record` rejects
+/// strings without one before ever constructing this type).
+#[derive(Debug, PartialEq)]
+pub(crate) struct ZonedDateParseRecord<'a, T: EncodingType> {
+    pub(crate) date: DateRecord,
+    pub(crate) time: Option<TimeRecord>,
+    pub(crate) offset: Option<UtcOffsetRecordOrZ>,
+    pub(crate) tz: TimeZoneAnnotation<'a, T>,
+    pub(crate) calendar: Option<&'a [T::CodeUnit]>,
+}
+
 #[derive(PartialEq)]
 enum ParseVariant {
     YearMonth,
@@ -662,22 +759,25 @@ enum ParseVariant {
 }
 
 #[inline]
-fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
-    fn cast_handler<'a>(
-        _: &mut IxdtfParser<'a, Utf8>,
-        handler: impl FnMut(Annotation<'a, Utf8>) -> Option<Annotation<'a, Utf8>>,
-    ) -> impl FnMut(Annotation<'a, Utf8>) -> Option<Annotation<'a, Utf8>> {
+fn parse_ixdtf<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+    variant: ParseVariant,
+) -> TemporalResult<TemporalParseRecord<'_, T>> {
+    fn cast_handler<'a, T: EncodingType>(
+        _: &mut IxdtfParser<'a, T>,
+        handler: impl FnMut(Annotation<'a, T>) -> Option<Annotation<'a, T>>,
+    ) -> impl FnMut(Annotation<'a, T>) -> Option<Annotation<'a, T>> {
         handler
     }
 
-    let mut first_calendar: Option<Annotation<Utf8>> = None;
+    let mut first_calendar: Option<Annotation<T>> = None;
     let mut critical_duplicate_calendar = false;
-    let mut parser = IxdtfParser::from_utf8(source);
+    let mut parser = IxdtfParser::<T>::new(source);
 
-    let handler = cast_handler(&mut parser, |annotation: Annotation<Utf8>| {
-        if annotation.key == "u-ca".as_bytes() {
-            match first_calendar {
-                Some(ref cal) => {
+    let handler = cast_handler(&mut parser, |annotation: Annotation<T>| {
+        if T::check_calendar_key(annotation.key) {
+            match &first_calendar {
+                Some(cal) => {
                     if cal.critical || annotation.critical {
                         critical_duplicate_calendar = true
                     }
@@ -691,7 +791,7 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         Some(annotation)
     });
 
-    let mut record = match variant {
+    let record = match variant {
         ParseVariant::YearMonth => parser.parse_year_month_with_annotation_handler(handler),
         ParseVariant::MonthDay => parser.parse_month_day_with_annotation_handler(handler),
         ParseVariant::DateTime => parser.parse_with_annotation_handler(handler),
@@ -713,7 +813,8 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         }
     }
 
-    record.calendar = first_calendar.map(|v| v.value);
+    // Keep calendar bytes in source encoding; normalize only where consumed.
+    let calendar = first_calendar.map(|v| v.value);
 
     // Note: this method only handles the specific AnnotatedFoo nonterminals;
     // so if we are parsing MonthDay/YearMonth we will never have a DateDay/DateYear parse node.
@@ -724,8 +825,8 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
     //  a. If calendar is not empty, and the ASCII-lowercase of calendar is not "iso8601", throw a RangeError exception.
     //  b. Set yearAbsent to true.
     if variant == ParseVariant::MonthDay || variant == ParseVariant::YearMonth {
-        if let Some(cal) = record.calendar {
-            if !cal.eq_ignore_ascii_case(b"iso8601") {
+        if let Some(cal) = calendar {
+            if !T::eq_ascii_ignore_case(cal, b"iso8601") {
                 return Err(TemporalError::range()
                     .with_message("YearMonth/MonthDay formats only allowed for ISO calendar."));
             }
@@ -770,36 +871,61 @@ fn parse_ixdtf(source: &[u8], variant: ParseVariant) -> TemporalResult<IxdtfPars
         }
     }
 
-    Ok(record)
+    Ok(TemporalParseRecord {
+        date: record.date,
+        time: record.time,
+        offset: record.offset,
+        tz: record.tz,
+        calendar,
+    })
 }
 
 /// A utility function for parsing a `DateTime` string
 #[inline]
-pub(crate) fn parse_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
-    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+pub(crate) fn parse_date_time_record<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<DateParseRecord<'_, T>> {
+    let record = parse_ixdtf::<T>(source, ParseVariant::DateTime)?;
 
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
         return Err(TemporalError::range()
             .with_message("UTC designator is not valid for DateTime parsing."));
     }
 
-    Ok(record)
+    Ok(DateParseRecord {
+        date: record.date.temporal_unwrap()?,
+        time: record.time,
+        offset: record.offset,
+        tz: record.tz,
+        calendar: record.calendar,
+    })
 }
 
 #[inline]
-pub(crate) fn parse_zoned_date_time(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
-    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+pub(crate) fn parse_zoned_date_time_record<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<ZonedDateParseRecord<'_, T>> {
+    let record = parse_ixdtf::<T>(source, ParseVariant::DateTime)?;
 
     // TODO: Support rejecting subminute precision in time zone annootations
-    if record.tz.is_none() {
+    let Some(tz) = record.tz else {
         return Err(TemporalError::range()
             .with_message("Time zone annotation is required for parsing a zoned date time."));
-    }
+    };
 
-    Ok(record)
+    Ok(ZonedDateParseRecord {
+        date: record.date.temporal_unwrap()?,
+        time: record.time,
+        offset: record.offset,
+        tz,
+        calendar: record.calendar,
+    })
 }
 
-pub(crate) struct IxdtfParseInstantRecord {
+/// The components of a parsed `TemporalInstantString`.
+///
+/// Unlike a `TemporalDateTimeString`, every component is required.
+pub(crate) struct ParsedInstantRecord {
     pub(crate) date: DateRecord,
     pub(crate) time: TimeRecord,
     pub(crate) offset: UtcOffsetRecordOrZ,
@@ -807,10 +933,12 @@ pub(crate) struct IxdtfParseInstantRecord {
 
 /// A utility function for parsing an `Instant` string
 #[inline]
-pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRecord> {
-    let record = parse_ixdtf(source, ParseVariant::DateTime)?;
+pub(crate) fn parse_instant_record<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<ParsedInstantRecord> {
+    let record = parse_ixdtf::<T>(source, ParseVariant::DateTime)?;
 
-    let IxdtfParseRecord {
+    let TemporalParseRecord {
         date: Some(date),
         time: Some(time),
         offset: Some(offset),
@@ -822,15 +950,15 @@ pub(crate) fn parse_instant(source: &[u8]) -> TemporalResult<IxdtfParseInstantRe
         );
     };
 
-    Ok(IxdtfParseInstantRecord { date, time, offset })
+    Ok(ParsedInstantRecord { date, time, offset })
 }
 
 // Ensure that the record does not have a Z offset element.
 //
 // This handles the [~Zoned] in TemporalFooString productions
-fn check_offset_no_z(
-    record: IxdtfParseRecord<'_, Utf8>,
-) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
+fn check_offset_no_z<T: TemporalEncoding>(
+    record: TemporalParseRecord<'_, T>,
+) -> TemporalResult<TemporalParseRecord<'_, T>> {
     if record.offset == Some(UtcOffsetRecordOrZ::Z) {
         return Err(TemporalError::range()
             .with_message("UTC designator is not valid for plain date/time parsing."));
@@ -841,40 +969,51 @@ fn check_offset_no_z(
 
 /// A utility function for parsing a `YearMonth` string
 #[inline]
-pub(crate) fn parse_year_month(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
-    let ym_record = parse_ixdtf(source, ParseVariant::YearMonth);
+pub(crate) fn parse_year_month_record<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<DateParseRecord<'_, T>> {
+    let ym_record = parse_ixdtf::<T>(source, ParseVariant::YearMonth).and_then(check_offset_no_z);
 
-    let Err(e) = ym_record else {
-        return ym_record.and_then(check_offset_no_z);
+    let record = match ym_record {
+        Ok(record) => record,
+        // Format and return the error from parsing YearMonth.
+        Err(e) => return parse_date_time_record::<T>(source).map_err(|_| e),
     };
 
-    let dt_parse = parse_date_time(source);
-
-    match dt_parse {
-        Ok(dt) => check_offset_no_z(dt),
-        // Format and return the error from parsing YearMonth.
-        _ => Err(e),
-    }
+    Ok(DateParseRecord {
+        date: record.date.temporal_unwrap()?,
+        time: record.time,
+        offset: record.offset,
+        tz: record.tz,
+        calendar: record.calendar,
+    })
 }
 
 /// A utilty function for parsing a `MonthDay` String.
-pub(crate) fn parse_month_day(source: &[u8]) -> TemporalResult<IxdtfParseRecord<'_, Utf8>> {
-    let md_record = parse_ixdtf(source, ParseVariant::MonthDay);
-    let Err(e) = md_record else {
-        return md_record.and_then(check_offset_no_z);
+pub(crate) fn parse_month_day_record<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<DateParseRecord<'_, T>> {
+    let md_record = parse_ixdtf::<T>(source, ParseVariant::MonthDay).and_then(check_offset_no_z);
+
+    let record = match md_record {
+        Ok(record) => record,
+        // Format and return the error from parsing MonthDay.
+        Err(e) => return parse_date_time_record::<T>(source).map_err(|_| e),
     };
 
-    let dt_parse = parse_date_time(source);
-
-    match dt_parse {
-        Ok(dt) => check_offset_no_z(dt),
-        // Format and return the error from parsing MonthDay.
-        _ => Err(e),
-    }
+    Ok(DateParseRecord {
+        date: record.date.temporal_unwrap()?,
+        time: record.time,
+        offset: record.offset,
+        tz: record.tz,
+        calendar: record.calendar,
+    })
 }
 
-// Ensures that an IxdtfParseRecord was parsed with [~Zoned][+TimeRequired]
-fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecord> {
+// Ensures that a TemporalParseRecord was parsed with [~Zoned][+TimeRequired]
+fn check_time_record<T: TemporalEncoding>(
+    record: TemporalParseRecord<'_, T>,
+) -> TemporalResult<TimeRecord> {
     // Handle [~Zoned]
     let record = check_offset_no_z(record)?;
     // Handle [+TimeRequired]
@@ -886,39 +1025,345 @@ fn check_time_record(record: IxdtfParseRecord<Utf8>) -> TemporalResult<TimeRecor
 }
 
 #[inline]
-pub(crate) fn parse_time(source: &[u8]) -> TemporalResult<TimeRecord> {
-    let time_record = parse_ixdtf(source, ParseVariant::Time);
+pub(crate) fn parse_time_record<T: TemporalEncoding>(
+    source: &[T::CodeUnit],
+) -> TemporalResult<TimeRecord> {
+    let time_record = parse_ixdtf::<T>(source, ParseVariant::Time);
 
     let Err(e) = time_record else {
         return time_record.and_then(check_time_record);
     };
 
-    let dt_parse = parse_date_time(source);
-
-    match dt_parse {
-        Ok(dt) => check_time_record(dt),
-        // Format and return the error from parsing MonthDay.
+    match parse_date_time_record::<T>(source) {
+        // `parse_date_time_record` already rejects a `Z` offset, so only the
+        // [+TimeRequired] check remains here.
+        Ok(dt) => dt.time.ok_or_else(|| {
+            TemporalError::range()
+                .with_message("PlainTime can only be parsed from strings with a time component.")
+        }),
+        // Format and return the error from parsing Time.
         _ => Err(e),
     }
 }
 
-/// Consider this API to be unstable: it is used internally by temporal_capi but
-/// will likely be replaced with a proper TemporalParser API at some point.
+/// Finds a calendar annotation across the Temporal grammar productions that may
+/// carry one.
+///
+/// `None`: no calendar-bearing production matched. `Some(None)`: matched, no `u-ca`
+/// annotation. `Some(Some(id))`: matched with an explicit calendar identifier.
 #[inline]
-pub fn parse_allowed_calendar_formats(s: &[u8]) -> Option<&[u8]> {
-    if let Ok(r) = parse_ixdtf(s, ParseVariant::DateTime).map(|r| r.calendar) {
-        return Some(r.unwrap_or(&[]));
-    } else if let Ok(r) = IxdtfParser::from_utf8(s).parse_time().map(|r| r.calendar) {
-        return Some(r.unwrap_or(&[]));
-    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::YearMonth).map(|r| r.calendar) {
-        return Some(r.unwrap_or(&[]));
-    } else if let Ok(r) = parse_ixdtf(s, ParseVariant::MonthDay).map(|r| r.calendar) {
-        return Some(r.unwrap_or(&[]));
+fn parse_allowed_calendar_formats<T: TemporalEncoding>(
+    s: &[T::CodeUnit],
+) -> Option<Option<&[T::CodeUnit]>> {
+    for variant in [
+        ParseVariant::DateTime,
+        ParseVariant::Time,
+        ParseVariant::YearMonth,
+        ParseVariant::MonthDay,
+    ] {
+        if let Ok(r) = parse_ixdtf::<T>(s, variant) {
+            return Some(r.calendar);
+        }
     }
     None
 }
 
-// TODO: ParseTimeZoneString, ParseZonedDateTimeString
+/// Converts a parsed time component to an [`IsoTime`], defaulting to midnight when
+/// absent. Errors if the component is present but invalid.
+fn iso_time_or_midnight(time: Option<TimeRecord>) -> TemporalResult<IsoTime> {
+    Ok(time
+        .map(IsoTime::from_time_record)
+        .transpose()?
+        .unwrap_or_default())
+}
+
+fn calendar_kind<T: TemporalEncoding>(
+    calendar: Option<&[T::CodeUnit]>,
+) -> TemporalResult<AnyCalendarKind> {
+    let Some(calendar) = calendar else {
+        return Ok(AnyCalendarKind::Iso);
+    };
+    let ascii = T::ascii_identifier(calendar)?;
+    // HijriSimulatedMecca parses fine here; Calendar::new turns it into ISO.
+    Calendar::try_kind_from_utf8(&ascii)
+}
+
+/// A parser for Temporal strings, generic over the source encoding.
+///
+/// This is the entry point for callers that need the parse step separated from the
+/// resolution step. The Temporal specification performs observable operations (JS
+/// option getters) between the two, so an engine must be able to parse a string into
+/// an intermediate, run those operations, and only then construct the final value.
+///
+/// The date and date/time methods return the intermediates in [`intermediates`],
+/// which are consumed by the matching `Foo::from_parsed*` constructors. The
+/// remaining methods return `ixdtf` records directly.
+///
+/// Identifiers in returned records stay in the source encoding; normalize them with
+/// [`TemporalEncoding::ascii_identifier`] at the point of use.
+///
+/// ```
+/// use temporal::parsers::TemporalParser;
+/// use temporal::PlainDate;
+///
+/// let parsed = TemporalParser::from_utf8(b"2024-07-19[u-ca=hebrew]").parse_date()?;
+/// // An engine would run observable option getters here.
+/// let date = PlainDate::from_parsed(parsed)?;
+/// assert_eq!(date.calendar().identifier(), "hebrew");
+/// # Ok::<(), temporal::TemporalError>(())
+/// ```
+#[derive(Debug, Clone, Copy)]
+pub struct TemporalParser<'a, T: TemporalEncoding> {
+    source: &'a [T::CodeUnit],
+}
+
+impl<'a> TemporalParser<'a, Utf8> {
+    /// Creates a parser over a UTF-8 encoded source.
+    #[must_use]
+    pub fn from_utf8(source: &'a [u8]) -> Self {
+        Self::from_encoded(source)
+    }
+}
+
+impl<'a> TemporalParser<'a, Utf16> {
+    /// Creates a parser over a UTF-16 encoded source.
+    #[must_use]
+    pub fn from_utf16(source: &'a [u16]) -> Self {
+        Self::from_encoded(source)
+    }
+}
+
+impl<'a, T: TemporalEncoding> TemporalParser<'a, T> {
+    /// Creates a parser over a source in any supported encoding.
+    #[must_use]
+    pub fn from_encoded(source: &'a [T::CodeUnit]) -> Self {
+        Self { source }
+    }
+
+    /// Parses a `TemporalDateTimeString` into a [`ParsedDate`].
+    #[must_use = "parsing returns the parsed intermediate"]
+    pub fn parse_date(&self) -> TemporalResult<ParsedDate> {
+        let record = parse_date_time_record::<T>(self.source)?;
+        let calendar = calendar_kind::<T>(record.calendar)?;
+        // Time is discarded, but must still be validated here (observable).
+        iso_time_or_midnight(record.time)?;
+
+        Ok(ParsedDate {
+            record: record.date,
+            calendar,
+        })
+    }
+
+    /// Parses a `TemporalYearMonthString` into a [`ParsedDate`].
+    #[must_use = "parsing returns the parsed intermediate"]
+    pub fn parse_year_month(&self) -> TemporalResult<ParsedDate> {
+        let record = parse_year_month_record::<T>(self.source)?;
+        let calendar = calendar_kind::<T>(record.calendar)?;
+        iso_time_or_midnight(record.time)?;
+
+        Ok(ParsedDate {
+            record: record.date,
+            calendar,
+        })
+    }
+
+    /// Parses a `TemporalMonthDayString` into a [`ParsedDate`].
+    #[must_use = "parsing returns the parsed intermediate"]
+    pub fn parse_month_day(&self) -> TemporalResult<ParsedDate> {
+        let record = parse_month_day_record::<T>(self.source)?;
+        let calendar = calendar_kind::<T>(record.calendar)?;
+        iso_time_or_midnight(record.time)?;
+
+        Ok(ParsedDate {
+            record: record.date,
+            calendar,
+        })
+    }
+
+    /// Parses a `TemporalDateTimeString` into a [`ParsedDateTime`].
+    #[must_use = "parsing returns the parsed intermediate"]
+    pub fn parse_date_time(&self) -> TemporalResult<ParsedDateTime> {
+        let record = parse_date_time_record::<T>(self.source)?;
+        let calendar = calendar_kind::<T>(record.calendar)?;
+        let time = iso_time_or_midnight(record.time)?;
+
+        Ok(ParsedDateTime {
+            date: ParsedDate {
+                record: record.date,
+                calendar,
+            },
+            time,
+        })
+    }
+
+    /// Parses a `TemporalZonedDateTimeString` into a [`ParsedZonedDateTime`], using
+    /// compiled time zone data.
+    #[cfg(feature = "compiled_data")]
+    #[must_use = "parsing returns the parsed intermediate"]
+    pub fn parse_zoned_date_time(&self) -> TemporalResult<ParsedZonedDateTime> {
+        self.parse_zoned_date_time_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
+
+    /// Parses a `TemporalZonedDateTimeString` into a [`ParsedZonedDateTime`].
+    #[must_use = "parsing returns the parsed intermediate"]
+    pub fn parse_zoned_date_time_with_provider(
+        &self,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<ParsedZonedDateTime> {
+        // Steps from the parse bits of ToZonedDateTime
+
+        // 3. Let matchBehaviour be match-minutes.
+        let mut match_minutes = true;
+
+        // b. Let result be ? ParseISODateTime(item, « TemporalDateTimeString[+Zoned] »).
+        let record = parse_zoned_date_time_record::<T>(self.source)?;
+
+        // c-e. Resolve the (guaranteed present) time zone annotation.
+        let time_zone = TimeZone::from_time_zone_record::<T>(record.tz.tz, provider)?;
+
+        // f-g. Resolve the offset, tracking whether `Z` was used.
+        let (offset, has_utc_designator) = match record.offset {
+            Some(UtcOffsetRecordOrZ::Z) => (None, true),
+            Some(UtcOffsetRecordOrZ::Offset(offset)) => {
+                // iii. More than one MinuteSecond node means match-exactly.
+                if offset.second().is_some() {
+                    match_minutes = false;
+                }
+                (Some(crate::UtcOffset::from_ixdtf_record(offset)?), false)
+            }
+            None => (None, false),
+        };
+
+        // h-j. Resolve the calendar, defaulting to ISO.
+        let calendar = calendar_kind::<T>(record.calendar)?;
+
+        let time = record.time.map(IsoTime::from_time_record).transpose()?;
+
+        Ok(ParsedZonedDateTime {
+            date: ParsedDate {
+                record: record.date,
+                calendar,
+            },
+            time,
+            has_utc_designator,
+            match_minutes,
+            offset,
+            timezone: time_zone,
+        })
+    }
+
+    /// Parses a `TemporalInstantString` into an [`Instant`].
+    ///
+    /// `ToTemporalInstant` runs no observable operations after parsing, so the
+    /// result is validated here rather than handed back as an intermediate.
+    #[must_use = "parsing returns the parsed instant"]
+    pub fn parse_instant(&self) -> TemporalResult<Instant> {
+        Instant::from_parsed_record(parse_instant_record::<T>(self.source)?)
+    }
+
+    /// Parses a `TemporalTimeString` into a [`PlainTime`].
+    ///
+    /// `ToTemporalTime` reads the overflow option after parsing but discards it, and
+    /// `CreateTemporalTime` is infallible, so the result is validated here.
+    #[must_use = "parsing returns the parsed time"]
+    pub fn parse_time(&self) -> TemporalResult<PlainTime> {
+        let record = parse_time_record::<T>(self.source)?;
+        Ok(PlainTime::new_unchecked(IsoTime::from_time_record(record)?))
+    }
+
+    /// Parses a `TemporalDurationString` into a [`Duration`].
+    #[must_use = "parsing returns the parsed duration"]
+    pub fn parse_duration(&self) -> TemporalResult<Duration> {
+        Duration::from_duration_record(IsoDurationParser::<T>::new(self.source).parse()?)
+    }
+
+    /// Parses a `UTCOffset` into a [`UtcOffset`], per `ParseDateTimeUTCOffset`.
+    #[must_use = "parsing returns the parsed offset"]
+    pub fn parse_utc_offset(&self) -> TemporalResult<crate::UtcOffset> {
+        crate::UtcOffset::from_ixdtf_record(TimeZoneParser::<T>::new(self.source).parse_offset()?)
+    }
+
+    /// Parses a `TimeZoneIdentifier` (IANA name or offset) into a [`TimeZone`], using
+    /// compiled time zone data.
+    #[cfg(feature = "compiled_data")]
+    #[must_use = "parsing returns the parsed time zone"]
+    pub fn parse_time_zone_identifier(&self) -> TemporalResult<TimeZone> {
+        self.parse_time_zone_identifier_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
+
+    /// Parses a `TimeZoneIdentifier` (IANA name or offset) into a [`TimeZone`].
+    #[must_use = "parsing returns the parsed time zone"]
+    pub fn parse_time_zone_identifier_with_provider(
+        &self,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> TemporalResult<TimeZone> {
+        let invalid = || TemporalError::range().with_message("Invalid TimeZone Identifier");
+        match TimeZoneParser::<T>::new(self.source)
+            .parse_identifier()
+            .map_err(|_| invalid())?
+        {
+            TimeZoneRecord::Name(name) => Ok(TimeZone::IanaIdentifier(
+                provider.get(&T::ascii_identifier(name)?)?,
+            )),
+            TimeZoneRecord::Offset(offset) => Ok(TimeZone::UtcOffset(
+                crate::UtcOffset::from_ixdtf_minute_record(offset),
+            )),
+            _ => Err(invalid()),
+        }
+    }
+
+    /// Resolves a [`TimeZone`] from any Temporal production that may carry one, using
+    /// compiled time zone data.
+    ///
+    /// This is the fallback half of `ParseTemporalTimeZoneString`, used after a bare
+    /// identifier parse fails.
+    #[cfg(feature = "compiled_data")]
+    #[must_use = "parsing returns the resolved time zone"]
+    pub fn parse_time_zone(&self) -> Option<TimeZone> {
+        self.parse_time_zone_with_provider(&*crate::builtins::TZ_PROVIDER)
+    }
+
+    /// Resolves a [`TimeZone`] from any Temporal production that may carry one.
+    ///
+    /// This is the fallback half of `ParseTemporalTimeZoneString`, used after a bare
+    /// identifier parse fails.
+    #[must_use = "parsing returns the resolved time zone"]
+    pub fn parse_time_zone_with_provider(
+        &self,
+        provider: &(impl TimeZoneProvider + ?Sized),
+    ) -> Option<TimeZone> {
+        time_zone::parse_allowed_timezone_formats::<T>(self.source, provider)
+    }
+
+    /// Parses a `TemporalCalendarString`, returning the identifier it names.
+    ///
+    /// `None` means the source named no calendar and so denotes `iso8601`.
+    ///
+    /// Per `ParseTemporalCalendarString`, the identifier is syntactically valid but
+    /// "not necessarily an existing one" — canonicalization is a separate step. Use
+    /// [`Self::parse_calendar`] unless you canonicalize differently from [`Calendar`].
+    #[must_use = "parsing returns the parsed identifier"]
+    pub fn parse_calendar_identifier(&self) -> Option<&'a [T::CodeUnit]> {
+        match parse_allowed_calendar_formats::<T>(self.source) {
+            // A dated production matched; its annotation, if any, is the identifier.
+            Some(annotation) => annotation,
+            // Nothing matched, so the whole source is a bare identifier.
+            None => Some(self.source),
+        }
+    }
+
+    /// Parses a `TemporalCalendarString` into a [`Calendar`].
+    ///
+    /// Every call site canonicalizes the parsed identifier immediately, with no
+    /// observable operation in between, so that happens here.
+    #[must_use = "parsing returns the parsed calendar"]
+    pub fn parse_calendar(&self) -> TemporalResult<Calendar> {
+        match self.parse_calendar_identifier() {
+            Some(id) => Calendar::try_from_utf8(&T::ascii_identifier(id)?),
+            None => Ok(Calendar::ISO),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -1060,5 +1505,84 @@ mod tests {
 
         let date = FormattableDate(-10_000, 12, 8);
         assert_writeable_eq!(date, "-010000-12-08");
+    }
+}
+
+#[cfg(test)]
+mod utf16_tests {
+    //! Proves the generic parse functions are genuinely encoding-generic: UTF-8
+    //! and UTF-16 encodings of the same source string parse to identical records.
+    use super::{parse_date_time_record, TemporalEncoding, Utf16, Utf8};
+    use alloc::vec::Vec;
+
+    fn utf16(s: &str) -> Vec<u16> {
+        s.encode_utf16().collect()
+    }
+
+    #[test]
+    fn date_time_parity() {
+        let s = "2024-07-19T15:43:12.5[America/New_York][u-ca=iso8601]";
+        let utf8 = parse_date_time_record::<Utf8>(s.as_bytes()).unwrap();
+        let wide = utf16(s);
+        let utf16_record = parse_date_time_record::<Utf16>(&wide).unwrap();
+
+        assert_eq!(utf8.date, utf16_record.date);
+        assert_eq!(utf8.time, utf16_record.time);
+        assert_eq!(utf8.offset, utf16_record.offset);
+        assert_eq!(utf8.calendar, Some(b"iso8601".as_slice()));
+        let utf16_calendar = Utf16::ascii_identifier(utf16_record.calendar.unwrap()).unwrap();
+        assert_eq!(&*utf16_calendar, b"iso8601".as_slice());
+        assert!(utf8.tz.is_some());
+        assert!(utf16_record.tz.is_some());
+    }
+
+    #[test]
+    fn multi_segment_calendar_id_parity() {
+        // `islamic-umalqura` is two dash-joined BCP-47 subtags, over 8 chars total.
+        let s = "2024-07-19[u-ca=islamic-umalqura]";
+        let utf8 = parse_date_time_record::<Utf8>(s.as_bytes()).unwrap();
+        let wide = utf16(s);
+        let utf16_record = parse_date_time_record::<Utf16>(&wide).unwrap();
+
+        assert_eq!(utf8.calendar, Some(b"islamic-umalqura".as_slice()));
+        let cal = utf16_record.calendar.unwrap();
+        let utf16_calendar = Utf16::ascii_identifier(cal).unwrap();
+        assert_eq!(&*utf16_calendar, b"islamic-umalqura".as_slice());
+    }
+
+    #[test]
+    fn calendar_identifier_parity() {
+        use super::TemporalParser;
+
+        // `None` denotes an absent annotation, i.e. an implicit `iso8601`.
+        for (s, expected) in [
+            ("2024-07", None),
+            ("--07-19", None),
+            ("T15:43:12", None),
+            ("2024-07-19[u-ca=hebrew]", Some(b"hebrew".as_slice())),
+            // No dated production matches, so the whole source is the identifier.
+            ("hebrew", Some(b"hebrew".as_slice())),
+        ] {
+            let expected = expected.map(<[u8]>::to_vec);
+            let wide = utf16(s);
+
+            let utf8 = TemporalParser::<Utf8>::from_utf8(s.as_bytes())
+                .parse_calendar_identifier()
+                .map(<[u8]>::to_vec);
+            let utf16_identifier = TemporalParser::<Utf16>::from_utf16(&wide)
+                .parse_calendar_identifier()
+                .map(|id| Utf16::ascii_identifier(id).unwrap().into_owned());
+
+            assert_eq!(utf8, expected, "{s}");
+            assert_eq!(utf16_identifier, expected, "{s}");
+        }
+    }
+
+    #[test]
+    fn invalid_input_errors_identically() {
+        let s = "2025-02-29"; // not a leap year
+        let wide = utf16(s);
+        assert!(parse_date_time_record::<Utf8>(s.as_bytes()).is_err());
+        assert!(parse_date_time_record::<Utf16>(&wide).is_err());
     }
 }

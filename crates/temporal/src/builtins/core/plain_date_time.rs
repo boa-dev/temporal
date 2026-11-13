@@ -5,7 +5,7 @@ use super::{
     ZonedDateTime,
 };
 use crate::error::ErrorMessage;
-use crate::parsed_intermediates::ParsedDateTime;
+use crate::parsers::intermediates::ParsedDateTime;
 use crate::{
     builtins::{
         calendar::CalendarFields,
@@ -594,6 +594,12 @@ impl PlainDateTime {
     // Converts a UTF-8 encoded string into a `PlainDateTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parsed = ParsedDateTime::from_utf8(s)?;
+        Self::from_parsed(parsed)
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainDateTime`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parsed = ParsedDateTime::from_utf16(s)?;
         Self::from_parsed(parsed)
     }
 

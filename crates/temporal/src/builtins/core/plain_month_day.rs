@@ -8,8 +8,9 @@ use crate::{
     error::ErrorMessage,
     iso::{IsoDate, IsoDateTime, IsoTime},
     options::{Disambiguation, DisplayCalendar, Overflow},
-    parsed_intermediates::ParsedDate,
-    parsers::{FormattableCalendar, FormattableDate, FormattableMonthDay},
+    parsers::{
+        intermediates::ParsedDate, FormattableCalendar, FormattableDate, FormattableMonthDay,
+    },
     provider::TimeZoneProvider,
     unix_time::EpochNanoseconds,
     Calendar, MonthCode, TemporalError, TemporalResult, TimeZone,
@@ -212,6 +213,12 @@ impl PlainMonthDay {
     // Converts a UTF-8 encoded string into a `PlainMonthDay`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
         let parsed = ParsedDate::month_day_from_utf8(s)?;
+        Self::from_parsed(parsed)
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainMonthDay`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        let parsed = ParsedDate::month_day_from_utf16(s)?;
         Self::from_parsed(parsed)
     }
 

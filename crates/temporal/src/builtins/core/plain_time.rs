@@ -12,7 +12,7 @@ use crate::{
         DifferenceOperation, DifferenceSettings, Overflow, ResolvedRoundingOptions,
         RoundingOptions, ToStringRoundingOptions, Unit, UnitGroup,
     },
-    parsers::{parse_time, IxdtfStringBuilder},
+    parsers::IxdtfStringBuilder,
     unix_time::EpochNanoseconds,
     TemporalError, TemporalResult,
 };
@@ -410,9 +410,12 @@ impl PlainTime {
 
     // Converts a UTF-8 encoded string into a `PlainTime`.
     pub fn from_utf8(s: &[u8]) -> TemporalResult<Self> {
-        let result = parse_time(s)?;
-        let iso = IsoTime::from_time_record(result)?;
-        Ok(Self::new_unchecked(iso))
+        crate::parsers::TemporalParser::from_utf8(s).parse_time()
+    }
+
+    /// Converts a UTF-16 encoded string into a `PlainTime`.
+    pub fn from_utf16(s: &[u16]) -> TemporalResult<Self> {
+        crate::parsers::TemporalParser::from_utf16(s).parse_time()
     }
 
     /// Creates a new `PlainTime` using the current `PlainTime` fields as a fallback.

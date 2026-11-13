@@ -95,7 +95,7 @@ pub mod ffi {
     }
 
     #[diplomat::opaque]
-    pub struct ParsedZonedDateTime(temporal::parsed_intermediates::ParsedZonedDateTime);
+    pub struct ParsedZonedDateTime(temporal::parsers::intermediates::ParsedZonedDateTime);
 
     impl ParsedZonedDateTime {
         #[cfg(feature = "compiled_data")]
@@ -107,7 +107,7 @@ pub mod ffi {
             p: &Provider<'p>,
         ) -> Result<Box<Self>, TemporalError> {
             with_provider!(p, |p| {
-                temporal::parsed_intermediates::ParsedZonedDateTime::from_utf8_with_provider(s, p)
+                temporal::parsers::intermediates::ParsedZonedDateTime::from_utf8_with_provider(s, p)
             })
             .map(|x| Box::new(ParsedZonedDateTime(x)))
             .map_err(Into::<TemporalError>::into)
@@ -125,7 +125,7 @@ pub mod ffi {
             let s = String::from_utf16(s).map_err(|_| temporal::TemporalError::range())?;
 
             with_provider!(p, |p| {
-                temporal::parsed_intermediates::ParsedZonedDateTime::from_utf8_with_provider(
+                temporal::parsers::intermediates::ParsedZonedDateTime::from_utf8_with_provider(
                     s.as_bytes(),
                     p,
                 )
