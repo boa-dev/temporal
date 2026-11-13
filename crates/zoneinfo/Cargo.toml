@@ -21,6 +21,7 @@ std = []
 unstable = []
 
 [dependencies]
+temporal_utils = { workspace = true }
 hashbrown = "0.16.0"
 indexmap = "2.11.4"
 

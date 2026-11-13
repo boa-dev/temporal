@@ -8,7 +8,6 @@ use crate::{
     parser::{next_split, ContextParse, LineParseContext, TryFromStr, ZoneInfoParseError},
     rule::epoch_days_for_rule_date,
     types::{rule::DayOfMonth, Month, QualifiedTime, Time},
-    utils,
 };
 
 /// The value in the `NAME` column of a zone table that identifies the
@@ -184,6 +183,6 @@ pub struct Date {
 impl Date {
     pub fn as_secs(&self) -> i64 {
         let epoch_days = epoch_days_for_rule_date(self.year, self.month, self.day);
-        utils::epoch_seconds_for_epoch_days(epoch_days)
+        temporal_utils::epoch_days_to_epoch_seconds(epoch_days)
     }
 }

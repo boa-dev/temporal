@@ -5,8 +5,9 @@ use crate::{
     },
     epoch_nanoseconds::EpochNanoseconds,
     provider::{GapEntryOffsets, TimeZoneProviderResult, UtcOffsetSeconds},
-    utils, TimeZoneProviderError,
+    TimeZoneProviderError,
 };
+use temporal_utils as utils;
 
 use tinystr::TinyAsciiStr;
 #[cfg(feature = "datagen")]

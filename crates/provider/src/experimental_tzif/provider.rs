@@ -14,8 +14,9 @@ use crate::{
         CandidateEpochNanoseconds, EpochNanosecondsAndOffset, GapEntryOffsets, ResolvedId,
         TimeZoneProviderResult, TimeZoneResolver, TransitionDirection, UtcOffsetSeconds,
     },
-    utils, TimeZoneProviderError,
+    TimeZoneProviderError,
 };
+use temporal_utils as utils;
 use zerofrom::ZeroFrom;
 
 #[derive(Debug, Default)]

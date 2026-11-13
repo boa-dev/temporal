@@ -1,9 +1,7 @@
 //! Common logic shared across TZif providers
 
-use crate::{
-    provider::{GapEntryOffsets, UtcOffsetSeconds},
-    utils,
-};
+use crate::provider::{GapEntryOffsets, UtcOffsetSeconds};
+use temporal_utils as utils;
 
 use core::ops::Range;
 
@@ -333,8 +331,7 @@ pub(crate) enum TransitionKind {
 
 #[cfg(all(test, any(feature = "tzif", feature = "experimental_tzif")))]
 mod tests {
-    use super::{Mwd, MwdForTime};
-    use crate::utils;
+    use super::{utils, Mwd, MwdForTime};
 
     #[test]
     fn mwd_ordering_matches_calendar_days_across_solar_cycle() {
